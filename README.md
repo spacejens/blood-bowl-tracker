@@ -2,7 +2,7 @@
 
 A set of tools for tracking Blood Bowl games, teams, and players.
 
-New to the project? Start with the [glossary](docs/glossary.md).
+New to the project? Start with the [glossary](docs/glossary.md) and [spec conventions](docs/spec-conventions.md).
 
 ## Repository structure
 
@@ -11,6 +11,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 | Folder | Purpose |
 |--------|---------|
 | `apps/` | Runnable applications deployed or distributed to end users |
+| `docs/` | Specifications, glossary, and domain documentation |
 | `packages/` | Shared library packages consumed by apps (not standalone) |
 | `tools/` | Developer tooling and scripts not shipped as part of any app |
 
