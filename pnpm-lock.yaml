@@ -118,6 +118,58 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@24.13.2)(terser@5.48.0)
 
+  packages/api-server:
+    dependencies:
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../db
+      '@nestjs/common':
+        specifier: ^11.0.1
+        version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: ^11.0.1
+        version: 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.27)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@ts-rest/nest':
+        specifier: ^3.52.1
+        version: 3.52.1(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@ts-rest/core@3.52.1(@types/node@24.13.2)(zod@3.25.76))(rxjs@7.8.2)(zod@3.25.76)
+      drizzle-orm:
+        specifier: rc
+        version: 1.0.0-rc.4(postgres@3.4.9)(zod@3.25.76)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+      rxjs:
+        specifier: ^7.8.1
+        version: 7.8.2
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.0.1
+        version: 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@nestjs/platform-express@11.1.27)
+      '@swc/core':
+        specifier: ^1.15.43
+        version: 1.15.43
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.2
+      '@vitest/coverage-v8':
+        specifier: ^2.0.0
+        version: 2.1.9(vitest@2.1.9(@types/node@24.13.2)(terser@5.48.0))
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      unplugin-swc:
+        specifier: ^1.5.9
+        version: 1.5.9(@swc/core@1.15.43)(rollup@4.62.2)
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@24.13.2)(terser@5.48.0)
+
   packages/db:
     dependencies:
       drizzle-orm:
@@ -1102,6 +1154,18 @@ packages:
     peerDependenciesMeta:
       '@types/node':
         optional: true
+      zod:
+        optional: true
+
+  '@ts-rest/nest@3.52.1':
+    resolution: {integrity: sha512-6Abk9tRu0yxBv6PORAU6RIRizRQTQow7VeZ41j9vfEXXYUcR6DnkltGVIGSBepkg50wwJ9ygr0fplwNoWUUkBw==}
+    peerDependencies:
+      '@nestjs/common': ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/core': ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@ts-rest/core': ~3.52.0
+      rxjs: ^7.1.0
+      zod: ^3.22.3
+    peerDependenciesMeta:
       zod:
         optional: true
 
@@ -3836,6 +3900,15 @@ snapshots:
   '@ts-rest/core@3.52.1(@types/node@24.13.2)(zod@3.25.76)':
     optionalDependencies:
       '@types/node': 24.13.2
+      zod: 3.25.76
+
+  '@ts-rest/nest@3.52.1(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@ts-rest/core@3.52.1(@types/node@24.13.2)(zod@3.25.76))(rxjs@7.8.2)(zod@3.25.76)':
+    dependencies:
+      '@nestjs/common': 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.27)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@ts-rest/core': 3.52.1(@types/node@24.13.2)(zod@3.25.76)
+      rxjs: 7.8.2
+    optionalDependencies:
       zod: 3.25.76
 
   '@tsconfig/node10@1.0.12': {}
