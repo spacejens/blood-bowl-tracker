@@ -29,7 +29,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 
 ### Tools
 
-_(none yet)_
+- **`tools/import-bbl`** — CLI tool for importing data from BBL (Blood Bowl Legend) exports into the tracker via the api-client
 
 ## Getting started
 

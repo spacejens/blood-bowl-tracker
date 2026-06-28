@@ -1,0 +1,21 @@
+{
+  "name": "@blood-bowl-tracker/import-bbl",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@blood-bowl-tracker/api-client": "workspace:*",
+    "@blood-bowl-tracker/import": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^2.0.0"
+  }
+}
