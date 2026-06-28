@@ -4,13 +4,25 @@ Definitions of all named concepts used in this project. See [spec-conventions.md
 
 ---
 
+## Coach
+
+The person who manages and controls a [team](#team), making decisions during [matches](#match) and between them (roster changes, treasury spending, etc.).
+
 ## Casualty
 
 A player who has been seriously injured or killed during a match, removing them from the current game and potentially affecting future matches.
 
+## Cup
+
+A short competitive event — typically played out over a weekend — in which [teams](#team) compete for a trophy. Similar to a [season](#season) but condensed in time. A [league](#league) may include multiple cups alongside its seasons.
+
 ## Drive
 
 A period of play that begins with a kick-off and ends when a [touchdown](#touchdown) is scored or the current [half](#half) ends. Each [half](#half) may contain multiple drives.
+
+## Era
+
+A period of time during which a [league](#league) used a particular [rules set](#rules-set). A league may have multiple eras, and in some cases eras for different rules sets may overlap (e.g. when different groups within the league play under different rules simultaneously).
 
 ## Half
 
@@ -22,7 +34,7 @@ A temporary hire, piece of equipment, or other advantage that a team purchases b
 
 ## League
 
-An organized competition in which a fixed group of [teams](#team) play [matches](#match) against each other over a [season](#season), accumulating standings.
+An organized competition in which a group of [teams](#team) play [matches](#match) against each other, accumulating standings. A league spans multiple [seasons](#season) and [cups](#cup), and may be divided into [eras](#era) when the [rules set](#rules-set) changes.
 
 ## Match
 
@@ -44,6 +56,10 @@ The species or faction a [team](#team) belongs to (e.g. Humans, Orcs, Elves). Ra
 
 The list of [players](#player) registered to a [team](#team). In a [league](#league), rosters persist between [matches](#match) and grow as players gain experience or are replaced.
 
+## Rules Set
+
+A specific published edition or version of the Blood Bowl rules (e.g. Second Season Edition, Death Zone). The [rules set](#rules-set) in use for a [league](#league) during a given period is captured by an [era](#era).
+
 ## Season
 
 A complete round of competition within a [league](#league), after which standings are resolved and a winner is determined.
@@ -54,7 +70,7 @@ Experience points earned by individual [players](#player) during [matches](#matc
 
 ## Team
 
-A named group of [players](#player) belonging to a single [race](#race), managed by one coach. Teams participate in [matches](#match) and, in a [league](#league), persist with their [roster](#roster) and treasury between [matches](#match).
+A named group of [players](#player) belonging to a single [race](#race), managed by one [coach](#coach). Teams participate in [matches](#match) and, in a [league](#league), persist with their [roster](#roster) and treasury between [matches](#match).
 
 ## Touchdown
 
