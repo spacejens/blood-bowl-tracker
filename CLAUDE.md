@@ -13,7 +13,7 @@ After making any change requested by the user, create a git commit with a messag
 - **Runtime:** Node.js (managed via nvm; activate with `source ~/.nvm/nvm.sh`)
 - **Package manager:** pnpm 11 with workspaces (`pnpm-workspace.yaml`)
 - **Apps:** NestJS 11 on Express, TypeScript
-- **Testing:** Jest with `ts-jest`
+- **Testing:** Vitest
 
 ## Commands
 
@@ -36,7 +36,7 @@ pnpm run test:cov     # unit tests with coverage report
 pnpm run lint         # ESLint with auto-fix
 ```
 
-Run a single test file: `pnpm exec jest src/path/to/file.spec.ts`
+Run a single test file: `pnpm exec vitest run src/path/to/file.spec.ts`
 
 ## NestJS conventions
 

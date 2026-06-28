@@ -8,6 +8,7 @@ Overview of the technical stack and package structure for this project.
 - **Application framework:** NestJS 11 on Express
 - **Database:** PostgreSQL, accessed via Drizzle ORM (v1.0, currently pre-release)
 - **API contract:** [ts-rest](https://ts-rest.com/) — a typed route contract shared between server and client, enforced at compile time
+- **Testing:** Vitest
 - **Package manager:** pnpm 11 with workspaces
 - **Deployment:** Docker, with a root `compose.yaml` for local development
 
