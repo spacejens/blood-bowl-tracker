@@ -2,6 +2,8 @@
 
 A set of tools for tracking Blood Bowl games, teams, and players.
 
+New to the project? Start with the [glossary](docs/glossary.md).
+
 ## Repository structure
 
 This is a pnpm monorepo with three top-level workspace folders:
