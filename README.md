@@ -2,7 +2,7 @@
 
 A set of tools for tracking Blood Bowl games, teams, and players.
 
-New to the project? Start with the [glossary](docs/glossary.md) and [spec conventions](docs/spec-conventions.md).
+New to the project? Start with the [glossary](docs/glossary.md), [spec conventions](docs/spec-conventions.md), and [architecture](docs/architecture.md).
 
 ## Repository structure
 
