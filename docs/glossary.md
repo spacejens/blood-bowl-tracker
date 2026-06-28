@@ -40,6 +40,10 @@ An organized competition in which a group of [teams](#team) play [matches](#matc
 
 A single game of Blood Bowl played between two [teams](#team). Consists of two [halves](#half).
 
+## Match Event
+
+A noteworthy occurrence during a [match](#match), such as a [touchdown](#touchdown) or [casualty](#casualty) being scored. Match events are the primary unit of data recorded during a game.
+
 ## Player
 
 An individual on a [team](#team). Each player has a [race](#race)-specific [position](#position), a set of skills, and personal statistics that persist across [matches](#match).
