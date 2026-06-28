@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ApiServerModule } from '@blood-bowl-tracker/api-server';
 
 @Module({
-  imports: [],
+  imports: [ApiServerModule],
   controllers: [AppController],
   providers: [AppService],
 })
