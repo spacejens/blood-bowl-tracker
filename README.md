@@ -26,6 +26,18 @@ _(none yet)_
 
 ## Getting started
 
+### Prerequisites
+
+- [Claude Code](https://claude.ai/code) — the AI coding assistant used for development in this project
+- [Superpowers plugin](https://www.claudepluginhub.com/plugins/obra-superpowers-2) — extends Claude Code with additional skills (`/brainstorm`, `/writing-plans`, etc.)
+
+  Install it once with:
+  ```bash
+  npx claudepluginhub obra/superpowers --plugin superpowers
+  ```
+
+### Dependencies
+
 ```bash
 pnpm install          # install all workspace dependencies
 pnpm build            # build all workspaces
