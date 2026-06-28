@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/index.js",
+  "bin": { "import-bbl": "dist/index.js" },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",

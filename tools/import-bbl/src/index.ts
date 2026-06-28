@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { readFileSync } from 'node:fs';
 import { createApiClient } from '@blood-bowl-tracker/api-client';
 import { parseBblExport } from './bbl-parser';

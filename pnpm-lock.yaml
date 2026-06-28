@@ -226,6 +226,25 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@24.13.2)(terser@5.48.0)
 
+  tools/import-bbl:
+    dependencies:
+      '@blood-bowl-tracker/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
+      '@blood-bowl-tracker/import':
+        specifier: workspace:*
+        version: link:../../packages/import
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.2
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@24.13.2)(terser@5.48.0)
+
 packages:
 
   '@ampproject/remapping@2.3.0':
