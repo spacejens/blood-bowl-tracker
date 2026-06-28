@@ -26,3 +26,6 @@ yarn-error.log*
 .temp/
 .tmp/
 tmp/
+
+# Implementation plans (ephemeral; not useful in git history)
+docs/plans/
