@@ -5,7 +5,7 @@ export const TeamSchema = z.object({
   name: z.string(),
   race: z.string(),
   coach: z.string(),
-  createdAt: z.date(),
+  createdAt: z.coerce.date(),
 });
 
 export const CreateTeamSchema = z.object({

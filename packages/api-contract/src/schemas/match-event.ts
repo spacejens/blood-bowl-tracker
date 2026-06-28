@@ -6,7 +6,7 @@ export const MatchEventSchema = z.object({
   type: z.string(),
   teamId: z.number(),
   playerId: z.number().nullable(),
-  createdAt: z.date(),
+  createdAt: z.coerce.date(),
 });
 
 export const CreateMatchEventSchema = z.object({

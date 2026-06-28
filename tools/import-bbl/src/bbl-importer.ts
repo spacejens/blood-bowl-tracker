@@ -1,5 +1,5 @@
 import { makeImportError, makeImportResult } from '@blood-bowl-tracker/import';
-import type { ImportResult } from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import type { BblExport } from './bbl-types';
 
@@ -8,7 +8,7 @@ export async function importBblData(
   client: ApiClient,
 ): Promise<ImportResult> {
   let imported = 0;
-  const errors = [];
+  const errors: ImportError[] = [];
 
   for (const team of data.teams) {
     const response = await client.teams.create({

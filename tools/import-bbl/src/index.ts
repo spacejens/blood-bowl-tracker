@@ -18,7 +18,7 @@ const client = createApiClient(baseUrl);
 
 importBblData(data, client).then((result) => {
   if (result.success) {
-    console.log(`Imported ${result.imported} records successfully.`);
+    console.log(`Imported ${result.imported} team(s) successfully.`);
   } else {
     console.error(`Import completed with ${result.errors.length} errors:`);
     result.errors.forEach((e) => console.error(`  - ${e.message}`));
