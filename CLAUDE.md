@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 See `README.md` for a description of what this project is and how the repository is structured.
 
+## Workflow
+
+After making any change requested by the user, create a git commit with a message explaining what was changed and why.
+
 ## Technology stack
 
 - **Runtime:** Node.js (managed via nvm; activate with `source ~/.nvm/nvm.sh`)
