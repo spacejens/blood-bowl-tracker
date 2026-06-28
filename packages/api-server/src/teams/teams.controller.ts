@@ -8,7 +8,7 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @TsRestHandler(contract.teams)
-  async handler() {
+  async handler(): Promise<any> {
     return tsRestHandler(contract.teams, {
       list: async () => ({
         status: 200 as const,

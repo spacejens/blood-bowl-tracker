@@ -8,7 +8,7 @@ export class MatchEventsController {
   constructor(private readonly matchEventsService: MatchEventsService) {}
 
   @TsRestHandler(contract.matchEvents)
-  async handler() {
+  async handler(): Promise<any> {
     return tsRestHandler(contract.matchEvents, {
       listByMatch: async ({ params: { matchId } }) => ({
         status: 200 as const,
