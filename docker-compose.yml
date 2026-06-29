@@ -1,6 +1,8 @@
 services:
   discord-bot:
-    build: .
+    build:
+      context: .
+      dockerfile: apps/discord-bot/Dockerfile
     ports:
       - "3000:3000"
     environment:
