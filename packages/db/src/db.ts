@@ -6,7 +6,9 @@ import { join } from 'node:path';
 export async function createDb(url: string) {
   const client = postgres(url);
   const db = drizzle({ client });
+  console.log('[db] Running migrations...');
   await migrate(db, { migrationsFolder: join(__dirname, '../migrations') });
+  console.log('[db] Migrations complete.');
   return db;
 }
 
