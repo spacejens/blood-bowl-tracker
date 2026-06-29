@@ -19,6 +19,8 @@ services:
       POSTGRES_DB: blood_bowl
       POSTGRES_USER: blood_bowl
       POSTGRES_PASSWORD: blood_bowl
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:

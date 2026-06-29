@@ -80,3 +80,9 @@ docker compose down -v      # also remove the postgres data volume
 ```
 
 The HTTP API is available at `http://localhost:3000` once the services are up.
+
+The database is exposed on host port 5433 (not 5432, to avoid conflicts with any local Postgres installation). Connect with `psql`:
+
+```bash
+psql postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl
+```
