@@ -2,8 +2,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { matches } from '@blood-bowl-tracker/db';
 import type { Match, NewMatch } from '@blood-bowl-tracker/db';
-import { DB } from '../db/db.module';
-import type { Db } from '../db/db.module';
+import { DB } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
 
 @Injectable()
 export class MatchesService {

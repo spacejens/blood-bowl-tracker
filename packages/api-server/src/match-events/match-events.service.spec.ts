@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { MatchEventsService } from './match-events.service';
-import { DB } from '../db/db.module';
+import { DB } from '@blood-bowl-tracker/db';
 
 const fakeEvent = {
   id: 1,

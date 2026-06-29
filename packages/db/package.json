@@ -14,8 +14,10 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@nestjs/common": "^11.0.1",
     "drizzle-orm": "rc",
-    "postgres": "^3.4.9"
+    "postgres": "^3.4.9",
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

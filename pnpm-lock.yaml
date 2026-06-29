@@ -194,12 +194,18 @@ importers:
 
   packages/db:
     dependencies:
+      '@nestjs/common':
+        specifier: ^11.0.1
+        version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
       drizzle-orm:
         specifier: rc
         version: 1.0.0-rc.4(postgres@3.4.9)(zod@3.25.76)
       postgres:
         specifier: ^3.4.9
         version: 3.4.9
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
