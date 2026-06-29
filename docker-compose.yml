@@ -1,5 +1,6 @@
 services:
   discord-bot:
+    container_name: discord-bot
     build:
       context: .
       dockerfile: apps/discord-bot/Dockerfile
@@ -14,6 +15,7 @@ services:
         condition: service_healthy
 
   postgres:
+    container_name: postgres
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: blood_bowl
