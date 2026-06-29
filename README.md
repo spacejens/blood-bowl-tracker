@@ -62,6 +62,8 @@ pnpm run test:e2e     # e2e tests
 
 ### Running with Docker Compose
 
+> **Note:** The Docker Compose setup is intended for local development and testing of the production build. The Docker images themselves are designed for future production/public deployment — the Compose file is just a convenient way to run them locally.
+
 `docker-compose.yml` defines two services:
 
 | Service | Description |
