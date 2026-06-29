@@ -1,8 +1,9 @@
-import { pgTable, serial, varchar, integer, date, timestamp } from 'drizzle-orm/pg-core';
+import { serial, varchar, integer, date, timestamp } from 'drizzle-orm/pg-core';
+import { gameData } from './pg-schema';
 import { leagues } from './leagues';
 import { rulesSets } from './rules-sets';
 
-export const eras = pgTable('eras', {
+export const eras = gameData.table('eras', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   leagueId: integer('league_id').references(() => leagues.id).notNull(),

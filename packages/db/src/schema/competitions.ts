@@ -1,9 +1,10 @@
-import { pgTable, serial, varchar, integer, timestamp, pgEnum } from 'drizzle-orm/pg-core';
+import { serial, varchar, integer, timestamp } from 'drizzle-orm/pg-core';
+import { gameData } from './pg-schema';
 import { eras } from './eras';
 
-export const competitionTypeEnum = pgEnum('competition_type', ['season', 'cup']);
+export const competitionTypeEnum = gameData.enum('competition_type', ['season', 'cup']);
 
-export const competitions = pgTable('competitions', {
+export const competitions = gameData.table('competitions', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   type: competitionTypeEnum('type').notNull(),

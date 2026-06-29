@@ -1,3 +1,4 @@
+export * from './pg-schema';
 export * from './coaches';
 export * from './competition-teams';
 export * from './competitions';

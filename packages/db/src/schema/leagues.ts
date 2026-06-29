@@ -1,6 +1,7 @@
-import { pgTable, serial, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { serial, varchar, timestamp } from 'drizzle-orm/pg-core';
+import { gameData } from './pg-schema';
 
-export const leagues = pgTable('leagues', {
+export const leagues = gameData.table('leagues', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
