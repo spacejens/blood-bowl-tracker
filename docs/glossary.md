@@ -12,9 +12,13 @@ The person who manages and controls a [team](#team), making decisions during [ma
 
 A player who has been seriously injured or killed during a match, removing them from the current game and potentially affecting future matches.
 
+## Competition
+
+An organized event in which [teams](#team) compete against each other within a [league](#league). [Seasons](#season) and [cups](#cup) are the two subtypes of competition. A league consists of multiple competitions.
+
 ## Cup
 
-A short competitive event — typically played out over a weekend — in which [teams](#team) compete for a trophy. Similar to a [season](#season) but condensed in time. A [league](#league) may include multiple cups alongside its seasons.
+A subtype of [competition](#competition) — a short competitive event typically played out over a weekend, in which [teams](#team) compete for a trophy.
 
 ## Drive
 
@@ -34,7 +38,7 @@ A temporary hire, piece of equipment, or other advantage that a team purchases b
 
 ## League
 
-An organized competition in which a group of [teams](#team) play [matches](#match) against each other, accumulating standings. A league spans multiple [seasons](#season) and [cups](#cup), and may be divided into [eras](#era) when the [rules set](#rules-set) changes.
+An organized group of [teams](#team) that play [matches](#match) against each other over multiple [competitions](#competition). A league may be divided into [eras](#era) when the [rules set](#rules-set) changes.
 
 ## Match
 
@@ -66,7 +70,7 @@ A specific published edition or version of the Blood Bowl rules (e.g. Second Sea
 
 ## Season
 
-A complete round of competition within a [league](#league), after which standings are resolved and a winner is determined.
+A subtype of [competition](#competition) — a complete round of play within a [league](#league), after which standings are resolved and a winner is determined.
 
 ## Star Player Points (SPP)
 
