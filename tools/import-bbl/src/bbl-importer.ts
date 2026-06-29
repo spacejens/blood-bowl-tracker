@@ -5,20 +5,19 @@ import type { BblExport } from './bbl-types';
 
 export async function importBblData(
   data: BblExport,
-  client: ApiClient,
+  _client: ApiClient,
 ): Promise<ImportResult> {
   let imported = 0;
   const errors: ImportError[] = [];
 
   for (const team of data.teams) {
-    const response = await client.teams.create({
-      body: { name: team.name, race: team.race, coach: team.coachName },
-    });
-    if (response.status === 201) {
-      imported++;
-    } else {
-      errors.push(makeImportError({ item: team, message: `Failed to import team "${team.name}"` }));
-    }
+    // Team creation now requires raceId and coachId (numeric IDs from the races and coaches
+    // tables), but BBL source data only provides string names. Implement race/coach
+    // lookup/creation once the corresponding API endpoints are available.
+    errors.push(makeImportError({
+      item: team,
+      message: `Team import not yet implemented: requires race and coach ID resolution for "${team.name}"`,
+    }));
   }
 
   return makeImportResult({ imported, errors });

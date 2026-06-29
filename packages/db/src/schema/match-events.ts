@@ -1,14 +1,16 @@
 import { pgTable, serial, integer, varchar, timestamp } from 'drizzle-orm/pg-core';
 import { matches } from './matches';
-import { teams } from './teams';
 import { players } from './players';
+import { teams } from './teams';
 
 export const matchEvents = pgTable('match_events', {
   id: serial('id').primaryKey(),
   matchId: integer('match_id').references(() => matches.id).notNull(),
   type: varchar('type', { length: 100 }).notNull(),
-  teamId: integer('team_id').references(() => teams.id).notNull(),
-  playerId: integer('player_id').references(() => players.id),
+  actingTeamId: integer('acting_team_id').references(() => teams.id),
+  consequenceTeamId: integer('consequence_team_id').references(() => teams.id),
+  actingPlayerId: integer('acting_player_id').references(() => players.id),
+  consequencePlayerId: integer('consequence_player_id').references(() => players.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

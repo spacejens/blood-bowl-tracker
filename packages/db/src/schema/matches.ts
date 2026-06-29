@@ -1,10 +1,9 @@
 import { pgTable, serial, integer, timestamp } from 'drizzle-orm/pg-core';
-import { teams } from './teams';
+import { competitions } from './competitions';
 
 export const matches = pgTable('matches', {
   id: serial('id').primaryKey(),
-  homeTeamId: integer('home_team_id').references(() => teams.id).notNull(),
-  awayTeamId: integer('away_team_id').references(() => teams.id).notNull(),
+  competitionId: integer('competition_id').references(() => competitions.id).notNull(),
   playedAt: timestamp('played_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

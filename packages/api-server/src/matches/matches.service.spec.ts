@@ -5,8 +5,7 @@ import { DB } from '../db/db.module';
 
 const fakeMatch = {
   id: 1,
-  homeTeamId: 1,
-  awayTeamId: 2,
+  competitionId: 1,
   playedAt: new Date('2026-01-15'),
   createdAt: new Date('2026-01-15'),
 };
@@ -42,10 +41,9 @@ describe('MatchesService', () => {
 
   it('create inserts and returns the new match', async () => {
     const result = await service.create({
-      homeTeamId: 1,
-      awayTeamId: 2,
+      competitionId: 1,
       playedAt: new Date('2026-01-15'),
     });
-    expect(result.homeTeamId).toBe(1);
+    expect(result.competitionId).toBe(1);
   });
 });

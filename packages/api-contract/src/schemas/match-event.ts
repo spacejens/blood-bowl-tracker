@@ -4,16 +4,20 @@ export const MatchEventSchema = z.object({
   id: z.number(),
   matchId: z.number(),
   type: z.string(),
-  teamId: z.number(),
-  playerId: z.number().nullable(),
+  actingTeamId: z.number().nullable(),
+  consequenceTeamId: z.number().nullable(),
+  actingPlayerId: z.number().nullable(),
+  consequencePlayerId: z.number().nullable(),
   createdAt: z.coerce.date(),
 });
 
 export const CreateMatchEventSchema = z.object({
   matchId: z.number(),
   type: z.string().min(1),
-  teamId: z.number(),
-  playerId: z.number().optional(),
+  actingTeamId: z.number().int().optional(),
+  consequenceTeamId: z.number().int().optional(),
+  actingPlayerId: z.number().int().optional(),
+  consequencePlayerId: z.number().int().optional(),
 });
 
 export type MatchEvent = z.infer<typeof MatchEventSchema>;

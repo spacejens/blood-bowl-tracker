@@ -6,8 +6,8 @@ import { DB } from '../db/db.module';
 const fakeTeam = {
   id: 1,
   name: 'Orcland Raiders',
-  race: 'Orc',
-  coach: 'Coach Grumpf',
+  raceId: 1,
+  coachId: 1,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -41,7 +41,7 @@ describe('TeamsService', () => {
   });
 
   it('create inserts and returns the new team', async () => {
-    const result = await service.create({ name: 'Orcland Raiders', race: 'Orc', coach: 'Coach Grumpf' });
+    const result = await service.create({ name: 'Orcland Raiders', raceId: 1, coachId: 1 });
     expect(result.name).toBe('Orcland Raiders');
   });
 });

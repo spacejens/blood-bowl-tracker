@@ -1,0 +1,1315 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "51bc7209-6100-48fe-a170-11ddd53b72f6",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "values": [
+        "season",
+        "cup"
+      ],
+      "name": "competition_type",
+      "entityType": "enums",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "coaches",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "competition_teams",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "competitions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "eras",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "leagues",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "match_events",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "match_teams",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "matches",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "players",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "positions",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "race_rules_sets",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "races",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "rules_sets",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "teams",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "coaches"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "coaches"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "coaches"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "competition_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competition_teams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competition_teams"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "type": "competition_type",
+      "typeSchema": "public",
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "era_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "league_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rules_set_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "start_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "date",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "end_date",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leagues"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leagues"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "leagues"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "varchar(100)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "acting_team_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "consequence_team_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "acting_player_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": false,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "consequence_player_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "match_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_teams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "match_teams"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "matches"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "competition_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "matches"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "played_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "matches"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "matches"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "position_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "positions"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "positions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "race_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "positions"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "positions"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "race_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "race_rules_sets"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "rules_set_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "race_rules_sets"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "races"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "races"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "races"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rules_sets"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rules_sets"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "rules_sets"
+    },
+    {
+      "type": "serial",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "type": "varchar(255)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "race_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "coach_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "type": "timestamp",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "competition_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "competitions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "competition_teams_competition_id_competitions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "competition_teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "team_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "competition_teams_team_id_teams_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "competition_teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "era_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "eras",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "competitions_era_id_eras_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "competitions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "league_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "leagues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "eras_league_id_leagues_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "rules_set_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "rules_sets",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "eras_rules_set_id_rules_sets_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "eras"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "match_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_events_match_id_matches_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "acting_team_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_events_acting_team_id_teams_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "consequence_team_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_events_consequence_team_id_teams_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "acting_player_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "players",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_events_acting_player_id_players_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "consequence_player_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "players",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_events_consequence_player_id_players_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_events"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "match_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "matches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_teams_match_id_matches_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "team_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "match_teams_team_id_teams_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "match_teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "competition_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "competitions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "matches_competition_id_competitions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "matches"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "team_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "teams",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "players_team_id_teams_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "position_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "positions",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "players_position_id_positions_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "players"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "race_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "races",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "positions_race_id_races_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "positions"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "race_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "races",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "race_rules_sets_race_id_races_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "race_rules_sets"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "rules_set_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "rules_sets",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "race_rules_sets_rules_set_id_rules_sets_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "race_rules_sets"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "race_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "races",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "teams_race_id_races_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "coach_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "coaches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "teams_coach_id_coaches_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "teams"
+    },
+    {
+      "columns": [
+        "competition_id",
+        "team_id"
+      ],
+      "nameExplicit": false,
+      "name": "competition_teams_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "competition_teams"
+    },
+    {
+      "columns": [
+        "match_id",
+        "team_id"
+      ],
+      "nameExplicit": false,
+      "name": "match_teams_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "match_teams"
+    },
+    {
+      "columns": [
+        "race_id",
+        "rules_set_id"
+      ],
+      "nameExplicit": false,
+      "name": "race_rules_sets_pkey",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "race_rules_sets"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "coaches_pkey",
+      "schema": "public",
+      "table": "coaches",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "competitions_pkey",
+      "schema": "public",
+      "table": "competitions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "eras_pkey",
+      "schema": "public",
+      "table": "eras",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "leagues_pkey",
+      "schema": "public",
+      "table": "leagues",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "match_events_pkey",
+      "schema": "public",
+      "table": "match_events",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "matches_pkey",
+      "schema": "public",
+      "table": "matches",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "players_pkey",
+      "schema": "public",
+      "table": "players",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "positions_pkey",
+      "schema": "public",
+      "table": "positions",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "races_pkey",
+      "schema": "public",
+      "table": "races",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "rules_sets_pkey",
+      "schema": "public",
+      "table": "rules_sets",
+      "entityType": "pks"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "teams_pkey",
+      "schema": "public",
+      "table": "teams",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

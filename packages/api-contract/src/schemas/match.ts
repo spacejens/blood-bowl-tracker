@@ -2,15 +2,13 @@ import { z } from 'zod';
 
 export const MatchSchema = z.object({
   id: z.number(),
-  homeTeamId: z.number(),
-  awayTeamId: z.number(),
+  competitionId: z.number(),
   playedAt: z.coerce.date(),
   createdAt: z.coerce.date(),
 });
 
 export const CreateMatchSchema = z.object({
-  homeTeamId: z.number(),
-  awayTeamId: z.number(),
+  competitionId: z.number().int(),
   playedAt: z.coerce.date(),
 });
 
