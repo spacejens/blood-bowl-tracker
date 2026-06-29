@@ -41,6 +41,7 @@ COPY --from=builder /build/apps/discord-bot/dist ./apps/discord-bot/dist
 COPY --from=builder /build/packages/api-contract/dist ./packages/api-contract/dist
 COPY --from=builder /build/packages/api-server/dist ./packages/api-server/dist
 COPY --from=builder /build/packages/db/dist ./packages/db/dist
+COPY --from=builder /build/packages/db/migrations ./packages/db/migrations
 
 ENV NODE_ENV=production
 EXPOSE 3000

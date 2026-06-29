@@ -10,7 +10,7 @@ export type { Db };
   providers: [
     {
       provide: DB,
-      useFactory: () => createDb(process.env.DATABASE_URL!),
+      useFactory: async () => createDb(process.env.DATABASE_URL!),
     },
   ],
   exports: [DB],
