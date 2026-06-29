@@ -7,7 +7,7 @@ export const players = pgTable('players', {
   name: varchar('name', { length: 255 }).notNull(),
   teamId: integer('team_id').references(() => teams.id).notNull(),
   positionId: integer('position_id').references(() => positions.id).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type Player = typeof players.$inferSelect;

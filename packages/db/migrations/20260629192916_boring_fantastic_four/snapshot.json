@@ -1,7 +1,7 @@
 {
   "version": "8",
   "dialect": "postgres",
-  "id": "51bc7209-6100-48fe-a170-11ddd53b72f6",
+  "id": "1621d9db-2303-4cfc-90d9-bf251cb430a7",
   "prevIds": [
     "00000000-0000-0000-0000-000000000000"
   ],
@@ -126,7 +126,7 @@
       "table": "coaches"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -217,7 +217,7 @@
       "table": "competitions"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -308,7 +308,7 @@
       "table": "eras"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -347,7 +347,7 @@
       "table": "leagues"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -451,7 +451,7 @@
       "table": "match_events"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -516,7 +516,7 @@
       "table": "matches"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -529,7 +529,7 @@
       "table": "matches"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -594,7 +594,7 @@
       "table": "players"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -646,7 +646,7 @@
       "table": "positions"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -711,7 +711,7 @@
       "table": "races"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -750,7 +750,7 @@
       "table": "rules_sets"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,
@@ -815,7 +815,7 @@
       "table": "teams"
     },
     {
-      "type": "timestamp",
+      "type": "timestamp with time zone",
       "typeSchema": null,
       "notNull": true,
       "dimensions": 0,

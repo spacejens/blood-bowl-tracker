@@ -8,7 +8,7 @@ export const competitions = pgTable('competitions', {
   name: varchar('name', { length: 255 }).notNull(),
   type: competitionTypeEnum('type').notNull(),
   eraId: integer('era_id').references(() => eras.id).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type Competition = typeof competitions.$inferSelect;

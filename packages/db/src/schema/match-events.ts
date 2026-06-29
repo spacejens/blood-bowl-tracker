@@ -11,7 +11,7 @@ export const matchEvents = pgTable('match_events', {
   consequenceTeamId: integer('consequence_team_id').references(() => teams.id),
   actingPlayerId: integer('acting_player_id').references(() => players.id),
   consequencePlayerId: integer('consequence_player_id').references(() => players.id),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type MatchEvent = typeof matchEvents.$inferSelect;

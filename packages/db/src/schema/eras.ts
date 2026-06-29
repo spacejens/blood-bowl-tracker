@@ -9,7 +9,7 @@ export const eras = pgTable('eras', {
   rulesSetId: integer('rules_set_id').references(() => rulesSets.id).notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type Era = typeof eras.$inferSelect;

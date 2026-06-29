@@ -2,7 +2,7 @@ CREATE TYPE "competition_type" AS ENUM('season', 'cup');--> statement-breakpoint
 CREATE TABLE "coaches" (
 	"id" serial PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "competition_teams" (
@@ -16,7 +16,7 @@ CREATE TABLE "competitions" (
 	"name" varchar(255) NOT NULL,
 	"type" "competition_type" NOT NULL,
 	"era_id" integer NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "eras" (
@@ -26,13 +26,13 @@ CREATE TABLE "eras" (
 	"rules_set_id" integer NOT NULL,
 	"start_date" date NOT NULL,
 	"end_date" date,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "leagues" (
 	"id" serial PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "match_events" (
@@ -43,7 +43,7 @@ CREATE TABLE "match_events" (
 	"consequence_team_id" integer,
 	"acting_player_id" integer,
 	"consequence_player_id" integer,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "match_teams" (
@@ -55,8 +55,8 @@ CREATE TABLE "match_teams" (
 CREATE TABLE "matches" (
 	"id" serial PRIMARY KEY,
 	"competition_id" integer NOT NULL,
-	"played_at" timestamp NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"played_at" timestamp with time zone NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "players" (
@@ -64,14 +64,14 @@ CREATE TABLE "players" (
 	"name" varchar(255) NOT NULL,
 	"team_id" integer NOT NULL,
 	"position_id" integer NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "positions" (
 	"id" serial PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
 	"race_id" integer NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "race_rules_sets" (
@@ -83,13 +83,13 @@ CREATE TABLE "race_rules_sets" (
 CREATE TABLE "races" (
 	"id" serial PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "rules_sets" (
 	"id" serial PRIMARY KEY,
 	"name" varchar(255) NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "teams" (
@@ -97,7 +97,7 @@ CREATE TABLE "teams" (
 	"name" varchar(255) NOT NULL,
 	"race_id" integer NOT NULL,
 	"coach_id" integer NOT NULL,
-	"created_at" timestamp DEFAULT now() NOT NULL
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "competition_teams" ADD CONSTRAINT "competition_teams_competition_id_competitions_id_fkey" FOREIGN KEY ("competition_id") REFERENCES "competitions"("id");--> statement-breakpoint
