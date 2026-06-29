@@ -71,7 +71,7 @@ pnpm run test:e2e     # e2e tests
 | `discord-bot` | The NestJS application, built from `Dockerfile` |
 | `postgres` | PostgreSQL 17 database with a named volume for persistence |
 
-The bot waits for the database to be healthy before starting. Default credentials and database name are `blood_bowl`; override them via environment variables before deploying publicly.
+The bot waits for the database to be healthy before starting. Default credentials and database name are `blood_bowl` and are intended for local use only; override them via environment variables for any other deployment.
 
 ```bash
 docker compose up --build   # build and start both services
