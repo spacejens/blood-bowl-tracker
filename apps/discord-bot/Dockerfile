@@ -19,7 +19,7 @@ COPY . .
 RUN pnpm build
 
 # Create a standalone deployment directory with only production deps
-RUN pnpm --filter @blood-bowl-tracker/discord-bot deploy --prod /deploy
+RUN pnpm --filter @blood-bowl-tracker/discord-bot deploy --prod --legacy /deploy
 
 
 FROM node:24-alpine
