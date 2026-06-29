@@ -22,7 +22,9 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Cup
 
-A subtype of [competition](#competition) — a short competitive event typically played out over a weekend, in which [teams](#team) compete for a trophy. See [game-concepts/competitions](game-concepts/competitions/index.md).
+A subtype of [competition](#competition) — a short competitive event typically played out over a weekend, in which [teams](#team) compete for a trophy.
+
+See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Drive
 
@@ -90,7 +92,9 @@ See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
 
 ## Season
 
-A subtype of [competition](#competition) — a complete round of play within a [league](#league), after which standings are resolved and a winner is determined. See [game-concepts/competitions](game-concepts/competitions/index.md).
+A subtype of [competition](#competition) — a complete round of play within a [league](#league), after which standings are resolved and a winner is determined.
+
+See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Star Player Points (SPP)
 
