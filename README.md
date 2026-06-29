@@ -59,3 +59,22 @@ pnpm run start:dev    # dev server with watch mode
 pnpm run test         # unit tests
 pnpm run test:e2e     # e2e tests
 ```
+
+### Running with Docker Compose
+
+`docker-compose.yml` defines two services:
+
+| Service | Description |
+|---------|-------------|
+| `discord-bot` | The NestJS application, built from `Dockerfile` |
+| `postgres` | PostgreSQL 17 database with a named volume for persistence |
+
+The bot waits for the database to be healthy before starting. Default credentials and database name are `blood_bowl`; override them via environment variables before deploying publicly.
+
+```bash
+docker compose up --build   # build and start both services
+docker compose down         # stop and remove containers (data volume preserved)
+docker compose down -v      # also remove the postgres data volume
+```
+
+The HTTP API is available at `http://localhost:3000` once the services are up.

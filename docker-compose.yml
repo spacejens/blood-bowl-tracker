@@ -1,0 +1,29 @@
+services:
+  discord-bot:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://blood_bowl:blood_bowl@postgres:5432/blood_bowl
+      PORT: "3000"
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: blood_bowl
+      POSTGRES_USER: blood_bowl
+      POSTGRES_PASSWORD: blood_bowl
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blood_bowl -d blood_bowl"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
