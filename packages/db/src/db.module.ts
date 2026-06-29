@@ -13,7 +13,7 @@ const logger = new Logger('DbModule');
       provide: DB,
       useFactory: async () => {
         logger.log('Running migrations...');
-        const db = await createDb(process.env.DATABASE_URL!);
+        const db = await createDb(process.env.DATABASE_URL!, (msg) => logger.log(msg));
         logger.log('Migrations complete.');
         return db;
       },
