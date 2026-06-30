@@ -30,6 +30,7 @@ Work through each phase in order. **Do not start the next phase automatically �
 ### Phase 1: Setup
 
 **Detect mode** from the argument:
+- No argument → ask the developer to provide an issue number or feature description, then restart Phase 1
 - Plain integer (e.g. `42`) → **issue mode**
 - Any other text (e.g. `Add player stats endpoint`) → **ad-hoc mode**
 
@@ -94,28 +95,30 @@ Work through each phase in order. **Do not start the next phase automatically �
 
 ### Phase 6: Integration
 
-**Issue mode:**
-```bash
-gh pr create \
-  --title "<issue title>" \
-  --body "$(cat <<'EOF'
-Closes #<N>
+1. Create the PR using the appropriate command for the active mode:
 
-## Summary
-<summary of what was built>
-EOF
-)"
-```
+   **Issue mode:**
+   ```bash
+   gh pr create \
+     --title "<issue title>" \
+     --body "$(cat <<'EOF'
+   Closes #<N>
 
-**Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
-```bash
-gh pr create \
-  --title "<human-readable slug>" \
-  --body "$(cat <<'EOF'
-## Summary
-<summary of what was built>
-EOF
-)"
-```
+   ## Summary
+   <summary of what was built>
+   EOF
+   )"
+   ```
 
-**Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
+   **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
+   ```bash
+   gh pr create \
+     --title "<human-readable slug>" \
+     --body "$(cat <<'EOF'
+   ## Summary
+   <summary of what was built>
+   EOF
+   )"
+   ```
+
+2. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
