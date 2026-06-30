@@ -86,7 +86,6 @@ describe('schema', () => {
   it('exports matchEvents table with optional participant columns', () => {
     expect(matchEvents.id).toBeDefined();
     expect(matchEvents.matchId).toBeDefined();
-    expect(matchEvents.type).toBeDefined();
     expect(matchEvents.actingTeamId).toBeDefined();
     expect(matchEvents.consequenceTeamId).toBeDefined();
     expect(matchEvents.actingPlayerId).toBeDefined();

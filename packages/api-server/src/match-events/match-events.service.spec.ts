@@ -6,7 +6,6 @@ import { DB } from '@blood-bowl-tracker/db';
 const fakeEvent = {
   id: 1,
   matchId: 1,
-  type: 'touchdown',
   actingTeamId: 1,
   consequenceTeamId: null,
   actingPlayerId: 3,
@@ -45,7 +44,7 @@ describe('MatchEventsService', () => {
   });
 
   it('create inserts and returns the new event', async () => {
-    const result = await service.create({ matchId: 1, type: 'touchdown', actingTeamId: 1 });
-    expect(result.type).toBe('touchdown');
+    const result = await service.create({ matchId: 1, actingTeamId: 1 });
+    expect(result.actingTeamId).toBe(1);
   });
 });

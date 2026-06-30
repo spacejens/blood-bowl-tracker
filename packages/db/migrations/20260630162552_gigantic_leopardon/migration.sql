@@ -1,0 +1,1 @@
+ALTER TABLE "game_data"."match_events" DROP COLUMN "type";
