@@ -15,7 +15,7 @@ async function logPendingMigrations(
     .filter((name) => existsSync(join(migrationsFolder, name, 'migration.sql')))
     .sort();
 
-  let applied = new Set<string>();
+  const applied = new Set<string>();
   try {
     const rows = await db.execute(
       sql`SELECT name FROM drizzle.__drizzle_migrations WHERE name IS NOT NULL`,
