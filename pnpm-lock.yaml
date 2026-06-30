@@ -6,7 +6,29 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.39.4
+        version: 9.39.4
+      eslint:
+        specifier: ^9.39.4
+        version: 9.39.4(jiti@2.7.0)
+      eslint-config-prettier:
+        specifier: ^10.1.8
+        version: 10.1.8(eslint@9.39.4(jiti@2.7.0))
+      eslint-plugin-prettier:
+        specifier: ^5.5.6
+        version: 5.5.6(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))(prettier@3.9.0)
+      globals:
+        specifier: ^17.7.0
+        version: 17.7.0
+      prettier:
+        specifier: ^3.9.0
+        version: 3.9.0
+      typescript-eslint:
+        specifier: ^8.62.0
+        version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
 
   apps/discord-bot:
     dependencies:
@@ -32,9 +54,6 @@ importers:
       '@eslint/eslintrc':
         specifier: ^3.2.0
         version: 3.3.5
-      '@eslint/js':
-        specifier: ^9.18.0
-        version: 9.39.4
       '@nestjs/cli':
         specifier: ^11.0.0
         version: 11.0.23(@swc/core@1.15.43)(@types/node@24.13.2)(prettier@3.9.0)
@@ -59,21 +78,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^2.0.0
         version: 2.1.9(vitest@2.1.9(@types/node@24.13.2)(terser@5.48.0))
-      eslint:
-        specifier: ^9.18.0
-        version: 9.39.4(jiti@2.7.0)
-      eslint-config-prettier:
-        specifier: ^10.0.1
-        version: 10.1.8(eslint@9.39.4(jiti@2.7.0))
-      eslint-plugin-prettier:
-        specifier: ^5.2.2
-        version: 5.5.6(@types/eslint@9.6.1)(eslint-config-prettier@10.1.8(eslint@9.39.4(jiti@2.7.0)))(eslint@9.39.4(jiti@2.7.0))(prettier@3.9.0)
-      globals:
-        specifier: ^17.0.0
-        version: 17.7.0
-      prettier:
-        specifier: ^3.4.2
-        version: 3.9.0
       source-map-support:
         specifier: ^0.5.21
         version: 0.5.21
@@ -92,9 +96,6 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
-      typescript-eslint:
-        specifier: ^8.20.0
-        version: 8.62.0(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       unplugin-swc:
         specifier: ^1.5.9
         version: 1.5.9(@swc/core@1.15.43)(rollup@4.62.2)

@@ -5,6 +5,19 @@
   "scripts": {
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
+    "lint:fix": "pnpm -r run lint:fix",
+    "typecheck": "pnpm -r run typecheck",
+    "format": "pnpm -r run format",
+    "format:fix": "pnpm -r run format:fix",
     "test": "pnpm -r run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.0",
+    "typescript-eslint": "^8.62.0"
   }
 }
