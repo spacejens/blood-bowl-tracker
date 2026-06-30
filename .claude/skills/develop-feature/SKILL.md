@@ -37,12 +37,14 @@ Work through each phase in order. **Do not start the next phase automatically �
 **Issue mode:**
 1. Fetch the issue:
    ```bash
-   gh issue view <N> --json title,body,labels
+   gh issue view <N> --json title,body,labels,state
    ```
-2. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
+   If the issue does not exist, `gh` will error — report the error and **stop**.
+2. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
+3. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
-3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-4. **Pause** — confirm worktree is ready before proceeding to Phase 2
+4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+5. **Pause** — confirm worktree is ready before proceeding to Phase 2
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
