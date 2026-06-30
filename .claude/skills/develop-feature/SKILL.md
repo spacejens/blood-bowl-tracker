@@ -62,6 +62,7 @@ Work through each phase in order. **Do not start the next phase automatically â€
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
 5. After each task: run `pnpm test` from the repo root to confirm no regressions
+6. **Pause** â€” confirm all tasks are complete and all tests are green before proceeding to Phase 5
 
 ---
 
