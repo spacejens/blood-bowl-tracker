@@ -9,3 +9,6 @@ export const matchTeams = gameData.table('match_teams', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.matchId, t.teamId] }),
 }));
+
+export type MatchTeam = typeof matchTeams.$inferSelect;
+export type NewMatchTeam = typeof matchTeams.$inferInsert;

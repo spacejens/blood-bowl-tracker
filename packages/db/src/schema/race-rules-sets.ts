@@ -9,3 +9,6 @@ export const raceRulesSets = gameData.table('race_rules_sets', {
 }, (t) => ({
   pk: primaryKey({ columns: [t.raceId, t.rulesSetId] }),
 }));
+
+export type RaceRulesSet = typeof raceRulesSets.$inferSelect;
+export type NewRaceRulesSet = typeof raceRulesSets.$inferInsert;

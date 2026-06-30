@@ -1,4 +1,15 @@
 export { contract } from './contract';
+export * from './schemas/coach';
+export * from './schemas/race';
+export * from './schemas/rules-set';
+export * from './schemas/league';
+export * from './schemas/position';
+export * from './schemas/era';
+export * from './schemas/competition';
 export * from './schemas/team';
+export * from './schemas/player';
 export * from './schemas/match';
 export * from './schemas/match-event';
+export * from './schemas/race-rules-set';
+export * from './schemas/competition-team';
+export * from './schemas/match-team';
