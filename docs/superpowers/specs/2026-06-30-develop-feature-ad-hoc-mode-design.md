@@ -36,10 +36,10 @@ The skill is restructured from five phases to six by splitting the old Phase 5 (
 
 ### Phase 1: Setup
 
-**Issue mode (unchanged):**
+**Issue mode:**
 1. Fetch issue: `gh issue view <N> --json title,body,labels`
-2. Derive branch name: `issue-{N}-{kebab-slug}` from issue title
-3. Create worktree via `superpowers:using-git-worktrees`
+2. Derive branch name: `issue-{N}-{kebab-slug}` from issue title; propose it to the developer and ask them to confirm (they may edit the slug)
+3. Create worktree on the confirmed branch name via `superpowers:using-git-worktrees`
 4. Pause
 
 **Ad-hoc mode (new):**
@@ -98,7 +98,7 @@ Skill ends. Human review happens outside this workflow. A future review-bot loop
 | Issue | `issue-{N}-{kebab-slug}` | `issue-42-add-player-stats-endpoint` |
 | Ad-hoc | `feature-{kebab-slug}` | `feature-add-player-stats-endpoint` |
 
-In ad-hoc mode, the slug is confirmed with the developer before the branch is created. The branch name is locked in at Setup, before brainstorming.
+In both modes, the derived slug is proposed to the developer for confirmation before the branch is created — they may edit it. The branch name is locked in at Setup, before brainstorming.
 
 ## PR / Issue Linking
 
