@@ -9,9 +9,13 @@ describe('CompetitionTeamsService', () => {
   let service: CompetitionTeamsService;
 
   beforeEach(async () => {
-    const selectChain = { from: vi.fn().mockResolvedValue([fakeCompetitionTeam]) };
+    const selectChain = {
+      from: vi.fn().mockResolvedValue([fakeCompetitionTeam]),
+    };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeCompetitionTeam]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeCompetitionTeam]),
+      })),
     };
     const mockDb = {
       select: vi.fn(() => selectChain),

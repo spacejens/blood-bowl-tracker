@@ -11,7 +11,9 @@ describe('RaceRulesSetsService', () => {
   beforeEach(async () => {
     const selectChain = { from: vi.fn().mockResolvedValue([fakeRaceRulesSet]) };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeRaceRulesSet]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeRaceRulesSet]),
+      })),
     };
     const mockDb = {
       select: vi.fn(() => selectChain),

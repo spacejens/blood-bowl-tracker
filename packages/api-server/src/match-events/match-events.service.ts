@@ -10,7 +10,10 @@ export class MatchEventsService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   findByMatchId(matchId: number): Promise<MatchEvent[]> {
-    return this.db.select().from(matchEvents).where(eq(matchEvents.matchId, matchId));
+    return this.db
+      .select()
+      .from(matchEvents)
+      .where(eq(matchEvents.matchId, matchId));
   }
 
   async create(data: NewMatchEvent): Promise<MatchEvent> {

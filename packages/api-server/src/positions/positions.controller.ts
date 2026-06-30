@@ -8,6 +8,7 @@ export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
   @TsRestHandler(contract.positions)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.positions, {
       list: async () => ({
@@ -16,7 +17,11 @@ export class PositionsController {
       }),
       getById: async ({ params: { id } }) => {
         const position = await this.positionsService.findById(id);
-        if (!position) return { status: 404 as const, body: { message: 'Position not found' } };
+        if (!position)
+          return {
+            status: 404 as const,
+            body: { message: 'Position not found' },
+          };
         return { status: 200 as const, body: position };
       },
       create: async ({ body }) => ({

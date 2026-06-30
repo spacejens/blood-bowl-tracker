@@ -8,6 +8,7 @@ export class RaceRulesSetsController {
   constructor(private readonly raceRulesSetsService: RaceRulesSetsService) {}
 
   @TsRestHandler(contract.raceRulesSets)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.raceRulesSets, {
       list: async () => ({

@@ -8,6 +8,7 @@ export class CompetitionsController {
   constructor(private readonly competitionsService: CompetitionsService) {}
 
   @TsRestHandler(contract.competitions)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.competitions, {
       list: async () => ({
@@ -17,7 +18,10 @@ export class CompetitionsController {
       getById: async ({ params: { id } }) => {
         const competition = await this.competitionsService.findById(id);
         if (!competition)
-          return { status: 404 as const, body: { message: 'Competition not found' } };
+          return {
+            status: 404 as const,
+            body: { message: 'Competition not found' },
+          };
         return { status: 200 as const, body: competition };
       },
       create: async ({ body }) => ({

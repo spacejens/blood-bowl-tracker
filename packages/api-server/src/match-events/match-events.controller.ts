@@ -8,6 +8,7 @@ export class MatchEventsController {
   constructor(private readonly matchEventsService: MatchEventsService) {}
 
   @TsRestHandler(contract.matchEvents)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.matchEvents, {
       listByMatch: async ({ params: { matchId } }) => ({

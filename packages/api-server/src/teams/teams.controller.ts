@@ -8,6 +8,7 @@ export class TeamsController {
   constructor(private readonly teamsService: TeamsService) {}
 
   @TsRestHandler(contract.teams)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.teams, {
       list: async () => ({
@@ -16,7 +17,8 @@ export class TeamsController {
       }),
       getById: async ({ params: { id } }) => {
         const team = await this.teamsService.findById(id);
-        if (!team) return { status: 404 as const, body: { message: 'Team not found' } };
+        if (!team)
+          return { status: 404 as const, body: { message: 'Team not found' } };
         return { status: 200 as const, body: team };
       },
       create: async ({ body }) => ({

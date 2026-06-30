@@ -14,7 +14,10 @@ export class CompetitionsService {
   }
 
   async findById(id: number): Promise<Competition | undefined> {
-    const result = await this.db.select().from(competitions).where(eq(competitions.id, id));
+    const result = await this.db
+      .select()
+      .from(competitions)
+      .where(eq(competitions.id, id));
     return result[0];
   }
 

@@ -20,12 +20,19 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('LeaguesService', () => {
   let service: LeaguesService;
-  let mockDb: { select: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
+  let mockDb: {
+    select: () => { from: ReturnType<typeof vi.fn> };
+    insert: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    const selectChain = { from: vi.fn().mockReturnValue(makeFromBuilder([fakeLeague])) };
+    const selectChain = {
+      from: vi.fn().mockReturnValue(makeFromBuilder([fakeLeague])),
+    };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeLeague]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeLeague]),
+      })),
     };
     mockDb = {
       select: vi.fn(() => selectChain),
@@ -50,9 +57,7 @@ describe('LeaguesService', () => {
   });
 
   it('findById returns undefined when not found', async () => {
-    (mockDb.select().from as ReturnType<typeof vi.fn>).mockReturnValue(
-      makeFromBuilder([]),
-    );
+    mockDb.select().from.mockReturnValue(makeFromBuilder([]));
     const result = await service.findById(999);
     expect(result).toBeUndefined();
   });

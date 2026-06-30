@@ -22,12 +22,19 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('CompetitionsService', () => {
   let service: CompetitionsService;
-  let mockDb: { select: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
+  let mockDb: {
+    select: () => { from: ReturnType<typeof vi.fn> };
+    insert: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
-    const selectChain = { from: vi.fn().mockReturnValue(makeFromBuilder([fakeCompetition])) };
+    const selectChain = {
+      from: vi.fn().mockReturnValue(makeFromBuilder([fakeCompetition])),
+    };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeCompetition]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeCompetition]),
+      })),
     };
     mockDb = {
       select: vi.fn(() => selectChain),
@@ -52,15 +59,17 @@ describe('CompetitionsService', () => {
   });
 
   it('findById returns undefined when not found', async () => {
-    (mockDb.select().from as ReturnType<typeof vi.fn>).mockReturnValue(
-      makeFromBuilder([]),
-    );
+    mockDb.select().from.mockReturnValue(makeFromBuilder([]));
     const result = await service.findById(999);
     expect(result).toBeUndefined();
   });
 
   it('create inserts and returns the new competition', async () => {
-    const result = await service.create({ name: 'Spring Season', type: 'season', eraId: 1 });
+    const result = await service.create({
+      name: 'Spring Season',
+      type: 'season',
+      eraId: 1,
+    });
     expect(result.name).toBe('Spring Season');
     expect(result.type).toBe('season');
   });

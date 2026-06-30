@@ -8,6 +8,7 @@ export class CoachesController {
   constructor(private readonly coachesService: CoachesService) {}
 
   @TsRestHandler(contract.coaches)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.coaches, {
       list: async () => ({
@@ -16,7 +17,8 @@ export class CoachesController {
       }),
       getById: async ({ params: { id } }) => {
         const coach = await this.coachesService.findById(id);
-        if (!coach) return { status: 404 as const, body: { message: 'Coach not found' } };
+        if (!coach)
+          return { status: 404 as const, body: { message: 'Coach not found' } };
         return { status: 200 as const, body: coach };
       },
       create: async ({ body }) => ({

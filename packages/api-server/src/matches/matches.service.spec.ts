@@ -12,12 +12,17 @@ const fakeMatch = {
 
 describe('MatchesService', () => {
   let service: MatchesService;
-  let mockDb: { select: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
+  let mockDb: {
+    select: ReturnType<typeof vi.fn>;
+    insert: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     const selectChain = { from: vi.fn().mockResolvedValue([fakeMatch]) };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeMatch]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeMatch]),
+      })),
     };
     mockDb = {
       select: vi.fn(() => selectChain),
@@ -25,10 +30,7 @@ describe('MatchesService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [
-        MatchesService,
-        { provide: DB, useValue: mockDb },
-      ],
+      providers: [MatchesService, { provide: DB, useValue: mockDb }],
     }).compile();
 
     service = module.get(MatchesService);

@@ -21,7 +21,9 @@ describe('MatchEventsService', () => {
       from: vi.fn(() => ({ where: vi.fn().mockResolvedValue([fakeEvent]) })),
     };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeEvent]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeEvent]),
+      })),
     };
     const mockDb = {
       select: vi.fn(() => selectChain),
@@ -29,10 +31,7 @@ describe('MatchEventsService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [
-        MatchEventsService,
-        { provide: DB, useValue: mockDb },
-      ],
+      providers: [MatchEventsService, { provide: DB, useValue: mockDb }],
     }).compile();
 
     service = module.get(MatchEventsService);
