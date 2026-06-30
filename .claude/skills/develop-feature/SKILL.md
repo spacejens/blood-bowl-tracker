@@ -5,7 +5,7 @@ description: Use when starting work on a GitHub issue in the blood-bowl-tracker 
 
 # develop-feature
 
-Structured feature development from GitHub issue to pull request. See [docs/development-workflow.md](../../docs/development-workflow.md) for the human-readable explanation of this process.
+Structured feature development from GitHub issue to pull request. See [docs/development-workflow.md](../../../docs/development-workflow.md) for the human-readable explanation of this process.
 
 ## Invocation
 
