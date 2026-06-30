@@ -6,13 +6,25 @@ import { RulesSetSchema, CreateRulesSetSchema } from './schemas/rules-set';
 import { LeagueSchema, CreateLeagueSchema } from './schemas/league';
 import { PositionSchema, CreatePositionSchema } from './schemas/position';
 import { EraSchema, CreateEraSchema } from './schemas/era';
-import { CompetitionSchema, CreateCompetitionSchema } from './schemas/competition';
+import {
+  CompetitionSchema,
+  CreateCompetitionSchema,
+} from './schemas/competition';
 import { TeamSchema, CreateTeamSchema } from './schemas/team';
 import { PlayerSchema, CreatePlayerSchema } from './schemas/player';
 import { MatchSchema, CreateMatchSchema } from './schemas/match';
-import { MatchEventSchema, CreateMatchEventSchema } from './schemas/match-event';
-import { RaceRulesSetSchema, CreateRaceRulesSetSchema } from './schemas/race-rules-set';
-import { CompetitionTeamSchema, CreateCompetitionTeamSchema } from './schemas/competition-team';
+import {
+  MatchEventSchema,
+  CreateMatchEventSchema,
+} from './schemas/match-event';
+import {
+  RaceRulesSetSchema,
+  CreateRaceRulesSetSchema,
+} from './schemas/race-rules-set';
+import {
+  CompetitionTeamSchema,
+  CreateCompetitionTeamSchema,
+} from './schemas/competition-team';
 import { MatchTeamSchema, CreateMatchTeamSchema } from './schemas/match-team';
 
 const c = initContract();
