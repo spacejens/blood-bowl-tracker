@@ -1,29 +1,37 @@
 # Development Workflow
 
-Features in this project are developed using [Claude Code](https://claude.ai/code) with the `develop-feature` skill, which guides you from a GitHub issue through to a pull request in a structured way.
+Features in this project are developed using [Claude Code](https://claude.ai/code) with the `develop-feature` skill, which guides you from a GitHub issue (or a free-form description) through to a pull request in a structured way.
 
 ## How to start
 
-Pick a GitHub issue to work on, then invoke the skill in Claude Code with the issue number:
+**Issue mode** — when working on an existing GitHub issue:
 
 ```
 /develop-feature 42
 ```
 
+**Ad-hoc mode** — when starting from a free-form description with no GitHub issue:
+
+```
+/develop-feature Add player stats endpoint
+```
+
+If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
+
 Claude takes it from there, pausing for your review at the end of each phase before proceeding.
 
-## The five phases
+## The six phases
 
 ### 1. Setup
 
-Claude fetches the issue from GitHub and creates an isolated git branch and worktree:
+Claude creates an isolated git branch and worktree. The derived branch name is proposed for your confirmation — you may edit the slug before the branch is created.
 
-- Branch name: `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
-- A git worktree is created so your main working directory stays clean
+- **Issue mode:** fetches the issue from GitHub; branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
+- **Ad-hoc mode:** uses your provided text; branch name is `feature-{kebab-slug}` — e.g. `feature-add-player-stats-endpoint`
 
 ### 2. Specification
 
-Claude conducts a brainstorming session with you to flesh out the issue. GitHub issues are often short on detail, so this step clarifies intent, scope, and constraints before any code is written.
+Claude conducts a brainstorming session with you to flesh out the feature. GitHub issues and ad-hoc descriptions are often short on detail — this step clarifies intent, scope, and constraints before any code is written.
 
 The resulting spec is saved to `docs/plans/` (gitignored — it is a temporary working document, not a permanent project spec).
 
@@ -42,12 +50,16 @@ Claude executes the plan task by task. For each task:
 
 After each task, `pnpm test` is run from the repo root to catch regressions.
 
-### 5. Integration
+### 5. Self-review
 
-Claude runs a self-review across all changes on the branch, fixes any findings, then creates a pull request:
+Claude runs a code review across all changes on the branch, fixes any findings, and reruns `pnpm test`. This repeats until the review is clean and all tests pass.
 
-- The PR title comes from the issue title
-- The PR body contains `Closes #N`, which GitHub uses to auto-link the issue and auto-close it when the PR is merged
+### 6. Integration
+
+Claude creates a pull request:
+
+- **Issue mode:** PR title comes from the issue title; PR body contains `Closes #N`, which GitHub uses to auto-link the issue and auto-close it when the PR is merged
+- **Ad-hoc mode:** PR title is the human-readable form of the confirmed branch slug; PR body contains a summary only (no issue link)
 
 At this point, development is done. Human review and merging happen outside the Claude workflow.
 
