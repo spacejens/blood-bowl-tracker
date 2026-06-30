@@ -30,3 +30,6 @@ tmp/
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans/
 docs/superpowers/
+
+# Git worktrees
+.worktrees/
