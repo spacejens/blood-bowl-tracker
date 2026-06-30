@@ -26,7 +26,7 @@ Claude takes it from there, pausing for your review at the end of each phase bef
 
 Claude creates an isolated git branch and worktree. The derived branch name is proposed for your confirmation — you may edit the slug before the branch is created.
 
-- **Issue mode:** fetches the issue from GitHub. If it's open and unassigned (or already assigned to you), Claude assigns it to you and applies the "in progress" label before continuing. If it's already assigned to someone else, Claude stops there instead of claiming it. Branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
+- **Issue mode:** fetches the issue from GitHub. If it's open and unassigned (or already assigned to you), Claude assigns it to you and applies the "in progress" label before continuing. If it's already assigned to someone else, Claude stops there instead of claiming it. If either the assignment or label application fails, Claude warns and continues anyway. Branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
 - **Ad-hoc mode:** uses your provided text; branch name is `feature-{kebab-slug}` — e.g. `feature-add-player-stats-endpoint`
 
 ### 2. Specification
