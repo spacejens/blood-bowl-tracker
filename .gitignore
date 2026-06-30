@@ -27,5 +27,6 @@ yarn-error.log*
 .tmp/
 tmp/
 
-# Implementation plans (ephemeral; not useful in git history)
+# Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans/
+docs/superpowers/
