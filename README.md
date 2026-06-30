@@ -86,3 +86,7 @@ The database is exposed on host port 5433 (not 5432, to avoid conflicts with any
 ```bash
 psql postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl
 ```
+
+### Development workflow
+
+Features are developed using the `develop-feature` Claude skill — see [docs/development-workflow.md](docs/development-workflow.md) for the full process.
