@@ -37,14 +37,27 @@ Work through each phase in order. **Do not start the next phase automatically �
 **Issue mode:**
 1. Fetch the issue:
    ```bash
-   gh issue view <N> --json title,body,labels,state
+   gh issue view <N> --json title,body,labels,state,assignees
    ```
    If the issue does not exist, `gh` will error — report the error and **stop**.
 2. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
-3. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
+3. Claim the issue:
+   - Determine the current `gh` user:
+     ```bash
+     gh api user --jq .login
+     ```
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but proceed to step 4 to derive the branch name.
+   - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
+   - Otherwise (unassigned, or already assigned to the current user), assign and label it:
+     ```bash
+     gh issue edit <N> --add-assignee @me
+     gh issue edit <N> --add-label "in progress"
+     ```
+     Run these as two separate commands so a failure in one doesn't mask the other. If either command fails, report a one-line warning (e.g. "Could not assign issue #N to you — continuing anyway: `<gh error output>`") and **continue** — do not stop the workflow over a labeling/assignment failure.
+4. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
-4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-5. **Pause** — confirm worktree is ready before proceeding to Phase 2
+5. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+6. **Pause** — confirm worktree is ready before proceeding to Phase 2
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -111,6 +124,7 @@ Work through each phase in order. **Do not start the next phase automatically �
    EOF
    )"
    ```
+   The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
