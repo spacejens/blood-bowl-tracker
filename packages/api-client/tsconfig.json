@@ -10,8 +10,7 @@
     "strictNullChecks": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "baseUrl": "./"
+    "rootDir": "./src"
   },
   "include": ["src"]
 }
