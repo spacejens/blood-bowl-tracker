@@ -5,6 +5,7 @@ import { ApiServerModule } from '@blood-bowl-tracker/api-server';
 import { DbModule } from '@blood-bowl-tracker/db';
 import { DiscordClientModule } from '@blood-bowl-tracker/discord-client';
 import { StartupNotifierService } from './startup-notifier.service';
+import { InsightsModule } from './insights/insights.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { StartupNotifierService } from './startup-notifier.service';
     DiscordClientModule.forRootAsync({
       useFactory: () => process.env.DISCORD_BOT_TOKEN!,
     }),
+    InsightsModule,
   ],
   controllers: [AppController],
   providers: [AppService, StartupNotifierService],
