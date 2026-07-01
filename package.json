@@ -9,7 +9,8 @@
     "typecheck": "pnpm -r run typecheck",
     "format": "pnpm -r run format",
     "format:fix": "pnpm -r run format:fix",
-    "test": "pnpm -r run test"
+    "test": "pnpm -r run test",
+    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

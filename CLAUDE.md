@@ -23,6 +23,12 @@ Run from the repo root to target all workspaces:
 pnpm install          # install all dependencies
 pnpm build            # build all workspaces
 pnpm test             # run unit tests across all workspaces
+pnpm lint             # ESLint (no auto-fix)
+pnpm lint:fix         # ESLint with auto-fix
+pnpm typecheck        # tsc --noEmit across all workspaces
+pnpm format           # Prettier check (no write)
+pnpm format:fix       # Prettier write
+pnpm verify           # build + lint + typecheck + test in one command
 ```
 
 Run from inside a specific workspace (e.g. `apps/discord-bot`) for targeted work:
@@ -33,7 +39,12 @@ pnpm run start:prod   # run compiled output
 pnpm run test         # unit tests (*.spec.ts in src/)
 pnpm run test:e2e     # e2e tests (test/*.e2e-spec.ts)
 pnpm run test:cov     # unit tests with coverage report
-pnpm run lint         # ESLint with auto-fix
+pnpm run lint         # ESLint (no auto-fix)
+pnpm run lint:fix     # ESLint with auto-fix
+pnpm run typecheck    # tsc --noEmit
+pnpm run format       # Prettier check (no write)
+pnpm run format:fix   # Prettier write
+pnpm run verify       # build + lint + typecheck + test for this workspace only
 ```
 
 Run a single test file: `pnpm exec vitest run src/path/to/file.spec.ts`
