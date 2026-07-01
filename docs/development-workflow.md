@@ -18,7 +18,7 @@ Features in this project are developed using [Claude Code](https://claude.ai/cod
 
 If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
 
-Claude takes it from there. You'll be asked to review and approve the spec (end of Phase 2), the implementation plan (end of Phase 3), and the final self-review before a pull request is opened (end of Phase 5). Other phase transitions happen automatically, with a brief status update.
+Claude takes it from there. You'll be asked to confirm the branch name (start of Phase 1), and to review and approve the spec (end of Phase 2), the implementation plan (end of Phase 3), and the final self-review before a pull request is opened (end of Phase 5). Other phase transitions happen automatically, with a brief status update.
 
 ## The six phases
 

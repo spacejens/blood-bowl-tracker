@@ -54,14 +54,14 @@ Work through each phase in order. Some phase transitions require the developer's
      gh issue edit <N> --add-label "in progress"
      ```
      Run these as two separate commands so a failure in one doesn't mask the other. If either command fails, report a one-line warning (e.g. "Could not assign issue #N to you — continuing anyway: `<gh error output>`") and **continue** — do not stop the workflow over a labeling/assignment failure.
-4. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
+4. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
 5. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
 6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
-2. Derive a kebab slug from the text. Propose branch name `feature-{kebab-slug}` and ask the developer to confirm — they may edit the slug.
+2. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
 3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
 4. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
