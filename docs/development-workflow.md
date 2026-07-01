@@ -18,7 +18,7 @@ Features in this project are developed using [Claude Code](https://claude.ai/cod
 
 If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
 
-Claude takes it from there, pausing for your review at the end of each phase before proceeding.
+Claude takes it from there. You'll be asked to confirm the branch name (start of Phase 1), and to review and approve the spec (end of Phase 2), the implementation plan (end of Phase 3), and the final self-review before a pull request is opened (end of Phase 5). Other phase transitions happen automatically, with a brief status update.
 
 ## The six phases
 
@@ -29,6 +29,8 @@ Claude creates an isolated git branch and worktree. The derived branch name is p
 - **Issue mode:** fetches the issue from GitHub. If it's open and unassigned (or already assigned to you), Claude assigns it to you and applies the "in progress" label before continuing. If it's already assigned to someone else, Claude stops there instead of claiming it. If either the assignment or label application fails, Claude warns and continues anyway. Branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
 - **Ad-hoc mode:** uses your provided text; branch name is `feature-{kebab-slug}` — e.g. `feature-add-player-stats-endpoint`
 
+Once the worktree is created and baseline tests pass, Claude proceeds automatically into Phase 2 — no approval is needed at this step.
+
 ### 2. Specification
 
 Claude conducts a brainstorming session with you to flesh out the feature. GitHub issues and ad-hoc descriptions are often short on detail — this step clarifies intent, scope, and constraints before any code is written.
@@ -37,7 +39,7 @@ The resulting spec is saved to `docs/plans/` (gitignored — it is a temporary w
 
 ### 3. Planning
 
-Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins.
+Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins. This workflow always executes plans via subagent-driven-development — Claude does not ask you to choose an execution approach.
 
 ### 4. Development
 
@@ -49,6 +51,8 @@ Claude executes the plan task by task. For each task:
 4. Changes are committed with an explanatory message
 
 After each task, `pnpm verify` is run from the repo root to catch regressions — this covers build, lint, typecheck, and test together. When `pnpm verify` reports lint or formatting failures, `pnpm lint:fix` and/or `pnpm format:fix` are run first; hand-editing is reserved for failures those commands can't auto-resolve (genuine lint/type errors, not style).
+
+Once all tasks are complete and `pnpm verify` is green, Claude proceeds automatically into Phase 5 — no approval is needed at this step.
 
 ### 5. Self-review
 
