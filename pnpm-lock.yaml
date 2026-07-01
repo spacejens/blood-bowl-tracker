@@ -35,6 +35,9 @@ importers:
       '@blood-bowl-tracker/api-server':
         specifier: workspace:*
         version: link:../../packages/api-server
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@nestjs/common':
         specifier: ^11.0.1
         version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)

@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { DbModule } from '@blood-bowl-tracker/db';
 import { CoachesModule } from './coaches/coaches.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
@@ -17,7 +16,6 @@ import { MatchTeamsModule } from './match-teams/match-teams.module';
 
 @Module({
   imports: [
-    DbModule,
     CoachesModule,
     RacesModule,
     RulesSetsModule,
