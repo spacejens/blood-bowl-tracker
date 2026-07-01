@@ -66,7 +66,9 @@ error in the logs (the bot is intentionally fail-fast about misconfiguration).
 ## Slash commands
 
 The bot registers these slash commands with every server it belongs to (see each
-command's page for details):
+command's page for details). If the database does not respond in time, a command
+falls back to the message `I am stunned` instead of its normal reply, so it
+always answers within Discord's response window.
 
 - [`/stats`](slash-commands/stats.md) — posts a summary of how many coaches,
   teams, matches, and competitions have been recorded.
