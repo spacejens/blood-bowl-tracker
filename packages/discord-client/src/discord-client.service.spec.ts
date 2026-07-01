@@ -102,4 +102,29 @@ describe('DiscordClientService', () => {
       DiscordClientService,
     );
   });
+
+  it('provides DiscordClientService via forRoot', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [DiscordClientModule.forRoot({ token: 'tkn' })],
+    }).compile();
+    expect(moduleRef.get(DiscordClientService)).toBeInstanceOf(
+      DiscordClientService,
+    );
+  });
+
+  it('rejects init when the client never becomes ready', async () => {
+    vi.useFakeTimers();
+    try {
+      mockClient.once.mockImplementation(() => mockClient);
+      mockClient.login.mockReturnValue(new Promise<string>(() => {}));
+      const initPromise = service.onModuleInit();
+      const assertion = expect(initPromise).rejects.toThrow(
+        'Discord client did not become ready',
+      );
+      await vi.advanceTimersByTimeAsync(30_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

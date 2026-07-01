@@ -9,6 +9,8 @@ import { Client, GatewayIntentBits } from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
+const READY_TIMEOUT_MS = 30_000;
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
@@ -23,11 +25,22 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       this.logger.error('Discord client error', error);
     });
     await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(
+          new Error(
+            `Discord client did not become ready within ${READY_TIMEOUT_MS}ms`,
+          ),
+        );
+      }, READY_TIMEOUT_MS);
       this.client.once('ready', () => {
+        clearTimeout(timeout);
         this.logger.log(`Logged in as ${this.client.user?.tag ?? 'unknown'}`);
         resolve();
       });
-      this.client.login(this.token).catch(reject);
+      this.client.login(this.token).catch((error: unknown) => {
+        clearTimeout(timeout);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      });
     });
   }
 
