@@ -57,14 +57,40 @@ Work through each phase in order. Some phase transitions require the developer's
 4. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
 5. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+6. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   if [ "$MAIN_ROOT" != "$(pwd)" ]; then
+     mkdir -p "$MAIN_ROOT/docs/plans"
+     if [ -e docs/plans ]; then
+       echo "Warning: docs/plans already exists in the worktree; leaving it as-is instead of symlinking to $MAIN_ROOT/docs/plans"
+     else
+       ln -s "$MAIN_ROOT/docs/plans" docs/plans
+     fi
+   fi
+   ```
+   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
+7. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
 2. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
 3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-4. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+4. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   if [ "$MAIN_ROOT" != "$(pwd)" ]; then
+     mkdir -p "$MAIN_ROOT/docs/plans"
+     if [ -e docs/plans ]; then
+       echo "Warning: docs/plans already exists in the worktree; leaving it as-is instead of symlinking to $MAIN_ROOT/docs/plans"
+     else
+       ln -s "$MAIN_ROOT/docs/plans" docs/plans
+     fi
+   fi
+   ```
+   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
+5. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 ---
 
