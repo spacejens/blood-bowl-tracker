@@ -22,11 +22,12 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:e2e": "vitest run --config ./test/vitest-e2e.config.ts",
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
     "@blood-bowl-tracker/api-server": "workspace:*",
+    "@blood-bowl-tracker/db": "workspace:*",
+    "@blood-bowl-tracker/discord-client": "workspace:*",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",

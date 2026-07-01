@@ -6,6 +6,8 @@ services:
       dockerfile: apps/discord-bot/Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - apps/discord-bot/.env
     environment:
       DATABASE_URL: postgres://blood_bowl:blood_bowl@postgres:5432/blood_bowl
       PORT: "3000"

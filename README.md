@@ -25,6 +25,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`packages/api-contract`** — ts-rest route contract shared between api-server and api-client
 - **`packages/api-server`** — NestJS services and modules implementing the api-contract; consumed directly by apps
 - **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL
+- **`packages/discord-client`** — NestJS module wrapping discord.js for connecting to Discord and posting messages
 - **`packages/import`** — shared import/ingestion result types used across import tools
 
 ### Tools

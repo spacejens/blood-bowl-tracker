@@ -5,8 +5,13 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['test/**/*.e2e-spec.ts'],
+    include: ['src/**/*.spec.ts'],
     setupFiles: ['./test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.spec.ts'],
+    },
   },
   plugins: [swc.vite({ module: { type: 'es6' } })],
 });

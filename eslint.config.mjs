@@ -20,7 +20,10 @@ export default tseslint.config(
       sourceType: 'commonjs',
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['packages/api-server/test/*.ts'],
+          allowDefaultProject: [
+            'packages/api-server/test/*.ts',
+            'packages/discord-client/test/*.ts',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -33,14 +36,6 @@ export default tseslint.config(
         'error',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-    },
-  },
-  {
-    files: ['apps/discord-bot/**/*.ts'],
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
     },
   },
 );
