@@ -1,9 +1,9 @@
 # Discord Bot
 
-The `apps/discord-bot` application connects to Discord using a bot account and
-posts a startup message to a configured channel when it launches. This page
-explains how to set up the bot on the Discord side and how to configure the
-application.
+The `apps/discord-bot` application connects to Discord using a bot account. On
+launch it posts a summary of the tracked data to a configured channel, and it
+serves slash commands such as `/stats`. This page explains how to set up the bot
+on the Discord side and how to configure the application.
 
 ## 1. Create a Discord application and bot
 
@@ -17,7 +17,9 @@ application.
 ## 2. Invite the bot to your server
 
 1. Open the **OAuth2 > URL Generator** tab.
-2. Under **Scopes**, select `bot`.
+2. Under **Scopes**, select `bot` and `applications.commands`. The
+   `applications.commands` scope is required for the bot's slash commands
+   (e.g. `/stats`) to register.
 3. Under **Bot Permissions**, select at least **Send Messages** (and **View
    Channel** for the target channel).
 4. Copy the generated URL, open it in a browser, choose your server, and
@@ -56,6 +58,18 @@ With Docker Compose:
 docker compose up discord-bot
 ```
 
-On startup the bot logs in and posts `Hello tLoEG, I am alive` to the configured
+On startup the bot logs in and posts a summary of the tracked data (the same
+message the [`/stats`](#slash-commands) command returns) to the configured
 channel. If the token or channel id is missing or invalid, startup fails with an
 error in the logs (the bot is intentionally fail-fast about misconfiguration).
+
+## Slash commands
+
+The bot registers these slash commands with every server it belongs to when it
+starts (see each command's page for details); a server the bot joins later
+receives the commands the next time it restarts. If the database does not respond
+in time, a command falls back to the message `I am stunned` instead of its normal
+reply, so it always answers within Discord's response window.
+
+- [`/stats`](slash-commands/stats.md) — posts a summary of how many coaches,
+  teams, matches, and competitions have been recorded.

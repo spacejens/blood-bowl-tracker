@@ -7,3 +7,4 @@ export {
   DiscordClientService,
   DISCORD_BOT_TOKEN,
 } from './discord-client.service';
+export type { SlashCommandDefinition } from './discord-client.service';
