@@ -9,12 +9,23 @@ import {
   competitions,
 } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
+import {
+  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
+  withDatabaseTimeout,
+} from '../database-timeout';
 
 @Injectable()
 export class StatsSummaryService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
-  async buildSummaryMessage(): Promise<string> {
+  buildSummaryMessage(): Promise<string> {
+    return withDatabaseTimeout(
+      this.computeSummaryMessage(),
+      DATABASE_TIMEOUT_FALLBACK_MESSAGE,
+    );
+  }
+
+  private async computeSummaryMessage(): Promise<string> {
     const [
       coachCount,
       teamCount,

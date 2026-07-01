@@ -153,7 +153,11 @@ describe('DiscordClientService', () => {
       ['b', guildB],
     ]);
     await service.registerCommands([
-      { name: 'stats', description: 'Show stats', execute: vi.fn() },
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('stats'),
+      },
     ]);
     const expected = [{ name: 'stats', description: 'Show stats' }];
     expect(guildA.commands.set).toHaveBeenCalledWith(expected);

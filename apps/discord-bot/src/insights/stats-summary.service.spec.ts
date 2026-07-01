@@ -41,4 +41,31 @@ describe('StatsSummaryService', () => {
         'been played in 0 competitions (0 seasons, 0 cups)',
     );
   });
+
+  it('falls back to "I am stunned" when the database does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      // Never resolves; also exposes `.where` (like `countRows` above) so
+      // `countCompetitionsByType`'s `.from(...).where(...)` chain hangs too,
+      // instead of throwing on a missing method.
+      const forever = new Promise<never>(() => {});
+      const hangingDb = {
+        select: vi.fn(() => ({
+          from: vi.fn(() => ({
+            where: vi.fn(() => forever),
+            then: (
+              resolve: (v: unknown) => unknown,
+              reject: (e: unknown) => unknown,
+            ) => forever.then(resolve, reject),
+          })),
+        })),
+      } as unknown as Db;
+      const service = new StatsSummaryService(hangingDb);
+      const promise = service.buildSummaryMessage();
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
