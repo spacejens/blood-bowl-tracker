@@ -10,6 +10,7 @@ COPY packages/api-client/package.json packages/api-client/
 COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
+COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
 
@@ -31,6 +32,7 @@ COPY packages/api-client/package.json packages/api-client/
 COPY packages/api-contract/package.json packages/api-contract/
 COPY packages/api-server/package.json packages/api-server/
 COPY packages/db/package.json packages/db/
+COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
 
@@ -42,6 +44,7 @@ COPY --from=builder /build/packages/api-contract/dist ./packages/api-contract/di
 COPY --from=builder /build/packages/api-server/dist ./packages/api-server/dist
 COPY --from=builder /build/packages/db/dist ./packages/db/dist
 COPY --from=builder /build/packages/db/migrations ./packages/db/migrations
+COPY --from=builder /build/packages/discord-client/dist ./packages/discord-client/dist
 
 ENV NODE_ENV=production
 EXPOSE 3000
