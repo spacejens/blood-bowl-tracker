@@ -35,11 +35,11 @@ Once the worktree is created and baseline tests pass, Claude proceeds automatica
 
 Claude conducts a brainstorming session with you to flesh out the feature. GitHub issues and ad-hoc descriptions are often short on detail — this step clarifies intent, scope, and constraints before any code is written.
 
-The resulting spec is saved to `docs/plans/` (gitignored — it is a temporary working document, not a permanent project spec).
+The resulting spec is saved to `docs/plans/` in the main repository root (gitignored — a temporary working document, not a permanent project spec). This is outside the worktree, so it survives even after the worktree is removed.
 
 ### 3. Planning
 
-Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins. This workflow always executes plans via subagent-driven-development — Claude does not ask you to choose an execution approach.
+Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` in the main repository root (gitignored, and outside the worktree for the same reason as the spec). You review and approve the plan before development begins. This workflow always executes plans via subagent-driven-development — Claude does not ask you to choose an execution approach.
 
 ### 4. Development
 
