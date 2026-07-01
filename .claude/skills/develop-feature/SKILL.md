@@ -87,15 +87,16 @@ Work through each phase in order. Some phase transitions require the developer's
 ### Phase 4: Development
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development` to execute the plan. This is the only execution approach used in this workflow — do not ask the developer to choose between this and any alternative (e.g. `executing-plans`); proceed directly into subagent-driven-development.
-2. For **each task** in the plan, follow this order:
+2. **Subagent dispatch discipline:** Every subagent (implementer, reviewer, fixer) dispatched while working in a worktree must have every shell command in its prompt prefixed with `cd <worktree-path> &&` — do not rely on a one-time "work from `<path>`" instruction. Subagent shell sessions do not reliably persist a starting directory across tool calls, and a dropped `cd` can silently commit to the wrong checkout (e.g. `main` in the primary repo instead of the feature branch). After each subagent reports a commit, verify with `git log --oneline -1` and `git branch --show-current` (run from the worktree) that the commit actually landed on the expected branch before trusting the report.
+3. For **each task** in the plan, follow this order:
    - **Docs first:** If the task introduces a new concept or constraint, update or create the relevant spec under `docs/` following `docs/spec-conventions.md`
    - **Test first:** Write the failing test — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`
    - **Implement:** Write code until tests pass
    - **Commit:** One commit per completed task; message explains what changed and why
-3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
-4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
-5. After each task: run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test). When lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve.
-6. Print a brief status line confirming all tasks are complete and `pnpm verify` is green, then continue immediately into Phase 5.
+4. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
+5. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
+6. After each task: run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test). When lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve.
+7. Print a brief status line confirming all tasks are complete and `pnpm verify` is green, then continue immediately into Phase 5.
 
 ---
 
