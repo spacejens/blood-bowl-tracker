@@ -9,10 +9,6 @@ Each N is a live count from the database — coaches, teams, matches, and
 competitions (broken down into seasons and cups). The bot posts the same
 summary automatically when it starts up.
 
-If the database does not respond in time, the bot replies with a brief
-fallback message (`I am stunned`) instead of the summary, so the command
-always answers within Discord's response window.
-
 The command is registered with every Discord server (guild) the bot belongs to
 when it starts. A server the bot joins later receives the command the next time
 the bot restarts.
