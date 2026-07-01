@@ -11,7 +11,9 @@ describe('MatchTeamsService', () => {
   beforeEach(async () => {
     const selectChain = { from: vi.fn().mockResolvedValue([fakeMatchTeam]) };
     const insertChain = {
-      values: vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeMatchTeam]) })),
+      values: vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeMatchTeam]),
+      })),
     };
     const mockDb = {
       select: vi.fn(() => selectChain),

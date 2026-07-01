@@ -48,11 +48,11 @@ Claude executes the plan task by task. For each task:
 3. Code is written until tests pass
 4. Changes are committed with an explanatory message
 
-After each task, `pnpm test` is run from the repo root to catch regressions.
+After each task, `pnpm verify` is run from the repo root to catch regressions — this covers build, lint, typecheck, and test together. When `pnpm verify` reports lint or formatting failures, `pnpm lint:fix` and/or `pnpm format:fix` are run first; hand-editing is reserved for failures those commands can't auto-resolve (genuine lint/type errors, not style).
 
 ### 5. Self-review
 
-Claude runs a code review across all changes on the branch, fixes any findings, and reruns `pnpm test`. This repeats until the review is clean and all tests pass.
+Claude runs a code review across all changes on the branch, fixes any findings, and reruns `pnpm verify`. This repeats until the review is clean and `pnpm verify` passes.
 
 ### 6. Integration
 

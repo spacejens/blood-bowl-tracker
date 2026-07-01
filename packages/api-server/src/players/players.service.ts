@@ -14,7 +14,10 @@ export class PlayersService {
   }
 
   async findById(id: number): Promise<Player | undefined> {
-    const result = await this.db.select().from(players).where(eq(players.id, id));
+    const result = await this.db
+      .select()
+      .from(players)
+      .where(eq(players.id, id));
     return result[0];
   }
 

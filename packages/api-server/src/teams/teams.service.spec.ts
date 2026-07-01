@@ -13,7 +13,10 @@ const fakeTeam = {
 
 describe('TeamsService', () => {
   let service: TeamsService;
-  let mockDb: { select: ReturnType<typeof vi.fn>; insert: ReturnType<typeof vi.fn> };
+  let mockDb: {
+    select: ReturnType<typeof vi.fn>;
+    insert: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     const selectChain = { from: vi.fn() };
@@ -23,13 +26,12 @@ describe('TeamsService', () => {
       insert: vi.fn(() => insertChain),
     };
     selectChain.from.mockResolvedValue([fakeTeam]);
-    insertChain.values = vi.fn(() => ({ returning: vi.fn().mockResolvedValue([fakeTeam]) }));
+    insertChain.values = vi.fn(() => ({
+      returning: vi.fn().mockResolvedValue([fakeTeam]),
+    }));
 
     const module = await Test.createTestingModule({
-      providers: [
-        TeamsService,
-        { provide: DB, useValue: mockDb },
-      ],
+      providers: [TeamsService, { provide: DB, useValue: mockDb }],
     }).compile();
 
     service = module.get(TeamsService);
@@ -41,7 +43,11 @@ describe('TeamsService', () => {
   });
 
   it('create inserts and returns the new team', async () => {
-    const result = await service.create({ name: 'Orcland Raiders', raceId: 1, coachId: 1 });
+    const result = await service.create({
+      name: 'Orcland Raiders',
+      raceId: 1,
+      coachId: 1,
+    });
     expect(result.name).toBe('Orcland Raiders');
   });
 });

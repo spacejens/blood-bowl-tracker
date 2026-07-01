@@ -8,6 +8,7 @@ export class RulesSetsController {
   constructor(private readonly rulesSetsService: RulesSetsService) {}
 
   @TsRestHandler(contract.rulesSets)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.rulesSets, {
       list: async () => ({
@@ -16,7 +17,11 @@ export class RulesSetsController {
       }),
       getById: async ({ params: { id } }) => {
         const rulesSet = await this.rulesSetsService.findById(id);
-        if (!rulesSet) return { status: 404 as const, body: { message: 'Rules set not found' } };
+        if (!rulesSet)
+          return {
+            status: 404 as const,
+            body: { message: 'Rules set not found' },
+          };
         return { status: 200 as const, body: rulesSet };
       },
       create: async ({ body }) => ({

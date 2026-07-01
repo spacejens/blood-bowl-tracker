@@ -4,9 +4,13 @@ import { competitions } from './competitions';
 
 export const matches = gameData.table('matches', {
   id: serial('id').primaryKey(),
-  competitionId: integer('competition_id').references(() => competitions.id).notNull(),
+  competitionId: integer('competition_id')
+    .references(() => competitions.id)
+    .notNull(),
   playedAt: timestamp('played_at', { withTimezone: true }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type Match = typeof matches.$inferSelect;

@@ -8,6 +8,7 @@ export class MatchTeamsController {
   constructor(private readonly matchTeamsService: MatchTeamsService) {}
 
   @TsRestHandler(contract.matchTeams)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.matchTeams, {
       list: async () => ({

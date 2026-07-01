@@ -14,7 +14,10 @@ export class RulesSetsService {
   }
 
   async findById(id: number): Promise<RulesSet | undefined> {
-    const result = await this.db.select().from(rulesSets).where(eq(rulesSets.id, id));
+    const result = await this.db
+      .select()
+      .from(rulesSets)
+      .where(eq(rulesSets.id, id));
     return result[0];
   }
 

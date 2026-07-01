@@ -94,7 +94,7 @@ Work through each phase in order. **Do not start the next phase automatically â€
    - **Commit:** One commit per completed task; message explains what changed and why
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
-5. After each task: run `pnpm test` from the repo root to confirm no regressions
+5. After each task: run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test). When lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve.
 6. **Pause** â€” confirm all tasks are complete and all tests are green before proceeding to Phase 5
 
 ---
@@ -102,7 +102,7 @@ Work through each phase in order. **Do not start the next phase automatically â€
 ### Phase 5: Self-review
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch
-2. Fix any findings; re-run `pnpm test` to confirm clean
+2. Fix any findings; re-run `pnpm verify` to confirm clean
 3. Repeat steps 1â€“2 until the review is clean and all tests pass
 4. **Pause** â€” confirm review is clean before proceeding to Phase 6
 

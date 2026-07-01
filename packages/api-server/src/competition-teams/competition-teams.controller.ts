@@ -5,9 +5,12 @@ import { CompetitionTeamsService } from './competition-teams.service';
 
 @Controller()
 export class CompetitionTeamsController {
-  constructor(private readonly competitionTeamsService: CompetitionTeamsService) {}
+  constructor(
+    private readonly competitionTeamsService: CompetitionTeamsService,
+  ) {}
 
   @TsRestHandler(contract.competitionTeams)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.competitionTeams, {
       list: async () => ({

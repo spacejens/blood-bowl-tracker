@@ -9,7 +9,10 @@ export interface ImportResult {
   errors: ImportError[];
 }
 
-export function makeImportError(args: { item: unknown; message: string }): ImportError {
+export function makeImportError(args: {
+  item: unknown;
+  message: string;
+}): ImportError {
   return { item: args.item, message: args.message };
 }
 

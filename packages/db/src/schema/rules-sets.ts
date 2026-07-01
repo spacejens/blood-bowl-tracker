@@ -4,7 +4,9 @@ import { gameData } from './pg-schema';
 export const rulesSets = gameData.table('rules_sets', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type RulesSet = typeof rulesSets.$inferSelect;

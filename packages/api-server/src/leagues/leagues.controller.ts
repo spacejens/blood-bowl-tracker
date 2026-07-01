@@ -8,6 +8,7 @@ export class LeaguesController {
   constructor(private readonly leaguesService: LeaguesService) {}
 
   @TsRestHandler(contract.leagues)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.leagues, {
       list: async () => ({
@@ -16,7 +17,11 @@ export class LeaguesController {
       }),
       getById: async ({ params: { id } }) => {
         const league = await this.leaguesService.findById(id);
-        if (!league) return { status: 404 as const, body: { message: 'League not found' } };
+        if (!league)
+          return {
+            status: 404 as const,
+            body: { message: 'League not found' },
+          };
         return { status: 200 as const, body: league };
       },
       create: async ({ body }) => ({

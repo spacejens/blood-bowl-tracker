@@ -8,6 +8,7 @@ export class ErasController {
   constructor(private readonly erasService: ErasService) {}
 
   @TsRestHandler(contract.eras)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
   async handler(): Promise<any> {
     return tsRestHandler(contract.eras, {
       list: async () => ({
@@ -16,7 +17,8 @@ export class ErasController {
       }),
       getById: async ({ params: { id } }) => {
         const era = await this.erasService.findById(id);
-        if (!era) return { status: 404 as const, body: { message: 'Era not found' } };
+        if (!era)
+          return { status: 404 as const, body: { message: 'Era not found' } };
         return { status: 200 as const, body: era };
       },
       create: async ({ body }) => ({

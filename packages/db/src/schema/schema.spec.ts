@@ -1,8 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import {
-  coaches, competitionTeams, competitions, eras, leagues,
-  matchEvents, matchTeams, matches, players, positions,
-  raceRulesSets, races, rulesSets, teams,
+  coaches,
+  competitionTeams,
+  competitions,
+  eras,
+  leagues,
+  matchEvents,
+  matchTeams,
+  matches,
+  players,
+  positions,
+  raceRulesSets,
+  races,
+  rulesSets,
+  teams,
 } from './index';
 
 describe('schema', () => {
