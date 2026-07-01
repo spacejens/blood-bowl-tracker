@@ -78,7 +78,7 @@ Work through each phase in order. Some phase transitions require the developer's
 
 ### Phase 3: Planning
 
-1. **REQUIRED SUB-SKILL:** Use `superpowers:writing-plans` with the approved spec as input
+1. **REQUIRED SUB-SKILL:** Use `superpowers:writing-plans` with the approved spec as input. That skill's "Execution Handoff" step asks which execution approach to use (Subagent-Driven vs. Inline) — skip that question here. This workflow always uses subagent-driven-development (see Phase 4), so proceed straight to Phase 4 once the plan is approved without asking the developer to choose an approach.
 2. **Override the writing-plans skill's default plan save location:** save the plan to `docs/plans/` (gitignored)
 3. **Pause** — developer reviews and approves the plan before any code is written
 
@@ -86,7 +86,7 @@ Work through each phase in order. Some phase transitions require the developer's
 
 ### Phase 4: Development
 
-1. **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development` to execute the plan
+1. **REQUIRED SUB-SKILL:** Use `superpowers:subagent-driven-development` to execute the plan. This is the only execution approach used in this workflow — do not ask the developer to choose between this and any alternative (e.g. `executing-plans`); proceed directly into subagent-driven-development.
 2. For **each task** in the plan, follow this order:
    - **Docs first:** If the task introduces a new concept or constraint, update or create the relevant spec under `docs/` following `docs/spec-conventions.md`
    - **Test first:** Write the failing test — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`
@@ -95,7 +95,7 @@ Work through each phase in order. Some phase transitions require the developer's
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
 5. After each task: run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test). When lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve.
-6. **Pause** — confirm all tasks are complete and all tests are green before proceeding to Phase 5
+6. Print a brief status line confirming all tasks are complete and `pnpm verify` is green, then continue immediately into Phase 5.
 
 ---
 

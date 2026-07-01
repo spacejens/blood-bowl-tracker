@@ -39,7 +39,7 @@ The resulting spec is saved to `docs/plans/` (gitignored — it is a temporary w
 
 ### 3. Planning
 
-Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins.
+Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins. This workflow always executes plans via subagent-driven-development — Claude does not ask you to choose an execution approach.
 
 ### 4. Development
 
@@ -51,6 +51,8 @@ Claude executes the plan task by task. For each task:
 4. Changes are committed with an explanatory message
 
 After each task, `pnpm verify` is run from the repo root to catch regressions — this covers build, lint, typecheck, and test together. When `pnpm verify` reports lint or formatting failures, `pnpm lint:fix` and/or `pnpm format:fix` are run first; hand-editing is reserved for failures those commands can't auto-resolve (genuine lint/type errors, not style).
+
+Once all tasks are complete and `pnpm verify` is green, Claude proceeds automatically into Phase 5 — no approval is needed at this step.
 
 ### 5. Self-review
 
