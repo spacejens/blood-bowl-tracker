@@ -10,6 +10,10 @@ export class StatsCommandService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    // registerCommands replaces a guild's full command list, so every slash
+    // command must be registered in this single call. If more commands are
+    // added, extend this array rather than calling registerCommands again from
+    // another service — a second call would overwrite these commands.
     await this.discordClient.registerCommands([
       {
         name: 'stats',
