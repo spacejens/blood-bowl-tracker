@@ -20,7 +20,10 @@ export default tseslint.config(
       sourceType: 'commonjs',
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['packages/api-server/test/*.ts'],
+          allowDefaultProject: [
+            'packages/api-server/test/*.ts',
+            'packages/discord-client/test/*.ts',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
