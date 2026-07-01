@@ -6,6 +6,7 @@ import { DbModule } from '@blood-bowl-tracker/db';
 import { DiscordClientModule } from '@blood-bowl-tracker/discord-client';
 import { StartupNotifierService } from './startup-notifier.service';
 import { InsightsModule } from './insights/insights.module';
+import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { InsightsModule } from './insights/insights.module';
       useFactory: () => process.env.DISCORD_BOT_TOKEN!,
     }),
     InsightsModule,
+    SlashCommandsModule,
   ],
   controllers: [AppController],
   providers: [AppService, StartupNotifierService],
