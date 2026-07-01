@@ -72,6 +72,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     await channel.send(content);
   }
 
+  /**
+   * Registers slash commands with every guild the client has joined.
+   *
+   * `guild.commands.set` REPLACES a guild's entire command list, so all
+   * slash commands across the application must be registered via a single
+   * call to this method. If another service calls `registerCommands`
+   * separately, it will wipe out the commands registered by a previous call.
+   */
   async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
     for (const command of commands) {
       this.commandHandlers.set(command.name, command.execute);
