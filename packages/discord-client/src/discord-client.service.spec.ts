@@ -6,8 +6,13 @@ interface MockChannel {
   send: ReturnType<typeof vi.fn>;
 }
 
+interface MockGuild {
+  commands: { set: ReturnType<typeof vi.fn> };
+}
+
 interface MockClient {
   channels: { fetch: ReturnType<typeof vi.fn> };
+  guilds: { cache: Map<string, MockGuild> };
   once: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
@@ -22,6 +27,7 @@ const mockChannel: MockChannel = {
 
 const mockClient: MockClient = {
   channels: { fetch: vi.fn() },
+  guilds: { cache: new Map<string, MockGuild>() },
   once: vi.fn(),
   on: vi.fn(),
   login: vi.fn(),
@@ -39,8 +45,19 @@ import { DiscordClientModule, DiscordClientService } from './index';
 describe('DiscordClientService', () => {
   let service: DiscordClientService;
 
+  const flush = () => new Promise((resolve) => setImmediate(resolve));
+
+  function interactionHandler(): (interaction: unknown) => void {
+    const call = mockClient.on.mock.calls.find(
+      ([event]) => event === 'interactionCreate',
+    );
+    if (!call) throw new Error('interactionCreate handler not registered');
+    return call[1] as (interaction: unknown) => void;
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
+    mockClient.guilds.cache = new Map();
     mockClient.once.mockImplementation((event: string, cb: () => void) => {
       if (event === 'ready') cb();
       return mockClient;
@@ -126,5 +143,78 @@ describe('DiscordClientService', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('registers commands with every current guild', async () => {
+    const guildA = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
+    const guildB = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
+    mockClient.guilds.cache = new Map([
+      ['a', guildA],
+      ['b', guildB],
+    ]);
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute: vi.fn() },
+    ]);
+    const expected = [{ name: 'stats', description: 'Show stats' }];
+    expect(guildA.commands.set).toHaveBeenCalledWith(expected);
+    expect(guildB.commands.set).toHaveBeenCalledWith(expected);
+  });
+
+  it('dispatches a registered command and replies with its output', async () => {
+    await service.onModuleInit();
+    const execute = vi.fn().mockResolvedValue('the answer');
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      reply,
+    });
+    await flush();
+    expect(execute).toHaveBeenCalled();
+    expect(reply).toHaveBeenCalledWith('the answer');
+  });
+
+  it('ignores interactions for unregistered commands', async () => {
+    await service.onModuleInit();
+    const reply = vi.fn();
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'unknown',
+      reply,
+    });
+    await flush();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-command interactions', async () => {
+    await service.onModuleInit();
+    const reply = vi.fn();
+    interactionHandler()({ isChatInputCommand: () => false, reply });
+    await flush();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('replies with an error when a command handler throws', async () => {
+    await service.onModuleInit();
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockRejectedValue(new Error('boom')),
+      },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      reply,
+    });
+    await flush();
+    expect(reply).toHaveBeenCalledWith(
+      'Sorry, something went wrong while handling that command.',
+    );
   });
 });

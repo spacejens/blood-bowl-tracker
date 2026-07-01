@@ -6,15 +6,23 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Client, GatewayIntentBits } from 'discord.js';
+import type { Interaction } from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
 const READY_TIMEOUT_MS = 30_000;
 
+export interface SlashCommandDefinition {
+  name: string;
+  description: string;
+  execute: () => Promise<string>;
+}
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
   private readonly client: Client;
+  private readonly commandHandlers = new Map<string, () => Promise<string>>();
 
   constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -23,6 +31,11 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit(): Promise<void> {
     this.client.on('error', (error) => {
       this.logger.error('Discord client error', error);
+    });
+    this.client.on('interactionCreate', (interaction) => {
+      this.handleInteraction(interaction).catch((error) => {
+        this.logger.error('Unhandled interaction error', error);
+      });
     });
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -57,5 +70,40 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       throw new Error(`Discord channel is not sendable: ${channelId}`);
     }
     await channel.send(content);
+  }
+
+  async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
+    for (const command of commands) {
+      this.commandHandlers.set(command.name, command.execute);
+    }
+    const commandData = commands.map((command) => ({
+      name: command.name,
+      description: command.description,
+    }));
+    for (const guild of this.client.guilds.cache.values()) {
+      await guild.commands.set(commandData);
+    }
+  }
+
+  private async handleInteraction(interaction: Interaction): Promise<void> {
+    if (!interaction.isChatInputCommand()) {
+      return;
+    }
+    const handler = this.commandHandlers.get(interaction.commandName);
+    if (!handler) {
+      return;
+    }
+    try {
+      const content = await handler();
+      await interaction.reply(content);
+    } catch (error) {
+      this.logger.error(
+        `Failed to handle /${interaction.commandName} command`,
+        error,
+      );
+      await interaction.reply(
+        'Sorry, something went wrong while handling that command.',
+      );
+    }
   }
 }

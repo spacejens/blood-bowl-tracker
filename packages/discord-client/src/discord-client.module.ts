@@ -1,4 +1,4 @@
-import { DynamicModule, FactoryProvider, Module } from '@nestjs/common';
+import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 import {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
@@ -13,6 +13,7 @@ export interface DiscordClientModuleAsyncOptions {
   inject?: FactoryProvider<string>['inject'];
 }
 
+@Global()
 @Module({})
 export class DiscordClientModule {
   static forRoot(options: DiscordClientModuleOptions): DynamicModule {
