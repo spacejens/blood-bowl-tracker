@@ -37,16 +37,17 @@ Work through each phase in order. Some phase transitions require the developer's
 **Issue mode:**
 1. Fetch the issue:
    ```bash
-   gh issue view <N> --json title,body,labels,state,assignees
+   gh issue view <N> --json title,body,labels,state,assignees,url
    ```
    If the issue does not exist, `gh` will error — report the error and **stop**.
-2. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
-3. Claim the issue:
+2. Check whether `<N>` is actually a pull request, not an issue: if the returned `url` contains `/pull/` (issue URLs are `.../issues/<N>`; PR URLs are `.../pull/<N>`), report "Issue #N is a pull request, not an issue. Nothing to do." and **stop** — do not proceed to the state check, assignment, branch naming, or worktree creation.
+3. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
+4. Claim the issue:
    - Determine the current `gh` user:
      ```bash
      gh api user --jq .login
      ```
-     If this command fails, report a one-line warning and **continue** — skip the assign/label step but proceed to step 4 to derive the branch name.
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but proceed to step 5 to derive the branch name.
    - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
    - Otherwise (unassigned, or already assigned to the current user), assign and label it:
      ```bash
@@ -54,10 +55,10 @@ Work through each phase in order. Some phase transitions require the developer's
      gh issue edit <N> --add-label "in progress"
      ```
      Run these as two separate commands so a failure in one doesn't mask the other. If either command fails, report a one-line warning (e.g. "Could not assign issue #N to you — continuing anyway: `<gh error output>`") and **continue** — do not stop the workflow over a labeling/assignment failure.
-4. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
+5. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
-5. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-6. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+7. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -70,7 +71,7 @@ Work through each phase in order. Some phase transitions require the developer's
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-7. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+8. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
