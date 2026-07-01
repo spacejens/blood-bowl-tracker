@@ -34,3 +34,6 @@ docs/superpowers/
 
 # Git worktrees
 .worktrees/
+
+# IDE settings
+.vscode
