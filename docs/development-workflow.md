@@ -18,7 +18,7 @@ Features in this project are developed using [Claude Code](https://claude.ai/cod
 
 If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
 
-Claude takes it from there, pausing for your review at the end of each phase before proceeding.
+Claude takes it from there. You'll be asked to review and approve the spec (end of Phase 2), the implementation plan (end of Phase 3), and the final self-review before a pull request is opened (end of Phase 5). Other phase transitions happen automatically, with a brief status update.
 
 ## The six phases
 
@@ -28,6 +28,8 @@ Claude creates an isolated git branch and worktree. The derived branch name is p
 
 - **Issue mode:** fetches the issue from GitHub. If it's open and unassigned (or already assigned to you), Claude assigns it to you and applies the "in progress" label before continuing. If it's already assigned to someone else, Claude stops there instead of claiming it. If either the assignment or label application fails, Claude warns and continues anyway. Branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
 - **Ad-hoc mode:** uses your provided text; branch name is `feature-{kebab-slug}` — e.g. `feature-add-player-stats-endpoint`
+
+Once the worktree is created and baseline tests pass, Claude proceeds automatically into Phase 2 — no approval is needed at this step.
 
 ### 2. Specification
 

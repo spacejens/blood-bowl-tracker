@@ -23,7 +23,7 @@ If the argument is a plain integer, issue mode is used. Any other text triggers 
 
 ## Phases
 
-Work through each phase in order. **Do not start the next phase automatically — always pause and wait for the developer to confirm before proceeding.**
+Work through each phase in order. Some phase transitions require the developer's explicit approval before continuing — these are marked **Pause** in the phase below, and you must wait for confirmation before proceeding. Other transitions carry no actionable decision for the developer (e.g., confirming a worktree was created, or that automated checks passed) — for these, print a brief status line noting what completed, then continue immediately into the next phase without waiting.
 
 ---
 
@@ -57,14 +57,14 @@ Work through each phase in order. **Do not start the next phase automatically �
 4. Derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped). Propose it to the developer and ask them to confirm — they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
 5. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-6. **Pause** — confirm worktree is ready before proceeding to Phase 2
+6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
 2. Derive a kebab slug from the text. Propose branch name `feature-{kebab-slug}` and ask the developer to confirm — they may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
 3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-4. **Pause** — confirm worktree is ready before proceeding to Phase 2
+4. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 ---
 
