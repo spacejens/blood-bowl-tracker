@@ -29,7 +29,7 @@ yarn-error.log*
 tmp/
 
 # Implementation plans and design specs (ephemeral; not useful in git history)
-docs/plans/
+docs/plans
 docs/superpowers/
 
 # Git worktrees
