@@ -19,12 +19,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
+    this.client.on('error', (error) => {
+      this.logger.error('Discord client error', error);
+    });
     await new Promise<void>((resolve, reject) => {
       this.client.once('ready', () => {
         this.logger.log(`Logged in as ${this.client.user?.tag ?? 'unknown'}`);
         resolve();
       });
-      this.client.once('error', reject);
       this.client.login(this.token).catch(reject);
     });
   }

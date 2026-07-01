@@ -9,6 +9,7 @@ interface MockChannel {
 interface MockClient {
   channels: { fetch: ReturnType<typeof vi.fn> };
   once: ReturnType<typeof vi.fn>;
+  on: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   user: { tag: string };
@@ -22,6 +23,7 @@ const mockChannel: MockChannel = {
 const mockClient: MockClient = {
   channels: { fetch: vi.fn() },
   once: vi.fn(),
+  on: vi.fn(),
   login: vi.fn(),
   destroy: vi.fn(),
   user: { tag: 'test-bot#0001' },
@@ -79,6 +81,17 @@ describe('DiscordClientService', () => {
   it('destroys the client on module destroy', async () => {
     await service.onModuleDestroy();
     expect(mockClient.destroy).toHaveBeenCalled();
+  });
+
+  it('registers a persistent error handler on module init', async () => {
+    await service.onModuleInit();
+    expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+  });
+
+  it('rejects init when login fails', async () => {
+    mockClient.once.mockImplementation(() => mockClient);
+    mockClient.login.mockRejectedValue(new Error('Invalid token'));
+    await expect(service.onModuleInit()).rejects.toThrow('Invalid token');
   });
 
   it('provides DiscordClientService via forRootAsync', async () => {
