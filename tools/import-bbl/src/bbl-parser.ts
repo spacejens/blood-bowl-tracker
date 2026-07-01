@@ -10,7 +10,9 @@ export function parseBblExport(json: string): BblExport {
     !Array.isArray((data as Record<string, unknown>).players) ||
     !Array.isArray((data as Record<string, unknown>).matches)
   ) {
-    throw new Error('BBL export must contain teams, players, and matches arrays');
+    throw new Error(
+      'BBL export must contain teams, players, and matches arrays',
+    );
   }
 
   return data as BblExport;

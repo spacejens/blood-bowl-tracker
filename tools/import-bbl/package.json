@@ -7,8 +7,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
     "@blood-bowl-tracker/api-client": "workspace:*",
