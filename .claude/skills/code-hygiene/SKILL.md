@@ -47,38 +47,9 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ## Config files
 
-Three of the five tools below read a committed config file. Task 1 (Bootstrap) creates each one **only if it doesn't already exist** — never overwrites an existing one. These are living files: a developer may hand-edit them later (e.g. to exclude a dependency from audit/updates, group specific dependencies together, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs.
+Two of the four tools below read a committed config file. Task 1 (Bootstrap) creates each one **only if it doesn't already exist** — never overwrites an existing one. These are living files: a developer may hand-edit them later (e.g. to exclude a dependency from audit/updates, group specific dependencies together, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs.
 
-### `renovate.json5`
-
-```json5
-{
-  // Full config reference: https://docs.renovatebot.com/configuration-options/
-  //
-  // This file is NOT used to drive dependency updates locally — Renovate's
-  // `--platform=local` mode can only analyze, it cannot write changes to
-  // disk. It exists so a future GitHub-hosted Renovate app/action can pick
-  // up this exact config without starting from scratch. The code-hygiene
-  // skill only validates that this file stays syntactically correct
-  // (`pnpm run hygiene:deps:validate-config`) — it does not run Renovate
-  // itself.
-  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
-  extends: ['config:recommended'],
-  packageRules: [
-    {
-      groupName: 'all dependencies',
-      matchPackageNames: ['*'],
-    },
-    // Add packageRules entries here to exclude specific dependencies, or to
-    // group specific ones together differently than "everything in one
-    // group", e.g.:
-    // {
-    //   groupName: 'eslint',
-    //   matchPackageNames: ['eslint', 'eslint-*', '@eslint/*', 'typescript-eslint'],
-    // },
-  ],
-}
-```
+Renovate was evaluated for dependency updates and dropped from this skill entirely: `renovate --platform=local` can only analyze, never write changes to disk (verified live during design), and there is no CI-hosted Renovate run yet for a bootstrapped `renovate.json5` to actually serve — see [issue #19](https://github.com/spacejens/blood-bowl-tracker/issues/19), which tracks wiring up a real Renovate run separately and carries a starter config forward.
 
 ### `knip.jsonc`
 
@@ -119,14 +90,13 @@ One commit per task, `pnpm verify` after each (per develop-feature's Development
 
 ### Task 1: Bootstrap configs
 
-Create `renovate.json5`, `knip.jsonc`, and `syncpack.config.js` (content above) for each one that doesn't already exist in the repo root. Add to root `package.json`, for each tool not already a devDependency:
+Create `knip.jsonc` and `syncpack.config.js` (content above) for each one that doesn't already exist in the repo root. Add to root `package.json`, for each tool not already a devDependency:
 
 ```json
 "devDependencies": {
   "knip": "6.24.0",
   "madge": "8.0.0",
   "npm-check-updates": "22.2.9",
-  "renovate": "43.251.0",
   "syncpack": "15.3.2"
 }
 ```
@@ -137,7 +107,6 @@ Add these scripts to root `package.json`, alongside the existing ones:
 
 ```json
 "hygiene:deps": "ncu -u --workspaces",
-"hygiene:deps:validate-config": "renovate-config-validator renovate.json5",
 "hygiene:audit": "pnpm audit",
 "hygiene:audit:fix": "pnpm audit --fix=update",
 "hygiene:deadcode": "knip",
@@ -154,10 +123,9 @@ Run `pnpm install` so the new devDependencies are actually installed. This task 
 ```bash
 pnpm run hygiene:deps
 pnpm install
-pnpm run hygiene:deps:validate-config
 ```
 
-`hygiene:deps` bumps every workspace `package.json` to the latest version satisfying its declared range (and beyond, for majors — `ncu -u` is not range-limited). `pnpm install` refreshes the lockfile against the bumped versions. `hygiene:deps:validate-config` confirms `renovate.json5` — unused by this step, but load-bearing for a future CI run — is still syntactically valid.
+`hygiene:deps` bumps every workspace `package.json` to the latest version satisfying its declared range (and beyond, for majors — `ncu -u` is not range-limited). `pnpm install` refreshes the lockfile against the bumped versions.
 
 Run `pnpm verify`. If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging`. If the failure isn't a straightforward fix (e.g. a major version bump needs nontrivial migration work), stop and ask the developer whether to fix it, revert just that dependency's bump and continue, or abort the run.
 
