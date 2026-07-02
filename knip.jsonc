@@ -1,0 +1,12 @@
+{
+  // Full config reference: https://knip.dev/reference/configuration
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "apps/*": {},
+    "packages/*": {},
+    "tools/*": {}
+  }
+  // Add "ignore" (file globs) or "ignoreDependencies" (package names) here
+  // to silence false positives, e.g.:
+  // "ignoreDependencies": ["some-package-only-used-via-a-cli-script"]
+}

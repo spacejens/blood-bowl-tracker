@@ -47,9 +47,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ## Config files
 
-Two of the four tools below read a committed config file. Task 1 (Bootstrap) creates each one **only if it doesn't already exist** — never overwrites an existing one. These are living files: a developer may hand-edit them later (e.g. to exclude a dependency from audit/updates, group specific dependencies together, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs.
-
-Renovate was evaluated for dependency updates and dropped from this skill entirely: `renovate --platform=local` can only analyze, never write changes to disk (verified live during design), and there is no CI-hosted Renovate run yet for a bootstrapped `renovate.json5` to actually serve — see [issue #19](https://github.com/spacejens/blood-bowl-tracker/issues/19), which tracks wiring up a real Renovate run separately and carries a starter config forward.
+Two of the four tools below read a config file, committed at the repo root: `knip.jsonc` and `syncpack.config.js`. These are living files: a developer may hand-edit them later (e.g. to exclude a dependency from audit/updates, group specific dependencies together, or silence a false-positive dead-code finding), and those edits must persist across future `code-hygiene` runs — this skill never overwrites them.
 
 ### `knip.jsonc`
 
@@ -84,41 +82,13 @@ module.exports = {
 
 madge (circular dependencies) takes no config file — it's invoked with CLI flags only.
 
+All four tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below just runs its script.
+
 ## Fixed task list (Development phase)
 
 One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline). A task that finds nothing to change makes no commit.
 
-### Task 1: Bootstrap configs
-
-Create `knip.jsonc` and `syncpack.config.js` (content above) for each one that doesn't already exist in the repo root. Add to root `package.json`, for each tool not already a devDependency:
-
-```json
-"devDependencies": {
-  "knip": "6.24.0",
-  "madge": "8.0.0",
-  "npm-check-updates": "22.2.9",
-  "syncpack": "15.3.2"
-}
-```
-
-Resolve the actual current latest version of each with `pnpm view <package> version` rather than reusing these exact numbers verbatim, unless they're still current — they were accurate at the time this skill was built.
-
-Add these scripts to root `package.json`, alongside the existing ones:
-
-```json
-"hygiene:deps": "ncu -u --workspaces",
-"hygiene:audit": "pnpm audit",
-"hygiene:audit:fix": "pnpm audit --fix=update",
-"hygiene:deadcode": "knip",
-"hygiene:deadcode:fix": "knip --fix",
-"hygiene:versions": "syncpack lint",
-"hygiene:versions:fix": "syncpack fix",
-"hygiene:cycles": "madge --circular --extensions ts --exclude '(^|/)(node_modules|dist)/' apps packages tools"
-```
-
-Run `pnpm install` so the new devDependencies are actually installed. This task makes a commit the first time `code-hygiene` runs in this repo; on every later run it's a no-op (no commit, since the files and scripts already exist).
-
-### Task 2: Dependency updates
+### Task 1: Dependency updates
 
 ```bash
 pnpm run hygiene:deps
@@ -129,7 +99,7 @@ pnpm install
 
 Run `pnpm verify`. If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging`. If the failure isn't a straightforward fix (e.g. a major version bump needs nontrivial migration work), stop and ask the developer whether to fix it, revert just that dependency's bump and continue, or abort the run.
 
-### Task 3: Security audit
+### Task 2: Security audit
 
 ```bash
 pnpm run hygiene:audit:fix
@@ -138,7 +108,7 @@ pnpm run hygiene:audit
 
 The first command attempts to update vulnerable packages to non-vulnerable versions within the lockfile (`--fix=update`, not `--fix=override` — `update` doesn't leave permanent `pnpm.overrides` entries in `package.json` behind once the real fix ships upstream). The second re-reports what's left. Run `pnpm verify`. If any vulnerability remains reported, stop and ask the developer how to proceed (accept the risk, find an alternative package, or abort the run) — do not leave it unmentioned or deferred to the PR description.
 
-### Task 4: Unused dependencies / dead code
+### Task 3: Unused dependencies / dead code
 
 ```bash
 pnpm run hygiene:deadcode:fix
@@ -147,7 +117,7 @@ pnpm run hygiene:deadcode
 
 The first command removes what Knip can safely auto-fix. The second re-reports what's left (Knip can't auto-fix every issue type — e.g. some unused exports need a human judgment call about whether they're a public API). Run `pnpm verify`. If the second command reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
 
-### Task 5: Workspace version consistency
+### Task 4: Workspace version consistency
 
 ```bash
 pnpm run hygiene:versions:fix
@@ -156,15 +126,15 @@ pnpm run hygiene:versions
 
 The first command fixes what syncpack can resolve automatically. The second re-reports what's left (syncpack can't always tell which of several divergent versions across workspaces is "correct"). Run `pnpm verify`. If the second command reports any remaining mismatch, stop and ask the developer which version should win, or how to configure a `versionGroups` entry in `syncpack.config.js` to allow the divergence intentionally.
 
-### Task 6: Circular dependencies
+### Task 5: Circular dependencies
 
 ```bash
 pnpm run hygiene:cycles
 ```
 
-Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 3–5, this task never has a "fix" step — any finding here always pauses the run.
+Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 2–4, this task never has a "fix" step — any finding here always pauses the run.
 
-### Task 7: Lint
+### Task 6: Lint
 
 ```bash
 pnpm lint:fix
@@ -172,7 +142,7 @@ pnpm lint:fix
 
 Run `pnpm verify`. Per this project's existing convention (`CLAUDE.md`), hand-edit only failures `pnpm lint:fix` can't auto-resolve — this is routine mechanical work, not a judgment call, so it is not a stop condition.
 
-### Task 8: Format
+### Task 7: Format
 
 ```bash
 pnpm format:fix
@@ -184,12 +154,12 @@ Run `pnpm verify`.
 
 Any finding a task can't safely auto-fix pauses the run immediately for developer direction, rather than being deferred into the PR description:
 
-- Task 2: a dependency update that breaks `pnpm verify` and isn't a straightforward fix after `systematic-debugging`.
-- Task 3: a security vulnerability with no available patched version.
-- Task 4: any dead-code/unused-dependency finding Knip couldn't auto-fix.
-- Task 5: any version mismatch syncpack couldn't auto-fix.
-- Task 6: any circular dependency at all (this check never auto-fixes).
+- Task 1: a dependency update that breaks `pnpm verify` and isn't a straightforward fix after `systematic-debugging`.
+- Task 2: a security vulnerability with no available patched version.
+- Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix.
+- Task 4: any version mismatch syncpack couldn't auto-fix.
+- Task 5: any circular dependency at all (this check never auto-fixes).
 
-Tasks 7 and 8 have no stop condition — remaining lint/format issues after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
+Tasks 6 and 7 have no stop condition — remaining lint/format issues after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
 
 When paused, report what was found, what's already committed so far in the run, and wait for developer direction (fix manually, skip this item and continue, or abort the run) before resuming.
