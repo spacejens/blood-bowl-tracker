@@ -1,74 +1,21 @@
 # Development Workflow
 
-Features in this project are developed using [Claude Code](https://claude.ai/code) with the `develop-feature` skill, which guides you from a GitHub issue (or a free-form description) through to a pull request in a structured way.
+Three Claude Code skills structure how work happens in this project: `develop-feature` builds features, `handle-pr-reviews` processes review feedback on open pull requests, and `code-hygiene` keeps dependencies and code clean independent of any specific feature. Each isolates its work in a git worktree and produces (or updates) a pull request; human review and merge always happen outside the Claude workflow.
 
-## How to start
+Each skill's own `SKILL.md` under `.claude/skills/` is the source of truth for its exact phase-by-phase behavior — this document only orients you to which skill to reach for and how they fit together.
 
-**Issue mode** — when working on an existing GitHub issue:
+## develop-feature
 
-```
-/develop-feature 42
-```
+Builds a feature end-to-end: from a GitHub issue (`/develop-feature 42`) or a free-form description (`/develop-feature Add player stats endpoint`), through brainstorming a spec, writing an implementation plan, implementing it task-by-task with tests, self-review, and opening a PR. This is the default entry point for any new feature or bug fix.
 
-**Ad-hoc mode** — when starting from a free-form description with no GitHub issue:
+## handle-pr-reviews
 
-```
-/develop-feature Add player stats endpoint
-```
+Processes reviewer feedback on an already-open PR (`/handle-pr-reviews`, or `/handle-pr-reviews <N>` for a specific PR). Finds unhandled inline and top-level comments, fixes or rejects each with verification, pushes the results, and replies to every comment. Run this after a PR — from `develop-feature` or otherwise — receives review feedback, including Claude's own self-review comments.
 
-If the argument is a plain integer, issue mode is used. Any other text triggers ad-hoc mode.
+## code-hygiene
 
-Claude takes it from there, pausing for your review at the end of each phase before proceeding.
+Runs a fixed set of dependency and code cleanup checks — dependency updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a PR with the results (`/code-hygiene`). Unlike `develop-feature`, there's no specification or planning step: the checks and their order are fixed. Run this periodically, or whenever the codebase needs a cleanup pass, independent of feature work.
 
-## The six phases
+## How they fit together
 
-### 1. Setup
-
-Claude creates an isolated git branch and worktree. The derived branch name is proposed for your confirmation — you may edit the slug before the branch is created.
-
-- **Issue mode:** fetches the issue from GitHub; branch name is `issue-{N}-{kebab-slug}` — e.g. `issue-42-add-player-stats-endpoint`
-- **Ad-hoc mode:** uses your provided text; branch name is `feature-{kebab-slug}` — e.g. `feature-add-player-stats-endpoint`
-
-### 2. Specification
-
-Claude conducts a brainstorming session with you to flesh out the feature. GitHub issues and ad-hoc descriptions are often short on detail — this step clarifies intent, scope, and constraints before any code is written.
-
-The resulting spec is saved to `docs/plans/` (gitignored — it is a temporary working document, not a permanent project spec).
-
-### 3. Planning
-
-Claude turns the approved spec into a detailed task-by-task implementation plan, also saved to `docs/plans/` (gitignored). You review and approve the plan before development begins.
-
-### 4. Development
-
-Claude executes the plan task by task. For each task:
-
-1. Relevant `docs/` specs are updated or created first (if the task introduces a new concept or constraint)
-2. Tests are written before implementation (TDD)
-3. Code is written until tests pass
-4. Changes are committed with an explanatory message
-
-After each task, `pnpm test` is run from the repo root to catch regressions.
-
-### 5. Self-review
-
-Claude runs a code review across all changes on the branch, fixes any findings, and reruns `pnpm test`. This repeats until the review is clean and all tests pass.
-
-### 6. Integration
-
-Claude creates a pull request:
-
-- **Issue mode:** PR title comes from the issue title; PR body contains `Closes #N`, which GitHub uses to auto-link the issue and auto-close it when the PR is merged
-- **Ad-hoc mode:** PR title is the human-readable form of the confirmed branch slug; PR body contains a summary only (no issue link)
-
-At this point, development is done. Human review and merging happen outside the Claude workflow.
-
-## What gets committed
-
-| Item | Committed? |
-|------|-----------|
-| Feature code | Yes |
-| Tests | Yes |
-| `docs/` spec updates | Yes |
-| Brainstorming spec (`docs/plans/`) | No — gitignored |
-| Implementation plan (`docs/plans/`) | No — gitignored |
+A typical cycle: `develop-feature` takes an issue to a PR → reviewers leave feedback → `handle-pr-reviews` addresses it → the PR merges. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps dependencies current and the codebase free of dead code and lint/format drift. All three skills share the same underlying conventions: branch naming, worktree isolation, `pnpm verify` after each task, and a self-review pass before opening a PR.
