@@ -10,7 +10,15 @@
     "format": "pnpm -r run format",
     "format:fix": "pnpm -r run format:fix",
     "test": "pnpm -r run test",
-    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test"
+    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
+    "hygiene:deps": "ncu -u --workspaces",
+    "hygiene:audit": "pnpm audit",
+    "hygiene:audit:fix": "pnpm audit --fix=update",
+    "hygiene:deadcode": "knip",
+    "hygiene:deadcode:fix": "knip --fix",
+    "hygiene:versions": "syncpack lint",
+    "hygiene:versions:fix": "syncpack fix",
+    "hygiene:cycles": "madge --circular --extensions ts --exclude '(^|/)(node_modules|dist)/' apps packages tools"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -18,7 +26,11 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "globals": "^17.7.0",
+    "knip": "6.24.0",
+    "madge": "8.0.0",
+    "npm-check-updates": "22.2.9",
     "prettier": "^3.9.0",
+    "syncpack": "15.3.2",
     "typescript-eslint": "^8.62.0"
   }
 }

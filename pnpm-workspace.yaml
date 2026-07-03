@@ -6,3 +6,5 @@ allowBuilds:
   '@swc/core': true
   esbuild: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - knip@6.24.0
