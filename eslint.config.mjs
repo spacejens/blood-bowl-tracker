@@ -21,6 +21,7 @@ export default tseslint.config(
       parserOptions: {
         projectService: {
           allowDefaultProject: [
+            'apps/discord-bot/test/*.ts',
             'packages/api-server/test/*.ts',
             'packages/discord-client/test/*.ts',
           ],
