@@ -16,7 +16,7 @@
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
     "lint:fix": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:fix": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "vitest run",
