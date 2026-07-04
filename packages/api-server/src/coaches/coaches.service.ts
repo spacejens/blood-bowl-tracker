@@ -36,7 +36,7 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const matches = await this.db
+    const coachIdMatches = await this.db
       .select({ coachId: coachExternalIds.coachId })
       .from(coachExternalIds)
       .where(
@@ -50,7 +50,7 @@ export class CoachesService {
         ),
       );
 
-    const distinctCoachIds = [...new Set(matches.map((m) => m.coachId))];
+    const distinctCoachIds = [...new Set(coachIdMatches.map((m) => m.coachId))];
 
     if (distinctCoachIds.length > 1) {
       throw new CoachUpsertConflictError(
