@@ -20,8 +20,8 @@
   "dependencies": {
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
-    "@nestjs/common": "^11.0.1",
-    "@nestjs/core": "^11.0.1",
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
     "@ts-rest/nest": "^3.52.1",
     "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2",
@@ -29,7 +29,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.0.1",
+    "@nestjs/testing": "^11.1.27",
     "@swc/core": "^1.15.43",
     "@types/node": "^24.0.0",
     "@vitest/coverage-v8": "^2.0.0",
