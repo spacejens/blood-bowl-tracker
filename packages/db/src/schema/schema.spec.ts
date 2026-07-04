@@ -15,6 +15,7 @@ import {
   raceRulesSets,
   races,
   rulesSets,
+  teamEras,
   teams,
 } from './index';
 
@@ -76,6 +77,12 @@ describe('schema', () => {
   it('exports competitionTeams join table', () => {
     expect(competitionTeams.competitionId).toBeDefined();
     expect(competitionTeams.teamId).toBeDefined();
+  });
+
+  it('exports teamEras table', () => {
+    expect(teamEras.id).toBeDefined();
+    expect(teamEras.teamId).toBeDefined();
+    expect(teamEras.eraId).toBeDefined();
   });
 
   it('exports teams table with FK columns', () => {
