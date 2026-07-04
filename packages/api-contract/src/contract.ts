@@ -20,6 +20,7 @@ import {
   CreateCompetitionSchema,
 } from './schemas/competition';
 import { TeamSchema, CreateTeamSchema } from './schemas/team';
+import { TeamEraSchema, CreateTeamEraSchema } from './schemas/team-era';
 import { PlayerSchema, CreatePlayerSchema } from './schemas/player';
 import { MatchSchema, CreateMatchSchema } from './schemas/match';
 import {
@@ -254,6 +255,28 @@ export const contract = c.router({
       path: '/teams',
       body: CreateTeamSchema,
       responses: { 201: TeamSchema },
+    },
+  }),
+  teamEras: c.router({
+    list: {
+      method: 'GET',
+      path: '/team-eras',
+      responses: { 200: z.array(TeamEraSchema) },
+    },
+    getById: {
+      method: 'GET',
+      path: '/team-eras/:id',
+      pathParams: z.object({ id: z.coerce.number() }),
+      responses: {
+        200: TeamEraSchema,
+        404: z.object({ message: z.string() }),
+      },
+    },
+    create: {
+      method: 'POST',
+      path: '/team-eras',
+      body: CreateTeamEraSchema,
+      responses: { 201: TeamEraSchema },
     },
   }),
   players: c.router({

@@ -47,6 +47,15 @@ describe('contract', () => {
     expect(contract.coaches.upsert.path).toBe('/coaches/upsert');
   });
 
+  it('defines teamEras routes', () => {
+    expect(contract.teamEras.list.method).toBe('GET');
+    expect(contract.teamEras.list.path).toBe('/team-eras');
+    expect(contract.teamEras.getById.method).toBe('GET');
+    expect(contract.teamEras.getById.path).toBe('/team-eras/:id');
+    expect(contract.teamEras.create.method).toBe('POST');
+    expect(contract.teamEras.create.path).toBe('/team-eras');
+  });
+
   it('requires externalSystemId when creating an era', () => {
     const result = CreateEraSchema.safeParse({
       name: 'Spring 2026',
