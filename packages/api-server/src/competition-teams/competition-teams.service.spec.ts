@@ -3,7 +3,7 @@ import { Test } from '@nestjs/testing';
 import { CompetitionTeamsService } from './competition-teams.service';
 import { DB } from '@blood-bowl-tracker/db';
 
-const fakeCompetitionTeam = { competitionId: 1, teamId: 1 };
+const fakeCompetitionTeam = { competitionId: 1, teamEraId: 1 };
 
 describe('CompetitionTeamsService', () => {
   let service: CompetitionTeamsService;
@@ -35,8 +35,8 @@ describe('CompetitionTeamsService', () => {
   });
 
   it('create inserts and returns the new association', async () => {
-    const result = await service.create({ competitionId: 1, teamId: 1 });
+    const result = await service.create({ competitionId: 1, teamEraId: 1 });
     expect(result.competitionId).toBe(1);
-    expect(result.teamId).toBe(1);
+    expect(result.teamEraId).toBe(1);
   });
 });

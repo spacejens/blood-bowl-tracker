@@ -6,8 +6,8 @@ import { DB } from '@blood-bowl-tracker/db';
 const fakeEvent = {
   id: 1,
   matchId: 1,
-  actingTeamId: 1,
-  consequenceTeamId: null,
+  actingTeamEraId: 1,
+  consequenceTeamEraId: null,
   actingPlayerId: 3,
   consequencePlayerId: null,
   createdAt: new Date('2026-01-15'),
@@ -43,7 +43,7 @@ describe('MatchEventsService', () => {
   });
 
   it('create inserts and returns the new event', async () => {
-    const result = await service.create({ matchId: 1, actingTeamId: 1 });
-    expect(result.actingTeamId).toBe(1);
+    const result = await service.create({ matchId: 1, actingTeamEraId: 1 });
+    expect(result.actingTeamEraId).toBe(1);
   });
 });

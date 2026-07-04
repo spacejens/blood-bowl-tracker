@@ -6,7 +6,7 @@ import { DB } from '@blood-bowl-tracker/db';
 const fakePlayer = {
   id: 1,
   name: 'Grak',
-  teamId: 1,
+  teamEraId: 1,
   positionId: 1,
   createdAt: new Date('2026-01-01'),
 };
@@ -67,10 +67,10 @@ describe('PlayersService', () => {
   it('create inserts and returns the new player', async () => {
     const result = await service.create({
       name: 'Grak',
-      teamId: 1,
+      teamEraId: 1,
       positionId: 1,
     });
     expect(result.name).toBe('Grak');
-    expect(result.teamId).toBe(1);
+    expect(result.teamEraId).toBe(1);
   });
 });
