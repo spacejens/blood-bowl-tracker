@@ -94,7 +94,7 @@ importers:
         specifier: ^24.0.0
         version: 24.13.2
       '@types/supertest':
-        specifier: ^7.0.0
+        specifier: ^7.2.0
         version: 7.2.0
       '@vitest/coverage-v8':
         specifier: ^2.0.0
