@@ -123,14 +123,14 @@ The first command removes what Knip can safely auto-fix. The second re-reports w
 For each placement candidate, investigate directly rather than moving it automatically:
 - Grep that workspace's production `src` (excluding `test/`, config files, build scripts) for any import/require of the package.
 - Check whether the package name appears in any `package.json` `scripts` entry in that workspace (CLI/bin usage is a legitimate non-import use).
-- Consider known framework peer-dependency patterns (e.g. a NestJS package that requires `@nestjs/core` as an implicit peer of `@nestjs/common` even without a direct import).
+- Consider known framework peer-dependency patterns (e.g. a NestJS package that requires `@nestjs/core` as an implicit peer of `@nestjs/common` even without a direct import) — this check overrides the first two: a package that is plausibly a framework core/peer dependency should not be called dev-only just because grep and scripts turned up nothing.
 
 Then:
-- **Confidently dev-only** — move the entry from `dependencies` to `devDependencies` in that workspace's `package.json`, keeping its existing version specifier exactly as written.
+- **Confidently dev-only** — no import, no scripts usage, and no plausible framework core/peer role; move the entry from `dependencies` to `devDependencies` in that workspace's `package.json`, keeping its existing version specifier exactly as written.
 - **Confidently a false positive** — leave it in place; no developer interruption needed.
 - **Ambiguous** — stop and ask the developer (see Stop conditions below).
 
-If any entries were moved, run `pnpm install` to refresh `pnpm-lock.yaml`. Run `pnpm verify`. If Report A (not Report B) reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
+If any entries were moved, run `pnpm install` to refresh `pnpm-lock.yaml`. Run `pnpm verify` — but note that a pass here is not evidence the move was correct: a default `pnpm install` installs `devDependencies` for every workspace regardless of any production install boundary, so `pnpm verify` will pass even for a wrongly-demoted runtime dependency. The per-candidate investigation above is the only real safeguard against that, so err toward Ambiguous/stop whenever in doubt. If Report A (not Report B) reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
 
 ### Task 4: Workspace version consistency
 
