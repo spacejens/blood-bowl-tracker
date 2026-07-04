@@ -141,6 +141,8 @@ Skip this phase if no commits were made in Phase 2. Otherwise, push every new co
 git push
 ```
 
+After pushing, ask the developer whether to deploy the change locally for a manual look — do not deploy automatically. Mention that `deploy-local` removes any stale stopped `postgres`/`discord-bot` containers left by a previous run before starting fresh. If yes, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill.
+
 ---
 
 ### Phase 5: Reply to items

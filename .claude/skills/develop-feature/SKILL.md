@@ -169,4 +169,5 @@ This applies to every subagent dispatched from any phase below while working in 
    )"
    ```
 
-2. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
+2. After the PR is created, ask the developer whether to deploy the change locally for a manual look — do not deploy automatically. Mention that `deploy-local` removes any stale stopped `postgres`/`discord-bot` containers left by a previous run before starting fresh. If yes, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill.
+3. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
