@@ -36,7 +36,13 @@ describe('contract', () => {
     );
   });
 
-  it('defines coaches.upsert route', () => {
+  it('defines coaches routes', () => {
+    expect(contract.coaches.list.method).toBe('GET');
+    expect(contract.coaches.list.path).toBe('/coaches');
+    expect(contract.coaches.getById.method).toBe('GET');
+    expect(contract.coaches.getById.path).toBe('/coaches/:id');
+    expect(contract.coaches.create.method).toBe('POST');
+    expect(contract.coaches.create.path).toBe('/coaches');
     expect(contract.coaches.upsert.method).toBe('POST');
     expect(contract.coaches.upsert.path).toBe('/coaches/upsert');
   });
