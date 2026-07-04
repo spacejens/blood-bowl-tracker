@@ -43,6 +43,12 @@ This is a pnpm monorepo with three top-level workspace folders:
   ```bash
   npx claudepluginhub obra/superpowers --plugin superpowers
   ```
+- *(optional)* [`rtk`](https://github.com/rtk-ai/rtk) — compresses shell command output (git, tests, linters) before it reaches Claude's context via a Claude Code hook, reducing token usage during development. Each developer opts in on their own machine:
+  ```bash
+  brew install rtk       # or: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh
+  rtk init -g
+  ```
+  Restart Claude Code afterward for the hook to take effect.
 
 ### Dependencies
 
