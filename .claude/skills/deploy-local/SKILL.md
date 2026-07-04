@@ -21,9 +21,9 @@ Takes no arguments.
    ```bash
    docker ps -a --filter "name=^postgres$" --filter "name=^discord-bot$" --format '{{.Names}}\t{{.Status}}'
    ```
-   If either is listed as `Exited`, tell the developer you're removing the stale stopped container(s) before starting fresh, then:
+   For each container listed as `Exited`, tell the developer you're removing it before starting fresh, then remove only those (naming just the `Exited` ones — passing a name that doesn't exist errors on "No such container"):
    ```bash
-   docker rm postgres discord-bot
+   docker rm <exited-container-name> [<other-exited-container-name>]
    ```
    (only removes the stopped containers — the named `postgres_data` volume and its data are untouched). If either is listed as anything other than `Exited` (i.e. already running), stop and report that to the developer instead of removing it — it may be a deployment they're actively using.
 2. Build and start both services in the background:

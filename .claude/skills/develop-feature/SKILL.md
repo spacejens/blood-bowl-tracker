@@ -127,7 +127,7 @@ This applies to every subagent dispatched from any phase below while working in 
 3. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 4. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
 5. After each task: check whether the task's diff touches any file under `apps/`, `packages/`, or `tools/` (`git diff --name-only <task-base-sha>..HEAD`, where `<task-base-sha>` is the commit recorded before dispatching that task's implementer). If it does, run `pnpm verify` from the repo root to confirm no regressions (build, lint, typecheck, test) — when lint or formatting checks fail, run `pnpm lint:fix` and/or `pnpm format:fix` first; only hand-edit failures those commands can't auto-resolve. If the diff touches only files outside those three directories (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note in the task's status line that it was skipped and why — none of `pnpm verify`'s scripts (`build`, `lint`, `typecheck`, `test`) run against paths outside `apps/`, `packages/`, `tools/`, so there is nothing for them to check.
-6. Print a brief status line confirming all tasks are complete and `pnpm verify` is green, then continue immediately into Phase 5.
+6. Print a brief status line confirming all tasks are complete and that `pnpm verify` is green for every task that ran it (noting any tasks that skipped it per step 5), then continue immediately into Phase 5.
 
 ---
 
