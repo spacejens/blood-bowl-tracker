@@ -1,11 +1,11 @@
 ---
 name: code-hygiene
-description: Use for an on-demand dependency and code hygiene pass in the blood-bowl-tracker project — updates dependencies, removes unused dependencies and dead code, runs a security audit, fixes workspace version mismatches, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results
+description: Use for an on-demand dependency and code hygiene pass in the blood-bowl-tracker project — updates dependencies, removes unused dependencies and dead code, fixes dependencies that should be devDependencies, runs a security audit, fixes workspace version mismatches, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results
 ---
 
 # code-hygiene
 
-Runs a fixed set of dependency and code hygiene checks — dependency updates, unused dependency/dead code removal, a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
+Runs a fixed set of dependency and code hygiene checks — dependency updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
 
 ## Invocation
 
@@ -108,14 +108,29 @@ pnpm run hygiene:audit
 
 The first command attempts to update vulnerable packages to non-vulnerable versions within the lockfile (`--fix=update`, not `--fix=override` — `update` doesn't leave permanent `pnpm.overrides` entries in `package.json` behind once the real fix ships upstream). The second re-reports what's left. Run `pnpm verify`. If any vulnerability remains reported, stop and ask the developer how to proceed (accept the risk, find an alternative package, or abort the run) — do not leave it unmentioned or deferred to the PR description.
 
-### Task 3: Unused dependencies / dead code
+### Task 3: Unused dependencies / dead code / dependency placement
 
 ```bash
 pnpm run hygiene:deadcode:fix
 pnpm run hygiene:deadcode
+pnpm run hygiene:deadcode:production
 ```
 
-The first command removes what Knip can safely auto-fix. The second re-reports what's left (Knip can't auto-fix every issue type — e.g. some unused exports need a human judgment call about whether they're a public API). Run `pnpm verify`. If the second command reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
+The first command removes what Knip can safely auto-fix. The second re-reports what's left (Knip can't auto-fix every issue type — e.g. some unused exports need a human judgment call about whether they're a public API); call this **Report A**. The third runs Knip in production mode, which scans only production source files and excludes `devDependencies` from consideration; call this **Report B** — any `dependencies` entry it reports as unused is unused specifically in production code (it may still be used in tests, scripts, or tooling).
+
+**Compute placement candidates:** any package in Report B's "Unused dependencies" that does *not* also appear in Report A's "Unused dependencies". (Anything in both reports is fully unused everywhere — that's Report A's problem, handled by the stop condition below, not this step.) Report B's own output includes the exact `package.json` path for each finding.
+
+For each placement candidate, investigate directly rather than moving it automatically:
+- Grep that workspace's production `src` (excluding `test/`, config files, build scripts) for any import/require of the package.
+- Check whether the package name appears in any `package.json` `scripts` entry in that workspace (CLI/bin usage is a legitimate non-import use).
+- Consider known framework peer-dependency patterns (e.g. a NestJS package that requires `@nestjs/core` as an implicit peer of `@nestjs/common` even without a direct import).
+
+Then:
+- **Confidently dev-only** — move the entry from `dependencies` to `devDependencies` in that workspace's `package.json`, keeping its existing version specifier exactly as written.
+- **Confidently a false positive** — leave it in place; no developer interruption needed.
+- **Ambiguous** — stop and ask the developer (see Stop conditions below).
+
+If any entries were moved, run `pnpm install` to refresh `pnpm-lock.yaml`. Run `pnpm verify`. If Report A (not Report B) reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
 
 ### Task 4: Workspace version consistency
 
@@ -156,7 +171,7 @@ Any finding a task can't safely auto-fix pauses the run immediately for develope
 
 - Task 1: a dependency update that breaks `pnpm verify` and isn't a straightforward fix after `systematic-debugging`.
 - Task 2: a security vulnerability with no available patched version.
-- Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix.
+- Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 4: any version mismatch syncpack couldn't auto-fix.
 - Task 5: any circular dependency at all (this check never auto-fixes).
 
