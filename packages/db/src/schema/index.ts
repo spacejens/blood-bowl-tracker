@@ -14,4 +14,5 @@ export * from './positions';
 export * from './race-rules-sets';
 export * from './races';
 export * from './rules-sets';
+export * from './team-eras';
 export * from './teams';

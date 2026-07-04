@@ -1,13 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { PlayersService } from './players.service';
+import { TeamErasService } from './team-eras.service';
 import { DB } from '@blood-bowl-tracker/db';
 
-const fakePlayer = {
+const fakeTeamEra = {
   id: 1,
-  name: 'Grak',
-  teamEraId: 1,
-  positionId: 1,
+  teamId: 1,
+  eraId: 1,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -20,8 +19,8 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
-describe('PlayersService', () => {
-  let service: PlayersService;
+describe('TeamErasService', () => {
+  let service: TeamErasService;
   let mockDb: {
     select: () => { from: ReturnType<typeof vi.fn> };
     insert: ReturnType<typeof vi.fn>;
@@ -29,11 +28,11 @@ describe('PlayersService', () => {
 
   beforeEach(async () => {
     const selectChain = {
-      from: vi.fn().mockReturnValue(makeFromBuilder([fakePlayer])),
+      from: vi.fn().mockReturnValue(makeFromBuilder([fakeTeamEra])),
     };
     const insertChain = {
       values: vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakePlayer]),
+        returning: vi.fn().mockResolvedValue([fakeTeamEra]),
       })),
     };
     mockDb = {
@@ -42,20 +41,20 @@ describe('PlayersService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [PlayersService, { provide: DB, useValue: mockDb }],
+      providers: [TeamErasService, { provide: DB, useValue: mockDb }],
     }).compile();
 
-    service = module.get(PlayersService);
+    service = module.get(TeamErasService);
   });
 
-  it('findAll returns a list of players', async () => {
+  it('findAll returns a list of team eras', async () => {
     const result = await service.findAll();
-    expect(result).toEqual([fakePlayer]);
+    expect(result).toEqual([fakeTeamEra]);
   });
 
-  it('findById returns the matching player', async () => {
+  it('findById returns the matching team era', async () => {
     const result = await service.findById(1);
-    expect(result).toEqual(fakePlayer);
+    expect(result).toEqual(fakeTeamEra);
   });
 
   it('findById returns undefined when not found', async () => {
@@ -64,13 +63,9 @@ describe('PlayersService', () => {
     expect(result).toBeUndefined();
   });
 
-  it('create inserts and returns the new player', async () => {
-    const result = await service.create({
-      name: 'Grak',
-      teamEraId: 1,
-      positionId: 1,
-    });
-    expect(result.name).toBe('Grak');
-    expect(result.teamEraId).toBe(1);
+  it('create inserts and returns the new team era', async () => {
+    const result = await service.create({ teamId: 1, eraId: 1 });
+    expect(result.teamId).toBe(1);
+    expect(result.eraId).toBe(1);
   });
 });

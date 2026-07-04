@@ -15,6 +15,7 @@ import {
   raceRulesSets,
   races,
   rulesSets,
+  teamEras,
   teams,
 } from './index';
 
@@ -75,7 +76,13 @@ describe('schema', () => {
 
   it('exports competitionTeams join table', () => {
     expect(competitionTeams.competitionId).toBeDefined();
-    expect(competitionTeams.teamId).toBeDefined();
+    expect(competitionTeams.teamEraId).toBeDefined();
+  });
+
+  it('exports teamEras table', () => {
+    expect(teamEras.id).toBeDefined();
+    expect(teamEras.teamId).toBeDefined();
+    expect(teamEras.eraId).toBeDefined();
   });
 
   it('exports teams table with FK columns', () => {
@@ -94,7 +101,7 @@ describe('schema', () => {
   it('exports players table with FK columns', () => {
     expect(players.id).toBeDefined();
     expect(players.name).toBeDefined();
-    expect(players.teamId).toBeDefined();
+    expect(players.teamEraId).toBeDefined();
     expect(players.positionId).toBeDefined();
   });
 
@@ -106,14 +113,14 @@ describe('schema', () => {
 
   it('exports matchTeams join table', () => {
     expect(matchTeams.matchId).toBeDefined();
-    expect(matchTeams.teamId).toBeDefined();
+    expect(matchTeams.teamEraId).toBeDefined();
   });
 
   it('exports matchEvents table with optional participant columns', () => {
     expect(matchEvents.id).toBeDefined();
     expect(matchEvents.matchId).toBeDefined();
-    expect(matchEvents.actingTeamId).toBeDefined();
-    expect(matchEvents.consequenceTeamId).toBeDefined();
+    expect(matchEvents.actingTeamEraId).toBeDefined();
+    expect(matchEvents.consequenceTeamEraId).toBeDefined();
     expect(matchEvents.actingPlayerId).toBeDefined();
     expect(matchEvents.consequencePlayerId).toBeDefined();
   });

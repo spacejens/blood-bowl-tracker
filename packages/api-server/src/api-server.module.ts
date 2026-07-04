@@ -7,6 +7,7 @@ import { PositionsModule } from './positions/positions.module';
 import { ErasModule } from './eras/eras.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { TeamsModule } from './teams/teams.module';
+import { TeamErasModule } from './team-eras/team-eras.module';
 import { PlayersModule } from './players/players.module';
 import { MatchesModule } from './matches/matches.module';
 import { MatchEventsModule } from './match-events/match-events.module';
@@ -25,6 +26,7 @@ import { ExternalSystemsModule } from './external-systems/external-systems.modul
     ErasModule,
     CompetitionsModule,
     TeamsModule,
+    TeamErasModule,
     PlayersModule,
     MatchesModule,
     MatchEventsModule,
