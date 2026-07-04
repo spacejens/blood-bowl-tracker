@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseBblExport } from './bbl-parser';
 
 const validJson = JSON.stringify({
-  teams: [{ id: 't1', name: 'Green Mashers', race: 'Orc', coachName: 'Gruk' }],
+  teams: [{ id: 't1', name: 'Green Mashers', race: 'Orc', coachId: 'c1' }],
   players: [{ id: 'p1', name: 'Slugger', teamId: 't1', position: 'Blitzer' }],
   matches: [
     {
@@ -13,6 +13,7 @@ const validJson = JSON.stringify({
       events: [{ type: 'touchdown', teamId: 't1', playerId: 'p1' }],
     },
   ],
+  coaches: [{ id: 'c1', name: 'Gruk' }],
 });
 
 describe('parseBblExport', () => {
@@ -20,9 +21,12 @@ describe('parseBblExport', () => {
     const result = parseBblExport(validJson);
     expect(result.teams).toHaveLength(1);
     expect(result.teams[0].name).toBe('Green Mashers');
+    expect(result.teams[0].coachId).toBe('c1');
     expect(result.players).toHaveLength(1);
     expect(result.matches).toHaveLength(1);
     expect(result.matches[0].events).toHaveLength(1);
+    expect(result.coaches).toHaveLength(1);
+    expect(result.coaches[0].name).toBe('Gruk');
   });
 
   it('throws on invalid JSON', () => {
@@ -31,7 +35,7 @@ describe('parseBblExport', () => {
 
   it('throws when required fields are missing', () => {
     expect(() => parseBblExport(JSON.stringify({ teams: [] }))).toThrow(
-      'BBL export must contain teams, players, and matches arrays',
+      'BBL export must contain teams, players, matches, and coaches arrays',
     );
   });
 });
