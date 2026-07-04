@@ -39,7 +39,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
     --title "Code hygiene: <YYYY-MM-DD>" \
     --body "$(cat <<'EOF'
   ## Summary
-  <one bullet per task that made a commit, summarizing what changed>
+  <one bullet per task or dependency group that made a commit, summarizing what changed>
   EOF
   )"
   ```
@@ -86,18 +86,45 @@ All four tools are already pinned root `devDependencies` with their `hygiene:*` 
 
 ## Fixed task list (Development phase)
 
-One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline). A task that finds nothing to change makes no commit.
+One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline) — except Task 1, which produces one commit per dependency group instead of one commit for the whole task (see below). A task (or dependency group) that finds nothing to change makes no commit.
 
 ### Task 1: Dependency updates
 
+Unlike Tasks 2–7, this task does not produce a single commit — it produces one commit per dependency update (or tightly-coupled group of updates), so a `pnpm verify` failure is always traceable to exactly one change. Work through the steps below in order.
+
+**1. Enumerate outdated dependencies.**
+
 ```bash
-pnpm run hygiene:deps
+pnpm run hygiene:deps:list
+```
+
+This reports every outdated dependency, per workspace `package.json` (including the root), classified as Patch / Minor / Major. Build a to-do list of *groups* from this output:
+
+- Default: one group per dependency name, spanning every workspace that declares it (e.g. if `typescript` is outdated in five workspaces, that's one group covering all five).
+- Exception — bundle multiple dependency names into one group when they're a known coordinated release train that must share a version, e.g. all `@nestjs/*` packages together, or `vitest` with `@vitest/coverage-v8`.
+
+**2. Order the groups.**
+
+Process patch-tier groups first, then minor, then major; alphabetically by dependency/group name within each tier. A bundled group takes the tier of its riskiest member. This lands low-risk wins as clean commits early and isolates the updates most likely to need migration work (majors) at the end, so a stop there doesn't block everything else.
+
+**3. Apply each group, in order:**
+
+```bash
+pnpm run hygiene:deps -- -f "<name>[,<name2>,...]"
 pnpm install
 ```
 
-`hygiene:deps` bumps every workspace `package.json` to the latest version satisfying its declared range (and beyond, for majors — `ncu -u` is not range-limited). `pnpm install` refreshes the lockfile against the bumped versions.
+(`-f` accepts a comma-separated list — a single name for a plain group, several for a bundled one.) This bumps just this group's entries to the latest version satisfying its declared range (and beyond, for majors — `ncu -u` is not range-limited), across every workspace that declares it, then refreshes the lockfile.
 
-Run `pnpm verify`. If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging`. If the failure isn't a straightforward fix (e.g. a major version bump needs nontrivial migration work), stop and ask the developer whether to fix it, revert just that dependency's bump and continue, or abort the run.
+If this group has no actual version change left to apply (e.g. it was already resolved while handling an earlier bundled group), skip it — no commit.
+
+Run `pnpm verify`. If it passes, commit — message in this repo's plain style, no `chore:`/conventional-commit prefix (e.g. "Update typescript to v6" or "Update vitest and @vitest/coverage-v8 to v4") — and move to the next group.
+
+If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
+
+- **Peer-dependency conflict** naming another currently-outdated dependency not yet in this group — merge that dependency into this group and retry from the top of step 3.
+- **Mechanical migration** needed (renamed API/config, codemod-style changes to match the new version) — make the fix now, as part of this same commit. This is expected, routine work for a major bump, not a reason to stop.
+- **Judgment call** needed (the fix isn't mechanical — it requires a product or architecture decision) — stop. Report which groups already committed this run, then ask the developer whether to fix it manually and resume, skip this dependency and continue with the rest of the to-do list, or abort the run. Commits already made are not rolled back.
 
 ### Task 2: Security audit
 
@@ -169,7 +196,7 @@ Run `pnpm verify`.
 
 Any finding a task can't safely auto-fix pauses the run immediately for developer direction, rather than being deferred into the PR description:
 
-- Task 1: a dependency update that breaks `pnpm verify` and isn't a straightforward fix after `systematic-debugging`.
+- Task 1: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 1 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
 - Task 2: a security vulnerability with no available patched version.
 - Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 4: any version mismatch syncpack couldn't auto-fix.
