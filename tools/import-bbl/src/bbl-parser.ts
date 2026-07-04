@@ -8,10 +8,11 @@ export function parseBblExport(json: string): BblExport {
     data === null ||
     !Array.isArray((data as Record<string, unknown>).teams) ||
     !Array.isArray((data as Record<string, unknown>).players) ||
-    !Array.isArray((data as Record<string, unknown>).matches)
+    !Array.isArray((data as Record<string, unknown>).matches) ||
+    !Array.isArray((data as Record<string, unknown>).coaches)
   ) {
     throw new Error(
-      'BBL export must contain teams, players, and matches arrays',
+      'BBL export must contain teams, players, matches, and coaches arrays',
     );
   }
 

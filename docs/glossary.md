@@ -36,6 +36,14 @@ A period of time during which a [league](#league) used a particular [rules set](
 
 See [game-concepts/eras](game-concepts/eras/index.md).
 
+## External System
+
+An upstream application or data source (e.g. BBL) that [league](#league) data
+can be imported from. Each [era](#era) references exactly one external
+system.
+
+See [game-concepts/external-systems](game-concepts/external-systems/index.md).
+
 ## Half
 
 One of the two periods of a [match](#match). Each half consists of up to eight [turns](#turn) per team.

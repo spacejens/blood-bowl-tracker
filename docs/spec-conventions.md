@@ -15,6 +15,7 @@ docs/
     players/
     ...
   insights/                # Statistics, top lists, and other derived or human-submitted content
+  api/                     # General API concepts (REST conventions, imports); not per-entity docs
   discord-bot/             # Discord bot app specs
   <future-app>/            # Future apps get their own top-level subfolder
 ```

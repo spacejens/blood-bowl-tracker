@@ -3,7 +3,9 @@ import {
   coaches,
   competitionTeams,
   competitions,
+  coachExternalIds,
   eras,
+  externalSystems,
   leagues,
   matchEvents,
   matchTeams,
@@ -47,8 +49,21 @@ describe('schema', () => {
     expect(eras.name).toBeDefined();
     expect(eras.leagueId).toBeDefined();
     expect(eras.rulesSetId).toBeDefined();
+    expect(eras.externalSystemId).toBeDefined();
     expect(eras.startDate).toBeDefined();
     expect(eras.endDate).toBeDefined();
+  });
+
+  it('exports externalSystems table', () => {
+    expect(externalSystems.id).toBeDefined();
+    expect(externalSystems.name).toBeDefined();
+  });
+
+  it('exports coachExternalIds join table', () => {
+    expect(coachExternalIds.id).toBeDefined();
+    expect(coachExternalIds.coachId).toBeDefined();
+    expect(coachExternalIds.externalSystemId).toBeDefined();
+    expect(coachExternalIds.externalId).toBeDefined();
   });
 
   it('exports competitions table with type enum', () => {

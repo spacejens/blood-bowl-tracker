@@ -1,7 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
-import { CoachesService } from './coaches.service';
+import { CoachesService, CoachUpsertConflictError } from './coaches.service';
 
 @Controller()
 export class CoachesController {
@@ -25,6 +25,19 @@ export class CoachesController {
         status: 201 as const,
         body: await this.coachesService.create(body),
       }),
+      upsert: async ({ body }) => {
+        try {
+          const { coach, created } = await this.coachesService.upsert(body);
+          return created
+            ? { status: 201 as const, body: coach }
+            : { status: 200 as const, body: coach };
+        } catch (err) {
+          if (err instanceof CoachUpsertConflictError) {
+            return { status: 409 as const, body: { message: err.message } };
+          }
+          throw err;
+        }
+      },
     });
   }
 }

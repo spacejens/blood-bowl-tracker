@@ -5,3 +5,6 @@ A [coach](../../glossary.md#coach) is the person identity behind one or more tea
 - A coach has a name.
 - A coach may manage any number of [teams](../teams/index.md), including multiple teams within the same [league](../leagues/index.md).
 - A coach may not manage more than one team enrolled in the same [competition](../competitions/index.md) at the same time.
+- A coach may be linked to one or more [external systems](../external-systems/index.md)
+  via external IDs, letting import tools recognize the same coach across
+  different import sources without creating duplicates.

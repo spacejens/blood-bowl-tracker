@@ -1,6 +1,15 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { CoachSchema, CreateCoachSchema } from './schemas/coach';
+import {
+  CoachSchema,
+  CreateCoachSchema,
+  UpsertCoachSchema,
+} from './schemas/coach';
+import {
+  ExternalSystemSchema,
+  CreateExternalSystemSchema,
+  UpsertExternalSystemSchema,
+} from './schemas/external-system';
 import { RaceSchema, CreateRaceSchema } from './schemas/race';
 import { RulesSetSchema, CreateRulesSetSchema } from './schemas/rules-set';
 import { LeagueSchema, CreateLeagueSchema } from './schemas/league';
@@ -50,6 +59,47 @@ export const contract = c.router({
       path: '/coaches',
       body: CreateCoachSchema,
       responses: { 201: CoachSchema },
+    },
+    upsert: {
+      method: 'POST',
+      path: '/coaches/upsert',
+      body: UpsertCoachSchema,
+      responses: {
+        200: CoachSchema,
+        201: CoachSchema,
+        409: z.object({ message: z.string() }),
+      },
+    },
+  }),
+  externalSystems: c.router({
+    list: {
+      method: 'GET',
+      path: '/external-systems',
+      responses: { 200: z.array(ExternalSystemSchema) },
+    },
+    getById: {
+      method: 'GET',
+      path: '/external-systems/:id',
+      pathParams: z.object({ id: z.coerce.number() }),
+      responses: {
+        200: ExternalSystemSchema,
+        404: z.object({ message: z.string() }),
+      },
+    },
+    create: {
+      method: 'POST',
+      path: '/external-systems',
+      body: CreateExternalSystemSchema,
+      responses: { 201: ExternalSystemSchema },
+    },
+    upsert: {
+      method: 'POST',
+      path: '/external-systems/upsert',
+      body: UpsertExternalSystemSchema,
+      responses: {
+        200: ExternalSystemSchema,
+        201: ExternalSystemSchema,
+      },
     },
   }),
   races: c.router({

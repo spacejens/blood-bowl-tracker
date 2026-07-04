@@ -13,6 +13,7 @@ import { MatchEventsModule } from './match-events/match-events.module';
 import { RaceRulesSetsModule } from './race-rules-sets/race-rules-sets.module';
 import { CompetitionTeamsModule } from './competition-teams/competition-teams.module';
 import { MatchTeamsModule } from './match-teams/match-teams.module';
+import { ExternalSystemsModule } from './external-systems/external-systems.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MatchTeamsModule } from './match-teams/match-teams.module';
     RaceRulesSetsModule,
     CompetitionTeamsModule,
     MatchTeamsModule,
+    ExternalSystemsModule,
   ],
 })
 export class ApiServerModule {}
