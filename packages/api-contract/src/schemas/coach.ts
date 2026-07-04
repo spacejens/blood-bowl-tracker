@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UpsertExternalIdSchema } from './upsert-external-id';
+import { ExternalIdSchema } from './external-id';
 
 export const CoachSchema = z.object({
   id: z.number(),
@@ -13,7 +13,7 @@ export const CreateCoachSchema = z.object({
 
 export const UpsertCoachSchema = z.object({
   name: z.string().min(1),
-  externalIds: z.array(UpsertExternalIdSchema).min(1),
+  externalIds: z.array(ExternalIdSchema).min(1),
 });
 
 export type Coach = z.infer<typeof CoachSchema>;
