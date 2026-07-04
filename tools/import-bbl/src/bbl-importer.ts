@@ -15,39 +15,49 @@ export async function importBblData(
   const systemResponse = await client.externalSystems.upsert({
     body: { name: BBL_EXTERNAL_SYSTEM_NAME },
   });
-  // The generated client types every HTTP status not explicitly declared on the route
-  // with `body: unknown`, which collapses the declared 200/201 response body type to
-  // `unknown` as well. The contract only declares 200/201 for this route, so this
-  // reflects the real response shape.
-  const externalSystemId = (systemResponse.body as { id: number }).id;
 
-  for (const coach of data.coaches) {
-    const response = await client.coaches.upsert({
-      body: {
-        name: coach.name,
-        externalIds: [
-          { externalSystemId, externalId: `id:${coach.id}` },
-          {
-            externalSystemId,
-            externalId: `name:${coach.name.toLowerCase()}`,
-          },
-        ],
-      },
-    });
+  if (systemResponse.status === 200 || systemResponse.status === 201) {
+    const externalSystemId = systemResponse.body.id;
 
-    if (response.status === 200 || response.status === 201) {
-      imported += 1;
-    } else {
-      // Same `body: unknown` widening as above: the contract declares 409 with a
-      // `{ message: string }` body for this route.
-      const body = response.body as { message: string };
-      errors.push(
-        makeImportError({
-          item: coach,
-          message: `Failed to import coach "${coach.name}": ${body.message}`,
-        }),
-      );
+    for (const coach of data.coaches) {
+      const response = await client.coaches.upsert({
+        body: {
+          name: coach.name,
+          externalIds: [
+            { externalSystemId, externalId: `id:${coach.id}` },
+            {
+              externalSystemId,
+              externalId: `name:${coach.name.toLowerCase()}`,
+            },
+          ],
+        },
+      });
+
+      if (response.status === 200 || response.status === 201) {
+        imported += 1;
+      } else {
+        // Same `body: unknown` widening as above: the contract declares 409 with a
+        // `{ message: string }` body for this route.
+        const body = response.body as { message: string };
+        errors.push(
+          makeImportError({
+            item: coach,
+            message: `Failed to import coach "${coach.name}": ${body.message}`,
+          }),
+        );
+      }
     }
+  } else {
+    // The external system upsert failed, so there's no valid externalSystemId to
+    // attach to any coach. Skip the coach loop entirely rather than upserting every
+    // coach with an undefined externalSystemId, which would otherwise surface as N
+    // confusing per-coach validation failures instead of one clear root cause.
+    errors.push(
+      makeImportError({
+        item: { name: BBL_EXTERNAL_SYSTEM_NAME },
+        message: `Failed to upsert BBL external system: unexpected status ${systemResponse.status}`,
+      }),
+    );
   }
 
   for (const team of data.teams) {

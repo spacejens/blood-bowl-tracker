@@ -67,6 +67,22 @@ describe('importBblData', () => {
     expect(result.errors.some((e) => e.message.includes('Gruk'))).toBe(true);
   });
 
+  it('reports one error and skips coach upserts when the external system upsert fails', async () => {
+    const client = makeMockClient();
+    client.externalSystems.upsert.mockResolvedValue({
+      status: 500,
+      body: { message: 'internal error' },
+    });
+
+    const result = await importBblData(bblData, client as never);
+
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some((e) => e.message.includes('external system')),
+    ).toBe(true);
+    expect(client.coaches.upsert).not.toHaveBeenCalled();
+  });
+
   it('reports an error for each team pending race ID resolution', async () => {
     const client = makeMockClient();
 
