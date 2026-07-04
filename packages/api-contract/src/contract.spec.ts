@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { contract } from './contract';
+import { CreateEraSchema } from './schemas/era';
 
 describe('contract', () => {
   it('defines teams routes', () => {
@@ -38,5 +39,15 @@ describe('contract', () => {
   it('defines coaches.upsert route', () => {
     expect(contract.coaches.upsert.method).toBe('POST');
     expect(contract.coaches.upsert.path).toBe('/coaches/upsert');
+  });
+
+  it('requires externalSystemId when creating an era', () => {
+    const result = CreateEraSchema.safeParse({
+      name: 'Spring 2026',
+      leagueId: 1,
+      rulesSetId: 1,
+      startDate: '2026-01-01',
+    });
+    expect(result.success).toBe(false);
   });
 });
