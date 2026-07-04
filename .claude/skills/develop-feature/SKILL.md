@@ -119,6 +119,7 @@ Work through each phase in order. Some phase transitions require the developer's
    - **Docs first:** If the task introduces a new concept or constraint, update or create the relevant spec under `docs/` following `docs/spec-conventions.md`
    - **Test first:** Write the failing test — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`
    - **Implement:** Write code until tests pass
+   - **Docs and deployment sync:** If the change just implemented makes any existing file under `docs/` stale (a renamed field, changed behavior, a new module worth mentioning), update it now, without waiting to be asked — keep the update brief, per `docs/spec-conventions.md`. Likewise, if the change affects what `Dockerfile` or `docker-compose.yml` need to know (a new workspace package required at runtime, a changed port or env var, a new migrations path), update those files too.
    - **Commit:** One commit per completed task; message explains what changed and why
 4. If tests fail unexpectedly: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` before proposing fixes
 5. Before marking each task done: **REQUIRED SUB-SKILL:** Use `superpowers:verification-before-completion`
