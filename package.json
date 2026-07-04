@@ -33,6 +33,6 @@
     "npm-check-updates": "22.2.9",
     "prettier": "^3.9.4",
     "syncpack": "15.3.2",
-    "typescript-eslint": "^8.62.0"
+    "typescript-eslint": "^8.62.1"
   }
 }
