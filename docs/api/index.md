@@ -1,8 +1,8 @@
 # API
 
 The tracker's backend logic lives in `packages/api-server` (a NestJS module
-consumed directly by `apps/discord-bot`, and in future by a standalone API
-app) and is described by a shared [ts-rest](https://ts-rest.com/) contract in
+currently consumed directly by `apps/discord-bot`, though that may change in
+the future) and is described by a shared [ts-rest](https://ts-rest.com/) contract in
 `packages/api-contract`. This section documents general concepts that apply
 across the whole API — it does not enumerate every entity type or operation
 (see the generated OpenAPI/Swagger docs, when added, for that level of
