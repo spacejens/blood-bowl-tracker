@@ -14,3 +14,4 @@ export * from './schemas/match-event';
 export * from './schemas/race-rules-set';
 export * from './schemas/competition-team';
 export * from './schemas/match-team';
+export * from './schemas/upsert-external-id';
