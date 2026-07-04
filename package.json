@@ -12,6 +12,7 @@
     "test": "pnpm -r run test",
     "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
     "hygiene:deps": "ncu -u --workspaces",
+    "hygiene:deps:list": "ncu --workspaces --format group",
     "hygiene:audit": "pnpm audit",
     "hygiene:audit:fix": "pnpm audit --fix=update",
     "hygiene:deadcode": "knip",
