@@ -1,6 +1,10 @@
 import { initContract } from '@ts-rest/core';
 import { z } from 'zod';
-import { CoachSchema, CreateCoachSchema } from './schemas/coach';
+import {
+  CoachSchema,
+  CreateCoachSchema,
+  UpsertCoachSchema,
+} from './schemas/coach';
 import {
   ExternalSystemSchema,
   CreateExternalSystemSchema,
@@ -55,6 +59,16 @@ export const contract = c.router({
       path: '/coaches',
       body: CreateCoachSchema,
       responses: { 201: CoachSchema },
+    },
+    upsert: {
+      method: 'POST',
+      path: '/coaches/upsert',
+      body: UpsertCoachSchema,
+      responses: {
+        200: CoachSchema,
+        201: CoachSchema,
+        409: z.object({ message: z.string() }),
+      },
     },
   }),
   externalSystems: c.router({

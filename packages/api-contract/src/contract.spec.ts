@@ -34,4 +34,9 @@ describe('contract', () => {
       '/external-systems/upsert',
     );
   });
+
+  it('defines coaches.upsert route', () => {
+    expect(contract.coaches.upsert.method).toBe('POST');
+    expect(contract.coaches.upsert.path).toBe('/coaches/upsert');
+  });
 });
