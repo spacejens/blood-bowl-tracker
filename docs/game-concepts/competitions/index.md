@@ -4,7 +4,7 @@ A [competition](../../glossary.md#competition) is an organized event in which te
 
 - A competition has a name.
 - A competition belongs to exactly one [era](../eras/index.md), and through it to one [league](../leagues/index.md).
-- [Teams](../teams/index.md) are explicitly enrolled in a competition before it begins; enrolled teams are the authoritative participant list.
+- [Team eras](../team-eras/index.md) are explicitly enrolled in a competition before it begins; enrolled team eras are the authoritative participant list. A team era can only be enrolled in a competition belonging to its own era.
 - A competition contains one or more [matches](../matches/index.md).
 - A [coach](../coaches/index.md) may not have two of their teams enrolled in the same competition.
 

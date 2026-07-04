@@ -9,9 +9,7 @@ export const matchEvents = gameData.table('match_events', {
   matchId: integer('match_id')
     .references(() => matches.id)
     .notNull(),
-  actingTeamEraId: integer('acting_team_era_id').references(
-    () => teamEras.id,
-  ),
+  actingTeamEraId: integer('acting_team_era_id').references(() => teamEras.id),
   consequenceTeamEraId: integer('consequence_team_era_id').references(
     () => teamEras.id,
   ),

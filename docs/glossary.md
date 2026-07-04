@@ -72,7 +72,7 @@ See [game-concepts/match-events](game-concepts/match-events/index.md).
 
 ## Player
 
-An individual on a [team](#team). Each player has a [race](#race)-specific [position](#position), a set of skills, and personal statistics that persist across [matches](#match).
+An individual on a [team era](#team-era) (and, through it, a [team](#team)). Each player has a [race](#race)-specific [position](#position), a set of skills, and personal statistics that persist across [matches](#match) within that era.
 
 See [game-concepts/players](game-concepts/players/index.md).
 
@@ -90,7 +90,7 @@ See [game-concepts/races](game-concepts/races/index.md).
 
 ## Roster
 
-The list of [players](#player) registered to a [team](#team). In a [league](#league), rosters persist between [matches](#match) and grow as players gain experience or are replaced.
+The list of [players](#player) registered to a [team](#team)'s [team era](#team-era). Rosters persist between [matches](#match) within an era, and grow as players gain experience or are replaced, but reset to empty when a team enters a new era.
 
 ## Rules Set
 
@@ -108,9 +108,15 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills.
 
+## Team Era
+
+A [team](#team)'s membership within a single [era](#era). Owns everything that resets when a team is rebooted into a new era — its [roster](#roster) of [players](#player), and (in future) its treasury. A team may have at most one team era per era.
+
+See [game-concepts/team-eras](game-concepts/team-eras/index.md).
+
 ## Team
 
-A named group of [players](#player) belonging to a single [race](#race), managed by one [coach](#coach). Teams participate in [matches](#match) and, in a [league](#league), persist with their [roster](#roster) and treasury between [matches](#match).
+A named group of [players](#player) belonging to a single [race](#race), managed by one [coach](#coach), whose identity (name, race, coach) persists across every [era](#era) it exists in. Each era a team enters is tracked separately as a [team era](#team-era), which owns that era's [roster](#roster) and other era-scoped state.
 
 See [game-concepts/teams](game-concepts/teams/index.md).
 
