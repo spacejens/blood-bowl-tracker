@@ -31,7 +31,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ### Development, Self-review, Integration — same as develop-feature, with these differences
 
-- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task, `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
+- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task (except Task 1, which commits per dependency group — see below), `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
 - **Self-review:** identical to develop-feature's Self-review phase.
 - **Integration:** identical to develop-feature's Integration phase, except the PR:
   ```bash
