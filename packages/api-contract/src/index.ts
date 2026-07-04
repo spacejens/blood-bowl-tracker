@@ -5,6 +5,7 @@ export * from './schemas/rules-set';
 export * from './schemas/league';
 export * from './schemas/position';
 export * from './schemas/era';
+export * from './schemas/external-system';
 export * from './schemas/competition';
 export * from './schemas/team';
 export * from './schemas/player';

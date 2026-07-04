@@ -21,4 +21,17 @@ describe('contract', () => {
     expect(contract.matchEvents.listByMatch.method).toBe('GET');
     expect(contract.matchEvents.create.method).toBe('POST');
   });
+
+  it('defines externalSystems routes', () => {
+    expect(contract.externalSystems.list.method).toBe('GET');
+    expect(contract.externalSystems.list.path).toBe('/external-systems');
+    expect(contract.externalSystems.getById.method).toBe('GET');
+    expect(contract.externalSystems.getById.path).toBe('/external-systems/:id');
+    expect(contract.externalSystems.create.method).toBe('POST');
+    expect(contract.externalSystems.create.path).toBe('/external-systems');
+    expect(contract.externalSystems.upsert.method).toBe('POST');
+    expect(contract.externalSystems.upsert.path).toBe(
+      '/external-systems/upsert',
+    );
+  });
 });
