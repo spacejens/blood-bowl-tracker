@@ -16,8 +16,9 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "devDependencies": {
-    "@types/node": "^24.0.0",
-    "typescript": "^5.7.3",
-    "vitest": "^2.0.0"
+    "@types/node": "^26.1.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.9"
   }
 }

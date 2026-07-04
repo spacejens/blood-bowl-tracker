@@ -1,7 +1,7 @@
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /build
 
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 # Copy manifests first for layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -20,10 +20,10 @@ COPY . .
 RUN pnpm build
 
 
-FROM node:24-alpine
+FROM node:26-alpine
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+RUN npm install -g corepack && corepack enable && corepack prepare pnpm@11.9.0 --activate
 
 # Copy manifests and install only production deps
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./

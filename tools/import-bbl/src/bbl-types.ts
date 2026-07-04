@@ -1,24 +1,24 @@
-export interface BblTeam {
+interface BblTeam {
   id: string;
   name: string;
   race: string;
   coachId: string;
 }
 
-export interface BblPlayer {
+interface BblPlayer {
   id: string;
   name: string;
   teamId: string;
   position: string;
 }
 
-export interface BblMatchEvent {
+interface BblMatchEvent {
   type: string;
   teamId: string;
   playerId?: string;
 }
 
-export interface BblMatch {
+interface BblMatch {
   id: string;
   homeTeamId: string;
   awayTeamId: string;
@@ -26,7 +26,7 @@ export interface BblMatch {
   events: BblMatchEvent[];
 }
 
-export interface BblCoach {
+interface BblCoach {
   id: string;
   name: string;
 }
