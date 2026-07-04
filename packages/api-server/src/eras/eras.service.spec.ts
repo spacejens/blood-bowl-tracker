@@ -8,6 +8,7 @@ const fakeEra = {
   name: 'Spring 2026',
   leagueId: 1,
   rulesSetId: 1,
+  externalSystemId: 1,
   startDate: '2026-01-01',
   endDate: null,
   createdAt: new Date('2026-01-01'),
@@ -71,9 +72,11 @@ describe('ErasService', () => {
       name: 'Spring 2026',
       leagueId: 1,
       rulesSetId: 1,
+      externalSystemId: 1,
       startDate: '2026-01-01',
     });
     expect(result.name).toBe('Spring 2026');
     expect(result.leagueId).toBe(1);
+    expect(result.externalSystemId).toBe(1);
   });
 });
