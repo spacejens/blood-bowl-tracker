@@ -16,6 +16,7 @@
     "hygiene:audit:fix": "pnpm audit --fix=update",
     "hygiene:deadcode": "knip",
     "hygiene:deadcode:fix": "knip --fix",
+    "hygiene:deadcode:production": "knip --production",
     "hygiene:versions": "syncpack lint",
     "hygiene:versions:fix": "syncpack fix",
     "hygiene:cycles": "madge --circular --extensions ts --exclude '(^|/)(node_modules|dist)/' apps packages tools"
