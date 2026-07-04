@@ -36,7 +36,9 @@ const mockClient: MockClient = {
 };
 
 vi.mock('discord.js', () => ({
-  Client: vi.fn(() => mockClient),
+  Client: vi.fn(function () {
+    return mockClient;
+  }),
   GatewayIntentBits: { Guilds: 1 },
 }));
 
