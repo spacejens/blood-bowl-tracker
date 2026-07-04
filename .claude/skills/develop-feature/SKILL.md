@@ -107,7 +107,7 @@ Work through each phase in order. Some phase transitions require the developer's
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:writing-plans` with the approved spec as input. That skill's "Execution Handoff" step asks which execution approach to use (Subagent-Driven vs. Inline) — skip that question here. This workflow always uses subagent-driven-development (see Phase 4), so proceed straight to Phase 4 once the plan is approved without asking the developer to choose an approach.
 2. **Override the writing-plans skill's default plan save location:** save the plan to `docs/plans/` (gitignored)
-3. **Pause** — developer reviews and approves the plan before any code is written
+3. Print a brief status line confirming the plan is written and saved, then continue immediately into Phase 4. The plan is too detailed for a human to usefully approve line-by-line, and the spec approved at the end of Phase 2 already covers the requirements decision — the PR opened in Phase 6 is the review point for the resulting implementation.
 
 ---
 
