@@ -1,13 +1,13 @@
 import { serial, varchar, integer, timestamp } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { positions } from './positions';
-import { teams } from './teams';
+import { teamEras } from './team-eras';
 
 export const players = gameData.table('players', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  teamId: integer('team_id')
-    .references(() => teams.id)
+  teamEraId: integer('team_era_id')
+    .references(() => teamEras.id)
     .notNull(),
   positionId: integer('position_id')
     .references(() => positions.id)
