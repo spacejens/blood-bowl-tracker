@@ -79,7 +79,7 @@ importers:
         specifier: ^11.0.23
         version: 11.0.23(@swc/core@1.15.43)(@types/node@24.13.2)(postcss@8.5.15)(prettier@3.9.4)
       '@nestjs/schematics':
-        specifier: ^11.0.0
+        specifier: ^11.1.0
         version: 11.1.0(chokidar@4.0.3)(prettier@3.9.4)(typescript@5.9.3)
       '@nestjs/testing':
         specifier: ^11.1.27
