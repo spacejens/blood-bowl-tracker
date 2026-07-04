@@ -3,14 +3,14 @@ import { z } from 'zod';
 export const PlayerSchema = z.object({
   id: z.number(),
   name: z.string(),
-  teamId: z.number(),
+  teamEraId: z.number(),
   positionId: z.number(),
   createdAt: z.coerce.date(),
 });
 
 export const CreatePlayerSchema = z.object({
   name: z.string().min(1),
-  teamId: z.number().int(),
+  teamEraId: z.number().int(),
   positionId: z.number().int(),
 });
 

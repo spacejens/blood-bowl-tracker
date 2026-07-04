@@ -3,8 +3,8 @@ import { z } from 'zod';
 export const MatchEventSchema = z.object({
   id: z.number(),
   matchId: z.number(),
-  actingTeamId: z.number().nullable(),
-  consequenceTeamId: z.number().nullable(),
+  actingTeamEraId: z.number().nullable(),
+  consequenceTeamEraId: z.number().nullable(),
   actingPlayerId: z.number().nullable(),
   consequencePlayerId: z.number().nullable(),
   createdAt: z.coerce.date(),
@@ -12,8 +12,8 @@ export const MatchEventSchema = z.object({
 
 export const CreateMatchEventSchema = z.object({
   matchId: z.number(),
-  actingTeamId: z.number().int().optional(),
-  consequenceTeamId: z.number().int().optional(),
+  actingTeamEraId: z.number().int().optional(),
+  consequenceTeamEraId: z.number().int().optional(),
   actingPlayerId: z.number().int().optional(),
   consequencePlayerId: z.number().int().optional(),
 });
