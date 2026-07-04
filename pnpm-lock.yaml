@@ -76,7 +76,7 @@ importers:
         specifier: ^3.2.0
         version: 3.3.5
       '@nestjs/cli':
-        specifier: ^11.0.0
+        specifier: ^11.0.23
         version: 11.0.23(@swc/core@1.15.43)(@types/node@24.13.2)(postcss@8.5.15)(prettier@3.9.0)
       '@nestjs/schematics':
         specifier: ^11.0.0
