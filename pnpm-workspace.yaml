@@ -8,3 +8,5 @@ allowBuilds:
   unrs-resolver: true
 minimumReleaseAgeExclude:
   - knip@6.24.0
+  - multer@2.2.0
+  - undici@6.27.0
