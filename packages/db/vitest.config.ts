@@ -14,6 +14,7 @@ export default defineConfig({
         'src/**/*.module.ts',
         'src/schema/**',
         'src/db.ts',
+        'src/scripts/**',
       ],
       thresholds: {
         lines: 90,

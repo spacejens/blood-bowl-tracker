@@ -14,7 +14,7 @@
     "format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "db:generate": "drizzle-kit generate",
+    "db:generate": "node src/scripts/db-generate.ts",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
