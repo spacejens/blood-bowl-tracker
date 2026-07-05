@@ -59,6 +59,12 @@ This applies to every subagent dispatched from any phase below while working in 
      gh issue edit <N> --add-label "in progress"
      ```
      Run these as two separate commands so a failure in one doesn't mask the other. If either command fails, report a one-line warning (e.g. "Could not assign issue #N to you — continuing anyway: `<gh error output>`") and **continue** — do not stop the workflow over a labeling/assignment failure.
+   - Determine the issue's kind label — one or more of `feature`, `bug`, `development`:
+     - If the issue's `labels` (from the step 1 fetch) already includes one or more of these three, use that set as-is and skip straight to recording it below.
+     - Otherwise, judge from the issue's title and body which of the three clearly apply. More than one may apply (e.g. a bug fix that's also process tooling) — assign all that clearly do.
+     - If it's genuinely unclear which applies, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
+     - Apply any newly-determined label(s) with one `gh issue edit <N> --add-label "<name>"` call per label (separate from the "in progress" call above, so a failure in one doesn't mask the other). On failure, report a one-line warning and **continue**, matching the existing assign/label failure handling.
+   - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
 5. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
 6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
