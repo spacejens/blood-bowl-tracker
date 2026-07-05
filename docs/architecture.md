@@ -70,6 +70,33 @@ Always review the generated SQL before committing. Drizzle-kit may generate `DRO
 
 Migrations are applied automatically at application startup. `createDb` in `packages/db` calls `drizzle-orm`'s `migrate()` before returning the database instance, so every deployment applies any pending migrations before the app begins handling requests. Migrations are roll-forward only; there is no rollback mechanism.
 
+### History tracking
+
+Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
+(`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
+call. It automatically adds `created_at`, `updated_at`, `history_version`,
+and `history_period` columns, derives a companion `<table>_history` table
+that mirrors the tracked table's columns (kept nullable if later removed
+from the tracked table, widened-only on type changes), and registers the
+table so `pnpm run db:generate` can append its triggers automatically.
+
+Adding a new table therefore only requires calling `historyTrackedTable()`
+instead of `gameData.table()` (or another schema's `.table()`) — running
+`pnpm run db:generate` once produces a single migration with the table, its
+history companion, and both its triggers (the temporal-tables `versioning()`
+trigger and a `set_updated_at()` trigger) together. A completeness spec
+(`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
+is ever added without going through `historyTrackedTable()`.
+
+The `versioning()` trigger function is vendored unmodified from
+[nearform/temporal_tables](https://github.com/nearform/temporal_tables) at
+`packages/db/vendor/temporal_tables/versioning_function.sql`, checksum-
+tested to catch accidental edits. Upgrading it means replacing the vendor
+file, updating the checksum test's recorded hash in the same commit, and
+generating a new migration that copies the updated file's content verbatim
+(the function uses `CREATE OR REPLACE`, so this is safe to re-run in any
+environment, including production).
+
 ## Docker
 
 Each app in `apps/` has its own `Dockerfile`. The root `compose.yaml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.
