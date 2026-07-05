@@ -25,7 +25,11 @@ describe('TeamsService', () => {
       select: vi.fn(() => selectChain),
       insert: vi.fn(() => insertChain),
     };
-    selectChain.from.mockResolvedValue([fakeTeam]);
+    selectChain.from.mockReturnValue({
+      where: vi.fn().mockResolvedValue([fakeTeam]),
+      then: (resolve: (v: unknown) => unknown) =>
+        Promise.resolve([fakeTeam]).then(resolve),
+    });
     insertChain.values = vi.fn(() => ({
       returning: vi.fn().mockResolvedValue([fakeTeam]),
     }));
@@ -40,6 +44,11 @@ describe('TeamsService', () => {
   it('findAll returns a list of teams', async () => {
     const result = await service.findAll();
     expect(result).toEqual([fakeTeam]);
+  });
+
+  it('findById returns the matching team', async () => {
+    const result = await service.findById(1);
+    expect(result).toEqual(fakeTeam);
   });
 
   it('create inserts and returns the new team', async () => {

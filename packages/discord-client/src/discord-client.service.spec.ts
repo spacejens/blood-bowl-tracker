@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { Logger } from '@nestjs/common';
 
 interface MockChannel {
   isSendable: ReturnType<typeof vi.fn>;
@@ -17,7 +18,7 @@ interface MockClient {
   on: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
-  user: { tag: string };
+  user: { tag: string | undefined };
 }
 
 const mockChannel: MockChannel = {
@@ -105,6 +106,64 @@ describe('DiscordClientService', () => {
   it('registers a persistent error handler on module init', async () => {
     await service.onModuleInit();
     expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+  });
+
+  it('logs when the underlying client emits an error event', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+    const call = mockClient.on.mock.calls.find(([event]) => event === 'error');
+    if (!call) throw new Error('error handler not registered');
+    const errorHandler = call[1] as (error: unknown) => void;
+
+    errorHandler(new Error('connection reset'));
+
+    expect(logSpy).toHaveBeenCalledWith(
+      'Discord client error',
+      expect.any(Error),
+    );
+  });
+
+  it('logs an unhandled interaction error when handling the interaction itself throws', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+
+    interactionHandler()({
+      isChatInputCommand: () => {
+        throw new Error('malformed interaction');
+      },
+    });
+    await flush();
+
+    expect(logSpy).toHaveBeenCalledWith(
+      'Unhandled interaction error',
+      expect.any(Error),
+    );
+  });
+
+  it('logs "unknown" when the ready client has no username tag', async () => {
+    const originalUser = mockClient.user;
+    mockClient.user = { tag: undefined };
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    try {
+      await service.onModuleInit();
+      expect(logSpy).toHaveBeenCalledWith('Logged in as unknown');
+    } finally {
+      mockClient.user = originalUser;
+    }
+  });
+
+  it('wraps a non-Error login rejection in an Error', async () => {
+    mockClient.once.mockImplementation(() => mockClient);
+    mockClient.login.mockRejectedValue('token invalid');
+    const result = service.onModuleInit();
+    await expect(result).rejects.toBeInstanceOf(Error);
+    await expect(result).rejects.toThrow('token invalid');
   });
 
   it('rejects init when login fails', async () => {

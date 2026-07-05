@@ -18,7 +18,13 @@ describe('MatchesService', () => {
   };
 
   beforeEach(async () => {
-    const selectChain = { from: vi.fn().mockResolvedValue([fakeMatch]) };
+    const selectChain = {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([fakeMatch]),
+        then: (resolve: (v: unknown) => unknown) =>
+          Promise.resolve([fakeMatch]).then(resolve),
+      }),
+    };
     const insertChain = {
       values: vi.fn(() => ({
         returning: vi.fn().mockResolvedValue([fakeMatch]),
@@ -39,6 +45,11 @@ describe('MatchesService', () => {
   it('findAll returns a list of matches', async () => {
     const result = await service.findAll();
     expect(result).toEqual([fakeMatch]);
+  });
+
+  it('findById returns the matching match', async () => {
+    const result = await service.findById(1);
+    expect(result).toEqual(fakeMatch);
   });
 
   it('create inserts and returns the new match', async () => {

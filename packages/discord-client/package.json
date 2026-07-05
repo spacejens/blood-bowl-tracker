@@ -12,9 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --check \"{src,test}/**/*.ts\"",
     "format:fix": "prettier --write \"{src,test}/**/*.ts\"",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "test:cov": "vitest run --coverage",
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
