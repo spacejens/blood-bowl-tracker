@@ -151,27 +151,30 @@ function main() {
       previousFolder,
       join(migrationsDir, newFolder),
     );
-    if (newHistoryTables.length === 0) continue;
-
-    const triggerStatements = newHistoryTables
-      .map((qualified) => {
-        const [schemaName, historyTableName] = qualified.split('.');
-        const tableName = historyTableName.replace(/_history$/, '');
-        return buildTriggerSql(schemaName, tableName);
-      })
-      .join('\n--> statement-breakpoint\n');
-
-    const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
-    appendFileSync(
-      migrationPath,
-      `\n--> statement-breakpoint\n${triggerStatements}\n`,
-    );
-    console.log(`Appended trigger DDL for: ${newHistoryTables.join(', ')}`);
-
     const conflicts = findTypeConflicts(
       previousFolder,
       join(migrationsDir, newFolder),
     );
+    if (newHistoryTables.length === 0 && conflicts.length === 0) continue;
+
+    const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
+
+    if (newHistoryTables.length > 0) {
+      const triggerStatements = newHistoryTables
+        .map((qualified) => {
+          const [schemaName, historyTableName] = qualified.split('.');
+          const tableName = historyTableName.replace(/_history$/, '');
+          return buildTriggerSql(schemaName, tableName);
+        })
+        .join('\n--> statement-breakpoint\n');
+
+      appendFileSync(
+        migrationPath,
+        `\n--> statement-breakpoint\n${triggerStatements}\n`,
+      );
+      console.log(`Appended trigger DDL for: ${newHistoryTables.join(', ')}`);
+    }
+
     if (conflicts.length > 0) {
       const comments = conflicts.map(buildTypeConflictComment).join('\n');
       appendFileSync(migrationPath, `\n${comments}\n`);
