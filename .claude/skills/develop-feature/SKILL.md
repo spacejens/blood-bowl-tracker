@@ -155,6 +155,8 @@ This applies to every subagent dispatched from any phase below while working in 
    ```bash
    gh pr create \
      --title "<issue title>" \
+     --label "<kind label 1>" \
+     --label "<kind label 2 if applicable>" \
      --body "$(cat <<'EOF'
    Closes #<N>
 
@@ -163,18 +165,21 @@ This applies to every subagent dispatched from any phase below while working in 
    EOF
    )"
    ```
-   The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
+   Use the kind label(s) recorded in Phase 1 step 4 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
    gh pr create \
      --title "<human-readable slug>" \
+     --label "<kind label 1>" \
+     --label "<kind label 2 if applicable>" \
      --body "$(cat <<'EOF'
    ## Summary
    <summary of what was built>
    EOF
    )"
    ```
+   Use the kind label(s) recorded in Phase 1 step 2 — one `--label` flag per label.
 
 2. After the PR is created, ask the developer whether to deploy the change locally for a manual look — do not deploy automatically. Mention that `deploy-local` removes any stale stopped `postgres`/`discord-bot` containers left by a previous run before starting fresh. If yes, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill.
 3. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
