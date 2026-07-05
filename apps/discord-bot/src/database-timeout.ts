@@ -28,7 +28,7 @@ export async function withDatabaseTimeout<T>(
   // Swallow a late rejection if the timeout wins the race first.
   work.catch(() => undefined);
 
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  let timer: ReturnType<typeof setTimeout>;
   const timeout = new Promise<T>((resolve) => {
     timer = setTimeout(() => resolve(fallback), timeoutMs);
   });
@@ -36,8 +36,6 @@ export async function withDatabaseTimeout<T>(
   try {
     return await Promise.race([work, timeout]);
   } finally {
-    if (timer) {
-      clearTimeout(timer);
-    }
+    clearTimeout(timer);
   }
 }
