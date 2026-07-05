@@ -19,6 +19,7 @@ async function run(filePath: string, baseUrl: string) {
 
   const app = await NestFactory.createApplicationContext(
     AppModule.register(baseUrl),
+    { logger: false },
   );
   try {
     const importer = app.get(BblCoachesImportService);
