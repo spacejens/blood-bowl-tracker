@@ -15,6 +15,10 @@
     "test:watch": "vitest",
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
+  "dependencies": {
+    "@nestjs/common": "^11.1.27",
+    "reflect-metadata": "^0.2.2"
+  },
   "devDependencies": {
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.9",
