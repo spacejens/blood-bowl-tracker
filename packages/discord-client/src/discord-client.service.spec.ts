@@ -161,7 +161,9 @@ describe('DiscordClientService', () => {
   it('wraps a non-Error login rejection in an Error', async () => {
     mockClient.once.mockImplementation(() => mockClient);
     mockClient.login.mockRejectedValue('token invalid');
-    await expect(service.onModuleInit()).rejects.toThrow('token invalid');
+    const result = service.onModuleInit();
+    await expect(result).rejects.toBeInstanceOf(Error);
+    await expect(result).rejects.toThrow('token invalid');
   });
 
   it('rejects init when login fails', async () => {
