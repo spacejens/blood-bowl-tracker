@@ -1,8 +1,10 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const packageRoot = join(__dirname, '../..');
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const packageRoot = join(currentDir, '../..');
 const migrationsDir = join(packageRoot, 'migrations');
 
 interface SnapshotTableEntry {
@@ -98,6 +100,7 @@ function main() {
   }
 }
 
-if (require.main === module) {
+const invokedDirectly = process.argv[1] === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
   main();
 }

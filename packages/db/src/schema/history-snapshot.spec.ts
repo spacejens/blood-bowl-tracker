@@ -12,7 +12,9 @@ describe('readPreviousColumnShapes', () => {
   });
 
   it('returns an empty array when the migrations directory does not exist', () => {
-    expect(readPreviousColumnShapes('/nonexistent/path', 'game_data', 'coaches')).toEqual([]);
+    expect(
+      readPreviousColumnShapes('/nonexistent/path', 'game_data', 'coaches'),
+    ).toEqual([]);
   });
 
   it('returns an empty array when no migration has a snapshot.json', () => {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { deriveHistoryColumnShapes, foldHistoryColumn } from './history-column-shape';
+import {
+  deriveHistoryColumnShapes,
+  foldHistoryColumn,
+} from './history-column-shape';
 
 describe('foldHistoryColumn', () => {
   it('keeps a column unchanged when previous and current match exactly', () => {
@@ -8,7 +11,11 @@ describe('foldHistoryColumn', () => {
   });
 
   it('adds a brand new column as-is', () => {
-    const current = { name: 'nickname', sqlType: 'varchar(100)', notNull: false };
+    const current = {
+      name: 'nickname',
+      sqlType: 'varchar(100)',
+      notNull: false,
+    };
     expect(foldHistoryColumn(undefined, current)).toEqual(current);
   });
 

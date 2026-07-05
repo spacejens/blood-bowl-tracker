@@ -18,6 +18,7 @@ import {
   timestamp,
   type AnyPgColumnBuilder,
   type PgBuildExtraConfigColumns,
+  type PgColumn,
   type PgSchema,
   type PgTableExtraConfig,
 } from 'drizzle-orm/pg-core';
@@ -33,6 +34,22 @@ const SPECIAL_COLUMN_NAMES = new Set([
   'history_version',
   'history_period',
 ]);
+
+/**
+ * `column.getSQLType()` returns the bare type name for schema-scoped enums (e.g.
+ * `competition_type`) without the schema qualifier drizzle-orm applies when it compiles
+ * the original CREATE TABLE statement. Our history columns are built via `rawColumn`,
+ * which emits `sqlType` verbatim, so an unqualified enum name here would fail to
+ * resolve at migration time if `search_path` doesn't include the table's schema. Qualify
+ * it explicitly using the enum's own schema when present.
+ */
+function qualifiedSqlType(
+  column: PgColumn & { enum?: { schema?: string } },
+): string {
+  const sqlType = column.getSQLType();
+  const enumSchema = column.enum?.schema;
+  return enumSchema ? `"${enumSchema}"."${sqlType}"` : sqlType;
+}
 
 export interface HistoryRegistryEntry {
   schemaName: string;
@@ -85,7 +102,7 @@ export function historyTrackedTable<
     .columns.filter((column) => !SPECIAL_COLUMN_NAMES.has(column.name))
     .map((column) => ({
       name: column.name,
-      sqlType: column.getSQLType(),
+      sqlType: qualifiedSqlType(column),
       notNull: column.notNull,
     }));
 

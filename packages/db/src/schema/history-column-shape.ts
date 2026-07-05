@@ -7,7 +7,10 @@ export interface ColumnShape {
 const VARCHAR_PATTERN = /^varchar\((\d+)\)$/;
 const NUMERIC_PATTERN = /^numeric\((\d+),\s*(\d+)\)$/;
 
-function widerType(previousType: string, currentType: string): string | undefined {
+function widerType(
+  previousType: string,
+  currentType: string,
+): string | undefined {
   if (previousType === currentType) return currentType;
 
   const previousVarchar = VARCHAR_PATTERN.exec(previousType);
@@ -51,13 +54,23 @@ export function deriveHistoryColumnShapes(
   currentColumns: ColumnShape[],
   previousColumns: ColumnShape[],
 ): ColumnShape[] {
-  const previousByName = new Map(previousColumns.map((column) => [column.name, column]));
-  const currentByName = new Map(currentColumns.map((column) => [column.name, column]));
-  const allNames = new Set<string>([...previousByName.keys(), ...currentByName.keys()]);
+  const previousByName = new Map(
+    previousColumns.map((column) => [column.name, column]),
+  );
+  const currentByName = new Map(
+    currentColumns.map((column) => [column.name, column]),
+  );
+  const allNames = new Set<string>([
+    ...previousByName.keys(),
+    ...currentByName.keys(),
+  ]);
 
   const result: ColumnShape[] = [];
   for (const name of allNames) {
-    const folded = foldHistoryColumn(previousByName.get(name), currentByName.get(name));
+    const folded = foldHistoryColumn(
+      previousByName.get(name),
+      currentByName.get(name),
+    );
     if (folded) result.push(folded);
   }
   return result;

@@ -2,7 +2,7 @@ import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildTriggerSql, findNewHistoryTables } from './db-generate';
+import { buildTriggerSql, findNewHistoryTables } from './db-generate.js';
 
 describe('buildTriggerSql', () => {
   it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {

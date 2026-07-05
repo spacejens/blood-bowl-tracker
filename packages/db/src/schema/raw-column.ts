@@ -6,6 +6,6 @@ export const rawColumn = customType<{
   configRequired: true;
 }>({
   dataType(config) {
-    return config!.sqlType;
+    return config.sqlType;
   },
 });
