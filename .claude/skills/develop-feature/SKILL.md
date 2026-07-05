@@ -85,10 +85,11 @@ This applies to every subagent dispatched from any phase below while working in 
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
-2. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
+2. Determine the kind label — one or more of `feature`, `bug`, `development` — by judging from the provided text which clearly apply. More than one may apply; assign all that clearly do. If it's genuinely unclear, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options. Record the result — Phase 6 uses it when creating the PR. Nothing is applied to GitHub yet, since there is no issue or PR to attach a label to until Phase 6.
+3. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
-3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-4. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+5. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -101,7 +102,7 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-5. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 ---
 
