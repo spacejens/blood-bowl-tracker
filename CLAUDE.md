@@ -22,7 +22,7 @@ Run from the repo root to target all workspaces:
 ```bash
 pnpm install          # install all dependencies
 pnpm build            # build all workspaces
-pnpm test             # run unit tests across all workspaces
+pnpm test             # run unit tests with coverage across all workspaces (90% threshold enforced)
 pnpm lint             # ESLint (no auto-fix)
 pnpm lint:fix         # ESLint with auto-fix
 pnpm typecheck        # tsc --noEmit across all workspaces
@@ -36,9 +36,8 @@ Run from inside a specific workspace (e.g. `apps/discord-bot`) for targeted work
 ```bash
 pnpm run start:dev    # dev server with watch mode
 pnpm run start:prod   # run compiled output
-pnpm run test         # unit tests (*.spec.ts in src/)
+pnpm run test         # unit tests (*.spec.ts in src/) with coverage (90% threshold enforced)
 pnpm run test:e2e     # e2e tests (test/*.e2e-spec.ts)
-pnpm run test:cov     # unit tests with coverage report
 pnpm run lint         # ESLint (no auto-fix)
 pnpm run lint:fix     # ESLint with auto-fix
 pnpm run typecheck    # tsc --noEmit
