@@ -1,17 +1,18 @@
-import { serial, varchar, integer, timestamp } from 'drizzle-orm/pg-core';
+import { serial, varchar, integer } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { races } from './races';
+import { historyTrackedTable } from './history';
 
-export const positions = gameData.table('positions', {
+const positionsTable = historyTrackedTable(gameData, 'positions', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   raceId: integer('race_id')
     .references(() => races.id)
     .notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
 });
+
+export const positions = positionsTable.table;
+export const positionsHistory = positionsTable.historyTable;
 
 export type Position = typeof positions.$inferSelect;
 export type NewPosition = typeof positions.$inferInsert;

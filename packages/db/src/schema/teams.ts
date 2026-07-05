@@ -1,9 +1,10 @@
-import { serial, varchar, integer, timestamp } from 'drizzle-orm/pg-core';
+import { serial, varchar, integer } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { coaches } from './coaches';
 import { races } from './races';
+import { historyTrackedTable } from './history';
 
-export const teams = gameData.table('teams', {
+const teamsTable = historyTrackedTable(gameData, 'teams', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   raceId: integer('race_id')
@@ -12,10 +13,10 @@ export const teams = gameData.table('teams', {
   coachId: integer('coach_id')
     .references(() => coaches.id)
     .notNull(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
 });
+
+export const teams = teamsTable.table;
+export const teamsHistory = teamsTable.historyTable;
 
 export type Team = typeof teams.$inferSelect;
 export type NewTeam = typeof teams.$inferInsert;

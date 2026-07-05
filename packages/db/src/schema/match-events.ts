@@ -1,10 +1,11 @@
-import { serial, integer, timestamp } from 'drizzle-orm/pg-core';
+import { serial, integer } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { matches } from './matches';
 import { players } from './players';
 import { teamEras } from './team-eras';
+import { historyTrackedTable } from './history';
 
-export const matchEvents = gameData.table('match_events', {
+const matchEventsTable = historyTrackedTable(gameData, 'match_events', {
   id: serial('id').primaryKey(),
   matchId: integer('match_id')
     .references(() => matches.id)
@@ -17,10 +18,10 @@ export const matchEvents = gameData.table('match_events', {
   consequencePlayerId: integer('consequence_player_id').references(
     () => players.id,
   ),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
 });
+
+export const matchEvents = matchEventsTable.table;
+export const matchEventsHistory = matchEventsTable.historyTable;
 
 export type MatchEvent = typeof matchEvents.$inferSelect;
 export type NewMatchEvent = typeof matchEvents.$inferInsert;
