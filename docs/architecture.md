@@ -97,6 +97,12 @@ generating a new migration that copies the updated file's content verbatim
 (the function uses `CREATE OR REPLACE`, so this is safe to re-run in any
 environment, including production).
 
+Because history rows are written on insert (not only from the first
+update onward), every tracked row has a referencing history row from the
+moment it's created — so deleting a tracked row is always blocked, not
+just rows that have accumulated history. This is intentional and
+permanent: there is no supported way to hard-delete a tracked row.
+
 ## Docker
 
 Each app in `apps/` has its own `Dockerfile`. The root `compose.yaml` defines services for PostgreSQL and each app, enabling a full local environment with a single `docker compose up`.
