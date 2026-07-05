@@ -12,7 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "prettier --check \"src/**/*.ts\"",
     "format:fix": "prettier --write \"src/**/*.ts\"",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^4.1.9",
     "drizzle-kit": "rc",
     "typescript": "^6.0.3",
     "vite": "^8.1.3",
