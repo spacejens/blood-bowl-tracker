@@ -24,6 +24,7 @@ export default tseslint.config(
             'apps/discord-bot/test/*.ts',
             'packages/api-server/test/*.ts',
             'packages/discord-client/test/*.ts',
+            'packages/api-client/test/*.ts',
           ],
         },
         tsconfigRootDir: import.meta.dirname,

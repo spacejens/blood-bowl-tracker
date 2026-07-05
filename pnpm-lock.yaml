@@ -108,10 +108,19 @@ importers:
       '@blood-bowl-tracker/api-contract':
         specifier: workspace:*
         version: link:../api-contract
+      '@nestjs/common':
+        specifier: ^11.1.27
+        version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@ts-rest/core':
         specifier: ^3.52.1
         version: 3.52.1(@types/node@26.1.0)(zod@3.25.76)
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
     devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.27
+        version: 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@nestjs/platform-express@11.1.27)
       '@types/node':
         specifier: ^26.1.0
         version: 26.1.0
