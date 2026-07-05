@@ -9,7 +9,7 @@ function isPgTable(value: unknown): value is PgTable {
 }
 
 describe('history tracking completeness', () => {
-  const exportedTables = Object.values(schema).filter(isPgTable);
+  const exportedTables = (Object.values(schema) as unknown[]).filter(isPgTable);
 
   it('every exported table is either tracked-with-history or is a *_history companion', () => {
     expect(exportedTables.length).toBeGreaterThan(0);
@@ -33,8 +33,13 @@ describe('history tracking completeness', () => {
 
   it('every tracked table has created_at, updated_at, history_version and history_period', () => {
     for (const entry of historyRegistry) {
-      const table = exportedTables.find((t) => getTableConfig(t).name === entry.tableName);
-      expect(table, `tracked table "${entry.tableName}" not found among exports`).toBeDefined();
+      const table = exportedTables.find(
+        (t) => getTableConfig(t).name === entry.tableName,
+      );
+      expect(
+        table,
+        `tracked table "${entry.tableName}" not found among exports`,
+      ).toBeDefined();
       const columnNames = getTableConfig(table!).columns.map((c) => c.name);
       expect(columnNames).toEqual(
         expect.arrayContaining([
@@ -54,7 +59,9 @@ describe('history tracking completeness', () => {
   });
 
   it('no non-history table uses the reserved _history suffix', () => {
-    const trackedNames = new Set(historyRegistry.map((entry) => entry.tableName));
+    const trackedNames = new Set(
+      historyRegistry.map((entry) => entry.tableName),
+    );
     for (const table of exportedTables) {
       const name = getTableConfig(table).name;
       if (name.endsWith('_history')) {

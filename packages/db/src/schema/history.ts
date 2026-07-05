@@ -2,11 +2,13 @@
  * drizzle-orm's generics for `PgSchema['table']` do not compose cleanly across the
  * dynamic column-shape derivation this helper performs (tracked columns are extended
  * at runtime, and the history table's shape is derived from a mix of the tracked
- * table's live config and a JSON snapshot). Widening to `any` at these specific
- * boundaries keeps the emitted SQL and runtime behavior correct without contorting
- * the function into an unreadable pile of generic gymnastics. See task-7 brief.
+ * table's live config and a JSON snapshot). The `table`/`historyTable` values themselves
+ * are now fully typed (no `any` leaks to callers); the narrow `any` usages that remain
+ * below are confined to the internal `historyTable`'s extraConfig callback parameter,
+ * which drizzle-orm itself types loosely for this construction pattern. See task-7 and
+ * task-9 briefs.
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { join } from 'node:path';
 import { sql } from 'drizzle-orm';
 import {
@@ -15,6 +17,7 @@ import {
   primaryKey,
   timestamp,
   type AnyPgColumnBuilder,
+  type PgBuildExtraConfigColumns,
   type PgSchema,
   type PgTableExtraConfig,
 } from 'drizzle-orm/pg-core';
@@ -47,7 +50,16 @@ export function historyTrackedTable<
   schema: PgSchema,
   name: string,
   columns: TColumns,
-  extraConfig?: (self: any) => PgTableExtraConfig,
+  extraConfig?: (
+    self: PgBuildExtraConfigColumns<
+      TColumns & {
+        createdAt: AnyPgColumnBuilder;
+        updatedAt: AnyPgColumnBuilder;
+        historyVersion: AnyPgColumnBuilder;
+        historyPeriod: AnyPgColumnBuilder;
+      }
+    >,
+  ) => PgTableExtraConfig,
 ) {
   const trackedColumns = {
     ...columns,
@@ -64,8 +76,8 @@ export function historyTrackedTable<
   };
 
   const table = extraConfig
-    ? (schema.table(name, trackedColumns, extraConfig) as any)
-    : (schema.table(name, trackedColumns) as any);
+    ? schema.table(name, trackedColumns, extraConfig)
+    : schema.table(name, trackedColumns);
 
   const historyTableName = `${name}_history`;
 

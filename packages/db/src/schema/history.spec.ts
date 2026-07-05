@@ -15,7 +15,6 @@ describe('historyTrackedTable', () => {
   });
 
   it('appends created_at, updated_at, history_version and history_period to the tracked table', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- historyTrackedTable's return is intentionally widened, see history.ts
     const { table } = historyTrackedTable(testSchema, 'widgets', {
       id: integer('id').primaryKey(),
       name: varchar('name', { length: 255 }).notNull(),
