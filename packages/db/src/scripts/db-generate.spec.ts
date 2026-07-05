@@ -2,7 +2,12 @@ import { describe, expect, it, afterEach } from 'vitest';
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { buildTriggerSql, findNewHistoryTables } from './db-generate.js';
+import {
+  buildTriggerSql,
+  findNewHistoryTables,
+  findTypeConflicts,
+  buildTypeConflictComment,
+} from './db-generate.js';
 
 describe('buildTriggerSql', () => {
   it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {
@@ -85,5 +90,120 @@ describe('findNewHistoryTables', () => {
     writeSnapshot(next, [{ schema: 'game_data', name: 'races' }]);
 
     expect(findNewHistoryTables(previous, next)).toEqual([]);
+  });
+});
+
+describe('findTypeConflicts', () => {
+  let dir: string;
+
+  afterEach(() => {
+    if (dir) rmSync(dir, { recursive: true, force: true });
+  });
+
+  function writeSnapshot(
+    folder: string,
+    columns: Array<{
+      table: string;
+      name: string;
+      type: string;
+    }>,
+  ) {
+    mkdirSync(folder, { recursive: true });
+    writeFileSync(
+      join(folder, 'snapshot.json'),
+      JSON.stringify({
+        ddl: columns.map((c) => ({
+          entityType: 'columns',
+          schema: 'game_data',
+          table: c.table,
+          name: c.name,
+          type: c.type,
+        })),
+      }),
+    );
+  }
+
+  it('flags a column whose history type was kept rather than adopted', () => {
+    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
+    const previous = join(dir, '20260101000000_previous');
+    const next = join(dir, '20260102000000_next');
+    writeSnapshot(previous, [
+      { table: 'coaches', name: 'id', type: 'integer' },
+      { table: 'coaches_history', name: 'id', type: 'integer' },
+    ]);
+    writeSnapshot(next, [
+      { table: 'coaches', name: 'id', type: 'bigint' },
+      { table: 'coaches_history', name: 'id', type: 'integer' },
+    ]);
+
+    expect(findTypeConflicts(previous, next)).toEqual([
+      {
+        schema: 'game_data',
+        table: 'coaches',
+        column: 'id',
+        previousType: 'integer',
+        currentType: 'bigint',
+      },
+    ]);
+  });
+
+  it('does not flag a column that was safely widened and adopted', () => {
+    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
+    const previous = join(dir, '20260101000000_previous');
+    const next = join(dir, '20260102000000_next');
+    writeSnapshot(previous, [
+      { table: 'coaches', name: 'name', type: 'varchar(255)' },
+      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
+    ]);
+    writeSnapshot(next, [
+      { table: 'coaches', name: 'name', type: 'varchar(300)' },
+      { table: 'coaches_history', name: 'name', type: 'varchar(300)' },
+    ]);
+
+    expect(findTypeConflicts(previous, next)).toEqual([]);
+  });
+
+  it('does not flag a column whose type is unchanged', () => {
+    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
+    const previous = join(dir, '20260101000000_previous');
+    const next = join(dir, '20260102000000_next');
+    writeSnapshot(previous, [
+      { table: 'coaches', name: 'name', type: 'varchar(255)' },
+      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
+    ]);
+    writeSnapshot(next, [
+      { table: 'coaches', name: 'name', type: 'varchar(255)' },
+      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
+    ]);
+
+    expect(findTypeConflicts(previous, next)).toEqual([]);
+  });
+
+  it('returns an empty array when there is no previous snapshot', () => {
+    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
+    const next = join(dir, '20260101000000_first');
+    writeSnapshot(next, [
+      { table: 'coaches', name: 'id', type: 'integer' },
+      { table: 'coaches_history', name: 'id', type: 'integer' },
+    ]);
+
+    expect(findTypeConflicts(undefined, next)).toEqual([]);
+  });
+});
+
+describe('buildTypeConflictComment', () => {
+  it('describes the kept type and the attempted change', () => {
+    const comment = buildTypeConflictComment({
+      schema: 'game_data',
+      table: 'coaches',
+      column: 'id',
+      previousType: 'integer',
+      currentType: 'bigint',
+    });
+    expect(comment).toContain('coaches.id');
+    expect(comment).toContain('integer');
+    expect(comment).toContain('bigint');
+    expect(comment).toContain('coaches_history');
+    expect(comment.startsWith('-- ')).toBe(true);
   });
 });
