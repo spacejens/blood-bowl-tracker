@@ -98,8 +98,9 @@ export function historyTrackedTable<
   //    both branches, so we always call the extraConfig-required overload (with a no-op
   //    default) instead of branching.
   // 2. Our own `extraConfig` parameter's declared type references
-  //    `PgBuildExtraConfigColumns<TColumns>` for its callback parameter. That reference
-  //    becomes a second, competing inference site for `schema.table`'s own `TColumnsMap`
+  //    `PgBuildExtraConfigColumns<TColumns & { ...injected columns... }>` for its callback
+  //    parameter. That reference becomes a second, competing inference site for
+  //    `schema.table`'s own `TColumnsMap`
   //    type parameter, and TypeScript resolves it to `TColumns` (the caller's original
   //    columns) rather than `typeof trackedColumns` (which also has the four injected
   //    columns) — silently dropping created_at/updated_at/history_version/history_period
