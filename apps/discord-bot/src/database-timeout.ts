@@ -28,7 +28,9 @@ export async function withDatabaseTimeout<T>(
   // Swallow a late rejection if the timeout wins the race first.
   work.catch(() => undefined);
 
-  let timer: ReturnType<typeof setTimeout>;
+  // The Promise executor runs synchronously, so timer is always assigned
+  // before the try block below runs.
+  let timer!: ReturnType<typeof setTimeout>;
   const timeout = new Promise<T>((resolve) => {
     timer = setTimeout(() => resolve(fallback), timeoutMs);
   });
