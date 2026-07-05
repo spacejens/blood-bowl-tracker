@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { importBblData } from './bbl-importer';
+import { ImportRunnerService } from '@blood-bowl-tracker/import';
+import { BblCoachesImportService } from './bbl-coaches-import.service';
 import type { BblExport } from './bbl-types';
 
 const bblData: BblExport = {
@@ -29,10 +30,17 @@ function makeMockClient() {
   };
 }
 
-describe('importBblData', () => {
+function makeService(client: ReturnType<typeof makeMockClient>) {
+  return new BblCoachesImportService(
+    new ImportRunnerService(),
+    client as never,
+  );
+}
+
+describe('BblCoachesImportService', () => {
   it('upserts the BBL external system once', async () => {
     const client = makeMockClient();
-    await importBblData(bblData, client as never);
+    await makeService(client).importBblData(bblData);
     expect(client.externalSystems.upsert).toHaveBeenCalledTimes(1);
     expect(client.externalSystems.upsert).toHaveBeenCalledWith({
       body: { name: 'BBL' },
@@ -41,7 +49,7 @@ describe('importBblData', () => {
 
   it('upserts each coach with id: and name: external IDs', async () => {
     const client = makeMockClient();
-    await importBblData(bblData, client as never);
+    await makeService(client).importBblData(bblData);
     expect(client.coaches.upsert).toHaveBeenCalledTimes(1);
     expect(client.coaches.upsert).toHaveBeenCalledWith({
       body: {
@@ -61,7 +69,7 @@ describe('importBblData', () => {
       body: { message: 'conflict' },
     });
 
-    const result = await importBblData(bblData, client as never);
+    const result = await makeService(client).importBblData(bblData);
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('Gruk'))).toBe(true);
@@ -74,7 +82,7 @@ describe('importBblData', () => {
       body: { message: 'internal error' },
     });
 
-    const result = await importBblData(bblData, client as never);
+    const result = await makeService(client).importBblData(bblData);
 
     expect(result.success).toBe(false);
     expect(
@@ -86,7 +94,7 @@ describe('importBblData', () => {
   it('reports an error for each team pending race ID resolution', async () => {
     const client = makeMockClient();
 
-    const result = await importBblData(bblData, client as never);
+    const result = await makeService(client).importBblData(bblData);
 
     expect(result.errors.some((e) => e.message.includes('Green Mashers'))).toBe(
       true,
