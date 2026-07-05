@@ -17,7 +17,10 @@ const teamErasTable = historyTrackedTable(
       .notNull(),
   },
   (t) => ({
-    uniqueTeamEra: unique('team_eras_team_id_era_id_unique').on(t.teamId, t.eraId),
+    uniqueTeamEra: unique('team_eras_team_id_era_id_unique').on(
+      t.teamId,
+      t.eraId,
+    ),
   }),
 );
 
