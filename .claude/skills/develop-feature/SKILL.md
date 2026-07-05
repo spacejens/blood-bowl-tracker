@@ -51,7 +51,7 @@ This applies to every subagent dispatched from any phase below while working in 
      ```bash
      gh api user --jq .login
      ```
-     If this command fails, report a one-line warning and **continue** — skip the assign/label step but proceed to step 5 to derive the branch name.
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 5 to derive the branch name.
    - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
    - Otherwise (unassigned, or already assigned to the current user), assign and label it:
      ```bash
@@ -59,6 +59,12 @@ This applies to every subagent dispatched from any phase below while working in 
      gh issue edit <N> --add-label "in progress"
      ```
      Run these as two separate commands so a failure in one doesn't mask the other. If either command fails, report a one-line warning (e.g. "Could not assign issue #N to you — continuing anyway: `<gh error output>`") and **continue** — do not stop the workflow over a labeling/assignment failure.
+   - Determine the issue's kind label — one or more of `feature`, `bug`, `development`:
+     - If the issue's `labels` (from the step 1 fetch) already includes one or more of these three, use that set as-is and skip straight to recording it below.
+     - Otherwise, judge from the issue's title and body which of the three clearly apply. More than one may apply (e.g. a bug fix that's also process tooling) — assign all that clearly do.
+     - If it's genuinely unclear which applies, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
+     - Apply any newly-determined label(s) with one `gh issue edit <N> --add-label "<name>"` call per label (separate from the "in progress" call above, so a failure in one doesn't mask the other). On failure, report a one-line warning and **continue**, matching the existing assign/label failure handling.
+   - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
 5. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
 6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
@@ -79,10 +85,11 @@ This applies to every subagent dispatched from any phase below while working in 
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
-2. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
+2. Determine the kind label — one or more of `feature`, `bug`, `development` — by judging from the provided text which clearly apply. More than one may apply; assign all that clearly do. If it's genuinely unclear, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options. Record the result — Phase 6 uses it when creating the PR. Nothing is applied to GitHub yet, since there is no issue or PR to attach a label to until Phase 6.
+3. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
-3. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
-4. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+5. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -95,7 +102,7 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-5. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
 
 ---
 
@@ -148,6 +155,8 @@ This applies to every subagent dispatched from any phase below while working in 
    ```bash
    gh pr create \
      --title "<issue title>" \
+     --label "<kind label 1>" \
+     --label "<kind label 2 if applicable>" \
      --body "$(cat <<'EOF'
    Closes #<N>
 
@@ -156,18 +165,21 @@ This applies to every subagent dispatched from any phase below while working in 
    EOF
    )"
    ```
-   The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
+   Use the kind label(s) recorded in Phase 1 step 4 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
    gh pr create \
      --title "<human-readable slug>" \
+     --label "<kind label 1>" \
+     --label "<kind label 2 if applicable>" \
      --body "$(cat <<'EOF'
    ## Summary
    <summary of what was built>
    EOF
    )"
    ```
+   Use the kind label(s) recorded in Phase 1 step 2 — one `--label` flag per label.
 
 2. After the PR is created, ask the developer whether to deploy the change locally for a manual look — do not deploy automatically. Mention that `deploy-local` removes any stale stopped `postgres`/`discord-bot` containers left by a previous run before starting fresh. If yes, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill.
 3. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
