@@ -26,14 +26,16 @@ packages/
   api-server/         — NestJS services and modules implementing the api-contract;
                         uses packages/db and packages/import; consumed directly
                         by discord-bot and (in future) a standalone API app
-  api-client/         — ts-rest typed client for calling a deployed api-server
-                        over HTTP; used by import tools
-  import/             — pure import and ingestion logic; no knowledge of HTTP or
-                        the database; called by api-server or directly from discord-bot
+  api-client/         — NestJS module wrapping a ts-rest typed client for calling
+                        a deployed api-server over HTTP; used by import tools
+  import/             — NestJS module with pure import and ingestion logic; no
+                        knowledge of HTTP or the database; called by api-server
+                        or directly from discord-bot
 
 tools/
-  import-<source>/    — one tool per upstream data source; uses api-client to POST
-                        extracted data to a running api-server instance
+  import-<source>/    — one NestJS CLI application per upstream data source; uses
+                        api-client to POST extracted data to a running api-server
+                        instance
 ```
 
 ## Data flow
