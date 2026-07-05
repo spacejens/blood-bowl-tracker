@@ -51,7 +51,7 @@ This applies to every subagent dispatched from any phase below while working in 
      ```bash
      gh api user --jq .login
      ```
-     If this command fails, report a one-line warning and **continue** — skip the assign/label step but proceed to step 5 to derive the branch name.
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 5 to derive the branch name.
    - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
    - Otherwise (unassigned, or already assigned to the current user), assign and label it:
      ```bash
