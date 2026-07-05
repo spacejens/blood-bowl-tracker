@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'node:fs';
-import { createApiClient } from '@blood-bowl-tracker/api-client';
-import { parseBblExport } from './bbl-parser';
-import { importBblData } from './bbl-importer';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { parseBblExport } from './bbl/bbl-parser';
+import { BblCoachesImportService } from './bbl/bbl-coaches-import.service';
 
 const [, , filePath, baseUrl] = process.argv;
 
@@ -12,11 +13,22 @@ if (!filePath || !baseUrl) {
   process.exit(1);
 }
 
-const json = readFileSync(filePath, 'utf-8');
-const data = parseBblExport(json);
-const client = createApiClient(baseUrl);
+async function run(filePath: string, baseUrl: string) {
+  const json = readFileSync(filePath, 'utf-8');
+  const data = parseBblExport(json);
 
-importBblData(data, client)
+  const app = await NestFactory.createApplicationContext(
+    AppModule.register(baseUrl),
+  );
+  try {
+    const importer = app.get(BblCoachesImportService);
+    return await importer.importBblData(data);
+  } finally {
+    await app.close();
+  }
+}
+
+run(filePath, baseUrl)
   .then((result) => {
     if (result.success) {
       console.log(`Imported ${result.imported} team(s) successfully.`);
