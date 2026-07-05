@@ -36,6 +36,7 @@ describe('schema', () => {
   });
 
   it('exports raceRulesSets join table', () => {
+    expect(raceRulesSets.id).toBeDefined();
     expect(raceRulesSets.raceId).toBeDefined();
     expect(raceRulesSets.rulesSetId).toBeDefined();
   });
@@ -75,6 +76,7 @@ describe('schema', () => {
   });
 
   it('exports competitionTeams join table', () => {
+    expect(competitionTeams.id).toBeDefined();
     expect(competitionTeams.competitionId).toBeDefined();
     expect(competitionTeams.teamEraId).toBeDefined();
   });
@@ -112,6 +114,7 @@ describe('schema', () => {
   });
 
   it('exports matchTeams join table', () => {
+    expect(matchTeams.id).toBeDefined();
     expect(matchTeams.matchId).toBeDefined();
     expect(matchTeams.teamEraId).toBeDefined();
   });
