@@ -90,12 +90,13 @@ is ever added without going through `historyTrackedTable()`.
 
 The `versioning()` trigger function is vendored unmodified from
 [nearform/temporal_tables](https://github.com/nearform/temporal_tables) at
-`packages/db/vendor/temporal_tables/versioning_function.sql`, checksum-
+`packages/db/vendor/nearform/temporal_tables/versioning_function.sql`, checksum-
 tested to catch accidental edits. Upgrading it means replacing the vendor
 file, updating the checksum test's recorded hash in the same commit, and
 generating a new migration that copies the updated file's content verbatim
 (the function uses `CREATE OR REPLACE`, so this is safe to re-run in any
-environment, including production).
+environment, including production). Vendored components (currently just
+this one) are tracked in `packages/db/vendor/vendored_software.md`.
 
 Because history rows are written on insert (not only from the first
 update onward), every tracked row has a referencing history row from the
