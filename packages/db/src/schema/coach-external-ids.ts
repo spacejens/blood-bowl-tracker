@@ -1,27 +1,15 @@
-import { serial, varchar, integer, unique } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { coaches } from './coaches';
-import { externalSystems } from './external-systems';
-import { historyTrackedTable } from './history';
+import { externalIdsTable } from './external-ids-table';
 
-const coachExternalIdsTable = historyTrackedTable(
+const coachExternalIdsTable = externalIdsTable(
   gameData,
-  'coach_external_ids',
+  'coaches_external_ids',
   {
-    id: serial('id').primaryKey(),
-    coachId: integer('coach_id')
-      .references(() => coaches.id)
-      .notNull(),
-    externalSystemId: integer('external_system_id')
-      .references(() => externalSystems.id)
-      .notNull(),
-    externalId: varchar('external_id', { length: 255 }).notNull(),
+    key: 'coachId',
+    columnName: 'coach_id',
+    references: () => coaches.id,
   },
-  (t) => ({
-    uniqueExternalId: unique(
-      'coach_external_ids_external_system_id_external_id_unique',
-    ).on(t.externalSystemId, t.externalId),
-  }),
 );
 
 export const coachExternalIds = coachExternalIdsTable.table;
