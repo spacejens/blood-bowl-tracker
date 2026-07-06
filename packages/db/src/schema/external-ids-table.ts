@@ -17,6 +17,7 @@ export function externalIdsTable<TKey extends string>(
   tableName: string,
   owner: ExternalIdsTableOwner<TKey>,
 ) {
+  const idColumn = serial('id').primaryKey();
   const ownerColumn = integer(owner.columnName)
     .references(owner.references)
     .notNull();
@@ -26,12 +27,12 @@ export function externalIdsTable<TKey extends string>(
   const externalIdColumn = varchar('external_id', { length: 255 }).notNull();
 
   const columns = {
-    id: serial('id').primaryKey(),
+    id: idColumn,
     [owner.key]: ownerColumn,
     externalSystemId: externalSystemIdColumn,
     externalId: externalIdColumn,
   } as Record<TKey, typeof ownerColumn> & {
-    id: ReturnType<typeof serial>;
+    id: typeof idColumn;
     externalSystemId: typeof externalSystemIdColumn;
     externalId: typeof externalIdColumn;
   };
