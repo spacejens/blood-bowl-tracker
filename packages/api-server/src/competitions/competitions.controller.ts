@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { CompetitionsService } from './competitions.service';
 
@@ -7,27 +7,23 @@ import { CompetitionsService } from './competitions.service';
 export class CompetitionsController {
   constructor(private readonly competitionsService: CompetitionsService) {}
 
-  @TsRestHandler(contract.competitions)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.competitions, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.competitionsService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const competition = await this.competitionsService.findById(id);
-        if (!competition)
-          return {
-            status: 404 as const,
-            body: { message: 'Competition not found' },
-          };
-        return { status: 200 as const, body: competition };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.competitionsService.create(body),
-      }),
-    });
+  @Implement(contract.competitions)
+  handler() {
+    return {
+      list: implement(contract.competitions.list).handler(() =>
+        this.competitionsService.findAll(),
+      ),
+      getById: implement(contract.competitions.getById).handler(
+        async ({ input, errors }) => {
+          const competition = await this.competitionsService.findById(input.id);
+          if (!competition)
+            throw errors.NOT_FOUND({ message: 'Competition not found' });
+          return competition;
+        },
+      ),
+      create: implement(contract.competitions.create).handler(({ input }) =>
+        this.competitionsService.create(input),
+      ),
+    };
   }
 }

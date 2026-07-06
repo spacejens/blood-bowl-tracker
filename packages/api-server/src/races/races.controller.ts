@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { RacesService } from './races.service';
 
@@ -7,24 +7,22 @@ import { RacesService } from './races.service';
 export class RacesController {
   constructor(private readonly racesService: RacesService) {}
 
-  @TsRestHandler(contract.races)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.races, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.racesService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const race = await this.racesService.findById(id);
-        if (!race)
-          return { status: 404 as const, body: { message: 'Race not found' } };
-        return { status: 200 as const, body: race };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.racesService.create(body),
-      }),
-    });
+  @Implement(contract.races)
+  handler() {
+    return {
+      list: implement(contract.races.list).handler(() =>
+        this.racesService.findAll(),
+      ),
+      getById: implement(contract.races.getById).handler(
+        async ({ input, errors }) => {
+          const race = await this.racesService.findById(input.id);
+          if (!race) throw errors.NOT_FOUND({ message: 'Race not found' });
+          return race;
+        },
+      ),
+      create: implement(contract.races.create).handler(({ input }) =>
+        this.racesService.create(input),
+      ),
+    };
   }
 }

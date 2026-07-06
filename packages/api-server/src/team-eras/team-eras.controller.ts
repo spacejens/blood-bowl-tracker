@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { TeamErasService } from './team-eras.service';
 
@@ -7,27 +7,23 @@ import { TeamErasService } from './team-eras.service';
 export class TeamErasController {
   constructor(private readonly teamErasService: TeamErasService) {}
 
-  @TsRestHandler(contract.teamEras)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.teamEras, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.teamErasService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const teamEra = await this.teamErasService.findById(id);
-        if (!teamEra)
-          return {
-            status: 404 as const,
-            body: { message: 'Team era not found' },
-          };
-        return { status: 200 as const, body: teamEra };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.teamErasService.create(body),
-      }),
-    });
+  @Implement(contract.teamEras)
+  handler() {
+    return {
+      list: implement(contract.teamEras.list).handler(() =>
+        this.teamErasService.findAll(),
+      ),
+      getById: implement(contract.teamEras.getById).handler(
+        async ({ input, errors }) => {
+          const teamEra = await this.teamErasService.findById(input.id);
+          if (!teamEra)
+            throw errors.NOT_FOUND({ message: 'Team era not found' });
+          return teamEra;
+        },
+      ),
+      create: implement(contract.teamEras.create).handler(({ input }) =>
+        this.teamErasService.create(input),
+      ),
+    };
   }
 }

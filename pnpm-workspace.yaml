@@ -43,3 +43,4 @@ minimumReleaseAgeExclude:
   - '@orpc/standard-server-node@1.14.7'
   - '@orpc/standard-server-peer@1.14.7'
   - '@orpc/standard-server@1.14.7'
+  - '@orpc/nest@1.14.7'

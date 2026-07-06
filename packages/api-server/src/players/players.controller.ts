@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { PlayersService } from './players.service';
 
@@ -7,27 +7,22 @@ import { PlayersService } from './players.service';
 export class PlayersController {
   constructor(private readonly playersService: PlayersService) {}
 
-  @TsRestHandler(contract.players)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.players, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.playersService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const player = await this.playersService.findById(id);
-        if (!player)
-          return {
-            status: 404 as const,
-            body: { message: 'Player not found' },
-          };
-        return { status: 200 as const, body: player };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.playersService.create(body),
-      }),
-    });
+  @Implement(contract.players)
+  handler() {
+    return {
+      list: implement(contract.players.list).handler(() =>
+        this.playersService.findAll(),
+      ),
+      getById: implement(contract.players.getById).handler(
+        async ({ input, errors }) => {
+          const player = await this.playersService.findById(input.id);
+          if (!player) throw errors.NOT_FOUND({ message: 'Player not found' });
+          return player;
+        },
+      ),
+      create: implement(contract.players.create).handler(({ input }) =>
+        this.playersService.create(input),
+      ),
+    };
   }
 }

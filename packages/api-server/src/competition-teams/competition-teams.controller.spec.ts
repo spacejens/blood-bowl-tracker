@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { CompetitionTeamsController } from './competition-teams.controller';
 import { CompetitionTeamsService } from './competition-teams.service';
 
 const fakeCompetitionTeam = { competitionId: 1, teamEraId: 1 };
-
-interface CompetitionTeamsHandlers {
-  list: () => Promise<unknown>;
-  create: (args: { body: unknown }) => Promise<unknown>;
-}
 
 describe('CompetitionTeamsController', () => {
   let controller: CompetitionTeamsController;
@@ -16,10 +12,6 @@ describe('CompetitionTeamsController', () => {
     findAll: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<CompetitionTeamsHandlers> {
-    return (await controller.handler()) as CompetitionTeamsHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -30,23 +22,24 @@ describe('CompetitionTeamsController', () => {
     controller = module.get(CompetitionTeamsController);
   });
 
-  it('list returns all competition teams with status 200', async () => {
+  it('list returns all competition teams', async () => {
     mockService.findAll.mockResolvedValue([fakeCompetitionTeam]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeCompetitionTeam] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeCompetitionTeam]);
   });
 
-  it('create inserts and returns the new competition team with status 201', async () => {
+  it('create inserts and returns the new competition team', async () => {
     mockService.create.mockResolvedValue(fakeCompetitionTeam);
-    const handlers = await getHandlers();
-    const result = await handlers.create({
-      body: { competitionId: 1, teamEraId: 1 },
+    const handlers = controller.handler();
+    const result = await call(handlers.create, {
+      competitionId: 1,
+      teamEraId: 1,
     });
     expect(mockService.create).toHaveBeenCalledWith({
       competitionId: 1,
       teamEraId: 1,
     });
-    expect(result).toEqual({ status: 201, body: fakeCompetitionTeam });
+    expect(result).toEqual(fakeCompetitionTeam);
   });
 });

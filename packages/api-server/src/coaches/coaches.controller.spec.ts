@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { CoachesController } from './coaches.controller';
 import { CoachesService, CoachUpsertConflictError } from './coaches.service';
 
@@ -8,18 +9,6 @@ const fakeCoach = {
   name: 'Roze Madder',
   createdAt: new Date('2026-01-01'),
 };
-
-interface CoachesHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: { body: { name: string } }) => Promise<unknown>;
-  upsert: (args: {
-    body: {
-      name: string;
-      externalIds: { externalSystemId: number; externalId: string }[];
-    };
-  }) => Promise<unknown>;
-}
 
 describe('CoachesController', () => {
   let controller: CoachesController;
@@ -30,10 +19,6 @@ describe('CoachesController', () => {
     upsert: vi.fn(),
   };
 
-  async function getHandlers(): Promise<CoachesHandlers> {
-    return (await controller.handler()) as CoachesHandlers;
-  }
-
   beforeEach(async () => {
     vi.clearAllMocks();
     const module = await Test.createTestingModule({
@@ -43,78 +28,84 @@ describe('CoachesController', () => {
     controller = module.get(CoachesController);
   });
 
-  it('list returns all coaches with status 200', async () => {
+  it('list returns all coaches', async () => {
     mockService.findAll.mockResolvedValue([fakeCoach]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeCoach] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeCoach]);
   });
 
-  it('getById returns the coach with status 200 when found', async () => {
+  it('getById returns the coach when found', async () => {
     mockService.findById.mockResolvedValue(fakeCoach);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakeCoach });
+    expect(result).toEqual(fakeCoach);
   });
 
-  it('getById returns 404 when the coach is not found', async () => {
+  it('getById throws NOT_FOUND when the coach is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'Coach not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Coach not found',
     });
   });
 
-  it('create inserts and returns the new coach with status 201', async () => {
+  it('create inserts and returns the new coach', async () => {
     mockService.create.mockResolvedValue(fakeCoach);
-    const handlers = await getHandlers();
-    const result = await handlers.create({ body: { name: 'Roze Madder' } });
+    const handlers = controller.handler();
+    const result = await call(handlers.create, { name: 'Roze Madder' });
     expect(mockService.create).toHaveBeenCalledWith({ name: 'Roze Madder' });
-    expect(result).toEqual({ status: 201, body: fakeCoach });
+    expect(result).toEqual(fakeCoach);
   });
 
-  it('upsert returns 201 when a new coach was created', async () => {
+  it('upsert returns created: true when a new coach was created', async () => {
     mockService.upsert.mockResolvedValue({ coach: fakeCoach, created: true });
-    const handlers = await getHandlers();
-    const result = await handlers.upsert({
-      body: { name: 'Roze Madder', externalIds: [] },
+    const handlers = controller.handler();
+    const result = await call(handlers.upsert, {
+      name: 'Roze Madder',
+      externalIds: [{ externalSystemId: 1, externalId: 'ext-1' }],
     });
-    expect(result).toEqual({ status: 201, body: fakeCoach });
+    expect(result).toEqual({ ...fakeCoach, created: true });
   });
 
-  it('upsert returns 200 when an existing coach was updated', async () => {
+  it('upsert returns created: false when an existing coach was updated', async () => {
     mockService.upsert.mockResolvedValue({ coach: fakeCoach, created: false });
-    const handlers = await getHandlers();
-    const result = await handlers.upsert({
-      body: { name: 'Roze Madder', externalIds: [] },
+    const handlers = controller.handler();
+    const result = await call(handlers.upsert, {
+      name: 'Roze Madder',
+      externalIds: [{ externalSystemId: 1, externalId: 'ext-1' }],
     });
-    expect(result).toEqual({ status: 200, body: fakeCoach });
+    expect(result).toEqual({ ...fakeCoach, created: false });
   });
 
-  it('upsert returns 409 when external IDs match multiple coaches', async () => {
+  it('upsert throws CONFLICT when external IDs match multiple coaches', async () => {
     mockService.upsert.mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
       ),
     );
-    const handlers = await getHandlers();
-    const result = await handlers.upsert({
-      body: { name: 'Roze Madder', externalIds: [] },
-    });
-    expect(result).toEqual({
-      status: 409,
-      body: { message: 'External IDs matched multiple existing coaches: 1, 2' },
+    const handlers = controller.handler();
+    await expect(
+      call(handlers.upsert, {
+        name: 'Roze Madder',
+        externalIds: [{ externalSystemId: 1, externalId: 'ext-1' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing coaches: 1, 2',
     });
   });
 
   it('upsert rethrows errors that are not a conflict', async () => {
     mockService.upsert.mockRejectedValue(new Error('db unavailable'));
-    const handlers = await getHandlers();
+    const handlers = controller.handler();
     await expect(
-      handlers.upsert({ body: { name: 'Roze Madder', externalIds: [] } }),
+      call(handlers.upsert, {
+        name: 'Roze Madder',
+        externalIds: [{ externalSystemId: 1, externalId: 'ext-1' }],
+      }),
     ).rejects.toThrow('db unavailable');
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { RulesSetsController } from './rules-sets.controller';
 import { RulesSetsService } from './rules-sets.service';
 
@@ -9,12 +10,6 @@ const fakeRulesSet = {
   createdAt: new Date('2026-01-01'),
 };
 
-interface RulesSetsHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: { body: unknown }) => Promise<unknown>;
-}
-
 describe('RulesSetsController', () => {
   let controller: RulesSetsController;
   const mockService = {
@@ -22,10 +17,6 @@ describe('RulesSetsController', () => {
     findById: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<RulesSetsHandlers> {
-    return (await controller.handler()) as RulesSetsHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -36,40 +27,37 @@ describe('RulesSetsController', () => {
     controller = module.get(RulesSetsController);
   });
 
-  it('list returns all rules sets with status 200', async () => {
+  it('list returns all rules sets', async () => {
     mockService.findAll.mockResolvedValue([fakeRulesSet]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeRulesSet] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeRulesSet]);
   });
 
-  it('getById returns the rules set with status 200 when found', async () => {
+  it('getById returns the rules set when found', async () => {
     mockService.findById.mockResolvedValue(fakeRulesSet);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakeRulesSet });
+    expect(result).toEqual(fakeRulesSet);
   });
 
-  it('getById returns 404 when the rules set is not found', async () => {
+  it('getById throws NOT_FOUND when the rules set is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'Rules set not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Rules set not found',
     });
   });
 
-  it('create inserts and returns the new rules set with status 201', async () => {
+  it('create inserts and returns the new rules set', async () => {
     mockService.create.mockResolvedValue(fakeRulesSet);
-    const handlers = await getHandlers();
-    const result = await handlers.create({
-      body: { name: 'Blood Bowl 2020' },
-    });
+    const handlers = controller.handler();
+    const result = await call(handlers.create, { name: 'Blood Bowl 2020' });
     expect(mockService.create).toHaveBeenCalledWith({
       name: 'Blood Bowl 2020',
     });
-    expect(result).toEqual({ status: 201, body: fakeRulesSet });
+    expect(result).toEqual(fakeRulesSet);
   });
 });

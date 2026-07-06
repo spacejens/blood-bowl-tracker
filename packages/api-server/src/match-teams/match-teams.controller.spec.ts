@@ -1,14 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { MatchTeamsController } from './match-teams.controller';
 import { MatchTeamsService } from './match-teams.service';
 
 const fakeMatchTeam = { matchId: 1, teamEraId: 1 };
-
-interface MatchTeamsHandlers {
-  list: () => Promise<unknown>;
-  create: (args: { body: unknown }) => Promise<unknown>;
-}
 
 describe('MatchTeamsController', () => {
   let controller: MatchTeamsController;
@@ -16,10 +12,6 @@ describe('MatchTeamsController', () => {
     findAll: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<MatchTeamsHandlers> {
-    return (await controller.handler()) as MatchTeamsHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -30,23 +22,24 @@ describe('MatchTeamsController', () => {
     controller = module.get(MatchTeamsController);
   });
 
-  it('list returns all match teams with status 200', async () => {
+  it('list returns all match teams', async () => {
     mockService.findAll.mockResolvedValue([fakeMatchTeam]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeMatchTeam] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeMatchTeam]);
   });
 
-  it('create inserts and returns the new match team with status 201', async () => {
+  it('create inserts and returns the new match team', async () => {
     mockService.create.mockResolvedValue(fakeMatchTeam);
-    const handlers = await getHandlers();
-    const result = await handlers.create({
-      body: { matchId: 1, teamEraId: 1 },
+    const handlers = controller.handler();
+    const result = await call(handlers.create, {
+      matchId: 1,
+      teamEraId: 1,
     });
     expect(mockService.create).toHaveBeenCalledWith({
       matchId: 1,
       teamEraId: 1,
     });
-    expect(result).toEqual({ status: 201, body: fakeMatchTeam });
+    expect(result).toEqual(fakeMatchTeam);
   });
 });

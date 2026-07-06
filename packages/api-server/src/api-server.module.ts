@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ORPCModule } from '@orpc/nest';
 import { CoachesModule } from './coaches/coaches.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
@@ -18,6 +19,7 @@ import { ExternalSystemsModule } from './external-systems/external-systems.modul
 
 @Module({
   imports: [
+    ORPCModule.forRoot({}),
     CoachesModule,
     RacesModule,
     RulesSetsModule,

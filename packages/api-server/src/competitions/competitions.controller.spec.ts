@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { CompetitionsController } from './competitions.controller';
 import { CompetitionsService } from './competitions.service';
 
@@ -11,14 +12,6 @@ const fakeCompetition = {
   createdAt: new Date('2026-01-01'),
 };
 
-interface CompetitionsHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: {
-    body: { name: string; type: string; eraId: number };
-  }) => Promise<unknown>;
-}
-
 describe('CompetitionsController', () => {
   let controller: CompetitionsController;
   const mockService = {
@@ -26,10 +19,6 @@ describe('CompetitionsController', () => {
     findById: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<CompetitionsHandlers> {
-    return (await controller.handler()) as CompetitionsHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -40,42 +29,43 @@ describe('CompetitionsController', () => {
     controller = module.get(CompetitionsController);
   });
 
-  it('list returns all competitions with status 200', async () => {
+  it('list returns all competitions', async () => {
     mockService.findAll.mockResolvedValue([fakeCompetition]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeCompetition] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeCompetition]);
   });
 
-  it('getById returns the competition with status 200 when found', async () => {
+  it('getById returns the competition when found', async () => {
     mockService.findById.mockResolvedValue(fakeCompetition);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakeCompetition });
+    expect(result).toEqual(fakeCompetition);
   });
 
-  it('getById returns 404 when the competition is not found', async () => {
+  it('getById throws NOT_FOUND when the competition is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'Competition not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Competition not found',
     });
   });
 
-  it('create inserts and returns the new competition with status 201', async () => {
+  it('create inserts and returns the new competition', async () => {
     mockService.create.mockResolvedValue(fakeCompetition);
-    const handlers = await getHandlers();
-    const result = await handlers.create({
-      body: { name: 'Spring Season', type: 'season', eraId: 1 },
+    const handlers = controller.handler();
+    const result = await call(handlers.create, {
+      name: 'Spring Season',
+      type: 'season',
+      eraId: 1,
     });
     expect(mockService.create).toHaveBeenCalledWith({
       name: 'Spring Season',
       type: 'season',
       eraId: 1,
     });
-    expect(result).toEqual({ status: 201, body: fakeCompetition });
+    expect(result).toEqual(fakeCompetition);
   });
 });

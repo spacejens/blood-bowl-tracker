@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { LeaguesService } from './leagues.service';
 
@@ -7,27 +7,22 @@ import { LeaguesService } from './leagues.service';
 export class LeaguesController {
   constructor(private readonly leaguesService: LeaguesService) {}
 
-  @TsRestHandler(contract.leagues)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.leagues, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.leaguesService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const league = await this.leaguesService.findById(id);
-        if (!league)
-          return {
-            status: 404 as const,
-            body: { message: 'League not found' },
-          };
-        return { status: 200 as const, body: league };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.leaguesService.create(body),
-      }),
-    });
+  @Implement(contract.leagues)
+  handler() {
+    return {
+      list: implement(contract.leagues.list).handler(() =>
+        this.leaguesService.findAll(),
+      ),
+      getById: implement(contract.leagues.getById).handler(
+        async ({ input, errors }) => {
+          const league = await this.leaguesService.findById(input.id);
+          if (!league) throw errors.NOT_FOUND({ message: 'League not found' });
+          return league;
+        },
+      ),
+      create: implement(contract.leagues.create).handler(({ input }) =>
+        this.leaguesService.create(input),
+      ),
+    };
   }
 }

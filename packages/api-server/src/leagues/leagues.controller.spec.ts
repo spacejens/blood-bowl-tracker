@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { LeaguesController } from './leagues.controller';
 import { LeaguesService } from './leagues.service';
 
@@ -9,12 +10,6 @@ const fakeLeague = {
   createdAt: new Date('2026-01-01'),
 };
 
-interface LeaguesHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: { body: { name: string } }) => Promise<unknown>;
-}
-
 describe('LeaguesController', () => {
   let controller: LeaguesController;
   const mockService = {
@@ -22,10 +17,6 @@ describe('LeaguesController', () => {
     findById: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<LeaguesHandlers> {
-    return (await controller.handler()) as LeaguesHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -36,36 +27,35 @@ describe('LeaguesController', () => {
     controller = module.get(LeaguesController);
   });
 
-  it('list returns all leagues with status 200', async () => {
+  it('list returns all leagues', async () => {
     mockService.findAll.mockResolvedValue([fakeLeague]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeLeague] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeLeague]);
   });
 
-  it('getById returns the league with status 200 when found', async () => {
+  it('getById returns the league when found', async () => {
     mockService.findById.mockResolvedValue(fakeLeague);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakeLeague });
+    expect(result).toEqual(fakeLeague);
   });
 
-  it('getById returns 404 when the league is not found', async () => {
+  it('getById throws NOT_FOUND when the league is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'League not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'League not found',
     });
   });
 
-  it('create inserts and returns the new league with status 201', async () => {
+  it('create inserts and returns the new league', async () => {
     mockService.create.mockResolvedValue(fakeLeague);
-    const handlers = await getHandlers();
-    const result = await handlers.create({ body: { name: 'The Bad Cup' } });
+    const handlers = controller.handler();
+    const result = await call(handlers.create, { name: 'The Bad Cup' });
     expect(mockService.create).toHaveBeenCalledWith({ name: 'The Bad Cup' });
-    expect(result).toEqual({ status: 201, body: fakeLeague });
+    expect(result).toEqual(fakeLeague);
   });
 });

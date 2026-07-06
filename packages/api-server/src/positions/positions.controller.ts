@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { PositionsService } from './positions.service';
 
@@ -7,27 +7,23 @@ import { PositionsService } from './positions.service';
 export class PositionsController {
   constructor(private readonly positionsService: PositionsService) {}
 
-  @TsRestHandler(contract.positions)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.positions, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.positionsService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const position = await this.positionsService.findById(id);
-        if (!position)
-          return {
-            status: 404 as const,
-            body: { message: 'Position not found' },
-          };
-        return { status: 200 as const, body: position };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.positionsService.create(body),
-      }),
-    });
+  @Implement(contract.positions)
+  handler() {
+    return {
+      list: implement(contract.positions.list).handler(() =>
+        this.positionsService.findAll(),
+      ),
+      getById: implement(contract.positions.getById).handler(
+        async ({ input, errors }) => {
+          const position = await this.positionsService.findById(input.id);
+          if (!position)
+            throw errors.NOT_FOUND({ message: 'Position not found' });
+          return position;
+        },
+      ),
+      create: implement(contract.positions.create).handler(({ input }) =>
+        this.positionsService.create(input),
+      ),
+    };
   }
 }

@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { MatchEventsService } from './match-events.service';
 
@@ -7,18 +7,15 @@ import { MatchEventsService } from './match-events.service';
 export class MatchEventsController {
   constructor(private readonly matchEventsService: MatchEventsService) {}
 
-  @TsRestHandler(contract.matchEvents)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.matchEvents, {
-      listByMatch: async ({ params: { matchId } }) => ({
-        status: 200 as const,
-        body: await this.matchEventsService.findByMatchId(matchId),
-      }),
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.matchEventsService.create(body),
-      }),
-    });
+  @Implement(contract.matchEvents)
+  handler() {
+    return {
+      listByMatch: implement(contract.matchEvents.listByMatch).handler(
+        ({ input }) => this.matchEventsService.findByMatchId(input.matchId),
+      ),
+      create: implement(contract.matchEvents.create).handler(({ input }) =>
+        this.matchEventsService.create(input),
+      ),
+    };
   }
 }

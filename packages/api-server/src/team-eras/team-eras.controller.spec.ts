@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { TeamErasController } from './team-eras.controller';
 import { TeamErasService } from './team-eras.service';
 
@@ -10,12 +11,6 @@ const fakeTeamEra = {
   createdAt: new Date('2026-01-01'),
 };
 
-interface TeamErasHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: { body: unknown }) => Promise<unknown>;
-}
-
 describe('TeamErasController', () => {
   let controller: TeamErasController;
   const mockService = {
@@ -23,10 +18,6 @@ describe('TeamErasController', () => {
     findById: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<TeamErasHandlers> {
-    return (await controller.handler()) as TeamErasHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -37,36 +28,35 @@ describe('TeamErasController', () => {
     controller = module.get(TeamErasController);
   });
 
-  it('list returns all team eras with status 200', async () => {
+  it('list returns all team eras', async () => {
     mockService.findAll.mockResolvedValue([fakeTeamEra]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakeTeamEra] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakeTeamEra]);
   });
 
-  it('getById returns the team era with status 200 when found', async () => {
+  it('getById returns the team era when found', async () => {
     mockService.findById.mockResolvedValue(fakeTeamEra);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakeTeamEra });
+    expect(result).toEqual(fakeTeamEra);
   });
 
-  it('getById returns 404 when the team era is not found', async () => {
+  it('getById throws NOT_FOUND when the team era is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'Team era not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Team era not found',
     });
   });
 
-  it('create inserts and returns the new team era with status 201', async () => {
+  it('create inserts and returns the new team era', async () => {
     mockService.create.mockResolvedValue(fakeTeamEra);
-    const handlers = await getHandlers();
-    const result = await handlers.create({ body: { teamId: 1, eraId: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.create, { teamId: 1, eraId: 1 });
     expect(mockService.create).toHaveBeenCalledWith({ teamId: 1, eraId: 1 });
-    expect(result).toEqual({ status: 201, body: fakeTeamEra });
+    expect(result).toEqual(fakeTeamEra);
   });
 });

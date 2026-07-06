@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { TsRestHandler, tsRestHandler } from '@ts-rest/nest';
+import { Implement, implement } from '@orpc/nest';
 import { contract } from '@blood-bowl-tracker/api-contract';
 import { ErasService } from './eras.service';
 
@@ -7,24 +7,22 @@ import { ErasService } from './eras.service';
 export class ErasController {
   constructor(private readonly erasService: ErasService) {}
 
-  @TsRestHandler(contract.eras)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/require-await
-  async handler(): Promise<any> {
-    return tsRestHandler(contract.eras, {
-      list: async () => ({
-        status: 200 as const,
-        body: await this.erasService.findAll(),
-      }),
-      getById: async ({ params: { id } }) => {
-        const era = await this.erasService.findById(id);
-        if (!era)
-          return { status: 404 as const, body: { message: 'Era not found' } };
-        return { status: 200 as const, body: era };
-      },
-      create: async ({ body }) => ({
-        status: 201 as const,
-        body: await this.erasService.create(body),
-      }),
-    });
+  @Implement(contract.eras)
+  handler() {
+    return {
+      list: implement(contract.eras.list).handler(() =>
+        this.erasService.findAll(),
+      ),
+      getById: implement(contract.eras.getById).handler(
+        async ({ input, errors }) => {
+          const era = await this.erasService.findById(input.id);
+          if (!era) throw errors.NOT_FOUND({ message: 'Era not found' });
+          return era;
+        },
+      ),
+      create: implement(contract.eras.create).handler(({ input }) =>
+        this.erasService.create(input),
+      ),
+    };
   }
 }

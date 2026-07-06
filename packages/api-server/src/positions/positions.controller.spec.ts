@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { call } from '@orpc/server';
 import { PositionsController } from './positions.controller';
 import { PositionsService } from './positions.service';
 
@@ -10,14 +11,6 @@ const fakePosition = {
   createdAt: new Date('2026-01-01'),
 };
 
-interface PositionsHandlers {
-  list: () => Promise<unknown>;
-  getById: (args: { params: { id: number } }) => Promise<unknown>;
-  create: (args: {
-    body: { name: string; raceId: number };
-  }) => Promise<unknown>;
-}
-
 describe('PositionsController', () => {
   let controller: PositionsController;
   const mockService = {
@@ -25,10 +18,6 @@ describe('PositionsController', () => {
     findById: vi.fn(),
     create: vi.fn(),
   };
-
-  async function getHandlers(): Promise<PositionsHandlers> {
-    return (await controller.handler()) as PositionsHandlers;
-  }
 
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -39,41 +28,38 @@ describe('PositionsController', () => {
     controller = module.get(PositionsController);
   });
 
-  it('list returns all positions with status 200', async () => {
+  it('list returns all positions', async () => {
     mockService.findAll.mockResolvedValue([fakePosition]);
-    const handlers = await getHandlers();
-    const result = await handlers.list();
-    expect(result).toEqual({ status: 200, body: [fakePosition] });
+    const handlers = controller.handler();
+    const result = await call(handlers.list, undefined);
+    expect(result).toEqual([fakePosition]);
   });
 
-  it('getById returns the position with status 200 when found', async () => {
+  it('getById returns the position when found', async () => {
     mockService.findById.mockResolvedValue(fakePosition);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 1 } });
+    const handlers = controller.handler();
+    const result = await call(handlers.getById, { id: 1 });
     expect(mockService.findById).toHaveBeenCalledWith(1);
-    expect(result).toEqual({ status: 200, body: fakePosition });
+    expect(result).toEqual(fakePosition);
   });
 
-  it('getById returns 404 when the position is not found', async () => {
+  it('getById throws NOT_FOUND when the position is not found', async () => {
     mockService.findById.mockResolvedValue(undefined);
-    const handlers = await getHandlers();
-    const result = await handlers.getById({ params: { id: 999 } });
-    expect(result).toEqual({
-      status: 404,
-      body: { message: 'Position not found' },
+    const handlers = controller.handler();
+    await expect(call(handlers.getById, { id: 999 })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+      message: 'Position not found',
     });
   });
 
-  it('create inserts and returns the new position with status 201', async () => {
+  it('create inserts and returns the new position', async () => {
     mockService.create.mockResolvedValue(fakePosition);
-    const handlers = await getHandlers();
-    const result = await handlers.create({
-      body: { name: 'Blitzer', raceId: 1 },
-    });
+    const handlers = controller.handler();
+    const result = await call(handlers.create, { name: 'Blitzer', raceId: 1 });
     expect(mockService.create).toHaveBeenCalledWith({
       name: 'Blitzer',
       raceId: 1,
     });
-    expect(result).toEqual({ status: 201, body: fakePosition });
+    expect(result).toEqual(fakePosition);
   });
 });
