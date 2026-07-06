@@ -1,4 +1,4 @@
-import { initContract } from '@ts-rest/core';
+import { oc, populateContractRouterPaths } from '@orpc/contract';
 import { z } from 'zod';
 import {
   CoachSchema,
@@ -37,343 +37,221 @@ import {
 } from './schemas/competition-team';
 import { MatchTeamSchema, CreateMatchTeamSchema } from './schemas/match-team';
 
-const c = initContract();
-
-export const contract = c.router({
-  coaches: c.router({
-    list: {
-      method: 'GET',
-      path: '/coaches',
-      responses: { 200: z.array(CoachSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/coaches/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: CoachSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/coaches',
-      body: CreateCoachSchema,
-      responses: { 201: CoachSchema },
-    },
-    upsert: {
-      method: 'POST',
-      path: '/coaches/upsert',
-      body: UpsertCoachSchema,
-      responses: {
-        200: CoachSchema,
-        201: CoachSchema,
-        409: z.object({ message: z.string() }),
-      },
-    },
-  }),
-  externalSystems: c.router({
-    list: {
-      method: 'GET',
-      path: '/external-systems',
-      responses: { 200: z.array(ExternalSystemSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/external-systems/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: ExternalSystemSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/external-systems',
-      body: CreateExternalSystemSchema,
-      responses: { 201: ExternalSystemSchema },
-    },
-    upsert: {
-      method: 'POST',
-      path: '/external-systems/upsert',
-      body: UpsertExternalSystemSchema,
-      responses: {
-        200: ExternalSystemSchema,
-        201: ExternalSystemSchema,
-      },
-    },
-  }),
-  races: c.router({
-    list: {
-      method: 'GET',
-      path: '/races',
-      responses: { 200: z.array(RaceSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/races/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: RaceSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/races',
-      body: CreateRaceSchema,
-      responses: { 201: RaceSchema },
-    },
-  }),
-  rulesSets: c.router({
-    list: {
-      method: 'GET',
-      path: '/rules-sets',
-      responses: { 200: z.array(RulesSetSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/rules-sets/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: RulesSetSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/rules-sets',
-      body: CreateRulesSetSchema,
-      responses: { 201: RulesSetSchema },
-    },
-  }),
-  leagues: c.router({
-    list: {
-      method: 'GET',
-      path: '/leagues',
-      responses: { 200: z.array(LeagueSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/leagues/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: LeagueSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/leagues',
-      body: CreateLeagueSchema,
-      responses: { 201: LeagueSchema },
-    },
-  }),
-  positions: c.router({
-    list: {
-      method: 'GET',
-      path: '/positions',
-      responses: { 200: z.array(PositionSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/positions/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: PositionSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/positions',
-      body: CreatePositionSchema,
-      responses: { 201: PositionSchema },
-    },
-  }),
-  eras: c.router({
-    list: {
-      method: 'GET',
-      path: '/eras',
-      responses: { 200: z.array(EraSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/eras/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: EraSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/eras',
-      body: CreateEraSchema,
-      responses: { 201: EraSchema },
-    },
-  }),
-  competitions: c.router({
-    list: {
-      method: 'GET',
-      path: '/competitions',
-      responses: { 200: z.array(CompetitionSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/competitions/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: CompetitionSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/competitions',
-      body: CreateCompetitionSchema,
-      responses: { 201: CompetitionSchema },
-    },
-  }),
-  teams: c.router({
-    list: {
-      method: 'GET',
-      path: '/teams',
-      responses: { 200: z.array(TeamSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/teams/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: TeamSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/teams',
-      body: CreateTeamSchema,
-      responses: { 201: TeamSchema },
-    },
-  }),
-  teamEras: c.router({
-    list: {
-      method: 'GET',
-      path: '/team-eras',
-      responses: { 200: z.array(TeamEraSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/team-eras/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: TeamEraSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/team-eras',
-      body: CreateTeamEraSchema,
-      responses: { 201: TeamEraSchema },
-    },
-  }),
-  players: c.router({
-    list: {
-      method: 'GET',
-      path: '/players',
-      responses: { 200: z.array(PlayerSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/players/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: PlayerSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/players',
-      body: CreatePlayerSchema,
-      responses: { 201: PlayerSchema },
-    },
-  }),
-  matches: c.router({
-    list: {
-      method: 'GET',
-      path: '/matches',
-      responses: { 200: z.array(MatchSchema) },
-    },
-    getById: {
-      method: 'GET',
-      path: '/matches/:id',
-      pathParams: z.object({ id: z.coerce.number() }),
-      responses: {
-        200: MatchSchema,
-        404: z.object({ message: z.string() }),
-      },
-    },
-    create: {
-      method: 'POST',
-      path: '/matches',
-      body: CreateMatchSchema,
-      responses: { 201: MatchSchema },
-    },
-  }),
-  matchEvents: c.router({
-    listByMatch: {
-      method: 'GET',
-      path: '/matches/:matchId/events',
-      pathParams: z.object({ matchId: z.coerce.number() }),
-      responses: { 200: z.array(MatchEventSchema) },
-    },
-    create: {
-      method: 'POST',
-      path: '/match-events',
-      body: CreateMatchEventSchema,
-      responses: { 201: MatchEventSchema },
-    },
-  }),
-  raceRulesSets: c.router({
-    list: {
-      method: 'GET',
-      path: '/race-rules-sets',
-      responses: { 200: z.array(RaceRulesSetSchema) },
-    },
-    create: {
-      method: 'POST',
-      path: '/race-rules-sets',
-      body: CreateRaceRulesSetSchema,
-      responses: { 201: RaceRulesSetSchema },
-    },
-  }),
-  competitionTeams: c.router({
-    list: {
-      method: 'GET',
-      path: '/competition-teams',
-      responses: { 200: z.array(CompetitionTeamSchema) },
-    },
-    create: {
-      method: 'POST',
-      path: '/competition-teams',
-      body: CreateCompetitionTeamSchema,
-      responses: { 201: CompetitionTeamSchema },
-    },
-  }),
-  matchTeams: c.router({
-    list: {
-      method: 'GET',
-      path: '/match-teams',
-      responses: { 200: z.array(MatchTeamSchema) },
-    },
-    create: {
-      method: 'POST',
-      path: '/match-teams',
-      body: CreateMatchTeamSchema,
-      responses: { 201: MatchTeamSchema },
-    },
-  }),
+export const contract = populateContractRouterPaths({
+  coaches: {
+    list: oc
+      .route({ method: 'GET', path: '/coaches' })
+      .output(z.array(CoachSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/coaches/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Coach not found' } })
+      .output(CoachSchema),
+    create: oc
+      .route({ method: 'POST', path: '/coaches', successStatus: 201 })
+      .input(CreateCoachSchema)
+      .output(CoachSchema),
+    upsert: oc
+      .route({ method: 'POST', path: '/coaches/upsert' })
+      .input(UpsertCoachSchema)
+      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
+      .output(CoachSchema.extend({ created: z.boolean() })),
+  },
+  externalSystems: {
+    list: oc
+      .route({ method: 'GET', path: '/external-systems' })
+      .output(z.array(ExternalSystemSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/external-systems/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'External system not found' } })
+      .output(ExternalSystemSchema),
+    create: oc
+      .route({ method: 'POST', path: '/external-systems', successStatus: 201 })
+      .input(CreateExternalSystemSchema)
+      .output(ExternalSystemSchema),
+    upsert: oc
+      .route({ method: 'POST', path: '/external-systems/upsert' })
+      .input(UpsertExternalSystemSchema)
+      .output(ExternalSystemSchema.extend({ created: z.boolean() })),
+  },
+  races: {
+    list: oc
+      .route({ method: 'GET', path: '/races' })
+      .output(z.array(RaceSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/races/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Race not found' } })
+      .output(RaceSchema),
+    create: oc
+      .route({ method: 'POST', path: '/races', successStatus: 201 })
+      .input(CreateRaceSchema)
+      .output(RaceSchema),
+  },
+  rulesSets: {
+    list: oc
+      .route({ method: 'GET', path: '/rules-sets' })
+      .output(z.array(RulesSetSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/rules-sets/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Rules set not found' } })
+      .output(RulesSetSchema),
+    create: oc
+      .route({ method: 'POST', path: '/rules-sets', successStatus: 201 })
+      .input(CreateRulesSetSchema)
+      .output(RulesSetSchema),
+  },
+  leagues: {
+    list: oc
+      .route({ method: 'GET', path: '/leagues' })
+      .output(z.array(LeagueSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/leagues/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'League not found' } })
+      .output(LeagueSchema),
+    create: oc
+      .route({ method: 'POST', path: '/leagues', successStatus: 201 })
+      .input(CreateLeagueSchema)
+      .output(LeagueSchema),
+  },
+  positions: {
+    list: oc
+      .route({ method: 'GET', path: '/positions' })
+      .output(z.array(PositionSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/positions/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Position not found' } })
+      .output(PositionSchema),
+    create: oc
+      .route({ method: 'POST', path: '/positions', successStatus: 201 })
+      .input(CreatePositionSchema)
+      .output(PositionSchema),
+  },
+  eras: {
+    list: oc.route({ method: 'GET', path: '/eras' }).output(z.array(EraSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/eras/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Era not found' } })
+      .output(EraSchema),
+    create: oc
+      .route({ method: 'POST', path: '/eras', successStatus: 201 })
+      .input(CreateEraSchema)
+      .output(EraSchema),
+  },
+  competitions: {
+    list: oc
+      .route({ method: 'GET', path: '/competitions' })
+      .output(z.array(CompetitionSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/competitions/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Competition not found' } })
+      .output(CompetitionSchema),
+    create: oc
+      .route({ method: 'POST', path: '/competitions', successStatus: 201 })
+      .input(CreateCompetitionSchema)
+      .output(CompetitionSchema),
+  },
+  teams: {
+    list: oc
+      .route({ method: 'GET', path: '/teams' })
+      .output(z.array(TeamSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/teams/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Team not found' } })
+      .output(TeamSchema),
+    create: oc
+      .route({ method: 'POST', path: '/teams', successStatus: 201 })
+      .input(CreateTeamSchema)
+      .output(TeamSchema),
+  },
+  teamEras: {
+    list: oc
+      .route({ method: 'GET', path: '/team-eras' })
+      .output(z.array(TeamEraSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/team-eras/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Team era not found' } })
+      .output(TeamEraSchema),
+    create: oc
+      .route({ method: 'POST', path: '/team-eras', successStatus: 201 })
+      .input(CreateTeamEraSchema)
+      .output(TeamEraSchema),
+  },
+  players: {
+    list: oc
+      .route({ method: 'GET', path: '/players' })
+      .output(z.array(PlayerSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/players/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Player not found' } })
+      .output(PlayerSchema),
+    create: oc
+      .route({ method: 'POST', path: '/players', successStatus: 201 })
+      .input(CreatePlayerSchema)
+      .output(PlayerSchema),
+  },
+  matches: {
+    list: oc
+      .route({ method: 'GET', path: '/matches' })
+      .output(z.array(MatchSchema)),
+    getById: oc
+      .route({ method: 'GET', path: '/matches/{id}' })
+      .input(z.object({ id: z.coerce.number() }))
+      .errors({ NOT_FOUND: { message: 'Match not found' } })
+      .output(MatchSchema),
+    create: oc
+      .route({ method: 'POST', path: '/matches', successStatus: 201 })
+      .input(CreateMatchSchema)
+      .output(MatchSchema),
+  },
+  matchEvents: {
+    listByMatch: oc
+      .route({ method: 'GET', path: '/matches/{matchId}/events' })
+      .input(z.object({ matchId: z.coerce.number() }))
+      .output(z.array(MatchEventSchema)),
+    create: oc
+      .route({ method: 'POST', path: '/match-events', successStatus: 201 })
+      .input(CreateMatchEventSchema)
+      .output(MatchEventSchema),
+  },
+  raceRulesSets: {
+    list: oc
+      .route({ method: 'GET', path: '/race-rules-sets' })
+      .output(z.array(RaceRulesSetSchema)),
+    create: oc
+      .route({ method: 'POST', path: '/race-rules-sets', successStatus: 201 })
+      .input(CreateRaceRulesSetSchema)
+      .output(RaceRulesSetSchema),
+  },
+  competitionTeams: {
+    list: oc
+      .route({ method: 'GET', path: '/competition-teams' })
+      .output(z.array(CompetitionTeamSchema)),
+    create: oc
+      .route({
+        method: 'POST',
+        path: '/competition-teams',
+        successStatus: 201,
+      })
+      .input(CreateCompetitionTeamSchema)
+      .output(CompetitionTeamSchema),
+  },
+  matchTeams: {
+    list: oc
+      .route({ method: 'GET', path: '/match-teams' })
+      .output(z.array(MatchTeamSchema)),
+    create: oc
+      .route({ method: 'POST', path: '/match-teams', successStatus: 201 })
+      .input(CreateMatchTeamSchema)
+      .output(MatchTeamSchema),
+  },
 });

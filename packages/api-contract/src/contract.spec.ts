@@ -1,59 +1,103 @@
 import { describe, it, expect } from 'vitest';
+import type { AnyContractProcedure } from '@orpc/contract';
 import { contract } from './contract';
 import { CreateEraSchema } from './schemas/era';
 
+// oRPC contract procedures don't expose `.method`/`.path` directly the way
+// ts-rest routes did; route metadata lives on the internal `~orpc.route`
+// definition, so introspect it directly here.
+function routeOf(procedure: AnyContractProcedure) {
+  return procedure['~orpc'].route;
+}
+
 describe('contract', () => {
   it('defines teams routes', () => {
-    expect(contract.teams.list.method).toBe('GET');
-    expect(contract.teams.list.path).toBe('/teams');
-    expect(contract.teams.getById.method).toBe('GET');
-    expect(contract.teams.getById.path).toBe('/teams/:id');
-    expect(contract.teams.create.method).toBe('POST');
-    expect(contract.teams.create.path).toBe('/teams');
+    expect(routeOf(contract.teams.list)).toMatchObject({
+      method: 'GET',
+      path: '/teams',
+    });
+    expect(routeOf(contract.teams.getById)).toMatchObject({
+      method: 'GET',
+      path: '/teams/{id}',
+    });
+    expect(routeOf(contract.teams.create)).toMatchObject({
+      method: 'POST',
+      path: '/teams',
+    });
   });
 
   it('defines matches routes', () => {
-    expect(contract.matches.list.method).toBe('GET');
-    expect(contract.matches.getById.method).toBe('GET');
-    expect(contract.matches.create.method).toBe('POST');
+    expect(routeOf(contract.matches.list)).toMatchObject({
+      method: 'GET',
+    });
+    expect(routeOf(contract.matches.getById)).toMatchObject({
+      method: 'GET',
+    });
+    expect(routeOf(contract.matches.create)).toMatchObject({
+      method: 'POST',
+    });
   });
 
   it('defines matchEvents routes', () => {
-    expect(contract.matchEvents.listByMatch.method).toBe('GET');
-    expect(contract.matchEvents.create.method).toBe('POST');
+    expect(routeOf(contract.matchEvents.listByMatch)).toMatchObject({
+      method: 'GET',
+    });
+    expect(routeOf(contract.matchEvents.create)).toMatchObject({
+      method: 'POST',
+    });
   });
 
   it('defines externalSystems routes', () => {
-    expect(contract.externalSystems.list.method).toBe('GET');
-    expect(contract.externalSystems.list.path).toBe('/external-systems');
-    expect(contract.externalSystems.getById.method).toBe('GET');
-    expect(contract.externalSystems.getById.path).toBe('/external-systems/:id');
-    expect(contract.externalSystems.create.method).toBe('POST');
-    expect(contract.externalSystems.create.path).toBe('/external-systems');
-    expect(contract.externalSystems.upsert.method).toBe('POST');
-    expect(contract.externalSystems.upsert.path).toBe(
-      '/external-systems/upsert',
-    );
+    expect(routeOf(contract.externalSystems.list)).toMatchObject({
+      method: 'GET',
+      path: '/external-systems',
+    });
+    expect(routeOf(contract.externalSystems.getById)).toMatchObject({
+      method: 'GET',
+      path: '/external-systems/{id}',
+    });
+    expect(routeOf(contract.externalSystems.create)).toMatchObject({
+      method: 'POST',
+      path: '/external-systems',
+    });
+    expect(routeOf(contract.externalSystems.upsert)).toMatchObject({
+      method: 'POST',
+      path: '/external-systems/upsert',
+    });
   });
 
   it('defines coaches routes', () => {
-    expect(contract.coaches.list.method).toBe('GET');
-    expect(contract.coaches.list.path).toBe('/coaches');
-    expect(contract.coaches.getById.method).toBe('GET');
-    expect(contract.coaches.getById.path).toBe('/coaches/:id');
-    expect(contract.coaches.create.method).toBe('POST');
-    expect(contract.coaches.create.path).toBe('/coaches');
-    expect(contract.coaches.upsert.method).toBe('POST');
-    expect(contract.coaches.upsert.path).toBe('/coaches/upsert');
+    expect(routeOf(contract.coaches.list)).toMatchObject({
+      method: 'GET',
+      path: '/coaches',
+    });
+    expect(routeOf(contract.coaches.getById)).toMatchObject({
+      method: 'GET',
+      path: '/coaches/{id}',
+    });
+    expect(routeOf(contract.coaches.create)).toMatchObject({
+      method: 'POST',
+      path: '/coaches',
+    });
+    expect(routeOf(contract.coaches.upsert)).toMatchObject({
+      method: 'POST',
+      path: '/coaches/upsert',
+    });
   });
 
   it('defines teamEras routes', () => {
-    expect(contract.teamEras.list.method).toBe('GET');
-    expect(contract.teamEras.list.path).toBe('/team-eras');
-    expect(contract.teamEras.getById.method).toBe('GET');
-    expect(contract.teamEras.getById.path).toBe('/team-eras/:id');
-    expect(contract.teamEras.create.method).toBe('POST');
-    expect(contract.teamEras.create.path).toBe('/team-eras');
+    expect(routeOf(contract.teamEras.list)).toMatchObject({
+      method: 'GET',
+      path: '/team-eras',
+    });
+    expect(routeOf(contract.teamEras.getById)).toMatchObject({
+      method: 'GET',
+      path: '/team-eras/{id}',
+    });
+    expect(routeOf(contract.teamEras.create)).toMatchObject({
+      method: 'POST',
+      path: '/team-eras',
+    });
   });
 
   it('requires externalSystemId when creating an era', () => {
