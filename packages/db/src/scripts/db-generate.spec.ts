@@ -4,10 +4,62 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   buildTriggerSql,
+  buildDeferrableHistoryFkSql,
+  findHistorySelfFkConstraintName,
   findNewHistoryTables,
   findTypeConflicts,
   buildTypeConflictComment,
 } from './db-generate.js';
+
+describe('findHistorySelfFkConstraintName', () => {
+  it('extracts the constraint name drizzle-kit generated for a short table name', () => {
+    const sql =
+      'CREATE TABLE "game_data"."coaches_history" (...);\n' +
+      '--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT "coaches_history_id_coaches_id_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."coaches"("id");';
+
+    expect(findHistorySelfFkConstraintName(sql, 'game_data', 'coaches')).toBe(
+      'coaches_history_id_coaches_id_fkey',
+    );
+  });
+
+  it('extracts a drizzle-kit-hashed constraint name for a long table name, rather than reconstructing the naive one', () => {
+    // Mirrors what drizzle-kit actually emits once the natural name would
+    // exceed Postgres's 63-byte identifier limit (tracked table names of
+    // 22+ chars) — it substitutes a short hash instead.
+    const sql =
+      'ALTER TABLE "game_data"."tournaments_external_ids_history" ADD CONSTRAINT "tournaments_external_ids_hi_Ab12CdEfGh34_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."tournaments_external_ids"("id");';
+
+    expect(
+      findHistorySelfFkConstraintName(
+        sql,
+        'game_data',
+        'tournaments_external_ids',
+      ),
+    ).toBe('tournaments_external_ids_hi_Ab12CdEfGh34_fkey');
+  });
+
+  it('throws when no matching FK statement is found', () => {
+    expect(() =>
+      findHistorySelfFkConstraintName('', 'game_data', 'coaches'),
+    ).toThrow(/Could not find self-referencing FK constraint/);
+  });
+});
+
+describe('buildDeferrableHistoryFkSql', () => {
+  it('makes the history table’s self-referencing FK deferrable using the given constraint name', () => {
+    const result = buildDeferrableHistoryFkSql(
+      'game_data',
+      'coaches_external_ids',
+      'coaches_external_ids_history_id_coaches_external_ids_id_fkey',
+    );
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."coaches_external_ids_history" ALTER CONSTRAINT ' +
+        '"coaches_external_ids_history_id_coaches_external_ids_id_fkey" ' +
+        'DEFERRABLE INITIALLY DEFERRED;',
+    );
+  });
+});
 
 describe('buildTriggerSql', () => {
   it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {

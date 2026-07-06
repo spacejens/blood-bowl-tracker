@@ -131,6 +131,55 @@ export function buildTriggerSql(schemaName: string, tableName: string): string {
   ].join('\n--> statement-breakpoint\n');
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The self-referencing FK's constraint name is normally
+ * `${tableName}_history_id_${tableName}_id_fkey`, but drizzle-kit hashes it
+ * (e.g. `..._Fg5zBqg3fABa_fkey`) whenever that name would exceed Postgres's
+ * 63-byte identifier limit — which happens for any tracked table name of
+ * 22+ characters. Reconstructing the name would silently break for exactly
+ * those tables, so this parses the name drizzle-kit actually generated out
+ * of the migration SQL instead of guessing it.
+ */
+export function findHistorySelfFkConstraintName(
+  migrationSql: string,
+  schemaName: string,
+  tableName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  const pattern = new RegExp(
+    `ALTER TABLE "${escapeRegExp(schemaName)}"\\."${escapeRegExp(historyTableName)}" ADD CONSTRAINT "([^"]+)" FOREIGN KEY \\("id"\\) REFERENCES "${escapeRegExp(schemaName)}"\\."${escapeRegExp(tableName)}"\\("id"\\)`,
+  );
+  const match = migrationSql.match(pattern);
+  if (!match) {
+    throw new Error(
+      `Could not find self-referencing FK constraint from ${historyTableName} to ${tableName} in generated migration SQL`,
+    );
+  }
+  return match[1];
+}
+
+/**
+ * drizzle-orm has no way to declare a foreign key as DEFERRABLE INITIALLY
+ * DEFERRED from the schema DSL, so every self-referencing FK from a history
+ * table back to its tracked table is generated NOT DEFERRABLE by default.
+ * That breaks the versioning() trigger: it's a BEFORE INSERT trigger that
+ * writes the new row into the history table before the row exists in the
+ * tracked table, which violates a non-deferrable FK. Making the constraint
+ * deferrable defers that check to transaction commit, after both rows exist.
+ */
+export function buildDeferrableHistoryFkSql(
+  schemaName: string,
+  tableName: string,
+  constraintName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
+}
+
 function main() {
   const before = new Set(listMigrationFolders());
 
@@ -160,19 +209,30 @@ function main() {
     const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
 
     if (newHistoryTables.length > 0) {
-      const triggerStatements = newHistoryTables
+      const generatedSql = readFileSync(migrationPath, 'utf-8');
+      const statements = newHistoryTables
         .map((qualified) => {
           const [schemaName, historyTableName] = qualified.split('.');
           const tableName = historyTableName.replace(/_history$/, '');
-          return buildTriggerSql(schemaName, tableName);
+          const constraintName = findHistorySelfFkConstraintName(
+            generatedSql,
+            schemaName,
+            tableName,
+          );
+          return [
+            buildDeferrableHistoryFkSql(schemaName, tableName, constraintName),
+            buildTriggerSql(schemaName, tableName),
+          ].join('\n--> statement-breakpoint\n');
         })
         .join('\n--> statement-breakpoint\n');
 
       appendFileSync(
         migrationPath,
-        `\n--> statement-breakpoint\n${triggerStatements}\n`,
+        `\n--> statement-breakpoint\n${statements}\n`,
       );
-      console.log(`Appended trigger DDL for: ${newHistoryTables.join(', ')}`);
+      console.log(
+        `Appended deferrable-FK and trigger DDL for: ${newHistoryTables.join(', ')}`,
+      );
     }
 
     if (conflicts.length > 0) {
