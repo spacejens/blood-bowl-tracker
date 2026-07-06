@@ -1,21 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import { TeamEraSchema, CreateTeamEraSchema } from './index';
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import * as indexModule from './index';
+
+const schemasDir = join(__dirname, 'schemas');
+const schemaFiles = readdirSync(schemasDir).filter((file) =>
+  file.endsWith('.ts'),
+);
 
 describe('index', () => {
-  it('exports TeamEraSchema', () => {
-    expect(
-      TeamEraSchema.safeParse({
-        id: 1,
-        teamId: 2,
-        eraId: 3,
-        createdAt: new Date(),
-      }).success,
-    ).toBe(true);
-  });
+  it.each(schemaFiles)(
+    're-exports everything from schemas/%s',
+    async (file) => {
+      const schemaModule = (await import(
+        `./schemas/${file.replace(/\.ts$/, '')}`
+      )) as Record<string, unknown>;
 
-  it('exports CreateTeamEraSchema', () => {
-    expect(CreateTeamEraSchema.safeParse({ teamId: 2, eraId: 3 }).success).toBe(
-      true,
-    );
-  });
+      for (const [exportName, exportValue] of Object.entries(schemaModule)) {
+        expect(indexModule).toHaveProperty(exportName);
+        expect((indexModule as Record<string, unknown>)[exportName]).toBe(
+          exportValue,
+        );
+      }
+    },
+  );
 });
