@@ -8,6 +8,7 @@ export * from './schemas/era';
 export * from './schemas/external-system';
 export * from './schemas/competition';
 export * from './schemas/team';
+export * from './schemas/team-era';
 export * from './schemas/player';
 export * from './schemas/match';
 export * from './schemas/match-event';
