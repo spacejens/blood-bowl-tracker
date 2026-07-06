@@ -29,6 +29,8 @@ ALTER TABLE "game_data"."coaches_external_ids" ADD CONSTRAINT "coaches_external_
 ALTER TABLE "game_data"."coaches_external_ids" ADD CONSTRAINT "coaches_external_ids_Fg5zBqg3fABa_fkey" FOREIGN KEY ("external_system_id") REFERENCES "game_data"."external_systems"("id");--> statement-breakpoint
 ALTER TABLE "game_data"."coaches_external_ids_history" ADD CONSTRAINT "coaches_external_ids_history_id_coaches_external_ids_id_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."coaches_external_ids"("id");
 --> statement-breakpoint
+ALTER TABLE "game_data"."coaches_external_ids_history" ALTER CONSTRAINT "coaches_external_ids_history_id_coaches_external_ids_id_fkey" DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
 DROP TRIGGER IF EXISTS coaches_external_ids_versioning ON "game_data"."coaches_external_ids";
 --> statement-breakpoint
 CREATE TRIGGER coaches_external_ids_versioning

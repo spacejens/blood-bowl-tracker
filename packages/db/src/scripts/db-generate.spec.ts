@@ -4,10 +4,25 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   buildTriggerSql,
+  buildDeferrableHistoryFkSql,
   findNewHistoryTables,
   findTypeConflicts,
   buildTypeConflictComment,
 } from './db-generate.js';
+
+describe('buildDeferrableHistoryFkSql', () => {
+  it('makes the history table’s self-referencing FK deferrable', () => {
+    const result = buildDeferrableHistoryFkSql(
+      'game_data',
+      'coaches_external_ids',
+    );
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."coaches_external_ids_history" ALTER CONSTRAINT ' +
+        '"coaches_external_ids_history_id_coaches_external_ids_id_fkey" ' +
+        'DEFERRABLE INITIALLY DEFERRED;',
+    );
+  });
+});
 
 describe('buildTriggerSql', () => {
   it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {

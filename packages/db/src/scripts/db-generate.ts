@@ -131,6 +131,24 @@ export function buildTriggerSql(schemaName: string, tableName: string): string {
   ].join('\n--> statement-breakpoint\n');
 }
 
+/**
+ * drizzle-orm has no way to declare a foreign key as DEFERRABLE INITIALLY
+ * DEFERRED from the schema DSL, so every self-referencing FK from a history
+ * table back to its tracked table is generated NOT DEFERRABLE by default.
+ * That breaks the versioning() trigger: it's a BEFORE INSERT trigger that
+ * writes the new row into the history table before the row exists in the
+ * tracked table, which violates a non-deferrable FK. Making the constraint
+ * deferrable defers that check to end-of-statement, after both rows exist.
+ */
+export function buildDeferrableHistoryFkSql(
+  schemaName: string,
+  tableName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  const constraintName = `${historyTableName}_id_${tableName}_id_fkey`;
+  return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
+}
+
 function main() {
   const before = new Set(listMigrationFolders());
 
@@ -160,19 +178,24 @@ function main() {
     const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
 
     if (newHistoryTables.length > 0) {
-      const triggerStatements = newHistoryTables
+      const statements = newHistoryTables
         .map((qualified) => {
           const [schemaName, historyTableName] = qualified.split('.');
           const tableName = historyTableName.replace(/_history$/, '');
-          return buildTriggerSql(schemaName, tableName);
+          return [
+            buildDeferrableHistoryFkSql(schemaName, tableName),
+            buildTriggerSql(schemaName, tableName),
+          ].join('\n--> statement-breakpoint\n');
         })
         .join('\n--> statement-breakpoint\n');
 
       appendFileSync(
         migrationPath,
-        `\n--> statement-breakpoint\n${triggerStatements}\n`,
+        `\n--> statement-breakpoint\n${statements}\n`,
       );
-      console.log(`Appended trigger DDL for: ${newHistoryTables.join(', ')}`);
+      console.log(
+        `Appended deferrable-FK and trigger DDL for: ${newHistoryTables.join(', ')}`,
+      );
     }
 
     if (conflicts.length > 0) {
