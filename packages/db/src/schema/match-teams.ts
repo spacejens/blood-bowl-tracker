@@ -1,11 +1,14 @@
-import { integer, primaryKey } from 'drizzle-orm/pg-core';
+import { serial, integer, unique } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { matches } from './matches';
 import { teamEras } from './team-eras';
+import { historyTrackedTable } from './history';
 
-export const matchTeams = gameData.table(
+const matchTeamsTable = historyTrackedTable(
+  gameData,
   'match_teams',
   {
+    id: serial('id').primaryKey(),
     matchId: integer('match_id')
       .references(() => matches.id)
       .notNull(),
@@ -14,9 +17,15 @@ export const matchTeams = gameData.table(
       .notNull(),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.matchId, t.teamEraId] }),
+    uniqueMatchTeam: unique('match_teams_match_id_team_era_id_unique').on(
+      t.matchId,
+      t.teamEraId,
+    ),
   }),
 );
+
+export const matchTeams = matchTeamsTable.table;
+export const matchTeamsHistory = matchTeamsTable.historyTable;
 
 export type MatchTeam = typeof matchTeams.$inferSelect;
 export type NewMatchTeam = typeof matchTeams.$inferInsert;

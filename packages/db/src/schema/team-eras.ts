@@ -1,9 +1,11 @@
-import { serial, integer, timestamp, unique } from 'drizzle-orm/pg-core';
+import { serial, integer, unique } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { teams } from './teams';
 import { eras } from './eras';
+import { historyTrackedTable } from './history';
 
-export const teamEras = gameData.table(
+const teamErasTable = historyTrackedTable(
+  gameData,
   'team_eras',
   {
     id: serial('id').primaryKey(),
@@ -13,9 +15,6 @@ export const teamEras = gameData.table(
     eraId: integer('era_id')
       .references(() => eras.id)
       .notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
   },
   (t) => ({
     uniqueTeamEra: unique('team_eras_team_id_era_id_unique').on(
@@ -24,6 +23,9 @@ export const teamEras = gameData.table(
     ),
   }),
 );
+
+export const teamEras = teamErasTable.table;
+export const teamErasHistory = teamErasTable.historyTable;
 
 export type TeamEra = typeof teamEras.$inferSelect;
 export type NewTeamEra = typeof teamEras.$inferInsert;

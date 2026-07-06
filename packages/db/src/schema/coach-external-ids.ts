@@ -1,15 +1,11 @@
-import {
-  serial,
-  varchar,
-  integer,
-  timestamp,
-  unique,
-} from 'drizzle-orm/pg-core';
+import { serial, varchar, integer, unique } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { coaches } from './coaches';
 import { externalSystems } from './external-systems';
+import { historyTrackedTable } from './history';
 
-export const coachExternalIds = gameData.table(
+const coachExternalIdsTable = historyTrackedTable(
+  gameData,
   'coach_external_ids',
   {
     id: serial('id').primaryKey(),
@@ -20,9 +16,6 @@ export const coachExternalIds = gameData.table(
       .references(() => externalSystems.id)
       .notNull(),
     externalId: varchar('external_id', { length: 255 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .defaultNow()
-      .notNull(),
   },
   (t) => ({
     uniqueExternalId: unique(
@@ -30,6 +23,9 @@ export const coachExternalIds = gameData.table(
     ).on(t.externalSystemId, t.externalId),
   }),
 );
+
+export const coachExternalIds = coachExternalIdsTable.table;
+export const coachExternalIdsHistory = coachExternalIdsTable.historyTable;
 
 export type CoachExternalId = typeof coachExternalIds.$inferSelect;
 export type NewCoachExternalId = typeof coachExternalIds.$inferInsert;

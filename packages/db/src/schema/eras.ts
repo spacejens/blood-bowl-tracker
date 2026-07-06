@@ -1,10 +1,11 @@
-import { serial, varchar, integer, date, timestamp } from 'drizzle-orm/pg-core';
+import { serial, varchar, integer, date } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { leagues } from './leagues';
 import { rulesSets } from './rules-sets';
 import { externalSystems } from './external-systems';
+import { historyTrackedTable } from './history';
 
-export const eras = gameData.table('eras', {
+const erasTable = historyTrackedTable(gameData, 'eras', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   leagueId: integer('league_id')
@@ -18,10 +19,10 @@ export const eras = gameData.table('eras', {
     .notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
 });
+
+export const eras = erasTable.table;
+export const erasHistory = erasTable.historyTable;
 
 export type Era = typeof eras.$inferSelect;
 export type NewEra = typeof eras.$inferInsert;

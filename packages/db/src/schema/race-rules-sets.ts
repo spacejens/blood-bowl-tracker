@@ -1,11 +1,14 @@
-import { integer, primaryKey } from 'drizzle-orm/pg-core';
+import { serial, integer, unique } from 'drizzle-orm/pg-core';
 import { gameData } from './pg-schema';
 import { races } from './races';
 import { rulesSets } from './rules-sets';
+import { historyTrackedTable } from './history';
 
-export const raceRulesSets = gameData.table(
+const raceRulesSetsTable = historyTrackedTable(
+  gameData,
   'race_rules_sets',
   {
+    id: serial('id').primaryKey(),
     raceId: integer('race_id')
       .references(() => races.id)
       .notNull(),
@@ -14,9 +17,14 @@ export const raceRulesSets = gameData.table(
       .notNull(),
   },
   (t) => ({
-    pk: primaryKey({ columns: [t.raceId, t.rulesSetId] }),
+    uniqueRaceRulesSet: unique(
+      'race_rules_sets_race_id_rules_set_id_unique',
+    ).on(t.raceId, t.rulesSetId),
   }),
 );
+
+export const raceRulesSets = raceRulesSetsTable.table;
+export const raceRulesSetsHistory = raceRulesSetsTable.historyTable;
 
 export type RaceRulesSet = typeof raceRulesSets.$inferSelect;
 export type NewRaceRulesSet = typeof raceRulesSets.$inferInsert;
