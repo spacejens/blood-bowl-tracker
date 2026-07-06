@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, expectTypeOf, it, beforeEach } from 'vitest';
 import { getTableConfig, integer, pgSchema } from 'drizzle-orm/pg-core';
 import { historyRegistry } from './history';
 import { externalIdsTable } from './external-ids-table';
@@ -47,6 +47,33 @@ describe('externalIdsTable', () => {
     });
 
     expect((table as unknown as { ownerId: unknown }).ownerId).toBeDefined();
+  });
+
+  it('types the owner column as number end-to-end, not just as a runtime-present property', () => {
+    const { table } = externalIdsTable(testSchema, 'owners_external_ids', {
+      key: 'ownerId',
+      columnName: 'owner_id',
+      references: () => ownerTable.id,
+    });
+
+    // Sanity-check the table is actually usable at runtime (keeps `table` a
+    // genuine value reference, not just a type-only import for eslint's sake).
+    expect((table as unknown as { ownerId: unknown }).ownerId).toBeDefined();
+
+    // Compile-time guarantee: this is what the earlier "at runtime" test above
+    // cannot verify. A regression that erases the owner column's builder type
+    // to `AnyPgColumnBuilder` (e.g. via a blanket `as Record<TKey,
+    // AnyPgColumnBuilder>` cast) widens `$inferSelect.ownerId`/`$inferInsert.ownerId`
+    // to `unknown`, which silently poisons every consumer that derives values
+    // from it (see coaches.service.ts). `expectTypeOf` fails `pnpm typecheck`
+    // if that happens again (vitest's runtime execution does not evaluate
+    // these assertions on its own).
+    expectTypeOf<
+      (typeof table)['$inferSelect']['ownerId']
+    >().toEqualTypeOf<number>();
+    expectTypeOf<
+      (typeof table)['$inferInsert']['ownerId']
+    >().toEqualTypeOf<number>();
   });
 
   it('names the unique constraint from the table name and covers system+external id', () => {

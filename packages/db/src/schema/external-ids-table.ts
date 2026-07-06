@@ -1,9 +1,5 @@
 import { serial, integer, varchar, unique } from 'drizzle-orm/pg-core';
-import type {
-  AnyPgColumn,
-  AnyPgColumnBuilder,
-  PgSchema,
-} from 'drizzle-orm/pg-core';
+import type { AnyPgColumn, PgSchema } from 'drizzle-orm/pg-core';
 import { externalSystems } from './external-systems';
 import { historyTrackedTable } from './history';
 
@@ -21,19 +17,23 @@ export function externalIdsTable<TKey extends string>(
   tableName: string,
   owner: ExternalIdsTableOwner<TKey>,
 ) {
+  const ownerColumn = integer(owner.columnName)
+    .references(owner.references)
+    .notNull();
+  const externalSystemIdColumn = integer('external_system_id')
+    .references(() => externalSystems.id)
+    .notNull();
+  const externalIdColumn = varchar('external_id', { length: 255 }).notNull();
+
   const columns = {
     id: serial('id').primaryKey(),
-    [owner.key]: integer(owner.columnName)
-      .references(owner.references)
-      .notNull(),
-    externalSystemId: integer('external_system_id')
-      .references(() => externalSystems.id)
-      .notNull(),
-    externalId: varchar('external_id', { length: 255 }).notNull(),
-  } as Record<TKey, AnyPgColumnBuilder> & {
-    id: AnyPgColumnBuilder;
-    externalSystemId: AnyPgColumnBuilder;
-    externalId: AnyPgColumnBuilder;
+    [owner.key]: ownerColumn,
+    externalSystemId: externalSystemIdColumn,
+    externalId: externalIdColumn,
+  } as Record<TKey, typeof ownerColumn> & {
+    id: ReturnType<typeof serial>;
+    externalSystemId: typeof externalSystemIdColumn;
+    externalId: typeof externalIdColumn;
   };
 
   return historyTrackedTable(schema, tableName, columns, (t) => ({
