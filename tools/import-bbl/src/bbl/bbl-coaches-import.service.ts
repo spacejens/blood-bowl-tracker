@@ -1,9 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ImportRunnerService } from '@blood-bowl-tracker/import';
-import { makeImportError, makeImportResult } from '@blood-bowl-tracker/import';
+import { Injectable } from '@nestjs/common';
+import {
+  CoachesImportService,
+  ExternalSystemsImportService,
+  makeImportError,
+  makeImportResult,
+} from '@blood-bowl-tracker/import';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import type { BblExport } from './bbl-types';
 
 const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
@@ -11,8 +13,8 @@ const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
 @Injectable()
 export class BblCoachesImportService {
   constructor(
-    private readonly importRunner: ImportRunnerService,
-    @Inject(API_CLIENT) private readonly client: ApiClient,
+    private readonly coachesImport: CoachesImportService,
+    private readonly externalSystemsImport: ExternalSystemsImportService,
   ) {}
 
   async importBblData(data: BblExport): Promise<ImportResult> {
@@ -21,46 +23,32 @@ export class BblCoachesImportService {
     let externalSystemId: number | undefined;
 
     try {
-      externalSystemId = await this.importRunner.upsertExternalSystem(
-        () =>
-          this.client.externalSystems.upsert({
-            name: BBL_EXTERNAL_SYSTEM_NAME,
-          }),
+      externalSystemId = await this.externalSystemsImport.upsertExternalSystem(
         BBL_EXTERNAL_SYSTEM_NAME,
       );
     } catch (error) {
-      // ImportRunnerService.upsertExternalSystem always rejects with an
-      // Error it constructs itself, so the non-Error fallback below is
-      // unreachable in practice; it's kept only for type safety.
       errors.push(
         makeImportError({
           item: { name: BBL_EXTERNAL_SYSTEM_NAME },
-          message:
-            error instanceof Error
-              ? error.message
-              : /* v8 ignore next */ String(error),
+          message: error instanceof Error ? error.message : String(error),
         }),
       );
     }
 
     if (externalSystemId !== undefined) {
       for (const coach of data.coaches) {
-        const success = await this.importRunner.recordUpsert(
-          () =>
-            this.client.coaches.upsert({
-              name: coach.name,
-              externalIds: [
-                { externalSystemId, externalId: `id:${coach.id}` },
-                {
-                  externalSystemId,
-                  externalId: `name:${coach.name.toLowerCase()}`,
-                },
-              ],
-            }),
-          coach,
+        const success = await this.coachesImport.upsertCoach(
+          {
+            name: coach.name,
+            externalIds: [
+              { externalSystemId, externalId: `id:${coach.id}` },
+              {
+                externalSystemId,
+                externalId: `name:${coach.name.toLowerCase()}`,
+              },
+            ],
+          },
           errors,
-          (error) =>
-            `Failed to import coach "${coach.name}": ${error instanceof Error ? error.message : String(error)}`,
         );
         if (success) {
           imported += 1;
