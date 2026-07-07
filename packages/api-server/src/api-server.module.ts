@@ -1,5 +1,5 @@
-import { Module } from '@nestjs/common';
-import { ORPCModule } from '@orpc/nest';
+import { Logger, Module } from '@nestjs/common';
+import { ORPCModule, onError } from '@orpc/nest';
 import { CoachesModule } from './coaches/coaches.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
@@ -17,9 +17,13 @@ import { CompetitionTeamsModule } from './competition-teams/competition-teams.mo
 import { MatchTeamsModule } from './match-teams/match-teams.module';
 import { ExternalSystemsModule } from './external-systems/external-systems.module';
 
+const logger = new Logger('ORPCModule');
+
 @Module({
   imports: [
-    ORPCModule.forRoot({}),
+    ORPCModule.forRoot({
+      interceptors: [onError((error) => logger.error(error))],
+    }),
     CoachesModule,
     RacesModule,
     RulesSetsModule,
