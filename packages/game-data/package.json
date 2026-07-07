@@ -1,0 +1,33 @@
+{
+  "name": "@blood-bowl-tracker/game-data",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "lint": "eslint \"src/**/*.ts\"",
+    "lint:fix": "eslint \"src/**/*.ts\" --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "prettier --check \"src/**/*.ts\"",
+    "format:fix": "prettier --write \"src/**/*.ts\"",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
+  },
+  "dependencies": {
+    "@blood-bowl-tracker/db": "workspace:*",
+    "@nestjs/common": "^11.1.27",
+    "drizzle-orm": "rc",
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.1.27",
+    "@types/node": "^26.1.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "typescript": "^6.0.3",
+    "vite": "^8.1.3",
+    "vitest": "^4.1.10"
+  }
+}
