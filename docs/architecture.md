@@ -7,7 +7,7 @@ Overview of the technical stack and package structure for this project.
 - **Runtime:** Node.js with TypeScript across all packages and apps
 - **Application framework:** NestJS 11 on Express
 - **Database:** PostgreSQL, accessed via Drizzle ORM (v1.0, currently pre-release)
-- **API contract:** [ts-rest](https://ts-rest.com/) — a typed route contract shared between server and client, enforced at compile time
+- **API contract:** [oRPC](https://orpc.dev/) — a typed contract shared between server and client, dispatched over oRPC's native RPC transport (not REST/OpenAPI), enforced at compile time
 - **Testing:** Vitest
 - **Package manager:** pnpm 11 with workspaces
 - **Deployment:** Docker, with a root `compose.yaml` for local development
@@ -16,44 +16,55 @@ Overview of the technical stack and package structure for this project.
 
 ```
 apps/
-  discord-bot/        — NestJS Discord bot; currently the only deployed app
+  discord-bot/        — NestJS Discord bot; currently the only deployed app;
+                        hosts packages/api-server's /rpc endpoint in-process
 
 packages/
   db/                 — Drizzle schema + migrations; the only package that
                         imports directly from the database driver
-  api-contract/       — ts-rest contract defining all endpoints with request
-                        and response types; imported by both api-server and api-client
-  api-server/         — NestJS services and modules implementing the api-contract;
-                        uses packages/db and packages/import; consumed directly
-                        by discord-bot and (in future) a standalone API app
-  api-client/         — NestJS module wrapping a ts-rest typed client for calling
-                        a deployed api-server over HTTP; used by import tools
-  import/             — NestJS module with pure import and ingestion logic; no
-                        knowledge of HTTP or the database; called by api-server
-                        or directly from discord-bot
+  game-data/          — DB-backed business logic for core game entities
+                        (coaches, external systems); depends on packages/db
+                        only, no network dependency; usable directly by any app
+  api-contract/       — oRPC contract defining coaches.upsert and
+                        externalSystems.upsert; imported by both api-server
+                        and api-client
+  api-server/         — Thin NestJS transport layer: mounts a single oRPC
+                        RPCHandler at /rpc, dispatching into packages/game-data;
+                        hosted in-process by apps/discord-bot (there is no
+                        separate deployed api-server process)
+  api-client/         — NestJS module wrapping an oRPC RPCLink client for
+                        calling a deployed api-server's /rpc endpoint; owns
+                        its own @nestjs/config-backed base URL configuration
+  import/             — NestJS module with import orchestration logic:
+                        generic upsert-bookkeeping (ImportRunnerService) plus
+                        entity-specific services (CoachesImportService,
+                        ExternalSystemsImportService) that call api-client
 
 tools/
   import-<source>/    — one NestJS CLI application per upstream data source; uses
-                        api-client to POST extracted data to a running api-server
-                        instance
+                        packages/import to call a deployed api-server instance
 ```
 
 ## Data flow
 
-- `apps/discord-bot` imports `packages/api-server` and `packages/import` directly — no HTTP hop
-- `tools/import-*` import `packages/api-client` and call a deployed `api-server` over HTTP
-- `packages/api-server` imports both `packages/db` (for persistence) and `packages/import` (for ingestion logic)
-- `packages/import` has no dependencies on db or api layers — it is pure transformation and validation logic
+- `apps/discord-bot` imports `packages/api-server` (to host the `/rpc` endpoint) and can import `packages/game-data` directly for any in-process feature that needs coach/external-system data, without a network hop
+- `tools/import-*` import `packages/import`, which internally calls `packages/api-client` to reach a deployed `api-server` over the network
+- `packages/api-server` imports `packages/game-data` (for persistence) and `packages/api-contract` (for the RPC contract it implements) — it has no dependency on `packages/db` directly
+- `packages/game-data` has no dependency on any network-facing package — it is pure business logic over `packages/db`
 
 ## Key decisions
 
 **Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place.
 
-**ts-rest over plain shared types.** A plain `api-types` package would allow server and client to drift silently. ts-rest makes both sides implement the same contract, with TypeScript errors if they diverge.
+**oRPC over ts-rest.** ts-rest's development had stalled — its only zod 4-compatible release was an unpromoted release candidate over a year old — which was blocking a needed zod upgrade. oRPC is actively maintained and supports zod 4.
 
-**api-server as a package, not an app.** Initially the Discord bot is the only deployment target, so the backend logic lives in a package it consumes directly. When a standalone REST API is needed, a thin `apps/api` wrapper around `packages/api-server` can be added without restructuring.
+**RPC transport over REST/OpenAPI.** oRPC supports both; REST/OpenAPI modeling (HTTP verbs, per-route status codes, path design) was evaluated first and found to add real friction for zero benefit, since every consumer of this API is TypeScript within this monorepo and there's no plan for external or non-TypeScript consumers. Plain RPC dispatch removes that overhead entirely.
 
-**One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained.
+**game-data as its own package, separate from api-server.** Business logic needs to be usable by any app directly (in-process, no network hop) without pulling in the network-transport layer. Splitting them also made it easy to delete the 14 API resources that had zero callers anywhere (HTTP or direct injection) without touching business logic for the 2 resources that are actually used.
+
+**api-server as a package, not an app.** The Discord bot is the only deployment target, so the RPC dispatch layer lives in a package it hosts in-process via NestJS module composition, rather than a separately deployed service.
+
+**One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained, sharing common upsert/client-wrapping logic via `packages/import`.
 
 ## Database
 

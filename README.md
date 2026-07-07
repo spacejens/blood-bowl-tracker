@@ -21,12 +21,13 @@ This is a pnpm monorepo with three top-level workspace folders:
 
 ### Packages
 
-- **`packages/api-client`** — NestJS module wrapping a ts-rest typed client for calling the api-server over HTTP
-- **`packages/api-contract`** — ts-rest route contract shared between api-server and api-client
-- **`packages/api-server`** — NestJS services and modules implementing the api-contract; consumed directly by apps
+- **`packages/api-client`** — NestJS module wrapping an oRPC RPC client for calling the api-server over the network
+- **`packages/api-contract`** — oRPC contract (coaches.upsert, externalSystems.upsert) shared between api-server and api-client
+- **`packages/api-server`** — Thin NestJS transport layer dispatching RPC calls into packages/game-data; hosted in-process by apps/discord-bot
 - **`packages/db`** — Drizzle ORM schema and migrations for PostgreSQL
 - **`packages/discord-client`** — NestJS module wrapping discord.js for connecting to Discord and posting messages
-- **`packages/import`** — NestJS module with shared import/ingestion result types and reusable upsert-handling logic used across import tools
+- **`packages/game-data`** — Server-side business logic and DB access for core game entities (coaches, external systems); used directly by api-server and available to other apps
+- **`packages/import`** — NestJS module with shared import/ingestion result types, upsert-handling bookkeeping, and entity-specific import services (calling api-client) used across import tools
 
 ### Tools
 
