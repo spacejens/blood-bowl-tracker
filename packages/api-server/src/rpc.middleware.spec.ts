@@ -64,4 +64,21 @@ describe('RpcMiddleware', () => {
     expect(handleMock).not.toHaveBeenCalled();
     expect(next).toHaveBeenCalledTimes(1);
   });
+
+  it('falls back to req.originalUrl for the /rpc prefix check, since Express rewrites req.url to "/" for path-mounted wildcard middleware', async () => {
+    handleMock.mockResolvedValue({ matched: true });
+    const req = {
+      url: '/',
+      originalUrl: '/rpc/coaches/upsert',
+    } as IncomingMessage & { originalUrl: string };
+    const res = {} as ServerResponse;
+
+    await middleware.use(req, res, next);
+
+    expect(handleMock).toHaveBeenCalledWith(req, res, {
+      prefix: '/rpc',
+      context: {},
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
 });
