@@ -14,14 +14,18 @@ function makeMockClient() {
   return {
     externalSystems: {
       upsert: vi.fn().mockResolvedValue({
-        status: 201,
-        body: { id: 1, name: 'BBL', createdAt: new Date('2026-01-01') },
+        id: 1,
+        name: 'BBL',
+        createdAt: new Date('2026-01-01'),
+        created: true,
       }),
     },
     coaches: {
       upsert: vi.fn().mockResolvedValue({
-        status: 201,
-        body: { id: 10, name: 'Gruk', createdAt: new Date('2026-01-01') },
+        id: 10,
+        name: 'Gruk',
+        createdAt: new Date('2026-01-01'),
+        created: true,
       }),
     },
     teams: { create: vi.fn() },
@@ -43,7 +47,7 @@ describe('BblCoachesImportService', () => {
     await makeService(client).importBblData(bblData);
     expect(client.externalSystems.upsert).toHaveBeenCalledTimes(1);
     expect(client.externalSystems.upsert).toHaveBeenCalledWith({
-      body: { name: 'BBL' },
+      name: 'BBL',
     });
   });
 
@@ -52,22 +56,17 @@ describe('BblCoachesImportService', () => {
     await makeService(client).importBblData(bblData);
     expect(client.coaches.upsert).toHaveBeenCalledTimes(1);
     expect(client.coaches.upsert).toHaveBeenCalledWith({
-      body: {
-        name: 'Gruk',
-        externalIds: [
-          { externalSystemId: 1, externalId: 'id:c1' },
-          { externalSystemId: 1, externalId: 'name:gruk' },
-        ],
-      },
+      name: 'Gruk',
+      externalIds: [
+        { externalSystemId: 1, externalId: 'id:c1' },
+        { externalSystemId: 1, externalId: 'name:gruk' },
+      ],
     });
   });
 
   it('reports a coach as an error when the upsert call fails', async () => {
     const client = makeMockClient();
-    client.coaches.upsert.mockResolvedValue({
-      status: 409,
-      body: { message: 'conflict' },
-    });
+    client.coaches.upsert.mockRejectedValue(new Error('conflict'));
 
     const result = await makeService(client).importBblData(bblData);
 
@@ -75,12 +74,23 @@ describe('BblCoachesImportService', () => {
     expect(result.errors.some((e) => e.message.includes('Gruk'))).toBe(true);
   });
 
+  it('reports a coach as an error using String() when a non-Error is thrown', async () => {
+    const client = makeMockClient();
+    client.coaches.upsert.mockRejectedValue('conflict');
+
+    const result = await makeService(client).importBblData(bblData);
+
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('conflict'))).toBe(
+      true,
+    );
+  });
+
   it('reports one error and skips coach upserts when the external system upsert fails', async () => {
     const client = makeMockClient();
-    client.externalSystems.upsert.mockResolvedValue({
-      status: 500,
-      body: { message: 'internal error' },
-    });
+    client.externalSystems.upsert.mockRejectedValue(
+      new Error('internal error'),
+    );
 
     const result = await makeService(client).importBblData(bblData);
 

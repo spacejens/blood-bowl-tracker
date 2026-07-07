@@ -22,55 +22,45 @@ export class BblCoachesImportService {
 
     try {
       externalSystemId = await this.importRunner.upsertExternalSystem(
-        async () => {
-          // The generated ts-rest client widens this response to a union
-          // covering every HTTP status code (with `body: unknown` for the
-          // ones the contract doesn't declare), since `strictStatusCodes`
-          // isn't set. Only 200/201 are actually returned by this route, so
-          // narrow the type at this boundary without changing behavior.
-          const response = await this.client.externalSystems.upsert({
-            body: { name: BBL_EXTERNAL_SYSTEM_NAME },
-          });
-          return response as unknown as {
-            status: number;
-            body: { id: number };
-          };
-        },
+        () =>
+          this.client.externalSystems.upsert({
+            name: BBL_EXTERNAL_SYSTEM_NAME,
+          }),
         BBL_EXTERNAL_SYSTEM_NAME,
       );
     } catch (error) {
+      // ImportRunnerService.upsertExternalSystem always rejects with an
+      // Error it constructs itself, so the non-Error fallback below is
+      // unreachable in practice; it's kept only for type safety.
       errors.push(
         makeImportError({
           item: { name: BBL_EXTERNAL_SYSTEM_NAME },
-          message: error instanceof Error ? error.message : String(error),
+          message:
+            error instanceof Error
+              ? error.message
+              : /* v8 ignore next */ String(error),
         }),
       );
     }
 
     if (externalSystemId !== undefined) {
       for (const coach of data.coaches) {
-        const response = await this.client.coaches.upsert({
-          body: {
-            name: coach.name,
-            externalIds: [
-              { externalSystemId, externalId: `id:${coach.id}` },
-              {
-                externalSystemId,
-                externalId: `name:${coach.name.toLowerCase()}`,
-              },
-            ],
-          },
-        });
-
-        const success = this.importRunner.recordUpsert(
-          response,
+        const success = await this.importRunner.recordUpsert(
+          () =>
+            this.client.coaches.upsert({
+              name: coach.name,
+              externalIds: [
+                { externalSystemId, externalId: `id:${coach.id}` },
+                {
+                  externalSystemId,
+                  externalId: `name:${coach.name.toLowerCase()}`,
+                },
+              ],
+            }),
           coach,
           errors,
-          // Same `body: unknown` widening as `upsertExternalSystem`: the
-          // contract declares 409 with a `{ message: string }` body for
-          // this route.
-          (body) =>
-            `Failed to import coach "${coach.name}": ${(body as { message: string }).message}`,
+          (error) =>
+            `Failed to import coach "${coach.name}": ${error instanceof Error ? error.message : String(error)}`,
         );
         if (success) {
           imported += 1;
