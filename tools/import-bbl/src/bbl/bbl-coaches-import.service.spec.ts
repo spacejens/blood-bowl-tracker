@@ -1,5 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ImportRunnerService } from '@blood-bowl-tracker/import';
+import type {
+  CoachesImportService,
+  ExternalSystemsImportService,
+} from '@blood-bowl-tracker/import';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
 import type { BblExport } from './bbl-types';
 
@@ -10,95 +13,96 @@ const bblData: BblExport = {
   coaches: [{ id: 'c1', name: 'Gruk' }],
 };
 
-function makeMockClient() {
-  return {
-    externalSystems: {
-      upsert: vi.fn().mockResolvedValue({
-        status: 201,
-        body: { id: 1, name: 'BBL', createdAt: new Date('2026-01-01') },
-      }),
-    },
-    coaches: {
-      upsert: vi.fn().mockResolvedValue({
-        status: 201,
-        body: { id: 10, name: 'Gruk', createdAt: new Date('2026-01-01') },
-      }),
-    },
-    teams: { create: vi.fn() },
-    matches: { create: vi.fn() },
-    matchEvents: { create: vi.fn() },
-  };
-}
-
-function makeService(client: ReturnType<typeof makeMockClient>) {
+function makeService(
+  upsertExternalSystem: ReturnType<typeof vi.fn>,
+  upsertCoach: ReturnType<typeof vi.fn>,
+) {
   return new BblCoachesImportService(
-    new ImportRunnerService(),
-    client as never,
+    { upsertCoach } as unknown as CoachesImportService,
+    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
   );
 }
 
 describe('BblCoachesImportService', () => {
   it('upserts the BBL external system once', async () => {
-    const client = makeMockClient();
-    await makeService(client).importBblData(bblData);
-    expect(client.externalSystems.upsert).toHaveBeenCalledTimes(1);
-    expect(client.externalSystems.upsert).toHaveBeenCalledWith({
-      body: { name: 'BBL' },
-    });
+    const upsertExternalSystem = vi.fn().mockResolvedValue(1);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const service = makeService(upsertExternalSystem, upsertCoach);
+
+    await service.importBblData(bblData);
+
+    expect(upsertExternalSystem).toHaveBeenCalledTimes(1);
+    expect(upsertExternalSystem).toHaveBeenCalledWith('BBL');
   });
 
   it('upserts each coach with id: and name: external IDs', async () => {
-    const client = makeMockClient();
-    await makeService(client).importBblData(bblData);
-    expect(client.coaches.upsert).toHaveBeenCalledTimes(1);
-    expect(client.coaches.upsert).toHaveBeenCalledWith({
-      body: {
+    const upsertExternalSystem = vi.fn().mockResolvedValue(1);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const service = makeService(upsertExternalSystem, upsertCoach);
+
+    await service.importBblData(bblData);
+
+    expect(upsertCoach).toHaveBeenCalledTimes(1);
+    expect(upsertCoach).toHaveBeenCalledWith(
+      {
         name: 'Gruk',
         externalIds: [
           { externalSystemId: 1, externalId: 'id:c1' },
           { externalSystemId: 1, externalId: 'name:gruk' },
         ],
       },
-    });
+      expect.any(Array),
+    );
   });
 
   it('reports a coach as an error when the upsert call fails', async () => {
-    const client = makeMockClient();
-    client.coaches.upsert.mockResolvedValue({
-      status: 409,
-      body: { message: 'conflict' },
-    });
+    const upsertExternalSystem = vi.fn().mockResolvedValue(1);
+    const upsertCoach = vi
+      .fn()
+      .mockImplementation(
+        (_data: unknown, errors: { item: unknown; message: string }[]) => {
+          errors.push({
+            item: {},
+            message: 'Failed to import coach "Gruk": conflict',
+          });
+          return Promise.resolve(false);
+        },
+      );
+    const service = makeService(upsertExternalSystem, upsertCoach);
 
-    const result = await makeService(client).importBblData(bblData);
+    const result = await service.importBblData(bblData);
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('Gruk'))).toBe(true);
   });
 
   it('reports one error and skips coach upserts when the external system upsert fails', async () => {
-    const client = makeMockClient();
-    client.externalSystems.upsert.mockResolvedValue({
-      status: 500,
-      body: { message: 'internal error' },
-    });
+    const upsertExternalSystem = vi
+      .fn()
+      .mockRejectedValue(
+        new Error('Failed to upsert external system "BBL": internal error'),
+      );
+    const upsertCoach = vi.fn();
+    const service = makeService(upsertExternalSystem, upsertCoach);
 
-    const result = await makeService(client).importBblData(bblData);
+    const result = await service.importBblData(bblData);
 
     expect(result.success).toBe(false);
     expect(
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
-    expect(client.coaches.upsert).not.toHaveBeenCalled();
+    expect(upsertCoach).not.toHaveBeenCalled();
   });
 
   it('reports an error for each team pending race ID resolution', async () => {
-    const client = makeMockClient();
+    const upsertExternalSystem = vi.fn().mockResolvedValue(1);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const service = makeService(upsertExternalSystem, upsertCoach);
 
-    const result = await makeService(client).importBblData(bblData);
+    const result = await service.importBblData(bblData);
 
     expect(result.errors.some((e) => e.message.includes('Green Mashers'))).toBe(
       true,
     );
-    expect(client.teams.create).not.toHaveBeenCalled();
   });
 });

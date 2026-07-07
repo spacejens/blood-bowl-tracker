@@ -26,6 +26,7 @@ export default tseslint.config(
             'packages/discord-client/test/*.ts',
             'packages/api-client/test/*.ts',
             'packages/import/test/*.ts',
+            'packages/game-data/test/*.ts',
             'tools/import-bbl/test/*.ts',
           ],
         },

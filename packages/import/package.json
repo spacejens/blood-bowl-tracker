@@ -16,10 +16,12 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
+    "@blood-bowl-tracker/api-client": "workspace:*",
     "@nestjs/common": "^11.1.27",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.27",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",

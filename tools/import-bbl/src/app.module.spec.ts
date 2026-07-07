@@ -6,7 +6,7 @@ import { BblCoachesImportService } from './bbl/bbl-coaches-import.service';
 describe('AppModule', () => {
   it('registers BblCoachesImportService with its dependencies wired', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [AppModule.register('http://localhost:3000')],
+      imports: [AppModule.register()],
     }).compile();
 
     expect(moduleRef.get(BblCoachesImportService)).toBeInstanceOf(

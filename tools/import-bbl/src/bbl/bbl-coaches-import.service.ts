@@ -1,9 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { ImportRunnerService } from '@blood-bowl-tracker/import';
-import { makeImportError, makeImportResult } from '@blood-bowl-tracker/import';
+import { Injectable } from '@nestjs/common';
+import {
+  CoachesImportService,
+  ExternalSystemsImportService,
+  makeImportError,
+  makeImportResult,
+} from '@blood-bowl-tracker/import';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import type { BblExport } from './bbl-types';
 
 const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
@@ -11,8 +13,8 @@ const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
 @Injectable()
 export class BblCoachesImportService {
   constructor(
-    private readonly importRunner: ImportRunnerService,
-    @Inject(API_CLIENT) private readonly client: ApiClient,
+    private readonly coachesImport: CoachesImportService,
+    private readonly externalSystemsImport: ExternalSystemsImportService,
   ) {}
 
   async importBblData(data: BblExport): Promise<ImportResult> {
@@ -21,21 +23,7 @@ export class BblCoachesImportService {
     let externalSystemId: number | undefined;
 
     try {
-      externalSystemId = await this.importRunner.upsertExternalSystem(
-        async () => {
-          // The generated ts-rest client widens this response to a union
-          // covering every HTTP status code (with `body: unknown` for the
-          // ones the contract doesn't declare), since `strictStatusCodes`
-          // isn't set. Only 200/201 are actually returned by this route, so
-          // narrow the type at this boundary without changing behavior.
-          const response = await this.client.externalSystems.upsert({
-            body: { name: BBL_EXTERNAL_SYSTEM_NAME },
-          });
-          return response as unknown as {
-            status: number;
-            body: { id: number };
-          };
-        },
+      externalSystemId = await this.externalSystemsImport.upsertExternalSystem(
         BBL_EXTERNAL_SYSTEM_NAME,
       );
     } catch (error) {
@@ -49,8 +37,8 @@ export class BblCoachesImportService {
 
     if (externalSystemId !== undefined) {
       for (const coach of data.coaches) {
-        const response = await this.client.coaches.upsert({
-          body: {
+        const success = await this.coachesImport.upsertCoach(
+          {
             name: coach.name,
             externalIds: [
               { externalSystemId, externalId: `id:${coach.id}` },
@@ -60,17 +48,7 @@ export class BblCoachesImportService {
               },
             ],
           },
-        });
-
-        const success = this.importRunner.recordUpsert(
-          response,
-          coach,
           errors,
-          // Same `body: unknown` widening as `upsertExternalSystem`: the
-          // contract declares 409 with a `{ message: string }` body for
-          // this route.
-          (body) =>
-            `Failed to import coach "${coach.name}": ${(body as { message: string }).message}`,
         );
         if (success) {
           imported += 1;

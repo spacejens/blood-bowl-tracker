@@ -23,9 +23,9 @@ candidate identity, the server finds a matching existing record (if any),
 updates it, and attaches any new identifying information from the request; if
 no match is found, it creates a new record instead.
 
-An upsert endpoint's response status distinguishes the two outcomes: `201`
-when a new record was created, `200` when an existing one was found and
-updated.
+An upsert procedure's response includes a `created` boolean field
+distinguishing the two outcomes: `true` when a new record was created,
+`false` when an existing one was found and updated.
 
 ## External IDs
 
@@ -47,7 +47,7 @@ up any existing record matching any of them:
   supplied external IDs not already stored for it are attached.
 - **More than one existing record matched** (different supplied external IDs
   resolve to different existing records) — the request is rejected with a
-  `409` response and nothing is changed. This surfaces ambiguous or
+  `CONFLICT` error and nothing is changed. This surfaces ambiguous or
   conflicting source data for manual resolution rather than silently
   guessing which record is correct.
 

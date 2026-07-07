@@ -1,10 +1,18 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
+import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { createApiClient } from './client';
+import { ApiClientConfigService } from './api-client-config.service';
 
 export const API_CLIENT = Symbol('API_CLIENT');
+const API_CLIENT_BASE_URL = Symbol('API_CLIENT_BASE_URL');
 
 export interface ApiClientModuleOptions {
   baseUrl: string;
+}
+
+export interface ApiClientModuleAsyncOptions {
+  useFactory: FactoryProvider<string>['useFactory'];
+  inject?: FactoryProvider<string>['inject'];
 }
 
 @Global()
@@ -17,6 +25,27 @@ export class ApiClientModule {
         {
           provide: API_CLIENT,
           useFactory: () => createApiClient(options.baseUrl),
+        },
+      ],
+      exports: [API_CLIENT],
+    };
+  }
+
+  static forRootAsync(options: ApiClientModuleAsyncOptions): DynamicModule {
+    return {
+      module: ApiClientModule,
+      imports: [ConfigModule],
+      providers: [
+        ApiClientConfigService,
+        {
+          provide: API_CLIENT_BASE_URL,
+          useFactory: options.useFactory,
+          inject: options.inject ?? [],
+        },
+        {
+          provide: API_CLIENT,
+          useFactory: (baseUrl: string) => createApiClient(baseUrl),
+          inject: [API_CLIENT_BASE_URL],
         },
       ],
       exports: [API_CLIENT],

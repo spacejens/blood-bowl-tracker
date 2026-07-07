@@ -17,8 +17,8 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
   },
   "dependencies": {
-    "@ts-rest/core": "^3.52.1",
-    "zod": "^3.25.76"
+    "@orpc/contract": "^1.14.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.0",
