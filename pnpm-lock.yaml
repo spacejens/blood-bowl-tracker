@@ -111,13 +111,13 @@ importers:
       '@nestjs/common':
         specifier: ^11.1.27
         version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: ^4.0.4
+        version: 4.0.4(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
       '@orpc/client':
         specifier: ^1.14.7
         version: 1.14.7
       '@orpc/contract':
-        specifier: ^1.14.7
-        version: 1.14.7
-      '@orpc/openapi-client':
         specifier: ^1.14.7
         version: 1.14.7
       reflect-metadata:
@@ -932,6 +932,12 @@ packages:
       class-validator:
         optional: true
 
+  '@nestjs/config@4.0.4':
+    resolution: {integrity: sha512-CJPjNitr0bAufSEnRe2N+JbnVmMmDoo6hvKCPzXgZoGwJSmp/dZPk9f/RMbuD/+Q1ZJPjwsRpq0vxna++Knwow==}
+    peerDependencies:
+      '@nestjs/common': ^10.0.0 || ^11.0.0
+      rxjs: ^7.1.0
+
   '@nestjs/core@11.1.27':
     resolution: {integrity: sha512-K6DX7hcqmZdeXkv7tsPakKBRCgqL19a4mtbX4FluY0hWtFdtPKp6lbe+lb8gWPfvLdbOWr/CPScn7BSjBX+Ecg==}
     engines: {node: '>= 20'}
@@ -986,9 +992,6 @@ packages:
 
   '@orpc/interop@1.14.7':
     resolution: {integrity: sha512-2evzgNl6CMh5MZ3xHLHYX01siGZCQu9E6mcuPTSM3G7wQKG9ozvtGjAiH6dBWKfNUQRAavjJpQVoEW9LJ5VICA==}
-
-  '@orpc/openapi-client@1.14.7':
-    resolution: {integrity: sha512-TRNFa1q/4OkhygvRqzlH7AVfSR52xbBNSWVIvEeJoYX4lZvFEXqlSvyiejQpoR5gjhqDvFMe3OAUMCpKvYP0Kw==}
 
   '@orpc/server@1.14.7':
     resolution: {integrity: sha512-bN38rwVELPx/AEHnOIKlJz0Vo2OnuzGpCMdMtspqKoiposkpB4jqx2CMFZCMzj4ew43m+sUSUmbQZ001Q4fgTA==}
@@ -2239,6 +2242,18 @@ packages:
   discord.js@14.26.4:
     resolution: {integrity: sha512-4oBp8tc6Kf8IDBwAHhbsMaAqx1b5fob9SNasZT7V6yyyUydoO5i5fGuX7TmvRtR+q/WgKRnRViRoAWnG7fNyvA==}
     engines: {node: '>=18'}
+
+  dotenv-expand@12.0.3:
+    resolution: {integrity: sha512-uc47g4b+4k/M/SeaW1y4OApx+mtLWl92l5LMPP0GNXctZqELk+YGgOPIIC5elYmUH4OuoK3JLhuRUYegeySiFA==}
+    engines: {node: '>=12'}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
+
+  dotenv@17.4.1:
+    resolution: {integrity: sha512-k8DaKGP6r1G30Lx8V4+pCsLzKr8vLmV2paqEj1Y55GdAgJuIqpRp5FfajGF8KtwMxCz9qJc6wUIJnm053d/WCw==}
+    engines: {node: '>=12'}
 
   drizzle-kit@1.0.0-rc.4:
     resolution: {integrity: sha512-KZCpjRyu+oYHLj/UJogfFlOkWhHVkaEI2EOT1U3NDVXUzLoTyPjqwFxwOrlQxsY6jzRyxcz4EacqboGfhEeYrA==}
@@ -4444,6 +4459,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@nestjs/config@4.0.4(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)':
+    dependencies:
+      '@nestjs/common': 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      dotenv: 17.4.1
+      dotenv-expand: 12.0.3
+      lodash: 4.18.1
+      rxjs: 7.8.2
+
   '@nestjs/core@11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.27)(reflect-metadata@0.2.2)(rxjs@7.8.2)':
     dependencies:
       '@nestjs/common': 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -4522,15 +4545,6 @@ snapshots:
       - '@opentelemetry/api'
 
   '@orpc/interop@1.14.7': {}
-
-  '@orpc/openapi-client@1.14.7':
-    dependencies:
-      '@orpc/client': 1.14.7
-      '@orpc/contract': 1.14.7
-      '@orpc/shared': 1.14.7
-      '@orpc/standard-server': 1.14.7
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
 
   '@orpc/server@1.14.7(ws@8.21.0)':
     dependencies:
@@ -5648,6 +5662,14 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  dotenv-expand@12.0.3:
+    dependencies:
+      dotenv: 16.6.1
+
+  dotenv@16.6.1: {}
+
+  dotenv@17.4.1: {}
 
   drizzle-kit@1.0.0-rc.4:
     dependencies:

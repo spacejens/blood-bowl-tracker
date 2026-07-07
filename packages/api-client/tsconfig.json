@@ -5,6 +5,7 @@
     "moduleResolution": "nodenext",
     "target": "ES2023",
     "declaration": true,
+    "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,

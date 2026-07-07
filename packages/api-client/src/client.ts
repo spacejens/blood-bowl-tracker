@@ -1,13 +1,12 @@
 import { createORPCClient } from '@orpc/client';
-import { OpenAPILink } from '@orpc/openapi-client/fetch';
-import type { JsonifiedClient } from '@orpc/openapi-client';
+import { RPCLink } from '@orpc/client/fetch';
 import type { ContractRouterClient } from '@orpc/contract';
 import { contract } from '@blood-bowl-tracker/api-contract';
 
 export function createApiClient(
   baseUrl: string,
-): JsonifiedClient<ContractRouterClient<typeof contract>> {
-  const link = new OpenAPILink(contract, { url: baseUrl });
+): ContractRouterClient<typeof contract> {
+  const link = new RPCLink({ url: `${baseUrl}/rpc` });
   return createORPCClient(link);
 }
 

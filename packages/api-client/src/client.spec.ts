@@ -3,20 +3,23 @@ import { Test } from '@nestjs/testing';
 import { createApiClient } from './client';
 import type { ApiClient } from './client';
 import { ApiClientModule, API_CLIENT } from './api-client.module';
+import { ApiClientConfigService } from './api-client-config.service';
 
 describe('createApiClient', () => {
-  it('creates a client with teams, matches, and matchEvents', () => {
+  it('creates a client with coaches and externalSystems', () => {
     const client = createApiClient('http://localhost:3000');
-    expect(client.teams).toBeDefined();
-    expect(client.matches).toBeDefined();
-    expect(client.matchEvents).toBeDefined();
+    expect(client.coaches).toBeDefined();
+    expect(client.externalSystems).toBeDefined();
   });
 
-  it('teams client has list, getById, and create methods', () => {
+  it('coaches client has an upsert method', () => {
     const client = createApiClient('http://localhost:3000');
-    expect(typeof client.teams.list).toBe('function');
-    expect(typeof client.teams.getById).toBe('function');
-    expect(typeof client.teams.create).toBe('function');
+    expect(typeof client.coaches.upsert).toBe('function');
+  });
+
+  it('externalSystems client has an upsert method', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(typeof client.externalSystems.upsert).toBe('function');
   });
 });
 
@@ -27,6 +30,21 @@ describe('ApiClientModule', () => {
     }).compile();
 
     const client = moduleRef.get<ApiClient>(API_CLIENT);
-    expect(client.teams).toBeDefined();
+    expect(client.coaches).toBeDefined();
+  });
+
+  it('provides an API client via forRootAsync using ApiClientConfigService', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [
+        ApiClientModule.forRootAsync({
+          useFactory: (config: ApiClientConfigService) =>
+            config.getApiBaseUrl(),
+          inject: [ApiClientConfigService],
+        }),
+      ],
+    }).compile();
+
+    const client = moduleRef.get<ApiClient>(API_CLIENT);
+    expect(client.coaches).toBeDefined();
   });
 });
