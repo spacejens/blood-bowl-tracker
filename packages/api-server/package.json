@@ -18,18 +18,15 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/api-contract": "workspace:*",
-    "@blood-bowl-tracker/db": "workspace:*",
+    "@blood-bowl-tracker/game-data": "workspace:*",
     "@nestjs/common": "^11.1.27",
     "@nestjs/core": "^11.1.27",
-    "@orpc/nest": "^1.14.7",
-    "drizzle-orm": "rc",
+    "@orpc/server": "^1.14.7",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "zod": "^4.4.3"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.27",
-    "@orpc/server": "^1.14.7",
     "@swc/core": "^1.15.43",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
