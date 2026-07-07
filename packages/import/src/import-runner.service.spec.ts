@@ -4,43 +4,42 @@ import type { ImportError } from './types';
 
 describe('ImportRunnerService', () => {
   describe('upsertExternalSystem', () => {
-    it('returns the external system id on a 200 response', async () => {
+    it('returns the external system id on success', async () => {
       const service = new ImportRunnerService();
       const id = await service.upsertExternalSystem(
-        () => Promise.resolve({ status: 200, body: { id: 7 } }),
+        () => Promise.resolve({ id: 7 }),
         'BBL',
       );
       expect(id).toBe(7);
     });
 
-    it('returns the external system id on a 201 response', async () => {
-      const service = new ImportRunnerService();
-      const id = await service.upsertExternalSystem(
-        () => Promise.resolve({ status: 201, body: { id: 3 } }),
-        'BBL',
-      );
-      expect(id).toBe(3);
-    });
-
-    it('throws a descriptive error on an unexpected status', async () => {
+    it('throws a descriptive error when the upsert call fails', async () => {
       const service = new ImportRunnerService();
       await expect(
         service.upsertExternalSystem(
-          () => Promise.resolve({ status: 500, body: { id: 0 } }),
+          () => Promise.reject(new Error('internal error')),
           'BBL',
         ),
       ).rejects.toThrow(
-        'Failed to upsert external system "BBL": unexpected status 500',
+        'Failed to upsert external system "BBL": internal error',
       );
+    });
+
+    it('throws a descriptive error when the upsert call rejects with a non-Error value', async () => {
+      const service = new ImportRunnerService();
+      await expect(
+        // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- verifying non-Error rejection handling
+        service.upsertExternalSystem(() => Promise.reject('boom'), 'BBL'),
+      ).rejects.toThrow('Failed to upsert external system "BBL": boom');
     });
   });
 
   describe('recordUpsert', () => {
-    it('returns true and records no error on a 200 response', () => {
+    it('returns true and records no error on success', async () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
-      const result = service.recordUpsert(
-        { status: 200, body: {} },
+      const result = await service.recordUpsert(
+        () => Promise.resolve({ id: 1 }),
         { id: 1 },
         errors,
         () => 'unused',
@@ -49,28 +48,15 @@ describe('ImportRunnerService', () => {
       expect(errors).toHaveLength(0);
     });
 
-    it('returns true and records no error on a 201 response', () => {
-      const service = new ImportRunnerService();
-      const errors: ImportError[] = [];
-      const result = service.recordUpsert(
-        { status: 201, body: {} },
-        { id: 1 },
-        errors,
-        () => 'unused',
-      );
-      expect(result).toBe(true);
-      expect(errors).toHaveLength(0);
-    });
-
-    it('returns false and records an error built from the response body on failure', () => {
+    it('returns false and records an error built from the thrown error on failure', async () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
       const item = { id: 2, name: 'Gruk' };
-      const result = service.recordUpsert(
-        { status: 409, body: { message: 'conflict' } },
+      const result = await service.recordUpsert(
+        () => Promise.reject(new Error('conflict')),
         item,
         errors,
-        (body) => `Failed: ${(body as { message: string }).message}`,
+        (err) => `Failed: ${err instanceof Error ? err.message : String(err)}`,
       );
       expect(result).toBe(false);
       expect(errors).toHaveLength(1);
