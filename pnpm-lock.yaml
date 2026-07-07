@@ -330,6 +330,9 @@ importers:
 
   packages/import:
     dependencies:
+      '@blood-bowl-tracker/api-client':
+        specifier: workspace:*
+        version: link:../api-client
       '@nestjs/common':
         specifier: ^11.1.27
         version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -337,6 +340,9 @@ importers:
         specifier: ^0.2.2
         version: 0.2.2
     devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.27
+        version: 11.1.27(@nestjs/common@11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.27)(@nestjs/platform-express@11.1.27)
       '@types/node':
         specifier: ^26.1.0
         version: 26.1.0
