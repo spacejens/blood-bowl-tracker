@@ -33,7 +33,6 @@ describe('CoachesService', () => {
     const insertChain = {
       values: vi.fn(() => ({
         returning: vi.fn().mockResolvedValue([fakeCoach]),
-        onConflictDoNothing: vi.fn().mockResolvedValue(undefined),
       })),
     };
     const updateChain = {
@@ -65,7 +64,10 @@ describe('CoachesService', () => {
     it('creates a new coach when no external IDs match', async () => {
       mockDb.select().from.mockReturnValue(makeFromBuilder([]));
 
-      const result = await service.upsert({ name: 'Roze Madder', externalIds });
+      const result = await service.upsert({
+        name: 'Roze Madder',
+        externalIds,
+      });
 
       expect(result).toEqual({ coach: fakeCoach, created: true });
       expect(mockDb.insert).toHaveBeenCalled();
@@ -73,26 +75,77 @@ describe('CoachesService', () => {
     });
 
     it('updates the matching coach when exactly one external ID matches', async () => {
-      mockDb.select().from.mockReturnValue(makeFromBuilder([{ coachId: 1 }]));
+      mockDb
+        .select()
+        .from.mockReturnValue(
+          makeFromBuilder([
+            { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          ]),
+        );
 
-      const result = await service.upsert({ name: 'Roze Madder', externalIds });
+      const result = await service.upsert({
+        name: 'Roze Madder',
+        externalIds,
+      });
 
       expect(result).toEqual({ coach: fakeCoach, created: false });
       expect(mockDb.update).toHaveBeenCalled();
     });
 
     it('throws CoachUpsertConflictError when external IDs match different coaches', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([{ coachId: 1 }, { coachId: 2 }]),
-        );
+      mockDb.select().from.mockReturnValue(
+        makeFromBuilder([
+          { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          {
+            coachId: 2,
+            externalSystemId: 1,
+            externalId: 'name:roze madder',
+          },
+        ]),
+      );
 
       await expect(
         service.upsert({ name: 'Roze Madder', externalIds }),
       ).rejects.toThrow(CoachUpsertConflictError);
       expect(mockDb.insert).not.toHaveBeenCalled();
       expect(mockDb.update).not.toHaveBeenCalled();
+    });
+
+    it('does not re-insert external IDs that already exist on the matched coach', async () => {
+      mockDb.select().from.mockReturnValue(
+        makeFromBuilder([
+          { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          {
+            coachId: 1,
+            externalSystemId: 1,
+            externalId: 'name:roze madder',
+          },
+        ]),
+      );
+
+      await service.upsert({ name: 'Roze Madder', externalIds });
+
+      expect(mockDb.insert).not.toHaveBeenCalled();
+    });
+
+    it('inserts only the external IDs that are new for an existing coach', async () => {
+      mockDb
+        .select()
+        .from.mockReturnValue(
+          makeFromBuilder([
+            { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          ]),
+        );
+      const insertValues = vi.fn(() => ({
+        returning: vi.fn().mockResolvedValue([fakeCoach]),
+      }));
+      mockDb.insert.mockReturnValue({ values: insertValues });
+
+      await service.upsert({ name: 'Roze Madder', externalIds });
+
+      expect(insertValues).toHaveBeenCalledWith([
+        { coachId: 1, externalSystemId: 1, externalId: 'name:roze madder' },
+      ]);
     });
   });
 });

@@ -19,8 +19,12 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const coachIdRows = await this.db
-      .select({ coachId: coachExternalIds.coachId })
+    const existingRows = await this.db
+      .select({
+        coachId: coachExternalIds.coachId,
+        externalSystemId: coachExternalIds.externalSystemId,
+        externalId: coachExternalIds.externalId,
+      })
       .from(coachExternalIds)
       .where(
         or(
@@ -33,7 +37,7 @@ export class CoachesService {
         ),
       );
 
-    const distinctCoachIds = [...new Set(coachIdRows.map((r) => r.coachId))];
+    const distinctCoachIds = [...new Set(existingRows.map((r) => r.coachId))];
 
     if (distinctCoachIds.length > 1) {
       throw new CoachUpsertConflictError(
@@ -59,16 +63,22 @@ export class CoachesService {
       coach = result[0];
     }
 
-    await this.db
-      .insert(coachExternalIds)
-      .values(
-        data.externalIds.map((e) => ({
+    const existingPairs = new Set(
+      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    );
+    const newExternalIds = data.externalIds.filter(
+      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
+    );
+
+    if (newExternalIds.length > 0) {
+      await this.db.insert(coachExternalIds).values(
+        newExternalIds.map((e) => ({
           coachId: coach.id,
           externalSystemId: e.externalSystemId,
           externalId: e.externalId,
         })),
-      )
-      .onConflictDoNothing();
+      );
+    }
 
     return { coach, created };
   }
