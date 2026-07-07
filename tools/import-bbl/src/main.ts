@@ -31,7 +31,7 @@ async function run(filePath: string) {
 run(filePath)
   .then((result) => {
     if (result.success) {
-      console.log(`Imported ${result.imported} team(s) successfully.`);
+      console.log(`Imported ${result.imported} coach(es) successfully.`);
     } else {
       console.error(`Import completed with ${result.errors.length} errors:`);
       result.errors.forEach((e) => console.error(`  - ${e.message}`));
