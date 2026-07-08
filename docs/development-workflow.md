@@ -30,4 +30,6 @@ Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitH
 
 ## How they fit together
 
+Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
+
 A typical cycle: `develop-feature` takes an issue to a PR → reviewers leave feedback → `handle-pr-reviews` addresses it → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps dependencies current and the codebase free of dead code and lint/format drift.
