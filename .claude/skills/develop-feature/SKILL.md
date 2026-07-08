@@ -120,7 +120,7 @@ This applies to every subagent dispatched from any phase below while working in 
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:brainstorming` with the issue content (issue mode) or provided text (ad-hoc mode) as starting context
 2. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`
-3. **Pause** — developer reviews and approves the spec before Phase 3 begins
+3. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
 
@@ -153,7 +153,7 @@ This applies to every subagent dispatched from any phase below while working in 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch
 2. Fix any findings; re-run `pnpm verify` to confirm clean
 3. Repeat steps 1–2 until the review is clean and all tests pass
-4. **Pause** — confirm review is clean before proceeding to Phase 6
+4. **Pause** — ask the developer to confirm via `AskUserQuestion`, offering two genuine options: "Approve, move to PR" (proceed to Phase 6) and "Review further" (re-run `superpowers:requesting-code-review`, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
 
