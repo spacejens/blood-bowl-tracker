@@ -36,6 +36,9 @@ tools/import-bbl/data/
 docs/plans
 docs/superpowers/
 
+# Ephemeral progress notes written by subagent-driven-development
+.superpowers/
+
 # Git worktrees
 .worktrees/
 

@@ -81,7 +81,12 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-8. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+8. Build the whole application so later tasks don't fail due to an unbuilt workspace dependency:
+   ```bash
+   pnpm build
+   ```
+   If this fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+9. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -102,7 +107,12 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Print a brief status line confirming the worktree path and baseline test result, then continue immediately into Phase 2.
+6. Build the whole application so later tasks don't fail due to an unbuilt workspace dependency:
+   ```bash
+   pnpm build
+   ```
+   If this fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+7. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 ---
 
