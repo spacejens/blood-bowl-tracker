@@ -1,10 +1,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { call } from '@orpc/server';
 import { buildRpcRouter } from './rpc-router';
-import { CoachUpsertConflictError } from '@blood-bowl-tracker/game-data';
+import {
+  CoachUpsertConflictError,
+  LeagueUpsertConflictError,
+} from '@blood-bowl-tracker/game-data';
 import type {
   CoachesService,
   ExternalSystemsService,
+  LeaguesService,
 } from '@blood-bowl-tracker/game-data';
 
 function makeServices() {
@@ -13,17 +17,23 @@ function makeServices() {
     externalSystemsService: {
       upsert: vi.fn(),
     } as unknown as ExternalSystemsService,
+    leaguesService: { upsert: vi.fn() } as unknown as LeaguesService,
   };
 }
 
 describe('buildRpcRouter', () => {
   it('coaches.upsert returns the flat entity with a created flag', async () => {
-    const { coachesService, externalSystemsService } = makeServices();
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
       created: true,
     });
-    const router = buildRpcRouter(coachesService, externalSystemsService);
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
 
     const result = await call(router.coaches.upsert, {
       name: 'Roze Madder',
@@ -39,13 +49,18 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const { coachesService, externalSystemsService } = makeServices();
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
       ),
     );
-    const router = buildRpcRouter(coachesService, externalSystemsService);
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
 
     await expect(
       call(router.coaches.upsert, {
@@ -59,11 +74,16 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert rethrows errors that are not a conflict', async () => {
-    const { coachesService, externalSystemsService } = makeServices();
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
-    const router = buildRpcRouter(coachesService, externalSystemsService);
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
 
     await expect(
       call(router.coaches.upsert, {
@@ -74,14 +94,19 @@ describe('buildRpcRouter', () => {
   });
 
   it('externalSystems.upsert returns the flat entity with a created flag', async () => {
-    const { coachesService, externalSystemsService } = makeServices();
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
     (
       externalSystemsService.upsert as ReturnType<typeof vi.fn>
     ).mockResolvedValue({
       system: { id: 1, name: 'BBL', createdAt: new Date('2026-01-01') },
       created: false,
     });
-    const router = buildRpcRouter(coachesService, externalSystemsService);
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
 
     const result = await call(router.externalSystems.upsert, { name: 'BBL' });
 
@@ -91,5 +116,80 @@ describe('buildRpcRouter', () => {
       createdAt: new Date('2026-01-01'),
       created: false,
     });
+  });
+
+  it('leagues.upsert returns the flat entity with a created flag', async () => {
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
+    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+      league: {
+        id: 1,
+        name: 'Test League',
+        createdAt: new Date('2026-01-01'),
+      },
+      created: true,
+    });
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
+
+    const result = await call(router.leagues.upsert, {
+      name: 'Test League',
+      externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+    });
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'Test League',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+  });
+
+  it('leagues.upsert throws CONFLICT when the service reports a conflict', async () => {
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
+    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new LeagueUpsertConflictError(
+        'External IDs matched multiple existing leagues: 1, 2',
+      ),
+    );
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
+
+    await expect(
+      call(router.leagues.upsert, {
+        name: 'Test League',
+        externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing leagues: 1, 2',
+    });
+  });
+
+  it('leagues.upsert rethrows errors that are not a conflict', async () => {
+    const { coachesService, externalSystemsService, leaguesService } =
+      makeServices();
+    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('db unavailable'),
+    );
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+    );
+
+    await expect(
+      call(router.leagues.upsert, {
+        name: 'Test League',
+        externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+      }),
+    ).rejects.toThrow('db unavailable');
   });
 });
