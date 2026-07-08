@@ -103,6 +103,13 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const content = await handler();
+      const channelName =
+        interaction.channel && 'name' in interaction.channel
+          ? interaction.channel.name
+          : 'unknown channel';
+      this.logger.log(
+        `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${channelName} (${interaction.channelId})`,
+      );
       await interaction.reply(content);
     } catch (error) {
       this.logger.error(

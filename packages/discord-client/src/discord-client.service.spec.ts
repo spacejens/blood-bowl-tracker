@@ -235,11 +235,89 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isChatInputCommand: () => true,
       commandName: 'stats',
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
       reply,
     });
     await flush();
     expect(execute).toHaveBeenCalled();
     expect(reply).toHaveBeenCalledWith('the answer');
+  });
+
+  it('logs the handled command, user, and channel on success', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+    const execute = vi.fn().mockResolvedValue('the answer');
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      user: { tag: 'spacejens#0001', id: '111' },
+      channelId: '222',
+      channel: { name: 'general' },
+      reply,
+    });
+    await flush();
+    expect(logSpy).toHaveBeenCalledWith(
+      'Handled /stats from spacejens#0001 (111) in general (222)',
+    );
+  });
+
+  it('logs "unknown channel" when the interaction channel is not cached', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+    const execute = vi.fn().mockResolvedValue('the answer');
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      user: { tag: 'spacejens#0001', id: '111' },
+      channelId: '222',
+      channel: null,
+      reply,
+    });
+    await flush();
+    expect(logSpy).toHaveBeenCalledWith(
+      'Handled /stats from spacejens#0001 (111) in unknown channel (222)',
+    );
+  });
+
+  it('does not log a "Handled" message when the command handler throws', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockRejectedValue(new Error('boom')),
+      },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      user: { tag: 'spacejens#0001', id: '111' },
+      channelId: '222',
+      channel: { name: 'general' },
+      reply,
+    });
+    await flush();
+    expect(logSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('Handled /stats'),
+    );
   });
 
   it('ignores interactions for unregistered commands', async () => {
