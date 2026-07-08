@@ -181,5 +181,5 @@ This applies to every subagent dispatched from any phase below while working in 
    ```
    Use the kind label(s) recorded in Phase 1 step 2 — one `--label` flag per label.
 
-2. After the PR is created, ask the developer whether to deploy the change locally for a manual look — do not deploy automatically. Mention that `deploy-local` removes any stale stopped `postgres`/`discord-bot` containers left by a previous run before starting fresh. If yes, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill.
+2. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
 3. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review.
