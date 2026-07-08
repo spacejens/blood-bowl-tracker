@@ -82,7 +82,7 @@ module.exports = {
 
 madge (circular dependencies) takes no config file — it's invoked with CLI flags only.
 
-All four tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below just runs its script.
+All four tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below that uses one of these tools just runs its script (Task 1 is the exception — it uses `npm view` directly, not a `hygiene:*` script).
 
 ## Fixed task list (Development phase)
 
