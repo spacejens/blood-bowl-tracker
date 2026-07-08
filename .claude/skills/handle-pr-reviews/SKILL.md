@@ -173,4 +173,4 @@ Reply content:
 
 Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL.
 
-**Skill ends** — human review of the pushed changes and replies happens outside this workflow.
+**Skill ends** — human review of the pushed changes and replies happens outside this workflow. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
