@@ -119,7 +119,7 @@ This applies to every subagent dispatched from any phase below while working in 
 ### Phase 2: Specification
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:brainstorming` with the issue content (issue mode) or provided text (ad-hoc mode) as starting context
-2. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`
+2. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. Note the exact saved filename — Phase 3 needs it.
 3. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
@@ -131,7 +131,7 @@ This applies to every subagent dispatched from any phase below while working in 
    - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location
    - Skip its "Execution Handoff" question — this workflow always uses `subagent-driven-development` (see Phase 4) — and report back only the saved plan's filename
    Planning is delegated to Opus (rather than Phase 2's brainstorming, which stays inline) because it's a bounded, non-interactive task — turning an already-approved spec into a plan file — while brainstorming needs live back-and-forth with the developer that a dispatched subagent handles poorly. This targets the extra reasoning power at one focused step without spending it on the token-heavy implementation phase.
-2. After the agent reports its saved plan filename, verify the file exists at that path in the worktree before continuing (`git -C <worktree-path> status -- docs/plans/<filename>.md` or a direct file check) — do not trust the report alone.
+2. After the agent reports its saved plan filename, verify the file exists at that path in the worktree before continuing (`test -f "<worktree-path>/docs/plans/<filename>.md"`) — do not trust the report alone. A `git status` check would not work here: `docs/plans` is gitignored and symlinked to the main checkout, so git reports nothing for it either way.
 3. Print a brief status line confirming the plan is written and saved, then continue immediately into Phase 4. The plan is too detailed for a human to usefully approve line-by-line, and the spec approved at the end of Phase 2 already covers the requirements decision — the PR opened in Phase 6 is the review point for the resulting implementation.
 
 ---
