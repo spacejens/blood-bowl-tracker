@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Test } from '@nestjs/testing';
 import { AppModule } from './app.module';
-import { BblCoachesImportService } from './bbl/bbl-coaches-import.service';
+import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
 
 describe('AppModule', () => {
   it('registers BblCoachesImportService with its dependencies wired', async () => {
