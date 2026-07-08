@@ -35,9 +35,7 @@ describe('CoachPageParser', () => {
   });
 
   it('returns null when there is no Coach field', () => {
-    const page = teamPage(
-      '<table><tr><td>Race:</td><td>Orc</td></tr></table>',
-    );
+    const page = teamPage('<table><tr><td>Race:</td><td>Orc</td></tr></table>');
     expect(parser.extractCoach(page)).toBeNull();
   });
 
