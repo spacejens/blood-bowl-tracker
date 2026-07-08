@@ -8,6 +8,14 @@ See `README.md` for a description of what this project is and how the repository
 
 After making any change requested by the user, create a git commit with a message explaining what was changed and why.
 
+## Developer prompts
+
+When a Claude Code skill needs the developer to make a choice, use `AskUserQuestion` rather than printing plain text and waiting for a reply — it's more obvious the assistant is waiting for input, and keeps interaction consistent across skills.
+
+- The tool always auto-adds a free-text "Other" entry, and this harness always also offers a "Chat about this" affordance automatically. Never add an explicit "Type something" or "Chat about this" option yourself — both are redundant with what's already provided.
+- The tool requires at least 2 explicit options per question. Give every question two genuine, distinct options that represent real paths forward — never invent a filler second option (e.g. a generic "Needs changes") just to satisfy the minimum.
+- If a checkpoint genuinely has only one real path forward and no second option exists, don't force it through `AskUserQuestion` — use a plain conversational prompt instead.
+
 ## Technology stack
 
 - **Runtime:** Node.js (managed via nvm; activate with `source ~/.nvm/nvm.sh`)
