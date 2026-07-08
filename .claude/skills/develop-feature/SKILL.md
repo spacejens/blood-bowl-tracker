@@ -81,11 +81,12 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-8. Build the whole application so later tasks don't fail due to an unbuilt workspace dependency:
+8. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
+   pnpm install
    pnpm build
    ```
-   If this fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+   If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 9. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
@@ -107,11 +108,12 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Build the whole application so later tasks don't fail due to an unbuilt workspace dependency:
+6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
+   pnpm install
    pnpm build
    ```
-   If this fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+   If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
 7. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 ---
