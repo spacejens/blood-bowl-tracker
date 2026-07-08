@@ -21,6 +21,37 @@ describe('createApiClient', () => {
     const client = createApiClient('http://localhost:3000');
     expect(typeof client.externalSystems.upsert).toBe('function');
   });
+
+  // Regression: the raw oRPC client Proxy turns ANY property access into a
+  // callable procedure. As a NestJS provider that made it look thenable (Nest
+  // awaited it, firing a bogus `then` RPC) and exposed lifecycle-hook names as
+  // procedures (`POST /rpc/onModuleInit`), aborting startup against a real
+  // server. The client must expose only the real contract routers.
+  it.each([
+    'then',
+    'onModuleInit',
+    'onModuleDestroy',
+    'onApplicationBootstrap',
+    'onApplicationShutdown',
+    'beforeApplicationShutdown',
+  ])('does not expose the incidental property %s', (prop) => {
+    const client = createApiClient(
+      'http://localhost:3000',
+    ) as unknown as Record<string, unknown>;
+    expect(client[prop]).toBeUndefined();
+  });
+
+  it('is not thenable (safe to use as an awaited provider value)', () => {
+    const client = createApiClient('http://localhost:3000') as unknown as {
+      then?: unknown;
+    };
+    expect(typeof client.then).not.toBe('function');
+  });
+
+  it('exposes only the contract routers', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(Object.keys(client).sort()).toEqual(['coaches', 'externalSystems']);
+  });
 });
 
 describe('ApiClientModule', () => {
