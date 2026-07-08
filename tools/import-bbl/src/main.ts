@@ -1,34 +1,22 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { parseBblExport } from './bbl/bbl-parser';
-import { BblCoachesImportService } from './bbl/bbl-coaches-import.service';
+import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
 
-const [, , filePath] = process.argv;
-
-if (!filePath) {
-  console.error('Usage: import-bbl <bbl-export.json>');
-  process.exit(1);
-}
-
-async function run(filePath: string) {
-  const json = readFileSync(filePath, 'utf-8');
-  const data = parseBblExport(json);
-
+async function run() {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
     logger: false,
   });
   try {
     const importer = app.get(BblCoachesImportService);
-    return await importer.importBblData(data);
+    return await importer.importCoaches();
   } finally {
     await app.close();
   }
 }
 
-run(filePath)
+run()
   .then((result) => {
     if (result.success) {
       console.log(`Imported ${result.imported} coach(es) successfully.`);
