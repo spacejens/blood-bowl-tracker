@@ -1,6 +1,6 @@
 ---
 name: deploy-local
-description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
+description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
 ---
 
 # deploy-local
