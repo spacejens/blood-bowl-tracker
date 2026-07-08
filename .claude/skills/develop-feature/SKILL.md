@@ -27,7 +27,7 @@ Work through each phase in order. Some phase transitions require the developer's
 
 ## Subagent dispatch discipline
 
-This applies to every subagent dispatched from any phase below while working in a worktree — implementer, task reviewer, and fixer subagents in Phase 4, and the self-review subagent in Phase 5. Every shell command in its dispatch prompt must be prefixed with `cd <worktree-path> &&` — do not rely on a one-time "work from `<path>`" instruction. Subagent shell sessions do not reliably persist a starting directory across tool calls, and a dropped `cd` can silently commit to the wrong checkout (e.g. `main` in the primary repo instead of the feature branch). After each subagent reports a commit, verify with `git log --oneline -1` and `git branch --show-current` (run from the worktree) that the commit actually landed on the expected branch before trusting the report.
+This applies to every subagent dispatched from any phase below while working in a worktree — the planning subagent in Phase 3, implementer, task reviewer, and fixer subagents in Phase 4, and the self-review subagent in Phase 5. Every shell command in its dispatch prompt must be prefixed with `cd <worktree-path> &&` — do not rely on a one-time "work from `<path>`" instruction. Subagent shell sessions do not reliably persist a starting directory across tool calls, and a dropped `cd` can silently commit to the wrong checkout (e.g. `main` in the primary repo instead of the feature branch). After each subagent reports a commit, verify with `git log --oneline -1` and `git branch --show-current` (run from the worktree) that the commit actually landed on the expected branch before trusting the report.
 
 ---
 
