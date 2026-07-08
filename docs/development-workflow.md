@@ -24,6 +24,10 @@ Runs a fixed set of dependency and code cleanup checks — dependency updates, u
 
 Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Triggered conversationally (e.g. "that's merged") rather than by a slash command; run this after a `develop-feature` or `handle-pr-reviews` cycle's PR has merged.
 
+## write-issue
+
+Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `develop-feature` cycle; the issues it creates are picked up by `develop-feature` later.
+
 ## How they fit together
 
 A typical cycle: `develop-feature` takes an issue to a PR → reviewers leave feedback → `handle-pr-reviews` addresses it → the PR merges → `wrap-up` verifies the merge and cleans up local state. `code-hygiene` runs on its own schedule, whenever a developer chooses, unrelated to any specific feature PR — it keeps dependencies current and the codebase free of dead code and lint/format drift.
