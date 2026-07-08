@@ -57,24 +57,36 @@ export class BblCoachesImportService {
 
     const seen = new Set<string>();
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
-      const coach = this.coachPageParser.extractCoach(page);
-      if (!coach || seen.has(coach.name)) {
-        continue;
-      }
-      seen.add(coach.name);
+      try {
+        const coach = this.coachPageParser.extractCoach(page);
+        if (!coach || seen.has(coach.name)) {
+          continue;
+        }
+        seen.add(coach.name);
 
-      const success = await this.coachesImport.upsertCoach(
-        {
-          name: coach.name,
-          externalIds: [
-            { externalSystemId: bblSystemId, externalId: coach.name },
-            { externalSystemId: nameSystemId, externalId: coach.name },
-          ],
-        },
-        errors,
-      );
-      if (success) {
-        imported += 1;
+        const success = await this.coachesImport.upsertCoach(
+          {
+            name: coach.name,
+            externalIds: [
+              { externalSystemId: bblSystemId, externalId: coach.name },
+              { externalSystemId: nameSystemId, externalId: coach.name },
+            ],
+          },
+          errors,
+        );
+        if (success) {
+          imported += 1;
+        }
+      } catch (error) {
+        errors.push(
+          makeImportError({
+            item: { page: page.params },
+            message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          }),
+        );
+        continue;
       }
     }
 

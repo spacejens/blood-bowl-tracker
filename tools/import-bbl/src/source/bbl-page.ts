@@ -16,14 +16,14 @@ export interface BblPage {
 export function parsePageFilename(
   filename: string,
 ): { type: string; params: Record<string, string> } | null {
-  const queryStart = filename.indexOf('?');
-  if (!filename.startsWith('default.asp') || queryStart === -1) {
+  const prefix = 'default.asp?';
+  if (!filename.startsWith(prefix)) {
     return null;
   }
 
   const params: Record<string, string> = {};
   let type: string | undefined;
-  for (const pair of filename.slice(queryStart + 1).split('&')) {
+  for (const pair of filename.slice(prefix.length).split('&')) {
     const eq = pair.indexOf('=');
     if (eq === -1) {
       continue;

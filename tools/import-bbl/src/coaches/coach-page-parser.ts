@@ -18,17 +18,16 @@ export class CoachPageParser {
     let name: string | null = null;
 
     $('td').each((_index, element) => {
-      if (name !== null) {
-        return;
-      }
       if ($(element).text().trim() === 'Coach:') {
         // trim() strips the leading `&nbsp;` (U+00A0) and surrounding
         // whitespace; the name itself is preserved exactly.
         const value = $(element).next('td').text().trim();
         if (value) {
           name = value;
+          return false;
         }
       }
+      return undefined;
     });
 
     return name === null ? null : { name };

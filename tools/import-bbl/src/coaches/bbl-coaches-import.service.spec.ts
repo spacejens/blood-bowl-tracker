@@ -162,6 +162,64 @@ describe('BblCoachesImportService', () => {
     expect(result.errors.some((e) => e.message.includes('Hugo E'))).toBe(true);
   });
 
+  it('records an error and continues when a team page fails to parse', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const parser = new CoachPageParser();
+    vi.spyOn(parser, 'extractCoach')
+      .mockImplementationOnce(() => {
+        throw new Error('bad page');
+      })
+      .mockImplementationOnce((p) =>
+        p.params.coach ? { name: p.params.coach } : null,
+      );
+    const service = new BblCoachesImportService(
+      makeReader([page('Hugo E'), page('Tommy')]),
+      parser,
+      { upsertCoach } as unknown as CoachesImportService,
+      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    );
+
+    const result = await service.importCoaches();
+
+    expect(result.imported).toBe(1);
+    expect(upsertCoach).toHaveBeenCalledTimes(1);
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('Failed to parse team page'),
+      ),
+    ).toBe(true);
+  });
+
+  it('records a stringified error when a team page throws a non-Error value', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const parser = new CoachPageParser();
+    vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'bad page';
+    });
+    const service = new BblCoachesImportService(
+      makeReader([page('Hugo E')]),
+      parser,
+      { upsertCoach } as unknown as CoachesImportService,
+      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    );
+
+    const result = await service.importCoaches();
+
+    expect(result.imported).toBe(0);
+    expect(result.errors.some((e) => e.message.includes('bad page'))).toBe(
+      true,
+    );
+  });
+
   it('records one error and skips coaches when an external system upsert fails', async () => {
     const upsertExternalSystem = vi
       .fn()

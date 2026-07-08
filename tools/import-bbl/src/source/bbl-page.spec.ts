@@ -24,4 +24,12 @@ describe('parsePageFilename', () => {
   it('returns null when there is no p= param', () => {
     expect(parsePageFilename('default.asp?foo=bar')).toBeNull();
   });
+
+  it('returns null for filenames without a query string', () => {
+    expect(parsePageFilename('default.asp')).toBeNull();
+  });
+
+  it('returns null for filenames with a similar but inexact prefix', () => {
+    expect(parsePageFilename('default.aspx?p=tm')).toBeNull();
+  });
 });
