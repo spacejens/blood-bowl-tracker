@@ -126,8 +126,12 @@ This applies to every subagent dispatched from any phase below while working in 
 
 ### Phase 3: Planning
 
-1. **REQUIRED SUB-SKILL:** Use `superpowers:writing-plans` with the approved spec as input. That skill's "Execution Handoff" step asks which execution approach to use (Subagent-Driven vs. Inline) — skip that question here. This workflow always uses subagent-driven-development (see Phase 4), so proceed straight to Phase 4 once the plan is approved without asking the developer to choose an approach.
-2. **Override the writing-plans skill's default plan save location:** save the plan to `docs/plans/` (gitignored)
+1. Dispatch a foreground `Agent` call (`model: "opus"`, `run_in_background: false` — Phase 4 depends on its output) to run `superpowers:writing-plans` against the approved spec. Every shell command in its dispatch prompt must be prefixed with `cd <worktree-path> &&`, per the "Subagent dispatch discipline" section above. The dispatch prompt must tell the agent to:
+   - Read the approved spec at `docs/plans/<spec-filename>.md` (pass the exact filename from Phase 2)
+   - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location
+   - Skip its "Execution Handoff" question — this workflow always uses `subagent-driven-development` (see Phase 4) — and report back only the saved plan's filename
+   Planning is delegated to Opus (rather than Phase 2's brainstorming, which stays inline) because it's a bounded, non-interactive task — turning an already-approved spec into a plan file — while brainstorming needs live back-and-forth with the developer that a dispatched subagent handles poorly. This targets the extra reasoning power at one focused step without spending it on the token-heavy implementation phase.
+2. After the agent reports its saved plan filename, verify the file exists at that path in the worktree before continuing (`git -C <worktree-path> status -- docs/plans/<filename>.md` or a direct file check) — do not trust the report alone.
 3. Print a brief status line confirming the plan is written and saved, then continue immediately into Phase 4. The plan is too detailed for a human to usefully approve line-by-line, and the spec approved at the end of Phase 2 already covers the requirements decision — the PR opened in Phase 6 is the review point for the resulting implementation.
 
 ---
