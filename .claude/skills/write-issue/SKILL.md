@@ -39,7 +39,7 @@ Before drafting, check `gh issue list --state open` for issues that look like li
 For each candidate that passes Phase 2:
 1. Draft a title and a plain-text body describing the need and its purpose (no code blocks, no implementation prescriptions), matching the tone of this repo's existing issues.
 2. Present the draft to the developer via `AskUserQuestion` with two genuine options: "Create it" and "Revise the draft" (loop back into Phase 2's dialogue for this candidate, then re-draft).
-3. Determine the kind label(s) — one or more of `feature`, `bug`, `development` — the same way `develop-feature`'s ad-hoc mode does: judge from the drafted content which clearly apply; if genuinely unclear, ask via `AskUserQuestion` (multi-select).
+3. Determine the kind label(s) by following `develop-feature`'s ad-hoc-mode kind-label step exactly (`.claude/skills/develop-feature/SKILL.md`, ad-hoc mode step 2) — don't duplicate that logic here, so the two skills can't drift out of sync.
 4. Create the issue:
    ```bash
    gh issue create --title "<title>" --label "<kind label 1>" --label "<kind label 2 if applicable>" --body "$(cat <<'EOF'
