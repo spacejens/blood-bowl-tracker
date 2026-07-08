@@ -31,7 +31,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ### Development, Self-review, Integration — same as develop-feature, with these differences
 
-- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task (except Task 1, which commits per dependency group — see below), `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
+- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task (except Task 2, which commits per dependency group — see below), `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
 - **Self-review:** identical to develop-feature's Self-review phase.
 - **Integration:** identical to develop-feature's Integration phase, except the PR:
   ```bash
@@ -82,15 +82,40 @@ module.exports = {
 
 madge (circular dependencies) takes no config file — it's invoked with CLI flags only.
 
-All four tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below just runs its script.
+All four tools are already pinned root `devDependencies` with their `hygiene:*` scripts already in root `package.json` — nothing to install or bootstrap; every task below that uses one of these tools just runs its script (Task 1 is the exception — it uses `npm view` directly, not a `hygiene:*` script).
 
 ## Fixed task list (Development phase)
 
-One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline) — except Task 1, which produces one commit per dependency group instead of one commit for the whole task (see below). A task (or dependency group) that finds nothing to change makes no commit.
+One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline) — except Task 2 (Dependency updates), which produces one commit per dependency group instead of one commit for the whole task (see below). A task (or dependency group) that finds nothing to change makes no commit.
 
-### Task 1: Dependency updates
+### Task 1: Minimum release age exclude pruning
 
-Unlike Tasks 2–7, this task does not produce a single commit — it produces one commit per dependency update (or tightly-coupled group of updates), so a `pnpm verify` failure is always traceable to exactly one change. Work through the steps below in order.
+`pnpm-workspace.yaml` may carry a `minimumReleaseAgeExclude` list — entries that exempt specific `name@version` pairs from the `minimumReleaseAge` policy (see the `minimumReleaseAge` key in the same file) because, at the time they were added, that exact version hadn't yet reached the minimum age. Entries become unnecessary once enough time passes, and this list has no other mechanism to shrink — this task is that mechanism. If `minimumReleaseAgeExclude` is absent or empty, this task finds nothing to do — no commit, move to Task 2.
+
+For each `name@version` entry in the list:
+
+```bash
+npm view "<name>" time --json | node -e "
+  const data = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+  const version = process.argv[1];
+  const published = new Date(data[version]);
+  const ageMinutes = (Date.now() - published.getTime()) / 60000;
+  console.log(version, published.toISOString(), 'age_minutes=' + Math.round(ageMinutes));
+" "<version>"
+```
+
+Compare the reported `age_minutes` against the `minimumReleaseAge` value (minutes) in `pnpm-workspace.yaml`:
+
+- **age_minutes >= minimumReleaseAge** — the entry is old enough now that the policy would allow it anyway; drop it from the list.
+- **age_minutes < minimumReleaseAge** — still genuinely too new; keep the entry as-is.
+
+This is a purely mechanical numeric comparison — never a judgment call, so it has no stop condition (see Stop conditions below).
+
+If any entries were dropped, run `pnpm install` (refreshes the lockfile; expect no diff, since dropping an exclude entry doesn't change what's already resolved), then `pnpm verify`, then commit — message noting which entries were removed and why (e.g. "Prune minimumReleaseAgeExclude: drop entries older than 24 hours"). If nothing was dropped, no commit.
+
+### Task 2: Dependency updates
+
+Unlike Tasks 1 and 3–8, this task does not produce a single commit — it produces one commit per dependency update (or tightly-coupled group of updates), so a `pnpm verify` failure is always traceable to exactly one change. Work through the steps below in order.
 
 **1. Enumerate outdated dependencies.**
 
@@ -126,7 +151,7 @@ If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to d
 - **Mechanical migration** needed (renamed API/config, codemod-style changes to match the new version) — make the fix now, as part of this same commit. This is expected, routine work for a major bump, not a reason to stop.
 - **Judgment call** needed (the fix isn't mechanical — it requires a product or architecture decision) — stop. Report which groups already committed this run, then ask the developer whether to fix it manually and resume, skip this dependency and continue with the rest of the to-do list, or abort the run. Commits already made are not rolled back.
 
-### Task 2: Security audit
+### Task 3: Security audit
 
 ```bash
 pnpm run hygiene:audit:fix
@@ -135,7 +160,7 @@ pnpm run hygiene:audit
 
 The first command attempts to update vulnerable packages to non-vulnerable versions within the lockfile (`--fix=update`, not `--fix=override` — `update` doesn't leave permanent `pnpm.overrides` entries in `package.json` behind once the real fix ships upstream). The second re-reports what's left. Run `pnpm verify`. If any vulnerability remains reported, stop and ask the developer how to proceed (accept the risk, find an alternative package, or abort the run) — do not leave it unmentioned or deferred to the PR description.
 
-### Task 3: Unused dependencies / dead code / dependency placement
+### Task 4: Unused dependencies / dead code / dependency placement
 
 ```bash
 pnpm run hygiene:deadcode:fix
@@ -159,7 +184,7 @@ Then:
 
 If any entries were moved, run `pnpm install` to refresh `pnpm-lock.yaml`. Run `pnpm verify` — but note that a pass here is not evidence the move was correct: a default `pnpm install` installs `devDependencies` for every workspace regardless of any production install boundary, so `pnpm verify` will pass even for a wrongly-demoted runtime dependency. The per-candidate investigation above is the only real safeguard against that, so err toward Ambiguous/stop whenever in doubt. If Report A (not Report B) reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
 
-### Task 4: Workspace version consistency
+### Task 5: Workspace version consistency
 
 ```bash
 pnpm run hygiene:versions:fix
@@ -168,15 +193,15 @@ pnpm run hygiene:versions
 
 The first command fixes what syncpack can resolve automatically. The second re-reports what's left (syncpack can't always tell which of several divergent versions across workspaces is "correct"). Run `pnpm verify`. If the second command reports any remaining mismatch, stop and ask the developer which version should win, or how to configure a `versionGroups` entry in `syncpack.config.js` to allow the divergence intentionally.
 
-### Task 5: Circular dependencies
+### Task 6: Circular dependencies
 
 ```bash
 pnpm run hygiene:cycles
 ```
 
-Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 2–4, this task never has a "fix" step — any finding here always pauses the run.
+Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 3–5, this task never has a "fix" step — any finding here always pauses the run.
 
-### Task 6: Lint
+### Task 7: Lint
 
 ```bash
 pnpm lint:fix
@@ -184,7 +209,7 @@ pnpm lint:fix
 
 Run `pnpm verify`. Per this project's existing convention (`CLAUDE.md`), hand-edit only failures `pnpm lint:fix` can't auto-resolve — this is routine mechanical work, not a judgment call, so it is not a stop condition.
 
-### Task 7: Format
+### Task 8: Format
 
 ```bash
 pnpm format:fix
@@ -196,12 +221,13 @@ Run `pnpm verify`.
 
 Any finding a task can't safely auto-fix pauses the run immediately for developer direction, rather than being deferred into the PR description:
 
-- Task 1: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 1 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
-- Task 2: a security vulnerability with no available patched version.
-- Task 3: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
-- Task 4: any version mismatch syncpack couldn't auto-fix.
-- Task 5: any circular dependency at all (this check never auto-fixes).
+- Task 1: none — pruning is a purely mechanical age comparison, never a judgment call.
+- Task 2: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 2 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
+- Task 3: a security vulnerability with no available patched version.
+- Task 4: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
+- Task 5: any version mismatch syncpack couldn't auto-fix.
+- Task 6: any circular dependency at all (this check never auto-fixes).
 
-Tasks 6 and 7 have no stop condition — remaining lint/format issues after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
+Tasks 1, 7, and 8 have no stop condition — Task 1's pruning is purely mechanical (see above), and remaining lint/format issues in Tasks 7–8 after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
 
 When paused, report what was found, what's already committed so far in the run, and wait for developer direction (fix manually, skip this item and continue, or abort the run) before resuming.
