@@ -32,4 +32,11 @@ describe('parsePageFilename', () => {
   it('returns null for filenames with a similar but inexact prefix', () => {
     expect(parsePageFilename('default.aspx?p=tm')).toBeNull();
   });
+
+  it('skips query segments that have no = sign', () => {
+    expect(parsePageFilename('default.asp?p=tm&broken&t=knu')).toEqual({
+      type: 'tm',
+      params: { t: 'knu' },
+    });
+  });
 });

@@ -241,4 +241,20 @@ describe('BblCoachesImportService', () => {
     ).toBe(true);
     expect(upsertCoach).not.toHaveBeenCalled();
   });
+
+  it('stringifies a non-Error thrown by the external system upsert', async () => {
+    const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
+    const upsertCoach = vi.fn();
+    const service = makeService(
+      makeReader([page('Hugo E')]),
+      upsertExternalSystem,
+      upsertCoach,
+    );
+
+    const result = await service.importCoaches();
+
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
+    expect(upsertCoach).not.toHaveBeenCalled();
+  });
 });

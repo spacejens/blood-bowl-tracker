@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { SourceConfigService } from './source-config.service';
@@ -73,5 +73,16 @@ describe('BblSourceReader', () => {
   it('throws when the data directory does not exist', async () => {
     const reader = makeReader('/no/such/bbl/dir');
     await expect(collect(reader.pages('tm'))).rejects.toThrow();
+  });
+
+  it('skips directory entries even when their name matches the page pattern', async () => {
+    await mkdir(join(dir, 'default.asp?p=tm&t=subdir'));
+    await writeFile(join(dir, 'default.asp?p=tm&t=knu'), '<html></html>');
+
+    const reader = makeReader(dir);
+    const pages = await collect(reader.pages('tm'));
+
+    expect(pages).toHaveLength(1);
+    expect(pages[0].params.t).toBe('knu');
   });
 });
