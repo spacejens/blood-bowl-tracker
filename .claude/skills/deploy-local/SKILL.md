@@ -98,11 +98,12 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    fi
    ```
    followed by setting `BBL_DATA_DIR` in that file to the path the developer gave, replacing any existing `BBL_DATA_DIR=` line.
-3. Run the import:
+3. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
+   pnpm --filter @blood-bowl-tracker/import-bbl run build
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
-4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout, or exits `1` and prints per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr. Report the exit code and the captured output either way. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ## Non-goals
 
