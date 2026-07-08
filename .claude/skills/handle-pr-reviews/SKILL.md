@@ -116,7 +116,7 @@ Process items in the order discovered. For each item:
 
 1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself.
 2. Classify it:
-   - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. One commit per addressed item; a single commit may address more than one item when they share the same fix. The commit message references the item(s) addressed.
+   - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed.
    - **(b) Is a question** — draft an answer. No code change.
    - **(c) Is a suggestion to reject** — **REQUIRED SUB-SKILL:** Use `superpowers:receiving-code-review` to evaluate it (verify against the actual codebase, check YAGNI, no performative agreement) before drafting the rejection reasoning.
    - **Ambiguous** — if the right classification or fix approach genuinely isn't clear, **stop triaging further items now**: report which item is ambiguous and why, and wait for the developer's direction on it before triaging it or any item not yet reached. Do not skip or guess. Proceed to Phase 3 with whatever items were already triaged before this one — their fixes, rejections, and answers still get verified, pushed, and replied to in the phases below; only the ambiguous item and anything after it in discovery order are left for a future run.
@@ -136,7 +136,7 @@ Skip this phase if no fix commits were made in Phase 2.
 
 ### Phase 4: Push
 
-Skip this phase if no commits were made in Phase 2. Otherwise, push every new commit together in a single push:
+Skip this phase if no commits were made in Phase 2. Otherwise, push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
 ```bash
 git push
 ```
