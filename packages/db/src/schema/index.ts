@@ -6,6 +6,7 @@ export * from './competitions';
 export * from './eras';
 export * from './external-systems';
 export * from './leagues';
+export * from './leagues-external-ids';
 export * from './match-events';
 export * from './match-teams';
 export * from './matches';
