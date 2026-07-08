@@ -17,6 +17,16 @@ Takes no arguments.
 
 ## Steps
 
+0. Ask the developer which action(s) to perform, via a multi-select question offering, in this order:
+   - **Deploy the stack** (recommended) — build and start the docker-compose stack.
+   - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
+
+   The developer may select one, both, or neither. If neither is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+
+### Deploy the stack
+
+Run this section only if "Deploy the stack" was selected above.
+
 1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. If running from a worktree, fill in what's missing from the main checkout before building:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
