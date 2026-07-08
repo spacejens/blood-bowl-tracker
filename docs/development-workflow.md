@@ -22,7 +22,7 @@ Runs a fixed set of dependency and code cleanup checks — dependency updates, u
 
 ## wrap-up
 
-Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Triggered conversationally (e.g. "that's merged") rather than by a slash command; run this after a `develop-feature` or `handle-pr-reviews` cycle's PR has merged.
+Verifies that work the developer says is finished is actually finished — checks the PR really merged on GitHub and that nothing was left uncommitted or unpushed outside the worktree — then offers to stop local Docker containers, remove the git worktree, and delete the local branch. Most often triggered conversationally (e.g. "that's merged"), though the developer can also run `/wrap-up` directly; run this after a `develop-feature` or `handle-pr-reviews` cycle's PR has merged.
 
 ## write-issue
 

@@ -9,7 +9,7 @@ Verifies that development work the developer says is "done" is actually done, th
 
 ## Invocation
 
-Triggered conversationally, not by a slash command — when the developer says something like "that's merged", "we're done here", or "the PR is in" about a specific piece of work. There is no `/wrap-up <arg>` form.
+Most often triggered conversationally — when the developer says something like "that's merged", "we're done here", or "the PR is in" about a specific piece of work. The developer can also invoke it directly with `/wrap-up`; it takes no arguments, so identify the PR in question from conversation context either way (see Phase 1 step 1).
 
 ## Phase 1: Verify
 
