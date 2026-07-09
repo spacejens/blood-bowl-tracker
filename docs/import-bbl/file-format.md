@@ -15,15 +15,16 @@ code** — the code is the source of truth at that point.
 
 ## Entity identifiers
 
-- BBL entities have a stable numeric id, exposed in links to the entity's own
-  page (not only in the linking file's params). The `Race:` field on a team
-  page, for example, links the race as `default.asp?p=tl#<id>` — the numeric
-  fragment (`16` for "Orc Team") is the race's canonical BBL id.
-- Convention: key an entity by that numeric id under the **BBL** external system
-  and by its display name under the **Name** external system. Fall back to
-  name-only keying (as coaches and leagues do) when the source exposes no
-  numeric id. This applies to future page types too — look for the numeric id in
-  the link to the entity's own page, not just the name text.
+- Most BBL entities have a stable id exposed in links to the entity's own page
+  (not only in the linking file's params). The id may be numeric — the `Race:`
+  field on a team page links the race as `default.asp?p=tl#<id>`, whose fragment
+  (`16` for "Orc Team") is the race's canonical BBL id — or alphanumeric, as for
+  teams. Some entities (e.g. coaches) have no id at all.
+- Convention: key an entity by that id under the **BBL** external system and by
+  its display name under the **Name** external system. Fall back to name-only
+  keying (as coaches and leagues do) when the source exposes no id. This applies
+  to future page types too — look for the id in the link to the entity's own
+  page, not just the name text.
 
 ## Page types seen in the reference dataset
 
