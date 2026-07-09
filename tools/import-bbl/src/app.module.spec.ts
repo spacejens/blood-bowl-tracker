@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+
 import { AppModule } from './app.module';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
 

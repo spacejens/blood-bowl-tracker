@@ -1,6 +1,7 @@
-import { describe, it, expect, vi } from 'vitest';
-import { StatsSummaryService } from './stats-summary.service';
 import type { Db } from '@blood-bowl-tracker/db';
+import { describe, expect, it, vi } from 'vitest';
+
+import { StatsSummaryService } from './stats-summary.service';
 
 // A count query resolves to `[{ count: n }]`. `countAll` awaits the `from(...)`
 // builder directly; `countCompetitionsByType` awaits `.where(...)`. Both must

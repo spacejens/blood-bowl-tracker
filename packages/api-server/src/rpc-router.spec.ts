@@ -1,17 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
-import { call } from '@orpc/server';
-import { buildRpcRouter } from './rpc-router';
-import {
-  CoachUpsertConflictError,
-  LeagueUpsertConflictError,
-  RaceUpsertConflictError,
-} from '@blood-bowl-tracker/game-data';
 import type {
   CoachesService,
   ExternalSystemsService,
   LeaguesService,
   RacesService,
 } from '@blood-bowl-tracker/game-data';
+import {
+  CoachUpsertConflictError,
+  LeagueUpsertConflictError,
+  RaceUpsertConflictError,
+} from '@blood-bowl-tracker/game-data';
+import { call } from '@orpc/server';
+import { describe, expect, it, vi } from 'vitest';
+
+import { buildRpcRouter } from './rpc-router';
 
 function makeServices() {
   return {

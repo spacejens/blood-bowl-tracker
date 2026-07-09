@@ -1,10 +1,11 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import {
   CoachesModule,
   ExternalSystemsModule,
   LeaguesModule,
   RacesModule,
 } from '@blood-bowl-tracker/game-data';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+
 import { RpcMiddleware } from './rpc.middleware';
 
 @Module({

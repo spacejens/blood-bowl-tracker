@@ -10,18 +10,20 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 import { join } from 'node:path';
+
 import { sql } from 'drizzle-orm';
 import {
+  type AnyPgColumnBuilder,
   getTableConfig,
   integer,
-  primaryKey,
-  timestamp,
-  type AnyPgColumnBuilder,
   type PgBuildExtraConfigColumns,
   type PgColumn,
   type PgSchema,
   type PgTableExtraConfig,
+  primaryKey,
+  timestamp,
 } from 'drizzle-orm/pg-core';
+
 import { deriveHistoryColumnShapes } from './history-column-shape';
 import { readPreviousColumnShapes } from './history-snapshot';
 import { rawColumn } from './raw-column';

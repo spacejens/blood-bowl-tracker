@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
+
 import * as indexModule from './index';
 
 const schemasDir = join(__dirname, 'schemas');

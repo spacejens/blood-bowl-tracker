@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
-import { Test } from '@nestjs/testing';
-import { LeaguesImportService } from './leagues-import.service';
-import { ImportRunnerService } from './import-runner.service';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it, vi } from 'vitest';
+
+import { ImportRunnerService } from './import-runner.service';
+import { LeaguesImportService } from './leagues-import.service';
 import type { ImportError } from './types';
 
 describe('LeaguesImportService', () => {

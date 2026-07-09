@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 import {
-  withDatabaseTimeout,
   DATABASE_TIMEOUT_FALLBACK_MESSAGE,
   DATABASE_TIMEOUT_MS,
+  withDatabaseTimeout,
 } from './database-timeout';
 
 describe('withDatabaseTimeout', () => {

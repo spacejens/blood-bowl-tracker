@@ -1,5 +1,6 @@
-import { serial, integer, varchar, unique } from 'drizzle-orm/pg-core';
 import type { AnyPgColumn, PgSchema } from 'drizzle-orm/pg-core';
+import { integer, serial, unique, varchar } from 'drizzle-orm/pg-core';
+
 import { externalSystems } from './external-systems';
 import { historyTrackedTable } from './history';
 

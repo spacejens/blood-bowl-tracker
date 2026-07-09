@@ -1,6 +1,7 @@
+import { resolve } from 'node:path';
+
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { resolve } from 'node:path';
 
 @Injectable()
 export class SourceConfigService {

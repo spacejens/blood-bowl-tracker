@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
 import { is } from 'drizzle-orm';
 import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
-import * as schema from './index';
+import { describe, expect, it } from 'vitest';
+
 import { historyRegistry } from './history';
+import * as schema from './index';
 
 function isPgTable(value: unknown): value is PgTable {
   return is(value, PgTable);

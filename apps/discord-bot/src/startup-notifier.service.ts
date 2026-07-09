@@ -1,7 +1,8 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import { StatsSummaryService } from './insights/stats-summary.service';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+
 import { DiscordBotConfigService } from './discord-bot-config.service';
+import { StatsSummaryService } from './insights/stats-summary.service';
 
 @Injectable()
 export class StartupNotifierService implements OnApplicationBootstrap {

@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  LeaguesImportService,
   ExternalSystemsImportService,
+  LeaguesImportService,
   makeImportError,
   makeImportResult,
 } from '@blood-bowl-tracker/import';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import { Injectable } from '@nestjs/common';
+
 import {
   BBL_EXTERNAL_SYSTEM_NAME,
   NAME_EXTERNAL_SYSTEM_NAME,

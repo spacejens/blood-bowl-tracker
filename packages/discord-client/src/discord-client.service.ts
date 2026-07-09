@@ -5,8 +5,8 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { Client, GatewayIntentBits } from 'discord.js';
 import type { Interaction } from 'discord.js';
+import { Client, GatewayIntentBits } from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 

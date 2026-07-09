@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Inject, Injectable } from '@nestjs/common';
+
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 

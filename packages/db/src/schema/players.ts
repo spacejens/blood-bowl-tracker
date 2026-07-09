@@ -1,8 +1,9 @@
-import { serial, varchar, integer } from 'drizzle-orm/pg-core';
+import { integer, serial, varchar } from 'drizzle-orm/pg-core';
+
+import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 import { positions } from './positions';
 import { teamEras } from './team-eras';
-import { historyTrackedTable } from './history';
 
 const playersTable = historyTrackedTable(gameData, 'players', {
   id: serial('id').primaryKey(),

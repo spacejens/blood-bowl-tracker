@@ -1,14 +1,15 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import {
+  coaches,
+  competitions,
+  DB,
+  matches,
+  teams,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { count, eq } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
-import {
-  DB,
-  coaches,
-  teams,
-  matches,
-  competitions,
-} from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
+
 import {
   DATABASE_TIMEOUT_FALLBACK_MESSAGE,
   withDatabaseTimeout,

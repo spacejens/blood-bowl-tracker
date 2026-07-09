@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { load } from 'cheerio';
-import { CoachPageParser } from './coach-page-parser';
+import { describe, expect, it } from 'vitest';
+
 import type { BblPage } from '../source/bbl-page';
+import { CoachPageParser } from './coach-page-parser';
 
 function teamPage(html: string): BblPage {
   return { type: 'tm', params: { t: 'x' }, load: () => load(html) };

@@ -1,9 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import type { ApiClient } from '@blood-bowl-tracker/api-client';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
+import { describe, expect, it, vi } from 'vitest';
+
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportRunnerService } from './import-runner.service';
-import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { ApiClient } from '@blood-bowl-tracker/api-client';
 
 describe('ExternalSystemsImportService', () => {
   it('returns the id from the client on success', async () => {

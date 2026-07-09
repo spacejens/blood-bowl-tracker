@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
+import { describe, expect, it } from 'vitest';
+
 import { LeagueConfigService } from './league-config.service';
 
 function makeService(value: string | undefined): LeagueConfigService {

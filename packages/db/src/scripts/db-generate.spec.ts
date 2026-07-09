@@ -1,14 +1,17 @@
-import { describe, expect, it, afterEach } from 'vitest';
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+import { afterEach, describe, expect, it } from 'vitest';
+
 import {
-  buildTriggerSql,
   buildDeferrableHistoryFkSql,
+  buildTriggerSql,
+  buildTypeConflictComment,
   findHistorySelfFkConstraintName,
   findNewHistoryTables,
   findTypeConflicts,
-  buildTypeConflictComment,
+  hasMigrationName,
 } from './db-generate.js';
 
 describe('findHistorySelfFkConstraintName', () => {
@@ -257,5 +260,40 @@ describe('buildTypeConflictComment', () => {
     expect(comment).toContain('bigint');
     expect(comment).toContain('coaches_history');
     expect(comment.startsWith('-- ')).toBe(true);
+  });
+});
+
+describe('hasMigrationName', () => {
+  it('accepts --name followed by a value', () => {
+    expect(hasMigrationName(['--name', 'add_players_table'])).toBe(true);
+  });
+
+  it('accepts --name=value', () => {
+    expect(hasMigrationName(['--name=add_players_table'])).toBe(true);
+  });
+
+  it('accepts --name among other passthrough args', () => {
+    expect(hasMigrationName(['--config', 'x', '--name', 'add_players'])).toBe(
+      true,
+    );
+  });
+
+  it('rejects args with no --name at all', () => {
+    expect(hasMigrationName([])).toBe(false);
+    expect(hasMigrationName(['--config', 'drizzle.config.ts'])).toBe(false);
+  });
+
+  it('rejects --name with a missing value', () => {
+    expect(hasMigrationName(['--name'])).toBe(false);
+  });
+
+  it('rejects --name followed by another flag instead of a value', () => {
+    expect(hasMigrationName(['--name', '--config'])).toBe(false);
+  });
+
+  it('rejects an empty --name value', () => {
+    expect(hasMigrationName(['--name', ''])).toBe(false);
+    expect(hasMigrationName(['--name', '   '])).toBe(false);
+    expect(hasMigrationName(['--name='])).toBe(false);
   });
 });

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
 
 describe('set_updated_at trigger function', () => {
   it('sets NEW.updated_at to now() and returns NEW', () => {

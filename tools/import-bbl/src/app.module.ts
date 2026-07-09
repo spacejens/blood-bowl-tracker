@@ -1,12 +1,13 @@
+import {
+  ApiClientConfigService,
+  ApiClientModule,
+} from '@blood-bowl-tracker/api-client';
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import {
-  ApiClientModule,
-  ApiClientConfigService,
-} from '@blood-bowl-tracker/api-client';
+
 import { CoachesModule } from './coaches/coaches.module';
-import { RacesModule } from './races/races.module';
 import { LeaguesModule } from './leagues/leagues.module';
+import { RacesModule } from './races/races.module';
 
 @Module({})
 export class AppModule {

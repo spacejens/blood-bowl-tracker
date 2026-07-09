@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+
+import { Injectable } from '@nestjs/common';
 import { load } from 'cheerio';
-import { SourceConfigService } from './source-config.service';
-import { parsePageFilename } from './bbl-page';
+
 import type { BblPage } from './bbl-page';
+import { parsePageFilename } from './bbl-page';
+import { SourceConfigService } from './source-config.service';
 
 @Injectable()
 export class BblSourceReader {

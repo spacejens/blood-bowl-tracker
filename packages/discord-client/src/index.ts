@@ -1,10 +1,10 @@
-export { DiscordClientModule } from './discord-client.module';
 export type {
-  DiscordClientModuleOptions,
   DiscordClientModuleAsyncOptions,
+  DiscordClientModuleOptions,
 } from './discord-client.module';
-export {
-  DiscordClientService,
-  DISCORD_BOT_TOKEN,
-} from './discord-client.service';
+export { DiscordClientModule } from './discord-client.module';
 export type { SlashCommandDefinition } from './discord-client.service';
+export {
+  DISCORD_BOT_TOKEN,
+  DiscordClientService,
+} from './discord-client.service';

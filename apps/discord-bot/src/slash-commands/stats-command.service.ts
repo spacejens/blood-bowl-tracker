@@ -1,5 +1,6 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+
 import { StatsSummaryService } from '../insights/stats-summary.service';
 
 @Injectable()

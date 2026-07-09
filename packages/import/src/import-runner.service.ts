@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { makeImportError } from './types';
+
 import type { ImportError } from './types';
+import { makeImportError } from './types';
 
 @Injectable()
 export class ImportRunnerService {

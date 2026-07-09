@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
 import { resolve } from 'node:path';
+
 import type { ConfigService } from '@nestjs/config';
+import { describe, expect, it } from 'vitest';
+
 import { SourceConfigService } from './source-config.service';
 
 function makeService(value: string | undefined): SourceConfigService {

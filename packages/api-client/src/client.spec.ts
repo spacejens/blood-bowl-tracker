@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
 import { Test } from '@nestjs/testing';
-import { createApiClient } from './client';
-import type { ApiClient } from './client';
-import { ApiClientModule, API_CLIENT } from './api-client.module';
+import { describe, expect, it } from 'vitest';
+
+import { API_CLIENT, ApiClientModule } from './api-client.module';
 import { ApiClientConfigService } from './api-client-config.service';
+import type { ApiClient } from './client';
+import { createApiClient } from './client';
 
 describe('createApiClient', () => {
   it('creates a client with coaches and externalSystems', () => {

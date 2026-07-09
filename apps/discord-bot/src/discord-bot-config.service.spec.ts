@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { ConfigService } from '@nestjs/config';
+import { describe, expect, it } from 'vitest';
+
 import { DiscordBotConfigService } from './discord-bot-config.service';
 
 describe('DiscordBotConfigService', () => {

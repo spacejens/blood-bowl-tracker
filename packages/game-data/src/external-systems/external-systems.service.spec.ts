@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
-import { ExternalSystemsService } from './external-systems.service';
 import { DB } from '@blood-bowl-tracker/db';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ExternalSystemsService } from './external-systems.service';
 
 const fakeSystem = {
   id: 1,

@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { StartupNotifierService } from './startup-notifier.service';
 import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import type { StatsSummaryService } from './insights/stats-summary.service';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { DiscordBotConfigService } from './discord-bot-config.service';
+import type { StatsSummaryService } from './insights/stats-summary.service';
+import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {
   let discordClient: { sendMessage: ReturnType<typeof vi.fn> };

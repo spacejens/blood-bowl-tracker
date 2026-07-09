@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import { ConfigService } from '@nestjs/config';
+import { describe, expect, it } from 'vitest';
+
 import { ApiClientConfigService } from './api-client-config.service';
 
 describe('ApiClientConfigService', () => {

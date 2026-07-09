@@ -1,11 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+
 import type {
   CoachesService,
   ExternalSystemsService,
   LeaguesService,
   RacesService,
 } from '@blood-bowl-tracker/game-data';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleMock = vi.fn();
 

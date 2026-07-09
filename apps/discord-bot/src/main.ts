@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+
 import { AppModule } from './app.module';
 import { DiscordBotConfigService } from './discord-bot-config.service';
 

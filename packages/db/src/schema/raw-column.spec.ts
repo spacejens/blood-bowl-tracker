@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import { getTableConfig, pgTable } from 'drizzle-orm/pg-core';
+import { describe, expect, it } from 'vitest';
+
 import { rawColumn } from './raw-column';
 
 describe('rawColumn', () => {

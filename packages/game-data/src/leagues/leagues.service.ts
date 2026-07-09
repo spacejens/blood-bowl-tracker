@@ -1,9 +1,9 @@
+import type { League } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
+import { leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
-import { leagues, leagueExternalIds } from '@blood-bowl-tracker/db';
-import type { League } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
 
 export class LeagueUpsertConflictError extends Error {}
 
