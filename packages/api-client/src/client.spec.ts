@@ -63,9 +63,11 @@ describe('createApiClient', () => {
     const client = createApiClient('http://localhost:3000');
     expect(Object.keys(client).sort()).toEqual([
       'coaches',
+      'eras',
       'externalSystems',
       'leagues',
       'races',
+      'rulesSets',
     ]);
   });
 });
