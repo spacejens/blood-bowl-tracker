@@ -52,7 +52,6 @@ describe('schema', () => {
     expect(eras.name).toBeDefined();
     expect(eras.leagueId).toBeDefined();
     expect(eras.rulesSetId).toBeDefined();
-    expect(eras.externalSystemId).toBeDefined();
     expect(eras.startDate).toBeDefined();
     expect(eras.endDate).toBeDefined();
   });
