@@ -34,4 +34,18 @@ export class ImportRunnerService {
       return false;
     }
   }
+
+  async recordUpsertResult<T>(
+    upsert: () => Promise<T>,
+    item: unknown,
+    errors: ImportError[],
+    buildErrorMessage: (error: unknown) => string,
+  ): Promise<T | undefined> {
+    try {
+      return await upsert();
+    } catch (err) {
+      errors.push(makeImportError({ item, message: buildErrorMessage(err) }));
+      return undefined;
+    }
+  }
 }
