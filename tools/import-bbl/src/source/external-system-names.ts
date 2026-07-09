@@ -1,8 +1,7 @@
 /**
- * Names of the two external systems every BBL data-type importer registers
- * records under: BBL (canonical) and Name (cross-tool matching by exact
- * name). Shared across data types (coaches, leagues, ...) so they stay in
- * sync.
+ * Name of the cross-tool external system every BBL data-type importer also
+ * registers records under: Name (matching by exact name). The canonical BBL
+ * external system's name is configurable and resolved at runtime by
+ * ExternalSystemNameConfigService, not hardcoded here.
  */
-export const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
 export const NAME_EXTERNAL_SYSTEM_NAME = 'Name';
