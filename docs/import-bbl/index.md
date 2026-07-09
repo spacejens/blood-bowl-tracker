@@ -18,6 +18,12 @@ tool directory, or exported in your shell:
   mirror covers a single league whose name is not present in the data, so it is
   supplied here. Used as the league's external ID under both the `BBL` and
   `Name` external systems.
+- `BBL_ERAS` — a JSON array describing the eras the league played through. Each
+  entry has `name`, `rulesSet` (the rules set's name), `startDate` (required,
+  ISO `YYYY-MM-DD`), and `endDate` (optional — omit for an era still ongoing).
+  Rules sets and eras are not present in the source data, so they are supplied
+  here. Each era's rules set name and each era name are used as external IDs
+  under both the `BBL` and `Name` external systems.
 - `API_BASE_URL` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
@@ -65,6 +71,13 @@ Re-running is always safe and fills any gaps left by transient failures.
 - **Leagues** — a single league from the `BBL_LEAGUE_NAME` config value (not
   parsed from the data). Keyed by that name under the `BBL` and `Name` external
   systems. Imported before coaches, as the foundational entity.
+- **Rules sets** — the distinct `rulesSet` names across the `BBL_ERAS` config
+  (not parsed from the data). Keyed by that name under the `BBL` and `Name`
+  external systems. Imported after the league.
+- **Eras** — from the `BBL_ERAS` config (not parsed from the data). Each era
+  references its league and its rules set (both imported first) and carries a
+  `startDate` and optional `endDate`. Keyed by the era name under the `BBL` and
+  `Name` external systems. Imported after rules sets.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the `BBL`
   and `Name` external systems.
 - **Races** — from team pages (`p=tm`). Keyed by their numeric BBL id (taken
