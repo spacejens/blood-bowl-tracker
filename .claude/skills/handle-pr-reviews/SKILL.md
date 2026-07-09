@@ -137,7 +137,28 @@ Skip this phase if no fix commits were made in Phase 2.
 
 ### Phase 4: Push
 
-Skip this phase if no commits were made in Phase 2. Otherwise, push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
+Skip this phase if no commits were made in Phase 2.
+
+Before pushing, run the **pre-push main-checkout check**: verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
+
+- Locate the main checkout root:
+  ```bash
+  MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+  ```
+  If `MAIN_ROOT` equals the current worktree root (`git rev-parse --show-toplevel`), work is happening in place — **skip this check**.
+- Inspect the main checkout's checked-out branch for stray work:
+  ```bash
+  git -C "$MAIN_ROOT" status --porcelain
+  git -C "$MAIN_ROOT" log --oneline @{u}..HEAD 2>/dev/null
+  ```
+- For each stray item, decide whether it is **already part of this worktree's work**:
+  - **Uncommitted edit on main** — the same content is already committed on the worktree branch (restoring the file on main would lose nothing). Compare the main checkout's working-tree content for the affected paths against the worktree branch's committed content.
+  - **Committed on main** — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
+- Act on each item:
+  - **Already in the worktree** → safe to clean up on main automatically: `git -C "$MAIN_ROOT" restore <paths>` (or `git -C "$MAIN_ROOT" checkout -- <paths>`) for uncommitted edits, and reset the redundant stray commits. Report what was cleaned.
+  - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
+
+Then push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:
 ```bash
 git push
 ```
