@@ -8,6 +8,10 @@ See `README.md` for a description of what this project is and how the repository
 
 After making any change requested by the user, create a git commit with a message explaining what was changed and why.
 
+### Keeping a branch in sync with main
+
+When a feature branch needs to catch up with `main` during development, **merge** `main` into the branch (`git merge origin/main`) — do not rebase. Rebasing rewrites commit SHAs, which invalidates the SHA references already posted in PR review threads (a workflow this repo relies on — see `handle-pr-reviews`) and forces a force-push. If a developer explicitly asks Claude to rebase a branch onto `main` instead of merging, confirm that deviation via `AskUserQuestion` before doing it, calling out that it invalidates existing review-thread SHA references and requires a force-push. This is separate from how PRs land on `main` — those continue to merge via GitHub's merge-commit button, unchanged.
+
 ### Worktree discipline
 
 When work is happening inside a git worktree, **every file edit and git commit must land inside that worktree** — never in the main checkout or another worktree. A stray edit or commit in the main checkout dirties it and breaks running multiple `develop-feature` instances in parallel (the whole reason worktrees are used here).
