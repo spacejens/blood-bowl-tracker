@@ -105,9 +105,9 @@ describe('BblLeaguesImportService', () => {
     const result = await service.importLeague();
 
     expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('BBL_LEAGUE_NAME'))).toBe(
-      true,
-    );
+    expect(
+      result.errors.some((e) => e.message.includes('BBL_LEAGUE_NAME')),
+    ).toBe(true);
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 
