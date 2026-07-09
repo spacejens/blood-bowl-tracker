@@ -1,0 +1,177 @@
+import type {
+  ErasImportService,
+  ExternalSystemsImportService,
+} from '@blood-bowl-tracker/import';
+import { describe, expect, it, vi } from 'vitest';
+
+import { BblErasImportService } from './bbl-eras-import.service';
+import type { EraConfig, EraConfigService } from './era-config.service';
+
+function makeService(
+  getEras: () => EraConfig[],
+  upsertExternalSystem: ReturnType<typeof vi.fn>,
+  upsertEra: ReturnType<typeof vi.fn>,
+) {
+  return new BblErasImportService(
+    { getEras } as unknown as EraConfigService,
+    { upsertEra } as unknown as ErasImportService,
+    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+  );
+}
+
+const eras: EraConfig[] = [
+  {
+    name: 'Living rulebook',
+    rulesSet: 'Living rulebook',
+    startDate: '2011-09-09',
+    endDate: '2021-09-01',
+  },
+  { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01' },
+];
+
+const rulesSetIds = new Map<string, number>([
+  ['Living rulebook', 100],
+  ['BB2020', 200],
+]);
+
+describe('BblErasImportService', () => {
+  it('upserts each era referencing the league id and its rules set id', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn().mockResolvedValue(true);
+    const service = makeService(() => eras, upsertExternalSystem, upsertEra);
+
+    const result = await service.importEras(10, rulesSetIds);
+
+    expect(result.imported).toBe(2);
+    expect(result.success).toBe(true);
+    expect(upsertEra).toHaveBeenNthCalledWith(
+      1,
+      {
+        name: 'Living rulebook',
+        leagueId: 10,
+        rulesSetId: 100,
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        externalIds: [
+          { externalSystemId: 1, externalId: 'Living rulebook' },
+          { externalSystemId: 2, externalId: 'Living rulebook' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(upsertEra).toHaveBeenNthCalledWith(
+      2,
+      {
+        name: 'BB2020',
+        leagueId: 10,
+        rulesSetId: 200,
+        startDate: '2021-09-01',
+        endDate: undefined,
+        externalIds: [
+          { externalSystemId: 1, externalId: 'BB2020' },
+          { externalSystemId: 2, externalId: 'BB2020' },
+        ],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('records one error and imports nothing when the league id is missing', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn();
+    const service = makeService(() => eras, upsertExternalSystem, upsertEra);
+
+    const result = await service.importEras(undefined, rulesSetIds);
+
+    expect(result.success).toBe(false);
+    expect(result.imported).toBe(0);
+    expect(result.errors.some((e) => e.message.includes('league'))).toBe(true);
+    expect(upsertEra).not.toHaveBeenCalled();
+  });
+
+  it('skips an era whose rules set was not imported, recording an error', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn().mockResolvedValue(true);
+    const partialIds = new Map<string, number>([['Living rulebook', 100]]);
+    const service = makeService(() => eras, upsertExternalSystem, upsertEra);
+
+    const result = await service.importEras(10, partialIds);
+
+    expect(result.imported).toBe(1);
+    expect(result.success).toBe(false);
+    expect(upsertEra).toHaveBeenCalledTimes(1);
+    expect(
+      result.errors.some(
+        (e) => e.message.includes('BB2020') && e.message.includes('rules set'),
+      ),
+    ).toBe(true);
+  });
+
+  it('records an error when an era upsert fails', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi
+      .fn()
+      .mockImplementation((_data: unknown, errors: { message: string }[]) => {
+        errors.push({ message: 'era boom' });
+        return Promise.resolve(false);
+      });
+    const service = makeService(
+      () => [eras[1]],
+      upsertExternalSystem,
+      upsertEra,
+    );
+
+    const result = await service.importEras(10, rulesSetIds);
+
+    expect(result.imported).toBe(0);
+    expect(result.success).toBe(false);
+  });
+
+  it('records one error and imports nothing when BBL_ERAS is unset', async () => {
+    const upsertExternalSystem = vi.fn();
+    const upsertEra = vi.fn();
+    const service = makeService(
+      () => {
+        throw new Error('BBL_ERAS is not set.');
+      },
+      upsertExternalSystem,
+      upsertEra,
+    );
+
+    const result = await service.importEras(10, rulesSetIds);
+
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
+      true,
+    );
+    expect(upsertEra).not.toHaveBeenCalled();
+  });
+
+  it('records one error and imports nothing when an external system upsert fails', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockRejectedValue(new Error('Failed to upsert external system "BBL"'));
+    const upsertEra = vi.fn();
+    const service = makeService(() => eras, upsertExternalSystem, upsertEra);
+
+    const result = await service.importEras(10, rulesSetIds);
+
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some((e) => e.message.includes('external system')),
+    ).toBe(true);
+    expect(upsertEra).not.toHaveBeenCalled();
+  });
+});
