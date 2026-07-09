@@ -14,6 +14,10 @@ tool directory, or exported in your shell:
   directory (each `wget` download lands in its own subfolder). A relative path
   resolves against the current working directory. Ask the developer for the
   download if you don't have it.
+- `BBL_LEAGUE_NAME` — the name of the league the BBL data covers. The BBL data
+  mirror covers a single league whose name is not present in the data, so it is
+  supplied here. Used as the league's external ID under both the `BBL` and
+  `Name` external systems.
 - `API_BASE_URL` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
@@ -54,6 +58,9 @@ Re-running is always safe and fills any gaps left by transient failures.
 
 ## Data types
 
+- **Leagues** — a single league from the `BBL_LEAGUE_NAME` config value (not
+  parsed from the data). Keyed by that name under the `BBL` and `Name` external
+  systems. Imported before coaches, as the foundational entity.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the `BBL`
   and `Name` external systems.
 
