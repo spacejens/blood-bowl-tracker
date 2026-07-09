@@ -26,15 +26,28 @@ Most often triggered conversationally — when the developer says something like
    ```
    If either reports anything, ask the developer via `AskUserQuestion` with two genuine options: "Push as a follow-up PR" (commit any uncommitted changes, push the branch, open a new PR against the default branch) and "Discard" (the stranded work is not needed). Do not proceed to Phase 2 until this is resolved.
 
+   Then also check the **main checkout** (the repo's primary working tree, distinct from this worktree) for stray commits **and** uncommitted changes left behind by an accidental edit outside the worktree:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   if [ "$MAIN_ROOT" != "$(git rev-parse --show-toplevel)" ]; then
+     git -C "$MAIN_ROOT" status --porcelain
+     git -C "$MAIN_ROOT" log --oneline @{u}..HEAD 2>/dev/null
+   fi
+   ```
+   Apply the same logic as the pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main (`git -C "$MAIN_ROOT" restore <paths>`, reset redundant commits); if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
+
 ## Phase 2: Offer cleanup
 
-Each of the following is its own `AskUserQuestion` checkpoint — offer them in this order, each with two genuine options ("Yes, stop it"/"Leave it running" or equivalent), per this project's `AskUserQuestion` convention:
+Each of the following is its own `AskUserQuestion` checkpoint — offer them in this order, each with two or more genuine options ("Yes, stop it"/"Leave it running" or equivalent; the Docker checkpoint below offers three), per this project's `AskUserQuestion` convention:
 
 1. **Docker containers.** Check whether `postgres` and/or `discord-bot` (the fixed container names `deploy-local` uses) are currently running:
    ```bash
    docker ps -a --filter "name=^postgres$" --filter "name=^discord-bot$" --format '{{.Names}}\t{{.Status}}'
    ```
-   If either is `Up`, offer to stop them: `docker compose down`. Because `docker-compose.yml` uses fixed container names and a fixed `postgres_data` volume shared across every checkout and worktree of this repo (not one per piece of work), only offer to also delete the volume (`docker compose down -v`) if the developer explicitly confirms no other checkout or worktree still needs that data — never assume it's safe to delete automatically.
+   If either is `Up`, offer to stop them, and — because `docker-compose.yml` uses fixed container names and a fixed `postgres_data` volume **shared across every checkout and worktree** of this repo (not one per piece of work) — also offer whether to delete that volume. Detect worktree context the way the session already knows it (entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`). Present the choice via `AskUserQuestion` with genuine options — "Stop and delete volume" (`docker compose down -v`), "Stop, keep volume" (`docker compose down`), and "Leave running" — ordering the recommended option first per this project's `AskUserQuestion` convention:
+   - **Inside a worktree** → recommend **deleting** the volume (the database for this transient work is disposable; keep local Docker clean).
+   - **Outside a worktree** → recommend **keeping** the volume (protect the developer's long-lived default database).
+   Either way, note in the prompt that the volume is shared across checkouts so the developer can override the recommendation.
 2. **Worktree removal.** If this session entered the worktree via `EnterWorktree`, offer `ExitWorktree` with `action: "remove"`. Otherwise, offer `git worktree remove <path>`.
 3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1) with `git branch -d <branch>` (not `-D` — a merged branch is always safe to delete with the safe flag; if it somehow isn't fully merged locally, report the error and let the developer decide rather than forcing it).
 
