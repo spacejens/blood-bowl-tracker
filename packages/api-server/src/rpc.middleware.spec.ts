@@ -4,6 +4,7 @@ import type {
   CoachesService,
   ExternalSystemsService,
   LeaguesService,
+  RacesService,
 } from '@blood-bowl-tracker/game-data';
 
 const handleMock = vi.fn();
@@ -30,6 +31,7 @@ describe('RpcMiddleware', () => {
       {} as CoachesService,
       {} as ExternalSystemsService,
       {} as LeaguesService,
+      {} as RacesService,
     );
   });
 

@@ -5,6 +5,7 @@ import {
   CoachesService,
   ExternalSystemsService,
   LeaguesService,
+  RacesService,
 } from '@blood-bowl-tracker/game-data';
 import { buildRpcRouter } from './rpc-router';
 import type { IncomingMessage, ServerResponse } from 'node:http';
@@ -19,9 +20,15 @@ export class RpcMiddleware implements NestMiddleware {
     coachesService: CoachesService,
     externalSystemsService: ExternalSystemsService,
     leaguesService: LeaguesService,
+    racesService: RacesService,
   ) {
     this.handler = new RPCHandler(
-      buildRpcRouter(coachesService, externalSystemsService, leaguesService),
+      buildRpcRouter(
+        coachesService,
+        externalSystemsService,
+        leaguesService,
+        racesService,
+      ),
     );
   }
 
