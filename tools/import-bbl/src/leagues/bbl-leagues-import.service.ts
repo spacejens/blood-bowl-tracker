@@ -6,10 +6,11 @@ import {
   makeImportResult,
 } from '@blood-bowl-tracker/import';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  NAME_EXTERNAL_SYSTEM_NAME,
+} from '../source/external-system-names';
 import { LeagueConfigService } from './league-config.service';
-
-const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
-const NAME_EXTERNAL_SYSTEM_NAME = 'Name';
 
 @Injectable()
 export class BblLeaguesImportService {
