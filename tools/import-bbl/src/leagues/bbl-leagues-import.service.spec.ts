@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import type { LeagueConfigService } from './league-config.service';
 
@@ -12,11 +13,13 @@ function makeService(
   getLeagueName: () => string,
   upsertExternalSystem: ReturnType<typeof vi.fn>,
   upsertLeague: ReturnType<typeof vi.fn>,
+  getBblSystemName: () => string = () => 'BBL',
 ) {
   return new BblLeaguesImportService(
     { getLeagueName } as unknown as LeagueConfigService,
     { upsertLeague } as unknown as LeaguesImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
@@ -37,6 +40,25 @@ describe('BblLeaguesImportService', () => {
 
     expect(upsertExternalSystem).toHaveBeenCalledTimes(2);
     expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL');
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+  });
+
+  it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertLeague = vi.fn().mockResolvedValue(true);
+    const service = makeService(
+      () => 'Test League',
+      upsertExternalSystem,
+      upsertLeague,
+      () => 'MyLeague',
+    );
+
+    await service.importLeague();
+
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'MyLeague');
     expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
   });
 
