@@ -12,6 +12,7 @@ export * from './match-teams';
 export * from './matches';
 export * from './players';
 export * from './positions';
+export * from './race-external-ids';
 export * from './race-rules-sets';
 export * from './races';
 export * from './rules-sets';
