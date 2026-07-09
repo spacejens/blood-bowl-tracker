@@ -45,9 +45,9 @@ tool directory, or exported in your shell:
   coach from a team page; `BblCoachesImportService` streams team pages,
   deduplicates coaches by exact name, and upserts each through the API.
 - **RacesModule** — data-type extractor for races. `RacePageParser` reads a
-  race from a team page; `BblRacesImportService` streams team pages
-  (independently of the coaches walk), deduplicates races by exact name, and
-  upserts each through the API.
+  race's numeric BBL id and name from the race link on a team page;
+  `BblRacesImportService` streams team pages (independently of the coaches
+  walk), deduplicates races by id, and upserts each through the API.
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
@@ -67,8 +67,9 @@ Re-running is always safe and fills any gaps left by transient failures.
   systems. Imported before coaches, as the foundational entity.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the `BBL`
   and `Name` external systems.
-- **Races** — from team pages (`p=tm`). Keyed by exact name under the `BBL`
-  and `Name` external systems.
+- **Races** — from team pages (`p=tm`). Keyed by their numeric BBL id (taken
+  from the race link, `default.asp?p=tl#<id>`) under the `BBL` external system,
+  and by exact name under the `Name` external system.
 
 Imported records are matched across systems by external IDs (a coach, for
 example, carries `BBL` and `Name` external IDs); other imported game-data types

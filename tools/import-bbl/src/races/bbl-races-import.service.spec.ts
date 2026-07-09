@@ -9,11 +9,18 @@ import type { BblPage } from '../source/bbl-page';
 import { RacePageParser } from './race-page-parser';
 import { BblRacesImportService } from './bbl-races-import.service';
 
-/** A fake team page carrying its race name in params for the stub parser. */
-function page(raceName: string | null): BblPage {
+/**
+ * A fake team page carrying its race name and numeric BBL id in params for the
+ * stub parser. The id defaults to one derived from the name so distinct races
+ * get distinct ids; pass an explicit id to control it.
+ */
+function page(raceName: string | null, id?: string): BblPage {
   return {
     type: 'tm',
-    params: { race: raceName ?? '' },
+    params: {
+      race: raceName ?? '',
+      raceId: raceName ? (id ?? `id-${raceName}`) : '',
+    },
     load: () => {
       throw new Error('load() should not be called in this test');
     },
@@ -32,11 +39,11 @@ function makeReader(pages: BblPage[]): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-/** A parser that reads the race name straight from params.race. */
+/** A parser that reads the race id and name straight from the page params. */
 function makeParser(): RacePageParser {
   const parser = new RacePageParser();
   vi.spyOn(parser, 'extractRace').mockImplementation((p) =>
-    p.params.race ? { name: p.params.race } : null,
+    p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
   );
   return parser;
 }
@@ -74,14 +81,14 @@ describe('BblRacesImportService', () => {
     expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
   });
 
-  it('upserts each race with exact-name BBL and Name external IDs', async () => {
+  it('upserts each race with a numeric BBL external ID and a Name external ID', async () => {
     const upsertExternalSystem = vi
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertRace = vi.fn().mockResolvedValue(true);
     const service = makeService(
-      makeReader([page('Orc')]),
+      makeReader([page('Orc', '16')]),
       upsertExternalSystem,
       upsertRace,
     );
@@ -93,7 +100,7 @@ describe('BblRacesImportService', () => {
       {
         name: 'Orc',
         externalIds: [
-          { externalSystemId: 1, externalId: 'Orc' },
+          { externalSystemId: 1, externalId: '16' },
           { externalSystemId: 2, externalId: 'Orc' },
         ],
       },
@@ -101,14 +108,14 @@ describe('BblRacesImportService', () => {
     );
   });
 
-  it('deduplicates a race appearing on multiple team pages', async () => {
+  it('deduplicates a race (by id) appearing on multiple team pages', async () => {
     const upsertExternalSystem = vi
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertRace = vi.fn().mockResolvedValue(true);
     const service = makeService(
-      makeReader([page('Orc'), page('Orc'), page('Elf')]),
+      makeReader([page('Orc', '16'), page('Orc', '16'), page('Elf', '6')]),
       upsertExternalSystem,
       upsertRace,
     );
@@ -174,7 +181,7 @@ describe('BblRacesImportService', () => {
         throw new Error('bad page');
       })
       .mockImplementationOnce((p) =>
-        p.params.race ? { name: p.params.race } : null,
+        p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
       );
     const service = new BblRacesImportService(
       makeReader([page('Orc'), page('Elf')]),

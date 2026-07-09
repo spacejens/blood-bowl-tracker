@@ -25,9 +25,10 @@ export class BblRacesImportService {
   ) {}
 
   /**
-   * Import every race found on the BBL team pages. Races are keyed by their
-   * exact name under two external systems: BBL (canonical) and Name
-   * (cross-tool matching). Idempotent: re-running upserts existing races.
+   * Import every race found on the BBL team pages. Each race is keyed by its
+   * numeric BBL id under the BBL external system (canonical) and by its exact
+   * name under the Name external system (cross-tool matching). Idempotent:
+   * re-running upserts existing races.
    */
   async importRaces(): Promise<ImportResult> {
     let imported = 0;
@@ -61,16 +62,16 @@ export class BblRacesImportService {
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
       try {
         const race = this.racePageParser.extractRace(page);
-        if (!race || seen.has(race.name)) {
+        if (!race || seen.has(race.id)) {
           continue;
         }
-        seen.add(race.name);
+        seen.add(race.id);
 
         const success = await this.racesImport.upsertRace(
           {
             name: race.name,
             externalIds: [
-              { externalSystemId: bblSystemId, externalId: race.name },
+              { externalSystemId: bblSystemId, externalId: race.id },
               { externalSystemId: nameSystemId, externalId: race.name },
             ],
           },

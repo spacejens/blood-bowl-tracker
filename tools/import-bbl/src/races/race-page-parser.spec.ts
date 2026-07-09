@@ -10,21 +10,26 @@ function teamPage(html: string): BblPage {
 const parser = new RacePageParser();
 
 describe('RacePageParser', () => {
-  it('extracts the race name from a team page', () => {
+  it('extracts the numeric BBL id and name from the race link', () => {
     const page = teamPage(
       '<table><tr>' +
         '<td align="right">Race:</td>' +
-        '<td>&nbsp;<b><span>Orc</span></b></td>' +
+        '<td>&nbsp;<b><a href="default.asp?p=tl#16">Orc Team</a></b></td>' +
         '</tr></table>',
     );
-    expect(parser.extractRace(page)).toEqual({ name: 'Orc' });
+    expect(parser.extractRace(page)).toEqual({ id: '16', name: 'Orc Team' });
   });
 
   it('preserves the exact race name including casing and spacing', () => {
     const page = teamPage(
-      '<table><tr><td>Race:</td><td><b>Chaos Dwarf</b></td></tr></table>',
+      '<table><tr><td>Race:</td>' +
+        '<td><b><a href="default.asp?p=tl#3">Chaos Dwarf Team</a></b></td>' +
+        '</tr></table>',
     );
-    expect(parser.extractRace(page)).toEqual({ name: 'Chaos Dwarf' });
+    expect(parser.extractRace(page)).toEqual({
+      id: '3',
+      name: 'Chaos Dwarf Team',
+    });
   });
 
   it('returns null when there is no Race field', () => {
@@ -37,6 +42,13 @@ describe('RacePageParser', () => {
   it('returns null when the race value is empty', () => {
     const page = teamPage(
       '<table><tr><td>Race:</td><td>&nbsp;</td></tr></table>',
+    );
+    expect(parser.extractRace(page)).toBeNull();
+  });
+
+  it('returns null when the race has a name but no link to derive an id from', () => {
+    const page = teamPage(
+      '<table><tr><td>Race:</td><td><b>Orc Team</b></td></tr></table>',
     );
     expect(parser.extractRace(page)).toBeNull();
   });
