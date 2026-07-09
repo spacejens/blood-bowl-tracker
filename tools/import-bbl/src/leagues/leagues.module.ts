@@ -1,12 +1,12 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 
+import { SourceModule } from '../source/source.module';
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import { LeagueConfigService } from './league-config.service';
 
 @Module({
-  imports: [ImportModule, ConfigModule],
+  imports: [ImportModule, SourceModule],
   providers: [LeagueConfigService, BblLeaguesImportService],
   exports: [BblLeaguesImportService],
 })
