@@ -88,6 +88,7 @@ gh api graphql -f query='
                 line
                 body
                 author { login }
+                pullRequestReview { state }
               }
             }
           }
@@ -96,7 +97,7 @@ gh api graphql -f query='
     }
   }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR"
 ```
-A thread is **unhandled** if `isResolved` is `false` and its last comment's `body` does not start with `**Comment by Claude**`.
+A thread is **unhandled** if `isResolved` is `false`, its last comment's `body` does not start with `**Comment by Claude**`, **and** that last comment does not belong to a review whose `pullRequestReview.state` is `PENDING`. A pending comment belongs to a review the author has started but not yet submitted; such comments are ignored entirely — treated as if they don't exist for discovery — **even when authored by the current user**. This gives the developer a chance to finish editing before the review is submitted, and avoids posting replies against an unsubmitted review (Claude posts through the developer's own authenticated `gh` account, so author login can't distinguish these). Only inline review comments have a pending state; the top-level PR comments below post immediately and have no pending state, so their discovery rule is unchanged.
 
 **Top-level PR comments** — list the PR's conversation comments (PRs share the issue-comments endpoint):
 ```bash
