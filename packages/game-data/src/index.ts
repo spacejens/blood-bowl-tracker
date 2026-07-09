@@ -4,6 +4,9 @@ export {
   CoachesService,
   CoachUpsertConflictError,
 } from './coaches/coaches.service';
+export { ErasModule } from './eras/eras.module';
+export type { UpsertEraData } from './eras/eras.service';
+export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
 export { LeaguesModule } from './leagues/leagues.module';
