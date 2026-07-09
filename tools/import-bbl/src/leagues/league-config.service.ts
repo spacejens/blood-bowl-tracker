@@ -16,7 +16,7 @@ export class LeagueConfigService {
     if (!name) {
       throw new Error(
         'BBL_LEAGUE_NAME is not set. Set it to the name of the league the ' +
-          'BBL data covers (e.g. "The League of Extraordinary Gentlemen").',
+          'BBL data covers (e.g. "tLoEG").',
       );
     }
     return name;

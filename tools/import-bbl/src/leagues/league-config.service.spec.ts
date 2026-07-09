@@ -11,10 +11,8 @@ function makeService(value: string | undefined): LeagueConfigService {
 
 describe('LeagueConfigService', () => {
   it('returns the configured league name', () => {
-    const service = makeService('The League of Extraordinary Gentlemen');
-    expect(service.getLeagueName()).toBe(
-      'The League of Extraordinary Gentlemen',
-    );
+    const service = makeService('tLoEG');
+    expect(service.getLeagueName()).toBe('tLoEG');
   });
 
   it('throws when BBL_LEAGUE_NAME is not set', () => {

@@ -5,10 +5,10 @@ describe('league schemas', () => {
   it('LeagueSchema parses a valid league', () => {
     const parsed = LeagueSchema.parse({
       id: 1,
-      name: 'The League of Extraordinary Gentlemen',
+      name: 'tLoEG',
       createdAt: '2026-01-01T00:00:00.000Z',
     });
-    expect(parsed.name).toBe('The League of Extraordinary Gentlemen');
+    expect(parsed.name).toBe('tLoEG');
     expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
