@@ -4,11 +4,13 @@ import { buildRpcRouter } from './rpc-router';
 import {
   CoachUpsertConflictError,
   LeagueUpsertConflictError,
+  RaceUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import type {
   CoachesService,
   ExternalSystemsService,
   LeaguesService,
+  RacesService,
 } from '@blood-bowl-tracker/game-data';
 
 function makeServices() {
@@ -18,13 +20,18 @@ function makeServices() {
       upsert: vi.fn(),
     } as unknown as ExternalSystemsService,
     leaguesService: { upsert: vi.fn() } as unknown as LeaguesService,
+    racesService: { upsert: vi.fn() } as unknown as RacesService,
   };
 }
 
 describe('buildRpcRouter', () => {
   it('coaches.upsert returns the flat entity with a created flag', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
       created: true,
@@ -33,6 +40,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     const result = await call(router.coaches.upsert, {
@@ -49,8 +57,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
@@ -60,6 +72,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     await expect(
@@ -74,8 +87,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert rethrows errors that are not a conflict', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
@@ -83,6 +100,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     await expect(
@@ -94,8 +112,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('externalSystems.upsert returns the flat entity with a created flag', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (
       externalSystemsService.upsert as ReturnType<typeof vi.fn>
     ).mockResolvedValue({
@@ -106,6 +128,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     const result = await call(router.externalSystems.upsert, { name: 'BBL' });
@@ -119,8 +142,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert returns the flat entity with a created flag', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       league: {
         id: 1,
@@ -133,6 +160,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     const result = await call(router.leagues.upsert, {
@@ -149,8 +177,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new LeagueUpsertConflictError(
         'External IDs matched multiple existing leagues: 1, 2',
@@ -160,6 +192,7 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     await expect(
@@ -174,8 +207,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert rethrows errors that are not a conflict', async () => {
-    const { coachesService, externalSystemsService, leaguesService } =
-      makeServices();
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
@@ -183,11 +220,98 @@ describe('buildRpcRouter', () => {
       coachesService,
       externalSystemsService,
       leaguesService,
+      racesService,
     );
 
     await expect(
       call(router.leagues.upsert, {
         name: 'Test League',
+        externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+      }),
+    ).rejects.toThrow('db unavailable');
+  });
+
+  it('races.upsert returns the flat entity with a created flag', async () => {
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
+    (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+      race: { id: 1, name: 'Orc', createdAt: new Date('2026-01-01') },
+      created: true,
+    });
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    );
+
+    const result = await call(router.races.upsert, {
+      name: 'Orc',
+      externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+    });
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'Orc',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+  });
+
+  it('races.upsert throws CONFLICT when the service reports a conflict', async () => {
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
+    (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new RaceUpsertConflictError(
+        'External IDs matched multiple existing races: 1, 2',
+      ),
+    );
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    );
+
+    await expect(
+      call(router.races.upsert, {
+        name: 'Orc',
+        externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing races: 1, 2',
+    });
+  });
+
+  it('races.upsert rethrows errors that are not a conflict', async () => {
+    const {
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    } = makeServices();
+    (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('db unavailable'),
+    );
+    const router = buildRpcRouter(
+      coachesService,
+      externalSystemsService,
+      leaguesService,
+      racesService,
+    );
+
+    await expect(
+      call(router.races.upsert, {
+        name: 'Orc',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
       }),
     ).rejects.toThrow('db unavailable');

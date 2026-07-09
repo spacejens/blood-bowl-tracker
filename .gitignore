@@ -29,8 +29,9 @@ yarn-error.log*
 .tmp/
 tmp/
 
-# Local application data
-tools/import-bbl/data/
+# Local application data (a directory in the main checkout, a symlink in
+# worktrees — no trailing slash so both forms are ignored)
+tools/import-bbl/data
 
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans

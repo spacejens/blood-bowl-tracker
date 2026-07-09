@@ -3,15 +3,18 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   CoachUpsertConflictError,
   LeagueUpsertConflictError,
+  RaceUpsertConflictError,
   type CoachesService,
   type ExternalSystemsService,
   type LeaguesService,
+  type RacesService,
 } from '@blood-bowl-tracker/game-data';
 
 export function buildRpcRouter(
   coachesService: CoachesService,
   externalSystemsService: ExternalSystemsService,
   leaguesService: LeaguesService,
+  racesService: RacesService,
 ) {
   return {
     coaches: {
@@ -37,6 +40,21 @@ export function buildRpcRouter(
             return { ...league, created };
           } catch (err) {
             if (err instanceof LeagueUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    races: {
+      upsert: implement(contract.races.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { race, created } = await racesService.upsert(input);
+            return { ...race, created };
+          } catch (err) {
+            if (err instanceof RaceUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;

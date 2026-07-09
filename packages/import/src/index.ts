@@ -4,5 +4,7 @@ export { CoachesImportService } from './coaches-import.service';
 export type { UpsertCoachData } from './coaches-import.service';
 export { LeaguesImportService } from './leagues-import.service';
 export type { UpsertLeagueData } from './leagues-import.service';
+export { RacesImportService } from './races-import.service';
+export type { UpsertRaceData } from './races-import.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
