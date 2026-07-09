@@ -10,5 +10,8 @@ export {
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
 export type { UpsertLeagueData } from './leagues/leagues.service';
+export { RacesModule } from './races/races.module';
+export { RacesService, RaceUpsertConflictError } from './races/races.service';
+export type { UpsertRaceData } from './races/races.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
