@@ -7,6 +7,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page';
 import type { BblSourceReader } from '../source/bbl-source-reader';
+import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
 import { CoachPageParser } from './coach-page-parser';
 
@@ -46,12 +47,14 @@ function makeService(
   reader: BblSourceReader,
   upsertExternalSystem: ReturnType<typeof vi.fn>,
   upsertCoach: ReturnType<typeof vi.fn>,
+  getBblSystemName: () => string = () => 'BBL',
 ) {
   return new BblCoachesImportService(
     reader,
     makeParser(),
     { upsertCoach } as unknown as CoachesImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
@@ -72,6 +75,25 @@ describe('BblCoachesImportService', () => {
 
     expect(upsertExternalSystem).toHaveBeenCalledTimes(2);
     expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL');
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+  });
+
+  it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const service = makeService(
+      makeReader([page('Hugo E')]),
+      upsertExternalSystem,
+      upsertCoach,
+      () => 'MyLeague',
+    );
+
+    await service.importCoaches();
+
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'MyLeague');
     expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
   });
 
@@ -182,6 +204,9 @@ describe('BblCoachesImportService', () => {
       parser,
       { upsertCoach } as unknown as CoachesImportService,
       { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      {
+        getBblSystemName: () => 'BBL',
+      } as unknown as ExternalSystemNameConfigService,
     );
 
     const result = await service.importCoaches();
@@ -211,6 +236,9 @@ describe('BblCoachesImportService', () => {
       parser,
       { upsertCoach } as unknown as CoachesImportService,
       { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      {
+        getBblSystemName: () => 'BBL',
+      } as unknown as ExternalSystemNameConfigService,
     );
 
     const result = await service.importCoaches();

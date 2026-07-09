@@ -4,6 +4,7 @@ import type {
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblErasImportService } from './bbl-eras-import.service';
 import type { EraConfig, EraConfigService } from './era-config.service';
 
@@ -11,11 +12,13 @@ function makeService(
   getEras: () => EraConfig[],
   upsertExternalSystem: ReturnType<typeof vi.fn>,
   upsertEra: ReturnType<typeof vi.fn>,
+  getBblSystemName: () => string = () => 'BBL',
 ) {
   return new BblErasImportService(
     { getEras } as unknown as EraConfigService,
     { upsertEra } as unknown as ErasImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 

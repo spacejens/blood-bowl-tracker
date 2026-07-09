@@ -8,10 +8,8 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
-import {
-  BBL_EXTERNAL_SYSTEM_NAME,
-  NAME_EXTERNAL_SYSTEM_NAME,
-} from '../source/external-system-names';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { RacePageParser } from './race-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
@@ -23,6 +21,7 @@ export class BblRacesImportService {
     private readonly racePageParser: RacePageParser,
     private readonly racesImport: RacesImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -37,10 +36,10 @@ export class BblRacesImportService {
 
     let bblSystemId: number;
     let nameSystemId: number;
+    const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        BBL_EXTERNAL_SYSTEM_NAME,
-      );
+      bblSystemId =
+        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
       nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
         NAME_EXTERNAL_SYSTEM_NAME,
       );
@@ -48,10 +47,7 @@ export class BblRacesImportService {
       errors.push(
         makeImportError({
           item: {
-            externalSystems: [
-              BBL_EXTERNAL_SYSTEM_NAME,
-              NAME_EXTERNAL_SYSTEM_NAME,
-            ],
+            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
           },
           message: error instanceof Error ? error.message : String(error),
         }),

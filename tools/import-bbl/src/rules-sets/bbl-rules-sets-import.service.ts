@@ -8,10 +8,8 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
-import {
-  BBL_EXTERNAL_SYSTEM_NAME,
-  NAME_EXTERNAL_SYSTEM_NAME,
-} from '../source/external-system-names';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 
 @Injectable()
 export class BblRulesSetsImportService {
@@ -19,6 +17,7 @@ export class BblRulesSetsImportService {
     private readonly eraConfig: EraConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
   /**
@@ -39,11 +38,11 @@ export class BblRulesSetsImportService {
     let names: string[];
     let bblSystemId: number;
     let nameSystemId: number;
+    const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
       names = [...new Set(this.eraConfig.getEras().map((e) => e.rulesSet))];
-      bblSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        BBL_EXTERNAL_SYSTEM_NAME,
-      );
+      bblSystemId =
+        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
       nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
         NAME_EXTERNAL_SYSTEM_NAME,
       );
@@ -51,10 +50,7 @@ export class BblRulesSetsImportService {
       errors.push(
         makeImportError({
           item: {
-            externalSystems: [
-              BBL_EXTERNAL_SYSTEM_NAME,
-              NAME_EXTERNAL_SYSTEM_NAME,
-            ],
+            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
           },
           message: error instanceof Error ? error.message : String(error),
         }),

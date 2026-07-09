@@ -23,7 +23,12 @@ tool directory, or exported in your shell:
   ISO `YYYY-MM-DD`), and `endDate` (optional — omit for an era still ongoing).
   Rules sets and eras are not present in the source data, so they are supplied
   here. Each era's rules set name and each era name are used as external IDs
-  under both the `BBL` and `Name` external systems.
+  under both the configured BBL external system and the `Name` external
+  system.
+- `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
+  records are registered under (the canonical external system for imported
+  leagues, rules sets, eras, coaches, and races). Defaults to `BBL` if unset or
+  empty, so most deployments can leave it out.
 - `API_BASE_URL` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
@@ -69,24 +74,29 @@ Re-running is always safe and fills any gaps left by transient failures.
 ## Data types
 
 - **Leagues** — a single league from the `BBL_LEAGUE_NAME` config value (not
-  parsed from the data). Keyed by that name under the `BBL` and `Name` external
-  systems. Imported before coaches, as the foundational entity.
+  parsed from the data). Keyed by that name under the configured BBL external
+  system (`BBL` by default) and the `Name` external system. Imported before
+  coaches, as the foundational entity.
 - **Rules sets** — the distinct `rulesSet` names across the `BBL_ERAS` config
-  (not parsed from the data). Keyed by that name under the `BBL` and `Name`
-  external systems. Imported after the league.
+  (not parsed from the data). Keyed by that name under the configured BBL
+  external system and the `Name` external system. Imported after the league.
 - **Eras** — from the `BBL_ERAS` config (not parsed from the data). Each era
   references its league and its rules set (both imported first) and carries a
-  `startDate` and optional `endDate`. Keyed by the era name under the `BBL` and
-  `Name` external systems. Imported after rules sets.
-- **Coaches** — from team pages (`p=tm`). Keyed by exact name under the `BBL`
-  and `Name` external systems.
+  `startDate` and optional `endDate`. Keyed by the era name under the
+  configured BBL external system and the `Name` external system. Imported
+  after rules sets.
+- **Coaches** — from team pages (`p=tm`). Keyed by exact name under the
+  configured BBL external system (`BBL` by default) and the `Name` external
+  system.
 - **Races** — from team pages (`p=tm`). Keyed by their numeric BBL id (taken
-  from the race link, `default.asp?p=tl#<id>`) under the `BBL` external system,
-  and by exact name under the `Name` external system.
+  from the race link, `default.asp?p=tl#<id>`) under the configured BBL
+  external system (`BBL` by default), and by exact name under the `Name`
+  external system.
 
 Imported records are matched across systems by external IDs (a coach, for
-example, carries `BBL` and `Name` external IDs); other imported game-data types
-carry external IDs in the same way.
+example, carries an external ID under the configured BBL external system and
+another under `Name`); other imported game-data types carry external IDs in
+the same way.
 
 See also:
 

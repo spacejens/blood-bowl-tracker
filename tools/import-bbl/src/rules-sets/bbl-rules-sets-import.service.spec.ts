@@ -5,17 +5,20 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
+import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblRulesSetsImportService } from './bbl-rules-sets-import.service';
 
 function makeService(
   getEras: () => EraConfig[],
   upsertExternalSystem: ReturnType<typeof vi.fn>,
   upsertRulesSet: ReturnType<typeof vi.fn>,
+  getBblSystemName: () => string = () => 'BBL',
 ) {
   return new BblRulesSetsImportService(
     { getEras } as unknown as EraConfigService,
     { upsertRulesSet } as unknown as RulesSetsImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
