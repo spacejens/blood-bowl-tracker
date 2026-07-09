@@ -180,10 +180,35 @@ export function buildDeferrableHistoryFkSql(
   return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
 }
 
+export function hasMigrationName(args: string[]): boolean {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--name') {
+      const value = args[i + 1];
+      return (
+        value !== undefined && !value.startsWith('--') && value.trim() !== ''
+      );
+    }
+    if (arg.startsWith('--name=')) {
+      return arg.slice('--name='.length).trim() !== '';
+    }
+  }
+  return false;
+}
+
 function main() {
+  const passthroughArgs = process.argv.slice(2);
+  if (!hasMigrationName(passthroughArgs)) {
+    console.error(
+      'db:generate requires a descriptive migration name.\n' +
+        'Pass one with --name, e.g.: pnpm db:generate --name add_players_table',
+    );
+    process.exit(1);
+  }
+
   const before = new Set(listMigrationFolders());
 
-  execFileSync('drizzle-kit', ['generate', ...process.argv.slice(2)], {
+  execFileSync('drizzle-kit', ['generate', ...passthroughArgs], {
     cwd: packageRoot,
     stdio: 'inherit',
   });
