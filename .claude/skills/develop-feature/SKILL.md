@@ -67,7 +67,11 @@ This applies to every subagent dispatched from any phase below while working in 
    - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
 5. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
-6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
+   ```bash
+   git branch -m worktree-<confirmed-name> <confirmed-name>
+   ```
+   `<confirmed-name>` is the branch name confirmed with the developer in step 5 (e.g. `issue-66-development-process-improvements`). After renaming, verify the branch is now `<confirmed-name>` with no `worktree-` prefix (`git branch --show-current`) before continuing.
 7. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
@@ -94,7 +98,11 @@ This applies to every subagent dispatched from any phase below while working in 
 2. Determine the kind label — one or more of `feature`, `bug`, `development` — by judging from the provided text which clearly apply. More than one may apply; assign all that clearly do. If it's genuinely unclear, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options. Record the result — Phase 6 uses it when creating the PR. Nothing is applied to GitHub yet, since there is no issue or PR to attach a label to until Phase 6.
 3. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
    - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
-4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name
+4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
+   ```bash
+   git branch -m worktree-<confirmed-name> <confirmed-name>
+   ```
+   `<confirmed-name>` is the branch name confirmed with the developer in step 3 (e.g. `feature-add-player-stats-endpoint`). After renaming, verify the branch is now `<confirmed-name>` with no `worktree-` prefix (`git branch --show-current`) before continuing.
 5. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
@@ -165,7 +173,14 @@ This applies to every subagent dispatched from any phase below while working in 
 
 ### Phase 6: Integration
 
-1. **Pre-push check — no stray work in the main checkout.** Before `gh pr create` pushes the branch, verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
+1. **Sync with `main`.** Bring the branch up to date with `main` before pushing (merge, never rebase — see `CLAUDE.md` "Keeping a branch in sync with main"). This runs once here, right before the push — not per-commit, and not gated on first checking whether `main` moved (merging an up-to-date `main` is a harmless no-op).
+   ```bash
+   git fetch origin main
+   git merge origin/main
+   ```
+   - **Clean merge** (no conflicts): run `pnpm verify` from the repo root. If it fails, fix the regression the merge introduced, commit, and continue. If it passes, continue directly.
+   - **Conflict:** attempt an automated resolution — read both sides of each conflicting hunk, resolve, then run `pnpm verify`. If the correct resolution isn't clear from the diffs, or `pnpm verify` doesn't come back clean afterward, **stop**, report the conflicting files, and wait for the developer to resolve manually before continuing.
+2. **Pre-push check — no stray work in the main checkout.** Before `gh pr create` pushes the branch, verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
    - Locate the main checkout root:
      ```bash
      MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
@@ -182,7 +197,7 @@ This applies to every subagent dispatched from any phase below while working in 
    - Act on each item:
      - **Already in the worktree** → safe to clean up on main automatically: `git -C "$MAIN_ROOT" restore <paths>` (or `git -C "$MAIN_ROOT" checkout -- <paths>`) for uncommitted edits, and reset the redundant stray commits. Report what was cleaned.
      - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
-2. Create the PR using the appropriate command for the active mode:
+3. Create the PR using the appropriate command for the active mode:
 
    **Issue mode:**
    ```bash
@@ -214,5 +229,5 @@ This applies to every subagent dispatched from any phase below while working in 
    ```
    Use the kind label(s) recorded in Phase 1 step 2 — one `--label` flag per label.
 
-3. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
-4. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
+4. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
+5. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
