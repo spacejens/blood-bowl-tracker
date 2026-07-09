@@ -5,6 +5,7 @@ import {
   Logger,
   Module,
 } from '@nestjs/common';
+
 import { createDb } from './db';
 
 export const DB = Symbol('DB');

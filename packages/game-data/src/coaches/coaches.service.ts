@@ -1,9 +1,9 @@
+import type { Coach } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
+import { coaches, coachExternalIds } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
-import { coaches, coachExternalIds } from '@blood-bowl-tracker/db';
-import type { Coach } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
 
 export class CoachUpsertConflictError extends Error {}
 

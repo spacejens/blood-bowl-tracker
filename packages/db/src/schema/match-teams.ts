@@ -1,8 +1,9 @@
-import { serial, integer, unique } from 'drizzle-orm/pg-core';
-import { gameData } from './pg-schema';
-import { matches } from './matches';
-import { teamEras } from './team-eras';
+import { integer, serial, unique } from 'drizzle-orm/pg-core';
+
 import { historyTrackedTable } from './history';
+import { matches } from './matches';
+import { gameData } from './pg-schema';
+import { teamEras } from './team-eras';
 
 const matchTeamsTable = historyTrackedTable(
   gameData,

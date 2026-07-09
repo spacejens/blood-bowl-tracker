@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { LeagueSchema, UpsertLeagueSchema } from './league';
 
 describe('league schemas', () => {

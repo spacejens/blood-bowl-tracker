@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { NestFactory } from '@nestjs/core';
 import type { ImportResult } from '@blood-bowl-tracker/import';
+import { NestFactory } from '@nestjs/core';
+
 import { AppModule } from './app.module';
-import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
+import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 
 async function run(): Promise<ImportResult> {

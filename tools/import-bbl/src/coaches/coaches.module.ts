@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
 import { ImportModule } from '@blood-bowl-tracker/import';
+import { Module } from '@nestjs/common';
+
 import { SourceModule } from '../source/source.module';
-import { CoachPageParser } from './coach-page-parser';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
+import { CoachPageParser } from './coach-page-parser';
 
 @Module({
   imports: [ImportModule, SourceModule],

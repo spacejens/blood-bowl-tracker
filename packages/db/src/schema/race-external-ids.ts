@@ -1,6 +1,6 @@
+import { externalIdsTable } from './external-ids-table';
 import { gameData } from './pg-schema';
 import { races } from './races';
-import { externalIdsTable } from './external-ids-table';
 
 const raceExternalIdsTable = externalIdsTable(gameData, 'races_external_ids', {
   key: 'raceId',

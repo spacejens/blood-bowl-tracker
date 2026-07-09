@@ -1,15 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import {
   coaches,
-  competitionTeams,
-  competitions,
   coachExternalIds,
+  competitions,
+  competitionTeams,
   eras,
   externalSystems,
   leagues,
+  matches,
   matchEvents,
   matchTeams,
-  matches,
   players,
   positions,
   raceRulesSets,

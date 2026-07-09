@@ -1,9 +1,9 @@
+import type { ExternalSystem, NewExternalSystem } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
+import { externalSystems } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
-import { externalSystems } from '@blood-bowl-tracker/db';
-import type { ExternalSystem, NewExternalSystem } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
 
 @Injectable()
 export class ExternalSystemsService {

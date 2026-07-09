@@ -1,9 +1,10 @@
-import { serial, varchar, integer, date } from 'drizzle-orm/pg-core';
-import { gameData } from './pg-schema';
-import { leagues } from './leagues';
-import { rulesSets } from './rules-sets';
+import { date, integer, serial, varchar } from 'drizzle-orm/pg-core';
+
 import { externalSystems } from './external-systems';
 import { historyTrackedTable } from './history';
+import { leagues } from './leagues';
+import { gameData } from './pg-schema';
+import { rulesSets } from './rules-sets';
 
 const erasTable = historyTrackedTable(gameData, 'eras', {
   id: serial('id').primaryKey(),

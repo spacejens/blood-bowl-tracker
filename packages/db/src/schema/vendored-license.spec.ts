@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
 
 // Pinned checksum of the unmodified upstream nearform/temporal_tables
 // LICENSE file. If this test fails after an intentional upgrade, update

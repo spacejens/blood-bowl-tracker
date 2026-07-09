@@ -1,7 +1,8 @@
-import { describe, expect, expectTypeOf, it, beforeEach } from 'vitest';
 import { getTableConfig, integer, pgSchema } from 'drizzle-orm/pg-core';
-import { historyRegistry } from './history';
+import { beforeEach, describe, expect, expectTypeOf, it } from 'vitest';
+
 import { externalIdsTable } from './external-ids-table';
+import { historyRegistry } from './history';
 
 describe('externalIdsTable', () => {
   const testSchema = pgSchema('external_ids_test_schema');

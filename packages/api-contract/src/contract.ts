@@ -1,12 +1,13 @@
 import { oc } from '@orpc/contract';
 import { z } from 'zod';
+
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
-import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
-import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import {
   ExternalSystemSchema,
   UpsertExternalSystemSchema,
 } from './schemas/external-system';
+import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
+import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 
 export const contract = {
   coaches: {

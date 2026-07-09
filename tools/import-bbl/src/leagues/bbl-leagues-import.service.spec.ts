@@ -1,11 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
 import type {
-  LeaguesImportService,
   ExternalSystemsImportService,
   ImportError,
+  LeaguesImportService,
 } from '@blood-bowl-tracker/import';
-import type { LeagueConfigService } from './league-config.service';
+import { describe, expect, it, vi } from 'vitest';
+
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
+import type { LeagueConfigService } from './league-config.service';
 
 function makeService(
   getLeagueName: () => string,

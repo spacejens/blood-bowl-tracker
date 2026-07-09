@@ -1,7 +1,7 @@
+import { contract } from '@blood-bowl-tracker/api-contract';
 import { createORPCClient } from '@orpc/client';
 import { RPCLink } from '@orpc/client/fetch';
 import type { ContractRouterClient } from '@orpc/contract';
-import { contract } from '@blood-bowl-tracker/api-contract';
 
 type Client = ContractRouterClient<typeof contract>;
 

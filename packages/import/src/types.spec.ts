@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { makeImportResult, makeImportError } from './types';
+import { describe, expect, it } from 'vitest';
+
+import { makeImportError, makeImportResult } from './types';
 
 describe('makeImportResult', () => {
   it('creates a successful result', () => {

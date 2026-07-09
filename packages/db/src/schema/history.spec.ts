@@ -1,10 +1,11 @@
-import { describe, expect, it, beforeEach } from 'vitest';
 import {
   getTableConfig,
   integer,
   pgSchema,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { beforeEach, describe, expect, it } from 'vitest';
+
 import { historyRegistry, historyTrackedTable } from './history';
 
 describe('historyTrackedTable', () => {

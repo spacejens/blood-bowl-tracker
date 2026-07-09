@@ -1,13 +1,14 @@
-import { describe, it, expect, vi } from 'vitest';
 import type {
-  RacesImportService,
   ExternalSystemsImportService,
   ImportError,
+  RacesImportService,
 } from '@blood-bowl-tracker/import';
-import type { BblSourceReader } from '../source/bbl-source-reader';
+import { describe, expect, it, vi } from 'vitest';
+
 import type { BblPage } from '../source/bbl-page';
-import { RacePageParser } from './race-page-parser';
+import type { BblSourceReader } from '../source/bbl-source-reader';
 import { BblRacesImportService } from './bbl-races-import.service';
+import { RacePageParser } from './race-page-parser';
 
 /**
  * A fake team page carrying its race name and numeric BBL id in params for the

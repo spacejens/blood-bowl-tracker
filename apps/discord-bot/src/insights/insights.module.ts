@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+
 import { StatsSummaryService } from './stats-summary.service';
 
 @Module({

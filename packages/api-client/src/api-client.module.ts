@@ -1,7 +1,8 @@
 import { DynamicModule, FactoryProvider, Global, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { createApiClient } from './client';
+
 import { ApiClientConfigService } from './api-client-config.service';
+import { createApiClient } from './client';
 
 export const API_CLIENT = Symbol('API_CLIENT');
 const API_CLIENT_BASE_URL = Symbol('API_CLIENT_BASE_URL');

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+
 import { ExternalIdSchema } from './external-id';
 
 export const CoachSchema = z.object({

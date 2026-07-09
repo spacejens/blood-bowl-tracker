@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
-import { LeaguesService, LeagueUpsertConflictError } from './leagues.service';
 import { DB } from '@blood-bowl-tracker/db';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { LeaguesService, LeagueUpsertConflictError } from './leagues.service';
 
 const fakeLeague = {
   id: 1,

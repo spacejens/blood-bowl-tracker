@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+
 import type { ColumnShape } from './history-column-shape';
 
 interface SnapshotDdlEntry {

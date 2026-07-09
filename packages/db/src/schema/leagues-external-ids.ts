@@ -1,6 +1,6 @@
-import { gameData } from './pg-schema';
-import { leagues } from './leagues';
 import { externalIdsTable } from './external-ids-table';
+import { leagues } from './leagues';
+import { gameData } from './pg-schema';
 
 const leagueExternalIdsTable = externalIdsTable(
   gameData,

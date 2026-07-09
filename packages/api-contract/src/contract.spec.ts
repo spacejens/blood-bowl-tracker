@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
 import type { AnyContractProcedure } from '@orpc/contract';
+import { describe, expect, it } from 'vitest';
+
 import { contract } from './contract';
 import { UpsertCoachSchema } from './schemas/coach';
 

@@ -1,7 +1,8 @@
-import { serial, varchar, integer } from 'drizzle-orm/pg-core';
-import { gameData } from './pg-schema';
+import { integer, serial, varchar } from 'drizzle-orm/pg-core';
+
 import { eras } from './eras';
 import { historyTrackedTable } from './history';
+import { gameData } from './pg-schema';
 
 export const competitionTypeEnum = gameData.enum('competition_type', [
   'season',

@@ -1,10 +1,11 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { StatsCommandService } from './stats-command.service';
 import type {
   DiscordClientService,
   SlashCommandDefinition,
 } from '@blood-bowl-tracker/discord-client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 import type { StatsSummaryService } from '../insights/stats-summary.service';
+import { StatsCommandService } from './stats-command.service';
 
 describe('StatsCommandService', () => {
   let discordClient: { registerCommands: ReturnType<typeof vi.fn> };

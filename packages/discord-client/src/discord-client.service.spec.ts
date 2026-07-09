@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Test } from '@nestjs/testing';
 import { Logger } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface MockChannel {
   isSendable: ReturnType<typeof vi.fn>;

@@ -1,9 +1,9 @@
+import type { Race } from '@blood-bowl-tracker/db';
+import type { Db } from '@blood-bowl-tracker/db';
+import { raceExternalIds, races } from '@blood-bowl-tracker/db';
+import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
-import { races, raceExternalIds } from '@blood-bowl-tracker/db';
-import type { Race } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
 
 export class RaceUpsertConflictError extends Error {}
 

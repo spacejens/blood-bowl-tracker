@@ -1,4 +1,3 @@
-export * from './pg-schema';
 export * from './coach-external-ids';
 export * from './coaches';
 export * from './competition-teams';
@@ -10,6 +9,7 @@ export * from './leagues-external-ids';
 export * from './match-events';
 export * from './match-teams';
 export * from './matches';
+export * from './pg-schema';
 export * from './players';
 export * from './positions';
 export * from './race-external-ids';

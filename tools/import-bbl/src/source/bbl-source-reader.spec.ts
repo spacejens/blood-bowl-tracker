@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, writeFile, rm, mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import type { SourceConfigService } from './source-config.service';
-import { BblSourceReader } from './bbl-source-reader';
+import { join } from 'node:path';
+
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
 import type { BblPage } from './bbl-page';
+import { BblSourceReader } from './bbl-source-reader';
+import type { SourceConfigService } from './source-config.service';
 
 function makeReader(dir: string): BblSourceReader {
   return new BblSourceReader({

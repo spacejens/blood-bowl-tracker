@@ -1,9 +1,10 @@
+import { existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
-import { join } from 'node:path';
-import { readdirSync, existsSync } from 'node:fs';
-import { sql } from 'drizzle-orm';
 
 const migrationsFolder = join(__dirname, '../migrations');
 

@@ -1,15 +1,16 @@
-import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { ApiServerModule } from '@blood-bowl-tracker/api-server';
 import { DbModule } from '@blood-bowl-tracker/db';
 import { DiscordClientModule } from '@blood-bowl-tracker/discord-client';
-import { StartupNotifierService } from './startup-notifier.service';
-import { InsightsModule } from './insights/insights.module';
-import { SlashCommandsModule } from './slash-commands/slash-commands.module';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { DiscordBotConfigModule } from './discord-bot-config.module';
 import { DiscordBotConfigService } from './discord-bot-config.service';
+import { InsightsModule } from './insights/insights.module';
+import { SlashCommandsModule } from './slash-commands/slash-commands.module';
+import { StartupNotifierService } from './startup-notifier.service';
 
 @Module({
   imports: [
