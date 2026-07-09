@@ -5,6 +5,7 @@ import {
   ApiClientConfigService,
 } from '@blood-bowl-tracker/api-client';
 import { CoachesModule } from './coaches/coaches.module';
+import { LeaguesModule } from './leagues/leagues.module';
 
 @Module({})
 export class AppModule {
@@ -18,6 +19,7 @@ export class AppModule {
             config.getApiBaseUrl(),
           inject: [ApiClientConfigService],
         }),
+        LeaguesModule,
         CoachesModule,
       ],
     };
