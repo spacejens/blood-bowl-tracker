@@ -50,6 +50,7 @@ export class EraConfigService {
     } catch (error) {
       throw new Error(
         `BBL_ERAS is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error },
       );
     }
 
