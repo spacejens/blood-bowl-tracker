@@ -5,6 +5,7 @@ import type { ImportResult } from '@blood-bowl-tracker/import';
 import { AppModule } from './app.module';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
+import { BblRacesImportService } from './races/bbl-races-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -15,10 +16,17 @@ async function run(): Promise<ImportResult> {
     // imports will depend on.
     const leagueResult = await app.get(BblLeaguesImportService).importLeague();
     const coachResult = await app.get(BblCoachesImportService).importCoaches();
+    const raceResult = await app.get(BblRacesImportService).importRaces();
     return {
-      success: leagueResult.success && coachResult.success,
-      imported: leagueResult.imported + coachResult.imported,
-      errors: [...leagueResult.errors, ...coachResult.errors],
+      success:
+        leagueResult.success && coachResult.success && raceResult.success,
+      imported:
+        leagueResult.imported + coachResult.imported + raceResult.imported,
+      errors: [
+        ...leagueResult.errors,
+        ...coachResult.errors,
+        ...raceResult.errors,
+      ],
     };
   } finally {
     await app.close();
