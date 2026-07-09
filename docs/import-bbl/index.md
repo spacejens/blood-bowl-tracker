@@ -18,6 +18,10 @@ tool directory, or exported in your shell:
   mirror covers a single league whose name is not present in the data, so it is
   supplied here. Used as the league's external ID under both the `BBL` and
   `Name` external systems.
+- `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
+  records are registered under (the canonical external system for imported
+  leagues, coaches, and races). Defaults to `BBL` if unset or empty, so most
+  deployments can leave it out.
 - `API_BASE_URL` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
