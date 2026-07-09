@@ -27,7 +27,7 @@ export class BblLeaguesImportService {
    * external ID under two systems: BBL (canonical) and Name (cross-tool
    * matching). Idempotent: re-running upserts the existing league.
    */
-  async importLeague(): Promise<ImportResult> {
+  async importLeague(): Promise<{ result: ImportResult; leagueId?: number }> {
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -54,10 +54,10 @@ export class BblLeaguesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return { result: makeImportResult({ imported, errors }) };
     }
 
-    const success = await this.leaguesImport.upsertLeague(
+    const league = await this.leaguesImport.upsertLeague(
       {
         name,
         externalIds: [
@@ -67,10 +67,13 @@ export class BblLeaguesImportService {
       },
       errors,
     );
-    if (success) {
+    if (league) {
       imported += 1;
     }
 
-    return makeImportResult({ imported, errors });
+    return {
+      result: makeImportResult({ imported, errors }),
+      leagueId: league?.id,
+    };
   }
 }

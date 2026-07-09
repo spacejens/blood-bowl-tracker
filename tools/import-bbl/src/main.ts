@@ -15,16 +15,20 @@ async function run(): Promise<ImportResult> {
   try {
     // Leagues import first: the league is the foundational entity other
     // imports will depend on.
-    const leagueResult = await app.get(BblLeaguesImportService).importLeague();
+    const leagueOutcome = await app.get(BblLeaguesImportService).importLeague();
     const coachResult = await app.get(BblCoachesImportService).importCoaches();
     const raceResult = await app.get(BblRacesImportService).importRaces();
     return {
       success:
-        leagueResult.success && coachResult.success && raceResult.success,
+        leagueOutcome.result.success &&
+        coachResult.success &&
+        raceResult.success,
       imported:
-        leagueResult.imported + coachResult.imported + raceResult.imported,
+        leagueOutcome.result.imported +
+        coachResult.imported +
+        raceResult.imported,
       errors: [
-        ...leagueResult.errors,
+        ...leagueOutcome.result.errors,
         ...coachResult.errors,
         ...raceResult.errors,
       ],

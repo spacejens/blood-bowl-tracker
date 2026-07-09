@@ -17,11 +17,8 @@ export class LeaguesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertLeague(
-    data: UpsertLeagueData,
-    errors: ImportError[],
-  ): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertLeague(data: UpsertLeagueData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.leagues.upsert(data),
       data,
       errors,
