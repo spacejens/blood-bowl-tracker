@@ -3,6 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type {
   CoachesService,
   ExternalSystemsService,
+  LeaguesService,
 } from '@blood-bowl-tracker/game-data';
 
 const handleMock = vi.fn();
@@ -28,6 +29,7 @@ describe('RpcMiddleware', () => {
     middleware = new RpcMiddleware(
       {} as CoachesService,
       {} as ExternalSystemsService,
+      {} as LeaguesService,
     );
   });
 

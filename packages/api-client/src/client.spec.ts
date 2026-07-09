@@ -50,7 +50,11 @@ describe('createApiClient', () => {
 
   it('exposes only the contract routers', () => {
     const client = createApiClient('http://localhost:3000');
-    expect(Object.keys(client).sort()).toEqual(['coaches', 'externalSystems']);
+    expect(Object.keys(client).sort()).toEqual([
+      'coaches',
+      'externalSystems',
+      'leagues',
+    ]);
   });
 });
 

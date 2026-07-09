@@ -7,10 +7,12 @@ import {
 } from '@blood-bowl-tracker/import';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { BblSourceReader } from '../source/bbl-source-reader';
+import {
+  BBL_EXTERNAL_SYSTEM_NAME,
+  NAME_EXTERNAL_SYSTEM_NAME,
+} from '../source/external-system-names';
 import { CoachPageParser } from './coach-page-parser';
 
-const BBL_EXTERNAL_SYSTEM_NAME = 'BBL';
-const NAME_EXTERNAL_SYSTEM_NAME = 'Name';
 const TEAM_PAGE_TYPE = 'tm';
 
 @Injectable()

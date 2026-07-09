@@ -4,8 +4,8 @@ import { join } from 'node:path';
 import * as indexModule from './index';
 
 const schemasDir = join(__dirname, 'schemas');
-const schemaFiles = readdirSync(schemasDir).filter((file) =>
-  file.endsWith('.ts'),
+const schemaFiles = readdirSync(schemasDir).filter(
+  (file) => file.endsWith('.ts') && !file.endsWith('.spec.ts'),
 );
 
 describe('index', () => {
