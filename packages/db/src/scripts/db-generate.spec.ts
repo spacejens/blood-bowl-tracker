@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import {
   buildDeferrableHistoryFkSql,
+  buildNewHistoryTableConstraintsSql,
   buildTriggerSql,
   buildTypeConflictComment,
   findHistorySelfFkConstraintName,
@@ -52,7 +53,7 @@ describe('findHistorySelfFkConstraintName', () => {
 });
 
 describe('buildDeferrableHistoryFkSql', () => {
-  it('makes the history table’s self-referencing FK deferrable using the given constraint name', () => {
+  it('makes the history table\'s self-referencing FK deferrable using the given constraint name', () => {
     const result = buildDeferrableHistoryFkSql(
       'game_data',
       'coaches_external_ids',
@@ -354,7 +355,7 @@ describe('rewriteNewHistoryTableCreate', () => {
     );
   });
 
-  it('removes drizzle-kit’s generated self-FK statement and its breakpoint', () => {
+  it('removes drizzle-kit\'s generated self-FK statement and its breakpoint', () => {
     const sql =
       createBlock +
       '--> statement-breakpoint\n' +
@@ -385,5 +386,21 @@ describe('rewriteNewHistoryTableCreate', () => {
       'tournaments_external_ids',
     );
     expect(result).not.toContain('FOREIGN KEY ("id")');
+  });
+});
+
+describe('buildNewHistoryTableConstraintsSql', () => {
+  it('emits a PK on (id, history_version) and a deferrable self-FK', () => {
+    const result = buildNewHistoryTableConstraintsSql('game_data', 'coaches');
+    expect(result).toContain(
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+        '"coaches_history_pkey" PRIMARY KEY ("id", "history_version");',
+    );
+    expect(result).toContain(
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+        '"coaches_history_id_fkey" FOREIGN KEY ("id") REFERENCES ' +
+        '"game_data"."coaches"("id") DEFERRABLE INITIALLY DEFERRED;',
+    );
+    expect(result).toContain('--> statement-breakpoint');
   });
 });

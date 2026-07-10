@@ -180,6 +180,26 @@ export function buildDeferrableHistoryFkSql(
   return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
 }
 
+/**
+ * Builds the PK and self-referencing FK for a new history table created via
+ * LIKE (which copies neither). The FK is DEFERRABLE INITIALLY DEFERRED from
+ * the start so the versioning() BEFORE-INSERT trigger can write the history
+ * row before the tracked row exists at statement time; the check runs at
+ * commit. Constraint names are chosen here, not parsed from drizzle-kit SQL.
+ */
+export function buildNewHistoryTableConstraintsSql(
+  schemaName: string,
+  tableName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  const history = `"${schemaName}"."${historyTableName}"`;
+  const tracked = `"${schemaName}"."${tableName}"`;
+  return [
+    `ALTER TABLE ${history} ADD CONSTRAINT "${historyTableName}_pkey" PRIMARY KEY ("id", "history_version");`,
+    `ALTER TABLE ${history} ADD CONSTRAINT "${historyTableName}_id_fkey" FOREIGN KEY ("id") REFERENCES ${tracked}("id") DEFERRABLE INITIALLY DEFERRED;`,
+  ].join('\n--> statement-breakpoint\n');
+}
+
 export function hasMigrationName(args: string[]): boolean {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
