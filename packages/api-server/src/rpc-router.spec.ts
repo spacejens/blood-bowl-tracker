@@ -625,6 +625,7 @@ describe('buildRpcRouter', () => {
       services.rulesSetsService,
       services.erasService,
       services.positionsService,
+      services.teamsService,
     );
 
     const result = await call(router.positions.upsert, {
@@ -659,6 +660,7 @@ describe('buildRpcRouter', () => {
       services.rulesSetsService,
       services.erasService,
       services.positionsService,
+      services.teamsService,
     );
 
     await expect(
@@ -686,6 +688,7 @@ describe('buildRpcRouter', () => {
       services.rulesSetsService,
       services.erasService,
       services.positionsService,
+      services.teamsService,
     );
 
     await expect(
