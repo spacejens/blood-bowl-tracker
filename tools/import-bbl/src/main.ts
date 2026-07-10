@@ -7,6 +7,7 @@ import { AppModule } from './app.module';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
 import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
+import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
 
@@ -25,14 +26,18 @@ async function run(): Promise<ImportResult> {
       .get(BblErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
     const coachResult = await app.get(BblCoachesImportService).importCoaches();
-    const raceResult = await app.get(BblRacesImportService).importRaces();
+    const raceOutcome = await app.get(BblRacesImportService).importRaces();
+    const positionResult = await app
+      .get(BblPositionsImportService)
+      .importPositions(raceOutcome.raceIdsByBblId);
 
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraResult,
       coachResult,
-      raceResult,
+      raceOutcome.result,
+      positionResult,
     ];
     return {
       success: results.every((r) => r.success),

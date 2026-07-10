@@ -30,9 +30,13 @@ export class BblRacesImportService {
    * name under the Name external system (cross-tool matching). Idempotent:
    * re-running upserts existing races.
    */
-  async importRaces(): Promise<ImportResult> {
+  async importRaces(): Promise<{
+    result: ImportResult;
+    raceIdsByBblId: Map<string, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const raceIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -52,29 +56,30 @@ export class BblRacesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return { result: makeImportResult({ imported, errors }), raceIdsByBblId };
     }
 
     const seen = new Set<string>();
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
       try {
-        const race = this.racePageParser.extractRace(page);
-        if (!race || seen.has(race.id)) {
+        const parsedRace = this.racePageParser.extractRace(page);
+        if (!parsedRace || seen.has(parsedRace.id)) {
           continue;
         }
-        seen.add(race.id);
+        seen.add(parsedRace.id);
 
-        const success = await this.racesImport.upsertRace(
+        const race = await this.racesImport.upsertRace(
           {
-            name: race.name,
+            name: parsedRace.name,
             externalIds: [
-              { externalSystemId: bblSystemId, externalId: race.id },
-              { externalSystemId: nameSystemId, externalId: race.name },
+              { externalSystemId: bblSystemId, externalId: parsedRace.id },
+              { externalSystemId: nameSystemId, externalId: parsedRace.name },
             ],
           },
           errors,
         );
-        if (success) {
+        if (race) {
+          raceIdsByBblId.set(parsedRace.id, race.id);
           imported += 1;
         }
       } catch (error) {
@@ -90,6 +95,6 @@ export class BblRacesImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return { result: makeImportResult({ imported, errors }), raceIdsByBblId };
   }
 }
