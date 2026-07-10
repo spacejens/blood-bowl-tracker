@@ -1,8 +1,8 @@
 /**
  * drizzle-orm's generics for `PgSchema['table']` do not compose cleanly across the
  * dynamic column-shape derivation this helper performs (tracked columns are extended
- * at runtime, and the history table's shape is derived from a mix of the tracked
- * table's live config and a JSON snapshot). The `table`/`historyTable` values themselves
+ * at runtime, and the history table's shape is derived from the tracked
+ * table's live config). The `table`/`historyTable` values themselves
  * are now fully typed (no `any` leaks to callers); the narrow `any` usages that remain
  * below are confined to the internal `historyTable`'s extraConfig callback parameter,
  * which drizzle-orm itself types loosely for this construction pattern. See task-7 and
