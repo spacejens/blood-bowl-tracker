@@ -4,37 +4,37 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ImportRunnerService } from './import-runner.service';
-import { RacesImportService } from './races-import.service';
+import { PositionsImportService } from './positions-import.service';
 import type { ImportError } from './types';
 
-describe('RacesImportService', () => {
+describe('PositionsImportService', () => {
   function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = { races: { upsert: upsertMock } } as unknown as ApiClient;
-    return new RacesImportService(client, new ImportRunnerService());
+    const client = {
+      positions: { upsert: upsertMock },
+    } as unknown as ApiClient;
+    return new PositionsImportService(client, new ImportRunnerService());
   }
+
+  const data = {
+    name: 'Lineman',
+    raceId: 7,
+    externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+  };
 
   it('returns true and calls the client with the given data on success', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
-      name: 'Orc',
+      name: 'Lineman',
+      raceId: 7,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
-    const result = await service.upsertRace(data, errors);
+    const result = await service.upsertPosition(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toBe(true);
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -43,19 +43,12 @@ describe('RacesImportService', () => {
     const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
-    const result = await service.upsertRace(data, errors);
+    const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBeUndefined();
+    expect(result).toBe(false);
     expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import race "Orc": conflict',
-      },
+      { item: data, message: 'Failed to import position "Lineman": conflict' },
     ]);
   });
 
@@ -63,54 +56,41 @@ describe('RacesImportService', () => {
     const upsertMock = vi.fn().mockRejectedValue('boom');
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
-    const result = await service.upsertRace(data, errors);
+    const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBeUndefined();
+    expect(result).toBe(false);
     expect(errors).toEqual([
-      {
-        item: data,
-        message: 'Failed to import race "Orc": boom',
-      },
+      { item: data, message: 'Failed to import position "Lineman": boom' },
     ]);
   });
 
-  it('resolves via real NestJS dependency injection, including the implicit-token ImportRunnerService', async () => {
+  it('resolves via real NestJS dependency injection', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
-      name: 'Orc',
+      name: 'Lineman',
+      raceId: 7,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const client = { races: { upsert: upsertMock } } as unknown as ApiClient;
+    const client = {
+      positions: { upsert: upsertMock },
+    } as unknown as ApiClient;
 
     const moduleRef = await Test.createTestingModule({
       providers: [
-        RacesImportService,
+        PositionsImportService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],
     }).compile();
 
-    const service = moduleRef.get(RacesImportService);
+    const service = moduleRef.get(PositionsImportService);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
-    const result = await service.upsertRace(data, errors);
+    const result = await service.upsertPosition(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toBe(true);
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });
