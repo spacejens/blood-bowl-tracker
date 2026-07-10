@@ -89,8 +89,7 @@ call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table
 that mirrors the tracked table's *current* columns (name, type, and
 nullability), and registers the table so `pnpm run db:generate` can finish
-its DDL automatically. The schema definition no longer reads any prior
-migration's `snapshot.json`.
+its DDL automatically.
 
 Adding a new table therefore only requires calling `historyTrackedTable()`
 instead of `gameData.table()` (or another schema's `.table()`) — running
