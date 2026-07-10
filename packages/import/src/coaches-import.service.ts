@@ -17,8 +17,8 @@ export class CoachesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertCoach(data: UpsertCoachData, errors: ImportError[]): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertCoach(data: UpsertCoachData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.coaches.upsert(data),
       data,
       errors,
