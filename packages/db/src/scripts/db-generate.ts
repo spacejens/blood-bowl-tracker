@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -136,51 +136,6 @@ function escapeRegExp(value: string): string {
 }
 
 /**
- * The self-referencing FK's constraint name is normally
- * `${tableName}_history_id_${tableName}_id_fkey`, but drizzle-kit hashes it
- * (e.g. `..._Fg5zBqg3fABa_fkey`) whenever that name would exceed Postgres's
- * 63-byte identifier limit — which happens for any tracked table name of
- * 22+ characters. Reconstructing the name would silently break for exactly
- * those tables, so this parses the name drizzle-kit actually generated out
- * of the migration SQL instead of guessing it.
- */
-export function findHistorySelfFkConstraintName(
-  migrationSql: string,
-  schemaName: string,
-  tableName: string,
-): string {
-  const historyTableName = `${tableName}_history`;
-  const pattern = new RegExp(
-    `ALTER TABLE "${escapeRegExp(schemaName)}"\\."${escapeRegExp(historyTableName)}" ADD CONSTRAINT "([^"]+)" FOREIGN KEY \\("id"\\) REFERENCES "${escapeRegExp(schemaName)}"\\."${escapeRegExp(tableName)}"\\("id"\\)`,
-  );
-  const match = migrationSql.match(pattern);
-  if (!match) {
-    throw new Error(
-      `Could not find self-referencing FK constraint from ${historyTableName} to ${tableName} in generated migration SQL`,
-    );
-  }
-  return match[1];
-}
-
-/**
- * drizzle-orm has no way to declare a foreign key as DEFERRABLE INITIALLY
- * DEFERRED from the schema DSL, so every self-referencing FK from a history
- * table back to its tracked table is generated NOT DEFERRABLE by default.
- * That breaks the versioning() trigger: it's a BEFORE INSERT trigger that
- * writes the new row into the history table before the row exists in the
- * tracked table, which violates a non-deferrable FK. Making the constraint
- * deferrable defers that check to transaction commit, after both rows exist.
- */
-export function buildDeferrableHistoryFkSql(
-  schemaName: string,
-  tableName: string,
-  constraintName: string,
-): string {
-  const historyTableName = `${tableName}_history`;
-  return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
-}
-
-/**
  * Builds the PK and self-referencing FK for a new history table created via
  * LIKE (which copies neither). The FK is DEFERRABLE INITIALLY DEFERRED from
  * the start so the versioning() BEFORE-INSERT trigger can write the history
@@ -294,48 +249,57 @@ function main() {
     const index = after.indexOf(newFolder);
     const previousFolder =
       index > 0 ? join(migrationsDir, after[index - 1]) : undefined;
+    const newFolderPath = join(migrationsDir, newFolder);
     const newHistoryTables = findNewHistoryTables(
       previousFolder,
-      join(migrationsDir, newFolder),
+      newFolderPath,
     );
-    const conflicts = findTypeConflicts(
-      previousFolder,
-      join(migrationsDir, newFolder),
-    );
-    if (newHistoryTables.length === 0 && conflicts.length === 0) continue;
+    const conflicts = findTypeConflicts(previousFolder, newFolderPath);
 
-    const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
+    const migrationPath = join(newFolderPath, 'migration.sql');
+    const originalSql = readFileSync(migrationPath, 'utf-8');
 
-    if (newHistoryTables.length > 0) {
-      const generatedSql = readFileSync(migrationPath, 'utf-8');
-      const statements = newHistoryTables
-        .map((qualified) => {
-          const [schemaName, historyTableName] = qualified.split('.');
-          const tableName = historyTableName.replace(/_history$/, '');
-          const constraintName = findHistorySelfFkConstraintName(
-            generatedSql,
-            schemaName,
-            tableName,
-          );
-          return [
-            buildDeferrableHistoryFkSql(schemaName, tableName, constraintName),
-            buildTriggerSql(schemaName, tableName),
-          ].join('\n--> statement-breakpoint\n');
-        })
-        .join('\n--> statement-breakpoint\n');
+    // Dropped tracked columns become DROP NOT NULL on the history table so
+    // old history rows survive. Applies to every migration, not only ones
+    // that also create a new history table.
+    let sql = rewriteHistoryDropColumns(originalSql);
 
-      appendFileSync(
-        migrationPath,
-        `\n--> statement-breakpoint\n${statements}\n`,
-      );
-      console.log(
-        `Appended deferrable-FK and trigger DDL for: ${newHistoryTables.join(', ')}`,
-      );
+    for (const qualified of newHistoryTables) {
+      const [schemaName, historyTableName] = qualified.split('.');
+      const tableName = historyTableName.replace(/_history$/, '');
+      sql = rewriteNewHistoryTableCreate(sql, schemaName, tableName);
+    }
+
+    const appended = newHistoryTables
+      .map((qualified) => {
+        const [schemaName, historyTableName] = qualified.split('.');
+        const tableName = historyTableName.replace(/_history$/, '');
+        return [
+          buildNewHistoryTableConstraintsSql(schemaName, tableName),
+          buildTriggerSql(schemaName, tableName),
+        ].join('\n--> statement-breakpoint\n');
+      })
+      .join('\n--> statement-breakpoint\n');
+
+    if (appended.length > 0) {
+      sql = `${sql}\n--> statement-breakpoint\n${appended}\n`;
     }
 
     if (conflicts.length > 0) {
       const comments = conflicts.map(buildTypeConflictComment).join('\n');
-      appendFileSync(migrationPath, `\n${comments}\n`);
+      sql = `${sql}\n${comments}\n`;
+    }
+
+    if (sql !== originalSql) {
+      writeFileSync(migrationPath, sql);
+    }
+
+    if (newHistoryTables.length > 0) {
+      console.log(
+        `Rewrote history-table DDL (LIKE + PK/FK + triggers) for: ${newHistoryTables.join(', ')}`,
+      );
+    }
+    if (conflicts.length > 0) {
       console.log(
         `Flagged ${conflicts.length} type conflict(s) for manual review in ${newFolder}`,
       );
