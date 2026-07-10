@@ -205,6 +205,7 @@ This applies to every subagent dispatched from any phase below while working in 
      --title "<issue title>" \
      --label "<kind label 1>" \
      --label "<kind label 2 if applicable>" \
+     --assignee @me \
      --body "$(cat <<'EOF'
    Closes #<N>
 
@@ -221,6 +222,7 @@ This applies to every subagent dispatched from any phase below while working in 
      --title "<human-readable slug>" \
      --label "<kind label 1>" \
      --label "<kind label 2 if applicable>" \
+     --assignee @me \
      --body "$(cat <<'EOF'
    ## Summary
    <summary of what was built>
@@ -228,6 +230,12 @@ This applies to every subagent dispatched from any phase below while working in 
    )"
    ```
    Use the kind label(s) recorded in Phase 1 step 2 — one `--label` flag per label.
+
+   **If `gh pr create` fails** (for any reason — a bad label, a network error, or an assignee failure), report the command's error output to the developer, then ask via `AskUserQuestion` — offering two genuine options:
+   - **Retry** — re-run the identical `gh pr create` command. If it fails again, repeat this same handling (report the error, then ask again).
+   - **Stop** — halt the skill. The branch is already pushed, but no PR exists yet.
+
+   Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
 4. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
 5. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.

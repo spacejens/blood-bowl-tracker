@@ -171,6 +171,12 @@ Then push every new commit together in a single push — a single push sending m
 git push
 ```
 
+After the push succeeds, self-assign the PR so it shows who pushed the fixes:
+```bash
+gh pr edit "$PR" --add-assignee @me
+```
+Use `--add-assignee` (not `--assignee`) so any existing assignees are preserved — this covers pushing fixes to someone else's PR, or resuming your own after a gap. If this command fails, print a one-line warning and **continue** — this step is supplementary to the push that already succeeded, so it must not block the rest of the skill (matching the warn-and-continue pattern used for other post-push, best-effort steps here, such as the `deploy-local` offer below).
+
 After pushing, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
 ---
