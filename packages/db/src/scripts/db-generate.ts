@@ -214,6 +214,41 @@ export function rewriteHistoryDropColumns(migrationSql: string): string {
   );
 }
 
+/**
+ * Rewrites the freshly generated SQL for a brand-new history table:
+ *  - Replaces drizzle-kit's explicit `CREATE TABLE ..._history ( ... );`
+ *    (columns + inline PK) with `CREATE TABLE ..._history (LIKE "s"."t");`.
+ *    Postgres's default LIKE copies column names/types/NOT NULL but not the
+ *    tracked table's PK, FKs, defaults, or identity/sequence generation.
+ *  - Removes drizzle-kit's own self-referencing FK statement (its name is
+ *    hashed for long table names), so Task-5 can re-add it deferrable with
+ *    a name this code chooses. Consumes one adjacent statement-breakpoint.
+ * The PK and deferrable FK are re-added by buildNewHistoryTableConstraintsSql.
+ */
+export function rewriteNewHistoryTableCreate(
+  migrationSql: string,
+  schemaName: string,
+  tableName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  const s = escapeRegExp(schemaName);
+  const h = escapeRegExp(historyTableName);
+  const t = escapeRegExp(tableName);
+
+  const createPattern = new RegExp(
+    `CREATE TABLE "${s}"\\."${h}" \\([\\s\\S]*?\\n\\);`,
+  );
+  const withLike = migrationSql.replace(
+    createPattern,
+    `CREATE TABLE "${schemaName}"."${historyTableName}" (LIKE "${schemaName}"."${tableName}");`,
+  );
+
+  const fkPattern = new RegExp(
+    `ALTER TABLE "${s}"\\."${h}" ADD CONSTRAINT "[^"]+" FOREIGN KEY \\("id"\\) REFERENCES "${s}"\\."${t}"\\("id"\\)[^;]*;(--> statement-breakpoint\\n)?`,
+  );
+  return withLike.replace(fkPattern, '');
+}
+
 function main() {
   const passthroughArgs = process.argv.slice(2);
   if (!hasMigrationName(passthroughArgs)) {

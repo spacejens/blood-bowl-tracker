@@ -13,6 +13,7 @@ import {
   findTypeConflicts,
   hasMigrationName,
   rewriteHistoryDropColumns,
+  rewriteNewHistoryTableCreate,
 } from './db-generate.js';
 
 describe('findHistorySelfFkConstraintName', () => {
@@ -323,5 +324,66 @@ describe('rewriteHistoryDropColumns', () => {
         'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;--> statement-breakpoint\n' +
         'ALTER TABLE "game_data"."teams_history" ALTER COLUMN "motto" DROP NOT NULL;',
     );
+  });
+});
+
+describe('rewriteNewHistoryTableCreate', () => {
+  const createBlock =
+    'CREATE TABLE "game_data"."coaches_history" (\n' +
+    '\t"id" integer,\n' +
+    '\t"name" varchar(255) NOT NULL,\n' +
+    '\t"created_at" timestamp with time zone NOT NULL,\n' +
+    '\t"updated_at" timestamp with time zone NOT NULL,\n' +
+    '\t"history_version" integer,\n' +
+    '\t"history_period" tstzrange NOT NULL,\n' +
+    '\tCONSTRAINT "coaches_history_pkey" PRIMARY KEY("id","history_version")\n' +
+    ');';
+  const fkStatement =
+    'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+    '"coaches_history_id_coaches_id_fkey" FOREIGN KEY ("id") ' +
+    'REFERENCES "game_data"."coaches"("id");';
+
+  it('replaces the explicit CREATE TABLE with a LIKE clause', () => {
+    const result = rewriteNewHistoryTableCreate(
+      createBlock,
+      'game_data',
+      'coaches',
+    );
+    expect(result).toBe(
+      'CREATE TABLE "game_data"."coaches_history" (LIKE "game_data"."coaches");',
+    );
+  });
+
+  it('removes drizzle-kit’s generated self-FK statement and its breakpoint', () => {
+    const sql =
+      createBlock +
+      '--> statement-breakpoint\n' +
+      fkStatement +
+      '--> statement-breakpoint\n' +
+      'CREATE TRIGGER x;';
+    const result = rewriteNewHistoryTableCreate(sql, 'game_data', 'coaches');
+    expect(result).not.toContain('coaches_history_id_coaches_id_fkey');
+    expect(result).not.toContain('FOREIGN KEY ("id")');
+    expect(result).toContain(
+      'CREATE TABLE "game_data"."coaches_history" (LIKE "game_data"."coaches");',
+    );
+    expect(result).toContain('CREATE TRIGGER x;');
+    // no doubled or dangling breakpoint left behind
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n--> statement-breakpoint',
+    );
+  });
+
+  it('removes a hashed self-FK constraint name for a long table name', () => {
+    const sql =
+      'ALTER TABLE "game_data"."tournaments_external_ids_history" ADD CONSTRAINT ' +
+      '"tournaments_external_ids_hi_Ab12CdEfGh34_fkey" FOREIGN KEY ("id") ' +
+      'REFERENCES "game_data"."tournaments_external_ids"("id");';
+    const result = rewriteNewHistoryTableCreate(
+      sql,
+      'game_data',
+      'tournaments_external_ids',
+    );
+    expect(result).not.toContain('FOREIGN KEY ("id")');
   });
 });
