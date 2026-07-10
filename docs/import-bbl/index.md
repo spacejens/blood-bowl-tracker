@@ -26,9 +26,8 @@ tool directory, or exported in your shell:
   under both the configured BBL external system and the `Name` external
   system.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
-  records are registered under (the canonical external system for imported
-  leagues, rules sets, eras, coaches, and races). Defaults to `BBL` if unset or
-  empty, so most deployments can leave it out.
+  records are registered under. Defaults to `BBL` if unset or empty, so most
+  deployments can leave it out.
 - `API_BASE_URL` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
