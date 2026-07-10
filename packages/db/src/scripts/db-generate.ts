@@ -50,76 +50,6 @@ export function findNewHistoryTables(
   return added;
 }
 
-interface SnapshotColumnEntry {
-  entityType: string;
-  schema?: string;
-  table?: string;
-  name: string;
-  type?: string;
-}
-
-interface ColumnTypeMap {
-  [key: string]: string;
-}
-
-function readSnapshotColumnTypes(folder: string): ColumnTypeMap {
-  const path = join(folder, 'snapshot.json');
-  if (!existsSync(path)) return {};
-  const snapshot = JSON.parse(readFileSync(path, 'utf-8')) as {
-    ddl: SnapshotColumnEntry[];
-  };
-  const types: ColumnTypeMap = {};
-  for (const entry of snapshot.ddl) {
-    if (entry.entityType === 'columns' && entry.type !== undefined) {
-      types[`${entry.schema}.${entry.table}.${entry.name}`] = entry.type;
-    }
-  }
-  return types;
-}
-
-export interface TypeConflict {
-  schema: string;
-  table: string;
-  column: string;
-  previousType: string;
-  currentType: string;
-}
-
-export function findTypeConflicts(
-  previousFolder: string | undefined,
-  newFolder: string,
-): TypeConflict[] {
-  if (!previousFolder) return [];
-
-  const previousTypes = readSnapshotColumnTypes(previousFolder);
-  const currentTypes = readSnapshotColumnTypes(newFolder);
-
-  const conflicts: TypeConflict[] = [];
-  for (const [key, previousType] of Object.entries(previousTypes)) {
-    const currentType = currentTypes[key];
-    if (currentType === undefined || currentType === previousType) continue;
-
-    const [schema, table, column] = key.split('.');
-    if (table.endsWith('_history')) continue;
-
-    const historyType = currentTypes[`${schema}.${table}_history.${column}`];
-    if (historyType === previousType) {
-      conflicts.push({ schema, table, column, previousType, currentType });
-    }
-  }
-  return conflicts;
-}
-
-export function buildTypeConflictComment(conflict: TypeConflict): string {
-  return (
-    `-- NOTE: ${conflict.table}.${conflict.column} changed type from ` +
-    `${conflict.previousType} to ${conflict.currentType} on the tracked ` +
-    `table; ${conflict.table}_history.${conflict.column} was intentionally ` +
-    `left as ${conflict.previousType} to preserve existing history rows — ` +
-    `review manually.`
-  );
-}
-
 export function buildTriggerSql(schemaName: string, tableName: string): string {
   const trackedTable = `"${schemaName}"."${tableName}"`;
   const historyRelation = `${schemaName}.${tableName}_history`;
@@ -276,7 +206,6 @@ function main() {
       previousFolder,
       newFolderPath,
     );
-    const conflicts = findTypeConflicts(previousFolder, newFolderPath);
 
     const migrationPath = join(newFolderPath, 'migration.sql');
     const originalSql = readFileSync(migrationPath, 'utf-8');
@@ -305,11 +234,6 @@ function main() {
 
     sql = appendMigrationStatements(sql, appended);
 
-    if (conflicts.length > 0) {
-      const comments = conflicts.map(buildTypeConflictComment).join('\n');
-      sql = `${sql}\n${comments}\n`;
-    }
-
     if (sql !== originalSql) {
       writeFileSync(migrationPath, sql);
     }
@@ -317,11 +241,6 @@ function main() {
     if (newHistoryTables.length > 0) {
       console.log(
         `Rewrote history-table DDL (LIKE + PK/FK + triggers) for: ${newHistoryTables.join(', ')}`,
-      );
-    }
-    if (conflicts.length > 0) {
-      console.log(
-        `Flagged ${conflicts.length} type conflict(s) for manual review in ${newFolder}`,
       );
     }
   }
