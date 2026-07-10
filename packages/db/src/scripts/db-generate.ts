@@ -155,6 +155,28 @@ export function buildNewHistoryTableConstraintsSql(
   ].join('\n--> statement-breakpoint\n');
 }
 
+/**
+ * Appends additional migration `statements` to `sql`, separated by exactly
+ * one `--> statement-breakpoint` marker. Some upstream rewrites (e.g.
+ * rewriteNewHistoryTableCreate removing a trailing FK statement) can leave
+ * `sql` ending with a dangling breakpoint marker that has no following
+ * statement; naively prepending another breakpoint would then produce two
+ * markers with a blank line between them (an empty SQL statement). This
+ * trims any such dangling trailing marker (and surrounding whitespace)
+ * before appending, so the boundary always has exactly one breakpoint. When
+ * `statements` is empty, `sql` is returned unchanged.
+ */
+export function appendMigrationStatements(
+  sql: string,
+  statements: string,
+): string {
+  if (statements.length === 0) return sql;
+
+  const trimmed = sql.replace(/(?:--> statement-breakpoint\s*)+$/, '');
+  const base = trimmed.endsWith('\n') ? trimmed.slice(0, -1) : trimmed;
+  return `${base}\n--> statement-breakpoint\n${statements}\n`;
+}
+
 export function hasMigrationName(args: string[]): boolean {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -281,9 +303,7 @@ function main() {
       })
       .join('\n--> statement-breakpoint\n');
 
-    if (appended.length > 0) {
-      sql = `${sql}\n--> statement-breakpoint\n${appended}\n`;
-    }
+    sql = appendMigrationStatements(sql, appended);
 
     if (conflicts.length > 0) {
       const comments = conflicts.map(buildTypeConflictComment).join('\n');

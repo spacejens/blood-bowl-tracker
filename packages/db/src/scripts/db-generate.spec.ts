@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
+  appendMigrationStatements,
   buildNewHistoryTableConstraintsSql,
   buildTriggerSql,
   buildTypeConflictComment,
@@ -334,6 +335,55 @@ describe('rewriteNewHistoryTableCreate', () => {
       'tournaments_external_ids',
     );
     expect(result).not.toContain('FOREIGN KEY ("id")');
+  });
+});
+
+describe('appendMigrationStatements', () => {
+  it('appends with exactly one breakpoint when sql ends with a normal statement', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" ADD COLUMN "x" text;';
+    const statements =
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT "coaches_history_pkey" PRIMARY KEY ("id", "history_version");';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).toBe(`${sql}\n--> statement-breakpoint\n${statements}\n`);
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+  });
+
+  it('normalizes a dangling trailing breakpoint before appending, leaving exactly one', () => {
+    const sql =
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;--> statement-breakpoint\n';
+    const statements =
+      'ALTER TABLE "game_data"."zzz_verify_b_history" ADD CONSTRAINT "zzz_verify_b_history_pkey" PRIMARY KEY ("id", "history_version");';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n\n--> statement-breakpoint',
+    );
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;' +
+        `\n--> statement-breakpoint\n${statements}\n`,
+    );
+  });
+
+  it('normalizes a dangling trailing breakpoint followed by a blank line before appending', () => {
+    const sql =
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;--> statement-breakpoint\n\n';
+    const statements = 'CREATE TRIGGER x;';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n\n--> statement-breakpoint',
+    );
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;' +
+        `\n--> statement-breakpoint\n${statements}\n`,
+    );
+  });
+
+  it('returns sql unchanged when statements is empty', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" ADD COLUMN "x" text;';
+    expect(appendMigrationStatements(sql, '')).toBe(sql);
   });
 });
 
