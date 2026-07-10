@@ -30,9 +30,13 @@ export class BblRacesImportService {
    * name under the Name external system (cross-tool matching). Idempotent:
    * re-running upserts existing races.
    */
-  async importRaces(): Promise<ImportResult> {
+  async importRaces(): Promise<{
+    result: ImportResult;
+    raceIdsByBblId: Map<string, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const raceIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -52,7 +56,10 @@ export class BblRacesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return {
+        result: makeImportResult({ imported, errors }),
+        raceIdsByBblId,
+      };
     }
 
     const seen = new Set<string>();
@@ -64,7 +71,7 @@ export class BblRacesImportService {
         }
         seen.add(race.id);
 
-        const success = await this.racesImport.upsertRace(
+        const upsertedRace = await this.racesImport.upsertRace(
           {
             name: race.name,
             externalIds: [
@@ -74,7 +81,8 @@ export class BblRacesImportService {
           },
           errors,
         );
-        if (success) {
+        if (upsertedRace) {
+          raceIdsByBblId.set(race.id, upsertedRace.id);
           imported += 1;
         }
       } catch (error) {
@@ -90,6 +98,9 @@ export class BblRacesImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return {
+      result: makeImportResult({ imported, errors }),
+      raceIdsByBblId,
+    };
   }
 }
