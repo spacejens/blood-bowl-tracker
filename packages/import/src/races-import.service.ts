@@ -17,8 +17,8 @@ export class RacesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertRace(data: UpsertRaceData, errors: ImportError[]): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertRace(data: UpsertRaceData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.races.upsert(data),
       data,
       errors,

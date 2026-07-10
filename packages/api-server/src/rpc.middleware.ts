@@ -7,6 +7,7 @@ import {
   LeaguesService,
   RacesService,
   RulesSetsService,
+  TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import type { NestMiddleware } from '@nestjs/common';
 import { Injectable } from '@nestjs/common';
@@ -27,6 +28,7 @@ export class RpcMiddleware implements NestMiddleware {
     racesService: RacesService,
     rulesSetsService: RulesSetsService,
     erasService: ErasService,
+    teamsService: TeamsService,
   ) {
     this.handler = new RPCHandler(
       buildRpcRouter(
@@ -36,6 +38,7 @@ export class RpcMiddleware implements NestMiddleware {
         racesService,
         rulesSetsService,
         erasService,
+        teamsService,
       ),
     );
   }

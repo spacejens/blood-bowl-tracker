@@ -5,25 +5,27 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
-export interface UpsertCoachData {
+export interface UpsertTeamData {
   name: string;
+  raceId: number;
+  coachId: number;
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 
 @Injectable()
-export class CoachesImportService {
+export class TeamsImportService {
   constructor(
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertCoach(data: UpsertCoachData, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.coaches.upsert(data),
+  upsertTeam(data: UpsertTeamData, errors: ImportError[]): Promise<boolean> {
+    return this.importRunner.recordUpsert(
+      () => this.client.teams.upsert(data),
       data,
       errors,
       (err) =>
-        `Failed to import coach "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to import team "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }

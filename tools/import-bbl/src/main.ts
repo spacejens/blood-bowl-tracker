@@ -9,6 +9,7 @@ import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
+import { BblTeamsImportService } from './teams/bbl-teams-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -24,15 +25,19 @@ async function run(): Promise<ImportResult> {
     const eraResult = await app
       .get(BblErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
-    const coachResult = await app.get(BblCoachesImportService).importCoaches();
-    const raceResult = await app.get(BblRacesImportService).importRaces();
+    const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
+    const raceOutcome = await app.get(BblRacesImportService).importRaces();
+    const teamResult = await app
+      .get(BblTeamsImportService)
+      .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
 
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraResult,
-      coachResult,
-      raceResult,
+      coachOutcome.result,
+      raceOutcome.result,
+      teamResult,
     ];
     return {
       success: results.every((r) => r.success),

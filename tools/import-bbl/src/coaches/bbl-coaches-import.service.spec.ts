@@ -64,7 +64,12 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
@@ -83,7 +88,12 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
@@ -102,14 +112,19 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
     expect(upsertCoach).toHaveBeenCalledWith(
@@ -129,14 +144,19 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const service = makeService(
       makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
       upsertExternalSystem,
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(upsertCoach).toHaveBeenCalledTimes(2);
     expect(result.imported).toBe(2);
@@ -147,14 +167,19 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const service = makeService(
       makeReader([page(null), page('Tommy')]),
       upsertExternalSystem,
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(upsertCoach).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
@@ -169,16 +194,21 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
-        return Promise.resolve(false);
+        return Promise.resolve(undefined);
       })
-      .mockResolvedValueOnce(true);
+      .mockResolvedValue({
+        id: 6,
+        name: 'Tommy',
+        createdAt: new Date(),
+        created: true,
+      });
     const service = makeService(
       makeReader([page('Hugo E'), page('Tommy')]),
       upsertExternalSystem,
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.success).toBe(false);
     expect(result.imported).toBe(1);
@@ -190,7 +220,12 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach')
       .mockImplementationOnce(() => {
@@ -209,7 +244,7 @@ describe('BblCoachesImportService', () => {
       } as unknown as ExternalSystemNameConfigService,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
     expect(upsertCoach).toHaveBeenCalledTimes(1);
@@ -225,7 +260,12 @@ describe('BblCoachesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue(true);
+    const upsertCoach = vi.fn().mockResolvedValue({
+      id: 100,
+      name: 'Hugo E',
+      createdAt: new Date(),
+      created: true,
+    });
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -241,7 +281,7 @@ describe('BblCoachesImportService', () => {
       } as unknown as ExternalSystemNameConfigService,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(0);
     expect(result.errors.some((e) => e.message.includes('bad page'))).toBe(
@@ -262,7 +302,7 @@ describe('BblCoachesImportService', () => {
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.success).toBe(false);
     expect(
@@ -280,10 +320,41 @@ describe('BblCoachesImportService', () => {
       upsertCoach,
     );
 
-    const result = await service.importCoaches();
+    const { result } = await service.importCoaches();
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
     expect(upsertCoach).not.toHaveBeenCalled();
+  });
+
+  it('returns a coachIdsByName map from coach name to upserted db id', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCoach = vi
+      .fn()
+      .mockResolvedValueOnce({
+        id: 100,
+        name: 'Hugo E',
+        createdAt: new Date(),
+        created: true,
+      })
+      .mockResolvedValueOnce({
+        id: 200,
+        name: 'Roze Madder',
+        createdAt: new Date(),
+        created: true,
+      });
+    const service = makeService(
+      makeReader([page('Hugo E'), page('Roze Madder')]),
+      upsertExternalSystem,
+      upsertCoach,
+    );
+
+    const { coachIdsByName } = await service.importCoaches();
+
+    expect(coachIdsByName.get('Hugo E')).toBe(100);
+    expect(coachIdsByName.get('Roze Madder')).toBe(200);
   });
 });
