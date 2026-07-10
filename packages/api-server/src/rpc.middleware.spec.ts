@@ -7,6 +7,7 @@ import type {
   LeaguesService,
   RacesService,
   RulesSetsService,
+  TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,6 +38,7 @@ describe('RpcMiddleware', () => {
       {} as RacesService,
       {} as RulesSetsService,
       {} as ErasService,
+      {} as TeamsService,
     );
   });
 
