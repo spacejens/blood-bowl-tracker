@@ -26,6 +26,13 @@ code** — the code is the source of truth at that point.
   to future page types too — look for the id in the link to the entity's own
   page, not just the name text.
 
+## tm page fields
+
+- The team name on a `tm` page is the page's `<h1>` heading (e.g.
+  `<h1>40 grinders</h1>`), not a labelled `<td>` cell like `Race:`/`Coach:`.
+  The team's own id is the page's `t` param (e.g. `40g`, `äng`). Retired teams
+  additionally show a "Retired!" marker (not tracked yet).
+
 ## Page types seen in the reference dataset
 
 Fully handled in code (no notes needed): `tm` (team pages — coach and race

@@ -11,6 +11,7 @@ import { LeaguesModule } from './leagues/leagues.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({})
 export class AppModule {
@@ -30,6 +31,7 @@ export class AppModule {
         CoachesModule,
         RacesModule,
         PositionsModule,
+        TeamsModule,
       ],
     };
   }

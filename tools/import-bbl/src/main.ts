@@ -10,6 +10,7 @@ import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
+import { BblTeamsImportService } from './teams/bbl-teams-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -25,19 +26,23 @@ async function run(): Promise<ImportResult> {
     const eraResult = await app
       .get(BblErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
-    const coachResult = await app.get(BblCoachesImportService).importCoaches();
+    const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
     const raceOutcome = await app.get(BblRacesImportService).importRaces();
     const positionResult = await app
       .get(BblPositionsImportService)
       .importPositions(raceOutcome.raceIdsByBblId);
+    const teamResult = await app
+      .get(BblTeamsImportService)
+      .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
 
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraResult,
-      coachResult,
+      coachOutcome.result,
       raceOutcome.result,
       positionResult,
+      teamResult,
     ];
     return {
       success: results.every((r) => r.success),

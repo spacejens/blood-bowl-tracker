@@ -56,7 +56,10 @@ export class BblRacesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }), raceIdsByBblId };
+      return {
+        result: makeImportResult({ imported, errors }),
+        raceIdsByBblId,
+      };
     }
 
     const seen = new Set<string>();
@@ -68,7 +71,7 @@ export class BblRacesImportService {
         }
         seen.add(parsedRace.id);
 
-        const race = await this.racesImport.upsertRace(
+        const upsertedRace = await this.racesImport.upsertRace(
           {
             name: parsedRace.name,
             externalIds: [
@@ -78,8 +81,8 @@ export class BblRacesImportService {
           },
           errors,
         );
-        if (race) {
-          raceIdsByBblId.set(parsedRace.id, race.id);
+        if (upsertedRace) {
+          raceIdsByBblId.set(parsedRace.id, upsertedRace.id);
           imported += 1;
         }
       } catch (error) {
@@ -95,6 +98,9 @@ export class BblRacesImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), raceIdsByBblId };
+    return {
+      result: makeImportResult({ imported, errors }),
+      raceIdsByBblId,
+    };
   }
 }

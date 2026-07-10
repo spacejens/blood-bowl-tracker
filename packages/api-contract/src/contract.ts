@@ -11,6 +11,7 @@ import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
 import { PositionSchema, UpsertPositionSchema } from './schemas/position';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
+import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 
 export const contract = {
   coaches: {
@@ -48,6 +49,12 @@ export const contract = {
       .input(UpsertEraSchema)
       .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
       .output(EraSchema.extend({ created: z.boolean() })),
+  },
+  teams: {
+    upsert: oc
+      .input(UpsertTeamSchema)
+      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
+      .output(TeamSchema.extend({ created: z.boolean() })),
   },
   externalSystems: {
     upsert: oc

@@ -62,6 +62,12 @@ tool directory, or exported in your shell:
   reads a position's name and its "Can play for" races from a `p=pt` page;
   `BblPositionsImportService` streams position pages and, using the race id map
   from the races import, upserts one position row per (position, race) pair.
+- **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
+  team's page id and `<h1>` name from a team page; `BblTeamsImportService`
+  streams team pages (independently of the coaches/races walks), deduplicates
+  teams by page id, resolves each team's race and coach foreign keys from the
+  id maps returned by the races and coaches imports, and upserts each through
+  the API. Runs after races and coaches, since it depends on both.
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
@@ -102,6 +108,12 @@ Re-running is always safe and fills any gaps left by transient failures.
   `Name` external system (a position name alone is not unique across races).
   Imported after races (which it references). Positions listing no race, and
   pairings whose race was not imported, are skipped with a recorded error.
+- **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
+  id (`t` param) under the configured BBL external system (`BBL` by default),
+  and by its `<h1>` name under the `Name` external system. Each team's race and
+  coach are resolved to local ids from the races and coaches imports, which run
+  first. Retired teams are imported like any other; the "Retired!" marker is
+  not tracked yet.
 
 Imported records are matched across systems by external IDs (a coach, for
 example, carries an external ID under the configured BBL external system and

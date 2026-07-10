@@ -29,9 +29,13 @@ export class BblCoachesImportService {
    * exact name under two external systems: BBL (canonical) and Name
    * (cross-tool matching). Idempotent: re-running upserts existing coaches.
    */
-  async importCoaches(): Promise<ImportResult> {
+  async importCoaches(): Promise<{
+    result: ImportResult;
+    coachIdsByName: Map<string, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const coachIdsByName = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -51,7 +55,10 @@ export class BblCoachesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return {
+        result: makeImportResult({ imported, errors }),
+        coachIdsByName,
+      };
     }
 
     const seen = new Set<string>();
@@ -63,7 +70,7 @@ export class BblCoachesImportService {
         }
         seen.add(coach.name);
 
-        const success = await this.coachesImport.upsertCoach(
+        const upsertedCoach = await this.coachesImport.upsertCoach(
           {
             name: coach.name,
             externalIds: [
@@ -73,7 +80,8 @@ export class BblCoachesImportService {
           },
           errors,
         );
-        if (success) {
+        if (upsertedCoach) {
+          coachIdsByName.set(coach.name, upsertedCoach.id);
           imported += 1;
         }
       } catch (error) {
@@ -89,6 +97,9 @@ export class BblCoachesImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return {
+      result: makeImportResult({ imported, errors }),
+      coachIdsByName,
+    };
   }
 }

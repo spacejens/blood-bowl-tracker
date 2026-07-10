@@ -13,40 +13,33 @@ describe('RacesImportService', () => {
     return new RacesImportService(client, new ImportRunnerService());
   }
 
-  it('returns true and calls the client with the given data on success', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+  const data = {
+    name: 'Orc',
+    externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+  };
+  const upsertResult = {
+    id: 1,
+    name: 'Orc',
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
+
+  it('returns the upsert result and calls the client with the given data on success', async () => {
+    const upsertMock = vi.fn().mockResolvedValue(upsertResult);
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
     const result = await service.upsertRace(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toEqual(upsertResult);
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
-  it('returns false and records an error when the client call fails', async () => {
+  it('returns undefined and records an error when the client call fails', async () => {
     const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
     const result = await service.upsertRace(data, errors);
 
@@ -63,10 +56,6 @@ describe('RacesImportService', () => {
     const upsertMock = vi.fn().mockRejectedValue('boom');
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
     const result = await service.upsertRace(data, errors);
 
@@ -80,12 +69,7 @@ describe('RacesImportService', () => {
   });
 
   it('resolves via real NestJS dependency injection, including the implicit-token ImportRunnerService', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    const upsertMock = vi.fn().mockResolvedValue(upsertResult);
     const client = { races: { upsert: upsertMock } } as unknown as ApiClient;
 
     const moduleRef = await Test.createTestingModule({
@@ -98,19 +82,10 @@ describe('RacesImportService', () => {
 
     const service = moduleRef.get(RacesImportService);
     const errors: ImportError[] = [];
-    const data = {
-      name: 'Orc',
-      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
-    };
 
     const result = await service.upsertRace(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Orc',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toEqual(upsertResult);
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });

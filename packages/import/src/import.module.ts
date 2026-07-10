@@ -8,6 +8,7 @@ import { LeaguesImportService } from './leagues-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
+import { TeamsImportService } from './teams-import.service';
 
 @Module({
   providers: [
@@ -19,6 +20,7 @@ import { RulesSetsImportService } from './rules-sets-import.service';
     ExternalSystemsImportService,
     RulesSetsImportService,
     ErasImportService,
+    TeamsImportService,
   ],
   exports: [
     ImportRunnerService,
@@ -29,6 +31,7 @@ import { RulesSetsImportService } from './rules-sets-import.service';
     ExternalSystemsImportService,
     RulesSetsImportService,
     ErasImportService,
+    TeamsImportService,
   ],
 })
 export class ImportModule {}

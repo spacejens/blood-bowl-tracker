@@ -13,6 +13,8 @@ import {
   RaceUpsertConflictError,
   type RulesSetsService,
   RulesSetUpsertConflictError,
+  type TeamsService,
+  TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { implement } from '@orpc/server';
 
@@ -24,6 +26,7 @@ export function buildRpcRouter(
   rulesSetsService: RulesSetsService,
   erasService: ErasService,
   positionsService: PositionsService,
+  teamsService: TeamsService,
 ) {
   return {
     coaches: {
@@ -109,6 +112,21 @@ export function buildRpcRouter(
             return { ...era, created };
           } catch (err) {
             if (err instanceof EraUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    teams: {
+      upsert: implement(contract.teams.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { team, created } = await teamsService.upsert(input);
+            return { ...team, created };
+          } catch (err) {
+            if (err instanceof TeamUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;
