@@ -9,7 +9,6 @@
  * task-9 briefs.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
-import { join } from 'node:path';
 
 import { sql } from 'drizzle-orm';
 import {
@@ -24,12 +23,8 @@ import {
   timestamp,
 } from 'drizzle-orm/pg-core';
 
-import { deriveHistoryColumnShapes } from './history-column-shape';
-import { readPreviousColumnShapes } from './history-snapshot';
 import { rawColumn } from './raw-column';
 import { tstzrange } from './tstzrange';
-
-const migrationsDir = join(__dirname, '../../migrations');
 
 const SPECIAL_COLUMN_NAMES = new Set([
   'id',
@@ -116,24 +111,13 @@ export function historyTrackedTable<
 
   const historyTableName = `${name}_history`;
 
-  const currentMirrored = getTableConfig(table)
+  const historyMirroredShapes = getTableConfig(table)
     .columns.filter((column) => !SPECIAL_COLUMN_NAMES.has(column.name))
     .map((column) => ({
       name: column.name,
       sqlType: qualifiedSqlType(column),
       notNull: column.notNull,
     }));
-
-  const previousMirrored = readPreviousColumnShapes(
-    migrationsDir,
-    schema.schemaName,
-    historyTableName,
-  ).filter((column) => !SPECIAL_COLUMN_NAMES.has(column.name));
-
-  const historyMirroredShapes = deriveHistoryColumnShapes(
-    currentMirrored,
-    previousMirrored,
-  );
 
   const historyColumns: Record<string, AnyPgColumnBuilder> = {
     id: integer('id').references(() => table.id),
