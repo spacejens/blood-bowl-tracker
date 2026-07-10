@@ -3,6 +3,7 @@ import {
   ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
+  PositionsModule,
   RacesModule,
   RulesSetsModule,
   TeamsModule,
@@ -19,6 +20,7 @@ import { RpcMiddleware } from './rpc.middleware';
     RacesModule,
     RulesSetsModule,
     ErasModule,
+    PositionsModule,
     TeamsModule,
   ],
 })

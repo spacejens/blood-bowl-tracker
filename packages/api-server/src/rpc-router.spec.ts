@@ -3,6 +3,7 @@ import type {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  PositionsService,
   RacesService,
   RulesSetsService,
   TeamsService,
@@ -11,6 +12,7 @@ import {
   CoachUpsertConflictError,
   EraUpsertConflictError,
   LeagueUpsertConflictError,
+  PositionUpsertConflictError,
   RaceUpsertConflictError,
   RulesSetUpsertConflictError,
   TeamUpsertConflictError,
@@ -30,6 +32,7 @@ function makeServices() {
     racesService: { upsert: vi.fn() } as unknown as RacesService,
     rulesSetsService: { upsert: vi.fn() } as unknown as RulesSetsService,
     erasService: { upsert: vi.fn() } as unknown as ErasService,
+    positionsService: { upsert: vi.fn() } as unknown as PositionsService,
     teamsService: { upsert: vi.fn() } as unknown as TeamsService,
   };
 }
@@ -43,6 +46,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -56,6 +60,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -80,6 +85,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -94,6 +100,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -116,6 +123,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -128,6 +136,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -147,6 +156,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (
@@ -162,6 +172,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -183,6 +194,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -200,6 +212,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -224,6 +237,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -238,6 +252,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -260,6 +275,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -272,6 +288,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -291,6 +308,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -304,6 +322,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -328,6 +347,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -342,6 +362,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -364,6 +385,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -376,6 +398,7 @@ describe('buildRpcRouter', () => {
       racesService,
       rulesSetsService,
       erasService,
+      positionsService,
       teamsService,
     );
 
@@ -402,6 +425,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -434,6 +458,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -460,6 +485,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -494,6 +520,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -532,6 +559,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -561,6 +589,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -571,6 +600,102 @@ describe('buildRpcRouter', () => {
         rulesSetId: 20,
         startDate: '2021-09-01',
         externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+      }),
+    ).rejects.toThrow('db unavailable');
+  });
+
+  it('positions.upsert returns the flat entity with a created flag', async () => {
+    const services = makeServices();
+    (
+      services.positionsService.upsert as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      position: {
+        id: 1,
+        name: 'Lineman',
+        raceId: 7,
+        createdAt: new Date('2026-01-01'),
+      },
+      created: true,
+    });
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+      services.positionsService,
+      services.teamsService,
+    );
+
+    const result = await call(router.positions.upsert, {
+      name: 'Lineman',
+      raceId: 7,
+      externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+    });
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'Lineman',
+      raceId: 7,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+  });
+
+  it('positions.upsert throws CONFLICT when the service reports a conflict', async () => {
+    const services = makeServices();
+    (
+      services.positionsService.upsert as ReturnType<typeof vi.fn>
+    ).mockRejectedValue(
+      new PositionUpsertConflictError(
+        'External IDs matched multiple existing positions: 1, 2',
+      ),
+    );
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+      services.positionsService,
+      services.teamsService,
+    );
+
+    await expect(
+      call(router.positions.upsert, {
+        name: 'Lineman',
+        raceId: 7,
+        externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing positions: 1, 2',
+    });
+  });
+
+  it('positions.upsert rethrows errors that are not a conflict', async () => {
+    const services = makeServices();
+    (
+      services.positionsService.upsert as ReturnType<typeof vi.fn>
+    ).mockRejectedValue(new Error('db unavailable'));
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+      services.positionsService,
+      services.teamsService,
+    );
+
+    await expect(
+      call(router.positions.upsert, {
+        name: 'Lineman',
+        raceId: 7,
+        externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
       }),
     ).rejects.toThrow('db unavailable');
   });
@@ -596,6 +721,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -632,6 +758,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 
@@ -660,6 +787,7 @@ describe('buildRpcRouter', () => {
       services.racesService,
       services.rulesSetsService,
       services.erasService,
+      services.positionsService,
       services.teamsService,
     );
 

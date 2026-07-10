@@ -58,6 +58,10 @@ tool directory, or exported in your shell:
   race's numeric BBL id and name from the race link on a team page;
   `BblRacesImportService` streams team pages (independently of the coaches
   walk), deduplicates races by id, and upserts each through the API.
+- **PositionsModule** — data-type extractor for positions. `PositionPageParser`
+  reads a position's name and its "Can play for" races from a `p=pt` page;
+  `BblPositionsImportService` streams position pages and, using the race id map
+  from the races import, upserts one position row per (position, race) pair.
 - **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
   team's page id and `<h1>` name from a team page; `BblTeamsImportService`
   streams team pages (independently of the coaches/races walks), deduplicates
@@ -97,6 +101,13 @@ Re-running is always safe and fills any gaps left by transient failures.
   from the race link, `default.asp?p=tl#<id>`) under the configured BBL
   external system (`BBL` by default), and by exact name under the `Name`
   external system.
+- **Positions** — from position pages (`p=pt`). A position page lists the
+  race(s) it can play for; one row is imported per (position, race) pair. Keyed
+  by the composite `<typID>-<raceBblId>` under the configured BBL external
+  system (`BBL` by default), and by `<raceName>: <positionName>` under the
+  `Name` external system (a position name alone is not unique across races).
+  Imported after races (which it references). Positions listing no race, and
+  pairings whose race was not imported, are skipped with a recorded error.
 - **Teams** — from team pages (`p=tm`). Keyed by the team's alphanumeric page
   id (`t` param) under the configured BBL external system (`BBL` by default),
   and by its `<h1>` name under the `Name` external system. Each team's race and

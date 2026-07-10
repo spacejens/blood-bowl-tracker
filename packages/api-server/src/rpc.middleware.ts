@@ -5,6 +5,7 @@ import {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  PositionsService,
   RacesService,
   RulesSetsService,
   TeamsService,
@@ -28,6 +29,7 @@ export class RpcMiddleware implements NestMiddleware {
     racesService: RacesService,
     rulesSetsService: RulesSetsService,
     erasService: ErasService,
+    positionsService: PositionsService,
     teamsService: TeamsService,
   ) {
     this.handler = new RPCHandler(
@@ -38,6 +40,7 @@ export class RpcMiddleware implements NestMiddleware {
         racesService,
         rulesSetsService,
         erasService,
+        positionsService,
         teamsService,
       ),
     );

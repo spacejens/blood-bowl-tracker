@@ -50,6 +50,18 @@ function makeParser(): RacePageParser {
   return parser;
 }
 
+function upsertRaceOk() {
+  let nextId = 100;
+  return vi.fn().mockImplementation((data: { name: string }) =>
+    Promise.resolve({
+      id: nextId++,
+      name: data.name,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    }),
+  );
+}
+
 function makeService(
   reader: BblSourceReader,
   upsertExternalSystem: ReturnType<typeof vi.fn>,
@@ -71,12 +83,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const service = makeService(
       makeReader([page('Orc')]),
       upsertExternalSystem,
@@ -95,12 +102,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const service = makeService(
       makeReader([page('Orc', '16')]),
       upsertExternalSystem,
@@ -119,12 +121,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const service = makeService(
       makeReader([page('Orc', '16')]),
       upsertExternalSystem,
@@ -151,12 +148,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const service = makeService(
       makeReader([page('Orc', '16'), page('Orc', '16'), page('Elf', '6')]),
       upsertExternalSystem,
@@ -174,12 +166,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const service = makeService(
       makeReader([page(null), page('Elf')]),
       upsertExternalSystem,
@@ -203,10 +190,10 @@ describe('BblRacesImportService', () => {
         errors.push({ item: {}, message: 'Failed to import race "Orc"' });
         return Promise.resolve(undefined);
       })
-      .mockResolvedValue({
-        id: 6,
+      .mockResolvedValueOnce({
+        id: 101,
         name: 'Elf',
-        createdAt: new Date(),
+        createdAt: new Date('2026-01-01'),
         created: true,
       });
     const service = makeService(
@@ -227,12 +214,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const parser = new RacePageParser();
     vi.spyOn(parser, 'extractRace')
       .mockImplementationOnce(() => {
@@ -267,12 +249,7 @@ describe('BblRacesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Orc',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertRace = upsertRaceOk();
     const parser = new RacePageParser();
     vi.spyOn(parser, 'extractRace').mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -334,25 +311,19 @@ describe('BblRacesImportService', () => {
     expect(upsertRace).not.toHaveBeenCalled();
   });
 
-  it('returns a raceIdsByBblId map from parsed BBL id to upserted db id', async () => {
+  it('returns a map from each race BBL id to its local id', async () => {
     const upsertExternalSystem = vi
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertRace = vi
-      .fn()
-      .mockResolvedValueOnce({
-        id: 100,
-        name: 'Orc',
-        createdAt: new Date(),
+    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+      Promise.resolve({
+        id: data.name === 'Orc' ? 100 : 200,
+        name: data.name,
+        createdAt: new Date('2026-01-01'),
         created: true,
-      })
-      .mockResolvedValueOnce({
-        id: 200,
-        name: 'Elf',
-        createdAt: new Date(),
-        created: true,
-      });
+      }),
+    );
     const service = makeService(
       makeReader([page('Orc', '16'), page('Elf', '6')]),
       upsertExternalSystem,

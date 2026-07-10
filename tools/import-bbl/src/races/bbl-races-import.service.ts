@@ -65,24 +65,24 @@ export class BblRacesImportService {
     const seen = new Set<string>();
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
       try {
-        const race = this.racePageParser.extractRace(page);
-        if (!race || seen.has(race.id)) {
+        const parsedRace = this.racePageParser.extractRace(page);
+        if (!parsedRace || seen.has(parsedRace.id)) {
           continue;
         }
-        seen.add(race.id);
+        seen.add(parsedRace.id);
 
         const upsertedRace = await this.racesImport.upsertRace(
           {
-            name: race.name,
+            name: parsedRace.name,
             externalIds: [
-              { externalSystemId: bblSystemId, externalId: race.id },
-              { externalSystemId: nameSystemId, externalId: race.name },
+              { externalSystemId: bblSystemId, externalId: parsedRace.id },
+              { externalSystemId: nameSystemId, externalId: parsedRace.name },
             ],
           },
           errors,
         );
         if (upsertedRace) {
-          raceIdsByBblId.set(race.id, upsertedRace.id);
+          raceIdsByBblId.set(parsedRace.id, upsertedRace.id);
           imported += 1;
         }
       } catch (error) {

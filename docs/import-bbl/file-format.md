@@ -36,8 +36,14 @@ code** — the code is the source of truth at that point.
 ## Page types seen in the reference dataset
 
 Fully handled in code (no notes needed): `tm` (team pages — coach and race
-extraction).
+extraction), `pt` (position/player-type pages — name and "Can play for" races).
 
 Not yet handled (candidates for future work): `pl` (players), `m`/`mp` (matches
 and per-player match stats), `ro` (rosters), `te` (league team list), `ch`
 (per-season player top charts), plus others.
+
+Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
+for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
+fragment convention team pages use for races). A position may list zero, one, or
+several races; the zero-race case (a present-but-empty "Can play for" table)
+means there is no race to assign the position to.

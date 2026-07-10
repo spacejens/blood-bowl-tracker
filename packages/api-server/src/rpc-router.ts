@@ -7,6 +7,8 @@ import {
   type ExternalSystemsService,
   type LeaguesService,
   LeagueUpsertConflictError,
+  type PositionsService,
+  PositionUpsertConflictError,
   type RacesService,
   RaceUpsertConflictError,
   type RulesSetsService,
@@ -23,6 +25,7 @@ export function buildRpcRouter(
   racesService: RacesService,
   rulesSetsService: RulesSetsService,
   erasService: ErasService,
+  positionsService: PositionsService,
   teamsService: TeamsService,
 ) {
   return {
@@ -64,6 +67,21 @@ export function buildRpcRouter(
             return { ...race, created };
           } catch (err) {
             if (err instanceof RaceUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    positions: {
+      upsert: implement(contract.positions.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { position, created } = await positionsService.upsert(input);
+            return { ...position, created };
+          } catch (err) {
+            if (err instanceof PositionUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;
