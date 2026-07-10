@@ -29,7 +29,12 @@ describe('LeaguesImportService', () => {
 
     const result = await service.upsertLeague(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: 'Test League',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -45,7 +50,7 @@ describe('LeaguesImportService', () => {
 
     const result = await service.upsertLeague(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       {
         item: data,
@@ -65,7 +70,7 @@ describe('LeaguesImportService', () => {
 
     const result = await service.upsertLeague(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       {
         item: data,
@@ -100,7 +105,12 @@ describe('LeaguesImportService', () => {
 
     const result = await service.upsertLeague(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: 'Test League',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });

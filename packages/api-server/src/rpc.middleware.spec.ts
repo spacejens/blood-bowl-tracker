@@ -2,9 +2,11 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type {
   CoachesService,
+  ErasService,
   ExternalSystemsService,
   LeaguesService,
   RacesService,
+  RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,6 +35,8 @@ describe('RpcMiddleware', () => {
       {} as ExternalSystemsService,
       {} as LeaguesService,
       {} as RacesService,
+      {} as RulesSetsService,
+      {} as ErasService,
     );
   });
 

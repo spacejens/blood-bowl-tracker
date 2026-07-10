@@ -64,4 +64,33 @@ describe('ImportRunnerService', () => {
       expect(errors[0]).toEqual({ item, message: 'Failed: conflict' });
     });
   });
+
+  describe('recordUpsertResult', () => {
+    it('returns the resolved value and records no error on success', async () => {
+      const service = new ImportRunnerService();
+      const errors: ImportError[] = [];
+      const result = await service.recordUpsertResult(
+        () => Promise.resolve({ id: 5, name: 'BB2020' }),
+        { name: 'BB2020' },
+        errors,
+        () => 'unused',
+      );
+      expect(result).toEqual({ id: 5, name: 'BB2020' });
+      expect(errors).toHaveLength(0);
+    });
+
+    it('returns undefined and records an error built from the thrown error on failure', async () => {
+      const service = new ImportRunnerService();
+      const errors: ImportError[] = [];
+      const item = { name: 'BB2020' };
+      const result = await service.recordUpsertResult(
+        () => Promise.reject(new Error('conflict')),
+        item,
+        errors,
+        (err) => `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      expect(result).toBeUndefined();
+      expect(errors).toEqual([{ item, message: 'Failed: conflict' }]);
+    });
+  });
 });

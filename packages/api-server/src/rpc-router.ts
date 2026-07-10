@@ -2,11 +2,15 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   type CoachesService,
   CoachUpsertConflictError,
+  type ErasService,
+  EraUpsertConflictError,
   type ExternalSystemsService,
   type LeaguesService,
   LeagueUpsertConflictError,
   type RacesService,
   RaceUpsertConflictError,
+  type RulesSetsService,
+  RulesSetUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { implement } from '@orpc/server';
 
@@ -15,6 +19,8 @@ export function buildRpcRouter(
   externalSystemsService: ExternalSystemsService,
   leaguesService: LeaguesService,
   racesService: RacesService,
+  rulesSetsService: RulesSetsService,
+  erasService: ErasService,
 ) {
   return {
     coaches: {
@@ -55,6 +61,36 @@ export function buildRpcRouter(
             return { ...race, created };
           } catch (err) {
             if (err instanceof RaceUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    rulesSets: {
+      upsert: implement(contract.rulesSets.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { rulesSet, created } = await rulesSetsService.upsert(input);
+            return { ...rulesSet, created };
+          } catch (err) {
+            if (err instanceof RulesSetUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    eras: {
+      upsert: implement(contract.eras.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { era, created } = await erasService.upsert(input);
+            return { ...era, created };
+          } catch (err) {
+            if (err instanceof EraUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;

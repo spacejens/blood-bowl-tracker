@@ -1,6 +1,5 @@
 import { date, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
-import { externalSystems } from './external-systems';
 import { historyTrackedTable } from './history';
 import { leagues } from './leagues';
 import { gameData } from './pg-schema';
@@ -14,9 +13,6 @@ const erasTable = historyTrackedTable(gameData, 'eras', {
     .notNull(),
   rulesSetId: integer('rules_set_id')
     .references(() => rulesSets.id)
-    .notNull(),
-  externalSystemId: integer('external_system_id')
-    .references(() => externalSystems.id)
     .notNull(),
   startDate: date('start_date').notNull(),
   endDate: date('end_date'),

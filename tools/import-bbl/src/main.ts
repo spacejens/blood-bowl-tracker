@@ -5,29 +5,39 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
+import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
+import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
     logger: false,
   });
   try {
-    // Leagues import first: the league is the foundational entity other
-    // imports will depend on.
-    const leagueResult = await app.get(BblLeaguesImportService).importLeague();
+    // Bootstrap order: the league is foundational; rules sets and eras come
+    // from config and must exist before entities that reference them.
+    const leagueOutcome = await app.get(BblLeaguesImportService).importLeague();
+    const rulesSetsOutcome = await app
+      .get(BblRulesSetsImportService)
+      .importRulesSets();
+    const eraResult = await app
+      .get(BblErasImportService)
+      .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
     const coachResult = await app.get(BblCoachesImportService).importCoaches();
     const raceResult = await app.get(BblRacesImportService).importRaces();
+
+    const results = [
+      leagueOutcome.result,
+      rulesSetsOutcome.result,
+      eraResult,
+      coachResult,
+      raceResult,
+    ];
     return {
-      success:
-        leagueResult.success && coachResult.success && raceResult.success,
-      imported:
-        leagueResult.imported + coachResult.imported + raceResult.imported,
-      errors: [
-        ...leagueResult.errors,
-        ...coachResult.errors,
-        ...raceResult.errors,
-      ],
+      success: results.every((r) => r.success),
+      imported: results.reduce((sum, r) => sum + r.imported, 0),
+      errors: results.flatMap((r) => r.errors),
     };
   } finally {
     await app.close();

@@ -1,13 +1,17 @@
 import type {
   CoachesService,
+  ErasService,
   ExternalSystemsService,
   LeaguesService,
   RacesService,
+  RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
 import {
   CoachUpsertConflictError,
+  EraUpsertConflictError,
   LeagueUpsertConflictError,
   RaceUpsertConflictError,
+  RulesSetUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { call } from '@orpc/server';
 import { describe, expect, it, vi } from 'vitest';
@@ -22,6 +26,8 @@ function makeServices() {
     } as unknown as ExternalSystemsService,
     leaguesService: { upsert: vi.fn() } as unknown as LeaguesService,
     racesService: { upsert: vi.fn() } as unknown as RacesService,
+    rulesSetsService: { upsert: vi.fn() } as unknown as RulesSetsService,
+    erasService: { upsert: vi.fn() } as unknown as ErasService,
   };
 }
 
@@ -32,6 +38,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
@@ -42,6 +50,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     const result = await call(router.coaches.upsert, {
@@ -63,6 +73,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new CoachUpsertConflictError(
@@ -74,6 +86,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
@@ -93,6 +107,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
@@ -102,6 +118,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
@@ -118,6 +136,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (
       externalSystemsService.upsert as ReturnType<typeof vi.fn>
@@ -130,6 +150,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     const result = await call(router.externalSystems.upsert, { name: 'BBL' });
@@ -148,6 +170,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       league: {
@@ -162,6 +186,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     const result = await call(router.leagues.upsert, {
@@ -183,6 +209,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new LeagueUpsertConflictError(
@@ -194,6 +222,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
@@ -213,6 +243,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
@@ -222,6 +254,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
@@ -238,6 +272,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       race: { id: 1, name: 'Orc', createdAt: new Date('2026-01-01') },
@@ -248,6 +284,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     const result = await call(router.races.upsert, {
@@ -269,6 +307,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new RaceUpsertConflictError(
@@ -280,6 +320,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
@@ -299,6 +341,8 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
@@ -308,12 +352,196 @@ describe('buildRpcRouter', () => {
       externalSystemsService,
       leaguesService,
       racesService,
+      rulesSetsService,
+      erasService,
     );
 
     await expect(
       call(router.races.upsert, {
         name: 'Orc',
         externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+      }),
+    ).rejects.toThrow('db unavailable');
+  });
+
+  it('rulesSets.upsert returns the flat entity with a created flag', async () => {
+    const services = makeServices();
+    (
+      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      rulesSet: { id: 1, name: 'BB2020', createdAt: new Date('2026-01-01') },
+      created: true,
+    });
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    const result = await call(router.rulesSets.upsert, {
+      name: 'BB2020',
+      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+    });
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'BB2020',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+  });
+
+  it('rulesSets.upsert throws CONFLICT when the service reports a conflict', async () => {
+    const services = makeServices();
+    (
+      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
+    ).mockRejectedValue(
+      new RulesSetUpsertConflictError(
+        'External IDs matched multiple existing rules sets: 1, 2',
+      ),
+    );
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    await expect(
+      call(router.rulesSets.upsert, {
+        name: 'BB2020',
+        externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing rules sets: 1, 2',
+    });
+  });
+
+  it('rulesSets.upsert rethrows errors that are not a conflict', async () => {
+    const services = makeServices();
+    (
+      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
+    ).mockRejectedValue(new Error('db unavailable'));
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    await expect(
+      call(router.rulesSets.upsert, {
+        name: 'BB2020',
+        externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+      }),
+    ).rejects.toThrow('db unavailable');
+  });
+
+  it('eras.upsert returns the flat entity with a created flag', async () => {
+    const services = makeServices();
+    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        era: {
+          id: 1,
+          name: 'BB2020',
+          leagueId: 10,
+          rulesSetId: 20,
+          startDate: '2021-09-01',
+          endDate: '2023-06-10',
+          createdAt: new Date('2026-01-01'),
+        },
+        created: true,
+      },
+    );
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    const result = await call(router.eras.upsert, {
+      name: 'BB2020',
+      leagueId: 10,
+      rulesSetId: 20,
+      startDate: '2021-09-01',
+      endDate: '2023-06-10',
+      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+    });
+
+    expect(result).toEqual({
+      id: 1,
+      name: 'BB2020',
+      leagueId: 10,
+      rulesSetId: 20,
+      startDate: '2021-09-01',
+      endDate: '2023-06-10',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+  });
+
+  it('eras.upsert throws CONFLICT when the service reports a conflict', async () => {
+    const services = makeServices();
+    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new EraUpsertConflictError(
+        'External IDs matched multiple existing eras: 1, 2',
+      ),
+    );
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    await expect(
+      call(router.eras.upsert, {
+        name: 'BB2020',
+        leagueId: 10,
+        rulesSetId: 20,
+        startDate: '2021-09-01',
+        externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+      }),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'External IDs matched multiple existing eras: 1, 2',
+    });
+  });
+
+  it('eras.upsert rethrows errors that are not a conflict', async () => {
+    const services = makeServices();
+    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new Error('db unavailable'),
+    );
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+    );
+
+    await expect(
+      call(router.eras.upsert, {
+        name: 'BB2020',
+        leagueId: 10,
+        rulesSetId: 20,
+        startDate: '2021-09-01',
+        externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
       }),
     ).rejects.toThrow('db unavailable');
   });

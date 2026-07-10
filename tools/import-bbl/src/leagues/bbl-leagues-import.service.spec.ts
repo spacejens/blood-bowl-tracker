@@ -29,7 +29,12 @@ describe('BblLeaguesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertLeague = vi.fn().mockResolvedValue(true);
+    const upsertLeague = vi.fn().mockResolvedValue({
+      id: 42,
+      name: 'Test League',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     const service = makeService(
       () => 'Test League',
       upsertExternalSystem,
@@ -67,7 +72,12 @@ describe('BblLeaguesImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertLeague = vi.fn().mockResolvedValue(true);
+    const upsertLeague = vi.fn().mockResolvedValue({
+      id: 42,
+      name: 'Test League',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     const service = makeService(
       () => 'Test League',
       upsertExternalSystem,
@@ -76,8 +86,9 @@ describe('BblLeaguesImportService', () => {
 
     const result = await service.importLeague();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(true);
+    expect(result.result.imported).toBe(1);
+    expect(result.result.success).toBe(true);
+    expect(result.leagueId).toBe(42);
     expect(upsertLeague).toHaveBeenCalledWith(
       {
         name: 'Test League',
@@ -99,7 +110,7 @@ describe('BblLeaguesImportService', () => {
       .fn()
       .mockImplementation((_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'Failed to import league' });
-        return Promise.resolve(false);
+        return Promise.resolve(undefined);
       });
     const service = makeService(
       () => 'Test League',
@@ -109,9 +120,10 @@ describe('BblLeaguesImportService', () => {
 
     const result = await service.importLeague();
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
+    expect(result.result.imported).toBe(0);
+    expect(result.result.success).toBe(false);
+    expect(result.result.errors).toHaveLength(1);
+    expect(result.leagueId).toBeUndefined();
   });
 
   it('records one error and skips the league when BBL_LEAGUE_NAME is unset', async () => {
@@ -127,9 +139,9 @@ describe('BblLeaguesImportService', () => {
 
     const result = await service.importLeague();
 
-    expect(result.success).toBe(false);
+    expect(result.result.success).toBe(false);
     expect(
-      result.errors.some((e) => e.message.includes('BBL_LEAGUE_NAME')),
+      result.result.errors.some((e) => e.message.includes('BBL_LEAGUE_NAME')),
     ).toBe(true);
     expect(upsertLeague).not.toHaveBeenCalled();
   });
@@ -149,9 +161,9 @@ describe('BblLeaguesImportService', () => {
 
     const result = await service.importLeague();
 
-    expect(result.success).toBe(false);
+    expect(result.result.success).toBe(false);
     expect(
-      result.errors.some((e) => e.message.includes('external system')),
+      result.result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
     expect(upsertLeague).not.toHaveBeenCalled();
   });
@@ -167,8 +179,10 @@ describe('BblLeaguesImportService', () => {
 
     const result = await service.importLeague();
 
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
+    expect(result.result.success).toBe(false);
+    expect(result.result.errors.some((e) => e.message.includes('boom'))).toBe(
+      true,
+    );
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 });

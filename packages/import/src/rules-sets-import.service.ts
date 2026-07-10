@@ -5,25 +5,25 @@ import { Inject, Injectable } from '@nestjs/common';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
-export interface UpsertLeagueData {
+export interface UpsertRulesSetData {
   name: string;
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 
 @Injectable()
-export class LeaguesImportService {
+export class RulesSetsImportService {
   constructor(
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertLeague(data: UpsertLeagueData, errors: ImportError[]) {
+  upsertRulesSet(data: UpsertRulesSetData, errors: ImportError[]) {
     return this.importRunner.recordUpsertResult(
-      () => this.client.leagues.upsert(data),
+      () => this.client.rulesSets.upsert(data),
       data,
       errors,
       (err) =>
-        `Failed to import league "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to import rules set "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }

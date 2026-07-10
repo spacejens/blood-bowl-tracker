@@ -17,11 +17,11 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform, via a multi-select question offering, in this order:
+0. Ask the developer which action(s) to perform, via a multi-select question with exactly these two options, in this order — do not add a "Both" or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick one, both, or (by deselecting everything offered) neither:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
 
-   The developer may select one, both, or neither. If neither is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The developer may select one, both, or neither of the two options above. If neither is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 

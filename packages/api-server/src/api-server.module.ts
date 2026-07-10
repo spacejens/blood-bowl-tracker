@@ -1,15 +1,24 @@
 import {
   CoachesModule,
+  ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
   RacesModule,
+  RulesSetsModule,
 } from '@blood-bowl-tracker/game-data';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
 import { RpcMiddleware } from './rpc.middleware';
 
 @Module({
-  imports: [CoachesModule, ExternalSystemsModule, LeaguesModule, RacesModule],
+  imports: [
+    CoachesModule,
+    ExternalSystemsModule,
+    LeaguesModule,
+    RacesModule,
+    RulesSetsModule,
+    ErasModule,
+  ],
 })
 export class ApiServerModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
