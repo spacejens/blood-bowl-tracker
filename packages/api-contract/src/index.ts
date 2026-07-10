@@ -6,3 +6,4 @@ export * from './schemas/external-system';
 export * from './schemas/league';
 export * from './schemas/race';
 export * from './schemas/rules-set';
+export * from './schemas/team';
