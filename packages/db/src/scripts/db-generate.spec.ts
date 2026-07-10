@@ -12,6 +12,7 @@ import {
   findNewHistoryTables,
   findTypeConflicts,
   hasMigrationName,
+  rewriteHistoryDropColumns,
 } from './db-generate.js';
 
 describe('findHistorySelfFkConstraintName', () => {
@@ -295,5 +296,32 @@ describe('hasMigrationName', () => {
     expect(hasMigrationName(['--name', ''])).toBe(false);
     expect(hasMigrationName(['--name', '   '])).toBe(false);
     expect(hasMigrationName(['--name='])).toBe(false);
+  });
+});
+
+describe('rewriteHistoryDropColumns', () => {
+  it('rewrites a DROP COLUMN on a history table to DROP NOT NULL', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(
+      'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;',
+    );
+  });
+
+  it('leaves DROP COLUMN on a non-history (tracked) table untouched', () => {
+    const sql = 'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(sql);
+  });
+
+  it('rewrites every history DROP COLUMN across a multi-statement migration', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."teams_history" DROP COLUMN "motto";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(
+      'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."teams_history" ALTER COLUMN "motto" DROP NOT NULL;',
+    );
   });
 });

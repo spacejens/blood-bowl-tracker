@@ -196,6 +196,24 @@ export function hasMigrationName(args: string[]): boolean {
   return false;
 }
 
+/**
+ * A history table keeps columns that no longer exist on its tracked table,
+ * made nullable, so old history rows survive. Because the TS schema now
+ * mirrors only current columns, drizzle-kit emits a DROP COLUMN for the
+ * history table when a tracked column is removed; we rewrite that to a
+ * DROP NOT NULL so the column physically survives (nullable) instead. This
+ * is unconditional: DROP NOT NULL is a safe no-op if already nullable.
+ */
+export function rewriteHistoryDropColumns(migrationSql: string): string {
+  const pattern =
+    /ALTER TABLE ("[^"]+"\."[^"]+_history") DROP COLUMN ("[^"]+");/g;
+  return migrationSql.replace(
+    pattern,
+    (_match, table, column) =>
+      `ALTER TABLE ${table} ALTER COLUMN ${column} DROP NOT NULL;`,
+  );
+}
+
 function main() {
   const passthroughArgs = process.argv.slice(2);
   if (!hasMigrationName(passthroughArgs)) {
