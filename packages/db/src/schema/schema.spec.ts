@@ -12,6 +12,7 @@ import {
   matchEvents,
   matchTeams,
   players,
+  positionExternalIds,
   positions,
   raceRulesSets,
   races,
@@ -66,6 +67,13 @@ describe('schema', () => {
     expect(coachExternalIds.coachId).toBeDefined();
     expect(coachExternalIds.externalSystemId).toBeDefined();
     expect(coachExternalIds.externalId).toBeDefined();
+  });
+
+  it('exports positionExternalIds join table', () => {
+    expect(positionExternalIds.id).toBeDefined();
+    expect(positionExternalIds.positionId).toBeDefined();
+    expect(positionExternalIds.externalSystemId).toBeDefined();
+    expect(positionExternalIds.externalId).toBeDefined();
   });
 
   it('exports competitions table with type enum', () => {
