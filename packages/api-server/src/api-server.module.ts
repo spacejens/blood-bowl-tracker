@@ -3,6 +3,7 @@ import {
   ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
+  PositionsModule,
   RacesModule,
   RulesSetsModule,
 } from '@blood-bowl-tracker/game-data';
@@ -18,6 +19,7 @@ import { RpcMiddleware } from './rpc.middleware';
     RacesModule,
     RulesSetsModule,
     ErasModule,
+    PositionsModule,
   ],
 })
 export class ApiServerModule implements NestModule {

@@ -5,6 +5,7 @@ import type {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  PositionsService,
   RacesService,
   RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
@@ -37,6 +38,7 @@ describe('RpcMiddleware', () => {
       {} as RacesService,
       {} as RulesSetsService,
       {} as ErasService,
+      {} as PositionsService,
     );
   });
 

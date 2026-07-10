@@ -5,6 +5,7 @@ import {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  PositionsService,
   RacesService,
   RulesSetsService,
 } from '@blood-bowl-tracker/game-data';
@@ -27,6 +28,7 @@ export class RpcMiddleware implements NestMiddleware {
     racesService: RacesService,
     rulesSetsService: RulesSetsService,
     erasService: ErasService,
+    positionsService: PositionsService,
   ) {
     this.handler = new RPCHandler(
       buildRpcRouter(
@@ -36,6 +38,7 @@ export class RpcMiddleware implements NestMiddleware {
         racesService,
         rulesSetsService,
         erasService,
+        positionsService,
       ),
     );
   }
