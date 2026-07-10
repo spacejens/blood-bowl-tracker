@@ -5,64 +5,14 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
-  buildDeferrableHistoryFkSql,
+  appendMigrationStatements,
+  buildNewHistoryTableConstraintsSql,
   buildTriggerSql,
-  buildTypeConflictComment,
-  findHistorySelfFkConstraintName,
   findNewHistoryTables,
-  findTypeConflicts,
   hasMigrationName,
+  rewriteHistoryDropColumns,
+  rewriteNewHistoryTableCreate,
 } from './db-generate.js';
-
-describe('findHistorySelfFkConstraintName', () => {
-  it('extracts the constraint name drizzle-kit generated for a short table name', () => {
-    const sql =
-      'CREATE TABLE "game_data"."coaches_history" (...);\n' +
-      '--> statement-breakpoint\n' +
-      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT "coaches_history_id_coaches_id_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."coaches"("id");';
-
-    expect(findHistorySelfFkConstraintName(sql, 'game_data', 'coaches')).toBe(
-      'coaches_history_id_coaches_id_fkey',
-    );
-  });
-
-  it('extracts a drizzle-kit-hashed constraint name for a long table name, rather than reconstructing the naive one', () => {
-    // Mirrors what drizzle-kit actually emits once the natural name would
-    // exceed Postgres's 63-byte identifier limit (tracked table names of
-    // 22+ chars) — it substitutes a short hash instead.
-    const sql =
-      'ALTER TABLE "game_data"."tournaments_external_ids_history" ADD CONSTRAINT "tournaments_external_ids_hi_Ab12CdEfGh34_fkey" FOREIGN KEY ("id") REFERENCES "game_data"."tournaments_external_ids"("id");';
-
-    expect(
-      findHistorySelfFkConstraintName(
-        sql,
-        'game_data',
-        'tournaments_external_ids',
-      ),
-    ).toBe('tournaments_external_ids_hi_Ab12CdEfGh34_fkey');
-  });
-
-  it('throws when no matching FK statement is found', () => {
-    expect(() =>
-      findHistorySelfFkConstraintName('', 'game_data', 'coaches'),
-    ).toThrow(/Could not find self-referencing FK constraint/);
-  });
-});
-
-describe('buildDeferrableHistoryFkSql', () => {
-  it('makes the history table’s self-referencing FK deferrable using the given constraint name', () => {
-    const result = buildDeferrableHistoryFkSql(
-      'game_data',
-      'coaches_external_ids',
-      'coaches_external_ids_history_id_coaches_external_ids_id_fkey',
-    );
-    expect(result).toBe(
-      'ALTER TABLE "game_data"."coaches_external_ids_history" ALTER CONSTRAINT ' +
-        '"coaches_external_ids_history_id_coaches_external_ids_id_fkey" ' +
-        'DEFERRABLE INITIALLY DEFERRED;',
-    );
-  });
-});
 
 describe('buildTriggerSql', () => {
   it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {
@@ -148,121 +98,6 @@ describe('findNewHistoryTables', () => {
   });
 });
 
-describe('findTypeConflicts', () => {
-  let dir: string;
-
-  afterEach(() => {
-    if (dir) rmSync(dir, { recursive: true, force: true });
-  });
-
-  function writeSnapshot(
-    folder: string,
-    columns: Array<{
-      table: string;
-      name: string;
-      type: string;
-    }>,
-  ) {
-    mkdirSync(folder, { recursive: true });
-    writeFileSync(
-      join(folder, 'snapshot.json'),
-      JSON.stringify({
-        ddl: columns.map((c) => ({
-          entityType: 'columns',
-          schema: 'game_data',
-          table: c.table,
-          name: c.name,
-          type: c.type,
-        })),
-      }),
-    );
-  }
-
-  it('flags a column whose history type was kept rather than adopted', () => {
-    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
-    const previous = join(dir, '20260101000000_previous');
-    const next = join(dir, '20260102000000_next');
-    writeSnapshot(previous, [
-      { table: 'coaches', name: 'id', type: 'integer' },
-      { table: 'coaches_history', name: 'id', type: 'integer' },
-    ]);
-    writeSnapshot(next, [
-      { table: 'coaches', name: 'id', type: 'bigint' },
-      { table: 'coaches_history', name: 'id', type: 'integer' },
-    ]);
-
-    expect(findTypeConflicts(previous, next)).toEqual([
-      {
-        schema: 'game_data',
-        table: 'coaches',
-        column: 'id',
-        previousType: 'integer',
-        currentType: 'bigint',
-      },
-    ]);
-  });
-
-  it('does not flag a column that was safely widened and adopted', () => {
-    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
-    const previous = join(dir, '20260101000000_previous');
-    const next = join(dir, '20260102000000_next');
-    writeSnapshot(previous, [
-      { table: 'coaches', name: 'name', type: 'varchar(255)' },
-      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
-    ]);
-    writeSnapshot(next, [
-      { table: 'coaches', name: 'name', type: 'varchar(300)' },
-      { table: 'coaches_history', name: 'name', type: 'varchar(300)' },
-    ]);
-
-    expect(findTypeConflicts(previous, next)).toEqual([]);
-  });
-
-  it('does not flag a column whose type is unchanged', () => {
-    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
-    const previous = join(dir, '20260101000000_previous');
-    const next = join(dir, '20260102000000_next');
-    writeSnapshot(previous, [
-      { table: 'coaches', name: 'name', type: 'varchar(255)' },
-      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
-    ]);
-    writeSnapshot(next, [
-      { table: 'coaches', name: 'name', type: 'varchar(255)' },
-      { table: 'coaches_history', name: 'name', type: 'varchar(255)' },
-    ]);
-
-    expect(findTypeConflicts(previous, next)).toEqual([]);
-  });
-
-  it('returns an empty array when there is no previous snapshot', () => {
-    dir = mkdtempSync(join(tmpdir(), 'db-generate-conflicts-'));
-    const next = join(dir, '20260101000000_first');
-    writeSnapshot(next, [
-      { table: 'coaches', name: 'id', type: 'integer' },
-      { table: 'coaches_history', name: 'id', type: 'integer' },
-    ]);
-
-    expect(findTypeConflicts(undefined, next)).toEqual([]);
-  });
-});
-
-describe('buildTypeConflictComment', () => {
-  it('describes the kept type and the attempted change', () => {
-    const comment = buildTypeConflictComment({
-      schema: 'game_data',
-      table: 'coaches',
-      column: 'id',
-      previousType: 'integer',
-      currentType: 'bigint',
-    });
-    expect(comment).toContain('coaches.id');
-    expect(comment).toContain('integer');
-    expect(comment).toContain('bigint');
-    expect(comment).toContain('coaches_history');
-    expect(comment.startsWith('-- ')).toBe(true);
-  });
-});
-
 describe('hasMigrationName', () => {
   it('accepts --name followed by a value', () => {
     expect(hasMigrationName(['--name', 'add_players_table'])).toBe(true);
@@ -295,5 +130,158 @@ describe('hasMigrationName', () => {
     expect(hasMigrationName(['--name', ''])).toBe(false);
     expect(hasMigrationName(['--name', '   '])).toBe(false);
     expect(hasMigrationName(['--name='])).toBe(false);
+  });
+});
+
+describe('rewriteHistoryDropColumns', () => {
+  it('rewrites a DROP COLUMN on a history table to DROP NOT NULL', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(
+      'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;',
+    );
+  });
+
+  it('leaves DROP COLUMN on a non-history (tracked) table untouched', () => {
+    const sql = 'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(sql);
+  });
+
+  it('rewrites every history DROP COLUMN across a multi-statement migration', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."teams_history" DROP COLUMN "motto";';
+    expect(rewriteHistoryDropColumns(sql)).toBe(
+      'ALTER TABLE "game_data"."coaches" DROP COLUMN "nickname";--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."teams_history" ALTER COLUMN "motto" DROP NOT NULL;',
+    );
+  });
+});
+
+describe('rewriteNewHistoryTableCreate', () => {
+  const createBlock =
+    'CREATE TABLE "game_data"."coaches_history" (\n' +
+    '\t"id" integer,\n' +
+    '\t"name" varchar(255) NOT NULL,\n' +
+    '\t"created_at" timestamp with time zone NOT NULL,\n' +
+    '\t"updated_at" timestamp with time zone NOT NULL,\n' +
+    '\t"history_version" integer,\n' +
+    '\t"history_period" tstzrange NOT NULL,\n' +
+    '\tCONSTRAINT "coaches_history_pkey" PRIMARY KEY("id","history_version")\n' +
+    ');';
+  const fkStatement =
+    'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+    '"coaches_history_id_coaches_id_fkey" FOREIGN KEY ("id") ' +
+    'REFERENCES "game_data"."coaches"("id");';
+
+  it('replaces the explicit CREATE TABLE with a LIKE clause', () => {
+    const result = rewriteNewHistoryTableCreate(
+      createBlock,
+      'game_data',
+      'coaches',
+    );
+    expect(result).toBe(
+      'CREATE TABLE "game_data"."coaches_history" (LIKE "game_data"."coaches");',
+    );
+  });
+
+  it("removes drizzle-kit's generated self-FK statement and its breakpoint", () => {
+    const sql =
+      createBlock +
+      '--> statement-breakpoint\n' +
+      fkStatement +
+      '--> statement-breakpoint\n' +
+      'CREATE TRIGGER x;';
+    const result = rewriteNewHistoryTableCreate(sql, 'game_data', 'coaches');
+    expect(result).not.toContain('coaches_history_id_coaches_id_fkey');
+    expect(result).not.toContain('FOREIGN KEY ("id")');
+    expect(result).toContain(
+      'CREATE TABLE "game_data"."coaches_history" (LIKE "game_data"."coaches");',
+    );
+    expect(result).toContain('CREATE TRIGGER x;');
+    // no doubled or dangling breakpoint left behind
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n--> statement-breakpoint',
+    );
+  });
+
+  it('removes a hashed self-FK constraint name for a long table name', () => {
+    const sql =
+      'ALTER TABLE "game_data"."tournaments_external_ids_history" ADD CONSTRAINT ' +
+      '"tournaments_external_ids_hi_Ab12CdEfGh34_fkey" FOREIGN KEY ("id") ' +
+      'REFERENCES "game_data"."tournaments_external_ids"("id");';
+    const result = rewriteNewHistoryTableCreate(
+      sql,
+      'game_data',
+      'tournaments_external_ids',
+    );
+    expect(result).not.toContain('FOREIGN KEY ("id")');
+  });
+});
+
+describe('appendMigrationStatements', () => {
+  it('appends with exactly one breakpoint when sql ends with a normal statement', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" ADD COLUMN "x" text;';
+    const statements =
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT "coaches_history_pkey" PRIMARY KEY ("id", "history_version");';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).toBe(`${sql}\n--> statement-breakpoint\n${statements}\n`);
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+  });
+
+  it('normalizes a dangling trailing breakpoint before appending, leaving exactly one', () => {
+    const sql =
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;--> statement-breakpoint\n';
+    const statements =
+      'ALTER TABLE "game_data"."zzz_verify_b_history" ADD CONSTRAINT "zzz_verify_b_history_pkey" PRIMARY KEY ("id", "history_version");';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n\n--> statement-breakpoint',
+    );
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;' +
+        `\n--> statement-breakpoint\n${statements}\n`,
+    );
+  });
+
+  it('normalizes a dangling trailing breakpoint followed by a blank line before appending', () => {
+    const sql =
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;--> statement-breakpoint\n\n';
+    const statements = 'CREATE TRIGGER x;';
+    const result = appendMigrationStatements(sql, statements);
+    expect(result).not.toContain(
+      '--> statement-breakpoint\n\n--> statement-breakpoint',
+    );
+    expect((result.match(/--> statement-breakpoint/g) ?? []).length).toBe(1);
+    expect(result).toBe(
+      'ALTER TABLE "game_data"."zzz_verify_history" ALTER COLUMN "note" DROP NOT NULL;' +
+        `\n--> statement-breakpoint\n${statements}\n`,
+    );
+  });
+
+  it('returns sql unchanged when statements is empty', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" ADD COLUMN "x" text;';
+    expect(appendMigrationStatements(sql, '')).toBe(sql);
+  });
+});
+
+describe('buildNewHistoryTableConstraintsSql', () => {
+  it('emits a PK on (id, history_version) and a deferrable self-FK', () => {
+    const result = buildNewHistoryTableConstraintsSql('game_data', 'coaches');
+    expect(result).toContain(
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+        '"coaches_history_pkey" PRIMARY KEY ("id", "history_version");',
+    );
+    expect(result).toContain(
+      'ALTER TABLE "game_data"."coaches_history" ADD CONSTRAINT ' +
+        '"coaches_history_id_fkey" FOREIGN KEY ("id") REFERENCES ' +
+        '"game_data"."coaches"("id") DEFERRABLE INITIALLY DEFERRED;',
+    );
+    expect(result).toContain('--> statement-breakpoint');
   });
 });

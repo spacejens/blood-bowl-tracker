@@ -87,9 +87,9 @@ Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
 (`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
 call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table
-that mirrors the tracked table's columns (kept nullable if later removed
-from the tracked table, widened-only on type changes), and registers the
-table so `pnpm run db:generate` can append its triggers automatically.
+that mirrors the tracked table's *current* columns (name, type, and
+nullability), and registers the table so `pnpm run db:generate` can finish
+its DDL automatically.
 
 Adding a new table therefore only requires calling `historyTrackedTable()`
 instead of `gameData.table()` (or another schema's `.table()`) — running
@@ -98,6 +98,17 @@ history companion, and both its triggers (the temporal-tables `versioning()`
 trigger and a `set_updated_at()` trigger) together. A completeness spec
 (`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
 is ever added without going through `historyTrackedTable()`.
+
+`db:generate` post-processes the generated `migration.sql` for history
+tables: a brand-new `<table>_history` is created with
+`CREATE TABLE (LIKE "<schema>"."<table>")` (copying columns/types/NOT NULL
+but not the tracked table's PK, FKs, defaults, or identity), and its
+primary key `(id, history_version)` plus a deferrable self-referencing FK
+back to the tracked table are appended directly. When a tracked column is
+removed, the corresponding history-table `DROP COLUMN` is rewritten to
+`ALTER COLUMN ... DROP NOT NULL`, so the column survives as nullable and
+old history rows are preserved. Only future migrations are affected;
+existing migrations are never rewritten.
 
 The `versioning()` trigger function is vendored unmodified from
 [nearform/temporal_tables](https://github.com/nearform/temporal_tables) at

@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,76 +50,6 @@ export function findNewHistoryTables(
   return added;
 }
 
-interface SnapshotColumnEntry {
-  entityType: string;
-  schema?: string;
-  table?: string;
-  name: string;
-  type?: string;
-}
-
-interface ColumnTypeMap {
-  [key: string]: string;
-}
-
-function readSnapshotColumnTypes(folder: string): ColumnTypeMap {
-  const path = join(folder, 'snapshot.json');
-  if (!existsSync(path)) return {};
-  const snapshot = JSON.parse(readFileSync(path, 'utf-8')) as {
-    ddl: SnapshotColumnEntry[];
-  };
-  const types: ColumnTypeMap = {};
-  for (const entry of snapshot.ddl) {
-    if (entry.entityType === 'columns' && entry.type !== undefined) {
-      types[`${entry.schema}.${entry.table}.${entry.name}`] = entry.type;
-    }
-  }
-  return types;
-}
-
-export interface TypeConflict {
-  schema: string;
-  table: string;
-  column: string;
-  previousType: string;
-  currentType: string;
-}
-
-export function findTypeConflicts(
-  previousFolder: string | undefined,
-  newFolder: string,
-): TypeConflict[] {
-  if (!previousFolder) return [];
-
-  const previousTypes = readSnapshotColumnTypes(previousFolder);
-  const currentTypes = readSnapshotColumnTypes(newFolder);
-
-  const conflicts: TypeConflict[] = [];
-  for (const [key, previousType] of Object.entries(previousTypes)) {
-    const currentType = currentTypes[key];
-    if (currentType === undefined || currentType === previousType) continue;
-
-    const [schema, table, column] = key.split('.');
-    if (table.endsWith('_history')) continue;
-
-    const historyType = currentTypes[`${schema}.${table}_history.${column}`];
-    if (historyType === previousType) {
-      conflicts.push({ schema, table, column, previousType, currentType });
-    }
-  }
-  return conflicts;
-}
-
-export function buildTypeConflictComment(conflict: TypeConflict): string {
-  return (
-    `-- NOTE: ${conflict.table}.${conflict.column} changed type from ` +
-    `${conflict.previousType} to ${conflict.currentType} on the tracked ` +
-    `table; ${conflict.table}_history.${conflict.column} was intentionally ` +
-    `left as ${conflict.previousType} to preserve existing history rows — ` +
-    `review manually.`
-  );
-}
-
 export function buildTriggerSql(schemaName: string, tableName: string): string {
   const trackedTable = `"${schemaName}"."${tableName}"`;
   const historyRelation = `${schemaName}.${tableName}_history`;
@@ -136,48 +66,45 @@ function escapeRegExp(value: string): string {
 }
 
 /**
- * The self-referencing FK's constraint name is normally
- * `${tableName}_history_id_${tableName}_id_fkey`, but drizzle-kit hashes it
- * (e.g. `..._Fg5zBqg3fABa_fkey`) whenever that name would exceed Postgres's
- * 63-byte identifier limit — which happens for any tracked table name of
- * 22+ characters. Reconstructing the name would silently break for exactly
- * those tables, so this parses the name drizzle-kit actually generated out
- * of the migration SQL instead of guessing it.
+ * Builds the PK and self-referencing FK for a new history table created via
+ * LIKE (which copies neither). The FK is DEFERRABLE INITIALLY DEFERRED from
+ * the start so the versioning() BEFORE-INSERT trigger can write the history
+ * row before the tracked row exists at statement time; the check runs at
+ * commit. Constraint names are chosen here, not parsed from drizzle-kit SQL.
  */
-export function findHistorySelfFkConstraintName(
-  migrationSql: string,
+export function buildNewHistoryTableConstraintsSql(
   schemaName: string,
   tableName: string,
 ): string {
   const historyTableName = `${tableName}_history`;
-  const pattern = new RegExp(
-    `ALTER TABLE "${escapeRegExp(schemaName)}"\\."${escapeRegExp(historyTableName)}" ADD CONSTRAINT "([^"]+)" FOREIGN KEY \\("id"\\) REFERENCES "${escapeRegExp(schemaName)}"\\."${escapeRegExp(tableName)}"\\("id"\\)`,
-  );
-  const match = migrationSql.match(pattern);
-  if (!match) {
-    throw new Error(
-      `Could not find self-referencing FK constraint from ${historyTableName} to ${tableName} in generated migration SQL`,
-    );
-  }
-  return match[1];
+  const history = `"${schemaName}"."${historyTableName}"`;
+  const tracked = `"${schemaName}"."${tableName}"`;
+  return [
+    `ALTER TABLE ${history} ADD CONSTRAINT "${historyTableName}_pkey" PRIMARY KEY ("id", "history_version");`,
+    `ALTER TABLE ${history} ADD CONSTRAINT "${historyTableName}_id_fkey" FOREIGN KEY ("id") REFERENCES ${tracked}("id") DEFERRABLE INITIALLY DEFERRED;`,
+  ].join('\n--> statement-breakpoint\n');
 }
 
 /**
- * drizzle-orm has no way to declare a foreign key as DEFERRABLE INITIALLY
- * DEFERRED from the schema DSL, so every self-referencing FK from a history
- * table back to its tracked table is generated NOT DEFERRABLE by default.
- * That breaks the versioning() trigger: it's a BEFORE INSERT trigger that
- * writes the new row into the history table before the row exists in the
- * tracked table, which violates a non-deferrable FK. Making the constraint
- * deferrable defers that check to transaction commit, after both rows exist.
+ * Appends additional migration `statements` to `sql`, separated by exactly
+ * one `--> statement-breakpoint` marker. Some upstream rewrites (e.g.
+ * rewriteNewHistoryTableCreate removing a trailing FK statement) can leave
+ * `sql` ending with a dangling breakpoint marker that has no following
+ * statement; naively prepending another breakpoint would then produce two
+ * markers with a blank line between them (an empty SQL statement). This
+ * trims any such dangling trailing marker (and surrounding whitespace)
+ * before appending, so the boundary always has exactly one breakpoint. When
+ * `statements` is empty, `sql` is returned unchanged.
  */
-export function buildDeferrableHistoryFkSql(
-  schemaName: string,
-  tableName: string,
-  constraintName: string,
+export function appendMigrationStatements(
+  sql: string,
+  statements: string,
 ): string {
-  const historyTableName = `${tableName}_history`;
-  return `ALTER TABLE "${schemaName}"."${historyTableName}" ALTER CONSTRAINT "${constraintName}" DEFERRABLE INITIALLY DEFERRED;`;
+  if (statements.length === 0) return sql;
+
+  const trimmed = sql.replace(/(?:--> statement-breakpoint\s*)+$/, '');
+  const base = trimmed.endsWith('\n') ? trimmed.slice(0, -1) : trimmed;
+  return `${base}\n--> statement-breakpoint\n${statements}\n`;
 }
 
 export function hasMigrationName(args: string[]): boolean {
@@ -194,6 +121,59 @@ export function hasMigrationName(args: string[]): boolean {
     }
   }
   return false;
+}
+
+/**
+ * A history table keeps columns that no longer exist on its tracked table,
+ * made nullable, so old history rows survive. Because the TS schema now
+ * mirrors only current columns, drizzle-kit emits a DROP COLUMN for the
+ * history table when a tracked column is removed; we rewrite that to a
+ * DROP NOT NULL so the column physically survives (nullable) instead. This
+ * is unconditional: DROP NOT NULL is a safe no-op if already nullable.
+ */
+export function rewriteHistoryDropColumns(migrationSql: string): string {
+  const pattern =
+    /ALTER TABLE ("[^"]+"\."[^"]+_history") DROP COLUMN ("[^"]+");/g;
+  return migrationSql.replace(
+    pattern,
+    (_match, table, column) =>
+      `ALTER TABLE ${table} ALTER COLUMN ${column} DROP NOT NULL;`,
+  );
+}
+
+/**
+ * Rewrites the freshly generated SQL for a brand-new history table:
+ *  - Replaces drizzle-kit's explicit `CREATE TABLE ..._history ( ... );`
+ *    (columns + inline PK) with `CREATE TABLE ..._history (LIKE "s"."t");`.
+ *    Postgres's default LIKE copies column names/types/NOT NULL but not the
+ *    tracked table's PK, FKs, defaults, or identity/sequence generation.
+ *  - Removes drizzle-kit's own self-referencing FK statement (its name is
+ *    hashed for long table names), so Task-5 can re-add it deferrable with
+ *    a name this code chooses. Consumes one adjacent statement-breakpoint.
+ * The PK and deferrable FK are re-added by buildNewHistoryTableConstraintsSql.
+ */
+export function rewriteNewHistoryTableCreate(
+  migrationSql: string,
+  schemaName: string,
+  tableName: string,
+): string {
+  const historyTableName = `${tableName}_history`;
+  const s = escapeRegExp(schemaName);
+  const h = escapeRegExp(historyTableName);
+  const t = escapeRegExp(tableName);
+
+  const createPattern = new RegExp(
+    `CREATE TABLE "${s}"\\."${h}" \\([\\s\\S]*?\\n\\);`,
+  );
+  const withLike = migrationSql.replace(
+    createPattern,
+    `CREATE TABLE "${schemaName}"."${historyTableName}" (LIKE "${schemaName}"."${tableName}");`,
+  );
+
+  const fkPattern = new RegExp(
+    `ALTER TABLE "${s}"\\."${h}" ADD CONSTRAINT "[^"]+" FOREIGN KEY \\("id"\\) REFERENCES "${s}"\\."${t}"\\("id"\\)[^;]*;(--> statement-breakpoint\\n)?`,
+  );
+  return withLike.replace(fkPattern, '');
 }
 
 function main() {
@@ -221,50 +201,46 @@ function main() {
     const index = after.indexOf(newFolder);
     const previousFolder =
       index > 0 ? join(migrationsDir, after[index - 1]) : undefined;
+    const newFolderPath = join(migrationsDir, newFolder);
     const newHistoryTables = findNewHistoryTables(
       previousFolder,
-      join(migrationsDir, newFolder),
+      newFolderPath,
     );
-    const conflicts = findTypeConflicts(
-      previousFolder,
-      join(migrationsDir, newFolder),
-    );
-    if (newHistoryTables.length === 0 && conflicts.length === 0) continue;
 
-    const migrationPath = join(migrationsDir, newFolder, 'migration.sql');
+    const migrationPath = join(newFolderPath, 'migration.sql');
+    const originalSql = readFileSync(migrationPath, 'utf-8');
 
-    if (newHistoryTables.length > 0) {
-      const generatedSql = readFileSync(migrationPath, 'utf-8');
-      const statements = newHistoryTables
-        .map((qualified) => {
-          const [schemaName, historyTableName] = qualified.split('.');
-          const tableName = historyTableName.replace(/_history$/, '');
-          const constraintName = findHistorySelfFkConstraintName(
-            generatedSql,
-            schemaName,
-            tableName,
-          );
-          return [
-            buildDeferrableHistoryFkSql(schemaName, tableName, constraintName),
-            buildTriggerSql(schemaName, tableName),
-          ].join('\n--> statement-breakpoint\n');
-        })
-        .join('\n--> statement-breakpoint\n');
+    // Dropped tracked columns become DROP NOT NULL on the history table so
+    // old history rows survive. Applies to every migration, not only ones
+    // that also create a new history table.
+    let sql = rewriteHistoryDropColumns(originalSql);
 
-      appendFileSync(
-        migrationPath,
-        `\n--> statement-breakpoint\n${statements}\n`,
-      );
-      console.log(
-        `Appended deferrable-FK and trigger DDL for: ${newHistoryTables.join(', ')}`,
-      );
+    for (const qualified of newHistoryTables) {
+      const [schemaName, historyTableName] = qualified.split('.');
+      const tableName = historyTableName.replace(/_history$/, '');
+      sql = rewriteNewHistoryTableCreate(sql, schemaName, tableName);
     }
 
-    if (conflicts.length > 0) {
-      const comments = conflicts.map(buildTypeConflictComment).join('\n');
-      appendFileSync(migrationPath, `\n${comments}\n`);
+    const appended = newHistoryTables
+      .map((qualified) => {
+        const [schemaName, historyTableName] = qualified.split('.');
+        const tableName = historyTableName.replace(/_history$/, '');
+        return [
+          buildNewHistoryTableConstraintsSql(schemaName, tableName),
+          buildTriggerSql(schemaName, tableName),
+        ].join('\n--> statement-breakpoint\n');
+      })
+      .join('\n--> statement-breakpoint\n');
+
+    sql = appendMigrationStatements(sql, appended);
+
+    if (sql !== originalSql) {
+      writeFileSync(migrationPath, sql);
+    }
+
+    if (newHistoryTables.length > 0) {
       console.log(
-        `Flagged ${conflicts.length} type conflict(s) for manual review in ${newFolder}`,
+        `Rewrote history-table DDL (LIKE + PK/FK + triggers) for: ${newHistoryTables.join(', ')}`,
       );
     }
   }

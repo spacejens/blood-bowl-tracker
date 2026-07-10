@@ -65,6 +65,28 @@ describe('historyTrackedTable', () => {
     expect(byName.nickname.notNull).toBe(false);
   });
 
+  it('history table mirrors exactly the current tracked columns plus id/history bookkeeping', () => {
+    const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
+      id: integer('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull(),
+      nickname: varchar('nickname', { length: 100 }),
+    });
+    const columnNames = getTableConfig(historyTable)
+      .columns.map((c) => c.name)
+      .sort();
+    expect(columnNames).toEqual(
+      [
+        'created_at',
+        'history_period',
+        'history_version',
+        'id',
+        'name',
+        'nickname',
+        'updated_at',
+      ].sort(),
+    );
+  });
+
   it('gives the history table an id column (FK, not primary key) and PK on (id, history_version)', () => {
     const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
       id: integer('id').primaryKey(),
