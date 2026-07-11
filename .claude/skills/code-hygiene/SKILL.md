@@ -158,15 +158,20 @@ If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to d
 
 ### Task 3: Docker image updates
 
-Like Task 2, this task does not produce a single commit — it produces one commit per image, so a `pnpm verify` failure is always traceable to exactly one change. Scope: image tags pinned in `docker-compose.yml`'s `image:` fields only (currently `postgres` and `schemaspy`). Dockerfile `FROM` images (e.g. `node:26-alpine` in `apps/discord-bot/Dockerfile`) are explicitly out of scope for now — that image's version is tied to `.nvmrc`-driven Node version management, which nothing here keeps in sync yet (tracked separately in issue #84; fold Dockerfile images into this task once that's resolved).
+Like Task 2, this task does not produce a single commit — it produces one commit per image (or, for the Node group, one commit spanning the several files that must move together — see below), so a `pnpm verify` failure is always traceable to exactly one change. Scope: image tags pinned in `docker-compose.yml`'s `image:` fields (currently `postgres` and `schemaspy`), **and** base images pinned in every `Dockerfile*`'s `FROM` lines (currently `node:26-alpine`, in the two build stages of `apps/discord-bot/Dockerfile`). Most images use the ordinary per-image workflow below. **Node is a special case** (see "The Node group" below): its base-image tag is tied to the Node version this repo runs, so it is updated together with `.nvmrc` and every workspace's `@types/node`, keeping all three in lock-step.
 
 **1. Enumerate pinned images.**
 
 ```bash
 grep -n "image:" docker-compose.yml
+find . -not -path "./node_modules/*" -not -path "*/node_modules/*" -name "Dockerfile*" -exec grep -Hn "^FROM" {} \;
 ```
 
-Build a to-do list of one group per image line found.
+Build a to-do list of groups from both sources:
+
+- **Each `docker-compose.yml` `image:` line** is its own group, exactly as before.
+- **Each unique base image referenced by a `FROM` line** is one group, deduplicating: multiple `FROM` lines across one or more Dockerfiles that reference the same image (e.g. the two `FROM node:26-alpine` stages in `apps/discord-bot/Dockerfile`) collapse into a single group (here, the `node` group).
+- **Skip stage-alias references** — a `FROM builder` that refers to an earlier `AS builder` stage in the same file, rather than an external image, carries no tag to update.
 
 **2. Determine the latest available tag for each image**, using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image:
 
