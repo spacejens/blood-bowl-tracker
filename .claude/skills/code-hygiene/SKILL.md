@@ -1,11 +1,11 @@
 ---
 name: code-hygiene
-description: Use for an on-demand dependency and code hygiene pass in the blood-bowl-tracker project — updates dependencies, removes unused dependencies and dead code, fixes dependencies that should be devDependencies, runs a security audit, fixes workspace version mismatches, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results
+description: Use for an on-demand dependency and code hygiene pass in the blood-bowl-tracker project — updates dependencies, updates pinned Docker image tags, removes unused dependencies and dead code, fixes dependencies that should be devDependencies, runs a security audit, fixes workspace version mismatches, checks for circular dependencies, and fixes lint/formatting, opening a single PR with the results
 ---
 
 # code-hygiene
 
-Runs a fixed set of dependency and code hygiene checks — dependency updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
+Runs a fixed set of dependency and code hygiene checks — dependency updates, Docker image updates, unused dependency/dead code removal, dependency placement (dependencies vs. devDependencies), a security audit, workspace version consistency, circular dependency detection, lint, and format — and opens a single pull request with the results. Unlike `develop-feature`, there is no specification or planning step: the checks and their order are fixed every run.
 
 ## Invocation
 
@@ -31,7 +31,7 @@ Follow develop-feature's ad-hoc-mode Setup phase, with these changes:
 
 ### Development, Self-review, Integration — same as develop-feature, with these differences
 
-- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task (except Task 2, which commits per dependency group — see below), `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
+- **Development:** execute the fixed task list below instead of a written plan. Otherwise identical — one commit per completed task (except Task 2 and Task 3, which commit per dependency group / per image — see below), `pnpm verify` after each, `superpowers:test-driven-development` and `superpowers:systematic-debugging` apply exactly as develop-feature's Development phase describes when a task involves writing or fixing code.
 - **Self-review:** identical to develop-feature's Self-review phase.
 - **Integration:** identical to develop-feature's Integration phase, except the PR:
   ```bash
@@ -86,7 +86,7 @@ All four tools are already pinned root `devDependencies` with their `hygiene:*` 
 
 ## Fixed task list (Development phase)
 
-One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline) — except Task 2 (Dependency updates), which produces one commit per dependency group instead of one commit for the whole task (see below). A task (or dependency group) that finds nothing to change makes no commit.
+One commit per task, `pnpm verify` after each (per develop-feature's Development phase discipline) — except Task 2 (Dependency updates) and Task 3 (Docker image updates), which each produce one commit per group/image instead of one commit for the whole task (see below). A task (or dependency group / image) that finds nothing to change makes no commit.
 
 ### Task 1: Minimum release age exclude pruning
 
@@ -115,7 +115,7 @@ If any entries were dropped, run `pnpm install` (refreshes the lockfile; expect 
 
 ### Task 2: Dependency updates
 
-Unlike Tasks 1 and 3–8, this task does not produce a single commit — it produces one commit per dependency update (or tightly-coupled group of updates), so a `pnpm verify` failure is always traceable to exactly one change. Work through the steps below in order.
+Unlike Tasks 1 and 4–9, this task does not produce a single commit — it produces one commit per dependency update (or tightly-coupled group of updates), so a `pnpm verify` failure is always traceable to exactly one change. Work through the steps below in order.
 
 **1. Enumerate outdated dependencies.**
 
@@ -127,6 +127,8 @@ This reports every outdated dependency, per workspace `package.json` (including 
 
 - Default: one group per dependency name, spanning every workspace that declares it (e.g. if `typescript` is outdated in five workspaces, that's one group covering all five).
 - Exception — bundle multiple dependency names into one group when they're a known coordinated release train that must share a version, e.g. all `@nestjs/*` packages together, or `vitest` with `@vitest/coverage-v8`.
+
+`ncu` only sees npm `package.json` dependencies — Docker image tags (e.g. `docker-compose.yml`'s `schemaspy` and `postgres` services) are npm's blind spot and are covered separately by Task 3 below, not by this task.
 
 **2. Order the groups.**
 
@@ -151,7 +153,44 @@ If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to d
 - **Mechanical migration** needed (renamed API/config, codemod-style changes to match the new version) — make the fix now, as part of this same commit. This is expected, routine work for a major bump, not a reason to stop.
 - **Judgment call** needed (the fix isn't mechanical — it requires a product or architecture decision) — stop. Report which groups already committed this run, then ask the developer whether to fix it manually and resume, skip this dependency and continue with the rest of the to-do list, or abort the run. Commits already made are not rolled back.
 
-### Task 3: Security audit
+### Task 3: Docker image updates
+
+Like Task 2, this task does not produce a single commit — it produces one commit per image, so a `pnpm verify` failure is always traceable to exactly one change. Scope: image tags pinned in `docker-compose.yml`'s `image:` fields only (currently `postgres` and `schemaspy`). Dockerfile `FROM` images (e.g. `node:26-alpine` in `apps/discord-bot/Dockerfile`) are explicitly out of scope for now — that image's version is tied to `.nvmrc`-driven Node version management, which nothing here keeps in sync yet (tracked separately in issue #84; fold Dockerfile images into this task once that's resolved).
+
+**1. Enumerate pinned images.**
+
+```bash
+grep -n "image:" docker-compose.yml
+```
+
+Build a to-do list of one group per image line found.
+
+**2. Determine the latest available tag for each image**, using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image:
+
+- If the image tracks a GitHub project's releases 1:1 (e.g. `schemaspy/schemaspy`, whose Docker Hub tags mirror GitHub release tags minus a `v` prefix):
+  ```bash
+  gh api repos/<owner>/<repo>/releases/latest --jq .tag_name
+  ```
+- Otherwise, query the Docker Hub tags listing for the exact repository directly (`library/<name>` for official images like `postgres`, `<org>/<name>` for others):
+  ```bash
+  curl -s "https://hub.docker.com/v2/repositories/library/<name>/tags/?page_size=100" | jq -r '.results[].name'
+  ```
+  Filter to tags matching the currently-pinned tag's *pattern* (e.g. `<major>-alpine` for `postgres:17-alpine`) and find the highest version among them.
+
+Compare the result against the tag currently pinned in `docker-compose.yml`, normalizing prefixes as needed (e.g. GitHub's `v7.0.2` vs Docker Hub's `7.0.2` for `schemaspy`).
+
+**3. Order the groups.** Same tiering convention as Task 2: patch-tier first, then minor, then major; alphabetically by image name within a tier.
+
+**4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image.
+
+Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly.
+
+If `pnpm verify` fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
+
+- **Mechanical migration** needed (e.g. a config flag renamed between major versions) — make the fix now, as part of this same commit.
+- **Judgment call** needed (the fix isn't mechanical) — stop. Report which images already committed this run, then ask the developer whether to fix it manually and resume, skip this image and continue with the rest of the to-do list, or abort the run. Commits already made are not rolled back.
+
+### Task 4: Security audit
 
 ```bash
 pnpm run hygiene:audit:fix
@@ -160,7 +199,7 @@ pnpm run hygiene:audit
 
 The first command attempts to update vulnerable packages to non-vulnerable versions within the lockfile (`--fix=update`, not `--fix=override` — `update` doesn't leave permanent `pnpm.overrides` entries in `package.json` behind once the real fix ships upstream). The second re-reports what's left. Run `pnpm verify`. If any vulnerability remains reported, stop and ask the developer how to proceed (accept the risk, find an alternative package, or abort the run) — do not leave it unmentioned or deferred to the PR description.
 
-### Task 4: Unused dependencies / dead code / dependency placement
+### Task 5: Unused dependencies / dead code / dependency placement
 
 ```bash
 pnpm run hygiene:deadcode:fix
@@ -184,7 +223,7 @@ Then:
 
 If any entries were moved, run `pnpm install` to refresh `pnpm-lock.yaml`. Run `pnpm verify` — but note that a pass here is not evidence the move was correct: a default `pnpm install` installs `devDependencies` for every workspace regardless of any production install boundary, so `pnpm verify` will pass even for a wrongly-demoted runtime dependency. The per-candidate investigation above is the only real safeguard against that, so err toward Ambiguous/stop whenever in doubt. If Report A (not Report B) reports any remaining issue, stop and ask the developer how to proceed (delete manually, mark as intentionally kept via `ignore`/`ignoreDependencies` in `knip.jsonc`, or abort the run) — this is a judgment call the skill should not make silently.
 
-### Task 5: Workspace version consistency
+### Task 6: Workspace version consistency
 
 ```bash
 pnpm run hygiene:versions:fix
@@ -193,15 +232,15 @@ pnpm run hygiene:versions
 
 The first command fixes what syncpack can resolve automatically. The second re-reports what's left (syncpack can't always tell which of several divergent versions across workspaces is "correct"). Run `pnpm verify`. If the second command reports any remaining mismatch, stop and ask the developer which version should win, or how to configure a `versionGroups` entry in `syncpack.config.js` to allow the divergence intentionally.
 
-### Task 6: Circular dependencies
+### Task 7: Circular dependencies
 
 ```bash
 pnpm run hygiene:cycles
 ```
 
-Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 3–5, this task never has a "fix" step — any finding here always pauses the run.
+Report-only — madge cannot fix a cycle automatically. If it reports any circular dependency, stop and ask the developer how to proceed. Unlike Tasks 4–6, this task never has a "fix" step — any finding here always pauses the run.
 
-### Task 7: Lint
+### Task 8: Lint
 
 ```bash
 pnpm lint:fix
@@ -209,7 +248,7 @@ pnpm lint:fix
 
 Run `pnpm verify`. Per this project's existing convention (`CLAUDE.md`), hand-edit only failures `pnpm lint:fix` can't auto-resolve — this is routine mechanical work, not a judgment call, so it is not a stop condition.
 
-### Task 8: Format
+### Task 9: Format
 
 ```bash
 pnpm format:fix
@@ -223,11 +262,12 @@ Any finding a task can't safely auto-fix pauses the run immediately for develope
 
 - Task 1: none — pruning is a purely mechanical age comparison, never a judgment call.
 - Task 2: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 2 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
-- Task 3: a security vulnerability with no available patched version.
-- Task 4: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
-- Task 5: any version mismatch syncpack couldn't auto-fix.
-- Task 6: any circular dependency at all (this check never auto-fixes).
+- Task 3: an image update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 3 above for the full per-image workflow. Commits already made earlier in the run are kept, not rolled back.
+- Task 4: a security vulnerability with no available patched version.
+- Task 5: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
+- Task 6: any version mismatch syncpack couldn't auto-fix.
+- Task 7: any circular dependency at all (this check never auto-fixes).
 
-Tasks 1, 7, and 8 have no stop condition — Task 1's pruning is purely mechanical (see above), and remaining lint/format issues in Tasks 7–8 after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
+Tasks 1, 8, and 9 have no stop condition — Task 1's pruning is purely mechanical (see above), and remaining lint/format issues in Tasks 8–9 after `--fix` are routine hand-edits per this project's existing convention, not judgment calls.
 
 When paused, report what was found, what's already committed so far in the run, and wait for developer direction (fix manually, skip this item and continue, or abort the run) before resuming.

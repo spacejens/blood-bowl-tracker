@@ -33,5 +33,29 @@ services:
       timeout: 5s
       retries: 5
 
+  schemaspy:
+    image: schemaspy/schemaspy:7.0.2
+    profiles: ["schemaspy"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command:
+      - -t
+      - pgsql
+      - -host
+      - postgres
+      - -port
+      - "5432"
+      - -db
+      - blood_bowl
+      - -u
+      - blood_bowl
+      - -p
+      - blood_bowl
+      - -s
+      - game_data
+    volumes:
+      - ./docs/schemaspy-output:/output
+
 volumes:
   postgres_data:
