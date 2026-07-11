@@ -16,7 +16,7 @@ OUTPUT_DIR="docs/schemaspy-output"
 # Resolve the repo root from this script's location so the script works no
 # matter the caller's current directory (Docker volume mounts need an
 # absolute path).
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 # 1a. The postgres container must be running.
