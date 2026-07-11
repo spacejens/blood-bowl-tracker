@@ -4,6 +4,10 @@ build/
 *.tsbuildinfo
 coverage
 
+# Generated schema documentation (SchemaSpy) — regenerated on demand via
+# `pnpm run db:diagram`, never committed
+docs/schemaspy-output/
+
 # Dependencies
 node_modules/
 
