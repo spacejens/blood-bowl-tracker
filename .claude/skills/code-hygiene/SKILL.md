@@ -128,7 +128,10 @@ This reports every outdated dependency, per workspace `package.json` (including 
 - Default: one group per dependency name, spanning every workspace that declares it (e.g. if `typescript` is outdated in five workspaces, that's one group covering all five).
 - Exception — bundle multiple dependency names into one group when they're a known coordinated release train that must share a version, e.g. all `@nestjs/*` packages together, or `vitest` with `@vitest/coverage-v8`.
 
-`ncu` only sees npm `package.json` dependencies — Docker image tags (e.g. `docker-compose.yml`'s `schemaspy` and `postgres` services) are npm's blind spot and are covered separately by Task 3 below, not by this task.
+`ncu` only sees npm `package.json` dependencies, but two kinds of update are deliberately kept out of this task's scope:
+
+- **Docker image tags** (e.g. `docker-compose.yml`'s `schemaspy` and `postgres` services) are npm's blind spot and are covered separately by Task 3 below.
+- **`@types/node`** — even though `ncu` *can* see it — is excluded here because its major version must stay in step with the Node runtime pinned elsewhere in the repo (`.nvmrc` and the Dockerfile's `FROM node:...` tag), and `ncu` has no concept of that constraint. Left to this task it could bump `@types/node` to a newer major before the runtime itself has moved (Task 2 runs before Task 3). It is now updated **only** by Task 3's Node group — including routine within-major patch/minor bumps, since this task no longer touches it at all.
 
 **2. Order the groups.**
 
