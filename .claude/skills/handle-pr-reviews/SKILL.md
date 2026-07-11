@@ -179,6 +179,20 @@ Use `--add-assignee` (not `--assignee`) so any existing assignees are preserved 
 
 After pushing, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
+After that, **offer a SchemaSpy diagram when migrations changed** — a quiet convenience, not a required gate. Run it only when both checks below produce output, and skip silently (no prompt, no mention) otherwise. First, check whether `packages/db/migrations/` changed on this branch versus its merge-base with `main`:
+```bash
+git diff --name-only "$(git merge-base origin/main HEAD)" HEAD -- packages/db/migrations/
+```
+Then check whether the stack is actually running now — a direct state check rather than trusting `deploy-local`'s own (conversational, not structured) action selection:
+```bash
+docker ps --filter "name=^postgres$" --filter "status=running" --format '{{.Names}}'
+```
+If **both** commands print output (migrations changed AND the `postgres` container is running), offer via `AskUserQuestion`: "Generate a SchemaSpy diagram of the updated schema?" with two genuine options — "Yes, generate it" and "No, skip it". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. If the developer chooses yes, run `pnpm run db:diagram` from the repo root, then open the result — asking for the diagram is a request to see it, not just to generate it:
+```bash
+open docs/schemaspy-output/index.html
+```
+Run this from the repo root (this worktree's root, not the main checkout's — `pnpm run db:diagram` just wrote the file there) so the relative path resolves to the copy that was just generated. Report the output path either way. If either command printed nothing, skip this entirely.
+
 ---
 
 ### Phase 5: Reply to items
