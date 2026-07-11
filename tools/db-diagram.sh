@@ -51,6 +51,8 @@ docker run --rm \
   "schemaspy/schemaspy:$SCHEMASPY_VERSION" \
   -t pgsql -host localhost -port 5432 \
   -db blood_bowl -u blood_bowl -p blood_bowl -s game_data
+# No -o flag here: the image's entrypoint already appends "-o /output"
+# itself, matching the volume mount above — passing it twice errors out.
 
 # 4. Report the result.
 echo "SchemaSpy diagram generated: $REPO_ROOT/$OUTPUT_DIR/index.html"
