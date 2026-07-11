@@ -33,10 +33,12 @@ export class BblRacesImportService {
   async importRaces(): Promise<{
     result: ImportResult;
     raceIdsByBblId: Map<string, number>;
+    racesByBblId: Map<string, { id: number; name: string }>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const raceIdsByBblId = new Map<string, number>();
+    const racesByBblId = new Map<string, { id: number; name: string }>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -59,6 +61,7 @@ export class BblRacesImportService {
       return {
         result: makeImportResult({ imported, errors }),
         raceIdsByBblId,
+        racesByBblId,
       };
     }
 
@@ -83,6 +86,10 @@ export class BblRacesImportService {
         );
         if (upsertedRace) {
           raceIdsByBblId.set(parsedRace.id, upsertedRace.id);
+          racesByBblId.set(parsedRace.id, {
+            id: upsertedRace.id,
+            name: parsedRace.name,
+          });
           imported += 1;
         }
       } catch (error) {
@@ -101,6 +108,7 @@ export class BblRacesImportService {
     return {
       result: makeImportResult({ imported, errors }),
       raceIdsByBblId,
+      racesByBblId,
     };
   }
 }
