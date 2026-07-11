@@ -17,7 +17,8 @@ describe('PositionsImportService', () => {
 
   const data = {
     name: 'Lineman',
-    raceId: 7,
+    isStarPlayer: false,
+    races: [{ raceId: 7, isDeleted: false }],
     externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
   };
 

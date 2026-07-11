@@ -335,4 +335,29 @@ describe('BblRacesImportService', () => {
     expect(raceIdsByBblId.get('16')).toBe(100);
     expect(raceIdsByBblId.get('6')).toBe(200);
   });
+
+  it('returns a map from each race BBL id to its local id and name', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+      Promise.resolve({
+        id: data.name === 'Orc' ? 100 : 200,
+        name: data.name,
+        createdAt: new Date('2026-01-01'),
+        created: true,
+      }),
+    );
+    const service = makeService(
+      makeReader([page('Orc', '16'), page('Elf', '6')]),
+      upsertExternalSystem,
+      upsertRace,
+    );
+
+    const { racesByBblId } = await service.importRaces();
+
+    expect(racesByBblId.get('16')).toEqual({ id: 100, name: 'Orc' });
+    expect(racesByBblId.get('6')).toEqual({ id: 200, name: 'Elf' });
+  });
 });

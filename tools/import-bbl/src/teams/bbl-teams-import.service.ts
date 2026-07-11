@@ -41,9 +41,10 @@ export class BblTeamsImportService {
   async importTeams(
     raceIdsByBblId: Map<string, number>,
     coachIdsByName: Map<string, number>,
-  ): Promise<ImportResult> {
+  ): Promise<{ result: ImportResult; teamRaceIdsByCode: Map<string, number> }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const teamRaceIdsByCode = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -63,7 +64,10 @@ export class BblTeamsImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return {
+        result: makeImportResult({ imported, errors }),
+        teamRaceIdsByCode,
+      };
     }
 
     const seen = new Set<string>();
@@ -89,6 +93,7 @@ export class BblTeamsImportService {
           );
           continue;
         }
+        teamRaceIdsByCode.set(team.id, raceId);
         if (coachId === undefined) {
           errors.push(
             makeImportError({
@@ -127,6 +132,9 @@ export class BblTeamsImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return {
+      result: makeImportResult({ imported, errors }),
+      teamRaceIdsByCode,
+    };
   }
 }

@@ -11,12 +11,15 @@ export interface BblPositionRace {
 /**
  * A position ("player type") extracted from a `p=pt` page. `typId` is the
  * position's own numeric BBL id (the page's `typID` param); `name` is the
- * `<h1>` display name; `races` are the races listed under "Can play for:".
+ * `<h1>` display name; `races` are the races listed under "Can play for:";
+ * `isStarPlayer` indicates whether the skill-improvement-categories cell
+ * contains the literal text "None (star player)".
  */
 export interface BblPosition {
   typId: string;
   name: string;
   races: BblPositionRace[];
+  isStarPlayer: boolean;
 }
 
 @Injectable()
@@ -55,6 +58,15 @@ export class PositionPageParser {
       races.push({ bblId, name: raceName });
     });
 
-    return { typId, name, races };
+    let isStarPlayer = false;
+    $('td').each((_index, element) => {
+      if ($(element).text().trim() === 'None (star player)') {
+        isStarPlayer = true;
+        return false;
+      }
+      return undefined;
+    });
+
+    return { typId, name, races, isStarPlayer };
   }
 }

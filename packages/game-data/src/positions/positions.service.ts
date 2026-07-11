@@ -1,5 +1,10 @@
 import type { Db, Position } from '@blood-bowl-tracker/db';
-import { DB, positionExternalIds, positions } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  positionExternalIds,
+  positions,
+  positionsRaces,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
@@ -7,8 +12,13 @@ export class PositionUpsertConflictError extends Error {}
 
 export interface UpsertPositionData {
   name: string;
-  raceId: number;
+  isStarPlayer: boolean;
+  races: { raceId: number; isDeleted: boolean }[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface PositionWithRaces extends Position {
+  races: { raceId: number; isDeleted: boolean }[];
 }
 
 @Injectable()
@@ -17,7 +27,7 @@ export class PositionsService {
 
   async upsert(
     data: UpsertPositionData,
-  ): Promise<{ position: Position; created: boolean }> {
+  ): Promise<{ position: PositionWithRaces; created: boolean }> {
     const existingRows = await this.db
       .select({
         positionId: positionExternalIds.positionId,
@@ -46,7 +56,7 @@ export class PositionsService {
       );
     }
 
-    const values = { name: data.name, raceId: data.raceId };
+    const values = { name: data.name, isStarPlayer: data.isStarPlayer };
 
     let position: Position;
     const created = distinctPositionIds.length === 0;
@@ -63,23 +73,75 @@ export class PositionsService {
       position = result[0];
     }
 
+    await this.syncRaces(position.id, data.races);
+    await this.syncExternalIds(position.id, data.externalIds, existingRows);
+
+    return { position: { ...position, races: data.races }, created };
+  }
+
+  private async syncRaces(
+    positionId: number,
+    races: { raceId: number; isDeleted: boolean }[],
+  ): Promise<void> {
+    const existing = await this.db
+      .select({
+        raceId: positionsRaces.raceId,
+        isDeleted: positionsRaces.isDeleted,
+      })
+      .from(positionsRaces)
+      .where(eq(positionsRaces.positionId, positionId));
+
+    const existingByRaceId = new Map(
+      existing.map((r) => [r.raceId, r.isDeleted]),
+    );
+
+    const toInsert = races.filter((r) => !existingByRaceId.has(r.raceId));
+    if (toInsert.length > 0) {
+      await this.db.insert(positionsRaces).values(
+        toInsert.map((r) => ({
+          positionId,
+          raceId: r.raceId,
+          isDeleted: r.isDeleted,
+        })),
+      );
+    }
+
+    for (const r of races) {
+      const current = existingByRaceId.get(r.raceId);
+      if (current !== undefined && current !== r.isDeleted) {
+        await this.db
+          .update(positionsRaces)
+          .set({ isDeleted: r.isDeleted })
+          .where(
+            and(
+              eq(positionsRaces.positionId, positionId),
+              eq(positionsRaces.raceId, r.raceId),
+            ),
+          );
+      }
+    }
+  }
+
+  private async syncExternalIds(
+    positionId: number,
+    externalIds: { externalSystemId: number; externalId: string }[],
+    existingRows: { externalSystemId: number; externalId: string }[],
+  ): Promise<void> {
     const existingPairs = new Set(
       existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
     );
-    const newExternalIds = data.externalIds.filter(
+    const newExternalIds = externalIds.filter(
       (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
     );
 
     if (newExternalIds.length > 0) {
       await this.db.insert(positionExternalIds).values(
         newExternalIds.map((e) => ({
-          positionId: position.id,
+          positionId,
           externalSystemId: e.externalSystemId,
           externalId: e.externalId,
         })),
       );
     }
-
-    return { position, created };
   }
 }
