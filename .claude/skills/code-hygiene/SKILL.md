@@ -173,7 +173,7 @@ Build a to-do list of groups from both sources:
 - **Each unique base image referenced by a `FROM` line** is one group, deduplicating: multiple `FROM` lines across one or more Dockerfiles that reference the same image (e.g. the two `FROM node:26-alpine` stages in `apps/discord-bot/Dockerfile`) collapse into a single group (here, the `node` group).
 - **Skip stage-alias references** — a `FROM builder` that refers to an earlier `AS builder` stage in the same file, rather than an external image, carries no tag to update.
 
-**2. Determine the latest available tag for each image**, using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image:
+**2. Determine the latest available tag for each ordinary group** (docker-compose images, and any future non-Node Dockerfile image), using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image. **The Node group does not use this step — see "The Node group" below.**
 
 - If the image tracks a GitHub project's releases 1:1 (e.g. `schemaspy/schemaspy`, whose Docker Hub tags mirror GitHub release tags minus a `v` prefix):
   ```bash
@@ -187,11 +187,35 @@ Build a to-do list of groups from both sources:
 
 Compare the result against the tag currently pinned in `docker-compose.yml`, normalizing prefixes as needed (e.g. GitHub's `v7.0.2` vs Docker Hub's `7.0.2` for `schemaspy`).
 
-**3. Order the groups.** Same tiering convention as Task 2: patch-tier first, then minor, then major; alphabetically by image name within a tier.
+**3. Order the groups.** Same tiering convention as Task 2: patch-tier first, then minor, then major; alphabetically by image/group name within a tier. The Node group tiers like any other: a `.nvmrc`-only patch/minor move within the current major is patch/minor tier, and a new LTS major is major tier; within its tier it sorts under the group name `node`.
 
-**4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image.
+**4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image. (The Node group does not follow this single-`docker-compose.yml`-edit workflow — it edits several files together; see "The Node group" below.)
 
 Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly.
+
+**The Node group (special case)**
+
+The `node` group does not use step 2's per-image tag lookup or step 4's single-file edit. Instead it computes four targets fresh from external sources every run — never diffed against "what changed since last time" — so a run started with `.nvmrc`, the Dockerfile tag, and `@types/node` already out of step with each other (e.g. from a manual edit) self-heals to the same computed target the first time Task 3 runs. No separate drift-detection mode is needed.
+
+1. **Determine the target Node major.** Query `https://nodejs.org/dist/index.json`, filter to entries where `lts` is truthy, take the newest entry — its major version is the target. LTS-only, per project policy: this repo runs a production service and should stay on a supported line, never a Current/odd-major release.
+2. **Determine the target Dockerfile tag.** Query Docker Hub's tag listing for `library/node` (the same mechanism step 2 uses for `postgres`), filter to tags matching `<target-major>-alpine`, take the highest. This guards against a newly-LTS major not having a published alpine image yet.
+3. **Determine the target `.nvmrc` version.** The highest full version (`<major>.<minor>.<patch>`) nodejs.org's index reports for the target major.
+4. **Determine the target `@types/node` version per workspace.** `npm view @types/node versions --json`, filter to versions whose major equals the target Node major, take the highest. Apply per workspace `package.json` that declares `@types/node` (root and/or individual workspaces, whichever currently list it).
+
+If `.nvmrc`, every `FROM node:...` line, and every workspace's `@types/node` entry already match the computed targets, the group makes no commit. Otherwise:
+
+1. Edit `.nvmrc` to the target full version.
+2. Edit every `FROM node:...` line in the repo to `FROM node:<target-major>-alpine`.
+3. Edit every workspace `package.json`'s `@types/node` entry to the target version, preserving its existing range-prefix style (`^`, `~`, or exact).
+4. Re-source nvm so the rest of this group's verification runs under the new Node, not the previous shell's stale interpreter:
+   ```bash
+   source ~/.nvm/nvm.sh && nvm install && nvm use
+   ```
+   (`nvm install` with no version argument reads `.nvmrc` in the current directory.)
+5. `pnpm install` (refreshes the lockfile for the `@types/node` bump, and reinstalls under the new Node for any native deps).
+6. `pnpm verify`.
+7. **If it passes:** one commit covering `.nvmrc`, the Dockerfile, and every changed `package.json` together — e.g. "Update Node to 28 (LTS), sync .nvmrc and @types/node". This is one logical change; splitting it across commits would leave intermediate commits with a broken invariant (Dockerfile and `.nvmrc` disagreeing, or `@types/node`'s major mismatched).
+8. **If it fails:** **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging`, then apply the same mechanical-fix-inline vs. judgment-call-stop handling Task 3 already uses for other images (see below).
 
 If `pnpm verify` fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
 
