@@ -128,7 +128,10 @@ This reports every outdated dependency, per workspace `package.json` (including 
 - Default: one group per dependency name, spanning every workspace that declares it (e.g. if `typescript` is outdated in five workspaces, that's one group covering all five).
 - Exception — bundle multiple dependency names into one group when they're a known coordinated release train that must share a version, e.g. all `@nestjs/*` packages together, or `vitest` with `@vitest/coverage-v8`.
 
-`ncu` only sees npm `package.json` dependencies — Docker image tags (e.g. `docker-compose.yml`'s `schemaspy` and `postgres` services) are npm's blind spot and are covered separately by Task 3 below, not by this task.
+`ncu` only sees npm `package.json` dependencies, but two kinds of update are deliberately kept out of this task's scope:
+
+- **Docker image tags** (e.g. `docker-compose.yml`'s `schemaspy` and `postgres` services) are npm's blind spot and are covered separately by Task 3 below.
+- **`@types/node`** — even though `ncu` *can* see it — is excluded here because its major version must stay in step with the Node runtime pinned elsewhere in the repo (`.nvmrc` and the Dockerfile's `FROM node:...` tag), and `ncu` has no concept of that constraint. Left to this task it could bump `@types/node` to a newer major before the runtime itself has moved (Task 2 runs before Task 3). It is now updated **only** by Task 3's Node group — including routine within-major patch/minor bumps, since this task no longer touches it at all.
 
 **2. Order the groups.**
 
@@ -155,17 +158,22 @@ If it fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to d
 
 ### Task 3: Docker image updates
 
-Like Task 2, this task does not produce a single commit — it produces one commit per image, so a `pnpm verify` failure is always traceable to exactly one change. Scope: image tags pinned in `docker-compose.yml`'s `image:` fields only (currently `postgres` and `schemaspy`). Dockerfile `FROM` images (e.g. `node:26-alpine` in `apps/discord-bot/Dockerfile`) are explicitly out of scope for now — that image's version is tied to `.nvmrc`-driven Node version management, which nothing here keeps in sync yet (tracked separately in issue #84; fold Dockerfile images into this task once that's resolved).
+Like Task 2, this task does not produce a single commit — it produces one commit per image (or, for the Node group, one commit spanning the several files that must move together — see below), so a `pnpm verify` failure is always traceable to exactly one change. Scope: image tags pinned in `docker-compose.yml`'s `image:` fields (currently `postgres` and `schemaspy`), **and** base images pinned in every `Dockerfile*`'s `FROM` lines (currently `node:26-alpine`, in the two build stages of `apps/discord-bot/Dockerfile`). Most images use the ordinary per-image workflow below. **Node is a special case** (see "The Node group" below): its base-image tag is tied to the Node version this repo runs, so it is updated together with `.nvmrc` and every workspace's `@types/node`, keeping all three in lock-step.
 
 **1. Enumerate pinned images.**
 
 ```bash
 grep -n "image:" docker-compose.yml
+find . -not -path "./node_modules/*" -not -path "*/node_modules/*" -name "Dockerfile*" -exec grep -Hn "^FROM" {} \;
 ```
 
-Build a to-do list of one group per image line found.
+Build a to-do list of groups from both sources:
 
-**2. Determine the latest available tag for each image**, using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image:
+- **Each `docker-compose.yml` `image:` line** is its own group, exactly as before.
+- **Each unique base image referenced by a `FROM` line** is one group, deduplicating: multiple `FROM` lines across one or more Dockerfiles that reference the same image (e.g. the two `FROM node:26-alpine` stages in `apps/discord-bot/Dockerfile`) collapse into a single group (here, the `node` group).
+- **Skip stage-alias references** — a `FROM builder` that refers to an earlier `AS builder` stage in the same file, rather than an external image, carries no tag to update.
+
+**2. Determine the latest available tag for each ordinary group** (docker-compose images, and any future non-Node Dockerfile image), using whichever source matches how that image is actually versioned — there's no single command that works for every image, so use judgment per image. **The Node group does not use this step — see "The Node group" below.**
 
 - If the image tracks a GitHub project's releases 1:1 (e.g. `schemaspy/schemaspy`, whose Docker Hub tags mirror GitHub release tags minus a `v` prefix):
   ```bash
@@ -179,11 +187,35 @@ Build a to-do list of one group per image line found.
 
 Compare the result against the tag currently pinned in `docker-compose.yml`, normalizing prefixes as needed (e.g. GitHub's `v7.0.2` vs Docker Hub's `7.0.2` for `schemaspy`).
 
-**3. Order the groups.** Same tiering convention as Task 2: patch-tier first, then minor, then major; alphabetically by image name within a tier.
+**3. Order the groups.** Same tiering convention as Task 2: patch-tier first, then minor, then major; alphabetically by image/group name within a tier. The Node group tiers like any other: a `.nvmrc`-only patch/minor move within the current major is patch/minor tier, and a new LTS major is major tier; within its tier it sorts under the group name `node`.
 
-**4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image.
+**4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image. (The Node group does not follow this single-`docker-compose.yml`-edit workflow — it edits several files together; see "The Node group" below.)
 
-Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly.
+Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly. A **Node** bump specifically should also be confirmed by actually building the `discord-bot` image (`docker compose build discord-bot`), since an alpine base bump can break native-module builds in ways `pnpm verify` alone won't catch — `verify` only reinstalls/rebuilds under the host's own Node/OS, not inside the Docker build context.
+
+**The Node group (special case)**
+
+The `node` group does not use step 2's per-image tag lookup or step 4's single-file edit. Instead it computes four targets fresh from external sources every run — never diffed against "what changed since last time" — so a run started with `.nvmrc`, the Dockerfile tag, and `@types/node` already out of step with each other (e.g. from a manual edit) self-heals to the same computed target the first time Task 3 runs. No separate drift-detection mode is needed.
+
+1. **Determine the target Node major.** Query `https://nodejs.org/dist/index.json`, filter to entries where `lts` is truthy, take the newest entry — its major version is the target. LTS-only, per project policy: this repo runs a production service and should stay on a supported line, never a Current/odd-major release.
+2. **Determine the target Dockerfile tag.** Query Docker Hub's tag listing for `library/node` (the same mechanism step 2 uses for `postgres`), filter to tags matching `<target-major>-alpine`, take the highest. This guards against a newly-LTS major not having a published alpine image yet.
+3. **Determine the target `.nvmrc` version.** The highest full version (`<major>.<minor>.<patch>`) nodejs.org's index reports for the target major.
+4. **Determine the target `@types/node` version per workspace.** `npm view @types/node versions --json`, filter to versions whose major equals the target Node major, take the highest. Apply per workspace `package.json` that declares `@types/node` (root and/or individual workspaces, whichever currently list it).
+
+If `.nvmrc`, every `FROM node:...` line, and every workspace's `@types/node` entry already match the computed targets, the group makes no commit. Otherwise:
+
+1. Edit `.nvmrc` to the target full version.
+2. Edit every `FROM node:...` line in the repo to `FROM node:<target-major>-alpine`.
+3. Edit every workspace `package.json`'s `@types/node` entry to the target version, preserving its existing range-prefix style (`^`, `~`, or exact).
+4. Re-source nvm so the rest of this group's verification runs under the new Node, not the previous shell's stale interpreter:
+   ```bash
+   source ~/.nvm/nvm.sh && nvm install && nvm use
+   ```
+   (`nvm install` with no version argument reads `.nvmrc` in the current directory.)
+5. `pnpm install` (refreshes the lockfile for the `@types/node` bump, and reinstalls under the new Node for any native deps).
+6. `pnpm verify`.
+7. **If it passes:** one commit covering `.nvmrc`, the Dockerfile, and every changed `package.json` together — e.g. "Update Node to 28 (LTS), sync .nvmrc and @types/node". This is one logical change; splitting it across commits would leave intermediate commits with a broken invariant (Dockerfile and `.nvmrc` disagreeing, or `@types/node`'s major mismatched).
+8. **If it fails:** **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging`, then apply the same mechanical-fix-inline vs. judgment-call-stop handling Task 3 already uses for other images (see below).
 
 If `pnpm verify` fails: **REQUIRED SUB-SKILL:** Use `superpowers:systematic-debugging` to diagnose, then:
 
@@ -262,7 +294,7 @@ Any finding a task can't safely auto-fix pauses the run immediately for develope
 
 - Task 1: none — pruning is a purely mechanical age comparison, never a judgment call.
 - Task 2: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 2 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
-- Task 3: an image update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 3 above for the full per-image workflow. Commits already made earlier in the run are kept, not rolled back.
+- Task 3: an image update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — for ordinary images and for the **Node group** alike — stops the run. See Task 3 above for the full per-image and Node-group workflows. Commits already made earlier in the run (including a completed Node-group commit) are kept, not rolled back.
 - Task 4: a security vulnerability with no available patched version.
 - Task 5: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 6: any version mismatch syncpack couldn't auto-fix.
