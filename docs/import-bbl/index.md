@@ -55,9 +55,14 @@ tool directory, or exported in your shell:
   coach from a team page; `BblCoachesImportService` streams team pages,
   deduplicates coaches by exact name, and upserts each through the API.
 - **RacesModule** — data-type extractor for races. `RacePageParser` reads a
-  race's numeric BBL id and name from the race link on a team page;
-  `BblRacesImportService` streams team pages (independently of the coaches
-  walk), deduplicates races by id, and upserts each through the API.
+  race's numeric BBL id and name from the race link on a team page, and
+  `RaceListPageParser` reads every race's id and name off the `p=tl` master
+  race-list page. `BblRacesImportService` streams team pages (independently of
+  the coaches walk), deduplicates races by id and upserts each, then runs a
+  second, gap-filling pass over the `tl` page: any race whose id was not already
+  seen on the team-page pass is upserted the same way. The team-page pass is
+  authoritative — on a shared id it wins — so races with no team page still
+  import while `tm`-derived races are unaffected.
 - **PositionsModule** — data-type extractor for positions. `PositionPageParser`
   reads a position's name, its "Can play for" races, and whether it is a star
   player (the `None (star player)` marker) from a `p=pt` page;
@@ -105,10 +110,15 @@ Re-running is always safe and fills any gaps left by transient failures.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the
   configured BBL external system (`BBL` by default) and the `Name` external
   system.
-- **Races** — from team pages (`p=tm`). Keyed by their numeric BBL id (taken
-  from the race link, `default.asp?p=tl#<id>`) under the configured BBL
+- **Races** — from team pages (`p=tm`) and the `p=tl` master race-list page.
+  Keyed by their numeric BBL id (from the race link `default.asp?p=tl#<id>` on a
+  team page, or the numeric anchor on the `tl` page) under the configured BBL
   external system (`BBL` by default), and by exact name under the `Name`
-  external system.
+  external system. Team pages are scanned first and win on any shared id; the
+  `tl` page is a gap-filling second source that adds races with no team page
+  (e.g. College of Shadow, College of Light). A race that only appears on
+  old/retired team pages and has since dropped off the `tl` list still imports
+  from the team-page pass.
 - **Positions** — from position pages (`p=pt`). A position page lists the race(s)
   it can play for; one row is imported per (position, race) pair, keyed by the
   composite `<typID>-<raceBblId>` under the configured BBL external system and by
