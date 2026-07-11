@@ -31,7 +31,7 @@ async function run(): Promise<ImportResult> {
     const positionResult = await app
       .get(BblPositionsImportService)
       .importPositions(raceOutcome.raceIdsByBblId);
-    const teamResult = await app
+    const teamOutcome = await app
       .get(BblTeamsImportService)
       .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
 
@@ -42,7 +42,7 @@ async function run(): Promise<ImportResult> {
       coachOutcome.result,
       raceOutcome.result,
       positionResult,
-      teamResult,
+      teamOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),

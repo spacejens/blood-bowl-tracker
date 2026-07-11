@@ -171,7 +171,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -213,7 +213,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(upsertTeam).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
@@ -231,7 +231,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
@@ -256,7 +256,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
@@ -279,7 +279,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     expect(
@@ -306,7 +306,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(upsertTeam).not.toHaveBeenCalled();
     expect(
@@ -341,7 +341,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.success).toBe(false);
     expect(result.imported).toBe(0);
@@ -367,7 +367,7 @@ describe('BblTeamsImportService', () => {
       { team: teamParser },
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.imported).toBe(0);
     expect(
@@ -395,7 +395,7 @@ describe('BblTeamsImportService', () => {
       { team: teamParser },
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.imported).toBe(0);
     expect(result.errors.some((e) => e.message.includes('bad page'))).toBe(
@@ -423,7 +423,7 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.success).toBe(false);
     expect(
@@ -448,10 +448,34 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const result = await service.importTeams(raceIds, coachIds);
+    const { result } = await service.importTeams(raceIds, coachIds);
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
     expect(upsertTeam).not.toHaveBeenCalled();
+  });
+
+  it('returns a map from each team page code to its resolved race id', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertTeam = vi.fn().mockResolvedValue(true);
+    const service = makeService(
+      makeReader([
+        page({
+          teamId: '40g',
+          teamName: '40 grinders',
+          raceBblId: '16',
+          coachName: 'Hugo E',
+        }),
+      ]),
+      upsertExternalSystem,
+      upsertTeam,
+    );
+
+    const { teamRaceIdsByCode } = await service.importTeams(raceIds, coachIds);
+
+    expect(teamRaceIdsByCode.get('40g')).toBe(500);
   });
 });
