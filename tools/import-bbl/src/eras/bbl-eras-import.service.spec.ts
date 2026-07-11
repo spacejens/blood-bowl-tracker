@@ -43,13 +43,22 @@ describe('BblErasImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertEra = vi.fn().mockResolvedValue(true);
+    const upsertEra = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 500, name: 'Living rulebook' })
+      .mockResolvedValueOnce({ id: 600, name: 'BB2020' });
     const service = makeService(() => eras, upsertExternalSystem, upsertEra);
 
-    const result = await service.importEras(10, rulesSetIds);
+    const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
+    expect(eraIdsByName).toEqual(
+      new Map([
+        ['Living rulebook', 500],
+        ['BB2020', 600],
+      ]),
+    );
     expect(upsertEra).toHaveBeenNthCalledWith(
       1,
       {
@@ -90,7 +99,7 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn();
     const service = makeService(() => eras, upsertExternalSystem, upsertEra);
 
-    const result = await service.importEras(undefined, rulesSetIds);
+    const { result } = await service.importEras(undefined, rulesSetIds);
 
     expect(result.success).toBe(false);
     expect(result.imported).toBe(0);
@@ -103,11 +112,11 @@ describe('BblErasImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertEra = vi.fn().mockResolvedValue(true);
+    const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'x' });
     const partialIds = new Map<string, number>([['Living rulebook', 100]]);
     const service = makeService(() => eras, upsertExternalSystem, upsertEra);
 
-    const result = await service.importEras(10, partialIds);
+    const { result } = await service.importEras(10, partialIds);
 
     expect(result.imported).toBe(1);
     expect(result.success).toBe(false);
@@ -128,7 +137,7 @@ describe('BblErasImportService', () => {
       .fn()
       .mockImplementation((_data: unknown, errors: { message: string }[]) => {
         errors.push({ message: 'era boom' });
-        return Promise.resolve(false);
+        return Promise.resolve(undefined);
       });
     const service = makeService(
       () => [eras[1]],
@@ -136,7 +145,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     );
 
-    const result = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(10, rulesSetIds);
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
@@ -153,7 +162,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     );
 
-    const result = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(10, rulesSetIds);
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
@@ -169,7 +178,7 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn();
     const service = makeService(() => eras, upsertExternalSystem, upsertEra);
 
-    const result = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(10, rulesSetIds);
 
     expect(result.success).toBe(false);
     expect(

@@ -21,8 +21,8 @@ export class ErasImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertEra(data: UpsertEraData, errors: ImportError[]): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertEra(data: UpsertEraData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.eras.upsert(data),
       data,
       errors,

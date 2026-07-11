@@ -23,7 +23,7 @@ async function run(): Promise<ImportResult> {
     const rulesSetsOutcome = await app
       .get(BblRulesSetsImportService)
       .importRulesSets();
-    const eraResult = await app
+    const eraOutcome = await app
       .get(BblErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
@@ -38,7 +38,7 @@ async function run(): Promise<ImportResult> {
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
-      eraResult,
+      eraOutcome.result,
       coachOutcome.result,
       raceOutcome.result,
       teamOutcome.result,
