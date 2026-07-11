@@ -4,6 +4,12 @@ export {
   CoachesService,
   CoachUpsertConflictError,
 } from './coaches/coaches.service';
+export { CompetitionsModule } from './competitions/competitions.module';
+export type { UpsertCompetitionData } from './competitions/competitions.service';
+export {
+  CompetitionsService,
+  CompetitionUpsertConflictError,
+} from './competitions/competitions.service';
 export { ErasModule } from './eras/eras.module';
 export type { UpsertEraData } from './eras/eras.service';
 export { ErasService, EraUpsertConflictError } from './eras/eras.service';
