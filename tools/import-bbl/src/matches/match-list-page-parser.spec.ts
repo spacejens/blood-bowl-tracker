@@ -62,4 +62,17 @@ describe('MatchListPageParser', () => {
     );
     expect(parser.extractMatchDates(page)).toEqual([]);
   });
+
+  it('skips "result added" rows with unknown month names', () => {
+    const page = matchListPage(
+      '<table>' +
+        '<tr title="result added Foo 1st, 2021"></tr>' +
+        '<tr title="result added March 4th, 2015"></tr>' +
+        '</table>',
+    );
+
+    expect(parser.extractMatchDates(page)).toEqual([
+      new Date(Date.UTC(2015, 2, 4)),
+    ]);
+  });
 });

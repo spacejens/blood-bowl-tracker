@@ -186,10 +186,10 @@ export class BblCompetitionsImportService {
   }
 
   /**
-   * Read the master competition list off the first se page (or, failing that,
-   * the first sr page) — both embed the identical dropdown. Returns null when
-   * neither page type exists, or when the page that was found fails to parse
-   * (the failure is recorded as an error).
+   * Read the master competition list off the first se page (or, if no se page
+   * exists, the first sr page) — both embed the identical dropdown. Returns
+   * null if neither page type exists, or if a parse fails (the failure is
+   * recorded as an error; parse errors do not fall through to sr).
    */
   private async readCompetitionList(
     errors: ImportError[],
