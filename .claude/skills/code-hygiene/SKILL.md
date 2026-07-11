@@ -127,6 +127,11 @@ This reports every outdated dependency, per workspace `package.json` (including 
 
 - Default: one group per dependency name, spanning every workspace that declares it (e.g. if `typescript` is outdated in five workspaces, that's one group covering all five).
 - Exception — bundle multiple dependency names into one group when they're a known coordinated release train that must share a version, e.g. all `@nestjs/*` packages together, or `vitest` with `@vitest/coverage-v8`.
+- Manually-tracked non-npm group — the SchemaSpy Docker image tag pinned in `tools/db-diagram.sh` (the `SCHEMASPY_VERSION` variable). `ncu` cannot see this Docker tag, so check it directly here. Fetch the latest release:
+  ```bash
+  gh api repos/schemaspy/schemaspy/releases/latest --jq .tag_name
+  ```
+  This returns a `v`-prefixed tag (e.g. `v7.0.2`), while `SCHEMASPY_VERSION` in `tools/db-diagram.sh` is pinned *without* the `v` prefix (e.g. `7.0.2`, matching the actual `schemaspy/schemaspy` Docker Hub tag naming) — strip the leading `v` before comparing the two. If the latest release is newer, add it as its own group to the to-do list, tiered by the same patch/minor/major convention as the npm groups (major only when the SchemaSpy major version changes, e.g. `7.x` → `8.x`; otherwise minor or patch by which component of the version moved). Applying this group means editing the `SCHEMASPY_VERSION` value in `tools/db-diagram.sh` to the new version *without* the `v` prefix, then running `pnpm verify` and committing per step 3's per-group process (one commit per group, ordered patch → minor → major, same failure handling). Note that `tools/db-diagram.sh` has no unit test and is not exercised by `pnpm verify`, so a passing `pnpm verify` only confirms nothing else broke; the script's real check is running `pnpm run db:diagram` against a running local stack, which a version-only tag bump does not block.
 
 **2. Order the groups.**
 
