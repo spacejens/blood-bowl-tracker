@@ -191,7 +191,7 @@ Compare the result against the tag currently pinned in `docker-compose.yml`, nor
 
 **4. Apply each image, in order:** edit its `image:` tag in `docker-compose.yml` to the new version, run `pnpm verify`, and if it passes, commit — message in this repo's plain style (e.g. "Update postgres to 18-alpine") — and move to the next image. (The Node group does not follow this single-`docker-compose.yml`-edit workflow — it edits several files together; see "The Node group" below.)
 
-Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly.
+Most Docker image bumps aren't exercised by any Vitest suite at all — `pnpm verify` only confirms nothing else in the repo broke, not that the new image actually works. The real check is deploying the stack (the `deploy-local` skill, or `docker compose up -d --build` / `pnpm run db:diagram` as appropriate to the image) and confirming the affected service starts and behaves correctly. A **Node** bump specifically should also be confirmed by actually building the `discord-bot` image (`docker compose build discord-bot`), since an alpine base bump can break native-module builds in ways `pnpm verify` alone won't catch — `verify` only reinstalls/rebuilds under the host's own Node/OS, not inside the Docker build context.
 
 **The Node group (special case)**
 
