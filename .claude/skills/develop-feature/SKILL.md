@@ -247,5 +247,9 @@ This applies to every subagent dispatched from any phase below while working in 
      ```bash
      docker ps --filter "name=^postgres$" --filter "status=running" --format '{{.Names}}'
      ```
-   - If **both** commands print output (migrations changed AND the `postgres` container is running), offer via `AskUserQuestion`: "Generate a SchemaSpy diagram of the updated schema?" with two genuine options — "Yes, generate it" and "No, skip it". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. If the developer chooses yes, run `pnpm run db:diagram` from the repo root and report the output path (`docs/schemaspy-output/index.html`). If either command printed nothing, skip this step entirely — no prompt, no mention.
+   - If **both** commands print output (migrations changed AND the `postgres` container is running), offer via `AskUserQuestion`: "Generate a SchemaSpy diagram of the updated schema?" with two genuine options — "Yes, generate it" and "No, skip it". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. If the developer chooses yes, run `pnpm run db:diagram` from the repo root, then open the result — asking for the diagram is a request to see it, not just to generate it:
+     ```bash
+     open docs/schemaspy-output/index.html
+     ```
+     Run this from the repo root (this worktree's root, not the main checkout's — `pnpm run db:diagram` just wrote the file there) so the relative path resolves to the copy that was just generated. Report the output path either way. If either command printed nothing, skip this step entirely — no prompt, no mention.
 6. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
