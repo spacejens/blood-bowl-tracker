@@ -16,7 +16,6 @@ export const competitionExternalIds = competitionExternalIdsTable.table;
 export const competitionExternalIdsHistory =
   competitionExternalIdsTable.historyTable;
 
-export type CompetitionExternalId =
-  typeof competitionExternalIds.$inferSelect;
+export type CompetitionExternalId = typeof competitionExternalIds.$inferSelect;
 export type NewCompetitionExternalId =
   typeof competitionExternalIds.$inferInsert;
