@@ -22,6 +22,7 @@ describe('PositionPageParser', () => {
       typId: '10',
       name: 'Orc Lineman',
       races: [{ bblId: '16', name: 'Orc Team' }],
+      isStarPlayer: false,
     });
   });
 
@@ -40,6 +41,7 @@ describe('PositionPageParser', () => {
         { bblId: '48', name: 'College of Shadow' },
         { bblId: '7', name: 'Goblin Team' },
       ],
+      isStarPlayer: false,
     });
   });
 
@@ -52,6 +54,7 @@ describe('PositionPageParser', () => {
       typId: '121',
       name: 'Norse Catchers',
       races: [],
+      isStarPlayer: false,
     });
   });
 
@@ -82,5 +85,23 @@ describe('PositionPageParser', () => {
       load: () => load('<h1>Orc Lineman</h1>'),
     };
     expect(parser.extractPosition(page)).toBeNull();
+  });
+
+  it('flags a star player when the None (star player) marker is present', () => {
+    const page = positionPage(
+      '<h1>Wilhelm Chaney</h1>' +
+        '<table><tr><td>Skills:</td><td>None (star player)</td></tr></table>',
+      '99',
+    );
+    expect(parser.extractPosition(page)?.isStarPlayer).toBe(true);
+  });
+
+  it('does not flag a star player when the marker is absent', () => {
+    const page = positionPage(
+      '<h1>Orc Lineman</h1>' +
+        '<a href="default.asp?p=tl#16">Orc Team</a>',
+      '10',
+    );
+    expect(parser.extractPosition(page)?.isStarPlayer).toBe(false);
   });
 });
