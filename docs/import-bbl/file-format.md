@@ -37,7 +37,7 @@ code** — the code is the source of truth at that point.
 
 Fully handled in code (no notes needed): `tm` (team pages — coach and race
 extraction), `pt` (position/player-type pages — name, "Can play for" races, and
-star marker).
+star marker), `tl` (master race-list page — see the note below).
 
 Not yet handled (candidates for future work): `m`/`mp` (matches
 and per-player match stats), `ro` (rosters), `te` (league team list), `ch`
@@ -56,3 +56,15 @@ Note on `pl` pages: only two links are read — the player's position
 (`default.asp?p=pt&typID=<id>`) and team (`default.asp?p=tm&t=<code>`). This is
 not a full player import; no `players` rows are written. It exists so the
 positions import can resolve the race of a position whose `pt` page lists none.
+
+Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
+per-league master race-list page. Each race is introduced by two anchors — a
+name anchor and a numeric-id anchor, e.g.
+`<a name="CollegeofShadow"></a><a name="48"></a>` — where the numeric one (`48`)
+is the race's canonical BBL id (the same fragment used in `default.asp?p=tl#<id>`
+links elsewhere). The next `<b>` after the numeric anchor holds the race name;
+later `<b>` rows on the same race are roster lines, not names. This list is not a
+strict superset of the races `tm` pages reveal: a race no longer offered by the
+league can be dropped from it while still attached to old/retired team pages
+(id `22` in the reference dataset), so the races import treats `tm` pages as
+authoritative and uses `tl` only to fill in races with no team page.
