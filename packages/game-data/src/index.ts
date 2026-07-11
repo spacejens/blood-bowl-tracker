@@ -16,7 +16,10 @@ export {
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
 export { PositionsModule } from './positions/positions.module';
-export type { UpsertPositionData } from './positions/positions.service';
+export type {
+  PositionWithRaces,
+  UpsertPositionData,
+} from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,

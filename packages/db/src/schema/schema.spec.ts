@@ -14,6 +14,7 @@ import {
   players,
   positionExternalIds,
   positions,
+  positionsRaces,
   raceRulesSets,
   races,
   rulesSets,
@@ -105,7 +106,14 @@ describe('schema', () => {
   it('exports positions table', () => {
     expect(positions.id).toBeDefined();
     expect(positions.name).toBeDefined();
-    expect(positions.raceId).toBeDefined();
+    expect(positions.isStarPlayer).toBeDefined();
+  });
+
+  it('exports positionsRaces join table', () => {
+    expect(positionsRaces.id).toBeDefined();
+    expect(positionsRaces.positionId).toBeDefined();
+    expect(positionsRaces.raceId).toBeDefined();
+    expect(positionsRaces.isDeleted).toBeDefined();
   });
 
   it('exports players table with FK columns', () => {

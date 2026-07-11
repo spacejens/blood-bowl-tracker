@@ -36,9 +36,10 @@ code** — the code is the source of truth at that point.
 ## Page types seen in the reference dataset
 
 Fully handled in code (no notes needed): `tm` (team pages — coach and race
-extraction), `pt` (position/player-type pages — name and "Can play for" races).
+extraction), `pt` (position/player-type pages — name, "Can play for" races, and
+star marker).
 
-Not yet handled (candidates for future work): `pl` (players), `m`/`mp` (matches
+Not yet handled (candidates for future work): `m`/`mp` (matches
 and per-player match stats), `ro` (rosters), `te` (league team list), `ch`
 (per-season player top charts), plus others.
 
@@ -46,4 +47,12 @@ Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
 for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
 fragment convention team pages use for races). A position may list zero, one, or
 several races; the zero-race case (a present-but-empty "Can play for" table)
-means there is no race to assign the position to.
+means there is no race to assign the position to. A page may also carry a
+`None (star player)` skill-category cell, which marks the position as a star
+player. Star players and a few ordinary positions list no race under "Can play
+for"; their race(s) are recovered from player pages instead.
+
+Note on `pl` pages: only two links are read — the player's position
+(`default.asp?p=pt&typID=<id>`) and team (`default.asp?p=tm&t=<code>`). This is
+not a full player import; no `players` rows are written. It exists so the
+positions import can resolve the race of a position whose `pt` page lists none.
