@@ -30,9 +30,10 @@ export class BblErasImportService {
   async importEras(
     leagueId: number | undefined,
     rulesSetIdsByName: Map<string, number>,
-  ): Promise<ImportResult> {
+  ): Promise<{ result: ImportResult; eraIdsByName: Map<string, number> }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const eraIdsByName = new Map<string, number>();
 
     let eras: EraConfig[];
     let bblSystemId: number;
@@ -54,7 +55,7 @@ export class BblErasImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return makeImportResult({ imported, errors });
+      return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }
 
     if (leagueId === undefined) {
@@ -66,7 +67,7 @@ export class BblErasImportService {
             'its id is unknown.',
         }),
       );
-      return makeImportResult({ imported, errors });
+      return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }
 
     for (const era of eras) {
@@ -81,7 +82,7 @@ export class BblErasImportService {
         continue;
       }
 
-      const success = await this.erasImport.upsertEra(
+      const upsertedEra = await this.erasImport.upsertEra(
         {
           name: era.name,
           leagueId,
@@ -95,11 +96,12 @@ export class BblErasImportService {
         },
         errors,
       );
-      if (success) {
+      if (upsertedEra) {
+        eraIdsByName.set(era.name, upsertedEra.id);
         imported += 1;
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return { result: makeImportResult({ imported, errors }), eraIdsByName };
   }
 }

@@ -1,5 +1,6 @@
 export * from './coach-external-ids';
 export * from './coaches';
+export * from './competition-external-ids';
 export * from './competition-teams';
 export * from './competitions';
 export * from './eras';

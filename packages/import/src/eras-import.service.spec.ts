@@ -20,7 +20,7 @@ describe('ErasImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
   };
 
-  it('returns true and calls the client with the given data on success', async () => {
+  it('returns the upserted era on success', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
       name: 'BB2020',
@@ -36,7 +36,16 @@ describe('ErasImportService', () => {
 
     const result = await service.upsertEra(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: 'BB2020',
+      leagueId: 10,
+      rulesSetId: 20,
+      startDate: '2021-09-01',
+      endDate: '2023-06-10',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -48,7 +57,7 @@ describe('ErasImportService', () => {
 
     const result = await service.upsertEra(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       { item: data, message: 'Failed to import era "BB2020": conflict' },
     ]);
@@ -61,7 +70,7 @@ describe('ErasImportService', () => {
 
     const result = await service.upsertEra(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       { item: data, message: 'Failed to import era "BB2020": boom' },
     ]);

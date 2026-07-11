@@ -2,6 +2,10 @@ import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
+import {
+  CompetitionSchema,
+  UpsertCompetitionSchema,
+} from './schemas/competition';
 import { EraSchema, UpsertEraSchema } from './schemas/era';
 import {
   ExternalSystemSchema,
@@ -49,6 +53,12 @@ export const contract = {
       .input(UpsertEraSchema)
       .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
       .output(EraSchema.extend({ created: z.boolean() })),
+  },
+  competitions: {
+    upsert: oc
+      .input(UpsertCompetitionSchema)
+      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
+      .output(CompetitionSchema.extend({ created: z.boolean() })),
   },
   teams: {
     upsert: oc

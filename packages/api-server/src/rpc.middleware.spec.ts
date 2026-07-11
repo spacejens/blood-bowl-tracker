@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type {
   CoachesService,
+  CompetitionsService,
   ErasService,
   ExternalSystemsService,
   LeaguesService,
@@ -41,6 +42,7 @@ describe('RpcMiddleware', () => {
       {} as ErasService,
       {} as PositionsService,
       {} as TeamsService,
+      {} as CompetitionsService,
     );
   });
 

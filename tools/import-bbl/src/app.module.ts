@@ -6,6 +6,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { CoachesModule } from './coaches/coaches.module';
+import { CompetitionsModule } from './competitions/competitions.module';
 import { ErasModule } from './eras/eras.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { PlayersModule } from './players/players.module';
@@ -30,6 +31,7 @@ export class AppModule {
         RulesSetsModule,
         ErasModule,
         CoachesModule,
+        CompetitionsModule,
         RacesModule,
         PlayersModule,
         PositionsModule,

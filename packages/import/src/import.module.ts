@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 
 import { CoachesImportService } from './coaches-import.service';
+import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportRunnerService } from './import-runner.service';
@@ -14,6 +15,7 @@ import { TeamsImportService } from './teams-import.service';
   providers: [
     ImportRunnerService,
     CoachesImportService,
+    CompetitionsImportService,
     LeaguesImportService,
     PositionsImportService,
     RacesImportService,
@@ -25,6 +27,7 @@ import { TeamsImportService } from './teams-import.service';
   exports: [
     ImportRunnerService,
     CoachesImportService,
+    CompetitionsImportService,
     LeaguesImportService,
     PositionsImportService,
     RacesImportService,

@@ -57,6 +57,38 @@ Note on `pl` pages: only two links are read — the player's position
 not a full player import; no `players` rows are written. It exists so the
 positions import can resolve the race of a position whose `pt` page lists none.
 
+Note on `se`/`sr` pages: `default.asp?p=se&s=<id>` ("played"/archived
+competitions) and `default.asp?p=sr&s=<id>` (current standings) share one
+numeric id space. Every `se`/`sr` page embeds the identical master dropdown
+`<option value="default.asp?p=se&s=<id>"><name></option>` listing every
+competition, so one page is enough to get the full id/name list (the same
+"master list on every page" pattern the `tl` race list uses). The `p=cp&cpid=`
+pages look competition-like but are generic static content pages (league
+structure, news, gallery) — not reliably competitions — and are out of scope.
+
+Note on `ma` pages: `default.asp?p=ma&so=s&s=<id>` is a competition's match
+list. It has no explicit type or date field except each match row's
+`title="result added <Month> <Day><suffix>, <Year>"` attribute (e.g.
+`result added September 25th, 2021`) — the only date source without a full match
+import. The `&gr=` variant of this URL is a byte-identical duplicate (a
+group-filter UI artifact); dedupe by the `s` param, keeping the first page seen.
+The `so=t` variant is a different, team-sorted view (keyed by `t`) and is not
+used here. A competition's `type` is inferred from its match-date span:
+`(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against all 74
+competitions in the reference dataset, including "Dungeon Bowl 1" (a 191-day
+season across only 4 matches) and "Stunty Leeg 2" (a season abandoned after 6
+days); the nearest genuine cup spans at most 2 days, so 3 days has wide margin.
+
+Known limitation: "result added" is when a result was entered into the
+website, not necessarily when the match was played — a season whose results
+were backfilled in one sitting (rather than entered as they happened) can show
+a 0-day span indistinguishable from a genuine one-day cup. "Stunty Leeg 1"
+(11 matches, 0-day span) is a known instance: it misclassifies as `cup` but is
+almost certainly a season, matching "Stunty Leeg 2". No date-span threshold
+can fix this — roughly 20 genuine one-day cups share the same 0-day span. Left
+as-is; correct manually in the database if it matters, the same way any future
+similar case should be handled.
+
 Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
 per-league master race-list page. Each race is introduced by two anchors — a
 name anchor and a numeric-id anchor, e.g.
