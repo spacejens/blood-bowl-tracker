@@ -98,8 +98,7 @@ describe('PositionPageParser', () => {
 
   it('does not flag a star player when the marker is absent', () => {
     const page = positionPage(
-      '<h1>Orc Lineman</h1>' +
-        '<a href="default.asp?p=tl#16">Orc Team</a>',
+      '<h1>Orc Lineman</h1>' + '<a href="default.asp?p=tl#16">Orc Team</a>',
       '10',
     );
     expect(parser.extractPosition(page)?.isStarPlayer).toBe(false);

@@ -28,12 +28,12 @@ async function run(): Promise<ImportResult> {
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
     const raceOutcome = await app.get(BblRacesImportService).importRaces();
-    const positionResult = await app
-      .get(BblPositionsImportService)
-      .importPositions(raceOutcome.raceIdsByBblId);
     const teamOutcome = await app
       .get(BblTeamsImportService)
       .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
+    const positionResult = await app
+      .get(BblPositionsImportService)
+      .importPositions(raceOutcome.racesByBblId, teamOutcome.teamRaceIdsByCode);
 
     const results = [
       leagueOutcome.result,
@@ -41,8 +41,8 @@ async function run(): Promise<ImportResult> {
       eraResult,
       coachOutcome.result,
       raceOutcome.result,
-      positionResult,
       teamOutcome.result,
+      positionResult,
     ];
     return {
       success: results.every((r) => r.success),
