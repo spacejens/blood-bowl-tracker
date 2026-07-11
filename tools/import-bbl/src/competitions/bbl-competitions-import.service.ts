@@ -186,16 +186,22 @@ export class BblCompetitionsImportService {
   }
 
   /**
-   * Read the master competition list off the first se page (or, if no se page
-   * exists, the first sr page) — both embed the identical dropdown. Returns
-   * null if neither page type exists, or if a parse fails (the failure is
-   * recorded as an error; parse errors do not fall through to sr).
+   * Read the master competition list off the first se page carrying an `s`
+   * param (or, if no such se page exists, the first matching sr page) — both
+   * embed the identical dropdown. The bare `default.asp?p=se`/`p=sr` index
+   * pages (no `s` param) have a different layout that lacks the dropdown
+   * entirely and are skipped. Returns null if no matching page exists, or if
+   * a parse fails (the failure is recorded as an error; parse errors do not
+   * fall through to sr).
    */
   private async readCompetitionList(
     errors: ImportError[],
   ): Promise<BblCompetition[] | null> {
     for (const type of [PLAYED_LIST_PAGE_TYPE, STANDINGS_LIST_PAGE_TYPE]) {
       for await (const page of this.sourceReader.pages(type)) {
+        if (page.params.s === undefined) {
+          continue;
+        }
         try {
           return this.competitionListPageParser.extractCompetitions(page);
         } catch (error) {

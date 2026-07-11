@@ -306,6 +306,37 @@ describe('BblCompetitionsImportService', () => {
     expect(upsertCompetition).toHaveBeenCalled();
   });
 
+  it('skips a bare se index page (no s param) and reads the list from the page that has one', async () => {
+    // Mirrors the real BBL mirror's bare `default.asp?p=se` index page, which
+    // has no `s` param and lacks the master `<option>` dropdown entirely, so
+    // extractCompetitions correctly (but unhelpfully) returns [] for it.
+    const listParser = new CompetitionListPageParser();
+    vi.spyOn(listParser, 'extractCompetitions').mockImplementation((p) =>
+      p.params.s === undefined ? [] : [{ bblId: '1', name: 'Major Season 1' }],
+    );
+    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const service = makeService({
+      reader: makeReader({
+        ma: [page('ma', { so: 's', s: '1' })],
+        se: [page('se', {}), page('se', { s: '66' })],
+      }),
+      listParser,
+      matchParser: makeMatchParser({
+        '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetition,
+    });
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(1);
+    expect(upsertCompetition).toHaveBeenCalled();
+  });
+
   it('records one error and skips competitions when an external system upsert fails', async () => {
     const upsertExternalSystem = vi
       .fn()
