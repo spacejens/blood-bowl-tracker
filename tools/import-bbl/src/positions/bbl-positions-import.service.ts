@@ -22,6 +22,31 @@ interface ResolvedRace {
   name: string;
 }
 
+interface ExternalIdPair {
+  externalSystemId: number;
+  externalId: string;
+}
+
+/**
+ * The BBL (`<typId>-<raceBblId>`) and Name (`<raceName>: <positionName>`)
+ * external ids for one (position, race) pairing.
+ */
+function raceExternalIds(
+  bblSystemId: number,
+  nameSystemId: number,
+  typId: string,
+  race: { bblId: string; name: string },
+  positionName: string,
+): ExternalIdPair[] {
+  return [
+    { externalSystemId: bblSystemId, externalId: `${typId}-${race.bblId}` },
+    {
+      externalSystemId: nameSystemId,
+      externalId: `${race.name}: ${positionName}`,
+    },
+  ];
+}
+
 @Injectable()
 export class BblPositionsImportService {
   constructor(
@@ -136,16 +161,13 @@ export class BblPositionsImportService {
                   name: position.name,
                   isStarPlayer: false,
                   races: [{ raceId: dbId, isDeleted: false }],
-                  externalIds: [
-                    {
-                      externalSystemId: bblSystemId,
-                      externalId: `${position.typId}-${race.bblId}`,
-                    },
-                    {
-                      externalSystemId: nameSystemId,
-                      externalId: `${race.name}: ${position.name}`,
-                    },
-                  ],
+                  externalIds: raceExternalIds(
+                    bblSystemId,
+                    nameSystemId,
+                    position.typId,
+                    race,
+                    position.name,
+                  ),
                 },
                 errors,
               )
@@ -168,20 +190,18 @@ export class BblPositionsImportService {
         }
 
         if (position.isStarPlayer) {
-          const externalIds: {
-            externalSystemId: number;
-            externalId: string;
-          }[] = [{ externalSystemId: nameSystemId, externalId: position.name }];
-          for (const race of resolved) {
-            externalIds.push({
-              externalSystemId: bblSystemId,
-              externalId: `${position.typId}-${race.bblId}`,
-            });
-            externalIds.push({
-              externalSystemId: nameSystemId,
-              externalId: `${race.name}: ${position.name}`,
-            });
-          }
+          const externalIds: ExternalIdPair[] = [
+            { externalSystemId: nameSystemId, externalId: position.name },
+            ...resolved.flatMap((race) =>
+              raceExternalIds(
+                bblSystemId,
+                nameSystemId,
+                position.typId,
+                race,
+                position.name,
+              ),
+            ),
+          ];
           if (
             await this.positionsImport.upsertPosition(
               {
@@ -206,16 +226,13 @@ export class BblPositionsImportService {
                   name: position.name,
                   isStarPlayer: false,
                   races: [{ raceId: race.dbId, isDeleted: true }],
-                  externalIds: [
-                    {
-                      externalSystemId: bblSystemId,
-                      externalId: `${position.typId}-${race.bblId}`,
-                    },
-                    {
-                      externalSystemId: nameSystemId,
-                      externalId: `${race.name}: ${position.name}`,
-                    },
-                  ],
+                  externalIds: raceExternalIds(
+                    bblSystemId,
+                    nameSystemId,
+                    position.typId,
+                    race,
+                    position.name,
+                  ),
                 },
                 errors,
               )
