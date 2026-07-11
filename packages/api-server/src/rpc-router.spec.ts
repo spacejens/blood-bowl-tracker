@@ -612,7 +612,8 @@ describe('buildRpcRouter', () => {
       position: {
         id: 1,
         name: 'Lineman',
-        raceId: 7,
+        isStarPlayer: false,
+        races: [{ raceId: 7, isDeleted: false }],
         createdAt: new Date('2026-01-01'),
       },
       created: true,
@@ -630,14 +631,16 @@ describe('buildRpcRouter', () => {
 
     const result = await call(router.positions.upsert, {
       name: 'Lineman',
-      raceId: 7,
+      isStarPlayer: false,
+      races: [{ raceId: 7, isDeleted: false }],
       externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
     });
 
     expect(result).toEqual({
       id: 1,
       name: 'Lineman',
-      raceId: 7,
+      isStarPlayer: false,
+      races: [{ raceId: 7, isDeleted: false }],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -666,7 +669,8 @@ describe('buildRpcRouter', () => {
     await expect(
       call(router.positions.upsert, {
         name: 'Lineman',
-        raceId: 7,
+        isStarPlayer: false,
+        races: [{ raceId: 7, isDeleted: false }],
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
       }),
     ).rejects.toMatchObject({
@@ -694,7 +698,8 @@ describe('buildRpcRouter', () => {
     await expect(
       call(router.positions.upsert, {
         name: 'Lineman',
-        raceId: 7,
+        isStarPlayer: false,
+        races: [{ raceId: 7, isDeleted: false }],
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
       }),
     ).rejects.toThrow('db unavailable');
