@@ -7,7 +7,8 @@ import type { ImportError } from './types';
 
 export interface UpsertPositionData {
   name: string;
-  raceId: number;
+  isStarPlayer: boolean;
+  races: { raceId: number; isDeleted: boolean }[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 
