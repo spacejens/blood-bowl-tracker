@@ -29,10 +29,13 @@ export class BblRacesImportService {
   ) {}
 
   /**
-   * Import every race found on the BBL team pages. Each race is keyed by its
-   * numeric BBL id under the BBL external system (canonical) and by its exact
-   * name under the Name external system (cross-tool matching). Idempotent:
-   * re-running upserts existing races.
+   * Import every race found on the BBL team pages, plus any additional race
+   * found only on the `tl` master race-list page (races with no team page,
+   * e.g. College of Shadow/Light). The team-page pass runs first and is
+   * authoritative on any shared id; the `tl` pass only fills gaps. Each race
+   * is keyed by its numeric BBL id under the BBL external system (canonical)
+   * and by its exact name under the Name external system (cross-tool
+   * matching). Idempotent: re-running upserts existing races.
    */
   async importRaces(): Promise<{
     result: ImportResult;
