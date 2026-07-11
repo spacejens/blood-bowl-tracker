@@ -81,6 +81,19 @@ tool directory, or exported in your shell:
   teams by page id, resolves each team's race and coach foreign keys from the
   id maps returned by the races and coaches imports, and upserts each through
   the API. Runs after races and coaches, since it depends on both.
+- **MatchesModule** — page-parsing helper only (no matches are imported yet).
+  `MatchListPageParser` reads each match's date from the
+  `result added <Month> <Day>, <Year>` title attribute on a match-list page
+  (`p=ma&so=s&s=<id>`). It is a minimal seed for a future full match import; the
+  competitions import uses it to derive each competition's type and era.
+- **CompetitionsModule** — data-type extractor for competitions.
+  `CompetitionListPageParser` reads every competition's numeric BBL id and name
+  off the master dropdown embedded on any `se`/`sr` page (one page suffices).
+  `BblCompetitionsImportService` reads that list, then reads each competition's
+  match dates (via MatchesModule) to derive its `type` (season vs cup, from the
+  date span) and `eraId` (the era containing its earliest match date), and
+  upserts each through the API. Runs after eras, whose `eraIdsByName` map it uses
+  to resolve `eraId`.
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
@@ -135,6 +148,16 @@ Re-running is always safe and fills any gaps left by transient failures.
   coach are resolved to local ids from the races and coaches imports, which run
   first. Retired teams are imported like any other; the "Retired!" marker is
   not tracked yet.
+- **Competitions** — from the master competition dropdown on the `se`/`sr`
+  pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
+  (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL
+  external system (`BBL` by default) and by exact name under the `Name` external
+  system. `type` is `cup` when the match dates span 3 days or fewer, else
+  `season`; `eraId` is the era whose configured date range contains the earliest
+  match date. A competition with no dated matches, or whose earliest date is
+  outside every configured era, is skipped with a recorded error. The `p=cp`
+  pages are out of scope (generic content pages, not reliably competitions).
+  Imported after eras (referenced by `eraId`).
 
 Imported records are matched across systems by external IDs (a coach, for
 example, carries an external ID under the configured BBL external system and
