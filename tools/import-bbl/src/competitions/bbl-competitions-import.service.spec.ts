@@ -213,6 +213,45 @@ describe('BblCompetitionsImportService', () => {
     ).toBe(true);
   });
 
+  it('skips and records a distinct error when the matched era has no known database id', async () => {
+    const upsertCompetition = vi.fn();
+    const service = makeService({
+      reader: makeReader({
+        ma: [page('ma', { so: 's', s: '1' })],
+        se: [page('se', { s: '66' })],
+      }),
+      listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
+      matchParser: makeMatchParser({
+        '1': [
+          new Date(Date.UTC(2011, 11, 7)),
+          new Date(Date.UTC(2011, 11, 18)),
+        ],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetition,
+      // "Living rulebook" matches by date, but is absent from eraIdsByName,
+      // simulating its rules set having failed to import earlier in the run.
+    });
+
+    const { result } = await service.importCompetitions(new Map());
+
+    expect(result.imported).toBe(0);
+    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('"Living rulebook"') &&
+          e.message.includes('no known database id'),
+      ),
+    ).toBe(true);
+    expect(
+      result.errors.some((e) => e.message.includes('no configured era')),
+    ).toBe(false);
+  });
+
   it('deduplicates the ma page by its s param, reading each competition once', async () => {
     const matchParser = makeMatchParser({
       '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
@@ -289,6 +328,40 @@ describe('BblCompetitionsImportService', () => {
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
     expect(upsertCompetition).not.toHaveBeenCalled();
+  });
+
+  it('records an error and reports zero imports when the master list page fails to parse', async () => {
+    const listParser = new CompetitionListPageParser();
+    vi.spyOn(listParser, 'extractCompetitions').mockImplementation(() => {
+      throw new Error('bad se page');
+    });
+    const upsertCompetition = vi.fn();
+    const service = makeService({
+      reader: makeReader({
+        ma: [page('ma', { so: 's', s: '1' })],
+        se: [page('se', { s: '66' })],
+      }),
+      listParser,
+      matchParser: makeMatchParser({}),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetition,
+    });
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(0);
+    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('Failed to parse master competition list page'),
+      ),
+    ).toBe(true);
+    expect(
+      result.errors.some((e) => e.message.includes('no se or sr page')),
+    ).toBe(true);
   });
 
   it('records an error and continues when a match-list page fails to parse', async () => {

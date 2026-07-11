@@ -76,7 +76,7 @@ export class BblCompetitionsImportService {
     }
 
     const datesByCompetitionId = await this.collectMatchDates(errors);
-    const competitions = await this.readCompetitionList();
+    const competitions = await this.readCompetitionList(errors);
     if (competitions === null) {
       errors.push(
         makeImportError({
@@ -108,12 +108,20 @@ export class BblCompetitionsImportService {
       const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
       const type = spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
 
-      const eraId = this.resolveEraId(earliest, eras, eraIdsByName);
+      const { eraName, eraId } = this.resolveEraId(
+        earliest,
+        eras,
+        eraIdsByName,
+      );
       if (eraId === undefined) {
+        const message =
+          eraName === undefined
+            ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`
+            : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
         errors.push(
           makeImportError({
             item: competition,
-            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`,
+            message,
           }),
         );
         continue;
@@ -180,12 +188,27 @@ export class BblCompetitionsImportService {
   /**
    * Read the master competition list off the first se page (or, failing that,
    * the first sr page) — both embed the identical dropdown. Returns null when
-   * neither page type exists.
+   * neither page type exists, or when the page that was found fails to parse
+   * (the failure is recorded as an error).
    */
-  private async readCompetitionList(): Promise<BblCompetition[] | null> {
+  private async readCompetitionList(
+    errors: ImportError[],
+  ): Promise<BblCompetition[] | null> {
     for (const type of [PLAYED_LIST_PAGE_TYPE, STANDINGS_LIST_PAGE_TYPE]) {
       for await (const page of this.sourceReader.pages(type)) {
-        return this.competitionListPageParser.extractCompetitions(page);
+        try {
+          return this.competitionListPageParser.extractCompetitions(page);
+        } catch (error) {
+          errors.push(
+            makeImportError({
+              item: { page: page.params },
+              message: `Failed to parse master competition list page ${JSON.stringify(page.params)}: ${
+                error instanceof Error ? error.message : String(error)
+              }`,
+            }),
+          );
+          return null;
+        }
       }
     }
     return null;
@@ -195,23 +218,25 @@ export class BblCompetitionsImportService {
    * Find the configured era whose [startDate, endDate) range (start inclusive,
    * end exclusive; an omitted endDate is open-ended) contains the given date,
    * and resolve its name to a DB id. ISO date strings compare correctly
-   * lexicographically. Returns undefined when no era contains the date or the
-   * matched era name has no known id.
+   * lexicographically. `eraName` is the name of the era whose date range
+   * contains the date (undefined if none does); `eraId` is that era's known
+   * DB id (undefined if no era's range contains the date, or if it does but
+   * the era has no known id — e.g. its rules set failed to import earlier).
    */
   private resolveEraId(
     date: Date,
     eras: EraConfig[],
     eraIdsByName: Map<string, number>,
-  ): number | undefined {
+  ): { eraName: string | undefined; eraId: number | undefined } {
     const day = date.toISOString().slice(0, 10);
     for (const era of eras) {
       if (
         day >= era.startDate &&
         (era.endDate === undefined || day < era.endDate)
       ) {
-        return eraIdsByName.get(era.name);
+        return { eraName: era.name, eraId: eraIdsByName.get(era.name) };
       }
     }
-    return undefined;
+    return { eraName: undefined, eraId: undefined };
   }
 }
