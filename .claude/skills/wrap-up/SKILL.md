@@ -19,6 +19,12 @@ Most often triggered conversationally — when the developer says something like
    gh pr view <N> --json state,mergedAt,headRefName
    ```
    If `state` is not `MERGED`, report that to the developer and stop — do not proceed to cleanup. Record `headRefName` (the branch name) for Phase 2.
+
+   Then fetch so `origin/main` is current for the merge-base checks later in this cleanup:
+   ```bash
+   git fetch origin main
+   ```
+   This only updates the remote-tracking ref `origin/main`. It never checks out or otherwise touches the developer's local `main` branch.
 3. Check for stranded work: commits on `headRefName` or uncommitted changes in the worktree that never made it into the merged PR (can happen if a developer commits directly in the worktree outside the normal task flow). Compare the merged PR's final commit against the local branch tip:
    ```bash
    git -C <worktree-path> log --oneline <merged-sha>..HEAD
