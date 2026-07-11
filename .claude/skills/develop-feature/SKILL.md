@@ -238,4 +238,14 @@ This applies to every subagent dispatched from any phase below while working in 
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
 4. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, or both — selecting neither is valid and means no action is taken. Do not ask the developer separately before invoking it.
-5. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
+5. **Offer a SchemaSpy diagram when migrations changed.** A quiet convenience, not a required gate — run it only when both checks below produce output, and skip silently (no prompt, no mention) otherwise.
+   - Check whether `packages/db/migrations/` changed on this branch versus its merge-base with `main`:
+     ```bash
+     git diff --name-only "$(git merge-base origin/main HEAD)" HEAD -- packages/db/migrations/
+     ```
+   - Check whether the stack is actually running now — a direct state check rather than trusting `deploy-local`'s own (conversational, not structured) action selection:
+     ```bash
+     docker ps --filter "name=^postgres$" --filter "status=running" --format '{{.Names}}'
+     ```
+   - If **both** commands print output (migrations changed AND the `postgres` container is running), offer via `AskUserQuestion`: "Generate a SchemaSpy diagram of the updated schema?" with two genuine options — "Yes, generate it" and "No, skip it". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. If the developer chooses yes, run `pnpm run db:diagram` from the repo root and report the output path (`docs/schemaspy-output/index.html`). If either command printed nothing, skip this step entirely — no prompt, no mention.
+6. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
