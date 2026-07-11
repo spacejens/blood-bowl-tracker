@@ -85,13 +85,29 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-8. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+8. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     for env_file in apps/discord-bot/.env tools/import-bbl/.env; do
+       if [ ! -f "$WORKTREE_ROOT/$env_file" ] && [ -f "$MAIN_ROOT/$env_file" ]; then
+         cp "$MAIN_ROOT/$env_file" "$WORKTREE_ROOT/$env_file"
+       fi
+     done
+     if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then
+       ln -s "$MAIN_ROOT/tools/import-bbl/data" "$WORKTREE_ROOT/tools/import-bbl/data"
+     fi
+   fi
+   ```
+   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
+9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-9. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+10. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -116,13 +132,29 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+6. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     for env_file in apps/discord-bot/.env tools/import-bbl/.env; do
+       if [ ! -f "$WORKTREE_ROOT/$env_file" ] && [ -f "$MAIN_ROOT/$env_file" ]; then
+         cp "$MAIN_ROOT/$env_file" "$WORKTREE_ROOT/$env_file"
+       fi
+     done
+     if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then
+       ln -s "$MAIN_ROOT/tools/import-bbl/data" "$WORKTREE_ROOT/tools/import-bbl/data"
+     fi
+   fi
+   ```
+   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
+7. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-7. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+8. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 ---
 
