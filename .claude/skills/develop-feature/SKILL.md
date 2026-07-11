@@ -41,17 +41,21 @@ This applies to every subagent dispatched from any phase below while working in 
 **Issue mode:**
 1. Fetch the issue:
    ```bash
-   gh issue view <N> --json title,body,labels,state,assignees,url
+   gh issue view <N> --json title,body,labels,state,assignees,url,comments
    ```
    If the issue does not exist, `gh` will error — report the error and **stop**.
-2. Check whether `<N>` is actually a pull request, not an issue: if the returned `url` contains `/pull/` (issue URLs are `.../issues/<N>`; PR URLs are `.../pull/<N>`), report "Issue #N is a pull request, not an issue. Nothing to do." and **stop** — do not proceed to the state check, assignment, branch naming, or worktree creation.
-3. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
-4. Claim the issue:
+2. Surface any existing comments so prior investigation notes (e.g. "blocked on issue #X, see findings below") are read before Phase 1 makes any decision. Using the `comments` array from the step 1 fetch:
+   - If it is non-empty, print each comment's author and body — one line per comment, e.g. `Existing comments on #N: — @<author>: <body>`.
+   - If it is empty, skip silently — print nothing and change no behavior.
+   This is informational only: it never gates, pauses, or alters the PR-check / state-check / claim / branch flow that follows.
+3. Check whether `<N>` is actually a pull request, not an issue: if the returned `url` contains `/pull/` (issue URLs are `.../issues/<N>`; PR URLs are `.../pull/<N>`), report "Issue #N is a pull request, not an issue. Nothing to do." and **stop** — do not proceed to the state check, assignment, branch naming, or worktree creation.
+4. Check the `state` field. If it is not `OPEN`, report "Issue #N is not open (state: `<state>`). Nothing to do." and **stop**.
+5. Claim the issue:
    - Determine the current `gh` user:
      ```bash
      gh api user --jq .login
      ```
-     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 5 to derive the branch name.
+     If this command fails, report a one-line warning and **continue** — skip the assign/label step but still determine and record the kind label below (it does not depend on the current user), then proceed to step 6 to derive the branch name.
    - If the issue's `assignees` array is non-empty and does not include the current user's login, report "Issue #N is already assigned to `<assignee login(s)>`. Stopping." and **stop** — do not derive a branch name or create a worktree.
    - Otherwise (unassigned, or already assigned to the current user), assign and label it:
      ```bash
@@ -65,14 +69,14 @@ This applies to every subagent dispatched from any phase below while working in 
      - If it's genuinely unclear which applies, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
      - Apply any newly-determined label(s) with one `gh issue edit <N> --add-label "<name>"` call per label (separate from the "in progress" call above, so a failure in one doesn't mask the other). On failure, report a one-line warning and **continue**, matching the existing assign/label failure handling.
    - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
-5. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
+6. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
    - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
-6. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
+7. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
    ```bash
    git branch -m worktree-<confirmed-name> <confirmed-name>
    ```
-   `<confirmed-name>` is the branch name confirmed with the developer in step 5 (e.g. `issue-66-development-process-improvements`). After renaming, verify the branch is now `<confirmed-name>` with no `worktree-` prefix (`git branch --show-current`) before continuing.
-7. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
+   `<confirmed-name>` is the branch name confirmed with the developer in step 6 (e.g. `issue-66-development-process-improvements`). After renaming, verify the branch is now `<confirmed-name>` with no `worktree-` prefix (`git branch --show-current`) before continuing.
+8. **Link the plans directory** so specs and plans from Phase 2–3 are saved outside the worktree and survive its removal:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    if [ "$MAIN_ROOT" != "$(pwd)" ]; then
@@ -85,7 +89,7 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-8. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+9. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
@@ -101,13 +105,13 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
-9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+10. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
-10. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
+11. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
@@ -246,7 +250,7 @@ This applies to every subagent dispatched from any phase below while working in 
    EOF
    )"
    ```
-   Use the kind label(s) recorded in Phase 1 step 4 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
+   Use the kind label(s) recorded in Phase 1 step 5 — one `--label` flag per label. The `Closes #<N>` keyword is what links and later closes the issue — no separate action is needed here. When this PR is merged into the repository's default branch, GitHub automatically closes issue #N. The "in progress" label applied in Phase 1 is left in place; it is not removed on close.
 
    **Ad-hoc mode** — PR title is the human-readable form of the confirmed slug (e.g. `feature-add-player-stats-endpoint` → "Add player stats endpoint"):
    ```bash
