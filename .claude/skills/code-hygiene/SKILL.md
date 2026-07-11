@@ -294,7 +294,7 @@ Any finding a task can't safely auto-fix pauses the run immediately for develope
 
 - Task 1: none — pruning is a purely mechanical age comparison, never a judgment call.
 - Task 2: a dependency group's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 2 above for the full per-group workflow. Commits already made earlier in the run are kept, not rolled back.
-- Task 3: an image update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — see Task 3 above for the full per-image workflow. Commits already made earlier in the run are kept, not rolled back.
+- Task 3: an image update's `pnpm verify` failure that needs a judgment call to resolve (not just mechanical migration) after `systematic-debugging` — for ordinary images and for the **Node group** alike — stops the run. See Task 3 above for the full per-image and Node-group workflows. Commits already made earlier in the run (including a completed Node-group commit) are kept, not rolled back.
 - Task 4: a security vulnerability with no available patched version.
 - Task 5: any dead-code/unused-dependency finding Knip couldn't auto-fix, or any dependency-placement candidate whose dev-only-vs-production-need status can't be confidently determined after investigation.
 - Task 6: any version mismatch syncpack couldn't auto-fix.
