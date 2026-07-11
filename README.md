@@ -32,7 +32,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 ### Tools
 
 - **`tools/import-bbl`** — NestJS CLI application for importing data from BBL (Blood Bowl Legend) exports into the tracker via the api-client
-- **`tools/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
+- **`tools/db-diagram/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
 
 ## Getting started
 
