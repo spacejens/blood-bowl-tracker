@@ -27,7 +27,7 @@ Takes no arguments.
 
 Run this section only if "Deploy the stack" was selected above.
 
-1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. If running from a worktree, fill in what's missing from the main checkout before building:
+1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, fill in what's missing from the main checkout before building:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
@@ -73,7 +73,7 @@ Run this section only if "Deploy the stack" was selected above.
 
 Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
 
-1. `tools/import-bbl/.env` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. If running from a worktree, sync both from the main checkout:
+1. `tools/import-bbl/.env` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, sync both from the main checkout:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
