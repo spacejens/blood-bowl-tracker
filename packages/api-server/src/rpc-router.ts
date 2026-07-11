@@ -2,6 +2,8 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   type CoachesService,
   CoachUpsertConflictError,
+  type CompetitionsService,
+  CompetitionUpsertConflictError,
   type ErasService,
   EraUpsertConflictError,
   type ExternalSystemsService,
@@ -27,6 +29,7 @@ export function buildRpcRouter(
   erasService: ErasService,
   positionsService: PositionsService,
   teamsService: TeamsService,
+  competitionsService: CompetitionsService,
 ) {
   return {
     coaches: {
@@ -112,6 +115,22 @@ export function buildRpcRouter(
             return { ...era, created };
           } catch (err) {
             if (err instanceof EraUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    competitions: {
+      upsert: implement(contract.competitions.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { competition, created } =
+              await competitionsService.upsert(input);
+            return { ...competition, created };
+          } catch (err) {
+            if (err instanceof CompetitionUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;

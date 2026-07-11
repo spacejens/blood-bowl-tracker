@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import {
   CoachesService,
+  CompetitionsService,
   ErasService,
   ExternalSystemsService,
   LeaguesService,
@@ -31,6 +32,7 @@ export class RpcMiddleware implements NestMiddleware {
     erasService: ErasService,
     positionsService: PositionsService,
     teamsService: TeamsService,
+    competitionsService: CompetitionsService,
   ) {
     this.handler = new RPCHandler(
       buildRpcRouter(
@@ -42,6 +44,7 @@ export class RpcMiddleware implements NestMiddleware {
         erasService,
         positionsService,
         teamsService,
+        competitionsService,
       ),
     );
   }

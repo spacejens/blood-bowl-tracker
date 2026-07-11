@@ -1,5 +1,6 @@
 import {
   CoachesModule,
+  CompetitionsModule,
   ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
@@ -22,6 +23,7 @@ import { RpcMiddleware } from './rpc.middleware';
     ErasModule,
     PositionsModule,
     TeamsModule,
+    CompetitionsModule,
   ],
 })
 export class ApiServerModule implements NestModule {
