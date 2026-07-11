@@ -79,6 +79,16 @@ competitions in the reference dataset, including "Dungeon Bowl 1" (a 191-day
 season across only 4 matches) and "Stunty Leeg 2" (a season abandoned after 6
 days); the nearest genuine cup spans at most 2 days, so 3 days has wide margin.
 
+Known limitation: "result added" is when a result was entered into the
+website, not necessarily when the match was played — a season whose results
+were backfilled in one sitting (rather than entered as they happened) can show
+a 0-day span indistinguishable from a genuine one-day cup. "Stunty Leeg 1"
+(11 matches, 0-day span) is a known instance: it misclassifies as `cup` but is
+almost certainly a season, matching "Stunty Leeg 2". No date-span threshold
+can fix this — roughly 20 genuine one-day cups share the same 0-day span. Left
+as-is; correct manually in the database if it matters, the same way any future
+similar case should be handled.
+
 Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
 per-league master race-list page. Each race is introduced by two anchors — a
 name anchor and a numeric-id anchor, e.g.
