@@ -42,7 +42,9 @@ describe('RaceListPageParser', () => {
   });
 
   it('ignores anchors whose name is not all digits', () => {
-    const page = listPage('<a name="CollegeofShadow"></a><b>College of Shadow</b>');
+    const page = listPage(
+      '<a name="CollegeofShadow"></a><b>College of Shadow</b>',
+    );
     expect(parser.extractRaces(page)).toEqual([]);
   });
 
@@ -52,7 +54,9 @@ describe('RaceListPageParser', () => {
   });
 
   it('skips a numeric anchor with no following <b>', () => {
-    const page = listPage('<a name="48"></a><table><tr><td>nothing</td></tr></table>');
+    const page = listPage(
+      '<a name="48"></a><table><tr><td>nothing</td></tr></table>',
+    );
     expect(parser.extractRaces(page)).toEqual([]);
   });
 

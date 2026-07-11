@@ -10,16 +10,19 @@ import { Injectable } from '@nestjs/common';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
 import { RacePageParser } from './race-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
+const RACE_LIST_PAGE_TYPE = 'tl';
 
 @Injectable()
 export class BblRacesImportService {
   constructor(
     private readonly sourceReader: BblSourceReader,
     private readonly racePageParser: RacePageParser,
+    private readonly raceListPageParser: RaceListPageParser,
     private readonly racesImport: RacesImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
@@ -91,6 +94,36 @@ export class BblRacesImportService {
           makeImportError({
             item: { page: page.params },
             message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          }),
+        );
+        continue;
+      }
+    }
+
+    for await (const page of this.sourceReader.pages(RACE_LIST_PAGE_TYPE)) {
+      try {
+        for (const parsedRace of this.raceListPageParser.extractRaces(page)) {
+          if (
+            await this.upsertParsedRace(
+              parsedRace,
+              seen,
+              bblSystemId,
+              nameSystemId,
+              raceIdsByBblId,
+              racesByBblId,
+              errors,
+            )
+          ) {
+            imported += 1;
+          }
+        }
+      } catch (error) {
+        errors.push(
+          makeImportError({
+            item: { page: page.params },
+            message: `Failed to parse race list page ${JSON.stringify(page.params)}: ${
               error instanceof Error ? error.message : String(error)
             }`,
           }),
