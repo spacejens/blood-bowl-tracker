@@ -55,7 +55,17 @@ Each of the following is its own `AskUserQuestion` checkpoint — offer them in 
    - **Outside a worktree** → recommend **keeping** the volume (protect the developer's long-lived default database).
    Either way, note in the prompt that the volume is shared across checkouts so the developer can override the recommendation.
 2. **Worktree removal.** If this session entered the worktree via `EnterWorktree`, offer `ExitWorktree` with `action: "remove"` **and** `discard_changes: true` on the **first** attempt — do not first try without the flag and react to a possible refusal. Phase 1 has already independently verified, via `gh pr view` (`state`/`mergedAt`) and the `git log`/`git status` comparison against the actual pushed branch, that the PR merged and nothing is stranded; that verification is authoritative. `ExitWorktree`'s own internal merge check tracks the branch by its pre-rename, creation-time name (`worktree-<name>`) and can misreport an already-merged, renamed branch as having commits that would be discarded — Phase 1's check supersedes it, so there's no need to rely on it agreeing. Otherwise (the session did not enter via `EnterWorktree`), offer `git worktree remove <path>`.
-3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1) with `git branch -d <branch>` (not `-D` — a merged branch is always safe to delete with the safe flag; if it somehow isn't fully merged locally, report the error and let the developer decide rather than forcing it).
+3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1). Verify and delete against `origin/main` — **not** against the developer's local `main`, which may be stale or never fetched (the failure mode `git branch -d` would hit). First confirm the branch's work is genuinely present in `origin/main`:
+   ```bash
+   git merge-base --is-ancestor <branch> origin/main
+   ```
+   - **If it succeeds (exit 0):** the branch's work is confirmed present in `origin/main`, so delete it with force — the force is justified specifically by this independent check, not used blindly, and it sidesteps `-d`'s own merge check (which is relative to local `main` and can be stale or never-fetched):
+     ```bash
+     git branch -D <branch>
+     ```
+   - **If it fails (exit 1):** report that the branch does not appear merged into `origin/main` and stop — let the developer decide, the same fallback behavior as before, just driven by an authoritative check.
+
+   This step must **never** check out, fast-forward, pull, or otherwise mutate the developer's local `main` branch. Verification and deletion happen entirely via `origin/main` and the target branch.
 
 ## Non-goals
 
