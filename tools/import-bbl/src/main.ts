@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
+import { BblCompetitionsImportService } from './competitions/bbl-competitions-import.service';
 import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
@@ -26,6 +27,9 @@ async function run(): Promise<ImportResult> {
     const eraOutcome = await app
       .get(BblErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
+    const competitionOutcome = await app
+      .get(BblCompetitionsImportService)
+      .importCompetitions(eraOutcome.eraIdsByName);
     const coachOutcome = await app.get(BblCoachesImportService).importCoaches();
     const raceOutcome = await app.get(BblRacesImportService).importRaces();
     const teamOutcome = await app
@@ -39,6 +43,7 @@ async function run(): Promise<ImportResult> {
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraOutcome.result,
+      competitionOutcome.result,
       coachOutcome.result,
       raceOutcome.result,
       teamOutcome.result,
