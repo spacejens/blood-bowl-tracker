@@ -440,7 +440,12 @@ describe('buildRpcRouter', () => {
     (
       services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
     ).mockResolvedValue({
-      rulesSet: { id: 1, name: 'BB2020', createdAt: new Date('2026-01-01') },
+      rulesSet: {
+        id: 1,
+        name: 'BB2020',
+        races: [],
+        createdAt: new Date('2026-01-01'),
+      },
       created: true,
     });
     const router = buildRpcRouter(
@@ -463,6 +468,7 @@ describe('buildRpcRouter', () => {
     expect(result).toEqual({
       id: 1,
       name: 'BB2020',
+      races: [],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -749,6 +755,7 @@ describe('buildRpcRouter', () => {
         name: '40 grinders',
         raceId: 5,
         coachId: 9,
+        eras: [],
         createdAt: new Date('2026-01-01'),
       },
       created: true,
@@ -777,6 +784,7 @@ describe('buildRpcRouter', () => {
       name: '40 grinders',
       raceId: 5,
       coachId: 9,
+      eras: [],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -853,6 +861,7 @@ describe('buildRpcRouter', () => {
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
+        teamEraIds: [],
         createdAt: new Date('2026-01-01'),
       },
       created: true,
@@ -881,6 +890,7 @@ describe('buildRpcRouter', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 20,
+      teamEraIds: [],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
