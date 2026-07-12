@@ -21,11 +21,16 @@ tool directory, or exported in your shell:
 - `BBL_ERAS` — a JSON array describing the eras the league played through. Each
   entry has `name`, `rulesSet` (the rules set's name), `startDate` (required,
   ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still ongoing),
-  `firstPlayerId`, and `lastPlayerId` (both optional; if present, players
-  outside all configured ranges are skipped). Rules sets and eras are not
-  present in the source data, so they are supplied here. Each era's rules set
-  name and each era name are used as external IDs under both the configured BBL
-  external system and the `Name` external system.
+  `firstPlayerId` and `lastPlayerId` (both optional; if present, players
+  outside all configured ranges are skipped), and `playerIdOverrides` (an
+  optional array of pids explicitly assigned to this era, checked before the
+  range bounds — BBL player ids are only roughly chronological, so a handful
+  of players drafted right at an era changeover can land on the "wrong" side
+  of a range split; overrides correct those known exceptions without widening
+  the range). Rules sets and eras are not present in the source data, so they
+  are supplied here. Each era's rules set name and each era name are used as
+  external IDs under both the configured BBL external system and the `Name`
+  external system.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
@@ -176,9 +181,10 @@ Re-running is always safe and fills any gaps left by transient failures.
 - **Players** — from player pages (`p=pl`). Keyed by the player's own numeric
   `pid` under the configured BBL external system only — unlike other entities,
   players get no `Name` external id, since player names are not guaranteed
-  unique across the league. A player's era is resolved from its `pid` against
-  each configured era's `firstPlayerId`/`lastPlayerId` range; its team era and
-  position are resolved to local ids from the teams and positions imports. A
+  unique across the league. A player's era is resolved from its `pid`, first
+  checking each era's `playerIdOverrides` list, then falling back to each
+  era's `firstPlayerId`/`lastPlayerId` range; its team era and position are
+  resolved to local ids from the teams and positions imports. A
   player whose pid matches no configured era range, whose team code was not
   imported, or whose position cannot be resolved is skipped with a recorded
   error. Imported after teams, team eras, and positions (all referenced).
