@@ -1,9 +1,10 @@
 # Discord Bot
 
 The `apps/discord-bot` application connects to Discord using a bot account. On
-launch it posts a summary of the tracked data to a configured channel, and it
-serves slash commands such as `/insights`. This page explains how to set up the bot
-on the Discord side and how to configure the application.
+launch it posts a random fact from a tree of tracked-data insights to a
+configured channel, and it serves slash commands such as `/insights`. This
+page explains how to set up the bot on the Discord side and how to configure
+the application.
 
 ## 1. Create a Discord application and bot
 
