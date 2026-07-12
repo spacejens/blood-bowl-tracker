@@ -38,19 +38,20 @@ Every pull request triggers the GitHub Actions workflow in `.github/workflows/ci
 
 Each job is self-contained: it checks out the code, provisions pnpm via Corepack and Node via `.nvmrc`, installs with `--frozen-lockfile`, and rebuilds the workspace before running its check. The three jobs run in parallel.
 
-A fourth job, **`gatekeeper`**, depends on all three and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the internal `lint`/`typecheck`/`test` jobs can be added, removed, or renamed later by editing only the workflow file, without ever touching branch-protection settings.
+A fourth job, **`gatekeeper`**, depends on all three and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the internal `lint`/`typecheck`/`test` jobs can be added, removed, or renamed later by editing only the workflow file, without ever touching the branch protection ruleset.
 
 ### Requiring the gatekeeper check (one-time, manual)
 
-Branch protection is configured by hand in the GitHub UI — it cannot be set by code in this repo. After this pipeline has landed on `main` and run at least once (so GitHub knows the check name), do this once:
+Branch protection is configured by hand in the GitHub UI via **Rulesets** (Settings → Rules → Rulesets) — it cannot be set by code in this repo. A repository can have several rulesets targeting the same branch at once; their rules simply combine, so this doesn't need to be the only ruleset covering `main`. After this pipeline has landed on `main` and run at least once (so GitHub knows the check name), do this once:
 
-1. Repo **Settings → Branches → Add (or edit)** a branch protection rule for `main`.
-2. Enable **Require a pull request before merging** (if not already enabled).
-3. Enable **Require status checks to pass before merging**, then search for and select the **`gatekeeper`** check.
-4. Enable **Require branches to be up to date before merging**.
-5. **Save.**
+1. Repo **Settings → Rules → Rulesets → New ruleset → New branch ruleset**.
+2. Name it (e.g. `main`) and set **Enforcement status** to **Active**.
+3. Under **Target branches**, add the default branch.
+4. Under **Rules**, enable **Require a pull request before merging**.
+5. Also under **Rules**, enable **Require status checks to pass**, add the **`gatekeeper`** check as a required status check, and enable **Require branches to be up to date before merging**.
+6. **Save changes.**
 
-Require only `gatekeeper` — not the individual `lint`/`typecheck`/`test` checks — so the pipeline's internal structure can change without a branch-protection edit.
+Require only `gatekeeper` — not the individual `lint`/`typecheck`/`test` checks — so the pipeline's internal structure can change without a ruleset edit.
 
 ## How they fit together
 
