@@ -3,12 +3,14 @@ import { Injectable } from '@nestjs/common';
 import type { BblPage } from '../source/bbl-page';
 
 /**
- * A player's position/team linkage read off a `p=pl` page. `typId` is the
- * player's position id (the `p=pt&typID=<N>` link); `teamCode` is the player's
- * team page id (the `p=tm&t=<code>` link). This is the only data this feature
- * needs from player pages — no `players` rows are written.
+ * A player read off a `p=pl` page. `pid` is the player's page id (from
+ * `page.params.pid`); `name` is the `<h1>` text. `typId` is the player's
+ * position id (the `p=pt&typID=<N>` link); `teamCode` is the player's team
+ * page id (the `p=tm&t=<code>` link).
  */
 export interface BblPlayer {
+  pid: string;
+  name: string;
   typId: string;
   teamCode: string;
 }
@@ -16,13 +18,16 @@ export interface BblPlayer {
 @Injectable()
 export class PlayerPageParser {
   /**
-   * Extract `{ typId, teamCode }` from a player page. A player page links its
-   * position (`default.asp?p=pt&typID=<digits>`) and its team
-   * (`default.asp?p=tm&t=<code>`). The first of each is used. Returns null when
-   * either link is absent.
+   * Extract player data from a player page. Reads `pid` from the page params,
+   * `name` from the `<h1>` element, and `typId`/`teamCode` from position/team
+   * links. A player page links its position (`default.asp?p=pt&typID=<digits>`)
+   * and its team (`default.asp?p=tm&t=<code>`). The first of each is used.
+   * Returns null when any of the four fields is absent.
    */
   extractPlayer(page: BblPage): BblPlayer | null {
     const $ = page.load();
+    const pid = page.params.pid;
+    const name = $('h1').first().text().trim();
     let typId: string | undefined;
     let teamCode: string | undefined;
 
@@ -42,9 +47,9 @@ export class PlayerPageParser {
       }
     });
 
-    if (!typId || !teamCode) {
+    if (!pid || !name || !typId || !teamCode) {
       return null;
     }
-    return { typId, teamCode };
+    return { pid, name, typId, teamCode };
   }
 }

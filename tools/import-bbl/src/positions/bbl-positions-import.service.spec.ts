@@ -190,8 +190,18 @@ describe('BblPositionsImportService', () => {
           }),
         ],
         [
-          plPage({ typId: '99', teamCode: 'knu' }),
-          plPage({ typId: '99', teamCode: 'col' }),
+          plPage({
+            pid: '123',
+            name: 'Wilhelm Chaney',
+            typId: '99',
+            teamCode: 'knu',
+          }),
+          plPage({
+            pid: '123',
+            name: 'Wilhelm Chaney',
+            typId: '99',
+            teamCode: 'col',
+          }),
         ],
       ),
       externalSystemsOk(),
@@ -242,7 +252,14 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [plPage({ typId: '121', teamCode: 'knu' })],
+        [
+          plPage({
+            pid: '456',
+            name: 'Norse Catchers',
+            typId: '121',
+            teamCode: 'knu',
+          }),
+        ],
       ),
       externalSystemsOk(),
       upsertPosition,
@@ -341,7 +358,14 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [plPage({ typId: '99', teamCode: 'unknown-code' })],
+        [
+          plPage({
+            pid: '789',
+            name: 'Grotty',
+            typId: '99',
+            teamCode: 'unknown-code',
+          }),
+        ],
       ),
       externalSystemsOk(),
       upsertPosition,
