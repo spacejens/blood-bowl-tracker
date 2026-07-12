@@ -13,8 +13,6 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
-import { StatsSummaryService } from './stats-summary.service';
-
 const GAME_DATA_MODULES = [
   CoachesModule,
   TeamsModule,
@@ -31,7 +29,6 @@ const GAME_DATA_MODULES = [
 
 @Module({
   imports: GAME_DATA_MODULES,
-  providers: [StatsSummaryService],
-  exports: [StatsSummaryService, ...GAME_DATA_MODULES],
+  exports: [...GAME_DATA_MODULES],
 })
 export class InsightsModule {}

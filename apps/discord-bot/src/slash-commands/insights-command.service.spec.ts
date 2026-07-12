@@ -1,3 +1,4 @@
+import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import type {
   CoachesService,
   CompetitionsService,
@@ -51,6 +52,9 @@ function makeService() {
   const positions = zero() as unknown as PositionsService;
   const races = zero() as unknown as RacesService;
   const externalSystems = zero() as unknown as ExternalSystemsService;
+  const discordClient = {
+    registerCommands: vi.fn().mockResolvedValue(undefined),
+  };
   return {
     service: new InsightsCommandService(
       coaches,
@@ -64,9 +68,11 @@ function makeService() {
       positions,
       races,
       externalSystems,
+      discordClient as unknown as DiscordClientService,
     ),
     coaches,
     teams,
+    discordClient,
   };
 }
 
@@ -159,5 +165,15 @@ describe('InsightsCommandService', () => {
     expect(choices).toEqual([
       { name: 'coach.toplist', value: 'coach.toplist' },
     ]);
+  });
+
+  it('registers only the insights command on bootstrap', async () => {
+    const { service, discordClient } = makeService();
+    await service.onApplicationBootstrap();
+    expect(discordClient.registerCommands).toHaveBeenCalledTimes(1);
+    const commands = discordClient.registerCommands.mock.calls[0][0] as {
+      name: string;
+    }[];
+    expect(commands.map((c) => c.name)).toEqual(['insights']);
   });
 });

@@ -1,4 +1,5 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import {
   CoachesService,
   CompetitionsService,
@@ -12,7 +13,7 @@ import {
   RulesSetsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
@@ -33,7 +34,7 @@ const UNMATCHED_FALLBACK_MESSAGE =
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
-export class InsightsCommandService {
+export class InsightsCommandService implements OnApplicationBootstrap {
   private readonly factTree: FactNode;
 
   constructor(
@@ -48,6 +49,7 @@ export class InsightsCommandService {
     private readonly positions: PositionsService,
     private readonly races: RacesService,
     private readonly externalSystems: ExternalSystemsService,
+    private readonly discordClient: DiscordClientService,
   ) {
     this.factTree = buildFactTree({
       coaches: this.coaches,
@@ -62,6 +64,12 @@ export class InsightsCommandService {
       races: this.races,
       externalSystems: this.externalSystems,
     });
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    // registerCommands replaces a guild's full command list, so every slash
+    // command must be registered in this single call.
+    await this.discordClient.registerCommands([this.buildCommand()]);
   }
 
   buildCommand(): SlashCommandDefinition {
