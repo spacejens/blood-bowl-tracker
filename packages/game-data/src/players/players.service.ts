@@ -3,6 +3,8 @@ import { DB, playerExternalIds, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
+import { countRows } from '../shared/count-all';
+
 export class PlayerUpsertConflictError extends Error {}
 
 export interface UpsertPlayerData {
@@ -83,5 +85,9 @@ export class PlayersService {
     }
 
     return { player, created };
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, players);
   }
 }
