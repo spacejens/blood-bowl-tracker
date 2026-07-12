@@ -97,4 +97,22 @@ describe('BblMatchListReaderService', () => {
       errors.some((e) => e.message.includes('Failed to parse match list page')),
     ).toBe(true);
   });
+
+  it('handles non-Error throws with String coercion in catch block', async () => {
+    const parser = new MatchListPageParser();
+    vi.spyOn(parser, 'extractMatches').mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'boom';
+    });
+    const service = new BblMatchListReaderService(
+      makeReader([page('ma', { so: 's', s: '1' })]),
+      parser,
+    );
+    const errors: ImportError[] = [];
+
+    const result = await service.getMatchesByCompetitionId(errors);
+
+    expect(result.size).toBe(0);
+    expect(errors.some((e) => e.message.includes('boom'))).toBe(true);
+  });
 });

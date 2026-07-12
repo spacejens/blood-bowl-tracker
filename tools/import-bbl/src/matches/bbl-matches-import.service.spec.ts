@@ -56,9 +56,12 @@ describe('BblMatchesImportService', () => {
 
   it('records an error and skips a competition absent from the id map', async () => {
     const upsertMatch = vi.fn();
-    const service = new BblMatchesImportService(makeReader({ '3': [match] }), {
-      upsertMatch,
-    } as unknown as MatchesImportService);
+    const service = new BblMatchesImportService(
+      makeReader({ '3': [match, { ...match, bblId: '90' }] }),
+      {
+        upsertMatch,
+      } as unknown as MatchesImportService,
+    );
 
     const { result } = await service.importMatches(new Map(), new Map());
 
