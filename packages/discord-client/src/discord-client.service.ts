@@ -6,7 +6,9 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type {
+  ApplicationCommandOptionChoiceData,
   ApplicationCommandOptionData,
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   Interaction,
   InteractionReplyOptions,
@@ -24,6 +26,9 @@ export interface SlashCommandDefinition {
   execute: (
     interaction: ChatInputCommandInteraction,
   ) => Promise<string | InteractionReplyOptions>;
+  autocomplete?: (
+    interaction: AutocompleteInteraction,
+  ) => Promise<ApplicationCommandOptionChoiceData[]>;
 }
 
 @Injectable()
@@ -33,6 +38,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly commandHandlers = new Map<
     string,
     SlashCommandDefinition['execute']
+  >();
+  private readonly autocompleteHandlers = new Map<
+    string,
+    NonNullable<SlashCommandDefinition['autocomplete']>
   >();
 
   constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
@@ -94,6 +103,9 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
     for (const command of commands) {
       this.commandHandlers.set(command.name, command.execute);
+      if (command.autocomplete) {
+        this.autocompleteHandlers.set(command.name, command.autocomplete);
+      }
     }
     const commandData = commands.map((command) => ({
       name: command.name,
@@ -106,6 +118,17 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleInteraction(interaction: Interaction): Promise<void> {
+    if (interaction.isAutocomplete()) {
+      const autocomplete = this.autocompleteHandlers.get(
+        interaction.commandName,
+      );
+      if (!autocomplete) {
+        return;
+      }
+      const choices = await autocomplete(interaction);
+      await interaction.respond(choices);
+      return;
+    }
     if (!interaction.isChatInputCommand()) {
       return;
     }
