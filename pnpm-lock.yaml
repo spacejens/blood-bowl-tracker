@@ -56,6 +56,9 @@ importers:
       '@blood-bowl-tracker/discord-client':
         specifier: workspace:*
         version: link:../../packages/discord-client
+      '@blood-bowl-tracker/game-data':
+        specifier: workspace:*
+        version: link:../../packages/game-data
       '@nestjs/common':
         specifier: ^11.1.27
         version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
