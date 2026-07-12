@@ -233,6 +233,7 @@ describe('DiscordClientService', () => {
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'testuser#0001', id: '123' },
@@ -256,6 +257,7 @@ describe('DiscordClientService', () => {
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -280,6 +282,7 @@ describe('DiscordClientService', () => {
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -307,6 +310,7 @@ describe('DiscordClientService', () => {
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -324,6 +328,7 @@ describe('DiscordClientService', () => {
     await service.onModuleInit();
     const reply = vi.fn();
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'unknown',
       reply,
@@ -335,9 +340,68 @@ describe('DiscordClientService', () => {
   it('ignores non-command interactions', async () => {
     await service.onModuleInit();
     const reply = vi.fn();
-    interactionHandler()({ isChatInputCommand: () => false, reply });
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isChatInputCommand: () => false,
+      reply,
+    });
     await flush();
     expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('forwards command options to guild.commands.set', async () => {
+    const guild = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
+    mockClient.guilds.cache = new Map([['a', guild]]);
+    await service.registerCommands([
+      {
+        name: 'insights',
+        description: 'Share an insight',
+        options: [
+          {
+            name: 'category',
+            description: 'Pick a category',
+            type: 3,
+            autocomplete: true,
+          },
+        ],
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+    expect(guild.commands.set).toHaveBeenCalledWith([
+      {
+        name: 'insights',
+        description: 'Share an insight',
+        options: [
+          {
+            name: 'category',
+            description: 'Pick a category',
+            type: 3,
+            autocomplete: true,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('passes the interaction into the command execute handler', async () => {
+    await service.onModuleInit();
+    const execute = vi.fn().mockResolvedValue('the answer');
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isAutocomplete: () => false,
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
+      reply,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(execute).toHaveBeenCalledWith(interaction);
   });
 
   it('replies with an error when a command handler throws', async () => {
@@ -351,6 +415,7 @@ describe('DiscordClientService', () => {
     ]);
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
+      isAutocomplete: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       reply,
@@ -359,5 +424,47 @@ describe('DiscordClientService', () => {
     expect(reply).toHaveBeenCalledWith(
       'Sorry, something went wrong while handling that command.',
     );
+  });
+
+  it('responds to an autocomplete interaction with the command choices', async () => {
+    await service.onModuleInit();
+    const autocomplete = vi
+      .fn()
+      .mockResolvedValue([{ name: 'coach', value: 'coach' }]);
+    await service.registerCommands([
+      {
+        name: 'insights',
+        description: 'Share an insight',
+        execute: vi.fn().mockResolvedValue('ok'),
+        autocomplete,
+      },
+    ]);
+    const respond = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isAutocomplete: () => true,
+      isChatInputCommand: () => false,
+      commandName: 'insights',
+      respond,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(autocomplete).toHaveBeenCalledWith(interaction);
+    expect(respond).toHaveBeenCalledWith([{ name: 'coach', value: 'coach' }]);
+  });
+
+  it('ignores autocomplete interactions for commands without an autocomplete handler', async () => {
+    await service.onModuleInit();
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute: vi.fn() },
+    ]);
+    const respond = vi.fn();
+    interactionHandler()({
+      isAutocomplete: () => true,
+      isChatInputCommand: () => false,
+      commandName: 'stats',
+      respond,
+    });
+    await flush();
+    expect(respond).not.toHaveBeenCalled();
   });
 });

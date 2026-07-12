@@ -1,7 +1,14 @@
 import type { Db, Team } from '@blood-bowl-tracker/db';
-import { DB, teamEras, teamExternalIds, teams } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  matches,
+  matchTeams,
+  teamEras,
+  teamExternalIds,
+  teams,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 export class TeamUpsertConflictError extends Error {}
 
@@ -75,6 +82,23 @@ export class TeamsService {
     await this.syncExternalIds(team.id, data.externalIds, existingRows);
 
     return { team: { ...team, eras }, created };
+  }
+
+  async countMatchesPlayedByTeam(): Promise<
+    { teamId: number; name: string; count: number }[]
+  > {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: countDistinct(matches.id),
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(countDistinct(matches.id)));
   }
 
   private async syncEras(
