@@ -35,7 +35,13 @@ describe('PositionsImportService', () => {
 
     const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: 'Lineman',
+      raceId: 7,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -47,7 +53,7 @@ describe('PositionsImportService', () => {
 
     const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       { item: data, message: 'Failed to import position "Lineman": conflict' },
     ]);
@@ -60,7 +66,7 @@ describe('PositionsImportService', () => {
 
     const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       { item: data, message: 'Failed to import position "Lineman": boom' },
     ]);
@@ -91,7 +97,13 @@ describe('PositionsImportService', () => {
 
     const result = await service.upsertPosition(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: 'Lineman',
+      raceId: 7,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });

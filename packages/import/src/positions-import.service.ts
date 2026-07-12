@@ -19,11 +19,8 @@ export class PositionsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertPosition(
-    data: UpsertPositionData,
-    errors: ImportError[],
-  ): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertPosition(data: UpsertPositionData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.positions.upsert(data),
       data,
       errors,
