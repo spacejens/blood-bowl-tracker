@@ -39,9 +39,12 @@ Fully handled in code (no notes needed): `tm` (team pages — coach and race
 extraction), `pt` (position/player-type pages — name, "Can play for" races, and
 star marker), `tl` (master race-list page — see the note below).
 
-Not yet handled (candidates for future work): `m`/`mp` (matches
-and per-player match stats), `ro` (rosters), `te` (league team list), `ch`
-(per-season player top charts), plus others.
+Not yet handled (candidates for future work): `m`/`mp` (per-match scores, gate,
+TD scorers, and sendings-off). Per-match **identity** (BBL id, date,
+competition) is already imported straight from the `ma` list rows, without
+reading `m`/`mp` pages at all — see the note on `ma` pages below. Also not yet
+handled: `ro` (rosters), `te` (league team list), `ch` (per-season player top
+charts), plus others.
 
 Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
 for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
@@ -73,7 +76,12 @@ list. It has no explicit type or date field except each match row's
 import. The `&gr=` variant of this URL is a byte-identical duplicate (a
 group-filter UI artifact); dedupe by the `s` param, keeping the first page seen.
 The `so=t` variant is a different, team-sorted view (keyed by `t`) and is not
-used here. A competition's `type` is inferred from its match-date span:
+used here. Each match row's `onclick` (e.g.
+`self.location.href='default.asp?p=m&m=<id>'`) carries the match's
+globally-unique numeric id; the matches import uses this as the match's BBL
+external id, so matches are established straight from the list rows without
+reading the `m`/`mp` pages themselves. A competition's `type` is inferred from
+its match-date span:
 `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against all 74
 competitions in the reference dataset, including "Dungeon Bowl 1" (a 191-day
 season across only 4 matches) and "Stunty Leeg 2" (a season abandoned after 6
