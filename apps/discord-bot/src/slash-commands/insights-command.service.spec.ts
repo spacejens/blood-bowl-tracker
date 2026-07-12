@@ -1,5 +1,14 @@
 import type {
   CoachesService,
+  CompetitionsService,
+  ErasService,
+  ExternalSystemsService,
+  LeaguesService,
+  MatchesService,
+  PlayersService,
+  PositionsService,
+  RacesService,
+  RulesSetsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import type {
@@ -11,6 +20,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InsightsCommandService } from './insights-command.service';
 
 function makeService() {
+  const zero = () => ({ countAll: vi.fn().mockResolvedValue(0) });
   const coaches = {
     countMatchesPlayedByCoach: vi
       .fn()
@@ -18,14 +28,43 @@ function makeService() {
     countTeamsByCoach: vi
       .fn()
       .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
+    countAll: vi.fn().mockResolvedValue(0),
   } as unknown as CoachesService;
   const teams = {
     countMatchesPlayedByTeam: vi
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 12 }]),
+    countAll: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
+  const matches = {
+    countAll: vi.fn().mockResolvedValue(0),
+    countMatchEvents: vi.fn().mockResolvedValue(0),
+  } as unknown as MatchesService;
+  const competitions = {
+    countAll: vi.fn().mockResolvedValue(0),
+    countByType: vi.fn().mockResolvedValue(0),
+  } as unknown as CompetitionsService;
+  const leagues = zero() as unknown as LeaguesService;
+  const rulesSets = zero() as unknown as RulesSetsService;
+  const eras = zero() as unknown as ErasService;
+  const players = zero() as unknown as PlayersService;
+  const positions = zero() as unknown as PositionsService;
+  const races = zero() as unknown as RacesService;
+  const externalSystems = zero() as unknown as ExternalSystemsService;
   return {
-    service: new InsightsCommandService(coaches, teams),
+    service: new InsightsCommandService(
+      coaches,
+      teams,
+      matches,
+      competitions,
+      leagues,
+      rulesSets,
+      eras,
+      players,
+      positions,
+      races,
+      externalSystems,
+    ),
     coaches,
     teams,
   };

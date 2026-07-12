@@ -1,5 +1,17 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
-import { CoachesService, TeamsService } from '@blood-bowl-tracker/game-data';
+import {
+  CoachesService,
+  CompetitionsService,
+  ErasService,
+  ExternalSystemsService,
+  LeaguesService,
+  MatchesService,
+  PlayersService,
+  PositionsService,
+  RacesService,
+  RulesSetsService,
+  TeamsService,
+} from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type {
   AutocompleteInteraction,
@@ -27,8 +39,29 @@ export class InsightsCommandService {
   constructor(
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
+    private readonly matches: MatchesService,
+    private readonly competitions: CompetitionsService,
+    private readonly leagues: LeaguesService,
+    private readonly rulesSets: RulesSetsService,
+    private readonly eras: ErasService,
+    private readonly players: PlayersService,
+    private readonly positions: PositionsService,
+    private readonly races: RacesService,
+    private readonly externalSystems: ExternalSystemsService,
   ) {
-    this.factTree = buildFactTree({ coaches: this.coaches, teams: this.teams });
+    this.factTree = buildFactTree({
+      coaches: this.coaches,
+      teams: this.teams,
+      matches: this.matches,
+      competitions: this.competitions,
+      leagues: this.leagues,
+      rulesSets: this.rulesSets,
+      eras: this.eras,
+      players: this.players,
+      positions: this.positions,
+      races: this.races,
+      externalSystems: this.externalSystems,
+    });
   }
 
   buildCommand(): SlashCommandDefinition {
