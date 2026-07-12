@@ -173,9 +173,7 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach()).resolves.toEqual(
-        rows,
-      );
+      await expect(service.countMatchesPlayedByCoach()).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 

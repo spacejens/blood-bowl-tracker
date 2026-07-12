@@ -10,7 +10,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, count, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 export class CoachUpsertConflictError extends Error {}
 
