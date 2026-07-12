@@ -2,6 +2,7 @@ import type { Competition, Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
   competitions,
+  competitionTeams,
   DB,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -13,7 +14,12 @@ export interface UpsertCompetitionData {
   name: string;
   type: 'season' | 'cup';
   eraId: number;
+  teamEraIds: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface CompetitionWithTeamEras extends Competition {
+  teamEraIds: number[];
 }
 
 @Injectable()
@@ -22,7 +28,7 @@ export class CompetitionsService {
 
   async upsert(
     data: UpsertCompetitionData,
-  ): Promise<{ competition: Competition; created: boolean }> {
+  ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
     const existingRows = await this.db
       .select({
         competitionId: competitionExternalIds.competitionId,
@@ -75,23 +81,54 @@ export class CompetitionsService {
       competition = result[0];
     }
 
+    const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
+    await this.syncExternalIds(competition.id, data.externalIds, existingRows);
+
+    return { competition: { ...competition, teamEraIds }, created };
+  }
+
+  private async syncTeamEras(
+    competitionId: number,
+    teamEraIds: number[],
+  ): Promise<number[]> {
+    const existing = await this.db
+      .select({ teamEraId: competitionTeams.teamEraId })
+      .from(competitionTeams)
+      .where(eq(competitionTeams.competitionId, competitionId));
+
+    const existingIds = existing.map((r) => r.teamEraId);
+    const existingSet = new Set(existingIds);
+    const toInsert = teamEraIds.filter((id) => !existingSet.has(id));
+
+    if (toInsert.length > 0) {
+      await this.db
+        .insert(competitionTeams)
+        .values(toInsert.map((teamEraId) => ({ competitionId, teamEraId })));
+    }
+
+    return [...existingIds, ...toInsert];
+  }
+
+  private async syncExternalIds(
+    competitionId: number,
+    externalIds: { externalSystemId: number; externalId: string }[],
+    existingRows: { externalSystemId: number; externalId: string }[],
+  ): Promise<void> {
     const existingPairs = new Set(
       existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
     );
-    const newExternalIds = data.externalIds.filter(
+    const newExternalIds = externalIds.filter(
       (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
     );
 
     if (newExternalIds.length > 0) {
       await this.db.insert(competitionExternalIds).values(
         newExternalIds.map((e) => ({
-          competitionId: competition.id,
+          competitionId,
           externalSystemId: e.externalSystemId,
           externalId: e.externalId,
         })),
       );
     }
-
-    return { competition, created };
   }
 }
