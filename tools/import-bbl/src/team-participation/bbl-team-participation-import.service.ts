@@ -15,17 +15,12 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
-import { MatchListPageParser } from '../matches/match-list-page-parser';
-import { BblSourceReader } from '../source/bbl-source-reader';
-
-const MATCH_LIST_PAGE_TYPE = 'ma';
-const MATCH_LIST_SORT_BY_SEASON = 's';
+import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 
 @Injectable()
 export class BblTeamParticipationImportService {
   constructor(
-    private readonly sourceReader: BblSourceReader,
-    private readonly matchListPageParser: MatchListPageParser,
+    private readonly matchListReader: BblMatchListReaderService,
     private readonly teamsImport: TeamsImportService,
     private readonly competitionsImport: CompetitionsImportService,
     private readonly rulesSetsImport: RulesSetsImportService,
@@ -133,46 +128,27 @@ export class BblTeamParticipationImportService {
   }
 
   /**
-   * Collect each competition's distinct completed-match team names in one pass
-   * over the ma pages. Only the season-sorted variant (`so=s`) is keyed by
-   * competition id; the `&gr=` group-filter variant is a byte-identical
-   * duplicate, so the first page seen per `s` wins. Per-page parse failures are
-   * recorded and skipped.
+   * Derive each competition's distinct completed-match team names via the
+   * shared match-list reader, which performs the single pass over the ma
+   * pages.
    */
   private async collectTeamNames(
     errors: ImportError[],
   ): Promise<Map<string, Set<string>>> {
+    const matchesByCompetitionId =
+      await this.matchListReader.getMatchesByCompetitionId(errors);
     const teamNamesByCompetitionId = new Map<string, Set<string>>();
-    for await (const page of this.sourceReader.pages(MATCH_LIST_PAGE_TYPE)) {
-      const competitionId = page.params.s;
-      if (
-        page.params.so !== MATCH_LIST_SORT_BY_SEASON ||
-        competitionId === undefined ||
-        teamNamesByCompetitionId.has(competitionId)
-      ) {
-        continue;
-      }
-      try {
-        const names = new Set<string>();
-        for (const match of this.matchListPageParser.extractMatches(page)) {
-          if (match.homeTeam) {
-            names.add(match.homeTeam);
-          }
-          if (match.awayTeam) {
-            names.add(match.awayTeam);
-          }
+    for (const [competitionId, matches] of matchesByCompetitionId) {
+      const names = new Set<string>();
+      for (const match of matches) {
+        if (match.homeTeam) {
+          names.add(match.homeTeam);
         }
-        teamNamesByCompetitionId.set(competitionId, names);
-      } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse match list page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        if (match.awayTeam) {
+          names.add(match.awayTeam);
+        }
       }
+      teamNamesByCompetitionId.set(competitionId, names);
     }
     return teamNamesByCompetitionId;
   }

@@ -9,9 +9,7 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
-import { MatchListPageParser } from '../matches/match-list-page-parser';
-import type { BblPage } from '../source/bbl-page';
-import type { BblSourceReader } from '../source/bbl-source-reader';
+import type { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
 const erasConfig: EraConfig[] = [
@@ -20,39 +18,17 @@ const erasConfig: EraConfig[] = [
 
 const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
 
-function page(type: string, params: Record<string, string>): BblPage {
-  return {
-    type,
-    params,
-    load: () => {
-      throw new Error('load() should not be called in this test');
-    },
-  };
-}
-
-function makeReader(pagesByType: Record<string, BblPage[]>): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages(type: string) {
-      for (const p of pagesByType[type] ?? []) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
-}
-
-/** A match parser mapping a page's `s` param to canned matches. */
-function makeMatchParser(
+/** A fake match-list reader returning the given canned matches by competition id. */
+function makeMatchListReader(
   matchesById: Record<
     string,
     { bblId: string; date: Date; homeTeam: string; awayTeam: string }[]
   >,
 ) {
-  const parser = new MatchListPageParser();
-  vi.spyOn(parser, 'extractMatches').mockImplementation(
-    (p) => matchesById[p.params.s] ?? [],
-  );
-  return parser;
+  const getMatchesByCompetitionId = vi
+    .fn()
+    .mockResolvedValue(new Map(Object.entries(matchesById)));
+  return { getMatchesByCompetitionId } as unknown as BblMatchListReaderService;
 }
 
 const home: UpsertTeamData = {
@@ -85,15 +61,13 @@ const rulesSet: UpsertRulesSetData = {
 };
 
 function makeService(opts: {
-  reader: BblSourceReader;
-  matchParser: MatchListPageParser;
+  matchListReader: BblMatchListReaderService;
   upsertTeam: ReturnType<typeof vi.fn>;
   upsertCompetition: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
 }) {
   return new BblTeamParticipationImportService(
-    opts.reader,
-    opts.matchParser,
+    opts.matchListReader,
     { upsertTeam: opts.upsertTeam } as unknown as TeamsImportService,
     {
       upsertCompetition: opts.upsertCompetition,
@@ -120,8 +94,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -169,8 +142,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -210,8 +182,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn();
 
     const service = makeService({
-      reader: makeReader({ ma: [] }),
-      matchParser: makeMatchParser({}),
+      matchListReader: makeMatchListReader({}),
       upsertTeam,
       upsertCompetition,
       upsertRulesSet,
@@ -230,34 +201,6 @@ describe('BblTeamParticipationImportService', () => {
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 
-  it('records an error and continues when a match-list page fails to parse', async () => {
-    const matchParser = new MatchListPageParser();
-    vi.spyOn(matchParser, 'extractMatches').mockImplementation(() => {
-      throw new Error('bad ma page');
-    });
-    const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser,
-      upsertTeam: vi.fn(),
-      upsertCompetition: vi.fn(),
-      upsertRulesSet: vi.fn(),
-    });
-
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['Sewerton Scavengers', home]]),
-      new Map([['BB2020', rulesSet]]),
-      eraIdsByName,
-    );
-
-    expect(result.imported).toBe(0);
-    expect(
-      result.errors.some((e) =>
-        e.message.includes('Failed to parse match list page'),
-      ),
-    ).toBe(true);
-  });
-
   it('does not collect a team era id when a team upsert yields no result', async () => {
     const upsertTeam = vi
       .fn()
@@ -272,8 +215,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -313,8 +255,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn();
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -340,55 +281,13 @@ describe('BblTeamParticipationImportService', () => {
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 
-  it('skips ma pages that are not the season-sorted variant or a repeat of a competition already collected', async () => {
-    const upsertTeam = vi
-      .fn()
-      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 200 }] });
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
-
-    const service = makeService({
-      reader: makeReader({
-        ma: [
-          page('ma', { so: 'gr', s: '1' }),
-          page('ma', { so: 's', s: '1' }),
-          page('ma', { so: 's', s: '1' }),
-        ],
-      }),
-      matchParser: makeMatchParser({
-        '1': [
-          {
-            bblId: 'm1',
-            date: new Date(Date.UTC(2021, 9, 1)),
-            homeTeam: 'Sewerton Scavengers',
-            awayTeam: 'Sewerton Scavengers',
-          },
-        ],
-      }),
-      upsertTeam,
-      upsertCompetition,
-      upsertRulesSet,
-    });
-
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['Sewerton Scavengers', home]]),
-      new Map([['BB2020', rulesSet]]),
-      eraIdsByName,
-    );
-
-    expect(result.imported).toBe(1);
-    expect(upsertTeam).toHaveBeenCalledTimes(1);
-  });
-
   it('does not upsert a competition when none of its match-row teams resolve', async () => {
     const upsertTeam = vi.fn();
     const upsertCompetition = vi.fn();
     const upsertRulesSet = vi.fn();
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -422,8 +321,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
 
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -449,46 +347,7 @@ describe('BblTeamParticipationImportService', () => {
     expect(upsertCompetition).toHaveBeenCalledTimes(1);
   });
 
-  it('does not accumulate a race id for a competition era with no configured rules set', async () => {
-    const otherEraCompetition: UpsertCompetitionData = {
-      ...competition,
-      eraId: 999,
-    };
-    const upsertTeam = vi
-      .fn()
-      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 999 }] });
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const upsertRulesSet = vi.fn();
-
-    const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser: makeMatchParser({
-        '1': [
-          {
-            bblId: 'm1',
-            date: new Date(Date.UTC(2021, 9, 1)),
-            homeTeam: 'Sewerton Scavengers',
-            awayTeam: 'Sewerton Scavengers',
-          },
-        ],
-      }),
-      upsertTeam,
-      upsertCompetition,
-      upsertRulesSet,
-    });
-
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', otherEraCompetition]]),
-      new Map([['Sewerton Scavengers', home]]),
-      new Map([['BB2020', rulesSet]]),
-      eraIdsByName,
-    );
-
-    expect(result.imported).toBe(1);
-    expect(upsertRulesSet).not.toHaveBeenCalled();
-  });
-
-  it('ignores a page with no competition id and blank team names on a match row', async () => {
+  it('ignores a blank team name on a match row', async () => {
     const upsertTeam = vi
       .fn()
       .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 200 }] });
@@ -496,10 +355,7 @@ describe('BblTeamParticipationImportService', () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 1 });
 
     const service = makeService({
-      reader: makeReader({
-        ma: [page('ma', { so: 's' }), page('ma', { so: 's', s: '1' })],
-      }),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           {
             bblId: 'm1',
@@ -525,29 +381,41 @@ describe('BblTeamParticipationImportService', () => {
     expect(upsertTeam).toHaveBeenCalledTimes(1);
   });
 
-  it('records a non-Error thrown value when a match-list page fails to parse', async () => {
-    const matchParser = new MatchListPageParser();
-    vi.spyOn(matchParser, 'extractMatches').mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw 'bad ma page';
-    });
+  it('does not accumulate a race id for a competition era with no configured rules set', async () => {
+    const otherEraCompetition: UpsertCompetitionData = {
+      ...competition,
+      eraId: 999,
+    };
+    const upsertTeam = vi
+      .fn()
+      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 999 }] });
+    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertRulesSet = vi.fn();
+
     const service = makeService({
-      reader: makeReader({ ma: [page('ma', { so: 's', s: '1' })] }),
-      matchParser,
-      upsertTeam: vi.fn(),
-      upsertCompetition: vi.fn(),
-      upsertRulesSet: vi.fn(),
+      matchListReader: makeMatchListReader({
+        '1': [
+          {
+            bblId: 'm1',
+            date: new Date(Date.UTC(2021, 9, 1)),
+            homeTeam: 'Sewerton Scavengers',
+            awayTeam: 'Sewerton Scavengers',
+          },
+        ],
+      }),
+      upsertTeam,
+      upsertCompetition,
+      upsertRulesSet,
     });
 
     const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
+      new Map([['1', otherEraCompetition]]),
       new Map([['Sewerton Scavengers', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
     );
 
-    expect(result.errors.some((e) => e.message.includes('bad ma page'))).toBe(
-      true,
-    );
+    expect(result.imported).toBe(1);
+    expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 });
