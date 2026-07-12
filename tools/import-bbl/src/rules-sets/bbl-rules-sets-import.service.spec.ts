@@ -48,7 +48,8 @@ describe('BblRulesSetsImportService', () => {
       upsertRulesSet,
     );
 
-    const { result, rulesSetIdsByName } = await service.importRulesSets();
+    const { result, rulesSetIdsByName, rulesSetsByName } =
+      await service.importRulesSets();
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
@@ -57,6 +58,7 @@ describe('BblRulesSetsImportService', () => {
       1,
       {
         name: 'Living rulebook',
+        races: [],
         externalIds: [
           { externalSystemId: 1, externalId: 'Living rulebook' },
           { externalSystemId: 2, externalId: 'Living rulebook' },
@@ -66,6 +68,14 @@ describe('BblRulesSetsImportService', () => {
     );
     expect(rulesSetIdsByName.get('Living rulebook')).toBe(100);
     expect(rulesSetIdsByName.get('BB2020')).toBe(200);
+    expect(rulesSetsByName.get('BB2020')).toEqual({
+      name: 'BB2020',
+      races: [],
+      externalIds: [
+        { externalSystemId: 1, externalId: 'BB2020' },
+        { externalSystemId: 2, externalId: 'BB2020' },
+      ],
+    });
   });
 
   it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
@@ -108,11 +118,13 @@ describe('BblRulesSetsImportService', () => {
       upsertRulesSet,
     );
 
-    const { result, rulesSetIdsByName } = await service.importRulesSets();
+    const { result, rulesSetIdsByName, rulesSetsByName } =
+      await service.importRulesSets();
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
     expect(rulesSetIdsByName.has('BB2020')).toBe(false);
+    expect(rulesSetsByName.has('BB2020')).toBe(false);
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {

@@ -5,7 +5,10 @@ export {
   CoachUpsertConflictError,
 } from './coaches/coaches.service';
 export { CompetitionsModule } from './competitions/competitions.module';
-export type { UpsertCompetitionData } from './competitions/competitions.service';
+export type {
+  CompetitionWithTeamEras,
+  UpsertCompetitionData,
+} from './competitions/competitions.service';
 export {
   CompetitionsService,
   CompetitionUpsertConflictError,
@@ -34,11 +37,14 @@ export { RacesModule } from './races/races.module';
 export type { UpsertRaceData } from './races/races.service';
 export { RacesService, RaceUpsertConflictError } from './races/races.service';
 export { RulesSetsModule } from './rules-sets/rules-sets.module';
-export type { UpsertRulesSetData } from './rules-sets/rules-sets.service';
+export type {
+  RulesSetWithRaces,
+  UpsertRulesSetData,
+} from './rules-sets/rules-sets.service';
 export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
 export { TeamsModule } from './teams/teams.module';
-export type { UpsertTeamData } from './teams/teams.service';
+export type { TeamWithEras, UpsertTeamData } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';

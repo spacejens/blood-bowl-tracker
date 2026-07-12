@@ -171,7 +171,10 @@ describe('BblTeamsImportService', () => {
       upsertTeam,
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    const { result, teamsByName } = await service.importTeams(
+      raceIds,
+      coachIds,
+    );
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -179,6 +182,7 @@ describe('BblTeamsImportService', () => {
         name: '40 grinders',
         raceId: 500,
         coachId: 900,
+        eras: [],
         externalIds: [
           { externalSystemId: 1, externalId: '40g' },
           { externalSystemId: 2, externalId: '40 grinders' },
@@ -186,6 +190,16 @@ describe('BblTeamsImportService', () => {
       },
       expect.any(Array),
     );
+    expect(teamsByName.get('40 grinders')).toEqual({
+      name: '40 grinders',
+      raceId: 500,
+      coachId: 900,
+      eras: [],
+      externalIds: [
+        { externalSystemId: 1, externalId: '40g' },
+        { externalSystemId: 2, externalId: '40 grinders' },
+      ],
+    });
   });
 
   it('deduplicates a team (by id) appearing on multiple pages', async () => {

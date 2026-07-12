@@ -11,6 +11,7 @@ import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
+import { BblTeamParticipationImportService } from './team-participation/bbl-team-participation-import.service';
 import { BblTeamsImportService } from './teams/bbl-teams-import.service';
 
 async function run(): Promise<ImportResult> {
@@ -35,6 +36,14 @@ async function run(): Promise<ImportResult> {
     const teamOutcome = await app
       .get(BblTeamsImportService)
       .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
+    const teamParticipationOutcome = await app
+      .get(BblTeamParticipationImportService)
+      .importTeamParticipation(
+        competitionOutcome.competitionsByBblId,
+        teamOutcome.teamsByName,
+        rulesSetsOutcome.rulesSetsByName,
+        eraOutcome.eraIdsByName,
+      );
     const positionResult = await app
       .get(BblPositionsImportService)
       .importPositions(raceOutcome.racesByBblId, teamOutcome.teamRaceIdsByCode);
@@ -47,6 +56,7 @@ async function run(): Promise<ImportResult> {
       coachOutcome.result,
       raceOutcome.result,
       teamOutcome.result,
+      teamParticipationOutcome.result,
       positionResult,
     ];
     return {
