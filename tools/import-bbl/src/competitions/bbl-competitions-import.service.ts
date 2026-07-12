@@ -49,14 +49,21 @@ export class BblCompetitionsImportService {
    * under the configured BBL external system and by its exact name under Name.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
+   *
+   * Also returns `competitionIdsByBblId`, mapping each imported competition's
+   * BBL id to its DB id — `UpsertCompetitionData` (used for
+   * `competitionsByBblId`) carries no DB id, but matches need one to set their
+   * `competitionId`.
    */
   async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetitionData>;
+    competitionIdsByBblId: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const competitionsByBblId = new Map<string, UpsertCompetitionData>();
+    const competitionIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -79,6 +86,7 @@ export class BblCompetitionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         competitionsByBblId,
+        competitionIdsByBblId,
       };
     }
 
@@ -98,6 +106,7 @@ export class BblCompetitionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         competitionsByBblId,
+        competitionIdsByBblId,
       };
     }
 
@@ -147,12 +156,13 @@ export class BblCompetitionsImportService {
           { externalSystemId: nameSystemId, externalId: competition.name },
         ],
       };
-      const success = await this.competitionsImport.upsertCompetition(
+      const upserted = await this.competitionsImport.upsertCompetitionResult(
         competitionData,
         errors,
       );
-      if (success) {
+      if (upserted !== undefined) {
         competitionsByBblId.set(competition.bblId, competitionData);
+        competitionIdsByBblId.set(competition.bblId, upserted.id);
         imported += 1;
       }
     }
@@ -160,6 +170,7 @@ export class BblCompetitionsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       competitionsByBblId,
+      competitionIdsByBblId,
     };
   }
 
