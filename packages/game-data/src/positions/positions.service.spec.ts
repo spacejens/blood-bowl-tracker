@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import {
   DB,
   positionExternalIds,
@@ -189,5 +190,14 @@ describe('PositionsService', () => {
       { raceId: 7, isDeleted: false },
       { raceId: 8, isDeleted: false },
     ]);
+  });
+
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const service = new PositionsService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(from).toHaveBeenCalledTimes(1);
+    });
   });
 });
