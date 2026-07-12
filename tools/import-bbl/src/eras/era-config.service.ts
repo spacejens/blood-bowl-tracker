@@ -8,6 +8,13 @@ export interface EraConfig {
   endDate?: string;
   firstPlayerId?: number;
   lastPlayerId?: number;
+  /**
+   * Explicit pids assigned to this era regardless of firstPlayerId/lastPlayerId
+   * — for players drafted right at an era boundary whose pid lands on the
+   * "wrong" side of the range split (BBL player ids are roughly, not exactly,
+   * chronological). Checked before the range bounds.
+   */
+  playerIdOverrides?: number[];
 }
 
 /**
@@ -64,7 +71,22 @@ export class EraConfigService {
       throw new Error('BBL_ERAS must be a non-empty JSON array of eras.');
     }
 
-    return parsed.map((entry, index) => this.parseEra(entry, index));
+    const eras = parsed.map((entry, index) => this.parseEra(entry, index));
+
+    const eraNameByOverriddenPid = new Map<number, string>();
+    for (const era of eras) {
+      for (const pid of era.playerIdOverrides ?? []) {
+        const existing = eraNameByOverriddenPid.get(pid);
+        if (existing !== undefined) {
+          throw new Error(
+            `BBL_ERAS: player id ${pid} appears in playerIdOverrides for both "${existing}" and "${era.name}".`,
+          );
+        }
+        eraNameByOverriddenPid.set(pid, era.name);
+      }
+    }
+
+    return eras;
   }
 
   private parseEra(entry: unknown, index: number): EraConfig {
@@ -73,8 +95,15 @@ export class EraConfigService {
     }
     const record = entry as Record<string, unknown>;
 
-    const { name, rulesSet, startDate, endDate, firstPlayerId, lastPlayerId } =
-      record;
+    const {
+      name,
+      rulesSet,
+      startDate,
+      endDate,
+      firstPlayerId,
+      lastPlayerId,
+      playerIdOverrides,
+    } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
       throw new Error(`BBL_ERAS[${index}].name must be a non-empty string.`);
@@ -115,6 +144,16 @@ export class EraConfigService {
       );
     }
 
+    if (
+      playerIdOverrides !== undefined &&
+      (!Array.isArray(playerIdOverrides) ||
+        !playerIdOverrides.every(isPositiveInteger))
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].playerIdOverrides must be an array of positive integers when present.`,
+      );
+    }
+
     return {
       name,
       rulesSet,
@@ -122,6 +161,9 @@ export class EraConfigService {
       ...(endDate !== undefined ? { endDate } : {}),
       ...(firstPlayerId !== undefined ? { firstPlayerId } : {}),
       ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
+      ...(playerIdOverrides !== undefined
+        ? { playerIdOverrides: playerIdOverrides }
+        : {}),
     };
   }
 }

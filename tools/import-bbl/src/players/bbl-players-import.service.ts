@@ -34,11 +34,12 @@ export class BblPlayersImportService {
   /**
    * Import every player found on the BBL `p=pl` pages. Each player is resolved
    * to a team era (via its team code + the era whose player-id range contains
-   * its pid) and a position (via the composite typId-raceBblId key), then
-   * upserted keyed by its pid under the BBL external system only — unlike
-   * other entities, players get no Name external id, since player names are
-   * not guaranteed unique across the league. Players that cannot be fully
-   * resolved are recorded as errors and skipped. Idempotent.
+   * its pid, or an explicit `playerIdOverrides` entry when the pid is a known
+   * boundary exception) and a position (via the composite typId-raceBblId
+   * key), then upserted keyed by its pid under the BBL external system only —
+   * unlike other entities, players get no Name external id, since player
+   * names are not guaranteed unique across the league. Players that cannot be
+   * fully resolved are recorded as errors and skipped. Idempotent.
    */
   async importPlayers(
     teamsByCode: Map<string, UpsertTeamData>,
@@ -71,6 +72,12 @@ export class BblPlayersImportService {
     for (const [bblId, info] of racesByBblId) {
       raceBblIdByDbId.set(info.id, bblId);
     }
+    const eraByOverriddenPid = new Map<number, (typeof eras)[number]>();
+    for (const era of eras) {
+      for (const pid of era.playerIdOverrides ?? []) {
+        eraByOverriddenPid.set(pid, era);
+      }
+    }
 
     for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
       try {
@@ -80,13 +87,15 @@ export class BblPlayersImportService {
         }
 
         const pidNumber = Number(player.pid);
-        const era = eras.find(
-          (e) =>
-            e.firstPlayerId !== undefined &&
-            e.lastPlayerId !== undefined &&
-            pidNumber >= e.firstPlayerId &&
-            pidNumber <= e.lastPlayerId,
-        );
+        const era =
+          eraByOverriddenPid.get(pidNumber) ??
+          eras.find(
+            (e) =>
+              e.firstPlayerId !== undefined &&
+              e.lastPlayerId !== undefined &&
+              pidNumber >= e.firstPlayerId &&
+              pidNumber <= e.lastPlayerId,
+          );
         if (!era) {
           errors.push(
             makeImportError({

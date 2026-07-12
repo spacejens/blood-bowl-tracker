@@ -165,4 +165,67 @@ describe('EraConfigService', () => {
     );
     expect(() => service.getEras()).toThrow(/firstPlayerId/);
   });
+
+  it('parses playerIdOverrides when present, leaving it undefined when absent', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSet: 'Living rulebook',
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        playerIdOverrides: [4907, 4909],
+      },
+      {
+        name: 'BB2020',
+        rulesSet: 'BB2020',
+        startDate: '2021-09-01',
+      },
+    ]);
+    const eras = makeService(json).getEras();
+    expect(eras[0].playerIdOverrides).toEqual([4907, 4909]);
+    expect(eras[1].playerIdOverrides).toBeUndefined();
+  });
+
+  it('rejects playerIdOverrides that is not an array', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        playerIdOverrides: 4907,
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/playerIdOverrides/);
+  });
+
+  it('rejects playerIdOverrides containing a non-positive-integer', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        playerIdOverrides: [4907, 0],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/playerIdOverrides/);
+  });
+
+  it('rejects the same pid overridden into more than one era', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSet: 'Living rulebook',
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        playerIdOverrides: [4907],
+      },
+      {
+        name: 'BB2020',
+        rulesSet: 'BB2020',
+        startDate: '2021-09-01',
+        playerIdOverrides: [4907],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/4907/);
+  });
 });

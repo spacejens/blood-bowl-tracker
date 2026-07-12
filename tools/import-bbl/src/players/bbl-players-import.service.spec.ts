@@ -68,7 +68,12 @@ function makeService(
     upsertExternalSystem?: ReturnType<typeof vi.fn>;
     upsertTeam?: ReturnType<typeof vi.fn>;
     upsertPlayer?: ReturnType<typeof vi.fn>;
-    eras?: { name: string; firstPlayerId?: number; lastPlayerId?: number }[];
+    eras?: {
+      name: string;
+      firstPlayerId?: number;
+      lastPlayerId?: number;
+      playerIdOverrides?: number[];
+    }[];
   } = {},
 ) {
   const upsertExternalSystem = opts.upsertExternalSystem ?? externalSystemsOk();
@@ -126,6 +131,70 @@ describe('BblPlayersImportService', () => {
         positionId: 200,
         externalIds: [{ externalSystemId: 1, externalId: '42' }],
       },
+      expect.any(Array),
+    );
+  });
+
+  it('resolves the era via playerIdOverrides when the pid is outside every range', async () => {
+    const { service, upsertTeam, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        eras: [
+          { name: 'Second', firstPlayerId: 100, lastPlayerId: 9999 },
+          {
+            name: 'LRB',
+            firstPlayerId: 1,
+            lastPlayerId: 10,
+            playerIdOverrides: [42],
+          },
+        ],
+      },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [500] },
+      expect.any(Array),
+    );
+    expect(upsertPlayer).toHaveBeenCalled();
+  });
+
+  it('prefers a playerIdOverrides match over a range that would also match', async () => {
+    const otherEraIdsByName = new Map<string, number>([
+      ['LRB', 500],
+      ['Second', 600],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        eras: [
+          { name: 'LRB', firstPlayerId: 1, lastPlayerId: 9999 },
+          {
+            name: 'Second',
+            firstPlayerId: 1,
+            lastPlayerId: 9999,
+            playerIdOverrides: [42],
+          },
+        ],
+      },
+    );
+
+    await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      otherEraIdsByName,
+    );
+
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [600] },
       expect.any(Array),
     );
   });
