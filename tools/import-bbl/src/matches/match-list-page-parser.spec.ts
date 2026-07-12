@@ -75,4 +75,63 @@ describe('MatchListPageParser', () => {
       new Date(Date.UTC(2015, 2, 4)),
     ]);
   });
+
+  it('extracts date, home and away team names from a real-shaped match row', () => {
+    const page = matchListPage(
+      '<table>' +
+        '<tr title="result added December 18th, 2011" class="trlist">' +
+        '<td class="td10">&nbsp;</td>' +
+        '<td class="td10" align="center">Final</td>' +
+        '<td class="td10" width="120" align="right">Sewerton Scavengers</td>' +
+        '<td class="td10" width="10" align="center">-</td>' +
+        '<td class="td10" width="120" align="left">Vorgash New Order</td>' +
+        '<td class="td10" align="center">3 - 1</td>' +
+        '</tr>' +
+        '</table>',
+    );
+
+    expect(parser.extractMatches(page)).toEqual([
+      {
+        date: new Date(Date.UTC(2011, 11, 18)),
+        homeTeam: 'Sewerton Scavengers',
+        awayTeam: 'Vorgash New Order',
+      },
+    ]);
+  });
+
+  it('yields empty team names when the team cells are missing', () => {
+    const page = matchListPage(
+      '<table><tr title="result added March 4th, 2015"></tr></table>',
+    );
+
+    expect(parser.extractMatches(page)).toEqual([
+      {
+        date: new Date(Date.UTC(2015, 2, 4)),
+        homeTeam: '',
+        awayTeam: '',
+      },
+    ]);
+  });
+
+  it('extractMatchDates returns just the dates from extractMatches', () => {
+    const page = matchListPage(
+      '<table>' +
+        '<tr title="result added December 18th, 2011">' +
+        '<td width="120" align="right">A</td>' +
+        '<td width="10">-</td>' +
+        '<td width="120" align="left">B</td>' +
+        '</tr>' +
+        '<tr title="result added December 7th, 2011">' +
+        '<td width="120" align="right">C</td>' +
+        '<td width="10">-</td>' +
+        '<td width="120" align="left">D</td>' +
+        '</tr>' +
+        '</table>',
+    );
+
+    expect(parser.extractMatchDates(page)).toEqual([
+      new Date(Date.UTC(2011, 11, 18)),
+      new Date(Date.UTC(2011, 11, 7)),
+    ]);
+  });
 });

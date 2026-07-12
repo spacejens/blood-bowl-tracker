@@ -20,20 +20,29 @@ const MONTHS: Record<string, number> = {
 // e.g. `result added September 25th, 2021` off a match row's title attribute.
 const RESULT_ADDED = /result added (\w+) (\d{1,2})(?:st|nd|rd|th), (\d{4})/;
 
+/** A single completed match read off a match-list row. */
+export interface BblMatch {
+  date: Date;
+  homeTeam: string;
+  awayTeam: string;
+}
+
 @Injectable()
 export class MatchListPageParser {
   /**
-   * Extract every match's date from a match-list page (`p=ma&so=s&s=<id>`).
-   * Match rows carry a `title="result added <Month> <Day><suffix>, <Year>"`
-   * attribute; that ordinal date is the only date data available without a full
-   * match import. Dates are returned as UTC midnight, in document order. This is
-   * a minimal seed for future match-data import — no results/teams/scores are
-   * read. Returns an empty array when no dated rows are present (e.g. an
-   * in-progress competition with no results yet).
+   * Extract every completed match from a match-list page (`p=ma&so=s&s=<id>`).
+   * A completed match is a row carrying a `title="result added <Month>
+   * <Day><suffix>, <Year>"` attribute (its ordinal date is the only date data
+   * available without a full match import). The two team names are the only two
+   * `<td>` cells with `width="120"`: the home team (`align="right"`) first and
+   * the away team (`align="left"`) second, separated by a `width="10"` cell. A
+   * row missing a team cell yields `''` for that side. Rows are returned in
+   * document order; a page with no completed matches yields an empty array.
+   * This reads only dates and team names — no scores/casualties/gate.
    */
-  extractMatchDates(page: BblPage): Date[] {
+  extractMatches(page: BblPage): BblMatch[] {
     const $ = page.load();
-    const dates: Date[] = [];
+    const matches: BblMatch[] = [];
 
     $('[title]').each((_index, element) => {
       const title = $(element).attr('title') ?? '';
@@ -45,9 +54,22 @@ export class MatchListPageParser {
       if (month === undefined) {
         return;
       }
-      dates.push(new Date(Date.UTC(Number(match[3]), month, Number(match[2]))));
+      const date = new Date(
+        Date.UTC(Number(match[3]), month, Number(match[2])),
+      );
+      const teamCells = $(element).find('td[width="120"]');
+      const homeTeam = $(teamCells[0]).text().trim();
+      const awayTeam = $(teamCells[1]).text().trim();
+      matches.push({ date, homeTeam, awayTeam });
     });
 
-    return dates;
+    return matches;
+  }
+
+  /**
+   * Extract just the dates of every completed match (see {@link extractMatches}).
+   */
+  extractMatchDates(page: BblPage): Date[] {
+    return this.extractMatches(page).map((m) => m.date);
   }
 }
