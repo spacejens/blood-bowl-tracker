@@ -1,19 +1,13 @@
-import type {
-  CoachesService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
-
 import type { FactNode } from './fact-tree-utils';
 import {
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
+import type { StatsSummaryDeps } from './facts/stats-summary';
+import { resolveStatsSummary } from './facts/stats-summary';
 import { resolveTeamMatchesPlayedToplist } from './facts/team-toplist';
 
-export function buildFactTree(deps: {
-  coaches: CoachesService;
-  teams: TeamsService;
-}): FactNode {
+export function buildFactTree(deps: StatsSummaryDeps): FactNode {
   return {
     coach: {
       toplist: {
@@ -30,5 +24,6 @@ export function buildFactTree(deps: {
         },
       },
     },
+    stats: () => resolveStatsSummary(deps),
   };
 }

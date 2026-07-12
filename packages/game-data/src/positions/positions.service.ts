@@ -8,6 +8,8 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
+import { countRows } from '../shared/count-all';
+
 export class PositionUpsertConflictError extends Error {}
 
 export interface UpsertPositionData {
@@ -143,5 +145,9 @@ export class PositionsService {
         })),
       );
     }
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, positions);
   }
 }

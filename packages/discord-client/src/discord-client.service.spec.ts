@@ -83,6 +83,15 @@ describe('DiscordClientService', () => {
     expect(mockChannel.send).toHaveBeenCalledWith('hello');
   });
 
+  it('sends an embed payload as-is to a sendable channel', async () => {
+    mockClient.channels.fetch.mockResolvedValue(mockChannel);
+    const payload = {
+      embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
+    };
+    await service.sendMessage('123', payload);
+    expect(mockChannel.send).toHaveBeenCalledWith(payload);
+  });
+
   it('throws when the channel is not found', async () => {
     mockClient.channels.fetch.mockResolvedValue(null);
     await expect(service.sendMessage('123', 'hello')).rejects.toThrow(

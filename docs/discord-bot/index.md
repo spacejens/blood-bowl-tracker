@@ -1,9 +1,10 @@
 # Discord Bot
 
 The `apps/discord-bot` application connects to Discord using a bot account. On
-launch it posts a summary of the tracked data to a configured channel, and it
-serves slash commands such as `/stats`. This page explains how to set up the bot
-on the Discord side and how to configure the application.
+launch it posts a random fact from a tree of tracked-data insights to a
+configured channel, and it serves slash commands such as `/insights`. This
+page explains how to set up the bot on the Discord side and how to configure
+the application.
 
 ## 1. Create a Discord application and bot
 
@@ -19,9 +20,10 @@ on the Discord side and how to configure the application.
 1. Open the **OAuth2 > URL Generator** tab.
 2. Under **Scopes**, select `bot` and `applications.commands`. The
    `applications.commands` scope is required for the bot's slash commands
-   (e.g. `/stats`) to register.
-3. Under **Bot Permissions**, select at least **Send Messages** (and **View
-   Channel** for the target channel).
+   (e.g. `/insights`) to register.
+3. Under **Bot Permissions**, select at least **Send Messages**, **Embed
+   Links** (the startup message and most `/insights` facts are embeds), and
+   **View Channel** for the target channel.
 4. Copy the generated URL, open it in a browser, choose your server, and
    authorize. You need **Manage Server** permission on that server to add the
    bot.
@@ -32,7 +34,9 @@ on the Discord side and how to configure the application.
 2. Right-click the channel you want the bot to post in and choose
    **Copy Channel ID**. This is your `DISCORD_CHANNEL_ID`.
 3. Make sure the bot can see and post in that channel (channel permissions must
-   allow the bot's role to View Channel and Send Messages).
+   allow the bot's role to View Channel, Send Messages, and Embed Links — the
+   startup message is posted as a plain channel message, so it needs Embed
+   Links whenever it's an embed, unlike slash-command replies).
 
 ## 4. Configure the application
 
@@ -58,10 +62,10 @@ With Docker Compose:
 docker compose up discord-bot
 ```
 
-On startup the bot logs in and posts a summary of the tracked data (the same
-message the [`/stats`](#slash-commands) command returns) to the configured
-channel. If the token or channel id is missing or invalid, startup fails with an
-error in the logs (the bot is intentionally fail-fast about misconfiguration).
+On startup the bot logs in and posts a random fact drawn from `/insights` to
+the configured channel. If the token or channel id is missing or invalid,
+startup fails with an error in the logs (the bot is intentionally fail-fast
+about misconfiguration).
 
 ## Slash commands
 
@@ -71,8 +75,6 @@ receives the commands the next time it restarts. If the database does not respon
 in time, a command falls back to the message `I am stunned` instead of its normal
 reply, so it always answers within Discord's response window.
 
-- [`/stats`](slash-commands/stats.md) — posts a summary of how many coaches,
-  teams, matches, and competitions have been recorded.
 - [`/insights`](slash-commands/insights.md) — shares a random or chosen fact
   from a tree of categorized insights, with autocomplete to navigate the fact
   tree.

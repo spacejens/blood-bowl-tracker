@@ -22,9 +22,16 @@ so you can navigate the tree without memorizing it.
 
 ## Available facts
 
+- `stats` — a combined embed of entity counts (title "I have knowledge of"):
+  leagues, external systems, rules sets, races, positions, coaches, eras,
+  competitions (with a season/cup breakdown), teams, players, matches, and
+  match events.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `team.toplist.matches.played` — teams ranked by number of matches played.
+
+The bot's startup message posts a random fact from this tree — the same
+behavior as invoking `/insights` with no argument.
 
 Leaderboards show the top five ranks; ties share a rank, so a leaderboard can
 list more than five entries. If the database does not respond in time, the

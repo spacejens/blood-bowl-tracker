@@ -2,35 +2,44 @@ import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { DiscordBotConfigService } from './discord-bot-config.service';
-import type { StatsSummaryService } from './insights/stats-summary.service';
+import type { InsightsCommandService } from './slash-commands/insights-command.service';
 import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {
   let discordClient: { sendMessage: ReturnType<typeof vi.fn> };
-  let statsSummary: { buildSummaryMessage: ReturnType<typeof vi.fn> };
+  let insightsCommand: { resolveRandomFact: ReturnType<typeof vi.fn> };
   let config: { getDiscordChannelId: ReturnType<typeof vi.fn> };
   let service: StartupNotifierService;
 
   beforeEach(() => {
     discordClient = { sendMessage: vi.fn().mockResolvedValue(undefined) };
-    statsSummary = {
-      buildSummaryMessage: vi.fn().mockResolvedValue('the summary message'),
+    insightsCommand = {
+      resolveRandomFact: vi.fn().mockResolvedValue('a random fact'),
     };
     config = { getDiscordChannelId: vi.fn().mockReturnValue('42') };
     service = new StartupNotifierService(
       discordClient as unknown as DiscordClientService,
-      statsSummary as unknown as StatsSummaryService,
+      insightsCommand as unknown as InsightsCommandService,
       config as unknown as DiscordBotConfigService,
     );
   });
 
-  it('posts the stats summary to the configured channel', async () => {
+  it('posts a random insights fact string to the configured channel', async () => {
     await service.onApplicationBootstrap();
-    expect(statsSummary.buildSummaryMessage).toHaveBeenCalled();
+    expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '42',
-      'the summary message',
+      'a random fact',
     );
+  });
+
+  it('posts an embed fact to the configured channel', async () => {
+    const embed = {
+      embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
+    };
+    insightsCommand.resolveRandomFact.mockResolvedValue(embed);
+    await service.onApplicationBootstrap();
+    expect(discordClient.sendMessage).toHaveBeenCalledWith('42', embed);
   });
 
   it('propagates the error when the channel id is not configured', async () => {
@@ -40,6 +49,6 @@ describe('StartupNotifierService', () => {
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
       'DISCORD_CHANNEL_ID is not configured',
     );
-    expect(statsSummary.buildSummaryMessage).not.toHaveBeenCalled();
+    expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
   });
 });

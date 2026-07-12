@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import {
   DB,
   raceRulesSets,
@@ -128,5 +129,16 @@ describe('RulesSetsService', () => {
 
     expect(insertCalls.some((c) => c.table === raceRulesSets)).toBe(false);
     expect(result.rulesSet.races).toEqual([7, 8]);
+  });
+
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const service = new RulesSetsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(from).toHaveBeenCalledTimes(1);
+    });
   });
 });

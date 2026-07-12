@@ -6,7 +6,9 @@ import {
   DB,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, count, eq, or } from 'drizzle-orm';
+
+import { countRows } from '../shared/count-all';
 
 export class CompetitionUpsertConflictError extends Error {}
 
@@ -130,5 +132,17 @@ export class CompetitionsService {
         })),
       );
     }
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, competitions);
+  }
+
+  async countByType(type: 'season' | 'cup'): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(competitions)
+      .where(eq(competitions.type, type));
+    return row.count;
   }
 }

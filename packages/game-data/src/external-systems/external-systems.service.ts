@@ -5,6 +5,8 @@ import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
+import { countRows } from '../shared/count-all';
+
 @Injectable()
 export class ExternalSystemsService {
   constructor(@Inject(DB) private readonly db: Db) {}
@@ -26,5 +28,9 @@ export class ExternalSystemsService {
       .values(data)
       .returning();
     return { system: result[0], created: true };
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, externalSystems);
   }
 }

@@ -1,6 +1,19 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
-import { CoachesService, TeamsService } from '@blood-bowl-tracker/game-data';
-import { Injectable } from '@nestjs/common';
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import {
+  CoachesService,
+  CompetitionsService,
+  ErasService,
+  ExternalSystemsService,
+  LeaguesService,
+  MatchesService,
+  PlayersService,
+  PositionsService,
+  RacesService,
+  RulesSetsService,
+  TeamsService,
+} from '@blood-bowl-tracker/game-data';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
@@ -21,14 +34,42 @@ const UNMATCHED_FALLBACK_MESSAGE =
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
-export class InsightsCommandService {
+export class InsightsCommandService implements OnApplicationBootstrap {
   private readonly factTree: FactNode;
 
   constructor(
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
+    private readonly matches: MatchesService,
+    private readonly competitions: CompetitionsService,
+    private readonly leagues: LeaguesService,
+    private readonly rulesSets: RulesSetsService,
+    private readonly eras: ErasService,
+    private readonly players: PlayersService,
+    private readonly positions: PositionsService,
+    private readonly races: RacesService,
+    private readonly externalSystems: ExternalSystemsService,
+    private readonly discordClient: DiscordClientService,
   ) {
-    this.factTree = buildFactTree({ coaches: this.coaches, teams: this.teams });
+    this.factTree = buildFactTree({
+      coaches: this.coaches,
+      teams: this.teams,
+      matches: this.matches,
+      competitions: this.competitions,
+      leagues: this.leagues,
+      rulesSets: this.rulesSets,
+      eras: this.eras,
+      players: this.players,
+      positions: this.positions,
+      races: this.races,
+      externalSystems: this.externalSystems,
+    });
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    // registerCommands replaces a guild's full command list, so every slash
+    // command must be registered in this single call.
+    await this.discordClient.registerCommands([this.buildCommand()]);
   }
 
   buildCommand(): SlashCommandDefinition {
@@ -52,14 +93,18 @@ export class InsightsCommandService {
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const category = interaction.options.getString('category');
-    const node = category
-      ? resolvePath(this.factTree, category)
-      : this.factTree;
+    if (!category) {
+      return this.resolveRandomFact();
+    }
+    const node = resolvePath(this.factTree, category);
     if (node === undefined) {
       return UNMATCHED_FALLBACK_MESSAGE;
     }
-    const leaves = collectLeaves(node);
-    return this.pickRandom(leaves)();
+    return this.pickRandom(collectLeaves(node))();
+  }
+
+  resolveRandomFact(): Promise<string | InteractionReplyOptions> {
+    return this.pickRandom(collectLeaves(this.factTree))();
   }
 
   autocomplete(

@@ -1,7 +1,14 @@
 import type { Db, Match } from '@blood-bowl-tracker/db';
-import { DB, matches, matchExternalIds } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  matches,
+  matchEvents,
+  matchExternalIds,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
+
+import { countRows } from '../shared/count-all';
 
 export class MatchUpsertConflictError extends Error {}
 
@@ -90,5 +97,13 @@ export class MatchesService {
         })),
       );
     }
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, matches);
+  }
+
+  countMatchEvents(): Promise<number> {
+    return countRows(this.db, matchEvents);
   }
 }

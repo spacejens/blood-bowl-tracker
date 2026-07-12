@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
   competitions,
@@ -150,5 +151,28 @@ describe('CompetitionsService', () => {
 
     expect(insertCalls.some((c) => c.table === competitionTeams)).toBe(false);
     expect(result.competition.teamEraIds).toEqual([100, 101]);
+  });
+
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByType', () => {
+    it('countByType filters competitions by the given type', async () => {
+      const where = vi.fn().mockResolvedValue([{ count: 4 }]);
+      const from = vi.fn(() => ({ where }));
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.countByType('season')).resolves.toBe(4);
+      expect(where).toHaveBeenCalledTimes(1);
+    });
   });
 });
