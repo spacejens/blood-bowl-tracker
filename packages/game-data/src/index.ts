@@ -24,6 +24,12 @@ export {
   LeaguesService,
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
+export { MatchesModule } from './matches/matches.module';
+export type { UpsertMatchData } from './matches/matches.service';
+export {
+  MatchesService,
+  MatchUpsertConflictError,
+} from './matches/matches.service';
 export { PositionsModule } from './positions/positions.module';
 export type {
   PositionWithRaces,
