@@ -12,6 +12,7 @@ import type {
   ChatInputCommandInteraction,
   Interaction,
   InteractionReplyOptions,
+  MessageCreateOptions,
 } from 'discord.js';
 import { Client, GatewayIntentBits } from 'discord.js';
 
@@ -81,7 +82,10 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     await this.client.destroy();
   }
 
-  async sendMessage(channelId: string, content: string): Promise<void> {
+  async sendMessage(
+    channelId: string,
+    content: string | InteractionReplyOptions,
+  ): Promise<void> {
     const channel = await this.client.channels.fetch(channelId);
     if (!channel) {
       throw new Error(`Discord channel not found: ${channelId}`);
@@ -89,7 +93,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     if (!channel.isSendable()) {
       throw new Error(`Discord channel is not sendable: ${channelId}`);
     }
-    await channel.send(content);
+    await channel.send(content as string | MessageCreateOptions);
   }
 
   /**
