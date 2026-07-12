@@ -84,7 +84,9 @@ describe('BblMatchDetailReaderService', () => {
     expect(result.size).toBe(1);
     expect(result.get('100')).toEqual(teamsOne);
     expect(
-      errors.some((e) => e.message.includes('Failed to parse match detail page')),
+      errors.some((e) =>
+        e.message.includes('Failed to parse match detail page'),
+      ),
     ).toBe(true);
   });
 

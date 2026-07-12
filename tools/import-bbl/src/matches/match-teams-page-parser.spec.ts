@@ -21,7 +21,8 @@ describe('MatchTeamsPageParser', () => {
   it('extracts home and away team ids from the first tblist trborder row', () => {
     const page = matchPage(
       '100',
-      '<div><a href="default.asp?p=ma&so=s&s=4">Season 3</a></div>' + TEAM_TABLE,
+      '<div><a href="default.asp?p=ma&so=s&s=4">Season 3</a></div>' +
+        TEAM_TABLE,
     );
 
     expect(parser.extractMatchTeams(page)).toEqual({
@@ -58,7 +59,11 @@ describe('MatchTeamsPageParser', () => {
   });
 
   it('returns null when params.m is missing', () => {
-    const page: BblPage = { type: 'm', params: {}, load: () => load(TEAM_TABLE) };
+    const page: BblPage = {
+      type: 'm',
+      params: {},
+      load: () => load(TEAM_TABLE),
+    };
     expect(parser.extractMatchTeams(page)).toBeNull();
   });
 

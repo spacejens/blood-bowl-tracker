@@ -15,7 +15,12 @@ import type { BblMatchTeams } from '../matches/match-teams-page-parser';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
 const erasConfig: EraConfig[] = [
-  { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01', firstPlayerId: 1 },
+  {
+    name: 'BB2020',
+    rulesSet: 'BB2020',
+    startDate: '2021-09-01',
+    firstPlayerId: 1,
+  },
 ];
 
 const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
@@ -84,8 +89,12 @@ function makeService(opts: {
     opts.matchListReader,
     opts.matchDetailReader,
     { upsertTeam: opts.upsertTeam } as unknown as TeamsImportService,
-    { upsertCompetition: opts.upsertCompetition } as unknown as CompetitionsImportService,
-    { upsertRulesSet: opts.upsertRulesSet } as unknown as RulesSetsImportService,
+    {
+      upsertCompetition: opts.upsertCompetition,
+    } as unknown as CompetitionsImportService,
+    {
+      upsertRulesSet: opts.upsertRulesSet,
+    } as unknown as RulesSetsImportService,
     { getEras: () => erasConfig } as unknown as EraConfigService,
   );
 }
@@ -174,7 +183,9 @@ describe('BblTeamParticipationImportService', () => {
       expect.any(Array),
     );
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve team id "unknown"')),
+      result.errors.some((e) =>
+        e.message.includes('could not resolve team id "unknown"'),
+      ),
     ).toBe(true);
     expect(result.success).toBe(false);
   });
@@ -378,7 +389,10 @@ describe('BblTeamParticipationImportService', () => {
   });
 
   it('does not accumulate a race id for a competition era with no configured rules set', async () => {
-    const otherEraCompetition: UpsertCompetitionData = { ...competition, eraId: 999 };
+    const otherEraCompetition: UpsertCompetitionData = {
+      ...competition,
+      eraId: 999,
+    };
     const upsertTeam = vi
       .fn()
       .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 999 }] });

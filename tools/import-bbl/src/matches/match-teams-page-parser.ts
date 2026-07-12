@@ -32,14 +32,16 @@ export class MatchTeamsPageParser {
       return null;
     }
     const $ = page.load();
-    const cells = $('table.tblist tr.trborder')
-      .first()
-      .find('td[width="180"]');
+    const cells = $('table.tblist tr.trborder').first().find('td[width="180"]');
     if (cells.length < 2) {
       return null;
     }
-    const home = TEAM_LINK.exec($(cells[0]).find('a').first().attr('href') ?? '');
-    const away = TEAM_LINK.exec($(cells[1]).find('a').first().attr('href') ?? '');
+    const home = TEAM_LINK.exec(
+      $(cells[0]).find('a').first().attr('href') ?? '',
+    );
+    const away = TEAM_LINK.exec(
+      $(cells[1]).find('a').first().attr('href') ?? '',
+    );
     if (!home || !away) {
       return null;
     }
