@@ -7,6 +7,7 @@ import {
   UpsertCompetitionSchema,
 } from './schemas/competition';
 import { EraSchema, UpsertEraSchema } from './schemas/era';
+import { MatchSchema, UpsertMatchSchema } from './schemas/match';
 import {
   ExternalSystemSchema,
   UpsertExternalSystemSchema,
@@ -59,6 +60,12 @@ export const contract = {
       .input(UpsertCompetitionSchema)
       .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
       .output(CompetitionSchema.extend({ created: z.boolean() })),
+  },
+  matches: {
+    upsert: oc
+      .input(UpsertMatchSchema)
+      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
+      .output(MatchSchema.extend({ created: z.boolean() })),
   },
   teams: {
     upsert: oc
