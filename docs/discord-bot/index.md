@@ -21,8 +21,9 @@ the application.
 2. Under **Scopes**, select `bot` and `applications.commands`. The
    `applications.commands` scope is required for the bot's slash commands
    (e.g. `/insights`) to register.
-3. Under **Bot Permissions**, select at least **Send Messages** (and **View
-   Channel** for the target channel).
+3. Under **Bot Permissions**, select at least **Send Messages**, **Embed
+   Links** (the startup message and most `/insights` facts are embeds), and
+   **View Channel** for the target channel.
 4. Copy the generated URL, open it in a browser, choose your server, and
    authorize. You need **Manage Server** permission on that server to add the
    bot.
@@ -33,7 +34,9 @@ the application.
 2. Right-click the channel you want the bot to post in and choose
    **Copy Channel ID**. This is your `DISCORD_CHANNEL_ID`.
 3. Make sure the bot can see and post in that channel (channel permissions must
-   allow the bot's role to View Channel and Send Messages).
+   allow the bot's role to View Channel, Send Messages, and Embed Links — the
+   startup message is posted as a plain channel message, so it needs Embed
+   Links whenever it's an embed, unlike slash-command replies).
 
 ## 4. Configure the application
 
