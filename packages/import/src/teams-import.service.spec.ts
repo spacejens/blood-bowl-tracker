@@ -20,12 +20,13 @@ describe('TeamsImportService', () => {
     externalIds: [{ externalSystemId: 1, externalId: '40g' }],
   };
 
-  it('returns true and calls the client with the given data on success', async () => {
+  it('returns the upserted team on success', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
       name: '40 grinders',
       raceId: 5,
       coachId: 9,
+      eras: [{ id: 100, eraId: 20 }],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -34,7 +35,15 @@ describe('TeamsImportService', () => {
 
     const result = await service.upsertTeam(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toEqual({
+      id: 1,
+      name: '40 grinders',
+      raceId: 5,
+      coachId: 9,
+      eras: [{ id: 100, eraId: 20 }],
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -46,7 +55,7 @@ describe('TeamsImportService', () => {
 
     const result = await service.upsertTeam(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       {
         item: data,
@@ -62,7 +71,7 @@ describe('TeamsImportService', () => {
 
     const result = await service.upsertTeam(data, errors);
 
-    expect(result).toBe(false);
+    expect(result).toBeUndefined();
     expect(errors).toEqual([
       {
         item: data,
@@ -77,6 +86,7 @@ describe('TeamsImportService', () => {
       name: '40 grinders',
       raceId: 5,
       coachId: 9,
+      eras: [],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -95,7 +105,7 @@ describe('TeamsImportService', () => {
 
     const result = await service.upsertTeam(data, errors);
 
-    expect(result).toBe(true);
+    expect(result).toBeTruthy();
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });

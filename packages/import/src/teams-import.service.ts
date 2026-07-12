@@ -9,6 +9,7 @@ export interface UpsertTeamData {
   name: string;
   raceId: number;
   coachId: number;
+  eras?: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 
@@ -19,8 +20,8 @@ export class TeamsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertTeam(data: UpsertTeamData, errors: ImportError[]): Promise<boolean> {
-    return this.importRunner.recordUpsert(
+  upsertTeam(data: UpsertTeamData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
       () => this.client.teams.upsert(data),
       data,
       errors,
