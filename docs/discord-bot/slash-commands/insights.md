@@ -30,8 +30,8 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `team.toplist.matches.played` — teams ranked by number of matches played.
 
-The bot's startup message posts a random fact from this tree, which may be
-`stats` — the same behavior as invoking `/insights` with no argument.
+The bot's startup message posts a random fact from this tree — the same
+behavior as invoking `/insights` with no argument.
 
 Leaderboards show the top five ranks; ties share a rank, so a leaderboard can
 list more than five entries. If the database does not respond in time, the
