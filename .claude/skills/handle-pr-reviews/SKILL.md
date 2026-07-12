@@ -1,6 +1,6 @@
 ---
 name: handle-pr-reviews
-description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads and top-level PR comments), fixes or rejects each with verification, pushes the results, and replies to every comment tagged as posted by Claude
+description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads and top-level PR comments) and failing CI checks, fixes or rejects each with verification, pushes the results, and replies to every comment (or posts a CI-failure summary) tagged as posted by Claude
 ---
 
 # handle-pr-reviews
@@ -105,7 +105,17 @@ gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
 ```
 A comment is **unhandled** if its `body` does not start with `**Comment by Claude**`, and no later comment in the list that does start with `**Comment by Claude**` contains this comment's `html_url` as a backlink.
 
-If both scans find nothing unhandled, report "No unhandled review comments found." and **stop** — skip the remaining phases.
+**Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup:
+```bash
+HEAD_SHA=$(gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha')
+gh api "repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs" \
+  --jq '.check_runs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .name != "gatekeeper")'
+```
+Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` such as `failure`, `timed_out`, `cancelled`, or `action_required`) becomes one unhandled item. Matching on "not a success" rather than only `"failure"` keeps discovery in sync with what actually turns `gatekeeper` red (its guard fails on `failure` *or* `cancelled`, and other non-success conclusions are just as broken). `gatekeeper` is excluded deliberately — it is only a rollup of the other three, not an independently fixable failure. Check-runs are scoped to the PR's current head commit (fetched from the server rather than assumed from local `HEAD`, since local `HEAD` may not match what was actually pushed), so any non-passing check found this way is inherently unhandled: a new push always produces fresh check-runs, and no prior-attempt tracking is needed (unlike comments). Record each check's `name` and its `id` — for GitHub-Actions-generated check-runs, this `id` **is the Actions job id**, used to fetch the job's log below.
+
+If a relevant check-run for the current HEAD is still `in_progress` or `queued` (not yet concluded), wait and poll briefly rather than treating it as absent — a not-yet-finished check is not the same as a passing one.
+
+If all three scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases.
 
 Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2.
 
@@ -115,9 +125,9 @@ Otherwise, list every unhandled item for the developer (surface, file/line if ap
 
 Process items in the order discovered. For each item:
 
-1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself.
+1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself; for a failing CI check, the failing job's log (fetch it with `gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`, where `<check_run_id>` is the id recorded during discovery).
 2. Classify it:
-   - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed.
+   - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed. A **failing CI check** is always classification (a): fetch its failing log (`gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`), diagnose the failure with `superpowers:systematic-debugging`, fix it under `superpowers:test-driven-development`, and make one commit per failing check (consistent with the one-commit-per-item rule above). There is no comment thread to answer or suggestion to reject for a CI item.
    - **(b) Is a question** — draft an answer. No code change.
    - **(c) Is a suggestion to reject** — **REQUIRED SUB-SKILL:** Use `superpowers:receiving-code-review` to evaluate it (verify against the actual codebase, check YAGNI, no performative agreement) before drafting the rejection reasoning.
    - **Ambiguous** — if the right classification or fix approach genuinely isn't clear, **stop triaging further items now**: report which item is ambiguous and why, and wait for the developer's direction on it before triaging it or any item not yet reached. Do not skip or guess. Proceed to Phase 3 with whatever items were already triaged before this one — their fixes, rejections, and answers still get verified, pushed, and replied to in the phases below; only the ambiguous item and anything after it in discovery order are left for a future run.
@@ -211,11 +221,18 @@ For every item processed in Phase 2 with an outcome (fixed, rejected, or answere
 
   <reply text>"
   ```
+- **Failing CI check:** there is no comment thread to reply to, so post a new top-level PR comment (no backlink — there is no original comment to reference):
+  ```bash
+  gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude**
+
+  <reply text>"
+  ```
 
 Reply content:
 - Fixed items reference the commit's short SHA and summarize the change.
 - Rejected items state the technical reasoning plainly — no performative agreement, no thanks (see `superpowers:receiving-code-review`).
 - Answered items just answer the question.
+- CI-failure items name the check that failed (`lint`/`typecheck`/`test`), summarize the diagnosis, and reference the fixing commit's short SHA.
 
 ---
 

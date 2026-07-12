@@ -28,6 +28,30 @@ Verifies that work the developer says is finished is actually finished — check
 
 Turns a free-form idea (`/write-issue <text>`) into one or more well-worded GitHub issues, through a short clarifying dialogue on purpose and scope. Can produce several issues from one request (e.g. "find the remaining gaps in X and write an issue for each"). Matches this repo's existing issue style — plain-text intent, not overly specific — so issues stay a durable statement of need rather than a stale implementation spec. Independent of the `develop-feature` cycle; the issues it creates are picked up by `develop-feature` later.
 
+## Continuous integration
+
+Every pull request triggers the GitHub Actions workflow in `.github/workflows/ci.yml`. It runs the same checks as the local `pnpm verify` script, but as separate, individually visible jobs so a failure points straight at the check that broke:
+
+- **`lint`** — `pnpm build` then `pnpm lint`
+- **`typecheck`** — `pnpm build` then `pnpm typecheck`
+- **`test`** — `pnpm build` then `pnpm test`
+
+Each job is self-contained: it checks out the code, provisions pnpm via Corepack and Node via `.nvmrc`, installs with `--frozen-lockfile`, and rebuilds the workspace before running its check. The three jobs run in parallel.
+
+A fourth job, **`gatekeeper`**, depends on all three and fails if any of them failed or was cancelled. It is the single status check branch protection requires — so the internal `lint`/`typecheck`/`test` jobs can be added, removed, or renamed later by editing only the workflow file, without ever touching branch-protection settings.
+
+### Requiring the gatekeeper check (one-time, manual)
+
+Branch protection is configured by hand in the GitHub UI — it cannot be set by code in this repo. After this pipeline has landed on `main` and run at least once (so GitHub knows the check name), do this once:
+
+1. Repo **Settings → Branches → Add (or edit)** a branch protection rule for `main`.
+2. Enable **Require a pull request before merging** (if not already enabled).
+3. Enable **Require status checks to pass before merging**, then search for and select the **`gatekeeper`** check.
+4. Enable **Require branches to be up to date before merging**.
+5. **Save.**
+
+Require only `gatekeeper` — not the individual `lint`/`typecheck`/`test` checks — so the pipeline's internal structure can change without a branch-protection edit.
+
 ## How they fit together
 
 Issues are the starting point for `develop-feature`'s issue mode. They can be created manually (or through any other means) directly on GitHub as usual, or by a developer using the `write-issue` skill.
