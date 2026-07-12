@@ -43,6 +43,16 @@ describe('createApiClient', () => {
     expect(typeof client.competitions.upsert).toBe('function');
   });
 
+  it('creates a client exposing matches', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(client.matches).toBeDefined();
+  });
+
+  it('matches client has an upsert method', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(typeof client.matches.upsert).toBe('function');
+  });
+
   it('creates a client exposing teams', () => {
     const client = createApiClient('http://localhost:3000');
     expect(client.teams).toBeDefined();
@@ -87,6 +97,7 @@ describe('createApiClient', () => {
       'eras',
       'externalSystems',
       'leagues',
+      'matches',
       'positions',
       'races',
       'rulesSets',
