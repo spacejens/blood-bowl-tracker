@@ -49,11 +49,13 @@ export class BblTeamsImportService {
     result: ImportResult;
     teamRaceIdsByCode: Map<string, number>;
     teamsByName: Map<string, UpsertTeamData>;
+    teamsByCode: Map<string, UpsertTeamData>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const teamRaceIdsByCode = new Map<string, number>();
     const teamsByName = new Map<string, UpsertTeamData>();
+    const teamsByCode = new Map<string, UpsertTeamData>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -77,6 +79,7 @@ export class BblTeamsImportService {
         result: makeImportResult({ imported, errors }),
         teamRaceIdsByCode,
         teamsByName,
+        teamsByCode,
       };
     }
 
@@ -127,6 +130,7 @@ export class BblTeamsImportService {
         const upserted = await this.teamsImport.upsertTeam(teamData, errors);
         if (upserted) {
           teamsByName.set(team.name, teamData);
+          teamsByCode.set(team.id, teamData);
           imported += 1;
         }
       } catch (error) {
@@ -146,6 +150,7 @@ export class BblTeamsImportService {
       result: makeImportResult({ imported, errors }),
       teamRaceIdsByCode,
       teamsByName,
+      teamsByCode,
     };
   }
 }
