@@ -116,7 +116,8 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetition,
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    const { result, competitionsByBblId } =
+      await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
     expect(upsertCompetition).toHaveBeenCalledWith(
@@ -124,6 +125,7 @@ describe('BblCompetitionsImportService', () => {
         name: 'Major Season 1',
         type: 'season',
         eraId: 100,
+        teamEraIds: [],
         externalIds: [
           { externalSystemId: 1, externalId: '1' },
           { externalSystemId: 2, externalId: 'Major Season 1' },
@@ -131,6 +133,16 @@ describe('BblCompetitionsImportService', () => {
       },
       expect.any(Array),
     );
+    expect(competitionsByBblId.get('1')).toEqual({
+      name: 'Major Season 1',
+      type: 'season',
+      eraId: 100,
+      teamEraIds: [],
+      externalIds: [
+        { externalSystemId: 1, externalId: '1' },
+        { externalSystemId: 2, externalId: 'Major Season 1' },
+      ],
+    });
   });
 
   it('derives type=cup from a <=3-day span', async () => {
