@@ -1,4 +1,8 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  UpsertTeamData,
+} from '@blood-bowl-tracker/import';
 import {
   ExternalSystemsImportService,
   makeImportError,
@@ -41,10 +45,15 @@ export class BblTeamsImportService {
   async importTeams(
     raceIdsByBblId: Map<string, number>,
     coachIdsByName: Map<string, number>,
-  ): Promise<{ result: ImportResult; teamRaceIdsByCode: Map<string, number> }> {
+  ): Promise<{
+    result: ImportResult;
+    teamRaceIdsByCode: Map<string, number>;
+    teamsByName: Map<string, UpsertTeamData>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const teamRaceIdsByCode = new Map<string, number>();
+    const teamsByName = new Map<string, UpsertTeamData>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -67,6 +76,7 @@ export class BblTeamsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         teamRaceIdsByCode,
+        teamsByName,
       };
     }
 
@@ -104,19 +114,19 @@ export class BblTeamsImportService {
           continue;
         }
 
-        const success = await this.teamsImport.upsertTeam(
-          {
-            name: team.name,
-            raceId,
-            coachId,
-            externalIds: [
-              { externalSystemId: bblSystemId, externalId: team.id },
-              { externalSystemId: nameSystemId, externalId: team.name },
-            ],
-          },
-          errors,
-        );
-        if (success) {
+        const teamData: UpsertTeamData = {
+          name: team.name,
+          raceId,
+          coachId,
+          eras: [],
+          externalIds: [
+            { externalSystemId: bblSystemId, externalId: team.id },
+            { externalSystemId: nameSystemId, externalId: team.name },
+          ],
+        };
+        const upserted = await this.teamsImport.upsertTeam(teamData, errors);
+        if (upserted) {
+          teamsByName.set(team.name, teamData);
           imported += 1;
         }
       } catch (error) {
@@ -135,6 +145,7 @@ export class BblTeamsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       teamRaceIdsByCode,
+      teamsByName,
     };
   }
 }

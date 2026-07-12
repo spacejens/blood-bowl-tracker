@@ -1,4 +1,8 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  UpsertRulesSetData,
+} from '@blood-bowl-tracker/import';
 import {
   ExternalSystemsImportService,
   makeImportError,
@@ -30,10 +34,12 @@ export class BblRulesSetsImportService {
   async importRulesSets(): Promise<{
     result: ImportResult;
     rulesSetIdsByName: Map<string, number>;
+    rulesSetsByName: Map<string, UpsertRulesSetData>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const rulesSetIdsByName = new Map<string, number>();
+    const rulesSetsByName = new Map<string, UpsertRulesSetData>();
 
     let names: string[];
     let bblSystemId: number;
@@ -58,22 +64,26 @@ export class BblRulesSetsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         rulesSetIdsByName,
+        rulesSetsByName,
       };
     }
 
     for (const name of names) {
+      const rulesSetData: UpsertRulesSetData = {
+        name,
+        races: [],
+        externalIds: [
+          { externalSystemId: bblSystemId, externalId: name },
+          { externalSystemId: nameSystemId, externalId: name },
+        ],
+      };
       const rulesSet = await this.rulesSetsImport.upsertRulesSet(
-        {
-          name,
-          externalIds: [
-            { externalSystemId: bblSystemId, externalId: name },
-            { externalSystemId: nameSystemId, externalId: name },
-          ],
-        },
+        rulesSetData,
         errors,
       );
       if (rulesSet) {
         rulesSetIdsByName.set(name, rulesSet.id);
+        rulesSetsByName.set(name, rulesSetData);
         imported += 1;
       }
     }
@@ -81,6 +91,7 @@ export class BblRulesSetsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       rulesSetIdsByName,
+      rulesSetsByName,
     };
   }
 }

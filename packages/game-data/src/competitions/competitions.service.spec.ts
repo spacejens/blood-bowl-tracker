@@ -1,4 +1,9 @@
-import { DB } from '@blood-bowl-tracker/db';
+import {
+  competitionExternalIds,
+  competitions,
+  competitionTeams,
+  DB,
+} from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,32 +31,42 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('CompetitionsService', () => {
   let service: CompetitionsService;
-  let mockDb: {
-    select: () => { from: ReturnType<typeof vi.fn> };
-    insert: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
+  let externalIdRows: unknown[];
+  let existingTeamEraRows: { teamEraId: number }[];
+  let insertCalls: { table: unknown; values: unknown }[];
+  let updateCalls: { table: unknown; set: unknown }[];
 
   beforeEach(async () => {
-    const selectChain = {
-      from: vi.fn().mockReturnValue(makeFromBuilder([fakeCompetition])),
-    };
-    const insertChain = {
-      values: vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeCompetition]),
-      })),
-    };
-    const updateChain = {
-      set: vi.fn(() => ({
-        where: vi.fn(() => ({
-          returning: vi.fn().mockResolvedValue([fakeCompetition]),
-        })),
-      })),
-    };
-    mockDb = {
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => insertChain),
-      update: vi.fn(() => updateChain),
+    externalIdRows = [];
+    existingTeamEraRows = [];
+    insertCalls = [];
+    updateCalls = [];
+
+    const mockDb = {
+      select: () => ({
+        from: (table: unknown) =>
+          makeFromBuilder(
+            table === competitionExternalIds
+              ? externalIdRows
+              : existingTeamEraRows,
+          ),
+      }),
+      insert: (table: unknown) => ({
+        values: (values: unknown) => {
+          insertCalls.push({ table, values });
+          return { returning: () => Promise.resolve([fakeCompetition]) };
+        },
+      }),
+      update: (table: unknown) => ({
+        set: (set: unknown) => {
+          updateCalls.push({ table, set });
+          return {
+            where: () => ({
+              returning: () => Promise.resolve([fakeCompetition]),
+            }),
+          };
+        },
+      }),
     };
 
     const module = await Test.createTestingModule({
@@ -61,91 +76,79 @@ describe('CompetitionsService', () => {
     service = module.get(CompetitionsService);
   });
 
-  describe('upsert', () => {
-    const baseData = {
+  const baseData = {
+    name: 'Major Season 24',
+    type: 'season' as const,
+    eraId: 20,
+    teamEraIds: [100, 101],
+    externalIds: [
+      { externalSystemId: 1, externalId: '73' },
+      { externalSystemId: 2, externalId: 'Major Season 24' },
+    ],
+  };
+
+  it('creates a new competition with its team-era links when no external IDs match', async () => {
+    const result = await service.upsert(baseData);
+
+    expect(result).toEqual({
+      competition: { ...fakeCompetition, teamEraIds: [100, 101] },
+      created: true,
+    });
+    expect(insertCalls.some((c) => c.table === competitions)).toBe(true);
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('inserts the competition with its name, type and eraId', async () => {
+    await service.upsert(baseData);
+
+    const call = insertCalls.find((c) => c.table === competitions);
+    expect(call?.values).toEqual({
       name: 'Major Season 24',
-      type: 'season' as const,
+      type: 'season',
       eraId: 20,
-      externalIds: [
-        { externalSystemId: 1, externalId: '73' },
-        { externalSystemId: 2, externalId: 'Major Season 24' },
-      ],
-    };
-
-    it('creates a new competition when no external IDs match, writing all columns', async () => {
-      mockDb.select().from.mockReturnValue(makeFromBuilder([]));
-      const insertValues = vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeCompetition]),
-      }));
-      mockDb.insert.mockReturnValue({ values: insertValues });
-
-      const result = await service.upsert(baseData);
-
-      expect(result).toEqual({ competition: fakeCompetition, created: true });
-      expect(insertValues).toHaveBeenCalledWith({
-        name: 'Major Season 24',
-        type: 'season',
-        eraId: 20,
-      });
-      expect(mockDb.update).not.toHaveBeenCalled();
     });
+  });
 
-    it('updates the matching competition when exactly one external ID matches', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { competitionId: 1, externalSystemId: 1, externalId: '73' },
-          ]),
-        );
+  it('updates the matching competition when exactly one external ID matches', async () => {
+    externalIdRows = [
+      { competitionId: 1, externalSystemId: 1, externalId: '73' },
+    ];
 
-      const result = await service.upsert(baseData);
+    const result = await service.upsert(baseData);
 
-      expect(result).toEqual({ competition: fakeCompetition, created: false });
-      expect(mockDb.update).toHaveBeenCalled();
-    });
+    expect(result.created).toBe(false);
+    expect(updateCalls.some((c) => c.table === competitions)).toBe(true);
+  });
 
-    it('throws CompetitionUpsertConflictError when external IDs match different competitions', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { competitionId: 1, externalSystemId: 1, externalId: '73' },
-          {
-            competitionId: 2,
-            externalSystemId: 2,
-            externalId: 'Major Season 24',
-          },
-        ]),
-      );
+  it('throws CompetitionUpsertConflictError when external IDs match different competitions', async () => {
+    externalIdRows = [
+      { competitionId: 1, externalSystemId: 1, externalId: '73' },
+      { competitionId: 2, externalSystemId: 2, externalId: 'Major Season 24' },
+    ];
 
-      await expect(service.upsert(baseData)).rejects.toThrow(
-        CompetitionUpsertConflictError,
-      );
-      expect(mockDb.insert).not.toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
-    });
+    await expect(service.upsert(baseData)).rejects.toThrow(
+      CompetitionUpsertConflictError,
+    );
+    expect(insertCalls).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
+  });
 
-    it('inserts only the external IDs that are new for an existing competition', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { competitionId: 1, externalSystemId: 1, externalId: '73' },
-          ]),
-        );
-      const insertValues = vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeCompetition]),
-      }));
-      mockDb.insert.mockReturnValue({ values: insertValues });
+  it('inserts only the competition_teams rows that are new', async () => {
+    existingTeamEraRows = [{ teamEraId: 100 }];
 
-      await service.upsert(baseData);
+    const result = await service.upsert(baseData);
 
-      expect(insertValues).toHaveBeenCalledWith([
-        {
-          competitionId: 1,
-          externalSystemId: 2,
-          externalId: 'Major Season 24',
-        },
-      ]);
-    });
+    const call = insertCalls.find((c) => c.table === competitionTeams);
+    expect(call?.values).toEqual([{ competitionId: 1, teamEraId: 101 }]);
+    expect(result.competition.teamEraIds).toEqual([100, 101]);
+  });
+
+  it('does not insert competition_teams rows when all links already exist', async () => {
+    existingTeamEraRows = [{ teamEraId: 100 }, { teamEraId: 101 }];
+
+    const result = await service.upsert(baseData);
+
+    expect(insertCalls.some((c) => c.table === competitionTeams)).toBe(false);
+    expect(result.competition.teamEraIds).toEqual([100, 101]);
   });
 });

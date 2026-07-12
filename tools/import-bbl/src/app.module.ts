@@ -13,6 +13,7 @@ import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
+import { TeamParticipationModule } from './team-participation/team-participation.module';
 import { TeamsModule } from './teams/teams.module';
 
 @Module({})
@@ -36,6 +37,7 @@ export class AppModule {
         PlayersModule,
         PositionsModule,
         TeamsModule,
+        TeamParticipationModule,
       ],
     };
   }

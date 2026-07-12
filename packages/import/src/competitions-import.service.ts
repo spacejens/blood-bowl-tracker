@@ -9,6 +9,7 @@ export interface UpsertCompetitionData {
   name: string;
   type: 'season' | 'cup';
   eraId: number;
+  teamEraIds?: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 

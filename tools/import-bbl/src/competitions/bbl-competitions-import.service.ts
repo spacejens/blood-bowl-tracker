@@ -1,4 +1,8 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  UpsertCompetitionData,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ExternalSystemsImportService,
@@ -48,11 +52,13 @@ export class BblCompetitionsImportService {
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
    */
-  async importCompetitions(
-    eraIdsByName: Map<string, number>,
-  ): Promise<{ result: ImportResult }> {
+  async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
+    result: ImportResult;
+    competitionsByBblId: Map<string, UpsertCompetitionData>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const competitionsByBblId = new Map<string, UpsertCompetitionData>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -72,7 +78,10 @@ export class BblCompetitionsImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        competitionsByBblId,
+      };
     }
 
     const datesByCompetitionId = await this.collectMatchDates(errors);
@@ -88,7 +97,10 @@ export class BblCompetitionsImportService {
             'master competition list from.',
         }),
       );
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        competitionsByBblId,
+      };
     }
 
     for (const competition of competitions) {
@@ -127,24 +139,30 @@ export class BblCompetitionsImportService {
         continue;
       }
 
+      const competitionData: UpsertCompetitionData = {
+        name: competition.name,
+        type,
+        eraId,
+        teamEraIds: [],
+        externalIds: [
+          { externalSystemId: bblSystemId, externalId: competition.bblId },
+          { externalSystemId: nameSystemId, externalId: competition.name },
+        ],
+      };
       const success = await this.competitionsImport.upsertCompetition(
-        {
-          name: competition.name,
-          type,
-          eraId,
-          externalIds: [
-            { externalSystemId: bblSystemId, externalId: competition.bblId },
-            { externalSystemId: nameSystemId, externalId: competition.name },
-          ],
-        },
+        competitionData,
         errors,
       );
       if (success) {
+        competitionsByBblId.set(competition.bblId, competitionData);
         imported += 1;
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return {
+      result: makeImportResult({ imported, errors }),
+      competitionsByBblId,
+    };
   }
 
   /**
