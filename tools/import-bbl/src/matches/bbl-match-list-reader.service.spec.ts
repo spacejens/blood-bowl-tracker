@@ -39,8 +39,6 @@ function makeMatchParser(matchesById: Record<string, BblMatch[]>) {
 const matchOne: BblMatch = {
   bblId: '89',
   date: new Date(Date.UTC(2021, 8, 25)),
-  homeTeam: 'A',
-  awayTeam: 'B',
 };
 
 describe('BblMatchListReaderService', () => {

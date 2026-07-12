@@ -48,7 +48,7 @@ async function run(): Promise<ImportResult> {
       .get(BblTeamParticipationImportService)
       .importTeamParticipation(
         competitionOutcome.competitionsByBblId,
-        teamOutcome.teamsByName,
+        teamOutcome.teamsByCode,
         rulesSetsOutcome.rulesSetsByName,
         eraOutcome.eraIdsByName,
       );

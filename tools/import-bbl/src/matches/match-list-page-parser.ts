@@ -27,8 +27,6 @@ const MATCH_LINK = /p=m&m=(\d+)/;
 export interface BblMatch {
   bblId: string;
   date: Date;
-  homeTeam: string;
-  awayTeam: string;
 }
 
 @Injectable()
@@ -37,14 +35,11 @@ export class MatchListPageParser {
    * Extract every completed match from a match-list page (`p=ma&so=s&s=<id>`).
    * A completed match is a row carrying a `title="result added <Month>
    * <Day><suffix>, <Year>"` attribute (its ordinal date is the only date data
-   * available without a full match import). The two team names are the only two
-   * `<td>` cells with `width="120"`: the home team (`align="right"`) first and
-   * the away team (`align="left"`) second, separated by a `width="10"` cell. A
-   * row missing a team cell yields `''` for that side. The match id is read
-   * from the row's `onclick` link (`p=m&m=<id>`); rows without a parseable
-   * match link are skipped defensively. Rows are returned in document order;
-   * a page with no completed matches yields an empty array. This reads only
-   * dates, team names, and the match id — no scores/casualties/gate.
+   * available without a full match import). The match id is read from the row's
+   * `onclick` link (`p=m&m=<id>`); rows without a parseable match link are
+   * skipped defensively. Rows are returned in document order; a page with no
+   * completed matches yields an empty array. This reads only dates and the
+   * match id — no scores/casualties/gate.
    */
   extractMatches(page: BblPage): BblMatch[] {
     const $ = page.load();
@@ -68,10 +63,7 @@ export class MatchListPageParser {
       const date = new Date(
         Date.UTC(Number(match[3]), month, Number(match[2])),
       );
-      const teamCells = $(element).find('td[width="120"]');
-      const homeTeam = $(teamCells[0]).text().trim();
-      const awayTeam = $(teamCells[1]).text().trim();
-      matches.push({ bblId, date, homeTeam, awayTeam });
+      matches.push({ bblId, date });
     });
 
     return matches;

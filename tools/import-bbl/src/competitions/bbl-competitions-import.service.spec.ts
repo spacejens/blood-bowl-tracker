@@ -73,8 +73,6 @@ function makeMatchListReader(datesById: Record<string, Date[]>) {
         dates.map((date, i) => ({
           bblId: `${id}-${i}`,
           date,
-          homeTeam: '',
-          awayTeam: '',
         })),
       ]),
     ),
