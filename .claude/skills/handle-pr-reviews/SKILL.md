@@ -105,13 +105,13 @@ gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
 ```
 A comment is **unhandled** if its `body` does not start with `**Comment by Claude**`, and no later comment in the list that does start with `**Comment by Claude**` contains this comment's `html_url` as a backlink.
 
-**Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep the failures, excluding the `gatekeeper` rollup:
+**Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup:
 ```bash
 HEAD_SHA=$(gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha')
 gh api "repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs" \
-  --jq '.check_runs[] | select(.conclusion == "failure" and .name != "gatekeeper")'
+  --jq '.check_runs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .name != "gatekeeper")'
 ```
-Each failing check (`lint`, `typecheck`, or `test`) becomes one unhandled item. `gatekeeper` is excluded deliberately — it is only a rollup of the other three, not an independently fixable failure. Check-runs are scoped to the PR's current head commit (fetched from the server rather than assumed from local `HEAD`, since local `HEAD` may not match what was actually pushed), so any failure found this way is inherently unhandled: a new push always produces fresh check-runs, and no prior-attempt tracking is needed (unlike comments). Record each failing check's `name` and its `id` — for GitHub-Actions-generated check-runs, this `id` **is the Actions job id**, used to fetch the job's log below.
+Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` such as `failure`, `timed_out`, `cancelled`, or `action_required`) becomes one unhandled item. Matching on "not a success" rather than only `"failure"` keeps discovery in sync with what actually turns `gatekeeper` red (its guard fails on `failure` *or* `cancelled`, and other non-success conclusions are just as broken). `gatekeeper` is excluded deliberately — it is only a rollup of the other three, not an independently fixable failure. Check-runs are scoped to the PR's current head commit (fetched from the server rather than assumed from local `HEAD`, since local `HEAD` may not match what was actually pushed), so any non-passing check found this way is inherently unhandled: a new push always produces fresh check-runs, and no prior-attempt tracking is needed (unlike comments). Record each check's `name` and its `id` — for GitHub-Actions-generated check-runs, this `id` **is the Actions job id**, used to fetch the job's log below.
 
 If a relevant check-run for the current HEAD is still `in_progress` or `queued` (not yet concluded), wait and poll briefly rather than treating it as absent — a not-yet-finished check is not the same as a passing one.
 
