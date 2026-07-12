@@ -6,6 +6,7 @@ import type {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  MatchesService,
   PositionsService,
   RacesService,
   RulesSetsService,
@@ -43,6 +44,7 @@ describe('RpcMiddleware', () => {
       {} as PositionsService,
       {} as TeamsService,
       {} as CompetitionsService,
+      {} as MatchesService,
     );
   });
 
