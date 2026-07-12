@@ -3,8 +3,8 @@ import {
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
-import { resolveStatsSummary } from './facts/stats-summary';
 import type { StatsSummaryDeps } from './facts/stats-summary';
+import { resolveStatsSummary } from './facts/stats-summary';
 import { resolveTeamMatchesPlayedToplist } from './facts/team-toplist';
 
 export function buildFactTree(deps: StatsSummaryDeps): FactNode {

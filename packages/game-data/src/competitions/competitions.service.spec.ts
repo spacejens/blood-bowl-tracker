@@ -156,7 +156,9 @@ describe('CompetitionsService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new CompetitionsService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -166,7 +168,9 @@ describe('CompetitionsService', () => {
     it('countByType filters competitions by the given type', async () => {
       const where = vi.fn().mockResolvedValue([{ count: 4 }]);
       const from = vi.fn(() => ({ where }));
-      const service = new CompetitionsService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
       await expect(service.countByType('season')).resolves.toBe(4);
       expect(where).toHaveBeenCalledTimes(1);
     });

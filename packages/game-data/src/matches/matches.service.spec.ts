@@ -137,7 +137,9 @@ describe('MatchesService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const svc = new MatchesService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      const svc = new MatchesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
       await expect(svc.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -146,7 +148,9 @@ describe('MatchesService', () => {
   describe('countMatchEvents', () => {
     it('countMatchEvents returns the match-events row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5200 }]);
-      const svc = new MatchesService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      const svc = new MatchesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
       await expect(svc.countMatchEvents()).resolves.toBe(5200);
     });
   });

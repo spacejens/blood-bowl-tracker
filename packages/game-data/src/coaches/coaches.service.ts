@@ -11,6 +11,7 @@ import {
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+
 import { countRows } from '../shared/count-all';
 
 export class CoachUpsertConflictError extends Error {}

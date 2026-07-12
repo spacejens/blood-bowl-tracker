@@ -1,6 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { describe, expect, it, vi } from 'vitest';
 import type { PgTable } from 'drizzle-orm/pg-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { countRows } from './count-all';
 

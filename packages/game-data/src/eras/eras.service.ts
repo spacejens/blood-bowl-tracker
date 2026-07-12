@@ -2,6 +2,7 @@ import type { Db, Era } from '@blood-bowl-tracker/db';
 import { DB, eraExternalIds, eras } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
+
 import { countRows } from '../shared/count-all';
 
 export class EraUpsertConflictError extends Error {}

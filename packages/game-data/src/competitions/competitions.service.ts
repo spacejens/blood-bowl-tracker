@@ -7,6 +7,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, or } from 'drizzle-orm';
+
 import { countRows } from '../shared/count-all';
 
 export class CompetitionUpsertConflictError extends Error {}

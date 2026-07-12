@@ -195,7 +195,9 @@ describe('PositionsService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new PositionsService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      const service = new PositionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });

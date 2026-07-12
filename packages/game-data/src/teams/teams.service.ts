@@ -9,6 +9,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, desc, eq, or } from 'drizzle-orm';
+
 import { countRows } from '../shared/count-all';
 
 export class TeamUpsertConflictError extends Error {}

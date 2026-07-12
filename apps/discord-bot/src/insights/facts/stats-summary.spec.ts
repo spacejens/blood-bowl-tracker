@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { resolveStatsSummary } from './stats-summary';
 import type { StatsSummaryDeps } from './stats-summary';
+import { resolveStatsSummary } from './stats-summary';
 
 function makeDeps(
   overrides: Partial<Record<string, unknown>> = {},

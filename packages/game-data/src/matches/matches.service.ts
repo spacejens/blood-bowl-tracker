@@ -1,5 +1,10 @@
 import type { Db, Match } from '@blood-bowl-tracker/db';
-import { DB, matches, matchEvents, matchExternalIds } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  matches,
+  matchEvents,
+  matchExternalIds,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
