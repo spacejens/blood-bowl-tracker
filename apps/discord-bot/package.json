@@ -27,10 +27,12 @@
     "@blood-bowl-tracker/api-server": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
     "@blood-bowl-tracker/discord-client": "workspace:*",
+    "@blood-bowl-tracker/game-data": "workspace:*",
     "@nestjs/common": "^11.1.27",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
     "@nestjs/platform-express": "^11.1.27",
+    "discord.js": "^14.26.4",
     "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"

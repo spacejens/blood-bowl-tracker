@@ -1,9 +1,16 @@
 import type { Coach } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
-import { coaches, coachExternalIds } from '@blood-bowl-tracker/db';
+import {
+  coaches,
+  coachExternalIds,
+  matches,
+  matchTeams,
+  teamEras,
+  teams,
+} from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 export class CoachUpsertConflictError extends Error {}
 
@@ -81,5 +88,38 @@ export class CoachesService {
     }
 
     return { coach, created };
+  }
+
+  async countMatchesPlayedByCoach(): Promise<
+    { coachId: number; name: string; count: number }[]
+  > {
+    return this.db
+      .select({
+        coachId: coaches.id,
+        name: coaches.name,
+        count: countDistinct(matches.id),
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(countDistinct(matches.id)));
+  }
+
+  async countTeamsByCoach(): Promise<
+    { coachId: number; name: string; count: number }[]
+  > {
+    return this.db
+      .select({
+        coachId: coaches.id,
+        name: coaches.name,
+        count: count(teams.id),
+      })
+      .from(coaches)
+      .innerJoin(teams, eq(teams.coachId, coaches.id))
+      .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(count(teams.id)));
   }
 }

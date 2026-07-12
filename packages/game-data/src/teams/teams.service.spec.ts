@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import { DB, teamEras, teamExternalIds, teams } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -169,5 +170,32 @@ describe('TeamsService', () => {
 
     expect(insertCalls.some((c) => c.table === teamEras)).toBe(false);
     expect(result.team.eras).toEqual([{ eraId: 20 }]);
+  });
+
+  describe('toplist queries', () => {
+    function makeQueryBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      const chain = vi.fn(() => builder);
+      builder.from = chain;
+      builder.innerJoin = chain;
+      builder.groupBy = chain;
+      builder.orderBy = chain;
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('countMatchesPlayedByTeam returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 12 },
+        { teamId: 2, name: 'Reikland Reavers', count: 7 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countMatchesPlayedByTeam()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
   });
 });
