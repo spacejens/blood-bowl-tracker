@@ -45,7 +45,7 @@ function makeParser() {
 }
 
 function externalSystemsOk() {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValueOnce(1);
 }
 
 const team: UpsertTeamData = {
@@ -124,10 +124,7 @@ describe('BblPlayersImportService', () => {
         name: 'Griff Oberwald',
         teamEraId: 5000,
         positionId: 200,
-        externalIds: [
-          { externalSystemId: 1, externalId: '42' },
-          { externalSystemId: 2, externalId: 'Griff Oberwald' },
-        ],
+        externalIds: [{ externalSystemId: 1, externalId: '42' }],
       },
       expect.any(Array),
     );

@@ -72,10 +72,15 @@ tool directory, or exported in your shell:
   player pages (`PlayerPageParser`, see PlayersModule): each of the position's
   players belongs to a team whose race is known, so the position's race(s) are
   recovered from `teamRaceIdsByCode`. Runs after races and teams.
-- **PlayersModule** — page-parsing helper only (no players are imported).
-  `PlayerPageParser` reads a player's position (`p=pt&typID`) and team
-  (`p=tm&t`) links off a `p=pl` page, which the positions import uses to resolve
-  the races of positions that list none.
+- **PlayersModule** — data-type extractor for players. `PlayerPageParser` reads
+  a player's own `pid`, `<h1>` name, position (`p=pt&typID`), and team
+  (`p=tm&t`) links off a `p=pl` page. The positions import uses the
+  position/team links to resolve the races of positions that list none;
+  `BblPlayersImportService` streams player pages and imports one row per
+  player, resolving its team era (via the team code and the era whose
+  configured player-id range contains the pid) and position (via the composite
+  `<typID>-<raceBblId>` key). Runs after teams, team eras, and positions (all
+  referenced).
 - **TeamsModule** — data-type extractor for teams. `TeamPageParser` reads a
   team's page id and `<h1>` name from a team page; `BblTeamsImportService`
   streams team pages (independently of the coaches/races walks), deduplicates
@@ -168,6 +173,15 @@ Re-running is always safe and fills any gaps left by transient failures.
   coach are resolved to local ids from the races and coaches imports, which run
   first. Retired teams are imported like any other; the "Retired!" marker is
   not tracked yet.
+- **Players** — from player pages (`p=pl`). Keyed by the player's own numeric
+  `pid` under the configured BBL external system only — unlike other entities,
+  players get no `Name` external id, since player names are not guaranteed
+  unique across the league. A player's era is resolved from its `pid` against
+  each configured era's `firstPlayerId`/`lastPlayerId` range; its team era and
+  position are resolved to local ids from the teams and positions imports. A
+  player whose pid matches no configured era range, whose team code was not
+  imported, or whose position cannot be resolved is skipped with a recorded
+  error. Imported after teams, team eras, and positions (all referenced).
 - **Competitions** — from the master competition dropdown on the `se`/`sr`
   pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
   (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL

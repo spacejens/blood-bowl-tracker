@@ -15,7 +15,6 @@ import { Injectable } from '@nestjs/common';
 import { EraConfigService } from '../eras/era-config.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -36,8 +35,10 @@ export class BblPlayersImportService {
    * Import every player found on the BBL `p=pl` pages. Each player is resolved
    * to a team era (via its team code + the era whose player-id range contains
    * its pid) and a position (via the composite typId-raceBblId key), then
-   * upserted keyed by its pid (BBL) and name (Name). Players that cannot be
-   * fully resolved are recorded as errors and skipped. Idempotent.
+   * upserted keyed by its pid under the BBL external system only — unlike
+   * other entities, players get no Name external id, since player names are
+   * not guaranteed unique across the league. Players that cannot be fully
+   * resolved are recorded as errors and skipped. Idempotent.
    */
   async importPlayers(
     teamsByCode: Map<string, UpsertTeamData>,
@@ -49,20 +50,14 @@ export class BblPlayersImportService {
     const errors: ImportError[] = [];
 
     let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
       bblSystemId =
         await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
-      );
     } catch (error) {
       errors.push(
         makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
+          item: { externalSystems: [bblSystemName] },
           message: `Failed to upsert external system: ${
             error instanceof Error ? error.message : String(error)
           }`,
@@ -169,7 +164,6 @@ export class BblPlayersImportService {
               positionId,
               externalIds: [
                 { externalSystemId: bblSystemId, externalId: player.pid },
-                { externalSystemId: nameSystemId, externalId: player.name },
               ],
             },
             errors,
