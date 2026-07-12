@@ -5,7 +5,12 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import type { Interaction } from 'discord.js';
+import type {
+  ApplicationCommandOptionData,
+  ChatInputCommandInteraction,
+  Interaction,
+  InteractionReplyOptions,
+} from 'discord.js';
 import { Client, GatewayIntentBits } from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
@@ -15,14 +20,20 @@ const READY_TIMEOUT_MS = 30_000;
 export interface SlashCommandDefinition {
   name: string;
   description: string;
-  execute: () => Promise<string>;
+  options?: ApplicationCommandOptionData[];
+  execute: (
+    interaction: ChatInputCommandInteraction,
+  ) => Promise<string | InteractionReplyOptions>;
 }
 
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
   private readonly client: Client;
-  private readonly commandHandlers = new Map<string, () => Promise<string>>();
+  private readonly commandHandlers = new Map<
+    string,
+    SlashCommandDefinition['execute']
+  >();
 
   constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -87,6 +98,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     const commandData = commands.map((command) => ({
       name: command.name,
       description: command.description,
+      ...(command.options ? { options: command.options } : {}),
     }));
     for (const guild of this.client.guilds.cache.values()) {
       await guild.commands.set(commandData);
@@ -102,7 +114,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     try {
-      const content = await handler();
+      const content = await handler(interaction);
       const channelName =
         interaction.channel && 'name' in interaction.channel
           ? interaction.channel.name

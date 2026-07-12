@@ -37,7 +37,9 @@ describe('StatsCommandService', () => {
     await service.onApplicationBootstrap();
     const commands = discordClient.registerCommands.mock
       .calls[0][0] as SlashCommandDefinition[];
-    const result = await commands[0].execute();
+    const result = await commands[0].execute(
+      {} as unknown as import('discord.js').ChatInputCommandInteraction,
+    );
     expect(result).toBe('the summary');
     expect(statsSummary.buildSummaryMessage).toHaveBeenCalled();
   });

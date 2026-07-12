@@ -340,6 +340,60 @@ describe('DiscordClientService', () => {
     expect(reply).not.toHaveBeenCalled();
   });
 
+  it('forwards command options to guild.commands.set', async () => {
+    const guild = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
+    mockClient.guilds.cache = new Map([['a', guild]]);
+    await service.registerCommands([
+      {
+        name: 'insights',
+        description: 'Share an insight',
+        options: [
+          {
+            name: 'category',
+            description: 'Pick a category',
+            type: 3,
+            autocomplete: true,
+          },
+        ],
+        execute: vi.fn().mockResolvedValue('ok'),
+      },
+    ]);
+    expect(guild.commands.set).toHaveBeenCalledWith([
+      {
+        name: 'insights',
+        description: 'Share an insight',
+        options: [
+          {
+            name: 'category',
+            description: 'Pick a category',
+            type: 3,
+            autocomplete: true,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('passes the interaction into the command execute handler', async () => {
+    await service.onModuleInit();
+    const execute = vi.fn().mockResolvedValue('the answer');
+    await service.registerCommands([
+      { name: 'stats', description: 'Show stats', execute },
+    ]);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isChatInputCommand: () => true,
+      commandName: 'stats',
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
+      reply,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(execute).toHaveBeenCalledWith(interaction);
+  });
+
   it('replies with an error when a command handler throws', async () => {
     await service.onModuleInit();
     await service.registerCommands([
