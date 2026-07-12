@@ -74,5 +74,5 @@ reply, so it always answers within Discord's response window.
 - [`/stats`](slash-commands/stats.md) — posts a summary of how many coaches,
   teams, matches, and competitions have been recorded.
 - [`/insights`](slash-commands/insights.md) — shares a random or chosen fact
-  from a tree of categorized insights (currently coach and team toplists), with
-  autocomplete to navigate the fact tree.
+  from a tree of categorized insights, with autocomplete to navigate the fact
+  tree.
