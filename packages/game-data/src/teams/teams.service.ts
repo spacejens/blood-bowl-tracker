@@ -1,7 +1,5 @@
-import type { Team } from '@blood-bowl-tracker/db';
-import type { Db } from '@blood-bowl-tracker/db';
-import { teamExternalIds, teams } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import type { Db, Team } from '@blood-bowl-tracker/db';
+import { DB, teamEras, teamExternalIds, teams } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
@@ -11,7 +9,12 @@ export interface UpsertTeamData {
   name: string;
   raceId: number;
   coachId: number;
+  eras: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface TeamWithEras extends Team {
+  eras: { id: number; eraId: number }[];
 }
 
 @Injectable()
@@ -20,7 +23,7 @@ export class TeamsService {
 
   async upsert(
     data: UpsertTeamData,
-  ): Promise<{ team: Team; created: boolean }> {
+  ): Promise<{ team: TeamWithEras; created: boolean }> {
     const existingRows = await this.db
       .select({
         teamId: teamExternalIds.teamId,
@@ -68,23 +71,56 @@ export class TeamsService {
       team = result[0];
     }
 
+    const eras = await this.syncEras(team.id, data.eras);
+    await this.syncExternalIds(team.id, data.externalIds, existingRows);
+
+    return { team: { ...team, eras }, created };
+  }
+
+  private async syncEras(
+    teamId: number,
+    eraIds: number[],
+  ): Promise<{ id: number; eraId: number }[]> {
+    const existing = await this.db
+      .select({ id: teamEras.id, eraId: teamEras.eraId })
+      .from(teamEras)
+      .where(eq(teamEras.teamId, teamId));
+
+    const existingEraIds = new Set(existing.map((r) => r.eraId));
+    const toInsert = eraIds.filter((eraId) => !existingEraIds.has(eraId));
+
+    if (toInsert.length === 0) {
+      return existing;
+    }
+
+    const inserted = await this.db
+      .insert(teamEras)
+      .values(toInsert.map((eraId) => ({ teamId, eraId })))
+      .returning({ id: teamEras.id, eraId: teamEras.eraId });
+
+    return [...existing, ...inserted];
+  }
+
+  private async syncExternalIds(
+    teamId: number,
+    externalIds: { externalSystemId: number; externalId: string }[],
+    existingRows: { externalSystemId: number; externalId: string }[],
+  ): Promise<void> {
     const existingPairs = new Set(
       existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
     );
-    const newExternalIds = data.externalIds.filter(
+    const newExternalIds = externalIds.filter(
       (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
     );
 
     if (newExternalIds.length > 0) {
       await this.db.insert(teamExternalIds).values(
         newExternalIds.map((e) => ({
-          teamId: team.id,
+          teamId,
           externalSystemId: e.externalSystemId,
           externalId: e.externalId,
         })),
       );
     }
-
-    return { team, created };
   }
 }
