@@ -70,7 +70,7 @@ function makeService(
     upsertPlayer?: ReturnType<typeof vi.fn>;
     eras?: {
       name: string;
-      firstPlayerId?: number;
+      firstPlayerId: number;
       lastPlayerId?: number;
       playerIdOverrides?: number[];
     }[];
@@ -197,6 +197,23 @@ describe('BblPlayersImportService', () => {
       { ...team, eras: [600] },
       expect.any(Array),
     );
+  });
+
+  it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
+    const { service, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      { eras: [{ name: 'LRB', firstPlayerId: 1 }] },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertPlayer).toHaveBeenCalled();
   });
 
   it('skips and records an error when no era range contains the pid', async () => {

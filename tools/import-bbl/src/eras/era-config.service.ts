@@ -6,7 +6,7 @@ export interface EraConfig {
   rulesSet: string;
   startDate: string;
   endDate?: string;
-  firstPlayerId?: number;
+  firstPlayerId: number;
   lastPlayerId?: number;
   /**
    * Explicit pids assigned to this era regardless of firstPlayerId/lastPlayerId
@@ -44,7 +44,9 @@ export class EraConfigService {
    * The eras the BBL league played through, supplied via the BBL_ERAS
    * environment variable as a JSON array (not parsed from the source data).
    * Each era names its rules set and its date range; endDate is optional for an
-   * era still ongoing at import time.
+   * era still ongoing at import time. firstPlayerId is required; lastPlayerId
+   * follows the same optional-when-ongoing rule as endDate, and the two must
+   * be either both omitted or both present.
    */
   getEras(): EraConfig[] {
     const raw = this.configService.get<string>('BBL_ERAS');
@@ -124,9 +126,9 @@ export class EraConfigService {
       );
     }
 
-    if (firstPlayerId !== undefined && !isPositiveInteger(firstPlayerId)) {
+    if (!isPositiveInteger(firstPlayerId)) {
       throw new Error(
-        `BBL_ERAS[${index}].firstPlayerId must be a positive integer when present.`,
+        `BBL_ERAS[${index}].firstPlayerId must be a positive integer.`,
       );
     }
     if (lastPlayerId !== undefined && !isPositiveInteger(lastPlayerId)) {
@@ -134,13 +136,14 @@ export class EraConfigService {
         `BBL_ERAS[${index}].lastPlayerId must be a positive integer when present.`,
       );
     }
-    if (
-      isPositiveInteger(firstPlayerId) &&
-      isPositiveInteger(lastPlayerId) &&
-      firstPlayerId > lastPlayerId
-    ) {
+    if (isPositiveInteger(lastPlayerId) && firstPlayerId > lastPlayerId) {
       throw new Error(
         `BBL_ERAS[${index}].firstPlayerId must be less than or equal to lastPlayerId.`,
+      );
+    }
+    if ((endDate === undefined) !== (lastPlayerId === undefined)) {
+      throw new Error(
+        `BBL_ERAS[${index}]: endDate and lastPlayerId must be either both omitted (an era still ongoing) or both present.`,
       );
     }
 
@@ -158,8 +161,8 @@ export class EraConfigService {
       name,
       rulesSet,
       startDate,
+      firstPlayerId,
       ...(endDate !== undefined ? { endDate } : {}),
-      ...(firstPlayerId !== undefined ? { firstPlayerId } : {}),
       ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
       ...(playerIdOverrides !== undefined
         ? { playerIdOverrides: playerIdOverrides }

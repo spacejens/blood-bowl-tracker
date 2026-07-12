@@ -21,16 +21,18 @@ tool directory, or exported in your shell:
 - `BBL_ERAS` — a JSON array describing the eras the league played through. Each
   entry has `name`, `rulesSet` (the rules set's name), `startDate` (required,
   ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still ongoing),
-  `firstPlayerId` and `lastPlayerId` (both optional; if present, players
-  outside all configured ranges are skipped), and `playerIdOverrides` (an
-  optional array of pids explicitly assigned to this era, checked before the
-  range bounds — BBL player ids are only roughly chronological, so a handful
-  of players drafted right at an era changeover can land on the "wrong" side
-  of a range split; overrides correct those known exceptions without widening
-  the range). Rules sets and eras are not present in the source data, so they
-  are supplied here. Each era's rules set name and each era name are used as
-  external IDs under both the configured BBL external system and the `Name`
-  external system.
+  `firstPlayerId` (required, positive integer), `lastPlayerId` (optional,
+  following the same still-ongoing rule as `endDate` — the two must be either
+  both omitted or both present; when `lastPlayerId` is omitted, the era
+  matches any pid `>= firstPlayerId` with no upper bound), and
+  `playerIdOverrides` (an optional array of pids explicitly assigned to this
+  era, checked before the range bounds — BBL player ids are only roughly
+  chronological, so a handful of players drafted right at an era changeover
+  can land on the "wrong" side of a range split; overrides correct those known
+  exceptions without widening the range). Rules sets and eras are not present
+  in the source data, so they are supplied here. Each era's rules set name and
+  each era name are used as external IDs under both the configured BBL
+  external system and the `Name` external system.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.

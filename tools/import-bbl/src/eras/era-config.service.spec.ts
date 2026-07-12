@@ -16,16 +16,19 @@ const validJson = JSON.stringify([
     rulesSet: 'Living rulebook',
     startDate: '2011-09-09',
     endDate: '2021-09-01',
+    firstPlayerId: 1,
+    lastPlayerId: 5000,
   },
   {
     name: 'BB2020',
     rulesSet: 'BB2020',
     startDate: '2021-09-01',
+    firstPlayerId: 5001,
   },
 ]);
 
 describe('EraConfigService', () => {
-  it('parses a valid BBL_ERAS array, leaving an omitted endDate undefined', () => {
+  it('parses a valid BBL_ERAS array, leaving an omitted endDate/lastPlayerId undefined', () => {
     const eras = makeService(validJson).getEras();
     expect(eras).toHaveLength(2);
     expect(eras[0]).toEqual({
@@ -33,8 +36,12 @@ describe('EraConfigService', () => {
       rulesSet: 'Living rulebook',
       startDate: '2011-09-09',
       endDate: '2021-09-01',
+      firstPlayerId: 1,
+      lastPlayerId: 5000,
     });
     expect(eras[1].endDate).toBeUndefined();
+    expect(eras[1].lastPlayerId).toBeUndefined();
+    expect(eras[1].firstPlayerId).toBe(5001);
   });
 
   it('throws when BBL_ERAS is not set', () => {
@@ -94,13 +101,38 @@ describe('EraConfigService', () => {
     expect(() => makeService(json).getEras()).toThrow('endDate');
   });
 
-  it('parses firstPlayerId and lastPlayerId when present', () => {
+  it('throws when firstPlayerId is missing', () => {
+    const json = JSON.stringify([
+      { name: 'LRB', rulesSet: 'LRB', startDate: '2011-09-09' },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/firstPlayerId/);
+  });
+
+  it('parses an era with only firstPlayerId set (an era still ongoing has no lastPlayerId, mirroring endDate)', () => {
     const service = makeService(
       JSON.stringify([
         {
           name: 'LRB',
           rulesSet: 'LRB',
           startDate: '2011-09-09',
+          firstPlayerId: 1,
+        },
+      ]),
+    );
+    const era = service.getEras()[0];
+    expect(era.firstPlayerId).toBe(1);
+    expect(era.lastPlayerId).toBeUndefined();
+    expect(era.endDate).toBeUndefined();
+  });
+
+  it('parses firstPlayerId and lastPlayerId when both present alongside endDate', () => {
+    const service = makeService(
+      JSON.stringify([
+        {
+          name: 'LRB',
+          rulesSet: 'LRB',
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
           firstPlayerId: 1,
           lastPlayerId: 5000,
         },
@@ -110,17 +142,6 @@ describe('EraConfigService', () => {
       firstPlayerId: 1,
       lastPlayerId: 5000,
     });
-  });
-
-  it('omits player id bounds when absent', () => {
-    const service = makeService(
-      JSON.stringify([
-        { name: 'LRB', rulesSet: 'LRB', startDate: '2011-09-09' },
-      ]),
-    );
-    const era = service.getEras()[0];
-    expect(era.firstPlayerId).toBeUndefined();
-    expect(era.lastPlayerId).toBeUndefined();
   });
 
   it('rejects a non-positive-integer firstPlayerId', () => {
@@ -144,6 +165,7 @@ describe('EraConfigService', () => {
           name: 'LRB',
           rulesSet: 'LRB',
           startDate: '2011-09-09',
+          firstPlayerId: 1,
           lastPlayerId: 1.5,
         },
       ]),
@@ -166,6 +188,36 @@ describe('EraConfigService', () => {
     expect(() => service.getEras()).toThrow(/firstPlayerId/);
   });
 
+  it('throws when lastPlayerId is present but endDate is missing', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(
+      /endDate.*lastPlayerId|lastPlayerId.*endDate/,
+    );
+  });
+
+  it('throws when endDate is present but lastPlayerId is missing', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(
+      /endDate.*lastPlayerId|lastPlayerId.*endDate/,
+    );
+  });
+
   it('parses playerIdOverrides when present, leaving it undefined when absent', () => {
     const json = JSON.stringify([
       {
@@ -173,12 +225,15 @@ describe('EraConfigService', () => {
         rulesSet: 'Living rulebook',
         startDate: '2011-09-09',
         endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
         playerIdOverrides: [4907, 4909],
       },
       {
         name: 'BB2020',
         rulesSet: 'BB2020',
         startDate: '2021-09-01',
+        firstPlayerId: 5001,
       },
     ]);
     const eras = makeService(json).getEras();
@@ -192,6 +247,7 @@ describe('EraConfigService', () => {
         name: 'LRB',
         rulesSet: 'LRB',
         startDate: '2011-09-09',
+        firstPlayerId: 1,
         playerIdOverrides: 4907,
       },
     ]);
@@ -204,6 +260,7 @@ describe('EraConfigService', () => {
         name: 'LRB',
         rulesSet: 'LRB',
         startDate: '2011-09-09',
+        firstPlayerId: 1,
         playerIdOverrides: [4907, 0],
       },
     ]);
@@ -217,12 +274,15 @@ describe('EraConfigService', () => {
         rulesSet: 'Living rulebook',
         startDate: '2011-09-09',
         endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
         playerIdOverrides: [4907],
       },
       {
         name: 'BB2020',
         rulesSet: 'BB2020',
         startDate: '2021-09-01',
+        firstPlayerId: 5001,
         playerIdOverrides: [4907],
       },
     ]);

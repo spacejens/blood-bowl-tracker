@@ -91,10 +91,8 @@ export class BblPlayersImportService {
           eraByOverriddenPid.get(pidNumber) ??
           eras.find(
             (e) =>
-              e.firstPlayerId !== undefined &&
-              e.lastPlayerId !== undefined &&
               pidNumber >= e.firstPlayerId &&
-              pidNumber <= e.lastPlayerId,
+              (e.lastPlayerId === undefined || pidNumber <= e.lastPlayerId),
           );
         if (!era) {
           errors.push(
