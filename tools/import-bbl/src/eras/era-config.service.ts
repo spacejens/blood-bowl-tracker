@@ -6,6 +6,8 @@ export interface EraConfig {
   rulesSet: string;
   startDate: string;
   endDate?: string;
+  firstPlayerId?: number;
+  lastPlayerId?: number;
 }
 
 /**
@@ -21,6 +23,10 @@ function isValidIsoDate(value: unknown): value is string {
   return (
     !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
+}
+
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
 @Injectable()
@@ -67,7 +73,8 @@ export class EraConfigService {
     }
     const record = entry as Record<string, unknown>;
 
-    const { name, rulesSet, startDate, endDate } = record;
+    const { name, rulesSet, startDate, endDate, firstPlayerId, lastPlayerId } =
+      record;
 
     if (typeof name !== 'string' || name.trim() === '') {
       throw new Error(`BBL_ERAS[${index}].name must be a non-empty string.`);
@@ -88,11 +95,33 @@ export class EraConfigService {
       );
     }
 
+    if (firstPlayerId !== undefined && !isPositiveInteger(firstPlayerId)) {
+      throw new Error(
+        `BBL_ERAS[${index}].firstPlayerId must be a positive integer when present.`,
+      );
+    }
+    if (lastPlayerId !== undefined && !isPositiveInteger(lastPlayerId)) {
+      throw new Error(
+        `BBL_ERAS[${index}].lastPlayerId must be a positive integer when present.`,
+      );
+    }
+    if (
+      isPositiveInteger(firstPlayerId) &&
+      isPositiveInteger(lastPlayerId) &&
+      firstPlayerId > lastPlayerId
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].firstPlayerId must be less than or equal to lastPlayerId.`,
+      );
+    }
+
     return {
       name,
       rulesSet,
       startDate,
       ...(endDate !== undefined ? { endDate } : {}),
+      ...(firstPlayerId !== undefined ? { firstPlayerId } : {}),
+      ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
     };
   }
 }

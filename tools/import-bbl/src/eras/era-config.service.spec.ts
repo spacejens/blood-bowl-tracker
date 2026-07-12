@@ -93,4 +93,76 @@ describe('EraConfigService', () => {
     ]);
     expect(() => makeService(json).getEras()).toThrow('endDate');
   });
+
+  it('parses firstPlayerId and lastPlayerId when present', () => {
+    const service = makeService(
+      JSON.stringify([
+        {
+          name: 'LRB',
+          rulesSet: 'LRB',
+          startDate: '2011-09-09',
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+        },
+      ]),
+    );
+    expect(service.getEras()[0]).toMatchObject({
+      firstPlayerId: 1,
+      lastPlayerId: 5000,
+    });
+  });
+
+  it('omits player id bounds when absent', () => {
+    const service = makeService(
+      JSON.stringify([
+        { name: 'LRB', rulesSet: 'LRB', startDate: '2011-09-09' },
+      ]),
+    );
+    const era = service.getEras()[0];
+    expect(era.firstPlayerId).toBeUndefined();
+    expect(era.lastPlayerId).toBeUndefined();
+  });
+
+  it('rejects a non-positive-integer firstPlayerId', () => {
+    const service = makeService(
+      JSON.stringify([
+        {
+          name: 'LRB',
+          rulesSet: 'LRB',
+          startDate: '2011-09-09',
+          firstPlayerId: 0,
+        },
+      ]),
+    );
+    expect(() => service.getEras()).toThrow(/firstPlayerId/);
+  });
+
+  it('rejects a non-integer lastPlayerId', () => {
+    const service = makeService(
+      JSON.stringify([
+        {
+          name: 'LRB',
+          rulesSet: 'LRB',
+          startDate: '2011-09-09',
+          lastPlayerId: 1.5,
+        },
+      ]),
+    );
+    expect(() => service.getEras()).toThrow(/lastPlayerId/);
+  });
+
+  it('rejects firstPlayerId greater than lastPlayerId', () => {
+    const service = makeService(
+      JSON.stringify([
+        {
+          name: 'LRB',
+          rulesSet: 'LRB',
+          startDate: '2011-09-09',
+          firstPlayerId: 10,
+          lastPlayerId: 5,
+        },
+      ]),
+    );
+    expect(() => service.getEras()).toThrow(/firstPlayerId/);
+  });
 });
