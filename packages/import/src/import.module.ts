@@ -7,6 +7,7 @@ import { ExternalSystemsImportService } from './external-systems-import.service'
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchesImportService } from './matches-import.service';
+import { PlayersImportService } from './players-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
@@ -19,6 +20,7 @@ import { TeamsImportService } from './teams-import.service';
     CompetitionsImportService,
     LeaguesImportService,
     MatchesImportService,
+    PlayersImportService,
     PositionsImportService,
     RacesImportService,
     ExternalSystemsImportService,
@@ -32,6 +34,7 @@ import { TeamsImportService } from './teams-import.service';
     CompetitionsImportService,
     LeaguesImportService,
     MatchesImportService,
+    PlayersImportService,
     PositionsImportService,
     RacesImportService,
     ExternalSystemsImportService,

@@ -13,7 +13,12 @@ import type { BblMatchListReaderService } from '../matches/bbl-match-list-reader
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
 const erasConfig: EraConfig[] = [
-  { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01' },
+  {
+    name: 'BB2020',
+    rulesSet: 'BB2020',
+    startDate: '2021-09-01',
+    firstPlayerId: 1,
+  },
 ];
 
 const eraIdsByName = new Map<string, number>([['BB2020', 200]]);

@@ -28,8 +28,14 @@ const eras: EraConfig[] = [
     rulesSet: 'Living rulebook',
     startDate: '2011-09-09',
     endDate: '2021-09-01',
+    firstPlayerId: 1,
   },
-  { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01' },
+  {
+    name: 'BB2020',
+    rulesSet: 'BB2020',
+    startDate: '2021-09-01',
+    firstPlayerId: 5001,
+  },
 ];
 
 const rulesSetIds = new Map<string, number>([

@@ -82,9 +82,13 @@ export class BblPositionsImportService {
   async importPositions(
     racesByBblId: Map<string, { id: number; name: string }>,
     teamRaceIdsByCode: Map<string, number>,
-  ): Promise<ImportResult> {
+  ): Promise<{
+    result: ImportResult;
+    positionIdsByBblId: Map<string, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const positionIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -106,7 +110,10 @@ export class BblPositionsImportService {
           }`,
         }),
       );
-      return makeImportResult({ imported, errors });
+      return {
+        result: makeImportResult({ imported, errors }),
+        positionIdsByBblId,
+      };
     }
 
     const raceInfoByDbId = new Map<number, { bblId: string; name: string }>();
@@ -155,24 +162,27 @@ export class BblPositionsImportService {
               );
               continue;
             }
-            if (
-              await this.positionsImport.upsertPosition(
-                {
-                  name: position.name,
-                  isStarPlayer: false,
-                  races: [{ raceId: dbId, isDeleted: false }],
-                  externalIds: raceExternalIds(
-                    bblSystemId,
-                    nameSystemId,
-                    position.typId,
-                    race,
-                    position.name,
-                  ),
-                },
-                errors,
-              )
-            ) {
+            const upserted = await this.positionsImport.upsertPosition(
+              {
+                name: position.name,
+                isStarPlayer: false,
+                races: [{ raceId: dbId, isDeleted: false }],
+                externalIds: raceExternalIds(
+                  bblSystemId,
+                  nameSystemId,
+                  position.typId,
+                  race,
+                  position.name,
+                ),
+              },
+              errors,
+            );
+            if (upserted) {
               imported += 1;
+              positionIdsByBblId.set(
+                `${position.typId}-${race.bblId}`,
+                upserted.id,
+              );
             }
           }
           continue;
@@ -202,42 +212,50 @@ export class BblPositionsImportService {
               ),
             ),
           ];
-          if (
-            await this.positionsImport.upsertPosition(
-              {
-                name: position.name,
-                isStarPlayer: true,
-                races: resolved.map((r) => ({
-                  raceId: r.dbId,
-                  isDeleted: false,
-                })),
-                externalIds,
-              },
-              errors,
-            )
-          ) {
+          const upserted = await this.positionsImport.upsertPosition(
+            {
+              name: position.name,
+              isStarPlayer: true,
+              races: resolved.map((r) => ({
+                raceId: r.dbId,
+                isDeleted: false,
+              })),
+              externalIds,
+            },
+            errors,
+          );
+          if (upserted) {
             imported += 1;
+            for (const race of resolved) {
+              positionIdsByBblId.set(
+                `${position.typId}-${race.bblId}`,
+                upserted.id,
+              );
+            }
           }
         } else {
           for (const race of resolved) {
-            if (
-              await this.positionsImport.upsertPosition(
-                {
-                  name: position.name,
-                  isStarPlayer: false,
-                  races: [{ raceId: race.dbId, isDeleted: true }],
-                  externalIds: raceExternalIds(
-                    bblSystemId,
-                    nameSystemId,
-                    position.typId,
-                    race,
-                    position.name,
-                  ),
-                },
-                errors,
-              )
-            ) {
+            const upserted = await this.positionsImport.upsertPosition(
+              {
+                name: position.name,
+                isStarPlayer: false,
+                races: [{ raceId: race.dbId, isDeleted: true }],
+                externalIds: raceExternalIds(
+                  bblSystemId,
+                  nameSystemId,
+                  position.typId,
+                  race,
+                  position.name,
+                ),
+              },
+              errors,
+            );
+            if (upserted) {
               imported += 1;
+              positionIdsByBblId.set(
+                `${position.typId}-${race.bblId}`,
+                upserted.id,
+              );
             }
           }
         }
@@ -254,7 +272,10 @@ export class BblPositionsImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return {
+      result: makeImportResult({ imported, errors }),
+      positionIdsByBblId,
+    };
   }
 
   /** Pre-scan every player page into a map of position typId -> team codes. */

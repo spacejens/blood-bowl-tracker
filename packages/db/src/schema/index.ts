@@ -14,6 +14,7 @@ export * from './match-teams';
 export * from './matches';
 export * from './pg-schema';
 export * from './players';
+export * from './players-external-ids';
 export * from './positions';
 export * from './positions-external-ids';
 export * from './positions-races';
