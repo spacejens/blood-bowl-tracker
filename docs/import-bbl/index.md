@@ -20,11 +20,12 @@ tool directory, or exported in your shell:
   `Name` external systems.
 - `BBL_ERAS` — a JSON array describing the eras the league played through. Each
   entry has `name`, `rulesSet` (the rules set's name), `startDate` (required,
-  ISO `YYYY-MM-DD`), and `endDate` (optional — omit for an era still ongoing).
-  Rules sets and eras are not present in the source data, so they are supplied
-  here. Each era's rules set name and each era name are used as external IDs
-  under both the configured BBL external system and the `Name` external
-  system.
+  ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still ongoing),
+  `firstPlayerId`, and `lastPlayerId` (both optional; if present, players
+  outside all configured ranges are skipped). Rules sets and eras are not
+  present in the source data, so they are supplied here. Each era's rules set
+  name and each era name are used as external IDs under both the configured BBL
+  external system and the `Name` external system.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
