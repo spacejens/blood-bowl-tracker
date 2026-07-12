@@ -31,6 +31,7 @@
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.27",
     "@nestjs/platform-express": "^11.1.27",
+    "discord.js": "^14.26.4",
     "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
@@ -42,7 +43,6 @@
     "@swc/core": "^1.15.43",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
-    "discord.js": "^14.26.4",
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.9",
     "vite": "^8.1.3",
