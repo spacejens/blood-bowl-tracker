@@ -22,6 +22,10 @@ describe('contract', () => {
     expect(errorCodesOf(contract.positions.upsert)).toEqual(['CONFLICT']);
   });
 
+  it('defines players.upsert with a CONFLICT error', () => {
+    expect(errorCodesOf(contract.players.upsert)).toEqual(['CONFLICT']);
+  });
+
   it('requires at least one external ID when upserting a coach', () => {
     const result = UpsertCoachSchema.safeParse({
       name: 'Roze Madder',
