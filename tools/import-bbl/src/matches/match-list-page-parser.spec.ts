@@ -78,7 +78,7 @@ describe('MatchListPageParser', () => {
     ]);
   });
 
-  it('extracts date, home and away team names and bblId from a real-shaped match row', () => {
+  it('extracts date and bblId from a real-shaped match row', () => {
     const page = matchListPage(
       '<table>' +
         '<tr title="result added December 18th, 2011" class="trlist" ' +
@@ -94,28 +94,18 @@ describe('MatchListPageParser', () => {
     );
 
     expect(parser.extractMatches(page)).toEqual([
-      {
-        bblId: '18',
-        date: new Date(Date.UTC(2011, 11, 18)),
-        homeTeam: 'Sewerton Scavengers',
-        awayTeam: 'Vorgash New Order',
-      },
+      { bblId: '18', date: new Date(Date.UTC(2011, 11, 18)) },
     ]);
   });
 
-  it('yields empty team names when the team cells are missing', () => {
+  it('still extracts a match with no team cells', () => {
     const page = matchListPage(
       '<table><tr title="result added March 4th, 2015" ' +
         'onclick="self.location.href=\'default.asp?p=m&m=42\';"></tr></table>',
     );
 
     expect(parser.extractMatches(page)).toEqual([
-      {
-        bblId: '42',
-        date: new Date(Date.UTC(2015, 2, 4)),
-        homeTeam: '',
-        awayTeam: '',
-      },
+      { bblId: '42', date: new Date(Date.UTC(2015, 2, 4)) },
     ]);
   });
 
@@ -129,12 +119,7 @@ describe('MatchListPageParser', () => {
     );
 
     expect(parser.extractMatches(page)).toEqual([
-      {
-        bblId: '99',
-        date: new Date(Date.UTC(2015, 2, 5)),
-        homeTeam: '',
-        awayTeam: '',
-      },
+      { bblId: '99', date: new Date(Date.UTC(2015, 2, 5)) },
     ]);
   });
 

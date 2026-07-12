@@ -19,8 +19,6 @@ function makeReader(matchesById: Record<string, BblMatch[]>) {
 const match: BblMatch = {
   bblId: '89',
   date: new Date(Date.UTC(2021, 8, 25)),
-  homeTeam: 'A',
-  awayTeam: 'B',
 };
 
 const competition: UpsertCompetitionData = {
