@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -147,6 +148,43 @@ describe('CoachesService', () => {
       expect(insertValues).toHaveBeenCalledWith([
         { coachId: 1, externalSystemId: 1, externalId: 'name:roze madder' },
       ]);
+    });
+  });
+
+  describe('toplist queries', () => {
+    function makeQueryBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      const chain = vi.fn(() => builder);
+      builder.from = chain;
+      builder.innerJoin = chain;
+      builder.groupBy = chain;
+      builder.orderBy = chain;
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('countMatchesPlayedByCoach returns the rows the query resolves to', async () => {
+      const rows = [
+        { coachId: 1, name: 'Roze Madder', count: 9 },
+        { coachId: 2, name: 'Grashnak', count: 4 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countMatchesPlayedByCoach()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTeamsByCoach returns the rows the query resolves to', async () => {
+      const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countTeamsByCoach()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });
