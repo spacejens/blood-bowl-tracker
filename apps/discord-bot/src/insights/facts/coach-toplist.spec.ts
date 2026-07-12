@@ -60,4 +60,18 @@ describe('resolveCoachTeamsToplist', () => {
       ],
     });
   });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const coaches = {
+        countTeamsByCoach: vi.fn().mockReturnValue(new Promise(() => {})),
+      } as unknown as CoachesService;
+      const promise = resolveCoachTeamsToplist(coaches);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

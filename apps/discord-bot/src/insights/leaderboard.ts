@@ -1,5 +1,10 @@
 import type { InteractionReplyOptions } from 'discord.js';
 
+import {
+  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
+  withDatabaseTimeout,
+} from '../database-timeout';
+
 export function topRanksWithTies<T extends { count: number }>(
   rows: T[],
   maxRank: number,
@@ -30,4 +35,21 @@ export function formatLeaderboardEmbed<
           .map((row) => `${row.rank}. ${row.name} — ${row.count}`)
           .join('\n');
   return { embeds: [{ title, description }] };
+}
+
+/**
+ * Shared shape for the fact resolvers backing the `/insights` toplist facts:
+ * run `fetchRows` under the database timeout, and either fall back to the
+ * standard timeout message or format the top-ranked rows as a leaderboard
+ * embed.
+ */
+export async function resolveToplist<T extends { name: string; count: number }>(
+  title: string,
+  fetchRows: () => Promise<T[]>,
+): Promise<string | InteractionReplyOptions> {
+  const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
+  if (rows === null) {
+    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+  }
+  return formatLeaderboardEmbed(title, topRanksWithTies(rows, 5));
 }
