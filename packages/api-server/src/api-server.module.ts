@@ -4,6 +4,7 @@ import {
   ErasModule,
   ExternalSystemsModule,
   LeaguesModule,
+  MatchesModule,
   PositionsModule,
   RacesModule,
   RulesSetsModule,
@@ -24,6 +25,7 @@ import { RpcMiddleware } from './rpc.middleware';
     PositionsModule,
     TeamsModule,
     CompetitionsModule,
+    MatchesModule,
   ],
 })
 export class ApiServerModule implements NestModule {

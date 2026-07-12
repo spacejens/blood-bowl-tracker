@@ -81,31 +81,38 @@ tool directory, or exported in your shell:
   teams by page id, resolves each team's race and coach foreign keys from the
   id maps returned by the races and coaches imports, and upserts each through
   the API. Runs after races and coaches, since it depends on both.
-- **MatchesModule** — page-parsing helper only (no matches are imported yet).
-  `MatchListPageParser` reads each match's date from the
-  `result added <Month> <Day>, <Year>` title attribute on a match-list page
-  (`p=ma&so=s&s=<id>`). It is a minimal seed for a future full match import; the
-  competitions import uses it to derive each competition's type and era.
+- **MatchesModule** — data-type extractor for matches. `MatchListPageParser`
+  reads each match's date, home/away team names, and numeric BBL id (`m=<id>`,
+  from the row's `onclick` link `default.asp?p=m&m=<id>`) off a competition's
+  match-list page (`p=ma&so=s&s=<id>`). `BblMatchListReaderService` performs the
+  single, memoized walk over `pages('ma')` and returns the parsed `BblMatch[]`
+  per competition; the competitions and team-participation imports both consume
+  it instead of each walking the `ma` pages themselves.
+  `BblMatchesImportService` upserts each completed match, keyed by its numeric
+  BBL id under the competition's BBL external system (matches have no `Name`
+  external id), with `competitionId` resolved to the imported competition's DB
+  id. Runs after competitions, its only dependency. Per-team results/scores and
+  per-player events (`match_teams`/`match_events`) remain out of scope.
 - **CompetitionsModule** — data-type extractor for competitions.
   `CompetitionListPageParser` reads every competition's numeric BBL id and name
   off the master dropdown embedded on any `se`/`sr` page (one page suffices).
   `BblCompetitionsImportService` reads that list, then reads each competition's
-  match dates (via MatchesModule) to derive its `type` (season vs cup, from the
-  date span) and `eraId` (the era containing its earliest match date), and
-  upserts each through the API. Runs after eras, whose `eraIdsByName` map it uses
-  to resolve `eraId`.
+  matches (via `BblMatchListReaderService`) to derive its `type` (season vs
+  cup, from the date span) and `eraId` (the era containing its earliest match
+  date), and upserts each through the API. Runs after eras, whose
+  `eraIdsByName` map it uses to resolve `eraId`.
 
 - **TeamParticipationModule** — derives the team↔era, competition↔team, and
   race↔rules-set links from real match participation (it imports no new source
-  pages of its own). `BblTeamParticipationImportService` re-reads each
-  competition's `p=ma&so=s&s=<id>` match rows via `MatchListPageParser`
-  (`extractMatches`, home/away team names), resolves each name to an imported
-  team, syncs that team's era (`team_eras`), collects the resulting team-era ids
-  onto the competition (`competition_teams`), and records each team's race
-  against its era's rules set (`race_rules_sets`). Runs after teams (whose
-  `teamsByName` map it resolves names against) and after competitions and rules
-  sets (whose payload maps it re-upserts to attach the links). Team names that
-  don't match an imported team are recorded as errors and skipped.
+  pages of its own). `BblTeamParticipationImportService` reads each
+  competition's matches via the shared `BblMatchListReaderService` (home/away
+  team names), resolves each name to an imported team, syncs that team's era
+  (`team_eras`), collects the resulting team-era ids onto the competition
+  (`competition_teams`), and records each team's race against its era's rules
+  set (`race_rules_sets`). Runs after teams (whose `teamsByName` map it
+  resolves names against) and after competitions and rules sets (whose payload
+  maps it re-upserts to attach the links). Team names that don't match an
+  imported team are recorded as errors and skipped.
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
@@ -170,6 +177,13 @@ Re-running is always safe and fills any gaps left by transient failures.
   outside every configured era, is skipped with a recorded error. The `p=cp`
   pages are out of scope (generic content pages, not reliably competitions).
   Imported after eras (referenced by `eraId`).
+- **Matches** — from a competition's `p=ma&so=s&s=<id>` match-list rows
+  (id/date/competition). Keyed by the numeric BBL match id (`m=<id>`, from
+  each row's `onclick` link) under the configured BBL external system only —
+  there is no `Name` external id, since matches have no natural name. The
+  played date is the row's "result added" date. Imported after competitions
+  (referenced by `competitionId`). Per-team results and per-player events are
+  future work.
 
 - **Team eras / Competition teams / Race rules sets** — append-only join links
   derived from match participation, not read from any single page. A team is

@@ -9,6 +9,8 @@ import {
   type ExternalSystemsService,
   type LeaguesService,
   LeagueUpsertConflictError,
+  type MatchesService,
+  MatchUpsertConflictError,
   type PositionsService,
   PositionUpsertConflictError,
   type RacesService,
@@ -30,6 +32,7 @@ export function buildRpcRouter(
   positionsService: PositionsService,
   teamsService: TeamsService,
   competitionsService: CompetitionsService,
+  matchesService: MatchesService,
 ) {
   return {
     coaches: {
@@ -131,6 +134,21 @@ export function buildRpcRouter(
             return { ...competition, created };
           } catch (err) {
             if (err instanceof CompetitionUpsertConflictError) {
+              throw errors.CONFLICT({ message: err.message });
+            }
+            throw err;
+          }
+        },
+      ),
+    },
+    matches: {
+      upsert: implement(contract.matches.upsert).handler(
+        async ({ input, errors }) => {
+          try {
+            const { match, created } = await matchesService.upsert(input);
+            return { ...match, created };
+          } catch (err) {
+            if (err instanceof MatchUpsertConflictError) {
               throw errors.CONFLICT({ message: err.message });
             }
             throw err;

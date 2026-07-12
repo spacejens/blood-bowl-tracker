@@ -5,7 +5,8 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
-import { MatchListPageParser } from '../matches/match-list-page-parser';
+import type { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
+import type { BblMatch } from '../matches/match-list-page-parser';
 import type { BblPage } from '../source/bbl-page';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -57,29 +58,38 @@ function makeListParser(list: { bblId: string; name: string }[]) {
   return parser;
 }
 
-/** A match-list parser that maps a page's `s` param to a pre-canned date list. */
-function makeMatchParser(datesById: Record<string, Date[]>) {
-  const parser = new MatchListPageParser();
-  vi.spyOn(parser, 'extractMatchDates').mockImplementation(
-    (p) => datesById[p.params.s] ?? [],
+/** A fake match-list reader mapping a competition id to a pre-canned date list. */
+function makeMatchListReader(datesById: Record<string, Date[]>) {
+  const getMatchesByCompetitionId = vi.fn().mockResolvedValue(
+    new Map<string, BblMatch[]>(
+      Object.entries(datesById).map(([id, dates]) => [
+        id,
+        dates.map((date, i) => ({
+          bblId: `${id}-${i}`,
+          date,
+          homeTeam: '',
+          awayTeam: '',
+        })),
+      ]),
+    ),
   );
-  return parser;
+  return { getMatchesByCompetitionId } as unknown as BblMatchListReaderService;
 }
 
 function makeService(opts: {
   reader: BblSourceReader;
   listParser: CompetitionListPageParser;
-  matchParser: MatchListPageParser;
+  matchListReader: BblMatchListReaderService;
   upsertExternalSystem: ReturnType<typeof vi.fn>;
-  upsertCompetition: ReturnType<typeof vi.fn>;
+  upsertCompetitionResult: ReturnType<typeof vi.fn>;
   getEras?: () => EraConfig[];
 }) {
   return new BblCompetitionsImportService(
     opts.reader,
     opts.listParser,
-    opts.matchParser,
+    opts.matchListReader,
     {
-      upsertCompetition: opts.upsertCompetition,
+      upsertCompetitionResult: opts.upsertCompetitionResult,
     } as unknown as CompetitionsImportService,
     {
       upsertExternalSystem: opts.upsertExternalSystem,
@@ -99,28 +109,27 @@ describe('BblCompetitionsImportService', () => {
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
         se: [page('se', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           new Date(Date.UTC(2011, 11, 7)),
           new Date(Date.UTC(2011, 11, 18)),
         ],
       }),
       upsertExternalSystem,
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
-    const { result, competitionsByBblId } =
+    const { result, competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    expect(upsertCompetition).toHaveBeenCalledWith(
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
       {
         name: 'Major Season 1',
         type: 'season',
@@ -143,97 +152,94 @@ describe('BblCompetitionsImportService', () => {
         { externalSystemId: 2, externalId: 'Major Season 1' },
       ],
     });
+    expect(competitionIdsByBblId.get('1')).toBe(42);
   });
 
   it('derives type=cup from a <=3-day span', async () => {
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 7 });
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '5' })],
         se: [page('se', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '5', name: 'Chaos Cup' }]),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '5': [new Date(Date.UTC(2021, 9, 2)), new Date(Date.UTC(2021, 9, 4))],
       }),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    expect(upsertCompetition).toHaveBeenCalledWith(
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Chaos Cup', type: 'cup', eraId: 200 }),
       expect.any(Array),
     );
   });
 
   it('skips and records an error for a competition with no dated matches', async () => {
-    const upsertCompetition = vi.fn();
+    const upsertCompetitionResult = vi.fn();
     const service = makeService({
       reader: makeReader({
-        ma: [],
         se: [page('se', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '9', name: 'In Progress' }]),
-      matchParser: makeMatchParser({}),
+      matchListReader: makeMatchListReader({}),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
-    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('no dated matches')),
     ).toBe(true);
   });
 
   it('skips and records an error when no configured era contains the earliest match date', async () => {
-    const upsertCompetition = vi.fn();
+    const upsertCompetitionResult = vi.fn();
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '3' })],
         se: [page('se', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '3', name: 'Ancient Season' }]),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '3': [new Date(Date.UTC(2000, 0, 1)), new Date(Date.UTC(2000, 5, 1))],
       }),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(0);
-    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('no configured era')),
     ).toBe(true);
   });
 
   it('skips and records a distinct error when the matched era has no known database id', async () => {
-    const upsertCompetition = vi.fn();
+    const upsertCompetitionResult = vi.fn();
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
         se: [page('se', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [
           new Date(Date.UTC(2011, 11, 7)),
           new Date(Date.UTC(2011, 11, 18)),
@@ -243,7 +249,7 @@ describe('BblCompetitionsImportService', () => {
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
       // "Living rulebook" matches by date, but is absent from eraIdsByName,
       // simulating its rules set having failed to import earlier in the run.
     });
@@ -251,7 +257,7 @@ describe('BblCompetitionsImportService', () => {
     const { result } = await service.importCompetitions(new Map());
 
     expect(result.imported).toBe(0);
-    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
     expect(
       result.errors.some(
         (e) =>
@@ -264,58 +270,28 @@ describe('BblCompetitionsImportService', () => {
     ).toBe(false);
   });
 
-  it('deduplicates the ma page by its s param, reading each competition once', async () => {
-    const matchParser = makeMatchParser({
-      '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
-    });
-    const service = makeService({
-      reader: makeReader({
-        ma: [
-          page('ma', { so: 's', s: '1' }),
-          page('ma', { so: 's', s: '1', gr: '' }),
-          page('ma', { so: 't', t: 'abc' }),
-        ],
-        se: [page('se', { s: '66' })],
-      }),
-      listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser,
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
-      upsertCompetition: vi.fn().mockResolvedValue(true),
-    });
-
-    await service.importCompetitions(eraIdsByName);
-
-    // Only the first so=s&s=1 page is parsed; the &gr= duplicate and so=t page are skipped.
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- spied method reference, never invoked unbound
-    expect(matchParser.extractMatchDates).toHaveBeenCalledTimes(1);
-  });
-
   it('falls back to an sr page for the master list when no se page exists', async () => {
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 1 });
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
         se: [],
         sr: [page('sr', { s: '66' })],
       }),
       listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    expect(upsertCompetition).toHaveBeenCalled();
+    expect(upsertCompetitionResult).toHaveBeenCalled();
   });
 
   it('skips a bare se index page (no s param) and reads the list from the page that has one', async () => {
@@ -326,27 +302,26 @@ describe('BblCompetitionsImportService', () => {
     vi.spyOn(listParser, 'extractCompetitions').mockImplementation((p) =>
       p.params.s === undefined ? [] : [{ bblId: '1', name: 'Major Season 1' }],
     );
-    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 1 });
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
         se: [page('se', {}), page('se', { s: '66' })],
       }),
       listParser,
-      matchParser: makeMatchParser({
+      matchListReader: makeMatchListReader({
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    expect(upsertCompetition).toHaveBeenCalled();
+    expect(upsertCompetitionResult).toHaveBeenCalled();
   });
 
   it('records one error and skips competitions when an external system upsert fails', async () => {
@@ -355,13 +330,13 @@ describe('BblCompetitionsImportService', () => {
       .mockRejectedValue(
         new Error('Failed to upsert external system "BBL": internal error'),
       );
-    const upsertCompetition = vi.fn();
+    const upsertCompetitionResult = vi.fn();
     const service = makeService({
-      reader: makeReader({ ma: [], se: [page('se', { s: '66' })] }),
+      reader: makeReader({ se: [page('se', { s: '66' })] }),
       listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser: makeMatchParser({}),
+      matchListReader: makeMatchListReader({}),
       upsertExternalSystem,
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
@@ -370,7 +345,7 @@ describe('BblCompetitionsImportService', () => {
     expect(
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
-    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
   });
 
   it('records an error and reports zero imports when the master list page fails to parse', async () => {
@@ -378,25 +353,24 @@ describe('BblCompetitionsImportService', () => {
     vi.spyOn(listParser, 'extractCompetitions').mockImplementation(() => {
       throw new Error('bad se page');
     });
-    const upsertCompetition = vi.fn();
+    const upsertCompetitionResult = vi.fn();
     const service = makeService({
       reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
         se: [page('se', { s: '66' })],
       }),
       listParser,
-      matchParser: makeMatchParser({}),
+      matchListReader: makeMatchListReader({}),
       upsertExternalSystem: vi
         .fn()
         .mockResolvedValueOnce(1)
         .mockResolvedValueOnce(2),
-      upsertCompetition,
+      upsertCompetitionResult,
     });
 
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(0);
-    expect(upsertCompetition).not.toHaveBeenCalled();
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) =>
         e.message.includes('Failed to parse master competition list page'),
@@ -404,35 +378,6 @@ describe('BblCompetitionsImportService', () => {
     ).toBe(true);
     expect(
       result.errors.some((e) => e.message.includes('no se or sr page')),
-    ).toBe(true);
-  });
-
-  it('records an error and continues when a match-list page fails to parse', async () => {
-    const matchParser = new MatchListPageParser();
-    vi.spyOn(matchParser, 'extractMatchDates').mockImplementation(() => {
-      throw new Error('bad ma page');
-    });
-    const service = makeService({
-      reader: makeReader({
-        ma: [page('ma', { so: 's', s: '1' })],
-        se: [page('se', { s: '66' })],
-      }),
-      listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
-      matchParser,
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
-      upsertCompetition: vi.fn(),
-    });
-
-    const { result } = await service.importCompetitions(eraIdsByName);
-
-    expect(result.imported).toBe(0);
-    expect(
-      result.errors.some((e) =>
-        e.message.includes('Failed to parse match list page'),
-      ),
     ).toBe(true);
   });
 });

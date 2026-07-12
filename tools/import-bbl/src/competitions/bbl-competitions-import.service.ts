@@ -12,7 +12,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfig, EraConfigService } from '../eras/era-config.service';
-import { MatchListPageParser } from '../matches/match-list-page-parser';
+import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
@@ -21,10 +21,8 @@ import {
   CompetitionListPageParser,
 } from './competition-list-page-parser';
 
-const MATCH_LIST_PAGE_TYPE = 'ma';
 const PLAYED_LIST_PAGE_TYPE = 'se';
 const STANDINGS_LIST_PAGE_TYPE = 'sr';
-const MATCH_LIST_SORT_BY_SEASON = 's';
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (latest - earliest) <= 3 days => cup, else season. Validated against all 74
 // competitions in the mirror (see the competitions design doc); do not change.
@@ -35,7 +33,7 @@ export class BblCompetitionsImportService {
   constructor(
     private readonly sourceReader: BblSourceReader,
     private readonly competitionListPageParser: CompetitionListPageParser,
-    private readonly matchListPageParser: MatchListPageParser,
+    private readonly matchListReader: BblMatchListReaderService,
     private readonly competitionsImport: CompetitionsImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
     private readonly eraConfig: EraConfigService,
@@ -51,14 +49,21 @@ export class BblCompetitionsImportService {
    * under the configured BBL external system and by its exact name under Name.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
+   *
+   * Also returns `competitionIdsByBblId`, mapping each imported competition's
+   * BBL id to its DB id — `UpsertCompetitionData` (used for
+   * `competitionsByBblId`) carries no DB id, but matches need one to set their
+   * `competitionId`.
    */
   async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
     result: ImportResult;
     competitionsByBblId: Map<string, UpsertCompetitionData>;
+    competitionIdsByBblId: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const competitionsByBblId = new Map<string, UpsertCompetitionData>();
+    const competitionIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -81,6 +86,7 @@ export class BblCompetitionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         competitionsByBblId,
+        competitionIdsByBblId,
       };
     }
 
@@ -100,6 +106,7 @@ export class BblCompetitionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         competitionsByBblId,
+        competitionIdsByBblId,
       };
     }
 
@@ -149,12 +156,13 @@ export class BblCompetitionsImportService {
           { externalSystemId: nameSystemId, externalId: competition.name },
         ],
       };
-      const success = await this.competitionsImport.upsertCompetition(
+      const upserted = await this.competitionsImport.upsertCompetitionResult(
         competitionData,
         errors,
       );
-      if (success) {
+      if (upserted !== undefined) {
         competitionsByBblId.set(competition.bblId, competitionData);
+        competitionIdsByBblId.set(competition.bblId, upserted.id);
         imported += 1;
       }
     }
@@ -162,45 +170,25 @@ export class BblCompetitionsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       competitionsByBblId,
+      competitionIdsByBblId,
     };
   }
 
   /**
-   * Read every competition's match dates in a single pass over the ma pages.
-   * Only the season-sorted variant (`so=s`) is keyed by competition id; the
-   * `&gr=` group-filter variant is a byte-identical duplicate, so the first
-   * page seen per `s` wins. Per-page parse failures are recorded and skipped.
+   * Read every competition's match dates via the shared match-list reader,
+   * which performs the single pass over the ma pages.
    */
   private async collectMatchDates(
     errors: ImportError[],
   ): Promise<Map<string, Date[]>> {
-    const datesByCompetitionId = new Map<string, Date[]>();
-    for await (const page of this.sourceReader.pages(MATCH_LIST_PAGE_TYPE)) {
-      const competitionId = page.params.s;
-      if (
-        page.params.so !== MATCH_LIST_SORT_BY_SEASON ||
-        competitionId === undefined ||
-        datesByCompetitionId.has(competitionId)
-      ) {
-        continue;
-      }
-      try {
-        datesByCompetitionId.set(
-          competitionId,
-          this.matchListPageParser.extractMatchDates(page),
-        );
-      } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse match list page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
-      }
-    }
-    return datesByCompetitionId;
+    const matchesByCompetitionId =
+      await this.matchListReader.getMatchesByCompetitionId(errors);
+    return new Map(
+      [...matchesByCompetitionId].map(([id, ms]) => [
+        id,
+        ms.map((m) => m.date),
+      ]),
+    );
   }
 
   /**
