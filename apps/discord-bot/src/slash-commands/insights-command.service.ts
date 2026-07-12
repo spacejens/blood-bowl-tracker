@@ -85,14 +85,18 @@ export class InsightsCommandService {
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const category = interaction.options.getString('category');
-    const node = category
-      ? resolvePath(this.factTree, category)
-      : this.factTree;
+    if (!category) {
+      return this.resolveRandomFact();
+    }
+    const node = resolvePath(this.factTree, category);
     if (node === undefined) {
       return UNMATCHED_FALLBACK_MESSAGE;
     }
-    const leaves = collectLeaves(node);
-    return this.pickRandom(leaves)();
+    return this.pickRandom(collectLeaves(node))();
+  }
+
+  resolveRandomFact(): Promise<string | InteractionReplyOptions> {
+    return this.pickRandom(collectLeaves(this.factTree))();
   }
 
   autocomplete(

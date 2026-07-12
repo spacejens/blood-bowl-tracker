@@ -137,6 +137,14 @@ describe('InsightsCommandService', () => {
     expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalled();
   });
 
+  it('resolveRandomFact picks a random leaf across the whole tree', async () => {
+    const { service, coaches } = makeService();
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    await service.resolveRandomFact();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalled();
+  });
+
   it('returns the apothecary fallback for an unknown path', async () => {
     const { service } = makeService();
     const result = await service.execute(chatInput('coach.nope'));
