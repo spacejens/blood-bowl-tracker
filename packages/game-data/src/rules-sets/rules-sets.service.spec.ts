@@ -1,4 +1,9 @@
-import { DB } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  raceRulesSets,
+  rulesSetExternalIds,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,32 +29,38 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('RulesSetsService', () => {
   let service: RulesSetsService;
-  let mockDb: {
-    select: () => { from: ReturnType<typeof vi.fn> };
-    insert: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
+  let externalIdRows: unknown[];
+  let existingRaceRows: { raceId: number }[];
+  let insertCalls: { table: unknown; values: unknown }[];
+  let updateCalls: { table: unknown; set: unknown }[];
 
   beforeEach(async () => {
-    const selectChain = {
-      from: vi.fn().mockReturnValue(makeFromBuilder([fakeRulesSet])),
-    };
-    const insertChain = {
-      values: vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeRulesSet]),
-      })),
-    };
-    const updateChain = {
-      set: vi.fn(() => ({
-        where: vi.fn(() => ({
-          returning: vi.fn().mockResolvedValue([fakeRulesSet]),
-        })),
-      })),
-    };
-    mockDb = {
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => insertChain),
-      update: vi.fn(() => updateChain),
+    externalIdRows = [];
+    existingRaceRows = [];
+    insertCalls = [];
+    updateCalls = [];
+
+    const mockDb = {
+      select: () => ({
+        from: (table: unknown) =>
+          makeFromBuilder(
+            table === rulesSetExternalIds ? externalIdRows : existingRaceRows,
+          ),
+      }),
+      insert: (table: unknown) => ({
+        values: (values: unknown) => {
+          insertCalls.push({ table, values });
+          return { returning: () => Promise.resolve([fakeRulesSet]) };
+        },
+      }),
+      update: (table: unknown) => ({
+        set: (set: unknown) => {
+          updateCalls.push({ table, set });
+          return {
+            where: () => ({ returning: () => Promise.resolve([fakeRulesSet]) }),
+          };
+        },
+      }),
     };
 
     const module = await Test.createTestingModule({
@@ -59,83 +70,63 @@ describe('RulesSetsService', () => {
     service = module.get(RulesSetsService);
   });
 
-  describe('upsert', () => {
-    const externalIds = [
-      { externalSystemId: 1, externalId: 'BB2020' },
-      { externalSystemId: 2, externalId: 'BB2020' },
+  const baseData = {
+    name: 'BB2020',
+    races: [7, 8],
+    externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+  };
+
+  it('creates a new rules set with its races when no external IDs match', async () => {
+    const result = await service.upsert(baseData);
+
+    expect(result).toEqual({
+      rulesSet: { ...fakeRulesSet, races: [7, 8] },
+      created: true,
+    });
+    expect(insertCalls.some((c) => c.table === rulesSets)).toBe(true);
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('updates the matching rules set when exactly one external ID matches', async () => {
+    externalIdRows = [
+      { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
     ];
 
-    it('creates a new rules set when no external IDs match', async () => {
-      mockDb.select().from.mockReturnValue(makeFromBuilder([]));
+    const result = await service.upsert(baseData);
 
-      const result = await service.upsert({ name: 'BB2020', externalIds });
+    expect(result.created).toBe(false);
+    expect(updateCalls.some((c) => c.table === rulesSets)).toBe(true);
+  });
 
-      expect(result).toEqual({ rulesSet: fakeRulesSet, created: true });
-      expect(mockDb.insert).toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
-    });
+  it('throws RulesSetUpsertConflictError when external IDs match different rules sets', async () => {
+    externalIdRows = [
+      { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
+      { rulesSetId: 2, externalSystemId: 2, externalId: 'BB2020' },
+    ];
 
-    it('updates the matching rules set when exactly one external ID matches', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
-          ]),
-        );
+    await expect(service.upsert(baseData)).rejects.toThrow(
+      RulesSetUpsertConflictError,
+    );
+    expect(insertCalls).toHaveLength(0);
+    expect(updateCalls).toHaveLength(0);
+  });
 
-      const result = await service.upsert({ name: 'BB2020', externalIds });
+  it('inserts only the race_rules_sets rows that are new', async () => {
+    existingRaceRows = [{ raceId: 7 }];
 
-      expect(result).toEqual({ rulesSet: fakeRulesSet, created: false });
-      expect(mockDb.update).toHaveBeenCalled();
-    });
+    const result = await service.upsert(baseData);
 
-    it('throws RulesSetUpsertConflictError when external IDs match different rules sets', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
-          { rulesSetId: 2, externalSystemId: 2, externalId: 'BB2020' },
-        ]),
-      );
+    const call = insertCalls.find((c) => c.table === raceRulesSets);
+    expect(call?.values).toEqual([{ rulesSetId: 1, raceId: 8 }]);
+    expect(result.rulesSet.races).toEqual([7, 8]);
+  });
 
-      await expect(
-        service.upsert({ name: 'BB2020', externalIds }),
-      ).rejects.toThrow(RulesSetUpsertConflictError);
-      expect(mockDb.insert).not.toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
-    });
+  it('does not insert race_rules_sets rows when all links already exist', async () => {
+    existingRaceRows = [{ raceId: 7 }, { raceId: 8 }];
 
-    it('does not re-insert external IDs that already exist on the matched rules set', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
-          { rulesSetId: 1, externalSystemId: 2, externalId: 'BB2020' },
-        ]),
-      );
+    const result = await service.upsert(baseData);
 
-      await service.upsert({ name: 'BB2020', externalIds });
-
-      expect(mockDb.insert).not.toHaveBeenCalled();
-    });
-
-    it('inserts only the external IDs that are new for an existing rules set', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
-          ]),
-        );
-      const insertValues = vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeRulesSet]),
-      }));
-      mockDb.insert.mockReturnValue({ values: insertValues });
-
-      await service.upsert({ name: 'BB2020', externalIds });
-
-      expect(insertValues).toHaveBeenCalledWith([
-        { rulesSetId: 1, externalSystemId: 2, externalId: 'BB2020' },
-      ]);
-    });
+    expect(insertCalls.some((c) => c.table === raceRulesSets)).toBe(false);
+    expect(result.rulesSet.races).toEqual([7, 8]);
   });
 });

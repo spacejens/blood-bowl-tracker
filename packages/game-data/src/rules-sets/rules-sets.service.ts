@@ -1,5 +1,10 @@
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
-import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  raceRulesSets,
+  rulesSetExternalIds,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
@@ -7,7 +12,12 @@ export class RulesSetUpsertConflictError extends Error {}
 
 export interface UpsertRulesSetData {
   name: string;
+  races: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface RulesSetWithRaces extends RulesSet {
+  races: number[];
 }
 
 @Injectable()
@@ -16,7 +26,7 @@ export class RulesSetsService {
 
   async upsert(
     data: UpsertRulesSetData,
-  ): Promise<{ rulesSet: RulesSet; created: boolean }> {
+  ): Promise<{ rulesSet: RulesSetWithRaces; created: boolean }> {
     const existingRows = await this.db
       .select({
         rulesSetId: rulesSetExternalIds.rulesSetId,
@@ -63,23 +73,54 @@ export class RulesSetsService {
       rulesSet = result[0];
     }
 
+    const races = await this.syncRaces(rulesSet.id, data.races);
+    await this.syncExternalIds(rulesSet.id, data.externalIds, existingRows);
+
+    return { rulesSet: { ...rulesSet, races }, created };
+  }
+
+  private async syncRaces(
+    rulesSetId: number,
+    raceIds: number[],
+  ): Promise<number[]> {
+    const existing = await this.db
+      .select({ raceId: raceRulesSets.raceId })
+      .from(raceRulesSets)
+      .where(eq(raceRulesSets.rulesSetId, rulesSetId));
+
+    const existingIds = existing.map((r) => r.raceId);
+    const existingSet = new Set(existingIds);
+    const toInsert = raceIds.filter((id) => !existingSet.has(id));
+
+    if (toInsert.length > 0) {
+      await this.db
+        .insert(raceRulesSets)
+        .values(toInsert.map((raceId) => ({ rulesSetId, raceId })));
+    }
+
+    return [...existingIds, ...toInsert];
+  }
+
+  private async syncExternalIds(
+    rulesSetId: number,
+    externalIds: { externalSystemId: number; externalId: string }[],
+    existingRows: { externalSystemId: number; externalId: string }[],
+  ): Promise<void> {
     const existingPairs = new Set(
       existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
     );
-    const newExternalIds = data.externalIds.filter(
+    const newExternalIds = externalIds.filter(
       (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
     );
 
     if (newExternalIds.length > 0) {
       await this.db.insert(rulesSetExternalIds).values(
         newExternalIds.map((e) => ({
-          rulesSetId: rulesSet.id,
+          rulesSetId,
           externalSystemId: e.externalSystemId,
           externalId: e.externalId,
         })),
       );
     }
-
-    return { rulesSet, created };
   }
 }
