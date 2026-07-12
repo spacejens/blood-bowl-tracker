@@ -1,11 +1,11 @@
 export { contract } from './contract';
 export * from './schemas/coach';
 export * from './schemas/competition';
-export * from './schemas/match';
 export * from './schemas/era';
 export * from './schemas/external-id';
 export * from './schemas/external-system';
 export * from './schemas/league';
+export * from './schemas/match';
 export * from './schemas/position';
 export * from './schemas/race';
 export * from './schemas/rules-set';
