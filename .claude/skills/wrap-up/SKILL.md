@@ -44,16 +44,36 @@ Most often triggered conversationally — when the developer says something like
 
 ## Phase 2: Offer cleanup
 
-Each of the following is its own `AskUserQuestion` checkpoint — offer them in this order, each with two or more genuine options ("Yes, stop it"/"Leave it running" or equivalent; the Docker checkpoint below offers three), per this project's `AskUserQuestion` convention:
+Each of the following is its own `AskUserQuestion` checkpoint — offer them in this order, each with two or more genuine options ("Yes, stop it"/"Leave it running" or equivalent; the Docker checkpoint below offers two, three, or four depending on context), per this project's `AskUserQuestion` convention:
 
-1. **Docker containers.** Check whether `postgres` and/or `discord-bot` (the fixed container names `deploy-local` uses) are currently running:
+1. **Docker containers and images.** First detect worktree context the way the session already knows it (entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`) — the image-cleanup behaviour below only ever applies **inside a worktree**. Then check whether `postgres` and/or `discord-bot` (the fixed container names `deploy-local` uses) are currently running:
    ```bash
    docker ps -a --filter "name=^postgres$" --filter "name=^discord-bot$" --format '{{.Names}}\t{{.Status}}'
    ```
-   If either is `Up`, offer to stop them, and — because `docker-compose.yml` uses fixed container names and a fixed `postgres_data` volume **shared across every checkout and worktree** of this repo (not one per piece of work) — also offer whether to delete that volume. Detect worktree context the way the session already knows it (entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`). Present the choice via `AskUserQuestion` with genuine options — "Stop and delete volume" (`docker compose down -v`), "Stop, keep volume" (`docker compose down`), and "Leave running" — ordering the recommended option first per this project's `AskUserQuestion` convention:
-   - **Inside a worktree** → recommend **deleting** the volume (the database for this transient work is disposable; keep local Docker clean).
-   - **Outside a worktree** → recommend **keeping** the volume (protect the developer's long-lived default database).
-   Either way, note in the prompt that the volume is shared across checkouts so the developer can override the recommendation.
+   **Inside a worktree only**, also resolve and look for the worktree-specific `discord-bot` image. `docker-compose.yml` sets no explicit `image:` for `discord-bot`, so Compose names it `<project>-discord-bot` where `<project>` defaults to the worktree directory's basename — a distinct image per worktree that today's cleanup never removes. Ask Compose for the exact name rather than re-deriving its project-naming rules by hand, then check whether that image exists locally:
+   ```bash
+   docker compose config --images   # prints resolved image names, one per line, e.g.:
+                                     #   postgres:17-alpine
+                                     #   issue-105-delete-docker-images-wrap-up-discord-bot
+   docker images -q <resolved-discord-bot-image>   # non-empty if it exists locally
+   ```
+   Take the `discord-bot` image line from `docker compose config --images` (the one that is **not** `postgres:17-alpine`) as `<resolved-discord-bot-image>`. Only `discord-bot` is worktree-specific and cleaned up here — never `postgres:17-alpine`, which is a shared pulled base image with no worktree variant.
+
+   Fire the combined Docker checkpoint if **either**: a `postgres` or `discord-bot` container is currently `Up`, **or** (inside a worktree only) `<resolved-discord-bot-image>` exists locally. Present it as a single `AskUserQuestion` (image deletion is merged into this one decision point, not a separate question), ordering the recommended option first per this project's `AskUserQuestion` convention. Choose the option set by context:
+
+   - **Inside a worktree, at least one container is `Up`** → four options:
+     1. **"Stop, delete volume and image"** (recommended) — `docker compose down -v`, then `docker rmi <resolved-discord-bot-image>`.
+     2. **"Stop, delete volume, keep image"** — `docker compose down -v`.
+     3. **"Stop, keep volume and image"** — `docker compose down`.
+     4. **"Leave running"** — no action.
+   - **Inside a worktree, no container is `Up` but `<resolved-discord-bot-image>` exists** → "stop" and "leave running" don't apply, so collapse to two options covering only the leftover volume and image:
+     1. **"Delete volume and image"** (recommended) — `docker compose down -v` (a safe no-op if already stopped; also drops the network), then `docker rmi <resolved-discord-bot-image>`.
+     2. **"Keep volume and image"** — no action.
+   - **Outside a worktree** → unchanged from today. Image deletion is never offered here (the image name `blood-bowl-tracker-discord-bot` is stable across runs, not obsolete). Fire only when a container is `Up`, and present the existing three options — "Stop and delete volume" (`docker compose down -v`), "Stop, keep volume" (`docker compose down`), and "Leave running".
+
+   Because `docker-compose.yml` uses a fixed `postgres_data` volume **shared across every checkout and worktree** of this repo (not one per piece of work), every prompt above must note in its options that the volume is shared across checkouts, so the developer can override the recommendation. Recommend **deleting** the volume inside a worktree (the database for this transient work is disposable; keep local Docker clean) and **keeping** it outside a worktree (protect the developer's long-lived default database).
+
+   Run `docker rmi <resolved-discord-bot-image>` **after** the `docker compose down`/`down -v` call for any option that deletes the image — Compose will not remove an image still referenced by a container, so the container must be gone first.
 2. **Worktree removal.** If this session entered the worktree via `EnterWorktree`, offer `ExitWorktree` with `action: "remove"` **and** `discard_changes: true` on the **first** attempt — do not first try without the flag and react to a possible refusal. Phase 1 has already independently verified, via `gh pr view` (`state`/`mergedAt`) and the `git log`/`git status` comparison against the actual pushed branch, that the PR merged and nothing is stranded; that verification is authoritative. `ExitWorktree`'s own internal merge check tracks the branch by its pre-rename, creation-time name (`worktree-<name>`) and can misreport an already-merged, renamed branch as having commits that would be discarded — Phase 1's check supersedes it, so there's no need to rely on it agreeing. Otherwise (the session did not enter via `EnterWorktree`), offer `git worktree remove <path>`.
 3. **Branch deletion.** Offer to delete the local branch (`headRefName` from Phase 1). Verify and delete against `origin/main` — **not** against the developer's local `main`, which may be stale or never fetched (the failure mode `git branch -d` would hit). First confirm the branch's work is genuinely present in `origin/main`:
    ```bash
