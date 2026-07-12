@@ -185,4 +185,15 @@ describe('CoachesService', () => {
       expect(select).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const service = new CoachesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
 });

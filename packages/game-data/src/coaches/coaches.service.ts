@@ -11,6 +11,7 @@ import {
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { countRows } from '../shared/count-all';
 
 export class CoachUpsertConflictError extends Error {}
 
@@ -121,5 +122,9 @@ export class CoachesService {
       .innerJoin(teams, eq(teams.coachId, coaches.id))
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(count(teams.id)));
+  }
+
+  countAll(): Promise<number> {
+    return countRows(this.db, coaches);
   }
 }
