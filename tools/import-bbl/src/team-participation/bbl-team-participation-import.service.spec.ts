@@ -45,7 +45,7 @@ function makeReader(pagesByType: Record<string, BblPage[]>): BblSourceReader {
 function makeMatchParser(
   matchesById: Record<
     string,
-    { date: Date; homeTeam: string; awayTeam: string }[]
+    { bblId: string; date: Date; homeTeam: string; awayTeam: string }[]
   >,
 ) {
   const parser = new MatchListPageParser();
@@ -124,6 +124,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Vorgash New Order',
@@ -172,6 +173,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Unknown Team',
@@ -274,6 +276,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Vorgash New Order',
@@ -314,6 +317,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Sewerton Scavengers',
@@ -354,6 +358,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Sewerton Scavengers',
@@ -386,6 +391,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Unknown Team',
             awayTeam: 'Unknown Team',
@@ -420,6 +426,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Sewerton Scavengers',
@@ -458,6 +465,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: 'Sewerton Scavengers',
@@ -494,6 +502,7 @@ describe('BblTeamParticipationImportService', () => {
       matchParser: makeMatchParser({
         '1': [
           {
+            bblId: 'm1',
             date: new Date(Date.UTC(2021, 9, 1)),
             homeTeam: 'Sewerton Scavengers',
             awayTeam: '',

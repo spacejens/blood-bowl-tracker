@@ -20,8 +20,12 @@ const MONTHS: Record<string, number> = {
 // e.g. `result added September 25th, 2021` off a match row's title attribute.
 const RESULT_ADDED = /result added (\w+) (\d{1,2})(?:st|nd|rd|th), (\d{4})/;
 
+// e.g. `self.location.href='default.asp?p=m&m=18';` off a match row's onclick.
+const MATCH_LINK = /p=m&m=(\d+)/;
+
 /** A single completed match read off a match-list row. */
 export interface BblMatch {
+  bblId: string;
   date: Date;
   homeTeam: string;
   awayTeam: string;
@@ -36,9 +40,11 @@ export class MatchListPageParser {
    * available without a full match import). The two team names are the only two
    * `<td>` cells with `width="120"`: the home team (`align="right"`) first and
    * the away team (`align="left"`) second, separated by a `width="10"` cell. A
-   * row missing a team cell yields `''` for that side. Rows are returned in
-   * document order; a page with no completed matches yields an empty array.
-   * This reads only dates and team names — no scores/casualties/gate.
+   * row missing a team cell yields `''` for that side. The match id is read
+   * from the row's `onclick` link (`p=m&m=<id>`); rows without a parseable
+   * match link are skipped defensively. Rows are returned in document order;
+   * a page with no completed matches yields an empty array. This reads only
+   * dates, team names, and the match id — no scores/casualties/gate.
    */
   extractMatches(page: BblPage): BblMatch[] {
     const $ = page.load();
@@ -54,13 +60,18 @@ export class MatchListPageParser {
       if (month === undefined) {
         return;
       }
+      const link = MATCH_LINK.exec($(element).attr('onclick') ?? '');
+      if (!link) {
+        return;
+      }
+      const bblId = link[1];
       const date = new Date(
         Date.UTC(Number(match[3]), month, Number(match[2])),
       );
       const teamCells = $(element).find('td[width="120"]');
       const homeTeam = $(teamCells[0]).text().trim();
       const awayTeam = $(teamCells[1]).text().trim();
-      matches.push({ date, homeTeam, awayTeam });
+      matches.push({ bblId, date, homeTeam, awayTeam });
     });
 
     return matches;
