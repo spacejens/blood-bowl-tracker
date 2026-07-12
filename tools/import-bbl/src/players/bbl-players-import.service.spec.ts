@@ -213,4 +213,105 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(0);
     expect(upsertPlayer).not.toHaveBeenCalled();
   });
+
+  it('skips and records an error when the pid-matched era was not imported', async () => {
+    const { service, upsertTeam, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        eras: [
+          { name: 'Unimported Era', firstPlayerId: 1, lastPlayerId: 9999 },
+        ],
+      },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(upsertTeam).not.toHaveBeenCalled();
+    expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
+  it('skips without recording its own error when the team upsert fails', async () => {
+    const { service, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      { upsertTeam: vi.fn().mockResolvedValue(undefined) },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(0);
+    expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
+  it('skips and records an error when the upserted team has no matching era', async () => {
+    const { service, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 5000, eraId: 999 }] }),
+      },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
+  it('skips and records an error when the team race has no BBL id mapping', async () => {
+    const unmappedRaceTeam: UpsertTeamData = { ...team, raceId: 999 };
+    const localTeamsByCode = new Map<string, UpsertTeamData>([
+      ['knu', unmappedRaceTeam],
+    ]);
+    const { service, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+    );
+
+    const result = await service.importPlayers(
+      localTeamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(0);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('33-?');
+    expect(upsertPlayer).not.toHaveBeenCalled();
+  });
+
+  it('does not count the player as imported when upsertPlayer reports failure', async () => {
+    const { service, upsertPlayer } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      { upsertPlayer: vi.fn().mockResolvedValue(false) },
+    );
+
+    const result = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(0);
+    expect(upsertPlayer).toHaveBeenCalled();
+  });
 });
