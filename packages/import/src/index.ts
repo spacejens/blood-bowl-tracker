@@ -9,6 +9,8 @@ export { ImportModule } from './import.module';
 export { ImportRunnerService } from './import-runner.service';
 export type { UpsertLeagueData } from './leagues-import.service';
 export { LeaguesImportService } from './leagues-import.service';
+export type { UpsertMatchData } from './matches-import.service';
+export { MatchesImportService } from './matches-import.service';
 export type { UpsertPositionData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
 export type { UpsertRaceData } from './races-import.service';

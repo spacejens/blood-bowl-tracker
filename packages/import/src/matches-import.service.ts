@@ -1,0 +1,31 @@
+import type { ApiClient } from '@blood-bowl-tracker/api-client';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Inject, Injectable } from '@nestjs/common';
+
+import { ImportRunnerService } from './import-runner.service';
+import type { ImportError } from './types';
+
+export interface UpsertMatchData {
+  competitionId: number;
+  playedAt: Date;
+  externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+@Injectable()
+export class MatchesImportService {
+  constructor(
+    @Inject(API_CLIENT) private readonly client: ApiClient,
+    private readonly importRunner: ImportRunnerService,
+  ) {}
+
+  upsertMatch(data: UpsertMatchData, errors: ImportError[]): Promise<boolean> {
+    const bblId = data.externalIds[0]?.externalId;
+    return this.importRunner.recordUpsert(
+      () => this.client.matches.upsert(data),
+      data,
+      errors,
+      (err) =>
+        `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+}
