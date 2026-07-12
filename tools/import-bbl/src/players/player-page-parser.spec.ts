@@ -26,6 +26,20 @@ describe('PlayerPageParser', () => {
     });
   });
 
+  it('extracts a team code containing non-ASCII characters', () => {
+    const page = playerPage(
+      '<h1>Aspgren</h1>' +
+        '<a href="default.asp?p=pt&typID=169">Hafling Treeman</a>' +
+        "<a href='default.asp?p=tm&t=gås' style='font-size:11px'>Gåshöjdens BK</a>",
+    );
+    expect(parser.extractPlayer(page)).toEqual({
+      pid: '5',
+      name: 'Aspgren',
+      typId: '169',
+      teamCode: 'gås',
+    });
+  });
+
   it('uses the first position and team links when several are present', () => {
     const page = playerPage(
       '<h1>Griff Oberwald</h1>' +

@@ -40,7 +40,10 @@ export class PlayerPageParser {
         }
       }
       if (!teamCode) {
-        const teamMatch = /[?&]p=tm&t=([a-zA-Z0-9]+)/.exec(href);
+        // Team codes can contain non-ASCII letters (e.g. "gås", "häl"), so
+        // match everything up to the next query param or fragment rather than
+        // an ASCII-only character class.
+        const teamMatch = /[?&]p=tm&t=([^&#]+)/.exec(href);
         if (teamMatch) {
           teamCode = teamMatch[1];
         }
