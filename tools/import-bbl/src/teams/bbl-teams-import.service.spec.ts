@@ -492,4 +492,35 @@ describe('BblTeamsImportService', () => {
 
     expect(teamRaceIdsByCode.get('40g')).toBe(500);
   });
+
+  it('returns teamsByCode keyed by the team BBL code', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertTeam = vi.fn().mockResolvedValue(true);
+    const service = makeService(
+      makeReader([
+        page({
+          teamId: '40g',
+          teamName: '40 grinders',
+          raceBblId: '16',
+          coachName: 'Hugo E',
+        }),
+      ]),
+      upsertExternalSystem,
+      upsertTeam,
+    );
+
+    const { result, teamsByName, teamsByCode } = await service.importTeams(
+      raceIds,
+      coachIds,
+    );
+
+    expect(result.success).toBe(true);
+    // same UpsertTeamData object is indexed under both name and code
+    const code = '40g';
+    const name = '40 grinders';
+    expect(teamsByCode.get(code)).toEqual(teamsByName.get(name));
+  });
 });

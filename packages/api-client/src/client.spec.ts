@@ -98,6 +98,7 @@ describe('createApiClient', () => {
       'externalSystems',
       'leagues',
       'matches',
+      'players',
       'positions',
       'races',
       'rulesSets',

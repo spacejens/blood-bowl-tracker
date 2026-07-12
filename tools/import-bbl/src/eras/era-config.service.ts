@@ -6,6 +6,15 @@ export interface EraConfig {
   rulesSet: string;
   startDate: string;
   endDate?: string;
+  firstPlayerId: number;
+  lastPlayerId?: number;
+  /**
+   * Explicit pids assigned to this era regardless of firstPlayerId/lastPlayerId
+   * — for players drafted right at an era boundary whose pid lands on the
+   * "wrong" side of the range split (BBL player ids are roughly, not exactly,
+   * chronological). Checked before the range bounds.
+   */
+  playerIdOverrides?: number[];
 }
 
 /**
@@ -23,6 +32,10 @@ function isValidIsoDate(value: unknown): value is string {
   );
 }
 
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0;
+}
+
 @Injectable()
 export class EraConfigService {
   constructor(private readonly configService: ConfigService) {}
@@ -31,7 +44,9 @@ export class EraConfigService {
    * The eras the BBL league played through, supplied via the BBL_ERAS
    * environment variable as a JSON array (not parsed from the source data).
    * Each era names its rules set and its date range; endDate is optional for an
-   * era still ongoing at import time.
+   * era still ongoing at import time. firstPlayerId is required; lastPlayerId
+   * follows the same optional-when-ongoing rule as endDate, and the two must
+   * be either both omitted or both present.
    */
   getEras(): EraConfig[] {
     const raw = this.configService.get<string>('BBL_ERAS');
@@ -58,7 +73,22 @@ export class EraConfigService {
       throw new Error('BBL_ERAS must be a non-empty JSON array of eras.');
     }
 
-    return parsed.map((entry, index) => this.parseEra(entry, index));
+    const eras = parsed.map((entry, index) => this.parseEra(entry, index));
+
+    const eraNameByOverriddenPid = new Map<number, string>();
+    for (const era of eras) {
+      for (const pid of era.playerIdOverrides ?? []) {
+        const existing = eraNameByOverriddenPid.get(pid);
+        if (existing !== undefined) {
+          throw new Error(
+            `BBL_ERAS: player id ${pid} appears in playerIdOverrides for both "${existing}" and "${era.name}".`,
+          );
+        }
+        eraNameByOverriddenPid.set(pid, era.name);
+      }
+    }
+
+    return eras;
   }
 
   private parseEra(entry: unknown, index: number): EraConfig {
@@ -67,7 +97,15 @@ export class EraConfigService {
     }
     const record = entry as Record<string, unknown>;
 
-    const { name, rulesSet, startDate, endDate } = record;
+    const {
+      name,
+      rulesSet,
+      startDate,
+      endDate,
+      firstPlayerId,
+      lastPlayerId,
+      playerIdOverrides,
+    } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
       throw new Error(`BBL_ERAS[${index}].name must be a non-empty string.`);
@@ -88,11 +126,47 @@ export class EraConfigService {
       );
     }
 
+    if (!isPositiveInteger(firstPlayerId)) {
+      throw new Error(
+        `BBL_ERAS[${index}].firstPlayerId must be a positive integer.`,
+      );
+    }
+    if (lastPlayerId !== undefined && !isPositiveInteger(lastPlayerId)) {
+      throw new Error(
+        `BBL_ERAS[${index}].lastPlayerId must be a positive integer when present.`,
+      );
+    }
+    if (isPositiveInteger(lastPlayerId) && firstPlayerId > lastPlayerId) {
+      throw new Error(
+        `BBL_ERAS[${index}].firstPlayerId must be less than or equal to lastPlayerId.`,
+      );
+    }
+    if ((endDate === undefined) !== (lastPlayerId === undefined)) {
+      throw new Error(
+        `BBL_ERAS[${index}]: endDate and lastPlayerId must be either both omitted (an era still ongoing) or both present.`,
+      );
+    }
+
+    if (
+      playerIdOverrides !== undefined &&
+      (!Array.isArray(playerIdOverrides) ||
+        !playerIdOverrides.every(isPositiveInteger))
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].playerIdOverrides must be an array of positive integers when present.`,
+      );
+    }
+
     return {
       name,
       rulesSet,
       startDate,
+      firstPlayerId,
       ...(endDate !== undefined ? { endDate } : {}),
+      ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
+      ...(playerIdOverrides !== undefined
+        ? { playerIdOverrides: playerIdOverrides }
+        : {}),
     };
   }
 }

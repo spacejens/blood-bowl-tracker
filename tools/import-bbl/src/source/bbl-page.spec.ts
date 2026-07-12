@@ -40,4 +40,16 @@ describe('parsePageFilename', () => {
       params: { t: 'knu' },
     });
   });
+
+  it('normalizes param values to NFC (some filesystems, e.g. macOS APFS, return NFD-decomposed filenames while page content decodes to NFC)', () => {
+    // "a" (U+0061) + COMBINING RING ABOVE (U+030A) -- the decomposed form
+    const nfdA = '\u0061\u030A';
+    // LATIN SMALL LETTER A WITH RING ABOVE (U+00E5) -- the precomposed form
+    const nfcA = '\u00E5';
+    expect(nfdA).not.toBe(nfcA);
+    expect(nfdA.normalize('NFC')).toBe(nfcA);
+
+    const parsed = parsePageFilename(`default.asp?p=tm&t=g${nfdA}s`);
+    expect(parsed?.params.t).toBe(`g${nfcA}s`);
+  });
 });

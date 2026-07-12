@@ -12,6 +12,13 @@ export interface BblPage {
  * Parse a wget mirror filename such as `default.asp?p=tm&t=knu`.
  * The `p` query param becomes `type`; the remaining params are returned in `params`.
  * Returns null for files that are not BBL pages (no `default.asp?` prefix, or no `p=`).
+ *
+ * Param values are normalized to NFC. Some filesystems (notably macOS APFS)
+ * return directory-listing filenames with non-ASCII letters decomposed into
+ * NFD (e.g. "a" + a combining ring above), while page *content* decoded from
+ * the Latin-1 mirror is inherently NFC (Latin-1 only has precomposed forms).
+ * Without normalizing here, a value read from a filename (like a team code)
+ * would fail strict-equality lookups against the same value read from HTML.
  */
 export function parsePageFilename(
   filename: string,
@@ -29,7 +36,7 @@ export function parsePageFilename(
       continue;
     }
     const key = pair.slice(0, eq);
-    const value = pair.slice(eq + 1);
+    const value = pair.slice(eq + 1).normalize('NFC');
     if (key === 'p') {
       type = value;
     } else {

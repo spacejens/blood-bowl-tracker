@@ -28,8 +28,14 @@ const twoErasSharingNothing: EraConfig[] = [
     rulesSet: 'Living rulebook',
     startDate: '2011-09-09',
     endDate: '2021-09-01',
+    firstPlayerId: 1,
   },
-  { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01' },
+  {
+    name: 'BB2020',
+    rulesSet: 'BB2020',
+    startDate: '2021-09-01',
+    firstPlayerId: 5001,
+  },
 ];
 
 describe('BblRulesSetsImportService', () => {
@@ -80,8 +86,18 @@ describe('BblRulesSetsImportService', () => {
 
   it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
     const eras: EraConfig[] = [
-      { name: 'Era A', rulesSet: 'BB2020', startDate: '2021-09-01' },
-      { name: 'Era B', rulesSet: 'BB2020', startDate: '2022-09-01' },
+      {
+        name: 'Era A',
+        rulesSet: 'BB2020',
+        startDate: '2021-09-01',
+        firstPlayerId: 1,
+      },
+      {
+        name: 'Era B',
+        rulesSet: 'BB2020',
+        startDate: '2022-09-01',
+        firstPlayerId: 5001,
+      },
     ];
     const upsertExternalSystem = vi
       .fn()
@@ -113,7 +129,14 @@ describe('BblRulesSetsImportService', () => {
         return Promise.resolve(undefined);
       });
     const service = makeService(
-      () => [{ name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-09-01' }],
+      () => [
+        {
+          name: 'BB2020',
+          rulesSet: 'BB2020',
+          startDate: '2021-09-01',
+          firstPlayerId: 1,
+        },
+      ],
       upsertExternalSystem,
       upsertRulesSet,
     );

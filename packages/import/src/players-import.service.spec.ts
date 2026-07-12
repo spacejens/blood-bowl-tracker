@@ -4,44 +4,39 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ImportRunnerService } from './import-runner.service';
-import { PositionsImportService } from './positions-import.service';
+import { PlayersImportService } from './players-import.service';
 import type { ImportError } from './types';
 
-describe('PositionsImportService', () => {
+describe('PlayersImportService', () => {
   function makeService(upsertMock: ReturnType<typeof vi.fn>) {
     const client = {
-      positions: { upsert: upsertMock },
+      players: { upsert: upsertMock },
     } as unknown as ApiClient;
-    return new PositionsImportService(client, new ImportRunnerService());
+    return new PlayersImportService(client, new ImportRunnerService());
   }
 
   const data = {
-    name: 'Lineman',
-    isStarPlayer: false,
-    races: [{ raceId: 7, isDeleted: false }],
-    externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
+    name: 'Griff Oberwald',
+    teamEraId: 10,
+    positionId: 20,
+    externalIds: [{ externalSystemId: 1, externalId: '12345' }],
   };
 
   it('returns true and calls the client with the given data on success', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
-      name: 'Lineman',
-      raceId: 7,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPosition(data, errors);
+    const result = await service.upsertPlayer(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Lineman',
-      raceId: 7,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toBe(true);
     expect(upsertMock).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
@@ -51,11 +46,14 @@ describe('PositionsImportService', () => {
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPosition(data, errors);
+    const result = await service.upsertPlayer(data, errors);
 
-    expect(result).toBeUndefined();
+    expect(result).toBe(false);
     expect(errors).toEqual([
-      { item: data, message: 'Failed to import position "Lineman": conflict' },
+      {
+        item: data,
+        message: 'Failed to import player "Griff Oberwald": conflict',
+      },
     ]);
   });
 
@@ -64,46 +62,44 @@ describe('PositionsImportService', () => {
     const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPosition(data, errors);
+    const result = await service.upsertPlayer(data, errors);
 
-    expect(result).toBeUndefined();
+    expect(result).toBe(false);
     expect(errors).toEqual([
-      { item: data, message: 'Failed to import position "Lineman": boom' },
+      {
+        item: data,
+        message: 'Failed to import player "Griff Oberwald": boom',
+      },
     ]);
   });
 
   it('resolves via real NestJS dependency injection', async () => {
     const upsertMock = vi.fn().mockResolvedValue({
       id: 1,
-      name: 'Lineman',
-      raceId: 7,
+      name: 'Griff Oberwald',
+      teamEraId: 10,
+      positionId: 20,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
     const client = {
-      positions: { upsert: upsertMock },
+      players: { upsert: upsertMock },
     } as unknown as ApiClient;
 
     const moduleRef = await Test.createTestingModule({
       providers: [
-        PositionsImportService,
+        PlayersImportService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],
     }).compile();
 
-    const service = moduleRef.get(PositionsImportService);
+    const service = moduleRef.get(PlayersImportService);
     const errors: ImportError[] = [];
 
-    const result = await service.upsertPosition(data, errors);
+    const result = await service.upsertPlayer(data, errors);
 
-    expect(result).toEqual({
-      id: 1,
-      name: 'Lineman',
-      raceId: 7,
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    expect(result).toBe(true);
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });
