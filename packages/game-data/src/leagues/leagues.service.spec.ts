@@ -1,3 +1,4 @@
+import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -133,6 +134,15 @@ describe('LeaguesService', () => {
       expect(insertValues).toHaveBeenCalledWith([
         { leagueId: 1, externalSystemId: 2, externalId: 'Test League' },
       ]);
+    });
+  });
+
+  describe('countAll', () => {
+    it('returns the total row count', async () => {
+      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const service = new LeaguesService({ select: vi.fn(() => ({ from })) } as unknown as Db);
+      await expect(service.countAll()).resolves.toBe(5);
+      expect(from).toHaveBeenCalledTimes(1);
     });
   });
 });
