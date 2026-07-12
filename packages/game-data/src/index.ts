@@ -30,6 +30,12 @@ export {
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
+export { PlayersModule } from './players/players.module';
+export type { UpsertPlayerData } from './players/players.service';
+export {
+  PlayersService,
+  PlayerUpsertConflictError,
+} from './players/players.service';
 export { PositionsModule } from './positions/positions.module';
 export type {
   PositionWithRaces,
