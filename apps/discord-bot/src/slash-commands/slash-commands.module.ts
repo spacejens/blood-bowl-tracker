@@ -7,5 +7,6 @@ import { StatsCommandService } from './stats-command.service';
 @Module({
   imports: [InsightsModule],
   providers: [StatsCommandService, InsightsCommandService],
+  exports: [InsightsCommandService],
 })
 export class SlashCommandsModule {}

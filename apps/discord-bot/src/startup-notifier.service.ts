@@ -2,7 +2,7 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 
 import { DiscordBotConfigService } from './discord-bot-config.service';
-import { StatsSummaryService } from './insights/stats-summary.service';
+import { InsightsCommandService } from './slash-commands/insights-command.service';
 
 @Injectable()
 export class StartupNotifierService implements OnApplicationBootstrap {
@@ -10,13 +10,13 @@ export class StartupNotifierService implements OnApplicationBootstrap {
 
   constructor(
     private readonly discordClient: DiscordClientService,
-    private readonly statsSummary: StatsSummaryService,
+    private readonly insightsCommand: InsightsCommandService,
     private readonly config: DiscordBotConfigService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     const channelId = this.config.getDiscordChannelId();
-    const message = await this.statsSummary.buildSummaryMessage();
+    const message = await this.insightsCommand.resolveRandomFact();
     await this.discordClient.sendMessage(channelId, message);
     this.logger.log(`Posted startup message to channel ${channelId}`);
   }
