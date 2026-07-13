@@ -5,16 +5,18 @@ import { resolveToplist } from '../leaderboard';
 
 export async function resolveCoachMatchesPlayedToplist(
   coaches: CoachesService,
+  eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Coaches by matches played', () =>
-    coaches.countMatchesPlayedByCoach(),
+    coaches.countMatchesPlayedByCoach(eraId),
   );
 }
 
 export async function resolveCoachTeamsToplist(
   coaches: CoachesService,
+  eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Coaches by teams coached', () =>
-    coaches.countTeamsByCoach(),
+    coaches.countTeamsByCoach(eraId),
   );
 }

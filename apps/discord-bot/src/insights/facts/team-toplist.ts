@@ -5,8 +5,9 @@ import { resolveToplist } from '../leaderboard';
 
 export async function resolveTeamMatchesPlayedToplist(
   teams: TeamsService,
+  eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Teams by matches played', () =>
-    teams.countMatchesPlayedByTeam(),
+    teams.countMatchesPlayedByTeam(eraId),
   );
 }

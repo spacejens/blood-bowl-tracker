@@ -12,18 +12,32 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
     coach: {
       toplist: {
         matches: {
-          played: () => resolveCoachMatchesPlayedToplist(deps.coaches),
+          played: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveCoachMatchesPlayedToplist(deps.coaches, eraId),
+          },
         },
-        teams: () => resolveCoachTeamsToplist(deps.coaches),
+        teams: {
+          supportsEra: true,
+          resolve: (eraId) => resolveCoachTeamsToplist(deps.coaches, eraId),
+        },
       },
     },
     team: {
       toplist: {
         matches: {
-          played: () => resolveTeamMatchesPlayedToplist(deps.teams),
+          played: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamMatchesPlayedToplist(deps.teams, eraId),
+          },
         },
       },
     },
-    stats: () => resolveStatsSummary(deps),
+    stats: {
+      supportsEra: false,
+      resolve: (eraId) => resolveStatsSummary(deps, eraId),
+    },
   };
 }

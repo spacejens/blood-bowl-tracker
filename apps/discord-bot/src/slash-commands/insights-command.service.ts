@@ -22,7 +22,7 @@ import type {
 import { ApplicationCommandOptionType } from 'discord.js';
 
 import { buildFactTree } from '../insights/fact-tree';
-import type { FactNode, FactResolver } from '../insights/fact-tree-utils';
+import type { FactLeaf, FactNode } from '../insights/fact-tree-utils';
 import {
   collectLeaves,
   nextSegmentCompletions,
@@ -100,11 +100,11 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     if (node === undefined) {
       return UNMATCHED_FALLBACK_MESSAGE;
     }
-    return this.pickRandom(collectLeaves(node))();
+    return this.pickRandom(collectLeaves(node)).resolve();
   }
 
   resolveRandomFact(): Promise<string | InteractionReplyOptions> {
-    return this.pickRandom(collectLeaves(this.factTree))();
+    return this.pickRandom(collectLeaves(this.factTree)).resolve();
   }
 
   autocomplete(
@@ -118,7 +118,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     );
   }
 
-  private pickRandom(leaves: FactResolver[]): FactResolver {
+  private pickRandom(leaves: FactLeaf[]): FactLeaf {
     return leaves[Math.floor(Math.random() * leaves.length)];
   }
 }
