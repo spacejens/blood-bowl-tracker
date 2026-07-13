@@ -308,6 +308,9 @@ importers:
 
   packages/game-data:
     dependencies:
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../db
