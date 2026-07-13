@@ -46,9 +46,10 @@ export class BblPlayersImportService {
     positionIdsByBblId: Map<string, number>,
     racesByBblId: Map<string, { id: number; name: string }>,
     eraIdsByName: Map<string, number>,
-  ): Promise<ImportResult> {
+  ): Promise<{ result: ImportResult; playerIdsByPid: Map<string, number> }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const playerIdsByPid = new Map<string, number>();
 
     let bblSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
@@ -64,7 +65,7 @@ export class BblPlayersImportService {
           }`,
         }),
       );
-      return makeImportResult({ imported, errors });
+      return { result: makeImportResult({ imported, errors }), playerIdsByPid };
     }
 
     const eras = this.eraConfig.getEras();
@@ -163,20 +164,20 @@ export class BblPlayersImportService {
           continue;
         }
 
-        if (
-          await this.playersImport.upsertPlayer(
-            {
-              name: player.name,
-              teamEraId: teamEra.id,
-              positionId,
-              externalIds: [
-                { externalSystemId: bblSystemId, externalId: player.pid },
-              ],
-            },
-            errors,
-          )
-        ) {
+        const upserted = await this.playersImport.upsertPlayerResult(
+          {
+            name: player.name,
+            teamEraId: teamEra.id,
+            positionId,
+            externalIds: [
+              { externalSystemId: bblSystemId, externalId: player.pid },
+            ],
+          },
+          errors,
+        );
+        if (upserted) {
           imported += 1;
+          playerIdsByPid.set(player.pid, upserted.id);
         }
       } catch (error) {
         errors.push(
@@ -191,6 +192,6 @@ export class BblPlayersImportService {
       }
     }
 
-    return makeImportResult({ imported, errors });
+    return { result: makeImportResult({ imported, errors }), playerIdsByPid };
   }
 }

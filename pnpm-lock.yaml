@@ -308,6 +308,9 @@ importers:
 
   packages/game-data:
     dependencies:
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../db
@@ -345,6 +348,9 @@ importers:
       '@blood-bowl-tracker/api-client':
         specifier: workspace:*
         version: link:../api-client
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../api-contract
       '@nestjs/common':
         specifier: ^11.1.27
         version: 11.1.27(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -376,6 +382,9 @@ importers:
       '@blood-bowl-tracker/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import

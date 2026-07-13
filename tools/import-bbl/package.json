@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/api-client": "workspace:*",
+    "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
     "cheerio": "^1.0.0",
     "@nestjs/common": "^11.1.27",

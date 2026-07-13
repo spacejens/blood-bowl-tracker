@@ -5,6 +5,7 @@ import { SourceModule } from '../source/source.module';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
+import { MatchEventsPageParser } from './match-events-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
@@ -13,6 +14,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
   providers: [
     MatchListPageParser,
     MatchTeamsPageParser,
+    MatchEventsPageParser,
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
@@ -20,6 +22,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
   exports: [
     MatchListPageParser,
     MatchTeamsPageParser,
+    MatchEventsPageParser,
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
