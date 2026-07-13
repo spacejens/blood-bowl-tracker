@@ -131,11 +131,26 @@ export class BblPositionsImportService {
       const byDbId = new Map<number, ResolvedRace>();
       for (const code of codes) {
         const dbId = teamRaceIdsByCode.get(code);
-        if (dbId === undefined || byDbId.has(dbId)) {
+        if (dbId === undefined) {
+          errors.push(
+            makeImportError({
+              item: { typId, teamCode: code },
+              message: `Could not resolve a race for team code "${code}" (position typId ${typId}): team code not in teamRaceIdsByCode`,
+            }),
+          );
+          continue;
+        }
+        if (byDbId.has(dbId)) {
           continue;
         }
         const info = raceInfoByDbId.get(dbId);
         if (!info) {
+          errors.push(
+            makeImportError({
+              item: { typId, raceDbId: dbId },
+              message: `Could not resolve a race for db id ${dbId} (position typId ${typId}): race info missing from racesByBblId`,
+            }),
+          );
           continue;
         }
         byDbId.set(dbId, { dbId, bblId: info.bblId, name: info.name });
