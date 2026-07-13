@@ -17,11 +17,12 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform, via a multi-select question with exactly these two options, in this order — do not add a "Both" or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick one, both, or (by deselecting everything offered) neither:
+0. Ask the developer which action(s) to perform, via a multi-select question with exactly these three options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
+   - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The developer may select one, both, or neither of the two options above. If neither is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The developer may select any combination of the three options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 
@@ -104,6 +105,22 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
 4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+
+### Generate a SchemaSpy diagram
+
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after both the "Deploy the stack" and "Run the BBL import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with the BBL import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+
+1. Generate the diagram from the repo root:
+   ```bash
+   pnpm run db:diagram
+   ```
+2. If it fails, report the failure output to the developer and stop this section. The most common cause is `postgres` not running or not healthy; `tools/db-diagram/db-diagram.sh` already detects that and reports a clear, actionable error message. No extra pre-check is added here — the script's own precondition check is the safety net for the "asked for a diagram without deploying first" case.
+3. On success, open the result automatically — asking for the diagram is a request to see it, not just to generate it:
+   ```bash
+   open docs/schemaspy-output/index.html
+   ```
+   Run this from the repo root (this worktree's root, not the main checkout's) so the relative path resolves to the copy `pnpm run db:diagram` just generated.
+4. Report the output path (`docs/schemaspy-output/index.html`) to the developer.
 
 ## Non-goals
 
