@@ -63,6 +63,16 @@ describe('createApiClient', () => {
     expect(typeof client.teams.upsert).toBe('function');
   });
 
+  it('creates a client exposing matchEvents', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(client.matchEvents).toBeDefined();
+  });
+
+  it('matchEvents client has an upsert method', () => {
+    const client = createApiClient('http://localhost:3000');
+    expect(typeof client.matchEvents.upsert).toBe('function');
+  });
+
   // Regression: the raw oRPC client Proxy turns ANY property access into a
   // callable procedure. As a NestJS provider that made it look thenable (Nest
   // awaited it, firing a bogus `then` RPC) and exposed lifecycle-hook names as
@@ -97,6 +107,7 @@ describe('createApiClient', () => {
       'eras',
       'externalSystems',
       'leagues',
+      'matchEvents',
       'matches',
       'players',
       'positions',
