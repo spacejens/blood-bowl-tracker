@@ -322,9 +322,7 @@ describe('EraConfigService', () => {
         competitionIdOverrides: '74',
       },
     ]);
-    expect(() => makeService(json).getEras()).toThrow(
-      /competitionIdOverrides/,
-    );
+    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
   });
 
   it('rejects competitionIdOverrides containing a non-string or empty string', () => {
@@ -337,9 +335,7 @@ describe('EraConfigService', () => {
         competitionIdOverrides: ['74', ''],
       },
     ]);
-    expect(() => makeService(json).getEras()).toThrow(
-      /competitionIdOverrides/,
-    );
+    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
   });
 
   it('rejects the same competition id overridden into more than one era', () => {
