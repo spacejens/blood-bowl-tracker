@@ -9,6 +9,7 @@ import { CoachesModule } from './coaches/coaches.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { ErasModule } from './eras/eras.module';
 import { LeaguesModule } from './leagues/leagues.module';
+import { MatchEventsModule } from './match-events/match-events.module';
 import { MatchesModule } from './matches/matches.module';
 import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
@@ -35,6 +36,7 @@ export class AppModule {
         CoachesModule,
         CompetitionsModule,
         MatchesModule,
+        MatchEventsModule,
         RacesModule,
         PlayersModule,
         PositionsModule,

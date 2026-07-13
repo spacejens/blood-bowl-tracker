@@ -67,7 +67,7 @@ function makeService(
   opts: {
     upsertExternalSystem?: ReturnType<typeof vi.fn>;
     upsertTeam?: ReturnType<typeof vi.fn>;
-    upsertPlayer?: ReturnType<typeof vi.fn>;
+    upsertPlayerResult?: ReturnType<typeof vi.fn>;
     eras?: {
       name: string;
       firstPlayerId: number;
@@ -80,14 +80,15 @@ function makeService(
   const upsertTeam =
     opts.upsertTeam ??
     vi.fn().mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] });
-  const upsertPlayer = opts.upsertPlayer ?? vi.fn().mockResolvedValue(true);
+  const upsertPlayerResult =
+    opts.upsertPlayerResult ?? vi.fn().mockResolvedValue({ id: 900 });
   const eras = opts.eras ?? [
     { name: 'LRB', firstPlayerId: 1, lastPlayerId: 9999 },
   ];
   const service = new BblPlayersImportService(
     reader,
     makeParser(),
-    { upsertPlayer } as unknown as PlayersImportService,
+    { upsertPlayerResult } as unknown as PlayersImportService,
     { upsertTeam } as unknown as TeamsImportService,
     { getEras: () => eras } as unknown as EraConfigService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
@@ -95,7 +96,7 @@ function makeService(
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
   );
-  return { service, upsertTeam, upsertPlayer };
+  return { service, upsertTeam, upsertPlayerResult };
 }
 
 const goodPlayer: BblPlayer = {
@@ -106,12 +107,12 @@ const goodPlayer: BblPlayer = {
 };
 
 describe('BblPlayersImportService', () => {
-  it('imports a resolvable player with the expected upsert payload', async () => {
-    const { service, upsertTeam, upsertPlayer } = makeService(
+  it('imports a resolvable player and maps its pid to the DB id', async () => {
+    const { service, upsertTeam, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
     );
 
-    const result = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -120,11 +121,12 @@ describe('BblPlayersImportService', () => {
 
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
+    expect(playerIdsByPid.get('42')).toBe(900);
     expect(upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
-    expect(upsertPlayer).toHaveBeenCalledWith(
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
       {
         name: 'Griff Oberwald',
         teamEraId: 5000,
@@ -136,7 +138,7 @@ describe('BblPlayersImportService', () => {
   });
 
   it('resolves the era via playerIdOverrides when the pid is outside every range', async () => {
-    const { service, upsertTeam, upsertPlayer } = makeService(
+    const { service, upsertTeam, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       {
         eras: [
@@ -151,7 +153,7 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -163,7 +165,7 @@ describe('BblPlayersImportService', () => {
       { ...team, eras: [500] },
       expect.any(Array),
     );
-    expect(upsertPlayer).toHaveBeenCalled();
+    expect(upsertPlayerResult).toHaveBeenCalled();
   });
 
   it('prefers a playerIdOverrides match over a range that would also match', async () => {
@@ -200,12 +202,12 @@ describe('BblPlayersImportService', () => {
   });
 
   it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       { eras: [{ name: 'LRB', firstPlayerId: 1 }] },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -213,16 +215,16 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    expect(upsertPlayer).toHaveBeenCalled();
+    expect(upsertPlayerResult).toHaveBeenCalled();
   });
 
   it('skips and records an error when no era range contains the pid', async () => {
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       { eras: [{ name: 'LRB', firstPlayerId: 1, lastPlayerId: 10 }] },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -231,7 +233,7 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips and records an error when the team code is unknown', async () => {
@@ -239,7 +241,7 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -255,7 +257,7 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage({ ...goodPlayer, typId: '99' })]),
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -267,12 +269,12 @@ describe('BblPlayersImportService', () => {
   });
 
   it('records an error and returns early when external systems fail', async () => {
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       { upsertExternalSystem: vi.fn().mockRejectedValue(new Error('boom')) },
     );
 
-    const result = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -280,13 +282,16 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(playerIdsByPid.size).toBe(0);
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips players the parser cannot read', async () => {
-    const { service, upsertPlayer } = makeService(makeReader([plPage(null)]));
+    const { service, upsertPlayerResult } = makeService(
+      makeReader([plPage(null)]),
+    );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -294,11 +299,11 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips and records an error when the pid-matched era was not imported', async () => {
-    const { service, upsertTeam, upsertPlayer } = makeService(
+    const { service, upsertTeam, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       {
         eras: [
@@ -307,7 +312,7 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -317,16 +322,16 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
     expect(upsertTeam).not.toHaveBeenCalled();
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips without recording its own error when the team upsert fails', async () => {
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       { upsertTeam: vi.fn().mockResolvedValue(undefined) },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -334,11 +339,11 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips and records an error when the upserted team has no matching era', async () => {
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       {
         upsertTeam: vi
@@ -347,7 +352,7 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -356,7 +361,7 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips and records an error when the team race has no BBL id mapping', async () => {
@@ -364,11 +369,11 @@ describe('BblPlayersImportService', () => {
     const localTeamsByCode = new Map<string, UpsertTeamData>([
       ['knu', unmappedRaceTeam],
     ]);
-    const { service, upsertPlayer } = makeService(
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
     );
 
-    const result = await service.importPlayers(
+    const { result } = await service.importPlayers(
       localTeamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -378,16 +383,16 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('33-?');
-    expect(upsertPlayer).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
-  it('does not count the player as imported when upsertPlayer reports failure', async () => {
-    const { service, upsertPlayer } = makeService(
+  it('does not count or map the player when the upsert reports failure', async () => {
+    const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
-      { upsertPlayer: vi.fn().mockResolvedValue(false) },
+      { upsertPlayerResult: vi.fn().mockResolvedValue(undefined) },
     );
 
-    const result = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers(
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
@@ -395,6 +400,7 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPlayer).toHaveBeenCalled();
+    expect(playerIdsByPid.size).toBe(0);
+    expect(upsertPlayerResult).toHaveBeenCalled();
   });
 });

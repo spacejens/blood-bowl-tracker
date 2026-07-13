@@ -30,19 +30,20 @@ const competition: UpsertCompetitionData = {
 };
 
 describe('BblMatchesImportService', () => {
-  it('upserts each match with its competitionId, playedAt and BBL external id', async () => {
-    const upsertMatch = vi.fn().mockResolvedValue(true);
+  it('upserts each match and returns its DB id keyed by BBL match id', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
     const service = new BblMatchesImportService(makeReader({ '3': [match] }), {
-      upsertMatch,
+      upsertMatchResult,
     } as unknown as MatchesImportService);
 
-    const { result } = await service.importMatches(
+    const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
     expect(result.imported).toBe(1);
-    expect(upsertMatch).toHaveBeenCalledWith(
+    expect(matchIdsByBblId.get('89')).toBe(7);
+    expect(upsertMatchResult).toHaveBeenCalledWith(
       {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 8, 25)),
@@ -53,34 +54,39 @@ describe('BblMatchesImportService', () => {
   });
 
   it('records an error and skips a competition absent from the id map', async () => {
-    const upsertMatch = vi.fn();
+    const upsertMatchResult = vi.fn();
     const service = new BblMatchesImportService(
       makeReader({ '3': [match, { ...match, bblId: '90' }] }),
       {
-        upsertMatch,
+        upsertMatchResult,
       } as unknown as MatchesImportService,
     );
 
-    const { result } = await service.importMatches(new Map(), new Map());
+    const { result, matchIdsByBblId } = await service.importMatches(
+      new Map(),
+      new Map(),
+    );
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
-    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(upsertMatchResult).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
+    expect(matchIdsByBblId.size).toBe(0);
   });
 
-  it('does not count a match whose upsert reports failure', async () => {
-    const upsertMatch = vi.fn().mockResolvedValue(false);
+  it('does not count or map a match whose upsert reports failure', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue(undefined);
     const service = new BblMatchesImportService(makeReader({ '3': [match] }), {
-      upsertMatch,
+      upsertMatchResult,
     } as unknown as MatchesImportService);
 
-    const { result } = await service.importMatches(
+    const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertMatch).toHaveBeenCalledTimes(1);
+    expect(matchIdsByBblId.size).toBe(0);
+    expect(upsertMatchResult).toHaveBeenCalledTimes(1);
   });
 });

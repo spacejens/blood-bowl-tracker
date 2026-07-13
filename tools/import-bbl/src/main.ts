@@ -8,6 +8,7 @@ import { BblCoachesImportService } from './coaches/bbl-coaches-import.service';
 import { BblCompetitionsImportService } from './competitions/bbl-competitions-import.service';
 import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
+import { BblMatchEventsImportService } from './match-events/bbl-match-events-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
@@ -64,6 +65,14 @@ async function run(): Promise<ImportResult> {
         raceOutcome.racesByBblId,
         eraOutcome.eraIdsByName,
       );
+    const matchEventsOutcome = await app
+      .get(BblMatchEventsImportService)
+      .importMatchEvents(
+        competitionOutcome.competitionsByBblId,
+        teamOutcome.teamsByCode,
+        matchOutcome.matchIdsByBblId,
+        playerOutcome.playerIdsByPid,
+      );
 
     const results = [
       leagueOutcome.result,
@@ -76,7 +85,8 @@ async function run(): Promise<ImportResult> {
       teamOutcome.result,
       teamParticipationOutcome.result,
       positionOutcome.result,
-      playerOutcome,
+      playerOutcome.result,
+      matchEventsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
