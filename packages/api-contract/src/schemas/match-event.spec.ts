@@ -11,7 +11,7 @@ describe('UpsertMatchEventSchema', () => {
   it('accepts an action-only event', () => {
     const parsed = UpsertMatchEventSchema.parse({
       ...base,
-      actingMatchTeamId: 5,
+      actingTeamEraId: 5,
       actingPlayerId: 9,
       actionType: 'touchdown',
     });
@@ -22,7 +22,7 @@ describe('UpsertMatchEventSchema', () => {
   it('accepts a consequence-only event', () => {
     const parsed = UpsertMatchEventSchema.parse({
       ...base,
-      consequenceMatchTeamId: 6,
+      consequenceTeamEraId: 6,
       consequenceType: 'sent_off',
     });
     expect(parsed.consequenceType).toBe('sent_off');

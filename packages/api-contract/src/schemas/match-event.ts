@@ -44,8 +44,8 @@ export const MatchEventSchema = z.object({
 export const UpsertMatchEventSchema = z
   .object({
     matchId: z.number().int(),
-    actingMatchTeamId: z.number().int().optional(),
-    consequenceMatchTeamId: z.number().int().optional(),
+    actingTeamEraId: z.number().int().optional(),
+    consequenceTeamEraId: z.number().int().optional(),
     actingPlayerId: z.number().int().optional(),
     consequencePlayerId: z.number().int().optional(),
     actionType: ActionTypeSchema.optional(),

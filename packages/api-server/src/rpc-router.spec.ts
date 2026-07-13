@@ -1320,7 +1320,7 @@ describe('buildRpcRouter', () => {
 
     const result = await call(router.matchEvents.upsert, {
       matchId: 10,
-      actingMatchTeamId: 100,
+      actingTeamEraId: 100,
       actingPlayerId: 9,
       actionType: 'touchdown',
       externalIds: [{ externalSystemId: 1, externalId: '1000-vor-td-0' }],
@@ -1360,7 +1360,7 @@ describe('buildRpcRouter', () => {
     await expect(
       call(router.matchEvents.upsert, {
         matchId: 10,
-        actingMatchTeamId: 100,
+        actingTeamEraId: 100,
         actingPlayerId: 9,
         actionType: 'touchdown',
         externalIds: [{ externalSystemId: 1, externalId: '1000-vor-td-0' }],
@@ -1394,7 +1394,7 @@ describe('buildRpcRouter', () => {
     await expect(
       call(router.matchEvents.upsert, {
         matchId: 10,
-        actingMatchTeamId: 100,
+        actingTeamEraId: 100,
         actingPlayerId: 9,
         actionType: 'touchdown',
         externalIds: [{ externalSystemId: 1, externalId: '1000-vor-td-0' }],
