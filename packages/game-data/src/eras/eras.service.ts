@@ -1,7 +1,7 @@
 import type { Db, Era } from '@blood-bowl-tracker/db';
-import { DB, eraExternalIds, eras } from '@blood-bowl-tracker/db';
+import { DB, eraExternalIds, eras, leagues } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, eq, ilike, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -88,6 +88,30 @@ export class ErasService {
     }
 
     return { era, created };
+  }
+
+  async findById(id: number): Promise<{ id: number; name: string } | undefined> {
+    const rows = await this.db
+      .select({ id: eras.id, name: eras.name })
+      .from(eras)
+      .where(eq(eras.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; leagueName: string }[]> {
+    return this.db
+      .select({
+        id: eras.id,
+        name: eras.name,
+        leagueName: leagues.name,
+      })
+      .from(eras)
+      .innerJoin(leagues, eq(leagues.id, eras.leagueId))
+      .where(ilike(eras.name, `${prefix}%`))
+      .limit(limit);
   }
 
   countAll(): Promise<number> {

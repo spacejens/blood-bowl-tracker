@@ -173,4 +173,42 @@ describe('ErasService', () => {
       expect(from).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('findById', () => {
+    it('returns the matching era id and name', async () => {
+      const where = vi.fn().mockResolvedValue([{ id: 7, name: 'BB2020' }]);
+      const from = vi.fn(() => ({ where }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(7)).resolves.toEqual({
+        id: 7,
+        name: 'BB2020',
+      });
+    });
+
+    it('returns undefined when no era matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const from = vi.fn(() => ({ where }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns eras with their league name, limited', async () => {
+      const rows = [{ id: 7, name: 'BB2020', leagueName: 'Premier League' }];
+      const limit = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn(() => ({ limit }));
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.searchByNamePrefix('bb', 25)).resolves.toEqual(rows);
+      expect(limit).toHaveBeenCalledWith(25);
+    });
+  });
 });
