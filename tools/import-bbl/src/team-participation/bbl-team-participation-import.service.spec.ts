@@ -1,5 +1,6 @@
 import type {
   CompetitionsImportService,
+  MatchesImportService,
   RulesSetsImportService,
   TeamsImportService,
   UpsertCompetitionData,
@@ -84,6 +85,7 @@ function makeService(opts: {
   upsertTeam: ReturnType<typeof vi.fn>;
   upsertCompetition: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
+  upsertMatch?: ReturnType<typeof vi.fn>;
 }) {
   return new BblTeamParticipationImportService(
     opts.matchListReader,
@@ -96,6 +98,9 @@ function makeService(opts: {
       upsertRulesSet: opts.upsertRulesSet,
     } as unknown as RulesSetsImportService,
     { getEras: () => erasConfig } as unknown as EraConfigService,
+    {
+      upsertMatch: opts.upsertMatch ?? vi.fn().mockResolvedValue(true),
+    } as unknown as MatchesImportService,
   );
 }
 
@@ -133,6 +138,7 @@ describe('BblTeamParticipationImportService', () => {
       ]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
@@ -174,6 +180,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
@@ -218,6 +225,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
@@ -250,6 +258,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(0);
@@ -291,6 +300,7 @@ describe('BblTeamParticipationImportService', () => {
       ]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
@@ -324,6 +334,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map(),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
@@ -352,6 +363,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(0);
@@ -382,6 +394,7 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(0);
@@ -416,9 +429,127 @@ describe('BblTeamParticipationImportService', () => {
       new Map([['sew', home]]),
       new Map([['BB2020', rulesSet]]),
       eraIdsByName,
+      new Map([['1', 42]]),
     );
 
     expect(result.imported).toBe(1);
     expect(upsertRulesSet).not.toHaveBeenCalled();
+  });
+
+  it('upserts match teams with both resolved team eras', async () => {
+    const upsertTeam = vi
+      .fn()
+      .mockImplementation((data: UpsertTeamData) =>
+        Promise.resolve(
+          data.name === 'Sewerton Scavengers'
+            ? { id: 1, eras: [{ id: 1001, eraId: 200 }] }
+            : { id: 2, eras: [{ id: 1002, eraId: 200 }] },
+        ),
+      );
+    const upsertMatch = vi.fn().mockResolvedValue(true);
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({
+        '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }],
+      }),
+      matchDetailReader: makeMatchDetailReader({
+        m1: matchTeams('m1', 'sew', 'vor'),
+      }),
+      upsertTeam,
+      upsertCompetition: vi.fn().mockResolvedValue(true),
+      upsertRulesSet: vi.fn().mockResolvedValue({ id: 1 }),
+      upsertMatch,
+    });
+
+    await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([
+        ['sew', home],
+        ['vor', away],
+      ]),
+      new Map([['BB2020', rulesSet]]),
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(upsertMatch).toHaveBeenCalledWith(
+      {
+        competitionId: 42,
+        playedAt: new Date(Date.UTC(2021, 9, 1)),
+        externalIds: [{ externalSystemId: 1, externalId: 'm1' }],
+        teamEraIds: [1001, 1002],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('records an error and skips match teams when a team era does not resolve', async () => {
+    const upsertTeam = vi
+      .fn()
+      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 200 }] });
+    const upsertMatch = vi.fn().mockResolvedValue(true);
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({
+        '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }],
+      }),
+      matchDetailReader: makeMatchDetailReader({
+        m1: matchTeams('m1', 'sew', 'unknown'),
+      }),
+      upsertTeam,
+      upsertCompetition: vi.fn().mockResolvedValue(true),
+      upsertRulesSet: vi.fn().mockResolvedValue({ id: 1 }),
+      upsertMatch,
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      new Map([['BB2020', rulesSet]]),
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('could not resolve both team eras'),
+      ),
+    ).toBe(true);
+  });
+
+  it('records an error and skips match teams for a competition with no imported id', async () => {
+    const upsertTeam = vi
+      .fn()
+      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 200 }] });
+    const upsertMatch = vi.fn().mockResolvedValue(true);
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({
+        '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }],
+      }),
+      matchDetailReader: makeMatchDetailReader({
+        m1: matchTeams('m1', 'sew', 'sew'),
+      }),
+      upsertTeam,
+      upsertCompetition: vi.fn().mockResolvedValue(true),
+      upsertRulesSet: vi.fn().mockResolvedValue({ id: 1 }),
+      upsertMatch,
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      new Map([['BB2020', rulesSet]]),
+      eraIdsByName,
+      new Map(),
+    );
+
+    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('no imported competition id'),
+      ),
+    ).toBe(true);
   });
 });

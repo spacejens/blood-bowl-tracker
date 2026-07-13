@@ -5,6 +5,7 @@ import { ExternalIdSchema } from './external-id';
 export const MatchSchema = z.object({
   id: z.number(),
   competitionId: z.number(),
+  teamEraIds: z.array(z.number()),
   playedAt: z.coerce.date(),
   createdAt: z.coerce.date(),
 });
@@ -13,6 +14,7 @@ export const UpsertMatchSchema = z.object({
   competitionId: z.number().int(),
   playedAt: z.date(),
   externalIds: z.array(ExternalIdSchema).min(1),
+  teamEraIds: z.array(z.number().int()).default([]),
 });
 
 export type Match = z.infer<typeof MatchSchema>;

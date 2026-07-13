@@ -51,6 +51,7 @@ async function run(): Promise<ImportResult> {
         teamOutcome.teamsByCode,
         rulesSetsOutcome.rulesSetsByName,
         eraOutcome.eraIdsByName,
+        competitionOutcome.competitionIdsByBblId,
       );
     const positionOutcome = await app
       .get(BblPositionsImportService)

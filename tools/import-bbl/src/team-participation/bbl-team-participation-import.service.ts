@@ -9,6 +9,7 @@ import {
   CompetitionsImportService,
   makeImportError,
   makeImportResult,
+  MatchesImportService,
   RulesSetsImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
@@ -17,6 +18,8 @@ import { Injectable } from '@nestjs/common';
 import { EraConfigService } from '../eras/era-config.service';
 import { BblMatchDetailReaderService } from '../matches/bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
+import type { BblMatch } from '../matches/match-list-page-parser';
+import type { BblMatchTeams } from '../matches/match-teams-page-parser';
 
 @Injectable()
 export class BblTeamParticipationImportService {
@@ -27,6 +30,7 @@ export class BblTeamParticipationImportService {
     private readonly competitionsImport: CompetitionsImportService,
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly eraConfig: EraConfigService,
+    private readonly matchesImport: MatchesImportService,
   ) {}
 
   /**
@@ -47,6 +51,7 @@ export class BblTeamParticipationImportService {
     teamsByCode: Map<string, UpsertTeamData>,
     rulesSetsByName: Map<string, UpsertRulesSetData>,
     eraIdsByName: Map<string, number>,
+    competitionIdsByBblId: Map<string, number>,
   ): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
@@ -59,8 +64,15 @@ export class BblTeamParticipationImportService {
       }
     }
 
-    const teamIdsByCompetitionId = await this.collectTeamIds(
+    const matchesByCompetitionId =
+      await this.matchListReader.getMatchesByCompetitionId(errors);
+    const matchTeamsByBblId =
+      await this.matchDetailReader.getMatchTeamsByBblId(errors);
+
+    const teamIdsByCompetitionId = this.collectTeamIds(
       competitionsByBblId,
+      matchesByCompetitionId,
+      matchTeamsByBblId,
       errors,
     );
     const raceIdsByRulesSetName = new Map<string, Set<number>>();
@@ -72,6 +84,7 @@ export class BblTeamParticipationImportService {
       }
 
       const teamEraIds: number[] = [];
+      const teamEraIdByTeamId = new Map<string, number>();
       for (const id of teamIds) {
         const team = teamsByCode.get(id);
         if (!team) {
@@ -97,6 +110,7 @@ export class BblTeamParticipationImportService {
         );
         if (teamEra) {
           teamEraIds.push(teamEra.id);
+          teamEraIdByTeamId.set(id, teamEra.id);
         }
 
         const rulesSetName = rulesSetNameByEraId.get(competition.eraId);
@@ -117,6 +131,16 @@ export class BblTeamParticipationImportService {
           imported += 1;
         }
       }
+
+      await this.syncMatchTeams(
+        bblId,
+        competition,
+        matchesByCompetitionId.get(bblId) ?? [],
+        matchTeamsByBblId,
+        teamEraIdByTeamId,
+        competitionIdsByBblId,
+        errors,
+      );
     }
 
     for (const [rulesSetName, raceIds] of raceIdsByRulesSetName) {
@@ -134,20 +158,79 @@ export class BblTeamParticipationImportService {
   }
 
   /**
+   * Upsert the match_teams join for each of a competition's completed matches:
+   * resolve each match's home/away team ids (from the shared match-detail
+   * reader) to the team-era ids collected while syncing this competition's
+   * teams, then re-upsert the already-imported match with its [home, away]
+   * teamEraIds so the API syncs match_teams (append-only). A competition with no
+   * imported DB id, or a match whose two team ids do not both resolve, is
+   * recorded as an error and skipped without affecting the rest. Idempotent.
+   */
+  private async syncMatchTeams(
+    competitionBblId: string,
+    competition: UpsertCompetitionData,
+    matches: BblMatch[],
+    matchTeamsByBblId: Map<string, BblMatchTeams>,
+    teamEraIdByTeamId: Map<string, number>,
+    competitionIdsByBblId: Map<string, number>,
+    errors: ImportError[],
+  ): Promise<void> {
+    const competitionId = competitionIdsByBblId.get(competitionBblId);
+    if (competitionId === undefined) {
+      errors.push(
+        makeImportError({
+          item: { competition: competition.name },
+          message: `Skipping match teams for competition "${competition.name}": it has no imported competition id.`,
+        }),
+      );
+      return;
+    }
+
+    const externalSystemId = competition.externalIds[0].externalSystemId;
+
+    for (const match of matches) {
+      const teams = matchTeamsByBblId.get(match.bblId);
+      if (!teams) {
+        continue;
+      }
+      const homeTeamEraId = teamEraIdByTeamId.get(teams.homeTeamId);
+      const awayTeamEraId = teamEraIdByTeamId.get(teams.awayTeamId);
+      if (homeTeamEraId === undefined || awayTeamEraId === undefined) {
+        errors.push(
+          makeImportError({
+            item: { competition: competition.name, match: match.bblId },
+            message: `Skipping match teams for match "${match.bblId}" in competition "${competition.name}": could not resolve both team eras.`,
+          }),
+        );
+        continue;
+      }
+      await this.matchesImport.upsertMatch(
+        {
+          competitionId,
+          playedAt: match.date,
+          externalIds: [{ externalSystemId, externalId: match.bblId }],
+          teamEraIds: [homeTeamEraId, awayTeamEraId],
+        },
+        errors,
+      );
+    }
+  }
+
+  /**
    * Derive each competition's distinct team ids: group completed matches per
    * competition via the shared match-list reader (its single `ma` pass), then
    * resolve each match's two team ids from the shared match-detail reader (its
-   * single `m` pass). A match whose id has no detail entry is recorded as an
-   * error and skipped without affecting the rest of the competition.
+   * single `m` pass). The match maps are fetched once by the caller and
+   * supplied here so this step reuses them. A match whose id has no detail
+   * entry is recorded as an error and skipped without affecting the rest of
+   * the competition.
    */
-  private async collectTeamIds(
+  private collectTeamIds(
     competitionsByBblId: Map<string, UpsertCompetitionData>,
+    matchesByCompetitionId: Map<string, BblMatch[]>,
+    matchTeamsByBblId: Map<string, BblMatchTeams>,
     errors: ImportError[],
-  ): Promise<Map<string, Set<string>>> {
-    const matchesByCompetitionId =
-      await this.matchListReader.getMatchesByCompetitionId(errors);
-    const matchTeamsByBblId =
-      await this.matchDetailReader.getMatchTeamsByBblId(errors);
+  ): Map<string, Set<string>> {
     const teamIdsByCompetitionId = new Map<string, Set<string>>();
     for (const [competitionId, matches] of matchesByCompetitionId) {
       const competitionName =

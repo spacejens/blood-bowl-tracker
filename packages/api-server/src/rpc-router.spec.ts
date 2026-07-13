@@ -1041,6 +1041,7 @@ describe('buildRpcRouter', () => {
       match: {
         id: 1,
         competitionId: 20,
+        teamEraIds: [100, 101],
         playedAt: new Date('2021-09-25'),
         createdAt: new Date('2026-01-01'),
       },
@@ -1069,6 +1070,7 @@ describe('buildRpcRouter', () => {
     expect(result).toEqual({
       id: 1,
       competitionId: 20,
+      teamEraIds: [100, 101],
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
       created: true,
