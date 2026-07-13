@@ -382,6 +382,9 @@ importers:
       '@blood-bowl-tracker/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import
