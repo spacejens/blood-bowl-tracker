@@ -147,6 +147,167 @@ describe('BblPositionsImportService', () => {
     );
   });
 
+  it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate isDeleted:true row', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const service = makeService(
+      makeReader(
+        [
+          ptPage({
+            typId: '60',
+            name: 'Minotaur 2',
+            isStarPlayer: false,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+        [
+          plPage({
+            pid: '111',
+            name: 'Minotaur 2',
+            typId: '60',
+            teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
+          }),
+        ],
+      ),
+      externalSystemsOk(),
+      upsertPosition,
+    );
+
+    const { result, positionIdsByBblId } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(result.imported).toBe(2);
+    expect(positionIdsByBblId.get('60-7')).toBe(100);
+    expect(positionIdsByBblId.get('60-14')).toBe(100);
+    // listed race: isDeleted false
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: 'Minotaur 2',
+        isStarPlayer: false,
+        races: [{ raceId: 70, isDeleted: false }],
+        externalIds: [
+          { externalSystemId: 1, externalId: '60-7' },
+          { externalSystemId: 2, externalId: 'Goblin Team: Minotaur 2' },
+        ],
+      },
+      expect.any(Array),
+    );
+    // extra reverse-engineered race: duplicate row, isDeleted true
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: 'Minotaur 2',
+        isStarPlayer: false,
+        races: [{ raceId: 140, isDeleted: true }],
+        externalIds: [
+          { externalSystemId: 1, externalId: '60-14' },
+          { externalSystemId: 2, externalId: 'Norse Team: Minotaur 2' },
+        ],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('imports listed races and an extra reverse-engineered race (star) merged into one isDeleted:false row', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const service = makeService(
+      makeReader(
+        [
+          ptPage({
+            typId: '60',
+            name: 'Minotaur 2',
+            isStarPlayer: true,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+        [
+          plPage({
+            pid: '111',
+            name: 'Minotaur 2',
+            typId: '60',
+            teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
+          }),
+        ],
+      ),
+      externalSystemsOk(),
+      upsertPosition,
+    );
+
+    const { result, positionIdsByBblId } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    expect(result.imported).toBe(2);
+    expect(positionIdsByBblId.get('60-7')).toBe(100);
+    expect(positionIdsByBblId.get('60-14')).toBe(100);
+    // listed race row (unchanged listed-race convention: isStarPlayer false)
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: 'Minotaur 2',
+        isStarPlayer: false,
+        races: [{ raceId: 70, isDeleted: false }],
+        externalIds: [
+          { externalSystemId: 1, externalId: '60-7' },
+          { externalSystemId: 2, externalId: 'Goblin Team: Minotaur 2' },
+        ],
+      },
+      expect.any(Array),
+    );
+    // extra races merged into one star row with a bare-name external id
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: 'Minotaur 2',
+        isStarPlayer: true,
+        races: [{ raceId: 140, isDeleted: false }],
+        externalIds: [
+          { externalSystemId: 2, externalId: 'Minotaur 2' },
+          { externalSystemId: 1, externalId: '60-14' },
+          { externalSystemId: 2, externalId: 'Norse Team: Minotaur 2' },
+        ],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('imports only listed races when the reverse-engineered race is already listed (dedup, no regression)', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const service = makeService(
+      makeReader(
+        [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            isStarPlayer: false,
+            races: [
+              { bblId: '48', name: 'College of Shadow' },
+              { bblId: '7', name: 'Goblin Team' },
+            ],
+          }),
+        ],
+        [
+          plPage({
+            pid: '222',
+            name: 'Goblin Linemen',
+            typId: '33',
+            teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
+          }),
+        ],
+      ),
+      externalSystemsOk(),
+      upsertPosition,
+    );
+
+    const { result } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    // Only the 2 listed races import; the resolved race is deduped away.
+    expect(result.imported).toBe(2);
+    expect(upsertPosition).toHaveBeenCalledTimes(2);
+  });
+
   it('skips a listed race not in the map but imports the others', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
@@ -518,5 +679,89 @@ describe('BblPositionsImportService', () => {
 
     expect(result.success).toBe(true);
     expect(positionIdsByBblId.get('10-7')).toBe(100);
+  });
+
+  it('records an error when a scanned team code has no race in teamRaceIdsByCode', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const service = makeService(
+      makeReader(
+        [
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+        [
+          plPage({
+            pid: '333',
+            name: 'Lineman',
+            typId: '10',
+            teamCode: 'ghost', // not in teamRaceIdsByCode
+          }),
+        ],
+      ),
+      externalSystemsOk(),
+      upsertPosition,
+    );
+
+    const { result } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsByCode,
+    );
+
+    // The listed race still imports; the unresolved team code is recorded.
+    expect(result.imported).toBe(1);
+    expect(result.errors.some((e) => e.message.includes('ghost'))).toBe(true);
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('team code not in teamRaceIdsByCode'),
+      ),
+    ).toBe(true);
+  });
+
+  it('records an error when a resolved race db id is missing from racesByBblId', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const teamRaceIdsWithOrphan = new Map<string, number>([
+      ['knu', 140],
+      ['col', 480],
+      ['orphan', 999], // 999 has no entry in racesByBblId
+    ]);
+    const service = makeService(
+      makeReader(
+        [
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+        [
+          plPage({
+            pid: '444',
+            name: 'Lineman',
+            typId: '10',
+            teamCode: 'orphan', // -> db id 999, absent from racesByBblId
+          }),
+        ],
+      ),
+      externalSystemsOk(),
+      upsertPosition,
+    );
+
+    const { result } = await service.importPositions(
+      racesByBblId,
+      teamRaceIdsWithOrphan,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(result.errors.some((e) => e.message.includes('999'))).toBe(true);
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('race info missing from racesByBblId'),
+      ),
+    ).toBe(true);
   });
 });
