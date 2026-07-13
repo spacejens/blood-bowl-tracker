@@ -18,6 +18,7 @@ import type {
 } from 'discord.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../database-timeout';
 import { InsightsCommandService } from './insights-command.service';
 
 function makeService() {
@@ -281,6 +282,42 @@ describe('InsightsCommandService', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(eras.findById).toHaveBeenCalledWith(999);
+  });
+
+  it('passes the DB-timeout fallback string through unchanged when an era is given', async () => {
+    vi.useFakeTimers();
+    try {
+      const { service, coaches, eras } = makeService();
+      (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+      });
+      (
+        coaches.countMatchesPlayedByCoach as ReturnType<typeof vi.fn>
+      ).mockReturnValue(new Promise(() => {}));
+
+      const promise = service.execute(
+        chatInput('coach.toplist.matches.played', '20'),
+      );
+      await vi.advanceTimersByTimeAsync(2000);
+
+      await expect(promise).resolves.toBe(DATABASE_TIMEOUT_FALLBACK_MESSAGE);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('passes a reply with an empty embeds array through unchanged when an era is given', () => {
+    const { service } = makeService();
+    const reply = { embeds: [] };
+
+    const result = (
+      service as unknown as {
+        applyEraToReply: (reply: unknown, eraName: string) => unknown;
+      }
+    ).applyEraToReply(reply, 'BB2020');
+
+    expect(result).toBe(reply);
   });
 
   it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {

@@ -7,6 +7,17 @@ import { countRows } from '../shared/count-all';
 
 export class EraUpsertConflictError extends Error {}
 
+/**
+ * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default
+ * escape character (`\`) in a user-supplied string so it is matched
+ * literally rather than interpreted as a wildcard pattern. The backslash
+ * must be escaped first so that escaping `%`/`_` afterwards doesn't
+ * double-escape the backslashes it just introduced.
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 export interface UpsertEraData {
   name: string;
   leagueId: number;
@@ -112,7 +123,7 @@ export class ErasService {
       })
       .from(eras)
       .innerJoin(leagues, eq(leagues.id, eras.leagueId))
-      .where(ilike(eras.name, `${prefix}%`))
+      .where(ilike(eras.name, `${escapeLikePattern(prefix)}%`))
       .limit(limit);
   }
 

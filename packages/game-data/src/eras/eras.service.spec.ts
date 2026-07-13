@@ -210,5 +210,24 @@ describe('ErasService', () => {
       await expect(service.searchByNamePrefix('bb', 25)).resolves.toEqual(rows);
       expect(limit).toHaveBeenCalledWith(25);
     });
+
+    it('escapes LIKE metacharacters in the prefix before matching', async () => {
+      const limit = vi.fn().mockResolvedValue([]);
+      const where = vi.fn((_condition: { queryChunks: unknown[] }) => ({
+        limit,
+      }));
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+
+      await service.searchByNamePrefix('50%_\\off', 25);
+
+      expect(where).toHaveBeenCalledTimes(1);
+      const condition = where.mock.calls[0][0];
+      // The escaped pattern value is passed as a raw SQL parameter chunk.
+      expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
+    });
   });
 });
