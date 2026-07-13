@@ -7,9 +7,18 @@ import {
   resolvePath,
 } from './fact-tree-utils';
 
-const leafA: FactLeaf = { supportsEra: false, resolve: () => Promise.resolve('A') };
-const leafB: FactLeaf = { supportsEra: false, resolve: () => Promise.resolve('B') };
-const leafC: FactLeaf = { supportsEra: false, resolve: () => Promise.resolve('C') };
+const leafA: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('A'),
+};
+const leafB: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('B'),
+};
+const leafC: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('C'),
+};
 
 const tree: FactNode = {
   coach: {

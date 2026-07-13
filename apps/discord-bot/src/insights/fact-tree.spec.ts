@@ -14,9 +14,9 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildFactTree } from './fact-tree';
-import type { StatsSummaryDeps } from './facts/stats-summary';
 import type { FactLeaf } from './fact-tree-utils';
 import { collectLeaves, resolvePath } from './fact-tree-utils';
+import type { StatsSummaryDeps } from './facts/stats-summary';
 
 function deps() {
   const zero = () => ({ countAll: vi.fn().mockResolvedValue(0) });
