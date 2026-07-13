@@ -274,6 +274,49 @@ describe('BblCompetitionsImportService', () => {
     ).toBe(false);
   });
 
+  it('skips and records a distinct error when the override era has no known database id', async () => {
+    const upsertCompetitionResult = vi.fn();
+    const service = makeService({
+      reader: makeReader({
+        se: [page('se', { s: '66' })],
+      }),
+      listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
+      matchListReader: makeMatchListReader({}),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'BB2020',
+          rulesSet: 'BB2020',
+          startDate: '2021-09-01',
+          firstPlayerId: 5001,
+          competitionIdOverrides: ['74'],
+        },
+      ],
+      // "BB2020" is matched by competitionIdOverrides, but is absent from
+      // eraIdsByName, simulating its rules set having failed to import
+      // earlier in the run.
+    });
+
+    const { result } = await service.importCompetitions(new Map());
+
+    expect(result.imported).toBe(0);
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('"BB2020"') &&
+          e.message.includes('no known database id'),
+      ),
+    ).toBe(true);
+    expect(
+      result.errors.some((e) => e.message.includes('no dated matches')),
+    ).toBe(false);
+  });
+
   it('falls back to an sr page for the master list when no se page exists', async () => {
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 1 });
     const service = makeService({
