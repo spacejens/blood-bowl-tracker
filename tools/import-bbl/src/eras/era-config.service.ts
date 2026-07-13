@@ -15,6 +15,15 @@ export interface EraConfig {
    * chronological). Checked before the range bounds.
    */
   playerIdOverrides?: number[];
+  /**
+   * Explicit competition bblIds assigned to this era regardless of their match
+   * dates — for competitions with a genuinely empty match list, which have no
+   * date signal to resolve an era from. Checked before match-date-based era
+   * resolution, exactly like playerIdOverrides pins a player to an era.
+   * Competition bblIds are strings elsewhere in this codebase (e.g.
+   * BblCompetition.bblId).
+   */
+  competitionIdOverrides?: string[];
 }
 
 /**
@@ -88,6 +97,19 @@ export class EraConfigService {
       }
     }
 
+    const eraNameByOverriddenCompetitionId = new Map<string, string>();
+    for (const era of eras) {
+      for (const bblId of era.competitionIdOverrides ?? []) {
+        const existing = eraNameByOverriddenCompetitionId.get(bblId);
+        if (existing !== undefined) {
+          throw new Error(
+            `BBL_ERAS: competition id ${bblId} appears in competitionIdOverrides for both "${existing}" and "${era.name}".`,
+          );
+        }
+        eraNameByOverriddenCompetitionId.set(bblId, era.name);
+      }
+    }
+
     return eras;
   }
 
@@ -105,6 +127,7 @@ export class EraConfigService {
       firstPlayerId,
       lastPlayerId,
       playerIdOverrides,
+      competitionIdOverrides,
     } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
@@ -157,6 +180,18 @@ export class EraConfigService {
       );
     }
 
+    if (
+      competitionIdOverrides !== undefined &&
+      (!Array.isArray(competitionIdOverrides) ||
+        !competitionIdOverrides.every(
+          (id) => typeof id === 'string' && id.trim() !== '',
+        ))
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].competitionIdOverrides must be an array of non-empty strings when present.`,
+      );
+    }
+
     return {
       name,
       rulesSet,
@@ -166,6 +201,9 @@ export class EraConfigService {
       ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
       ...(playerIdOverrides !== undefined
         ? { playerIdOverrides: playerIdOverrides }
+        : {}),
+      ...(competitionIdOverrides !== undefined
+        ? { competitionIdOverrides: competitionIdOverrides }
         : {}),
     };
   }
