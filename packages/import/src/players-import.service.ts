@@ -31,4 +31,23 @@ export class PlayersImportService {
         `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+
+  /**
+   * Like {@link upsertPlayer}, but resolves to the upserted player
+   * (including its DB `id`) on success, or `undefined` on failure. Used
+   * where the caller needs the player's DB id (e.g. to link match events to
+   * them).
+   */
+  upsertPlayerResult(
+    data: UpsertPlayerData,
+    errors: ImportError[],
+  ): Promise<{ id: number } | undefined> {
+    return this.importRunner.recordUpsertResult(
+      () => this.client.players.upsert(data),
+      data,
+      errors,
+      (err) =>
+        `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }

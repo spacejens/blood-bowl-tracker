@@ -30,9 +30,10 @@ export class BblMatchesImportService {
   async importMatches(
     competitionsByBblId: Map<string, UpsertCompetitionData>,
     competitionIdsByBblId: Map<string, number>,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{ result: ImportResult; matchIdsByBblId: Map<string, number> }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const matchIdsByBblId = new Map<string, number>();
 
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
@@ -53,7 +54,7 @@ export class BblMatchesImportService {
       const externalSystemId = competition.externalIds[0].externalSystemId;
 
       for (const match of matches) {
-        const success = await this.matchesImport.upsertMatch(
+        const upserted = await this.matchesImport.upsertMatchResult(
           {
             competitionId,
             playedAt: match.date,
@@ -61,12 +62,13 @@ export class BblMatchesImportService {
           },
           errors,
         );
-        if (success) {
+        if (upserted) {
           imported += 1;
+          matchIdsByBblId.set(match.bblId, upserted.id);
         }
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: makeImportResult({ imported, errors }), matchIdsByBblId };
   }
 }

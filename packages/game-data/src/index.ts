@@ -24,6 +24,12 @@ export {
   LeaguesService,
   LeagueUpsertConflictError,
 } from './leagues/leagues.service';
+export { MatchEventsModule } from './match-events/match-events.module';
+export type { UpsertMatchEventData } from './match-events/match-events.service';
+export {
+  MatchEventsService,
+  MatchEventUpsertConflictError,
+} from './match-events/match-events.service';
 export { MatchesModule } from './matches/matches.module';
 export type {
   MatchWithTeamEras,

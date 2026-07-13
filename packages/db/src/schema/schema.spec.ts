@@ -9,6 +9,7 @@ import {
   externalSystems,
   leagues,
   matches,
+  matchEventExternalIds,
   matchEvents,
   matchTeams,
   players,
@@ -135,12 +136,21 @@ describe('schema', () => {
     expect(matchTeams.teamEraId).toBeDefined();
   });
 
-  it('exports matchEvents table with optional participant columns', () => {
+  it('exports matchEvents table with match-team + player + enum columns', () => {
     expect(matchEvents.id).toBeDefined();
     expect(matchEvents.matchId).toBeDefined();
-    expect(matchEvents.actingTeamEraId).toBeDefined();
-    expect(matchEvents.consequenceTeamEraId).toBeDefined();
+    expect(matchEvents.actingMatchTeamId).toBeDefined();
+    expect(matchEvents.consequenceMatchTeamId).toBeDefined();
     expect(matchEvents.actingPlayerId).toBeDefined();
     expect(matchEvents.consequencePlayerId).toBeDefined();
+    expect(matchEvents.actionType).toBeDefined();
+    expect(matchEvents.consequenceType).toBeDefined();
+  });
+
+  it('exports matchEventExternalIds table', () => {
+    expect(matchEventExternalIds.id).toBeDefined();
+    expect(matchEventExternalIds.matchEventId).toBeDefined();
+    expect(matchEventExternalIds.externalSystemId).toBeDefined();
+    expect(matchEventExternalIds.externalId).toBeDefined();
   });
 });
