@@ -175,11 +175,11 @@ describe('TeamsService', () => {
   describe('toplist queries', () => {
     function makeQueryBuilder(rows: unknown[]) {
       const builder: Record<string, unknown> = {};
-      const chain = vi.fn(() => builder);
-      builder.from = chain;
-      builder.innerJoin = chain;
-      builder.groupBy = chain;
-      builder.orderBy = chain;
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
       builder.then = (
         resolve: (v: unknown) => unknown,
         reject: (e: unknown) => unknown,
@@ -196,6 +196,16 @@ describe('TeamsService', () => {
       const service = new TeamsService({ select } as unknown as Db);
       await expect(service.countMatchesPlayedByTeam()).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countMatchesPlayedByTeam filters by era when an eraId is given', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countMatchesPlayedByTeam(20)).resolves.toEqual(rows);
+      // The era-filtered path must add a WHERE clause.
+      expect(builder.where).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -86,9 +86,9 @@ export class TeamsService {
     return { team: { ...team, eras }, created };
   }
 
-  async countMatchesPlayedByTeam(): Promise<
-    { teamId: number; name: string; count: number }[]
-  > {
+  async countMatchesPlayedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
         teamId: teams.id,
@@ -99,6 +99,7 @@ export class TeamsService {
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(matches.id)));
   }
