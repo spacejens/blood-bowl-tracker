@@ -4,6 +4,7 @@ import {
   matches,
   matchEvents,
   matchExternalIds,
+  matchTeams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
@@ -16,6 +17,11 @@ export interface UpsertMatchData {
   competitionId: number;
   playedAt: Date;
   externalIds: { externalSystemId: number; externalId: string }[];
+  teamEraIds: number[];
+}
+
+export interface MatchWithTeamEras extends Match {
+  teamEraIds: number[];
 }
 
 @Injectable()
@@ -24,7 +30,7 @@ export class MatchesService {
 
   async upsert(
     data: UpsertMatchData,
-  ): Promise<{ match: Match; created: boolean }> {
+  ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
     const existingRows = await this.db
       .select({
         matchId: matchExternalIds.matchId,
@@ -72,8 +78,31 @@ export class MatchesService {
     }
 
     await this.syncExternalIds(match.id, data.externalIds, existingRows);
+    const teamEraIds = await this.syncTeams(match.id, data.teamEraIds);
 
-    return { match, created };
+    return { match: { ...match, teamEraIds }, created };
+  }
+
+  private async syncTeams(
+    matchId: number,
+    teamEraIds: number[],
+  ): Promise<number[]> {
+    const existing = await this.db
+      .select({ teamEraId: matchTeams.teamEraId })
+      .from(matchTeams)
+      .where(eq(matchTeams.matchId, matchId));
+
+    const existingIds = existing.map((r) => r.teamEraId);
+    const existingSet = new Set(existingIds);
+    const toInsert = teamEraIds.filter((id) => !existingSet.has(id));
+
+    if (toInsert.length > 0) {
+      await this.db
+        .insert(matchTeams)
+        .values(toInsert.map((teamEraId) => ({ matchId, teamEraId })));
+    }
+
+    return [...existingIds, ...toInsert];
   }
 
   private async syncExternalIds(

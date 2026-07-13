@@ -1,5 +1,10 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matches, matchExternalIds } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  matches,
+  matchExternalIds,
+  matchTeams,
+} from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -24,17 +29,22 @@ function makeFromBuilder(rows: unknown[]) {
 describe('MatchesService', () => {
   let service: MatchesService;
   let externalIdRows: unknown[];
+  let existingTeamRows: { teamEraId: number }[];
   let insertCalls: { table: unknown; values: unknown }[];
   let updateCalls: { table: unknown; set: unknown }[];
 
   beforeEach(async () => {
     externalIdRows = [];
+    existingTeamRows = [];
     insertCalls = [];
     updateCalls = [];
 
     const mockDb = {
       select: () => ({
-        from: () => makeFromBuilder(externalIdRows),
+        from: (table: unknown) =>
+          makeFromBuilder(
+            table === matchTeams ? existingTeamRows : externalIdRows,
+          ),
       }),
       insert: (table: unknown) => ({
         values: (values: unknown) => {
@@ -63,12 +73,16 @@ describe('MatchesService', () => {
     competitionId: 20,
     playedAt: new Date('2021-09-25'),
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
+    teamEraIds: [],
   };
 
   it('creates a new match when no external IDs match', async () => {
     const result = await service.upsert(baseData);
 
-    expect(result).toEqual({ match: fakeMatch, created: true });
+    expect(result).toEqual({
+      match: { ...fakeMatch, teamEraIds: [] },
+      created: true,
+    });
     expect(insertCalls.some((c) => c.table === matches)).toBe(true);
     expect(updateCalls).toHaveLength(0);
   });
@@ -132,6 +146,31 @@ describe('MatchesService', () => {
     await service.upsert(baseData);
 
     expect(insertCalls.some((c) => c.table === matchExternalIds)).toBe(false);
+  });
+
+  it('inserts only the match_teams rows that are new', async () => {
+    existingTeamRows = [{ teamEraId: 100 }];
+
+    const result = await service.upsert({
+      ...baseData,
+      teamEraIds: [100, 101],
+    });
+
+    const call = insertCalls.find((c) => c.table === matchTeams);
+    expect(call?.values).toEqual([{ matchId: 1, teamEraId: 101 }]);
+    expect(result.match.teamEraIds).toEqual([100, 101]);
+  });
+
+  it('does not insert match_teams rows when all links already exist', async () => {
+    existingTeamRows = [{ teamEraId: 100 }, { teamEraId: 101 }];
+
+    const result = await service.upsert({
+      ...baseData,
+      teamEraIds: [100, 101],
+    });
+
+    expect(insertCalls.some((c) => c.table === matchTeams)).toBe(false);
+    expect(result.match.teamEraIds).toEqual([100, 101]);
   });
 
   describe('countAll', () => {
