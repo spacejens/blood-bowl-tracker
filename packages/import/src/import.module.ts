@@ -6,6 +6,7 @@ import { ErasImportService } from './eras-import.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
+import { MatchEventsImportService } from './match-events-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionsImportService } from './positions-import.service';
@@ -19,6 +20,7 @@ import { TeamsImportService } from './teams-import.service';
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,
+    MatchEventsImportService,
     MatchesImportService,
     PlayersImportService,
     PositionsImportService,
@@ -33,6 +35,7 @@ import { TeamsImportService } from './teams-import.service';
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,
+    MatchEventsImportService,
     MatchesImportService,
     PlayersImportService,
     PositionsImportService,

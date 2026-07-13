@@ -94,3 +94,62 @@ describe('MatchesImportService', () => {
     expect(upsertMock).toHaveBeenCalledWith(data);
   });
 });
+
+describe('MatchesImportService.upsertMatchResult', () => {
+  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
+    const client = {
+      matches: { upsert: upsertMock },
+    } as unknown as ApiClient;
+    return new MatchesImportService(client, new ImportRunnerService());
+  }
+
+  const data = {
+    competitionId: 20,
+    playedAt: new Date('2021-09-25'),
+    externalIds: [{ externalSystemId: 1, externalId: '89' }],
+  };
+
+  it('resolves to the upserted match, including its DB id, on success', async () => {
+    const upsertMock = vi.fn().mockResolvedValue({
+      id: 42,
+      competitionId: 20,
+      playedAt: new Date('2021-09-25'),
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+    const service = makeService(upsertMock);
+    const errors: ImportError[] = [];
+
+    const result = await service.upsertMatchResult(data, errors);
+
+    expect(result).toEqual(expect.objectContaining({ id: 42 }));
+    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(errors).toHaveLength(0);
+  });
+
+  it('resolves to undefined and records an error when the client call fails', async () => {
+    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
+    const service = makeService(upsertMock);
+    const errors: ImportError[] = [];
+
+    const result = await service.upsertMatchResult(data, errors);
+
+    expect(result).toBeUndefined();
+    expect(errors).toEqual([
+      { item: data, message: 'Failed to import match "89": conflict' },
+    ]);
+  });
+
+  it('records an error using String(err) for a non-Error rejection', async () => {
+    const upsertMock = vi.fn().mockRejectedValue('boom');
+    const service = makeService(upsertMock);
+    const errors: ImportError[] = [];
+
+    const result = await service.upsertMatchResult(data, errors);
+
+    expect(result).toBeUndefined();
+    expect(errors).toEqual([
+      { item: data, message: 'Failed to import match "89": boom' },
+    ]);
+  });
+});

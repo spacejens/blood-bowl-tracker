@@ -29,4 +29,23 @@ export class MatchesImportService {
         `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`,
     );
   }
+
+  /**
+   * Like {@link upsertMatch}, but resolves to the upserted match (including
+   * its DB `id`) on success, or `undefined` on failure. Used where the
+   * caller needs the match's DB id (e.g. to link match events to it).
+   */
+  upsertMatchResult(
+    data: UpsertMatchData,
+    errors: ImportError[],
+  ): Promise<{ id: number } | undefined> {
+    const bblId = data.externalIds[0]?.externalId;
+    return this.importRunner.recordUpsertResult(
+      () => this.client.matches.upsert(data),
+      data,
+      errors,
+      (err) =>
+        `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 }
