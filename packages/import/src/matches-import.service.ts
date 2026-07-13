@@ -9,6 +9,7 @@ export interface UpsertMatchData {
   competitionId: number;
   playedAt: Date;
   externalIds: { externalSystemId: number; externalId: string }[];
+  teamEraIds?: number[];
 }
 
 @Injectable()
