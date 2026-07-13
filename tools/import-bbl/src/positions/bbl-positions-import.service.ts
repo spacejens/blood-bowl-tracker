@@ -65,14 +65,14 @@ export class BblPositionsImportService {
    *   race (isStarPlayer false, each relation isDeleted false), keyed by the
    *   composite `<typId>-<raceBblId>` (BBL) and `<raceName>: <positionName>`
    *   (Name), as before.
-   * - Pages that list no race are reverse-engineered from player pages: each
-   *   player of the position (matched by typId) belongs to a team whose race is
-   *   known via `teamRaceIdsByCode`. If the page carries the `None (star player)`
-   *   marker, the position imports as ONE row with a positions_races row per
-   *   resolved race (isDeleted false) plus a bare-name Name external id.
-   *   Otherwise (a defunct-race position) it imports as duplicate rows, one per
-   *   resolved race, each relation isDeleted true.
-   * - Positions that resolve to no race (none listed and no player found) are
+   * - Regardless of whether races are listed, player pages are scanned to
+   *   reverse-engineer any ADDITIONAL race(s) that field the position (matched
+   *   by typId via `teamRaceIdsByCode`), deduped against the listed races. Any
+   *   extra race imports under the zero-listed-races convention: if the page
+   *   carries the `None (star player)` marker, ONE row with a positions_races
+   *   row per extra race (isDeleted false) plus a bare-name Name external id;
+   *   otherwise duplicate rows, one per extra race, each relation isDeleted true.
+   * - Positions that list no race and resolve to none from player history are
    *   skipped with a recorded error, as before.
    *
    * `racesByBblId` (from the races import) resolves a listed race's BBL id and
@@ -150,52 +150,58 @@ export class BblPositionsImportService {
           continue;
         }
 
-        if (position.races.length > 0) {
-          for (const race of position.races) {
-            const dbId = racesByBblId.get(race.bblId)?.id;
-            if (dbId === undefined) {
-              errors.push(
-                makeImportError({
-                  item: { typId: position.typId, race: race.name },
-                  message: `Skipped position "${position.name}" for race "${race.name}" (${race.bblId}): race not imported`,
-                }),
-              );
-              continue;
-            }
-            const upserted = await this.positionsImport.upsertPosition(
-              {
-                name: position.name,
-                isStarPlayer: false,
-                races: [{ raceId: dbId, isDeleted: false }],
-                externalIds: raceExternalIds(
-                  bblSystemId,
-                  nameSystemId,
-                  position.typId,
-                  race,
-                  position.name,
-                ),
-              },
-              errors,
+        const listedBblIds = new Set(position.races.map((r) => r.bblId));
+
+        for (const race of position.races) {
+          const dbId = racesByBblId.get(race.bblId)?.id;
+          if (dbId === undefined) {
+            errors.push(
+              makeImportError({
+                item: { typId: position.typId, race: race.name },
+                message: `Skipped position "${position.name}" for race "${race.name}" (${race.bblId}): race not imported`,
+              }),
             );
-            if (upserted) {
-              imported += 1;
-              positionIdsByBblId.set(
-                `${position.typId}-${race.bblId}`,
-                upserted.id,
-              );
-            }
+            continue;
           }
-          continue;
+          const upserted = await this.positionsImport.upsertPosition(
+            {
+              name: position.name,
+              isStarPlayer: false,
+              races: [{ raceId: dbId, isDeleted: false }],
+              externalIds: raceExternalIds(
+                bblSystemId,
+                nameSystemId,
+                position.typId,
+                race,
+                position.name,
+              ),
+            },
+            errors,
+          );
+          if (upserted) {
+            imported += 1;
+            positionIdsByBblId.set(
+              `${position.typId}-${race.bblId}`,
+              upserted.id,
+            );
+          }
         }
 
-        const resolved = resolveRaces(position.typId);
-        if (resolved.length === 0) {
+        const resolved = resolveRaces(position.typId).filter(
+          (race) => !listedBblIds.has(race.bblId),
+        );
+
+        if (position.races.length === 0 && resolved.length === 0) {
           errors.push(
             makeImportError({
               item: { typId: position.typId, name: position.name },
               message: `Skipped position "${position.name}" (${position.typId}): no race listed and none resolvable from player history`,
             }),
           );
+          continue;
+        }
+
+        if (resolved.length === 0) {
           continue;
         }
 
