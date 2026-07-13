@@ -190,7 +190,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach(20)).resolves.toEqual(rows);
+      await expect(service.countMatchesPlayedByCoach(20)).resolves.toEqual(
+        rows,
+      );
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 

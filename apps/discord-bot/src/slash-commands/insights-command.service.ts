@@ -31,6 +31,8 @@ import {
 
 const UNMATCHED_FALLBACK_MESSAGE =
   "Even the Apothecary can't make sense of that one.";
+const ERA_REJECTION_MESSAGE =
+  'Even the Assistant Coach cannot understand your request';
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
@@ -83,6 +85,12 @@ export class InsightsCommandService implements OnApplicationBootstrap {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'era',
+          description: 'Scope the insight to a single era (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -93,29 +101,92 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const category = interaction.options.getString('category');
-    if (!category) {
-      return this.resolveRandomFact();
+    const eraOption = interaction.options.getString('era');
+
+    let era: { id: number; name: string } | undefined;
+    if (eraOption !== null) {
+      const eraId = Number(eraOption);
+      const found = Number.isInteger(eraId)
+        ? await this.eras.findById(eraId)
+        : undefined;
+      if (!found) {
+        return ERA_REJECTION_MESSAGE;
+      }
+      era = found;
     }
+
+    if (!category) {
+      return this.resolveRandomFact(era);
+    }
+
     const node = resolvePath(this.factTree, category);
     if (node === undefined) {
       return UNMATCHED_FALLBACK_MESSAGE;
     }
-    return this.pickRandom(collectLeaves(node)).resolve();
+
+    let leaves = collectLeaves(node);
+    if (era) {
+      leaves = leaves.filter((leaf) => leaf.supportsEra);
+      if (leaves.length === 0) {
+        return ERA_REJECTION_MESSAGE;
+      }
+    }
+
+    const reply = await this.pickRandom(leaves).resolve(era?.id);
+    return era ? this.applyEraToReply(reply, era.name) : reply;
   }
 
-  resolveRandomFact(): Promise<string | InteractionReplyOptions> {
-    return this.pickRandom(collectLeaves(this.factTree)).resolve();
+  async resolveRandomFact(era?: {
+    id: number;
+    name: string;
+  }): Promise<string | InteractionReplyOptions> {
+    let leaves = collectLeaves(this.factTree);
+    if (era) {
+      leaves = leaves.filter((leaf) => leaf.supportsEra);
+    }
+    const reply = await this.pickRandom(leaves).resolve(era?.id);
+    return era ? this.applyEraToReply(reply, era.name) : reply;
   }
 
-  autocomplete(
+  private applyEraToReply(
+    reply: string | InteractionReplyOptions,
+    eraName: string,
+  ): string | InteractionReplyOptions {
+    if (typeof reply === 'string') {
+      return reply;
+    }
+    const embeds = reply.embeds;
+    if (!embeds || embeds.length === 0) {
+      return reply;
+    }
+    return {
+      ...reply,
+      embeds: embeds.map((embed, index) => {
+        const title = (embed as { title?: string }).title;
+        return index === 0 && title
+          ? { ...embed, title: `${title} — ${eraName}` }
+          : embed;
+      }),
+    };
+  }
+
+  async autocomplete(
     interaction: AutocompleteInteraction,
   ): Promise<{ name: string; value: string }[]> {
-    const focused = interaction.options.getFocused();
-    return Promise.resolve(
-      nextSegmentCompletions(this.factTree, focused)
-        .slice(0, MAX_AUTOCOMPLETE_CHOICES)
-        .map((path) => ({ name: path, value: path })),
-    );
+    const focused = interaction.options.getFocused(true);
+    if (focused.name === 'era') {
+      const eras = await this.eras.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return eras.map((era) => ({
+        name: `${era.name} (${era.leagueName})`,
+        value: String(era.id),
+      }));
+    }
+    return nextSegmentCompletions(this.factTree, focused.value)
+      .slice(0, MAX_AUTOCOMPLETE_CHOICES)
+      .map((path) => ({ name: path, value: path }));
   }
 
   private pickRandom(leaves: FactLeaf[]): FactLeaf {

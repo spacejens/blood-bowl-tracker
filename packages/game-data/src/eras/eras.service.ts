@@ -90,7 +90,9 @@ export class ErasService {
     return { era, created };
   }
 
-  async findById(id: number): Promise<{ id: number; name: string } | undefined> {
+  async findById(
+    id: number,
+  ): Promise<{ id: number; name: string } | undefined> {
     const rows = await this.db
       .select({ id: eras.id, name: eras.name })
       .from(eras)
