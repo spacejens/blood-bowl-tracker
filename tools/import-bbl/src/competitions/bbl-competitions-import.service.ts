@@ -111,45 +111,21 @@ export class BblCompetitionsImportService {
     }
 
     for (const competition of competitions) {
-      const dates = datesByCompetitionId.get(competition.bblId) ?? [];
-      if (dates.length === 0) {
-        errors.push(
-          makeImportError({
-            item: competition,
-            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): no dated matches found.`,
-          }),
-        );
-        continue;
-      }
-
-      const times = dates.map((d) => d.getTime());
-      const earliest = new Date(Math.min(...times));
-      const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
-      const type = spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
-
-      const { eraName, eraId } = this.resolveEraId(
-        earliest,
+      const resolved = this.resolveTypeAndEra(
+        competition,
+        datesByCompetitionId.get(competition.bblId) ?? [],
         eras,
         eraIdsByName,
+        errors,
       );
-      if (eraId === undefined) {
-        const message =
-          eraName === undefined
-            ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`
-            : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
-        errors.push(
-          makeImportError({
-            item: competition,
-            message,
-          }),
-        );
+      if (resolved === undefined) {
         continue;
       }
 
       const competitionData: UpsertCompetitionData = {
         name: competition.name,
-        type,
-        eraId,
+        type: resolved.type,
+        eraId: resolved.eraId,
         teamEraIds: [],
         externalIds: [
           { externalSystemId: bblSystemId, externalId: competition.bblId },
@@ -224,6 +200,68 @@ export class BblCompetitionsImportService {
       }
     }
     return null;
+  }
+
+  /**
+   * Resolve a competition's type and era DB id, or return undefined after
+   * recording a skip error. A competition whose bblId is listed in an era's
+   * competitionIdOverrides is hard-assigned that era with type 'season',
+   * unconditionally and ahead of any match-date resolution (mirroring how
+   * playerIdOverrides pins a player to an era) — this is the only path for a
+   * competition with a genuinely empty match list. Otherwise the era and type
+   * are derived from the match dates: no dates => skip; span <= 3 days => cup,
+   * else season; earliest date matched against the configured era ranges.
+   */
+  private resolveTypeAndEra(
+    competition: BblCompetition,
+    dates: Date[],
+    eras: EraConfig[],
+    eraIdsByName: Map<string, number>,
+    errors: ImportError[],
+  ): { type: 'season' | 'cup'; eraId: number } | undefined {
+    const overrideEra = eras.find((era) =>
+      era.competitionIdOverrides?.includes(competition.bblId),
+    );
+    if (overrideEra !== undefined) {
+      const eraId = eraIdsByName.get(overrideEra.name);
+      if (eraId === undefined) {
+        errors.push(
+          makeImportError({
+            item: competition,
+            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.name}" has no known database id (its rules set may have failed to import).`,
+          }),
+        );
+        return undefined;
+      }
+      return { type: 'season', eraId };
+    }
+
+    if (dates.length === 0) {
+      errors.push(
+        makeImportError({
+          item: competition,
+          message: `Skipping competition "${competition.name}" (id ${competition.bblId}): no dated matches found.`,
+        }),
+      );
+      return undefined;
+    }
+
+    const times = dates.map((d) => d.getTime());
+    const earliest = new Date(Math.min(...times));
+    const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
+    const type = spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
+
+    const { eraName, eraId } = this.resolveEraId(earliest, eras, eraIdsByName);
+    if (eraId === undefined) {
+      const message =
+        eraName === undefined
+          ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`
+          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
+      errors.push(makeImportError({ item: competition, message }));
+      return undefined;
+    }
+
+    return { type, eraId };
   }
 
   /**

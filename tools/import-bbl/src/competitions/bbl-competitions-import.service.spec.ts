@@ -274,6 +274,49 @@ describe('BblCompetitionsImportService', () => {
     ).toBe(false);
   });
 
+  it('skips and records a distinct error when the override era has no known database id', async () => {
+    const upsertCompetitionResult = vi.fn();
+    const service = makeService({
+      reader: makeReader({
+        se: [page('se', { s: '66' })],
+      }),
+      listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
+      matchListReader: makeMatchListReader({}),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'BB2020',
+          rulesSet: 'BB2020',
+          startDate: '2021-09-01',
+          firstPlayerId: 5001,
+          competitionIdOverrides: ['74'],
+        },
+      ],
+      // "BB2020" is matched by competitionIdOverrides, but is absent from
+      // eraIdsByName, simulating its rules set having failed to import
+      // earlier in the run.
+    });
+
+    const { result } = await service.importCompetitions(new Map());
+
+    expect(result.imported).toBe(0);
+    expect(upsertCompetitionResult).not.toHaveBeenCalled();
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('"BB2020"') &&
+          e.message.includes('no known database id'),
+      ),
+    ).toBe(true);
+    expect(
+      result.errors.some((e) => e.message.includes('no dated matches')),
+    ).toBe(false);
+  });
+
   it('falls back to an sr page for the master list when no se page exists', async () => {
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 1 });
     const service = makeService({
@@ -383,5 +426,103 @@ describe('BblCompetitionsImportService', () => {
     expect(
       result.errors.some((e) => e.message.includes('no se or sr page')),
     ).toBe(true);
+  });
+
+  it('imports a zero-match competition via its era override as type season', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 74 });
+    const service = makeService({
+      reader: makeReader({
+        se: [page('se', { s: '66' })],
+      }),
+      listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
+      matchListReader: makeMatchListReader({}),
+      upsertExternalSystem,
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'Living rulebook',
+          rulesSet: 'Living rulebook',
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          firstPlayerId: 1,
+        },
+        {
+          name: 'BB2020',
+          rulesSet: 'BB2020',
+          startDate: '2021-09-01',
+          firstPlayerId: 5001,
+          competitionIdOverrides: ['74'],
+        },
+      ],
+    });
+
+    const { result, competitionsByBblId, competitionIdsByBblId } =
+      await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(1);
+    expect(result.errors).toHaveLength(0);
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      {
+        name: 'Minor Season 25',
+        type: 'season',
+        eraId: 200,
+        teamEraIds: [],
+        externalIds: [
+          { externalSystemId: 1, externalId: '74' },
+          { externalSystemId: 2, externalId: 'Minor Season 25' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(competitionsByBblId.get('74')?.eraId).toBe(200);
+    expect(competitionIdsByBblId.get('74')).toBe(74);
+  });
+
+  it('applies an era override ahead of match-date resolution even when the competition has matches', async () => {
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 74 });
+    const service = makeService({
+      reader: makeReader({
+        se: [page('se', { s: '66' })],
+      }),
+      listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
+      // Dates fall in the "Living rulebook" range and span 1 day (would be a
+      // cup); the override must still pin BB2020 (era 200) and type season.
+      matchListReader: makeMatchListReader({
+        '74': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 0, 2))],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'Living rulebook',
+          rulesSet: 'Living rulebook',
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          firstPlayerId: 1,
+        },
+        {
+          name: 'BB2020',
+          rulesSet: 'BB2020',
+          startDate: '2021-09-01',
+          firstPlayerId: 5001,
+          competitionIdOverrides: ['74'],
+        },
+      ],
+    });
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(1);
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'season', eraId: 200 }),
+      expect.any(Array),
+    );
   });
 });

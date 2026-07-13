@@ -288,4 +288,75 @@ describe('EraConfigService', () => {
     ]);
     expect(() => makeService(json).getEras()).toThrow(/4907/);
   });
+
+  it('parses competitionIdOverrides when present, leaving it undefined when absent', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSet: 'Living rulebook',
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        competitionIdOverrides: ['74'],
+      },
+      {
+        name: 'BB2020',
+        rulesSet: 'BB2020',
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+      },
+    ]);
+    const eras = makeService(json).getEras();
+    expect(eras[0].competitionIdOverrides).toEqual(['74']);
+    expect(eras[1].competitionIdOverrides).toBeUndefined();
+  });
+
+  it('rejects competitionIdOverrides that is not an array', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+        competitionIdOverrides: '74',
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
+  });
+
+  it('rejects competitionIdOverrides containing a non-string or empty string', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSet: 'LRB',
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+        competitionIdOverrides: ['74', ''],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
+  });
+
+  it('rejects the same competition id overridden into more than one era', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSet: 'Living rulebook',
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        competitionIdOverrides: ['74'],
+      },
+      {
+        name: 'BB2020',
+        rulesSet: 'BB2020',
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+        competitionIdOverrides: ['74'],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/74/);
+  });
 });
