@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatLeaderboardEmbed, topRanksWithTies } from './leaderboard';
+import {
+  formatLeaderboardEmbed,
+  resolveToplist,
+  topRanksWithTies,
+} from './leaderboard';
 
 describe('topRanksWithTies', () => {
   it('assigns sequential ranks when there are no ties', () => {
@@ -195,6 +199,30 @@ describe('formatLeaderboardEmbed', () => {
         {
           title: 'Teams by eras active',
           description: '1. a — 2\n1. b — 2\n…and 250 more tied.',
+        },
+      ],
+    });
+  });
+});
+
+describe('resolveToplist', () => {
+  it('applies the default top-entry and cap thresholds to a large tie group', async () => {
+    const rows = Array.from({ length: 15 }, (_, i) => ({
+      name: `t${i}`,
+      count: 1,
+    }));
+    const result = await resolveToplist('Teams by eras active', () =>
+      Promise.resolve(rows),
+    );
+    const expectedLines = [
+      ...Array.from({ length: 10 }, (_, i) => `1. t${i} — 1`),
+      '…and 5 more tied.',
+    ];
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by eras active',
+          description: expectedLines.join('\n'),
         },
       ],
     });
