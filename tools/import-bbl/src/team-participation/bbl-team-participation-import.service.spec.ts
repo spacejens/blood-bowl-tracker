@@ -649,9 +649,8 @@ describe('BblTeamParticipationImportService', () => {
         upsertCompetition: vi.fn().mockResolvedValue(true),
       } as unknown as CompetitionsImportService,
       {
-        upsertRulesSet: vi.fn().mockResolvedValue(true),
-      } as unknown as RulesSetsImportService,
-      { getEras: () => erasConfig } as unknown as EraConfigService,
+        upsertRace: vi.fn().mockResolvedValue({ id: 1 }),
+      } as unknown as RacesImportService,
       { upsertMatch } as unknown as MatchesImportService,
       makeMergeService({ '1': [matchA, matchB] }, [['1061', '1062']]),
     );
@@ -664,7 +663,7 @@ describe('BblTeamParticipationImportService', () => {
         ['b1', teamB1],
         ['b2', teamB2],
       ]),
-      new Map(),
+      racesByRaceId,
       eraIdsByName,
       new Map([['1', 42]]),
     );
