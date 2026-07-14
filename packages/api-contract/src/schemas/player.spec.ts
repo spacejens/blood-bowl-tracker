@@ -15,15 +15,16 @@ describe('player schemas', () => {
     expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
-  it('UpsertPlayerSchema rejects an empty name', () => {
-    expect(() =>
-      UpsertPlayerSchema.parse({
-        name: '',
-        teamEraId: 10,
-        positionId: 20,
-        externalIds: [{ externalSystemId: 1, externalId: 'x' }],
-      }),
-    ).toThrow();
+  it('UpsertPlayerSchema accepts an empty name', () => {
+    // Some BBL players legitimately have no name (see issue #131) — unlike
+    // other entities, players are not required to have a non-empty name.
+    const parsed = UpsertPlayerSchema.parse({
+      name: '',
+      teamEraId: 10,
+      positionId: 20,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.name).toBe('');
   });
 
   it('UpsertPlayerSchema rejects an empty externalIds array', () => {
