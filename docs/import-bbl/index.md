@@ -35,6 +35,19 @@ tool directory, or exported in your shell:
   in the source data, so they are supplied here. Each era's rules set names
   and each era name are used as external IDs under both the configured BBL
   external system and the `Name` external system.
+- `BBL_MATCH_MERGES` — an optional JSON array of `[id, id]` BBL match-id pairs
+  to merge into a single match, e.g.
+  `[["1061","1062"],["1311","1312"]]`. BBL's match model only supports two
+  teams, so the special four-team "Bierhallentodball" finals (Ogretoberfest
+  cups) were each registered as two separate two-team match rows. Each
+  configured pair is imported as one match carrying both source matches'
+  external ids, all four teams, and every event from both rows (with casualty
+  actions correlated to their Sustained-Injury consequences across both source
+  matches, not just within each). Both ids of a pair must appear in the same
+  competition's match list; a pair that does not resolve is left unmerged and
+  recorded as an error, with both ids imported as ordinary matches. Unset or
+  empty means no merges are configured (the common case). The `.env.example`
+  ships this league's six confirmed pairs as a working example.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
@@ -213,6 +226,12 @@ Re-running is always safe and fills any gaps left by transient failures.
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
+  A configured `BBL_MATCH_MERGES` pair is imported as a single match rather
+  than two: BBL cannot record a match with more than two teams, so each
+  four-team "Bierhallentodball" final exists as two two-team rows that this
+  import folds back into one N-team match (both external ids, four teams, and
+  the union of both rows' events). The merged match's played date is the
+  earliest of the pair's two source dates.
 
 - **Team eras / Competition teams / Race eras** — append-only join links
   derived from match participation, not read from any single page. A team is
