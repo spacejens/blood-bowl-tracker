@@ -525,4 +525,105 @@ describe('BblCompetitionsImportService', () => {
       expect.any(Array),
     );
   });
+
+  it('applies cupCompetitionIdOverrides forcing type cup even when the span would compute season', async () => {
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 33 });
+    const service = makeService({
+      reader: makeReader({ se: [page('se', { s: '66' })] }),
+      listParser: makeListParser([{ bblId: '33', name: 'Stunty Leeg 2' }]),
+      // 6-day span -> would compute 'season' under CUP_MAX_SPAN_DAYS; the cup
+      // override must force 'cup' and pin the Living rulebook era (100).
+      matchListReader: makeMatchListReader({
+        '33': [
+          new Date(Date.UTC(2016, 10, 19)),
+          new Date(Date.UTC(2016, 10, 25)),
+        ],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'Living rulebook',
+          rulesSets: ['Living rulebook'],
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          firstPlayerId: 1,
+          cupCompetitionIdOverrides: ['33'],
+        },
+        {
+          name: 'BB2020',
+          rulesSets: ['BB2020'],
+          startDate: '2021-09-01',
+          firstPlayerId: 5001,
+        },
+      ],
+    });
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(1);
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Stunty Leeg 2',
+        type: 'cup',
+        eraId: 100,
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('resolves a competition override regardless of overlapping era date-range order', async () => {
+    // Two eras whose date ranges overlap; the override era is listed SECOND but
+    // must still win, proving override resolution is independent of array order
+    // and of natural date-range matching.
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 30 });
+    const service = makeService({
+      reader: makeReader({ se: [page('se', { s: '66' })] }),
+      listParser: makeListParser([{ bblId: '30', name: 'Stunty Leeg 1' }]),
+      matchListReader: makeMatchListReader({
+        '30': [new Date(Date.UTC(2016, 2, 12))],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+      getEras: () => [
+        {
+          name: 'Living rulebook',
+          rulesSets: ['Living rulebook'],
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          firstPlayerId: 1,
+        },
+        {
+          name: 'Stunty',
+          rulesSets: ['Living rulebook'],
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          firstPlayerId: 1,
+          cupCompetitionIdOverrides: ['30'],
+        },
+      ],
+    });
+
+    const overlapEraIds = new Map<string, number>([
+      ['Living rulebook', 100],
+      ['Stunty', 300],
+    ]);
+    const { result } = await service.importCompetitions(overlapEraIds);
+
+    expect(result.imported).toBe(1);
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Stunty Leeg 1',
+        type: 'cup',
+        eraId: 300,
+      }),
+      expect.any(Array),
+    );
+  });
 });
