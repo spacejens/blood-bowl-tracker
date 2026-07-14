@@ -32,7 +32,7 @@ A period of play that begins with a kick-off and ends when a [touchdown](#touchd
 
 ## Era
 
-A period of time during which a [league](#league) used a particular [rules set](#rules-set). A league may have multiple eras, and in some cases eras for different rules sets may overlap (e.g. when different groups within the league play under different rules simultaneously).
+A period of time during which a [league](#league) used one or more [rules sets](#rules-set), in sequence. A league may have multiple eras, and in some cases eras for different rules sets may overlap (e.g. when different groups within the league play under different rules simultaneously).
 
 See [game-concepts/eras](game-concepts/eras/index.md).
 
@@ -84,7 +84,7 @@ See [game-concepts/positions](game-concepts/positions/index.md).
 
 ## Race
 
-The species or faction a [team](#team) belongs to (e.g. Humans, Orcs, Elves). Race determines which [positions](#position) are available on the [roster](#roster) and the team's overall play style.
+The species or faction a [team](#team) belongs to (e.g. Humans, Orcs, Elves). Race determines which [positions](#position) are available on the [roster](#roster) and the team's overall play style. A race's availability is tracked per [era](#era).
 
 See [game-concepts/races](game-concepts/races/index.md).
 
@@ -94,7 +94,7 @@ The list of [players](#player) registered to a [team](#team)'s [team era](#team-
 
 ## Rules Set
 
-A specific published edition or version of the Blood Bowl rules (e.g. Second Season Edition, Death Zone). The [rules set](#rules-set) in use for a [league](#league) during a given period is captured by an [era](#era).
+A specific published edition or version of the Blood Bowl rules (e.g. Second Season Edition, Death Zone). The [rules set(s)](#rules-set) in use for a [league](#league) during a given period are captured by an [era](#era).
 
 See [game-concepts/rules-sets](game-concepts/rules-sets/index.md).
 
