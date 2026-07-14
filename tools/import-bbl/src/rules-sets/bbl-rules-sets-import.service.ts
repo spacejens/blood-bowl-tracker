@@ -34,19 +34,19 @@ export class BblRulesSetsImportService {
   async importRulesSets(): Promise<{
     result: ImportResult;
     rulesSetIdsByName: Map<string, number>;
-    rulesSetsByName: Map<string, UpsertRulesSetData>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const rulesSetIdsByName = new Map<string, number>();
-    const rulesSetsByName = new Map<string, UpsertRulesSetData>();
 
     let names: string[];
     let bblSystemId: number;
     let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      names = [...new Set(this.eraConfig.getEras().map((e) => e.rulesSet))];
+      names = [
+        ...new Set(this.eraConfig.getEras().flatMap((e) => e.rulesSets)),
+      ];
       bblSystemId =
         await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
       nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
@@ -64,14 +64,12 @@ export class BblRulesSetsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         rulesSetIdsByName,
-        rulesSetsByName,
       };
     }
 
     for (const name of names) {
       const rulesSetData: UpsertRulesSetData = {
         name,
-        races: [],
         externalIds: [
           { externalSystemId: bblSystemId, externalId: name },
           { externalSystemId: nameSystemId, externalId: name },
@@ -83,7 +81,6 @@ export class BblRulesSetsImportService {
       );
       if (rulesSet) {
         rulesSetIdsByName.set(name, rulesSet.id);
-        rulesSetsByName.set(name, rulesSetData);
         imported += 1;
       }
     }
@@ -91,7 +88,6 @@ export class BblRulesSetsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       rulesSetIdsByName,
-      rulesSetsByName,
     };
   }
 }

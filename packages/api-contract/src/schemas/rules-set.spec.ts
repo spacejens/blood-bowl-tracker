@@ -7,20 +7,10 @@ describe('rules set schemas', () => {
     const parsed = RulesSetSchema.parse({
       id: 1,
       name: 'BB2020',
-      races: [7, 8],
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.name).toBe('BB2020');
-    expect(parsed.races).toEqual([7, 8]);
     expect(parsed.createdAt).toBeInstanceOf(Date);
-  });
-
-  it('UpsertRulesSetSchema defaults races to an empty array when omitted', () => {
-    const parsed = UpsertRulesSetSchema.parse({
-      name: 'BB2020',
-      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
-    });
-    expect(parsed.races).toEqual([]);
   });
 
   it('UpsertRulesSetSchema rejects an empty name', () => {

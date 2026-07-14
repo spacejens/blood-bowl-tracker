@@ -1,6 +1,6 @@
 import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
-import { raceExternalIds, races } from '@blood-bowl-tracker/db';
+import { raceEras, raceExternalIds, races } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
@@ -11,7 +11,12 @@ export class RaceUpsertConflictError extends Error {}
 
 export interface UpsertRaceData {
   name: string;
+  eras?: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface RaceWithEras extends Race {
+  eras: number[];
 }
 
 @Injectable()
@@ -20,7 +25,7 @@ export class RacesService {
 
   async upsert(
     data: UpsertRaceData,
-  ): Promise<{ race: Race; created: boolean }> {
+  ): Promise<{ race: RaceWithEras; created: boolean }> {
     const existingRows = await this.db
       .select({
         raceId: raceExternalIds.raceId,
@@ -82,7 +87,27 @@ export class RacesService {
       );
     }
 
-    return { race, created };
+    const eras = await this.syncEras(race.id, data.eras ?? []);
+    return { race: { ...race, eras }, created };
+  }
+
+  private async syncEras(raceId: number, eraIds: number[]): Promise<number[]> {
+    const existing = await this.db
+      .select({ eraId: raceEras.eraId })
+      .from(raceEras)
+      .where(eq(raceEras.raceId, raceId));
+
+    const existingIds = existing.map((r) => r.eraId);
+    const existingSet = new Set(existingIds);
+    const toInsert = eraIds.filter((id) => !existingSet.has(id));
+
+    if (toInsert.length > 0) {
+      await this.db
+        .insert(raceEras)
+        .values(toInsert.map((eraId) => ({ raceId, eraId })));
+    }
+
+    return [...existingIds, ...toInsert];
   }
 
   countAll(): Promise<number> {

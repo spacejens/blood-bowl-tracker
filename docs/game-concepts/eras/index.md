@@ -4,7 +4,7 @@ An [era](../../glossary.md#era) captures which [rules set](../rules-sets/index.m
 
 - An era has a name.
 - An era belongs to exactly one [league](../leagues/index.md).
-- An era references exactly one [rules set](../rules-sets/index.md).
+- An era references one or more [rules sets](../rules-sets/index.md), in sequence, when the changes between them are minor enough not to force a roster reset or change race availability (e.g. tLoEG CRP → CRP+ → BB2016).
 - An era references exactly one [external system](../external-systems/index.md).
 - An era has a time range (start and end).
 - A league may have multiple eras, including overlapping ones (e.g. when different groups within the league play under different rules simultaneously).

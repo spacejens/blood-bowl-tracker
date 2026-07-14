@@ -16,14 +16,14 @@ import { CompetitionListPageParser } from './competition-list-page-parser';
 const erasConfig: EraConfig[] = [
   {
     name: 'Living rulebook',
-    rulesSet: 'Living rulebook',
+    rulesSets: ['Living rulebook'],
     startDate: '2011-09-09',
     endDate: '2021-09-01',
     firstPlayerId: 1,
   },
   {
     name: 'BB2020',
-    rulesSet: 'BB2020',
+    rulesSets: ['BB2020'],
     startDate: '2021-09-01',
     firstPlayerId: 5001,
   },
@@ -290,7 +290,7 @@ describe('BblCompetitionsImportService', () => {
       getEras: () => [
         {
           name: 'BB2020',
-          rulesSet: 'BB2020',
+          rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
           competitionIdOverrides: ['74'],
@@ -445,14 +445,14 @@ describe('BblCompetitionsImportService', () => {
       getEras: () => [
         {
           name: 'Living rulebook',
-          rulesSet: 'Living rulebook',
+          rulesSets: ['Living rulebook'],
           startDate: '2011-09-09',
           endDate: '2021-09-01',
           firstPlayerId: 1,
         },
         {
           name: 'BB2020',
-          rulesSet: 'BB2020',
+          rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
           competitionIdOverrides: ['74'],
@@ -502,14 +502,14 @@ describe('BblCompetitionsImportService', () => {
       getEras: () => [
         {
           name: 'Living rulebook',
-          rulesSet: 'Living rulebook',
+          rulesSets: ['Living rulebook'],
           startDate: '2011-09-09',
           endDate: '2021-09-01',
           firstPlayerId: 1,
         },
         {
           name: 'BB2020',
-          rulesSet: 'BB2020',
+          rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
           competitionIdOverrides: ['74'],

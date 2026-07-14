@@ -68,6 +68,23 @@ describe('RacesImportService', () => {
     ]);
   });
 
+  it('forwards eras field to client.races.upsert when provided', async () => {
+    const upsertMock = vi.fn().mockResolvedValue(upsertResult);
+    const service = makeService(upsertMock);
+    const errors: ImportError[] = [];
+    const dataWithEras = {
+      name: 'Orc',
+      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+      eras: [1, 2],
+    };
+
+    const result = await service.upsertRace(dataWithEras, errors);
+
+    expect(result).toEqual(upsertResult);
+    expect(upsertMock).toHaveBeenCalledWith(dataWithEras);
+    expect(errors).toHaveLength(0);
+  });
+
   it('resolves via real NestJS dependency injection, including the implicit-token ImportRunnerService', async () => {
     const upsertMock = vi.fn().mockResolvedValue(upsertResult);
     const client = { races: { upsert: upsertMock } } as unknown as ApiClient;

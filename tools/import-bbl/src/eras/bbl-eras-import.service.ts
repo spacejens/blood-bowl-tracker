@@ -71,12 +71,21 @@ export class BblErasImportService {
     }
 
     for (const era of eras) {
-      const rulesSetId = rulesSetIdsByName.get(era.rulesSet);
-      if (rulesSetId === undefined) {
+      const rulesSetIds: number[] = [];
+      let unresolved: string | undefined;
+      for (const name of era.rulesSets) {
+        const id = rulesSetIdsByName.get(name);
+        if (id === undefined) {
+          unresolved = name;
+          break;
+        }
+        rulesSetIds.push(id);
+      }
+      if (unresolved !== undefined) {
         errors.push(
           makeImportError({
             item: era,
-            message: `Cannot import era "${era.name}": its rules set "${era.rulesSet}" was not imported successfully.`,
+            message: `Cannot import era "${era.name}": its rules set "${unresolved}" was not imported successfully.`,
           }),
         );
         continue;
@@ -86,7 +95,7 @@ export class BblErasImportService {
         {
           name: era.name,
           leagueId,
-          rulesSetId,
+          rulesSetIds,
           startDate: era.startDate,
           endDate: era.endDate,
           externalIds: [

@@ -408,6 +408,43 @@ describe('BblRacesImportService', () => {
     expect(racesByBblId.get('6')).toEqual({ id: 200, name: 'Elf' });
   });
 
+  it('returns a map from each race local id to its upsert data', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+      Promise.resolve({
+        id: data.name === 'Orc' ? 100 : 200,
+        name: data.name,
+        createdAt: new Date('2026-01-01'),
+        created: true,
+      }),
+    );
+    const service = makeService(
+      makeReader([page('Orc', '16'), page('Elf', '6')]),
+      upsertExternalSystem,
+      upsertRace,
+    );
+
+    const { racesByRaceId } = await service.importRaces();
+
+    expect(racesByRaceId.get(100)).toEqual({
+      name: 'Orc',
+      externalIds: [
+        { externalSystemId: 1, externalId: '16' },
+        { externalSystemId: 2, externalId: 'Orc' },
+      ],
+    });
+    expect(racesByRaceId.get(200)).toEqual({
+      name: 'Elf',
+      externalIds: [
+        { externalSystemId: 1, externalId: '6' },
+        { externalSystemId: 2, externalId: 'Elf' },
+      ],
+    });
+  });
+
   it('imports a race found only on the tl page (no team page)', async () => {
     const upsertExternalSystem = vi
       .fn()
