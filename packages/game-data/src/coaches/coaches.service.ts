@@ -166,6 +166,22 @@ export class CoachesService {
       .orderBy(desc(count(teams.id)));
   }
 
+  async countErasByCoach(): Promise<
+    { coachId: number; name: string; count: number }[]
+  > {
+    return this.db
+      .select({
+        coachId: coaches.id,
+        name: coaches.name,
+        count: countDistinct(teamEras.eraId),
+      })
+      .from(teamEras)
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(countDistinct(teamEras.eraId)));
+  }
+
   countAll(): Promise<number> {
     return countRows(this.db, coaches);
   }
