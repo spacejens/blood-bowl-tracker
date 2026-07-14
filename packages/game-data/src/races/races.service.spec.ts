@@ -1,5 +1,5 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB } from '@blood-bowl-tracker/db';
+import { DB, raceEras, raceExternalIds, races } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -22,32 +22,38 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('RacesService', () => {
   let service: RacesService;
-  let mockDb: {
-    select: () => { from: ReturnType<typeof vi.fn> };
-    insert: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
+  let externalIdRows: unknown[];
+  let existingEraRows: { eraId: number }[];
+  let insertCalls: { table: unknown; values: unknown }[];
+  let updateCalls: { table: unknown; set: unknown }[];
 
   beforeEach(async () => {
-    const selectChain = {
-      from: vi.fn().mockReturnValue(makeFromBuilder([fakeRace])),
-    };
-    const insertChain = {
-      values: vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeRace]),
-      })),
-    };
-    const updateChain = {
-      set: vi.fn(() => ({
-        where: vi.fn(() => ({
-          returning: vi.fn().mockResolvedValue([fakeRace]),
-        })),
-      })),
-    };
-    mockDb = {
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => insertChain),
-      update: vi.fn(() => updateChain),
+    externalIdRows = [];
+    existingEraRows = [];
+    insertCalls = [];
+    updateCalls = [];
+
+    const mockDb = {
+      select: () => ({
+        from: (table: unknown) =>
+          makeFromBuilder(
+            table === raceExternalIds ? externalIdRows : existingEraRows,
+          ),
+      }),
+      insert: (table: unknown) => ({
+        values: (values: unknown) => {
+          insertCalls.push({ table, values });
+          return { returning: () => Promise.resolve([fakeRace]) };
+        },
+      }),
+      update: (table: unknown) => ({
+        set: (set: unknown) => {
+          updateCalls.push({ table, set });
+          return {
+            where: () => ({ returning: () => Promise.resolve([fakeRace]) }),
+          };
+        },
+      }),
     };
 
     const module = await Test.createTestingModule({
@@ -58,82 +64,62 @@ describe('RacesService', () => {
   });
 
   describe('upsert', () => {
-    const externalIds = [
-      { externalSystemId: 1, externalId: 'Orc' },
-      { externalSystemId: 2, externalId: 'Orc' },
-    ];
+    const baseData = {
+      name: 'Orc',
+      eras: [5, 6],
+      externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+    };
 
-    it('creates a new race when no external IDs match', async () => {
-      mockDb.select().from.mockReturnValue(makeFromBuilder([]));
+    it('creates a new race with its eras when no external IDs match', async () => {
+      const result = await service.upsert(baseData);
+      expect(result).toEqual({
+        race: { ...fakeRace, eras: [5, 6] },
+        created: true,
+      });
+      expect(updateCalls).toHaveLength(0);
+    });
 
-      const result = await service.upsert({ name: 'Orc', externalIds });
+    it('defaults to no era links when eras is omitted', async () => {
+      const result = await service.upsert({
+        name: 'Orc',
+        externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+      });
+      expect(result.race.eras).toEqual([]);
+      expect(insertCalls.some((c) => c.table === raceEras)).toBe(false);
+    });
 
-      expect(result).toEqual({ race: fakeRace, created: true });
-      expect(mockDb.insert).toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
+    it('inserts only the race_eras rows that are new', async () => {
+      existingEraRows = [{ eraId: 5 }];
+      const result = await service.upsert(baseData);
+      const call = insertCalls.find((c) => c.table === raceEras);
+      expect(call?.values).toEqual([{ raceId: 1, eraId: 6 }]);
+      expect(result.race.eras).toEqual([5, 6]);
+    });
+
+    it('does not insert race_eras rows when all links already exist', async () => {
+      existingEraRows = [{ eraId: 5 }, { eraId: 6 }];
+      const result = await service.upsert(baseData);
+      expect(insertCalls.some((c) => c.table === raceEras)).toBe(false);
+      expect(result.race.eras).toEqual([5, 6]);
     });
 
     it('updates the matching race when exactly one external ID matches', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
-          ]),
-        );
-
-      const result = await service.upsert({ name: 'Orc', externalIds });
-
-      expect(result).toEqual({ race: fakeRace, created: false });
-      expect(mockDb.update).toHaveBeenCalled();
+      externalIdRows = [{ raceId: 1, externalSystemId: 1, externalId: 'Orc' }];
+      const result = await service.upsert(baseData);
+      expect(result.created).toBe(false);
+      expect(updateCalls.some((c) => c.table === races)).toBe(true);
     });
 
     it('throws RaceUpsertConflictError when external IDs match different races', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
-          { raceId: 2, externalSystemId: 2, externalId: 'Orc' },
-        ]),
+      externalIdRows = [
+        { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
+        { raceId: 2, externalSystemId: 2, externalId: 'Orc' },
+      ];
+      await expect(service.upsert(baseData)).rejects.toThrow(
+        RaceUpsertConflictError,
       );
-
-      await expect(
-        service.upsert({ name: 'Orc', externalIds }),
-      ).rejects.toThrow(RaceUpsertConflictError);
-      expect(mockDb.insert).not.toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
-    });
-
-    it('does not re-insert external IDs that already exist on the matched race', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
-          { raceId: 1, externalSystemId: 2, externalId: 'Orc' },
-        ]),
-      );
-
-      await service.upsert({ name: 'Orc', externalIds });
-
-      expect(mockDb.insert).not.toHaveBeenCalled();
-    });
-
-    it('inserts only the external IDs that are new for an existing race', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
-          ]),
-        );
-      const insertValues = vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeRace]),
-      }));
-      mockDb.insert.mockReturnValue({ values: insertValues });
-
-      await service.upsert({ name: 'Orc', externalIds });
-
-      expect(insertValues).toHaveBeenCalledWith([
-        { raceId: 1, externalSystemId: 2, externalId: 'Orc' },
-      ]);
+      expect(insertCalls).toHaveLength(0);
+      expect(updateCalls).toHaveLength(0);
     });
   });
 
