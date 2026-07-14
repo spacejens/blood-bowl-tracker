@@ -22,6 +22,7 @@ import type {
   BblEventSide,
   BblMatchEvents,
 } from '../matches/match-events-page-parser';
+import { MatchMergeService } from '../matches/match-merge.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 
 /** The category slug used in an event's synthesized external id, per action. */
@@ -82,89 +83,157 @@ const SEVERITY_GROUPS: {
   { action: 'death', consequences: new Set<ConsequenceType>(['death']) },
 ];
 
+/** One casualty/achievement occurrence tagged with its team code and source match. */
+interface TeamCodedAction {
+  actionType: ActionType;
+  teamCode: string;
+  pid: string | null;
+  sourceBblId: string;
+}
+interface TeamCodedConsequence {
+  consequenceType: ConsequenceType;
+  teamCode: string;
+  pid: string | null;
+  sourceBblId: string;
+}
 /**
- * One match event to emit, in a form that is agnostic of DB ids. A merged
- * casualty event carries both an action and a consequence (with the acting
- * player on `actingSide` and the victim on `consequenceSide`); an action-only
- * event carries just the action side; a consequence-only event just the
- * consequence side.
+ * The combined occurrences of one match (2 team codes) or a merged pair
+ * (4 team codes), each occurrence tagged with the code of the team it belongs
+ * to and the source match it came from.
+ */
+interface CombinedOccurrences {
+  /** Distinct team codes present, in a stable order (home, away, [partner home, partner away]). */
+  teamCodes: string[];
+  actions: TeamCodedAction[];
+  consequences: TeamCodedConsequence[];
+}
+
+/**
+ * One match event to emit, agnostic of DB ids. A merged casualty event carries
+ * both an action (on actingTeamCode, from actingSourceBblId) and a consequence
+ * (on consequenceTeamCode, from consequenceSourceBblId); an action-only event
+ * carries just the action side; a consequence-only event just the consequence.
  */
 interface EmittedEvent {
   actionType?: ActionType;
   consequenceType?: ConsequenceType;
-  actingSide?: BblEventSide;
-  consequenceSide?: BblEventSide;
+  actingTeamCode?: string;
+  consequenceTeamCode?: string;
+  actingSourceBblId?: string;
+  consequenceSourceBblId?: string;
   actingPid?: string | null;
   consequencePid?: string | null;
 }
 
-function otherSide(side: BblEventSide): BblEventSide {
-  return side === 'home' ? 'away' : 'home';
+/**
+ * Build the combined, team-coded occurrences of one match (or a merged pair,
+ * when a partner's events are supplied). Each side occurrence is tagged with
+ * the concrete team code it belongs to (homeTeamId/awayTeamId of its own source
+ * match) and the source match's bblId, so a merged four-team match's occurrences
+ * from both source pages coexist without a home/away collision.
+ */
+function combineOccurrences(...sources: BblMatchEvents[]): CombinedOccurrences {
+  const teamCodes: string[] = [];
+  const actions: TeamCodedAction[] = [];
+  const consequences: TeamCodedConsequence[] = [];
+
+  for (const source of sources) {
+    const codeBySide: Record<BblEventSide, string> = {
+      home: source.homeTeamId,
+      away: source.awayTeamId,
+    };
+    for (const code of [source.homeTeamId, source.awayTeamId]) {
+      if (!teamCodes.includes(code)) {
+        teamCodes.push(code);
+      }
+    }
+    for (const a of source.actions) {
+      actions.push({
+        actionType: a.actionType,
+        teamCode: codeBySide[a.side],
+        pid: a.pid,
+        sourceBblId: source.bblId,
+      });
+    }
+    for (const c of source.consequences) {
+      consequences.push({
+        consequenceType: c.consequenceType,
+        teamCode: codeBySide[c.side],
+        pid: c.pid,
+        sourceBblId: source.bblId,
+      });
+    }
+  }
+
+  return { teamCodes, actions, consequences };
 }
 
 /**
- * Correlate one match's raw occurrences into events. Casualty action rows and
- * Sustained-Injury consequence rows are merged into a single event only when,
- * for a given acting side and severity group, there is exactly one action
- * candidate on that side and exactly one matching consequence candidate on the
- * opposing (victim) side. Everything else — including every ambiguous casualty
- * where two-or-more candidates exist — falls through to independent action-only
- * and consequence-only events, so no occurrence is ever dropped. Emission order
- * is merged events first, then leftover actions in occurrence order, then
- * leftover consequences in occurrence order; that order fixes the external-id
- * occurrence indices deterministically.
+ * Correlate raw occurrences into events. A casualty action and a
+ * Sustained-Injury consequence merge into a single event only when, for a given
+ * acting team code and severity group, there is exactly one action candidate on
+ * that team and exactly one matching consequence candidate on ANY other team
+ * (one other team for a normal 2-team match, three for a merged 4-team match).
+ * Everything else — including every ambiguous casualty where 2+ candidates
+ * exist — falls through to independent action-only and consequence-only events,
+ * so no occurrence is ever dropped. Emission order is merged events first, then
+ * leftover actions in occurrence order, then leftover consequences in occurrence
+ * order; that order fixes the external-id occurrence indices deterministically.
  */
-function correlateEvents(events: BblMatchEvents): EmittedEvent[] {
-  const actionConsumed = events.actions.map(() => false);
-  const consequenceConsumed = events.consequences.map(() => false);
+function correlateEvents(combined: CombinedOccurrences): EmittedEvent[] {
+  const actionConsumed = combined.actions.map(() => false);
+  const consequenceConsumed = combined.consequences.map(() => false);
   const merged: EmittedEvent[] = [];
 
-  for (const actingSide of ['home', 'away'] as const) {
-    const victimSide = otherSide(actingSide);
+  for (const actingTeamCode of combined.teamCodes) {
     for (const group of SEVERITY_GROUPS) {
-      const actionIndices = events.actions.flatMap((a, i) =>
+      const actionIndices = combined.actions.flatMap((a, i) =>
         !actionConsumed[i] &&
-        a.side === actingSide &&
+        a.teamCode === actingTeamCode &&
         a.actionType === group.action
           ? [i]
           : [],
       );
-      const consequenceIndices = events.consequences.flatMap((c, i) =>
+      const consequenceIndices = combined.consequences.flatMap((c, i) =>
         !consequenceConsumed[i] &&
-        c.side === victimSide &&
+        c.teamCode !== actingTeamCode &&
         group.consequences.has(c.consequenceType)
           ? [i]
           : [],
       );
       if (actionIndices.length === 1 && consequenceIndices.length === 1) {
-        const action = events.actions[actionIndices[0]];
-        const consequence = events.consequences[consequenceIndices[0]];
+        const action = combined.actions[actionIndices[0]];
+        const consequence = combined.consequences[consequenceIndices[0]];
         actionConsumed[actionIndices[0]] = true;
         consequenceConsumed[consequenceIndices[0]] = true;
         merged.push({
           actionType: action.actionType,
           consequenceType: consequence.consequenceType,
-          actingSide,
+          actingTeamCode,
+          actingSourceBblId: action.sourceBblId,
           actingPid: action.pid,
-          consequenceSide: victimSide,
+          consequenceTeamCode: consequence.teamCode,
+          consequenceSourceBblId: consequence.sourceBblId,
           consequencePid: consequence.pid,
         });
       }
     }
   }
 
-  const actionOnly: EmittedEvent[] = events.actions
+  const actionOnly: EmittedEvent[] = combined.actions
     .filter((_, i) => !actionConsumed[i])
     .map((a) => ({
       actionType: a.actionType,
-      actingSide: a.side,
+      actingTeamCode: a.teamCode,
+      actingSourceBblId: a.sourceBblId,
       actingPid: a.pid,
     }));
-  const consequenceOnly: EmittedEvent[] = events.consequences
+  const consequenceOnly: EmittedEvent[] = combined.consequences
     .filter((_, i) => !consequenceConsumed[i])
     .map((c) => ({
       consequenceType: c.consequenceType,
-      consequenceSide: c.side,
+      consequenceTeamCode: c.teamCode,
+      consequenceSourceBblId: c.sourceBblId,
       consequencePid: c.pid,
     }));
 
@@ -178,6 +247,7 @@ export class BblMatchEventsImportService {
     private readonly matchEventsReader: BblMatchEventsReaderService,
     private readonly teamsImport: TeamsImportService,
     private readonly matchEventsImport: MatchEventsImportService,
+    private readonly matchMerge: MatchMergeService,
   ) {}
 
   /**
@@ -208,13 +278,14 @@ export class BblMatchEventsImportService {
       await this.matchListReader.getMatchesByCompetitionId(errors);
     const eventsByBblId =
       await this.matchEventsReader.getMatchEventsByBblId(errors);
+    const merges = await this.matchMerge.resolve(errors);
 
     for (const [competitionBblId, competition] of competitionsByBblId) {
       const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
       const externalSystemId = competition.externalIds[0].externalSystemId;
       // Team-era ids only depend on the competition's era, so memoize per
       // competition to avoid re-upserting a team shared across its matches.
-      const teamEraIdByCode = new Map<string, number | undefined>();
+      const teamEraIdCache = new Map<string, number | undefined>();
 
       for (const match of matches) {
         try {
@@ -229,40 +300,58 @@ export class BblMatchEventsImportService {
             continue;
           }
 
+          // A secondary pair member's occurrences are folded into its primary's
+          // combined pass, so skip it here.
+          if (merges.isSecondary(match.bblId)) {
+            continue;
+          }
+
           const events = eventsByBblId.get(match.bblId);
           if (!events) {
             continue;
           }
 
-          const homeTeamEraId = await this.resolveTeamEraId(
-            events.homeTeamId,
-            competition,
-            teamsByCode,
-            teamEraIdByCode,
-            errors,
-          );
-          const awayTeamEraId = await this.resolveTeamEraId(
-            events.awayTeamId,
-            competition,
-            teamsByCode,
-            teamEraIdByCode,
-            errors,
-          );
-          if (homeTeamEraId === undefined || awayTeamEraId === undefined) {
+          const sources = [events];
+          const partnerBblId = merges.partnerBblId(match.bblId);
+          if (partnerBblId !== undefined) {
+            const partnerEvents = eventsByBblId.get(partnerBblId);
+            if (partnerEvents) {
+              sources.push(partnerEvents);
+            }
+          }
+          const combined = combineOccurrences(...sources);
+
+          const teamEraIdByCode = new Map<string, number>();
+          let unresolvedTeam = false;
+          for (const code of combined.teamCodes) {
+            const teamEraId = await this.resolveTeamEraId(
+              code,
+              competition,
+              teamsByCode,
+              teamEraIdCache,
+              errors,
+            );
+            if (teamEraId === undefined) {
+              unresolvedTeam = true;
+            } else {
+              teamEraIdByCode.set(code, teamEraId);
+            }
+          }
+          if (unresolvedTeam) {
             errors.push(
               makeImportError({
                 item: { competition: competition.name, match: match.bblId },
-                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve both team eras.`,
+                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
               }),
             );
             continue;
           }
 
           imported += await this.emitEvents(
-            events,
+            combined,
             matchId,
             externalSystemId,
-            { home: homeTeamEraId, away: awayTeamEraId },
+            teamEraIdByCode,
             playerIdsByPid,
             errors,
           );
@@ -283,31 +372,32 @@ export class BblMatchEventsImportService {
   }
 
   /**
-   * Correlate and upsert every event for one match, synthesizing external ids
-   * with per-(team, category) occurrence indices. Returns the number of events
-   * whose upsert reported success.
+   * Correlate and upsert every event for one match (or merged pair),
+   * synthesizing external ids with per-(team, category) occurrence indices under
+   * each occurrence's own source match bblId. Returns the number of events whose
+   * upsert reported success.
    */
   private async emitEvents(
-    events: BblMatchEvents,
+    combined: CombinedOccurrences,
     matchId: number,
     externalSystemId: number,
-    teamEraIdBySide: Record<BblEventSide, number>,
+    teamEraIdByCode: Map<string, number>,
     playerIdsByPid: Map<string, number>,
     errors: ImportError[],
   ): Promise<number> {
-    const teamCodeBySide: Record<BblEventSide, string> = {
-      home: events.homeTeamId,
-      away: events.awayTeamId,
-    };
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
 
-    for (const event of correlateEvents(events)) {
+    for (const event of correlateEvents(combined)) {
       const hasAction = event.actionType !== undefined;
-      const side = hasAction ? event.actingSide : event.consequenceSide;
-      // Every emitted event has at least one side (it always has an action or a
-      // consequence), so `side` is always defined here.
-      const teamCode = teamCodeBySide[side as BblEventSide];
+      // Every emitted event has at least one side, so teamCode/sourceBblId are
+      // always defined here (action side when present, else consequence side).
+      const teamCode = hasAction
+        ? (event.actingTeamCode as string)
+        : (event.consequenceTeamCode as string);
+      const sourceBblId = hasAction
+        ? (event.actingSourceBblId as string)
+        : (event.consequenceSourceBblId as string);
       const category = hasAction
         ? ACTION_CATEGORY[event.actionType as ActionType]
         : CONSEQUENCE_CATEGORY[event.consequenceType as ConsequenceType];
@@ -315,7 +405,7 @@ export class BblMatchEventsImportService {
       const counterKey = `${teamCode}-${category}`;
       const occurrenceIndex = occurrenceCounters.get(counterKey) ?? 0;
       occurrenceCounters.set(counterKey, occurrenceIndex + 1);
-      const externalId = `${events.bblId}-${teamCode}-${category}-${occurrenceIndex}`;
+      const externalId = `${sourceBblId}-${teamCode}-${category}-${occurrenceIndex}`;
 
       const data: UpsertMatchEventData = {
         matchId,
@@ -327,15 +417,17 @@ export class BblMatchEventsImportService {
       if (event.consequenceType !== undefined) {
         data.consequenceType = event.consequenceType;
       }
-      if (event.actingSide !== undefined) {
-        data.actingTeamEraId = teamEraIdBySide[event.actingSide];
+      if (event.actingTeamCode !== undefined) {
+        data.actingTeamEraId = teamEraIdByCode.get(event.actingTeamCode);
       }
-      if (event.consequenceSide !== undefined) {
-        data.consequenceTeamEraId = teamEraIdBySide[event.consequenceSide];
+      if (event.consequenceTeamCode !== undefined) {
+        data.consequenceTeamEraId = teamEraIdByCode.get(
+          event.consequenceTeamCode,
+        );
       }
       const actingPlayerId = this.resolvePlayerId(
         event.actingPid,
-        events.bblId,
+        event.actingSourceBblId ?? sourceBblId,
         playerIdsByPid,
         errors,
       );
@@ -344,7 +436,7 @@ export class BblMatchEventsImportService {
       }
       const consequencePlayerId = this.resolvePlayerId(
         event.consequencePid,
-        events.bblId,
+        event.consequenceSourceBblId ?? sourceBblId,
         playerIdsByPid,
         errors,
       );
