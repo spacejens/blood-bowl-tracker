@@ -22,7 +22,10 @@ export class PlayerPageParser {
    * `name` from the `<h1>` element, and `typId`/`teamCode` from position/team
    * links. A player page links its position (`default.asp?p=pt&typID=<digits>`)
    * and its team (`default.asp?p=tm&t=<code>`). The first of each is used.
-   * Returns null when any of the four fields is absent.
+   * Returns null when the pid, position link, or team link is absent, or when
+   * the page has no `<h1>` element at all. An `<h1>` that is present but empty
+   * is accepted as a valid, empty name (`''`) — some BBL players legitimately
+   * have no name.
    */
   extractPlayer(page: BblPage): BblPlayer | null {
     const $ = page.load();
@@ -50,7 +53,7 @@ export class PlayerPageParser {
       }
     });
 
-    if (!pid || !name || !typId || !teamCode) {
+    if (!pid || $('h1').length === 0 || !typId || !teamCode) {
       return null;
     }
     return { pid, name, typId, teamCode };
