@@ -73,9 +73,7 @@ describe('resolveTeamCompetitionsPlayedToplist', () => {
     vi.useFakeTimers();
     try {
       const teams = {
-        countCompetitionsByTeam: vi
-          .fn()
-          .mockReturnValue(new Promise(() => {})),
+        countCompetitionsByTeam: vi.fn().mockReturnValue(new Promise(() => {})),
       } as unknown as TeamsService;
       const promise = resolveTeamCompetitionsPlayedToplist(teams);
       await vi.advanceTimersByTimeAsync(2000);
