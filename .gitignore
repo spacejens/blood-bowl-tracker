@@ -37,6 +37,10 @@ tmp/
 # worktrees — no trailing slash so both forms are ignored)
 tools/import-bbl/data
 
+# tools/import-bbl real config (the committed template is
+# import-bbl-config.example.json5)
+tools/import-bbl/import-bbl-config.json5
+
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans
 docs/superpowers/
