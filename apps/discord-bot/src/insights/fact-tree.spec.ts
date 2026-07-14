@@ -125,7 +125,7 @@ describe('buildFactTree leaf capabilities', () => {
     expect(leafAt('stats').supportsEra).toBe(false);
   });
 
-  it('excludes exactly stats and team.toplist.eras.active from era filtering', () => {
+  it('excludes some leaves from era filtering', () => {
     const tree = buildFactTree({} as StatsSummaryDeps);
     const unsupported = collectLeaves(tree).filter((leaf) => !leaf.supportsEra);
     expect(unsupported).toEqual(
