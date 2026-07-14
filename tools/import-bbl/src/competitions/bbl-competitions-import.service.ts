@@ -205,7 +205,7 @@ export class BblCompetitionsImportService {
   /**
    * Resolve a competition's type and era DB id, or return undefined after
    * recording a skip error. A competition whose bblId is listed in an era's
-   * competitionIdOverrides is hard-assigned that era with type 'season',
+   * seasonCompetitionIdOverrides is hard-assigned that era with type 'season',
    * unconditionally and ahead of any match-date resolution (mirroring how
    * playerIdOverrides pins a player to an era) — this is the only path for a
    * competition with a genuinely empty match list. Otherwise the era and type
@@ -220,7 +220,7 @@ export class BblCompetitionsImportService {
     errors: ImportError[],
   ): { type: 'season' | 'cup'; eraId: number } | undefined {
     const overrideEra = eras.find((era) =>
-      era.competitionIdOverrides?.includes(competition.bblId),
+      era.seasonCompetitionIdOverrides?.includes(competition.bblId),
     );
     if (overrideEra !== undefined) {
       const eraId = eraIdsByName.get(overrideEra.name);

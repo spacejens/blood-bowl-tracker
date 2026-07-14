@@ -316,7 +316,7 @@ describe('EraConfigService', () => {
     expect(() => makeService(json).getEras()).toThrow(/4907/);
   });
 
-  it('parses competitionIdOverrides when present, leaving it undefined when absent', () => {
+  it('parses seasonCompetitionIdOverrides when present, leaving it undefined when absent', () => {
     const json = JSON.stringify([
       {
         name: 'Living rulebook',
@@ -325,7 +325,7 @@ describe('EraConfigService', () => {
         endDate: '2021-09-01',
         firstPlayerId: 1,
         lastPlayerId: 5000,
-        competitionIdOverrides: ['74'],
+        seasonCompetitionIdOverrides: ['74'],
       },
       {
         name: 'BB2020',
@@ -335,34 +335,34 @@ describe('EraConfigService', () => {
       },
     ]);
     const eras = makeService(json).getEras();
-    expect(eras[0].competitionIdOverrides).toEqual(['74']);
-    expect(eras[1].competitionIdOverrides).toBeUndefined();
+    expect(eras[0].seasonCompetitionIdOverrides).toEqual(['74']);
+    expect(eras[1].seasonCompetitionIdOverrides).toBeUndefined();
   });
 
-  it('rejects competitionIdOverrides that is not an array', () => {
+  it('rejects seasonCompetitionIdOverrides that is not an array', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
         rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
-        competitionIdOverrides: '74',
+        seasonCompetitionIdOverrides: '74',
       },
     ]);
-    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
+    expect(() => makeService(json).getEras()).toThrow(/seasonCompetitionIdOverrides/);
   });
 
-  it('rejects competitionIdOverrides containing a non-string or empty string', () => {
+  it('rejects seasonCompetitionIdOverrides containing a non-string or empty string', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
         rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
-        competitionIdOverrides: ['74', ''],
+        seasonCompetitionIdOverrides: ['74', ''],
       },
     ]);
-    expect(() => makeService(json).getEras()).toThrow(/competitionIdOverrides/);
+    expect(() => makeService(json).getEras()).toThrow(/seasonCompetitionIdOverrides/);
   });
 
   it('rejects the same competition id overridden into more than one era', () => {
@@ -374,14 +374,14 @@ describe('EraConfigService', () => {
         endDate: '2021-09-01',
         firstPlayerId: 1,
         lastPlayerId: 5000,
-        competitionIdOverrides: ['74'],
+        seasonCompetitionIdOverrides: ['74'],
       },
       {
         name: 'BB2020',
         rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         firstPlayerId: 5001,
-        competitionIdOverrides: ['74'],
+        seasonCompetitionIdOverrides: ['74'],
       },
     ]);
     expect(() => makeService(json).getEras()).toThrow(/74/);

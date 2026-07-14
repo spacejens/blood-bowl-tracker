@@ -293,10 +293,10 @@ describe('BblCompetitionsImportService', () => {
           rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
-          competitionIdOverrides: ['74'],
+          seasonCompetitionIdOverrides: ['74'],
         },
       ],
-      // "BB2020" is matched by competitionIdOverrides, but is absent from
+      // "BB2020" is matched by seasonCompetitionIdOverrides, but is absent from
       // eraIdsByName, simulating its rules set having failed to import
       // earlier in the run.
     });
@@ -455,7 +455,7 @@ describe('BblCompetitionsImportService', () => {
           rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
-          competitionIdOverrides: ['74'],
+          seasonCompetitionIdOverrides: ['74'],
         },
       ],
     });
@@ -512,7 +512,7 @@ describe('BblCompetitionsImportService', () => {
           rulesSets: ['BB2020'],
           startDate: '2021-09-01',
           firstPlayerId: 5001,
-          competitionIdOverrides: ['74'],
+          seasonCompetitionIdOverrides: ['74'],
         },
       ],
     });

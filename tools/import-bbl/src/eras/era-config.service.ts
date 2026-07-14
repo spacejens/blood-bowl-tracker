@@ -16,14 +16,14 @@ export interface EraConfig {
    */
   playerIdOverrides?: number[];
   /**
-   * Explicit competition bblIds assigned to this era regardless of their match
-   * dates — for competitions with a genuinely empty match list, which have no
-   * date signal to resolve an era from. Checked before match-date-based era
-   * resolution, exactly like playerIdOverrides pins a player to an era.
-   * Competition bblIds are strings elsewhere in this codebase (e.g.
-   * BblCompetition.bblId).
+   * Explicit competition bblIds hard-assigned to this era and forced to type
+   * 'season' regardless of their match dates — for competitions with a genuinely
+   * empty match list, which have no date signal to resolve an era from. Checked
+   * before match-date-based era resolution, exactly like playerIdOverrides pins
+   * a player to an era. Competition bblIds are strings elsewhere in this
+   * codebase (e.g. BblCompetition.bblId).
    */
-  competitionIdOverrides?: string[];
+  seasonCompetitionIdOverrides?: string[];
 }
 
 /**
@@ -99,11 +99,11 @@ export class EraConfigService {
 
     const eraNameByOverriddenCompetitionId = new Map<string, string>();
     for (const era of eras) {
-      for (const bblId of era.competitionIdOverrides ?? []) {
+      for (const bblId of era.seasonCompetitionIdOverrides ?? []) {
         const existing = eraNameByOverriddenCompetitionId.get(bblId);
         if (existing !== undefined) {
           throw new Error(
-            `BBL_ERAS: competition id ${bblId} appears in competitionIdOverrides for both "${existing}" and "${era.name}".`,
+            `BBL_ERAS: competition id ${bblId} appears in seasonCompetitionIdOverrides for both "${existing}" and "${era.name}".`,
           );
         }
         eraNameByOverriddenCompetitionId.set(bblId, era.name);
@@ -127,7 +127,7 @@ export class EraConfigService {
       firstPlayerId,
       lastPlayerId,
       playerIdOverrides,
-      competitionIdOverrides,
+      seasonCompetitionIdOverrides,
     } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
@@ -185,14 +185,14 @@ export class EraConfigService {
     }
 
     if (
-      competitionIdOverrides !== undefined &&
-      (!Array.isArray(competitionIdOverrides) ||
-        !competitionIdOverrides.every(
+      seasonCompetitionIdOverrides !== undefined &&
+      (!Array.isArray(seasonCompetitionIdOverrides) ||
+        !seasonCompetitionIdOverrides.every(
           (id) => typeof id === 'string' && id.trim() !== '',
         ))
     ) {
       throw new Error(
-        `BBL_ERAS[${index}].competitionIdOverrides must be an array of non-empty strings when present.`,
+        `BBL_ERAS[${index}].seasonCompetitionIdOverrides must be an array of non-empty strings when present.`,
       );
     }
 
@@ -206,8 +206,8 @@ export class EraConfigService {
       ...(playerIdOverrides !== undefined
         ? { playerIdOverrides: playerIdOverrides }
         : {}),
-      ...(competitionIdOverrides !== undefined
-        ? { competitionIdOverrides: competitionIdOverrides }
+      ...(seasonCompetitionIdOverrides !== undefined
+        ? { seasonCompetitionIdOverrides: seasonCompetitionIdOverrides }
         : {}),
     };
   }
