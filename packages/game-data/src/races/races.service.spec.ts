@@ -133,4 +133,67 @@ describe('RacesService', () => {
       expect(from).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('toplist queries', () => {
+    function makeQueryBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('countTeamsByRace returns the rows the query resolves to', async () => {
+      const rows = [
+        { raceId: 1, name: 'Orc', count: 12 },
+        { raceId: 2, name: 'Skaven', count: 7 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countTeamsByRace()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTeamsByRace returns an empty array when there is no data', async () => {
+      const select = vi.fn(() => makeQueryBuilder([]));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countTeamsByRace()).resolves.toEqual([]);
+    });
+
+    it('countTeamsByRace joins team_eras when an eraId is given', async () => {
+      const rows = [{ raceId: 1, name: 'Orc', count: 3 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countTeamsByRace(20)).resolves.toEqual(rows);
+      // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
+      expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+    });
+
+    it('countMatchesPlayedByRace returns the rows the query resolves to', async () => {
+      const rows = [
+        { raceId: 1, name: 'Orc', count: 40 },
+        { raceId: 2, name: 'Skaven', count: 18 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countMatchesPlayedByRace()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countMatchesPlayedByRace filters by era when an eraId is given', async () => {
+      const rows = [{ raceId: 1, name: 'Orc', count: 6 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countMatchesPlayedByRace(20)).resolves.toEqual(rows);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+  });
 });
