@@ -20,3 +20,20 @@ export async function resolveCoachTeamsToplist(
     coaches.countTeamsByCoach(eraId),
   );
 }
+
+export async function resolveCoachCompetitionsPlayedToplist(
+  coaches: CoachesService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Coaches by competitions played', () =>
+    coaches.countCompetitionsByCoach(eraId),
+  );
+}
+
+export async function resolveCoachErasActiveToplist(
+  coaches: CoachesService,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Coaches by eras active', () =>
+    coaches.countErasByCoach(),
+  );
+}
