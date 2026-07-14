@@ -132,8 +132,11 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       }
     }
 
-    const reply = await this.pickRandom(leaves).resolve(era?.id);
-    return era ? this.applyEraToReply(reply, era.name) : reply;
+    const picked = this.pickRandom(leaves);
+    const reply = await picked.resolve(era?.id);
+    return picked.supportsEra
+      ? this.applyTitleSuffix(reply, era?.name ?? 'All time')
+      : reply;
   }
 
   async resolveRandomFact(era?: {
@@ -144,13 +147,16 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     if (era) {
       leaves = leaves.filter((leaf) => leaf.supportsEra);
     }
-    const reply = await this.pickRandom(leaves).resolve(era?.id);
-    return era ? this.applyEraToReply(reply, era.name) : reply;
+    const picked = this.pickRandom(leaves);
+    const reply = await picked.resolve(era?.id);
+    return picked.supportsEra
+      ? this.applyTitleSuffix(reply, era?.name ?? 'All time')
+      : reply;
   }
 
-  private applyEraToReply(
+  private applyTitleSuffix(
     reply: string | InteractionReplyOptions,
-    eraName: string,
+    suffix: string,
   ): string | InteractionReplyOptions {
     if (typeof reply === 'string') {
       return reply;
@@ -164,7 +170,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       embeds: embeds.map((embed, index) => {
         const title = (embed as { title?: string }).title;
         return index === 0 && title
-          ? { ...embed, title: `${title} — ${eraName}` }
+          ? { ...embed, title: `${title} — ${suffix}` }
           : embed;
       }),
     };

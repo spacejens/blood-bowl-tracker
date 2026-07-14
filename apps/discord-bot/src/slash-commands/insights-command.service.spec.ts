@@ -126,7 +126,7 @@ describe('InsightsCommandService', () => {
     expect(command.autocomplete).toEqual(expect.any(Function));
   });
 
-  it('resolves an exact leaf path to that fact', async () => {
+  it('resolves an exact leaf path to that fact, suffixed with "All time" when no era is given', async () => {
     const { service, coaches } = makeService();
     const result = await service.execute(
       chatInput('coach.toplist.matches.played'),
@@ -136,8 +136,22 @@ describe('InsightsCommandService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Coaches by matches played',
+          title: 'Coaches by matches played — All time',
           description: '1. Roze Madder — 9',
+        },
+      ],
+    });
+  });
+
+  it('does not suffix a non-era-supporting fact (stats) when no era is given', async () => {
+    const { service } = makeService();
+    const result = await service.execute(chatInput('stats'));
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'I have knowledge of',
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+          description: expect.any(String),
         },
       ],
     });
@@ -307,15 +321,15 @@ describe('InsightsCommandService', () => {
     }
   });
 
-  it('passes a reply with an empty embeds array through unchanged when an era is given', () => {
+  it('passes a reply with an empty embeds array through unchanged', () => {
     const { service } = makeService();
     const reply = { embeds: [] };
 
     const result = (
       service as unknown as {
-        applyEraToReply: (reply: unknown, eraName: string) => unknown;
+        applyTitleSuffix: (reply: unknown, suffix: string) => unknown;
       }
-    ).applyEraToReply(reply, 'BB2020');
+    ).applyTitleSuffix(reply, 'BB2020');
 
     expect(result).toBe(reply);
   });
