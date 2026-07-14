@@ -48,6 +48,18 @@ function makeService() {
     countErasByTeam: vi
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 3 }]),
+    countTouchdownsScoredByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 15 }]),
+    countCompletionsByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
+    countInterceptionsByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 5 }]),
+    countDeflectionsByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
     countAll: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
   const matches = {
@@ -69,6 +81,18 @@ function makeService() {
     countMvpAwardsByPlayer: vi
       .fn()
       .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 7 }]),
+    countTouchdownsScoredByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 9 }]),
+    countCompletionsByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 6 }]),
+    countInterceptionsByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 5 }]),
+    countDeflectionsByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 4 }]),
     countAll: vi.fn().mockResolvedValue(0),
   } as unknown as PlayersService;
   const positions = zero() as unknown as PositionsService;
@@ -582,5 +606,118 @@ describe('InsightsCommandService', () => {
       autocompleteInteraction('era', 'bb'),
     );
     expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
+  });
+
+  it('scopes player.toplist.touchdowns.scored to the resolved era and names it in the title', async () => {
+    const { service, players, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('player.toplist.touchdowns.scored', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countTouchdownsScoredByPlayer).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by touchdowns scored — BB2020',
+          description: '1. Griff Oberwald — 9',
+        },
+      ],
+    });
+  });
+
+  it('resolves player.toplist.completions with no era, suffixed with "All time"', async () => {
+    const { service, players } = makeService();
+    const result = await service.execute(
+      chatInput('player.toplist.completions'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countCompletionsByPlayer).toHaveBeenCalled();
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by completions — All time',
+          description: '1. Griff Oberwald — 6',
+        },
+      ],
+    });
+  });
+
+  it('scopes team.toplist.interceptions to the resolved era and names it in the title', async () => {
+    const { service, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('team.toplist.interceptions', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by interceptions — BB2020',
+          description: '1. 40 grinders — 5',
+        },
+      ],
+    });
+  });
+
+  it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
+    const { service, teams } = makeService();
+    const result = await service.execute(
+      chatInput('team.toplist.deflections'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.countDeflectionsByTeam).toHaveBeenCalled();
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by deflections — All time',
+          description: '1. 40 grinders — 4',
+        },
+      ],
+    });
+  });
+
+  it('includes the offense facts in the era-scoped random pool', async () => {
+    const { service, players, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    // Sweep [0,1); with 16 era-supporting leaves in the pool, at least one
+    // offense query must be reachable across the sweep.
+    for (const r of [0, 0.2, 0.4, 0.6, 0.8, 0.999999]) {
+      vi.spyOn(Math, 'random').mockReturnValue(r);
+      await service.execute(chatInput(null, '20'));
+      vi.restoreAllMocks();
+      (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+      });
+    }
+    const anyOffenseCalled =
+      (players.countTouchdownsScoredByPlayer as ReturnType<typeof vi.fn>).mock
+        .calls.length > 0 ||
+      (players.countCompletionsByPlayer as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (players.countInterceptionsByPlayer as ReturnType<typeof vi.fn>).mock
+        .calls.length > 0 ||
+      (players.countDeflectionsByPlayer as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countTouchdownsScoredByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countCompletionsByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countInterceptionsByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countDeflectionsByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0;
+    expect(anyOffenseCalled).toBe(true);
   });
 });
