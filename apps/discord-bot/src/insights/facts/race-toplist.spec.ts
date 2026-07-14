@@ -19,7 +19,7 @@ describe('resolveRaceTeamsToplist', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by race',
+          title: 'Races by teams',
           description: '1. Orc — 12\n1. Skaven — 12\n2. Elf — 4',
         },
       ],
@@ -62,7 +62,7 @@ describe('resolveRaceMatchesPlayedToplist', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Matches played by race',
+          title: 'Races by matches played',
           description: '1. Orc — 40\n2. Skaven — 18',
         },
       ],

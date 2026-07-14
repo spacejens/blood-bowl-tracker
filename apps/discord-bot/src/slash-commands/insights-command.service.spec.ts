@@ -438,7 +438,7 @@ describe('InsightsCommandService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by race — BB2020',
+          title: 'Races by teams — BB2020',
           description: '1. Orc — 12',
         },
       ],
@@ -459,7 +459,7 @@ describe('InsightsCommandService', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Matches played by race — BB2020',
+          title: 'Races by matches played — BB2020',
           description: '1. Orc — 40',
         },
       ],

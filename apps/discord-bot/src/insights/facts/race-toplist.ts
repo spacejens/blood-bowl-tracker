@@ -7,14 +7,14 @@ export async function resolveRaceTeamsToplist(
   races: RacesService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Teams by race', () => races.countTeamsByRace(eraId));
+  return resolveToplist('Races by teams', () => races.countTeamsByRace(eraId));
 }
 
 export async function resolveRaceMatchesPlayedToplist(
   races: RacesService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Matches played by race', () =>
+  return resolveToplist('Races by matches played', () =>
     races.countMatchesPlayedByRace(eraId),
   );
 }
