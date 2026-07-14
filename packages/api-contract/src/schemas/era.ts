@@ -10,7 +10,7 @@ export const EraSchema = z.object({
   id: z.number(),
   name: z.string(),
   leagueId: z.number(),
-  rulesSetId: z.number(),
+  rulesSetIds: z.array(z.number()),
   startDate: z.string(),
   endDate: z.string().nullable(),
   createdAt: z.coerce.date(),
@@ -19,7 +19,7 @@ export const EraSchema = z.object({
 export const UpsertEraSchema = z.object({
   name: z.string().min(1),
   leagueId: z.number().int(),
-  rulesSetId: z.number().int(),
+  rulesSetIds: z.array(z.number().int()).min(1),
   startDate: IsoDate,
   endDate: IsoDate.optional(),
   externalIds: z.array(ExternalIdSchema).min(1),

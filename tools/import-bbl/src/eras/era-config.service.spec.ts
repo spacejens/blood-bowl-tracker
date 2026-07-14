@@ -13,7 +13,7 @@ function makeService(value: string | undefined): EraConfigService {
 const validJson = JSON.stringify([
   {
     name: 'Living rulebook',
-    rulesSet: 'Living rulebook',
+    rulesSets: ['Living rulebook'],
     startDate: '2011-09-09',
     endDate: '2021-09-01',
     firstPlayerId: 1,
@@ -21,7 +21,7 @@ const validJson = JSON.stringify([
   },
   {
     name: 'BB2020',
-    rulesSet: 'BB2020',
+    rulesSets: ['BB2020'],
     startDate: '2021-09-01',
     firstPlayerId: 5001,
   },
@@ -33,7 +33,7 @@ describe('EraConfigService', () => {
     expect(eras).toHaveLength(2);
     expect(eras[0]).toEqual({
       name: 'Living rulebook',
-      rulesSet: 'Living rulebook',
+      rulesSets: ['Living rulebook'],
       startDate: '2011-09-09',
       endDate: '2021-09-01',
       firstPlayerId: 1,
@@ -58,33 +58,60 @@ describe('EraConfigService', () => {
 
   it('throws when an entry has an empty name', () => {
     const json = JSON.stringify([
-      { name: '', rulesSet: 'BB2020', startDate: '2021-09-01' },
+      { name: '', rulesSets: ['BB2020'], startDate: '2021-09-01' },
     ]);
     expect(() => makeService(json).getEras()).toThrow('name');
   });
 
-  it('throws when an entry has an empty rulesSet', () => {
+  it('throws when an entry has an empty rulesSets array', () => {
     const json = JSON.stringify([
-      { name: 'BB2020', rulesSet: '', startDate: '2021-09-01' },
+      { name: 'BB2020', rulesSets: [], startDate: '2021-09-01' },
     ]);
-    expect(() => makeService(json).getEras()).toThrow('rulesSet');
+    expect(() => makeService(json).getEras()).toThrow('rulesSets');
+  });
+
+  it('accepts an era spanning multiple rules sets', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['CRP', 'CRP+', 'BB2016'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 1000,
+      },
+    ]);
+    const eras = makeService(json).getEras();
+    expect(eras[0].rulesSets).toEqual(['CRP', 'CRP+', 'BB2016']);
+  });
+
+  it('rejects an era whose rulesSets contains a non-string / empty entry', () => {
+    const json = JSON.stringify([
+      {
+        name: 'X',
+        rulesSets: [''],
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/rulesSets/);
   });
 
   it('throws when startDate is missing', () => {
-    const json = JSON.stringify([{ name: 'BB2020', rulesSet: 'BB2020' }]);
+    const json = JSON.stringify([{ name: 'BB2020', rulesSets: ['BB2020'] }]);
     expect(() => makeService(json).getEras()).toThrow('startDate');
   });
 
   it('throws when startDate is not an ISO date', () => {
     const json = JSON.stringify([
-      { name: 'BB2020', rulesSet: 'BB2020', startDate: '01-09-2021' },
+      { name: 'BB2020', rulesSets: ['BB2020'], startDate: '01-09-2021' },
     ]);
     expect(() => makeService(json).getEras()).toThrow('startDate');
   });
 
   it('throws when startDate is not a real calendar date', () => {
     const json = JSON.stringify([
-      { name: 'BB2020', rulesSet: 'BB2020', startDate: '2021-02-30' },
+      { name: 'BB2020', rulesSets: ['BB2020'], startDate: '2021-02-30' },
     ]);
     expect(() => makeService(json).getEras()).toThrow('startDate');
   });
@@ -93,7 +120,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'BB2020',
-        rulesSet: 'BB2020',
+        rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         endDate: 'later',
       },
@@ -103,7 +130,7 @@ describe('EraConfigService', () => {
 
   it('throws when firstPlayerId is missing', () => {
     const json = JSON.stringify([
-      { name: 'LRB', rulesSet: 'LRB', startDate: '2011-09-09' },
+      { name: 'LRB', rulesSets: ['LRB'], startDate: '2011-09-09' },
     ]);
     expect(() => makeService(json).getEras()).toThrow(/firstPlayerId/);
   });
@@ -113,7 +140,7 @@ describe('EraConfigService', () => {
       JSON.stringify([
         {
           name: 'LRB',
-          rulesSet: 'LRB',
+          rulesSets: ['LRB'],
           startDate: '2011-09-09',
           firstPlayerId: 1,
         },
@@ -130,7 +157,7 @@ describe('EraConfigService', () => {
       JSON.stringify([
         {
           name: 'LRB',
-          rulesSet: 'LRB',
+          rulesSets: ['LRB'],
           startDate: '2011-09-09',
           endDate: '2021-09-01',
           firstPlayerId: 1,
@@ -149,7 +176,7 @@ describe('EraConfigService', () => {
       JSON.stringify([
         {
           name: 'LRB',
-          rulesSet: 'LRB',
+          rulesSets: ['LRB'],
           startDate: '2011-09-09',
           firstPlayerId: 0,
         },
@@ -163,7 +190,7 @@ describe('EraConfigService', () => {
       JSON.stringify([
         {
           name: 'LRB',
-          rulesSet: 'LRB',
+          rulesSets: ['LRB'],
           startDate: '2011-09-09',
           firstPlayerId: 1,
           lastPlayerId: 1.5,
@@ -178,7 +205,7 @@ describe('EraConfigService', () => {
       JSON.stringify([
         {
           name: 'LRB',
-          rulesSet: 'LRB',
+          rulesSets: ['LRB'],
           startDate: '2011-09-09',
           firstPlayerId: 10,
           lastPlayerId: 5,
@@ -192,7 +219,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
         lastPlayerId: 5000,
@@ -207,7 +234,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         firstPlayerId: 1,
@@ -222,7 +249,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'Living rulebook',
-        rulesSet: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         firstPlayerId: 1,
@@ -231,7 +258,7 @@ describe('EraConfigService', () => {
       },
       {
         name: 'BB2020',
-        rulesSet: 'BB2020',
+        rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         firstPlayerId: 5001,
       },
@@ -245,7 +272,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
         playerIdOverrides: 4907,
@@ -258,7 +285,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
         playerIdOverrides: [4907, 0],
@@ -271,7 +298,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'Living rulebook',
-        rulesSet: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         firstPlayerId: 1,
@@ -280,7 +307,7 @@ describe('EraConfigService', () => {
       },
       {
         name: 'BB2020',
-        rulesSet: 'BB2020',
+        rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         firstPlayerId: 5001,
         playerIdOverrides: [4907],
@@ -293,7 +320,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'Living rulebook',
-        rulesSet: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         firstPlayerId: 1,
@@ -302,7 +329,7 @@ describe('EraConfigService', () => {
       },
       {
         name: 'BB2020',
-        rulesSet: 'BB2020',
+        rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         firstPlayerId: 5001,
       },
@@ -316,7 +343,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
         competitionIdOverrides: '74',
@@ -329,7 +356,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'LRB',
-        rulesSet: 'LRB',
+        rulesSets: ['LRB'],
         startDate: '2011-09-09',
         firstPlayerId: 1,
         competitionIdOverrides: ['74', ''],
@@ -342,7 +369,7 @@ describe('EraConfigService', () => {
     const json = JSON.stringify([
       {
         name: 'Living rulebook',
-        rulesSet: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         firstPlayerId: 1,
@@ -351,7 +378,7 @@ describe('EraConfigService', () => {
       },
       {
         name: 'BB2020',
-        rulesSet: 'BB2020',
+        rulesSets: ['BB2020'],
         startDate: '2021-09-01',
         firstPlayerId: 5001,
         competitionIdOverrides: ['74'],

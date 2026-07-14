@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 
 export interface EraConfig {
   name: string;
-  rulesSet: string;
+  rulesSets: string[];
   startDate: string;
   endDate?: string;
   firstPlayerId: number;
@@ -63,7 +63,7 @@ export class EraConfigService {
       throw new Error(
         'BBL_ERAS is not set. Set it to a JSON array of the eras the BBL ' +
           'league played through, e.g. ' +
-          '[{"name":"Living rulebook","rulesSet":"Living rulebook",' +
+          '[{"name":"Living rulebook","rulesSets":["Living rulebook"],' +
           '"startDate":"2011-09-09","endDate":"2021-09-01"}].',
       );
     }
@@ -121,7 +121,7 @@ export class EraConfigService {
 
     const {
       name,
-      rulesSet,
+      rulesSets,
       startDate,
       endDate,
       firstPlayerId,
@@ -133,9 +133,13 @@ export class EraConfigService {
     if (typeof name !== 'string' || name.trim() === '') {
       throw new Error(`BBL_ERAS[${index}].name must be a non-empty string.`);
     }
-    if (typeof rulesSet !== 'string' || rulesSet.trim() === '') {
+    if (
+      !Array.isArray(rulesSets) ||
+      rulesSets.length === 0 ||
+      !rulesSets.every((r) => typeof r === 'string' && r.trim() !== '')
+    ) {
       throw new Error(
-        `BBL_ERAS[${index}].rulesSet must be a non-empty string.`,
+        `BBL_ERAS[${index}].rulesSets must be a non-empty array of non-empty strings.`,
       );
     }
     if (!isValidIsoDate(startDate)) {
@@ -194,7 +198,7 @@ export class EraConfigService {
 
     return {
       name,
-      rulesSet,
+      rulesSets: rulesSets as string[],
       startDate,
       firstPlayerId,
       ...(endDate !== undefined ? { endDate } : {}),

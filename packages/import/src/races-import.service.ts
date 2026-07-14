@@ -7,6 +7,7 @@ import type { ImportError } from './types';
 
 export interface UpsertRaceData {
   name: string;
+  eras?: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 

@@ -7,7 +7,6 @@ import type { ImportError } from './types';
 
 export interface UpsertRulesSetData {
   name: string;
-  races?: number[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 

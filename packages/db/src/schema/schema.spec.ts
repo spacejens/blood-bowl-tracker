@@ -5,6 +5,7 @@ import {
   coachExternalIds,
   competitions,
   competitionTeams,
+  eraRulesSets,
   eras,
   externalSystems,
   leagues,
@@ -16,7 +17,7 @@ import {
   positionExternalIds,
   positions,
   positionsRaces,
-  raceRulesSets,
+  raceEras,
   races,
   rulesSets,
   teamEras,
@@ -39,12 +40,6 @@ describe('schema', () => {
     expect(rulesSets.name).toBeDefined();
   });
 
-  it('exports raceRulesSets join table', () => {
-    expect(raceRulesSets.id).toBeDefined();
-    expect(raceRulesSets.raceId).toBeDefined();
-    expect(raceRulesSets.rulesSetId).toBeDefined();
-  });
-
   it('exports leagues table', () => {
     expect(leagues.id).toBeDefined();
     expect(leagues.name).toBeDefined();
@@ -54,9 +49,20 @@ describe('schema', () => {
     expect(eras.id).toBeDefined();
     expect(eras.name).toBeDefined();
     expect(eras.leagueId).toBeDefined();
-    expect(eras.rulesSetId).toBeDefined();
     expect(eras.startDate).toBeDefined();
     expect(eras.endDate).toBeDefined();
+  });
+
+  it('exports eraRulesSets join table', () => {
+    expect(eraRulesSets.id).toBeDefined();
+    expect(eraRulesSets.eraId).toBeDefined();
+    expect(eraRulesSets.rulesSetId).toBeDefined();
+  });
+
+  it('exports raceEras join table', () => {
+    expect(raceEras.id).toBeDefined();
+    expect(raceEras.raceId).toBeDefined();
+    expect(raceEras.eraId).toBeDefined();
   });
 
   it('exports externalSystems table', () => {

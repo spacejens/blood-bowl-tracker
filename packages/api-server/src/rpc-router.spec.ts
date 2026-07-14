@@ -388,7 +388,12 @@ describe('buildRpcRouter', () => {
       matchEventsService,
     } = makeServices();
     (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
-      race: { id: 1, name: 'Orc', createdAt: new Date('2026-01-01') },
+      race: {
+        id: 1,
+        name: 'Orc',
+        eras: [5],
+        createdAt: new Date('2026-01-01'),
+      },
       created: true,
     });
     const router = buildRpcRouter(
@@ -408,12 +413,14 @@ describe('buildRpcRouter', () => {
 
     const result = await call(router.races.upsert, {
       name: 'Orc',
+      eras: [5],
       externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
     });
 
     expect(result).toEqual({
       id: 1,
       name: 'Orc',
+      eras: [5],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -514,7 +521,6 @@ describe('buildRpcRouter', () => {
       rulesSet: {
         id: 1,
         name: 'BB2020',
-        races: [],
         createdAt: new Date('2026-01-01'),
       },
       created: true,
@@ -542,7 +548,6 @@ describe('buildRpcRouter', () => {
     expect(result).toEqual({
       id: 1,
       name: 'BB2020',
-      races: [],
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -619,7 +624,7 @@ describe('buildRpcRouter', () => {
           id: 1,
           name: 'BB2020',
           leagueId: 10,
-          rulesSetId: 20,
+          rulesSetIds: [20],
           startDate: '2021-09-01',
           endDate: '2023-06-10',
           createdAt: new Date('2026-01-01'),
@@ -645,7 +650,7 @@ describe('buildRpcRouter', () => {
     const result = await call(router.eras.upsert, {
       name: 'BB2020',
       leagueId: 10,
-      rulesSetId: 20,
+      rulesSetIds: [20],
       startDate: '2021-09-01',
       endDate: '2023-06-10',
       externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
@@ -655,7 +660,7 @@ describe('buildRpcRouter', () => {
       id: 1,
       name: 'BB2020',
       leagueId: 10,
-      rulesSetId: 20,
+      rulesSetIds: [20],
       startDate: '2021-09-01',
       endDate: '2023-06-10',
       createdAt: new Date('2026-01-01'),
@@ -689,7 +694,7 @@ describe('buildRpcRouter', () => {
       call(router.eras.upsert, {
         name: 'BB2020',
         leagueId: 10,
-        rulesSetId: 20,
+        rulesSetIds: [20],
         startDate: '2021-09-01',
         externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
       }),
@@ -723,7 +728,7 @@ describe('buildRpcRouter', () => {
       call(router.eras.upsert, {
         name: 'BB2020',
         leagueId: 10,
-        rulesSetId: 20,
+        rulesSetIds: [20],
         startDate: '2021-09-01',
         externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
       }),

@@ -8,7 +8,7 @@ import type { ImportError } from './types';
 export interface UpsertEraData {
   name: string;
   leagueId: number;
-  rulesSetId: number;
+  rulesSetIds: number[];
   startDate: string;
   endDate?: string;
   externalIds: { externalSystemId: number; externalId: string }[];
