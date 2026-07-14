@@ -8,7 +8,7 @@ describe('era schemas', () => {
       id: 1,
       name: 'Living rulebook',
       leagueId: 10,
-      rulesSetId: 20,
+      rulesSetIds: [20],
       startDate: '2011-09-09',
       endDate: null,
       createdAt: '2026-01-01T00:00:00.000Z',
@@ -18,11 +18,24 @@ describe('era schemas', () => {
     expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
+  it('EraSchema parses rulesSetIds as a number array', () => {
+    const parsed = EraSchema.parse({
+      id: 1,
+      name: 'Living rulebook',
+      leagueId: 10,
+      rulesSetIds: [20, 21],
+      startDate: '2011-09-09',
+      endDate: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(parsed.rulesSetIds).toEqual([20, 21]);
+  });
+
   it('UpsertEraSchema accepts an era without an endDate', () => {
     const parsed = UpsertEraSchema.parse({
       name: 'Ongoing',
       leagueId: 10,
-      rulesSetId: 20,
+      rulesSetIds: [20],
       startDate: '2023-06-10',
       externalIds: [{ externalSystemId: 1, externalId: 'Ongoing' }],
     });
@@ -34,7 +47,7 @@ describe('era schemas', () => {
       UpsertEraSchema.parse({
         name: 'X',
         leagueId: 1,
-        rulesSetId: 1,
+        rulesSetIds: [1],
         startDate: '09-09-2011',
         externalIds: [{ externalSystemId: 1, externalId: 'X' }],
       }),
@@ -46,9 +59,21 @@ describe('era schemas', () => {
       UpsertEraSchema.parse({
         name: 'X',
         leagueId: 1,
-        rulesSetId: 1,
+        rulesSetIds: [1],
         startDate: '2011-09-09',
         externalIds: [],
+      }),
+    ).toThrow();
+  });
+
+  it('UpsertEraSchema rejects an empty rulesSetIds array', () => {
+    expect(() =>
+      UpsertEraSchema.parse({
+        name: 'X',
+        leagueId: 1,
+        rulesSetIds: [],
+        startDate: '2011-09-09',
+        externalIds: [{ externalSystemId: 1, externalId: 'X' }],
       }),
     ).toThrow();
   });
