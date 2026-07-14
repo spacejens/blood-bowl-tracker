@@ -155,9 +155,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         `Failed to handle /${interaction.commandName} command`,
         error,
       );
-      await interaction.reply(
-        'Sorry, something went wrong while handling that command.',
-      );
+      await interaction.reply('I am badly hurt');
     }
   }
 }
