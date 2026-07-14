@@ -24,6 +24,14 @@ export interface EraConfig {
    * codebase (e.g. BblCompetition.bblId).
    */
   seasonCompetitionIdOverrides?: string[];
+  /**
+   * Explicit competition bblIds hard-assigned to this era and forced to type
+   * 'cup' regardless of their match dates — the symmetric counterpart of
+   * seasonCompetitionIdOverrides. Needed for cups whose match-date span exceeds
+   * CUP_MAX_SPAN_DAYS (e.g. an abandoned cup) and would otherwise compute
+   * 'season'. Checked before match-date-based type/era resolution.
+   */
+  cupCompetitionIdOverrides?: string[];
 }
 
 /**
@@ -99,11 +107,14 @@ export class EraConfigService {
 
     const eraNameByOverriddenCompetitionId = new Map<string, string>();
     for (const era of eras) {
-      for (const bblId of era.seasonCompetitionIdOverrides ?? []) {
+      for (const bblId of [
+        ...(era.seasonCompetitionIdOverrides ?? []),
+        ...(era.cupCompetitionIdOverrides ?? []),
+      ]) {
         const existing = eraNameByOverriddenCompetitionId.get(bblId);
         if (existing !== undefined) {
           throw new Error(
-            `BBL_ERAS: competition id ${bblId} appears in seasonCompetitionIdOverrides for both "${existing}" and "${era.name}".`,
+            `BBL_ERAS: competition id ${bblId} appears in seasonCompetitionIdOverrides/cupCompetitionIdOverrides for both "${existing}" and "${era.name}".`,
           );
         }
         eraNameByOverriddenCompetitionId.set(bblId, era.name);
@@ -128,6 +139,7 @@ export class EraConfigService {
       lastPlayerId,
       playerIdOverrides,
       seasonCompetitionIdOverrides,
+      cupCompetitionIdOverrides,
     } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
@@ -196,6 +208,18 @@ export class EraConfigService {
       );
     }
 
+    if (
+      cupCompetitionIdOverrides !== undefined &&
+      (!Array.isArray(cupCompetitionIdOverrides) ||
+        !cupCompetitionIdOverrides.every(
+          (id) => typeof id === 'string' && id.trim() !== '',
+        ))
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].cupCompetitionIdOverrides must be an array of non-empty strings when present.`,
+      );
+    }
+
     return {
       name,
       rulesSets: rulesSets as string[],
@@ -208,6 +232,9 @@ export class EraConfigService {
         : {}),
       ...(seasonCompetitionIdOverrides !== undefined
         ? { seasonCompetitionIdOverrides: seasonCompetitionIdOverrides }
+        : {}),
+      ...(cupCompetitionIdOverrides !== undefined
+        ? { cupCompetitionIdOverrides: cupCompetitionIdOverrides }
         : {}),
     };
   }

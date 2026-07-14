@@ -390,4 +390,64 @@ describe('EraConfigService', () => {
     ]);
     expect(() => makeService(json).getEras()).toThrow(/74/);
   });
+
+  it('parses cupCompetitionIdOverrides when present, leaving it undefined when absent', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        cupCompetitionIdOverrides: ['30', '33'],
+      },
+      {
+        name: 'BB2020',
+        rulesSets: ['BB2020'],
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+      },
+    ]);
+    const eras = makeService(json).getEras();
+    expect(eras[0].cupCompetitionIdOverrides).toEqual(['30', '33']);
+    expect(eras[1].cupCompetitionIdOverrides).toBeUndefined();
+  });
+
+  it('rejects cupCompetitionIdOverrides that is not an array of non-empty strings', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSets: ['LRB'],
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+        cupCompetitionIdOverrides: ['30', ''],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(
+      /cupCompetitionIdOverrides/,
+    );
+  });
+
+  it('rejects the same competition id appearing across season and cup overrides in different eras', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        seasonCompetitionIdOverrides: ['30'],
+      },
+      {
+        name: 'BB2020',
+        rulesSets: ['BB2020'],
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+        cupCompetitionIdOverrides: ['30'],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/30/);
+  });
 });
