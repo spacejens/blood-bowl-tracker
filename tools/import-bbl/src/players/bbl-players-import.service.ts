@@ -79,6 +79,12 @@ export class BblPlayersImportService {
         eraByOverriddenPid.set(pid, era);
       }
     }
+    const eraByOverriddenTeamCode = new Map<string, (typeof eras)[number]>();
+    for (const era of eras) {
+      for (const teamCode of era.teamCodeOverrides ?? []) {
+        eraByOverriddenTeamCode.set(teamCode, era);
+      }
+    }
 
     for await (const page of this.sourceReader.pages(PLAYER_PAGE_TYPE)) {
       try {
@@ -95,6 +101,7 @@ export class BblPlayersImportService {
 
         const pidNumber = Number(player.pid);
         const era =
+          eraByOverriddenTeamCode.get(player.teamCode) ??
           eraByOverriddenPid.get(pidNumber) ??
           eras.find(
             (e) =>

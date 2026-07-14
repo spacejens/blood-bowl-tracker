@@ -80,22 +80,36 @@ used here. Each match row's `onclick` (e.g.
 `self.location.href='default.asp?p=m&m=<id>'`) carries the match's
 globally-unique numeric id; the matches import uses this as the match's BBL
 external id, so matches are established straight from the list rows without
-reading the `m`/`mp` pages themselves. A competition's `type` is inferred from
-its match-date span:
-`(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against all 74
-competitions in the reference dataset, including "Dungeon Bowl 1" (a 191-day
-season across only 4 matches) and "Stunty Leeg 2" (a season abandoned after 6
-days); the nearest genuine cup spans at most 2 days, so 3 days has wide margin.
+reading the `m`/`mp` pages themselves. For every competition other than those
+covered by `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see
+`BBL_ERAS` in [index.md](./index.md)), `type` is inferred from its match-date
+span: `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated
+against the 71 non-overridden competitions in the reference dataset; the
+nearest genuine cup spans at most 2 days, so 3 days has wide margin.
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
 were backfilled in one sitting (rather than entered as they happened) can show
-a 0-day span indistinguishable from a genuine one-day cup. "Stunty Leeg 1"
-(11 matches, 0-day span) is a known instance: it misclassifies as `cup` but is
-almost certainly a season, matching "Stunty Leeg 2". No date-span threshold
-can fix this — roughly 20 genuine one-day cups share the same 0-day span. Left
-as-is; correct manually in the database if it matters, the same way any future
-similar case should be handled.
+a 0-day span indistinguishable from a genuine one-day cup. Roughly 20 genuine
+one-day cups share that same 0-day span, so no date-span threshold can
+distinguish them from a backfilled season. Three known instances need
+`BBL_ERAS` overrides, each for a different reason:
+
+- "Stunty Leeg 1" (`s=30`, 0-day span) is a genuine type-classification
+  ambiguity — a 0-day span is indistinguishable from a real one-day cup using
+  the heuristic alone — but is resolved correctly via
+  `cupCompetitionIdOverrides` regardless.
+- "Stunty Leeg 2" (`s=33`, 6-day span) is a genuine type _correction_: the
+  date-span heuristic would compute `season` (6 days is over the 3-day
+  cutoff), but it was actually a `cup`. `cupCompetitionIdOverrides` corrects
+  the type, not just the era.
+- "Dungeon Bowl 1" (`s=69`, 191-day span) has no type-classification issue at
+  all — the heuristic already computes `season` correctly on its own. Its
+  only problem is _era_ assignment: its dates would otherwise fall in
+  whichever regular era covers that date range. `seasonCompetitionIdOverrides`
+  fixes the era assignment.
+
+Any future similar case should be handled the same way.
 
 Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
 per-league master race-list page. Each race is introduced by two anchors — a
