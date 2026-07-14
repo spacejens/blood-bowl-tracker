@@ -1,28 +1,28 @@
-import type { ConfigService } from '@nestjs/config';
 import { describe, expect, it } from 'vitest';
 
+import type { ImportBblConfigService } from '../config/import-bbl-config.service';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 
 function makeService(
-  value: string | undefined,
+  name: string | undefined,
 ): ExternalSystemNameConfigService {
-  const configService = {
-    get: (_key: string) => value,
-  } as unknown as ConfigService;
-  return new ExternalSystemNameConfigService(configService);
+  const config = {
+    get: (_key: string) => name,
+  } as unknown as ImportBblConfigService;
+  return new ExternalSystemNameConfigService(config);
 }
 
 describe('ExternalSystemNameConfigService', () => {
-  it('returns "BBL" when BBL_EXTERNAL_SYSTEM_NAME is not set', () => {
+  it('returns "BBL" when externalSystemName is not set', () => {
     expect(makeService(undefined).getBblSystemName()).toBe('BBL');
   });
 
-  it('returns "BBL" when BBL_EXTERNAL_SYSTEM_NAME is empty or whitespace', () => {
+  it('returns "BBL" when externalSystemName is empty or whitespace', () => {
     expect(makeService('').getBblSystemName()).toBe('BBL');
     expect(makeService('   ').getBblSystemName()).toBe('BBL');
   });
 
-  it('returns the configured value when BBL_EXTERNAL_SYSTEM_NAME is set', () => {
+  it('returns the configured value when externalSystemName is set', () => {
     expect(makeService('MyLeague').getBblSystemName()).toBe('MyLeague');
   });
 });

@@ -1,23 +1,24 @@
 import { resolve } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+
+import { ImportBblConfigService } from '../config/import-bbl-config.service';
 
 @Injectable()
 export class SourceConfigService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly config: ImportBblConfigService) {}
 
   /**
    * Absolute path to the folder that directly contains the BBL
-   * `default.asp?p=...` files. A relative BBL_DATA_DIR resolves against the
-   * current working directory; an absolute value is used as-is.
+   * `default.asp?p=...` files. A relative dataDir resolves against the current
+   * working directory; an absolute value is used as-is.
    */
   getDataDir(): string {
-    const dir = this.configService.get<string>('BBL_DATA_DIR');
+    const dir = this.config.get<string>('dataDir');
     if (!dir) {
       throw new Error(
-        'BBL_DATA_DIR is not set. Set it to the folder containing the BBL ' +
-          'default.asp files (e.g. data/tloeg.bbleague.se/).',
+        'dataDir is not set in import-bbl-config.json5. Set it to the folder ' +
+          'containing the BBL default.asp files (e.g. data/tloeg.bbleague.se/).',
       );
     }
     return resolve(dir);
