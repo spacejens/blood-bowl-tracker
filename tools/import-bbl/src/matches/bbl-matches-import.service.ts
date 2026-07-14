@@ -79,7 +79,7 @@ export class BblMatchesImportService {
           errors.push(
             makeImportError({
               item: { match: match.bblId },
-              message: `Skipping match ${match.bblId}: its detail page had no usable name.`,
+              message: `Skipping match ${match.bblId}: its detail page was missing or failed to parse.`,
             }),
           );
           continue;

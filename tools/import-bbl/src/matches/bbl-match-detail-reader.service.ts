@@ -18,11 +18,12 @@ export class BblMatchDetailReaderService {
   ) {}
 
   /**
-   * Read every match's two team ids in a single pass over the `m` pages, keyed
-   * by the match's numeric BBL id. All pages are local file reads (no network
-   * cost). Per-page parse failures — the parser returning null or throwing —
-   * are recorded as import errors and skipped. The result is memoized on the
-   * instance so repeated calls within a process reuse the first walk.
+   * Read every match's two team ids and display name in a single pass over the
+   * `m` pages, keyed by the match's numeric BBL id. All pages are local file
+   * reads (no network cost). Per-page parse failures — the parser returning
+   * null or throwing — are recorded as import errors and skipped. The result
+   * is memoized on the instance so repeated calls within a process reuse the
+   * first walk.
    */
   async getMatchTeamsByBblId(
     errors: ImportError[],
@@ -38,7 +39,7 @@ export class BblMatchDetailReaderService {
           errors.push(
             makeImportError({
               item: { page: page.params },
-              message: `Failed to parse match detail page ${JSON.stringify(page.params)}: could not extract team ids.`,
+              message: `Failed to parse match detail page ${JSON.stringify(page.params)}: could not extract team ids or name.`,
             }),
           );
           continue;
