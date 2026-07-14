@@ -121,17 +121,16 @@ tool directory, or exported in your shell:
   `eraIdsByName` map it uses to resolve `eraId`.
 
 - **TeamParticipationModule** — derives the team↔era, competition↔team, and
-  race↔rules-set links from real match participation (it imports no new source
+  race↔era links from real match participation (it imports no new source
   pages of its own). `BblTeamParticipationImportService` reads each
   competition's matches via the shared `BblMatchListReaderService` for grouping,
   resolves each match's two team ids from `BblMatchDetailReaderService`, and
   resolves those ids to imported teams via the teams import's `teamsByCode` map,
   syncs that team's era (`team_eras`), collects the resulting team-era ids onto
-  the competition (`competition_teams`), and records each team's race against its
-  era's rules set (`race_rules_sets`). Runs after teams and after competitions
-  and rules sets (whose payload maps it re-upserts to attach the links). Team ids
-  that don't match an imported team, and matches with no detail page, are
-  recorded as errors and skipped.
+  the competition (`competition_teams`), and records each team's race against the
+  era (`race_eras`). Runs after teams, races, and competitions (whose payload
+  maps it re-upserts to attach the links). Team ids that don't match an imported
+  team, and matches with no detail page, are recorded as errors and skipped.
 
 API calls go through `packages/import` — the shared import services that other
 `tools/import-*` tools reuse — which in turn call the API through
@@ -155,8 +154,8 @@ Re-running is always safe and fills any gaps left by transient failures.
   the configured BBL external system and the `Name` external system. Imported
   after the league.
 - **Eras** — from the `BBL_ERAS` config (not parsed from the data). Each era
-  references its league and its rules set (both imported first) and carries a
-  `startDate` and optional `endDate`. Keyed by the era name under the
+  references its league and one or more rules sets (all imported first) and
+  carries a `startDate` and optional `endDate`. Keyed by the era name under the
   configured BBL external system and the `Name` external system. Imported
   after rules sets.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the
@@ -215,12 +214,12 @@ Re-running is always safe and fills any gaps left by transient failures.
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
 
-- **Team eras / Competition teams / Race rules sets** — append-only join links
+- **Team eras / Competition teams / Race eras** — append-only join links
   derived from match participation, not read from any single page. A team is
   linked to an era (`team_eras`) when it played a completed match in a
   competition whose era covers that match; the competition is linked to that
-  team-era (`competition_teams`); and the team's race is linked to the era's
-  rules set (`race_rules_sets`). These are historical facts, so the syncs only
+  team-era (`competition_teams`); and the team's race is linked to that era
+  (`race_eras`). These are historical facts, so the syncs only
   ever insert missing links — they never update or delete. A match team id that
   matches no imported team, and a match with no detail page, are skipped with a
   recorded error.
