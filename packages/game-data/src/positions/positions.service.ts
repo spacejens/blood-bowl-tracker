@@ -4,9 +4,10 @@ import {
   positionExternalIds,
   positions,
   positionsRaces,
+  raceEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, countDistinct, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -149,5 +150,14 @@ export class PositionsService {
 
   countAll(): Promise<number> {
     return countRows(this.db, positions);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionsRaces.positionId) })
+      .from(positionsRaces)
+      .innerJoin(raceEras, eq(raceEras.raceId, positionsRaces.raceId))
+      .where(eq(raceEras.eraId, eraId));
+    return row.count;
   }
 }

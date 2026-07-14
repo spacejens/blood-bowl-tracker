@@ -20,6 +20,19 @@ const fakePosition = {
   createdAt: new Date('2026-01-01'),
 };
 
+function makeCountBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 function makeFromBuilder(rows: unknown[]) {
   return {
     where: vi.fn().mockResolvedValue(rows),
@@ -200,6 +213,17 @@ describe('PositionsService', () => {
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    it('returns the distinct position count for races available in the era', async () => {
+      const builder = makeCountBuilder([{ count: 40 }]);
+      const select = vi.fn(() => builder);
+      const service = new PositionsService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(40);
+      // positions_races joined to race_eras
+      expect(builder.innerJoin).toHaveBeenCalledTimes(1);
     });
   });
 });

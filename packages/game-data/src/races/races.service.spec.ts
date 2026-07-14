@@ -11,6 +11,19 @@ const fakeRace = {
   createdAt: new Date('2026-01-01'),
 };
 
+function makeCountBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 function makeFromBuilder(rows: unknown[]) {
   return {
     where: vi.fn().mockResolvedValue(rows),
@@ -194,6 +207,15 @@ describe('RacesService', () => {
       const service = new RacesService({ select } as unknown as Db);
       await expect(service.countMatchesPlayedByRace(20)).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    it('returns the distinct race count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 8 }]));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(8);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });
