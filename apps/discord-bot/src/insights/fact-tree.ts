@@ -89,8 +89,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         },
         completions: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolveTeamCompletionsToplist(deps.teams, eraId),
+          resolve: (eraId) => resolveTeamCompletionsToplist(deps.teams, eraId),
         },
         interceptions: {
           supportsEra: true,
@@ -99,8 +98,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         },
         deflections: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolveTeamDeflectionsToplist(deps.teams, eraId),
+          resolve: (eraId) => resolveTeamDeflectionsToplist(deps.teams, eraId),
         },
       },
     },

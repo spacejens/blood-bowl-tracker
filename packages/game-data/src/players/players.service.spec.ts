@@ -208,7 +208,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 9 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countTouchdownsScoredByPlayer()).resolves.toEqual(rows);
+      await expect(service.countTouchdownsScoredByPlayer()).resolves.toEqual(
+        rows,
+      );
       expect(select).toHaveBeenCalledTimes(1);
     });
 

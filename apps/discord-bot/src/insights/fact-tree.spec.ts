@@ -136,7 +136,10 @@ describe('buildFactTree', () => {
 
   it('wires team.toplist.touchdowns.scored to the team touchdown-count query', async () => {
     const d = deps();
-    const leaf = resolvePath(buildFactTree(d), 'team.toplist.touchdowns.scored');
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.touchdowns.scored',
+    );
     await (leaf as FactLeaf).resolve();
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teams.countTouchdownsScoredByTeam).toHaveBeenCalled();

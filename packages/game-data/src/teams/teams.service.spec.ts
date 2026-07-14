@@ -262,7 +262,9 @@ describe('TeamsService', () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countTouchdownsScoredByTeam()).resolves.toEqual(rows);
+      await expect(service.countTouchdownsScoredByTeam()).resolves.toEqual(
+        rows,
+      );
       expect(select).toHaveBeenCalledTimes(1);
     });
 

@@ -669,9 +669,7 @@ describe('InsightsCommandService', () => {
 
   it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
     const { service, teams } = makeService();
-    const result = await service.execute(
-      chatInput('team.toplist.deflections'),
-    );
+    const result = await service.execute(chatInput('team.toplist.deflections'));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countDeflectionsByTeam).toHaveBeenCalled();
     expect(result).toEqual({
