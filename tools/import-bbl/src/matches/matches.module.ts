@@ -7,6 +7,7 @@ import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import { MatchEventsPageParser } from './match-events-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
+import { MatchMergeConfigService } from './match-merge-config.service';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 @Module({
@@ -18,6 +19,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
+    MatchMergeConfigService,
   ],
   exports: [
     MatchListPageParser,
@@ -26,6 +28,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
+    MatchMergeConfigService,
   ],
 })
 export class MatchesModule {}
