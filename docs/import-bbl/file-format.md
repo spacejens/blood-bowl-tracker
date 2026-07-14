@@ -81,7 +81,7 @@ used here. Each match row's `onclick` (e.g.
 `self.location.href='default.asp?p=m&m=<id>'`) carries the match's
 globally-unique numeric id; the matches import uses this as the match's BBL
 external id. For every competition other than those covered by
-`seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see `BBL_ERAS` in
+`seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see `eras` in
 [index.md](./index.md)), `type` is inferred from its match-date span:
 `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against the
 71 non-overridden competitions in the reference dataset; the nearest genuine
@@ -103,8 +103,8 @@ website, not necessarily when the match was played — a season whose results
 were backfilled in one sitting (rather than entered as they happened) can show
 a 0-day span indistinguishable from a genuine one-day cup. Roughly 20 genuine
 one-day cups share that same 0-day span, so no date-span threshold can
-distinguish them from a backfilled season. Three known instances need
-`BBL_ERAS` overrides, each for a different reason:
+distinguish them from a backfilled season. Three known instances need `eras`
+overrides, each for a different reason:
 
 - "Stunty Leeg 1" (`s=30`, 0-day span) is a genuine type-classification
   ambiguity — a 0-day span is indistinguishable from a real one-day cup using
