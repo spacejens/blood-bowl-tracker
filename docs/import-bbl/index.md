@@ -19,19 +19,21 @@ tool directory, or exported in your shell:
   supplied here. Used as the league's external ID under both the `BBL` and
   `Name` external systems.
 - `BBL_ERAS` — a JSON array describing the eras the league played through. Each
-  entry has `name`, `rulesSet` (the rules set's name), `startDate` (required,
-  ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still ongoing),
-  `firstPlayerId` (required, positive integer), `lastPlayerId` (optional,
-  following the same still-ongoing rule as `endDate` — the two must be either
-  both omitted or both present; when `lastPlayerId` is omitted, the era
-  matches any pid `>= firstPlayerId` with no upper bound), and
+  entry has `name`, `rulesSets` (a non-empty array of the rules set names the
+  era spans, in chronological order — most eras list a single rules set, but
+  an era can span several, e.g. `["CRP", "CRP+", "BB2016"]`), `startDate`
+  (required, ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still
+  ongoing), `firstPlayerId` (required, positive integer), `lastPlayerId`
+  (optional, following the same still-ongoing rule as `endDate` — the two must
+  be either both omitted or both present; when `lastPlayerId` is omitted, the
+  era matches any pid `>= firstPlayerId` with no upper bound), and
   `playerIdOverrides` (an optional array of pids explicitly assigned to this
   era, checked before the range bounds — BBL player ids are only roughly
   chronological, so a handful of players drafted right at an era changeover
   can land on the "wrong" side of a range split; overrides correct those known
   exceptions without widening the range). Rules sets and eras are not present
-  in the source data, so they are supplied here. Each era's rules set name and
-  each era name are used as external IDs under both the configured BBL
+  in the source data, so they are supplied here. Each era's rules set names
+  and each era name are used as external IDs under both the configured BBL
   external system and the `Name` external system.
 - `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
@@ -148,9 +150,10 @@ Re-running is always safe and fills any gaps left by transient failures.
   parsed from the data). Keyed by that name under the configured BBL external
   system (`BBL` by default) and the `Name` external system. Imported before
   coaches, as the foundational entity.
-- **Rules sets** — the distinct `rulesSet` names across the `BBL_ERAS` config
-  (not parsed from the data). Keyed by that name under the configured BBL
-  external system and the `Name` external system. Imported after the league.
+- **Rules sets** — the distinct names across all eras' `rulesSets` arrays in
+  the `BBL_ERAS` config (not parsed from the data). Keyed by that name under
+  the configured BBL external system and the `Name` external system. Imported
+  after the league.
 - **Eras** — from the `BBL_ERAS` config (not parsed from the data). Each era
   references its league and its rules set (both imported first) and carries a
   `startDate` and optional `endDate`. Keyed by the era name under the
