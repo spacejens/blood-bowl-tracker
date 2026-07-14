@@ -1,5 +1,7 @@
 import type { FactNode } from './fact-tree-utils';
 import {
+  resolveCoachCompetitionsPlayedToplist,
+  resolveCoachErasActiveToplist,
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
@@ -25,6 +27,19 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         teams: {
           supportsEra: true,
           resolve: (eraId) => resolveCoachTeamsToplist(deps.coaches, eraId),
+        },
+        competitions: {
+          played: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveCoachCompetitionsPlayedToplist(deps.coaches, eraId),
+          },
+        },
+        eras: {
+          active: {
+            supportsEra: false,
+            resolve: () => resolveCoachErasActiveToplist(deps.coaches),
+          },
         },
       },
     },
