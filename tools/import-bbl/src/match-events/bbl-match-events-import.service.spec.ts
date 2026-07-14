@@ -494,6 +494,126 @@ describe('BblMatchEventsImportService', () => {
     expect(captured).toHaveLength(1);
   });
 
+  it('scenario merge: primary events page missing still imports the secondary partner occurrences', async () => {
+    const PRIMARY = '1061';
+    const SECONDARY = '1062';
+
+    const eventsB: BblMatchEvents = {
+      bblId: SECONDARY,
+      homeTeamId: 'b1',
+      awayTeamId: 'b2',
+      actions: [],
+      consequences: [
+        { consequenceType: 'miss_next_game', side: 'home', pid: 'victim' },
+      ],
+    };
+
+    const teamsByCode = new Map<string, UpsertTeamData>([
+      ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
+      ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
+      ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
+      ['b2', { name: 'B2', raceId: 4, coachId: 1, eras: [], externalIds: [] }],
+    ]);
+    const eraIdByName: Record<string, number> = {
+      a1: 101,
+      a2: 102,
+      b1: 103,
+      b2: 104,
+    };
+    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+      Promise.resolve({
+        eras: [
+          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
+        ],
+      }),
+    );
+
+    const captured: UpsertMatchEventData[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+      captured.push(data);
+      return Promise.resolve(true);
+    });
+
+    const matchListReader = new BblMatchListReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+      new Map([
+        [
+          '32',
+          [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        ],
+      ]),
+    );
+
+    const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
+      {} as never,
+    );
+    // PRIMARY's own events page is missing (e.g. failed to fetch/parse); only
+    // SECONDARY's page is present in the map.
+    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+      new Map([[SECONDARY, eventsB]]),
+    );
+
+    const service = new BblMatchEventsImportService(
+      matchListReader,
+      eventsReader,
+      { upsertTeam } as unknown as TeamsImportService,
+      { upsertMatchEvent } as unknown as MatchEventsImportService,
+      makeMergeService(
+        {
+          '32': [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        },
+        [[PRIMARY, SECONDARY]],
+      ),
+    );
+
+    const { result } = await service.importMatchEvents(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [
+              { externalSystemId: BBL_SYSTEM_ID, externalId: '32' },
+            ],
+          },
+        ],
+      ]),
+      teamsByCode,
+      // Both source ids point at the same DB match id, so there IS an
+      // imported matchId; only the events data is missing for PRIMARY.
+      new Map([
+        [PRIMARY, MATCH_DB_ID],
+        [SECONDARY, MATCH_DB_ID],
+      ]),
+      new Map([['victim', 901]]),
+    );
+
+    expect(result.success).toBe(true);
+    // The secondary partner's occurrence must not be silently dropped just
+    // because the primary's own events page is missing.
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatchObject({
+      matchId: MATCH_DB_ID,
+      consequenceType: 'miss_next_game',
+      consequenceTeamEraId: 103,
+      consequencePlayerId: 901,
+    });
+    expect(captured[0].actionType).toBeUndefined();
+    expect(captured[0].externalIds[0].externalId).toBe(
+      '1062-b1-miss-next-game-0',
+    );
+  });
+
   it('scenario merge ambiguous: two candidate victims across the pair fall through to independent events', async () => {
     const PRIMARY = '1518';
     const SECONDARY = '1519';

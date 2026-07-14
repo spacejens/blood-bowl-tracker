@@ -253,17 +253,18 @@ export class BblMatchEventsImportService {
   /**
    * Import every match's events for every competition. For each completed match
    * (from the shared match-list reader) whose id was imported, this reads the
-   * match's raw occurrences (from the shared events reader), resolves both
-   * teams to their team-era ids under the competition's era, correlates
-   * casualty actions with Sustained-Injury consequences (see
-   * {@link correlateEvents}), synthesizes a stable external id per event
+   * match's raw occurrences (from the shared events reader), resolves its
+   * team codes (two for a normal match, four for a merged pair) to their
+   * team-era ids under the competition's era, correlates casualty actions
+   * with Sustained-Injury consequences (see {@link correlateEvents}),
+   * synthesizes a stable external id per event
    * (`<matchBblId>-<teamCode>-<category>-<occurrenceIndex>` under the BBL
    * external system), resolves each player pid to its DB id, and upserts the
-   * event. A match with no imported id, or whose two teams do not both resolve
-   * to a team era, is recorded as an error and skipped without affecting the
-   * rest. A pid with no imported id yields a null player (recorded as a
-   * non-fatal error) but the event is still emitted, since the external id does
-   * not depend on the player. Idempotent.
+   * event. A match with no imported id, or whose team codes do not all
+   * resolve to a team era, is recorded as an error and skipped without
+   * affecting the rest. A pid with no imported id yields a null player
+   * (recorded as a non-fatal error) but the event is still emitted, since the
+   * external id does not depend on the player. Idempotent.
    */
   async importMatchEvents(
     competitionsByBblId: Map<string, UpsertCompetitionData>,
@@ -306,18 +307,17 @@ export class BblMatchEventsImportService {
             continue;
           }
 
-          const events = eventsByBblId.get(match.bblId);
-          if (!events) {
-            continue;
-          }
-
-          const sources = [events];
+          const ownEvents = eventsByBblId.get(match.bblId);
           const partnerBblId = merges.partnerBblId(match.bblId);
-          if (partnerBblId !== undefined) {
-            const partnerEvents = eventsByBblId.get(partnerBblId);
-            if (partnerEvents) {
-              sources.push(partnerEvents);
-            }
+          const partnerEvents =
+            partnerBblId !== undefined
+              ? eventsByBblId.get(partnerBblId)
+              : undefined;
+          const sources = [ownEvents, partnerEvents].filter(
+            (e): e is BblMatchEvents => e !== undefined,
+          );
+          if (sources.length === 0) {
+            continue;
           }
           const combined = combineOccurrences(...sources);
 
