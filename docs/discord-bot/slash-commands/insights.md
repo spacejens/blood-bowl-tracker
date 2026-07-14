@@ -28,6 +28,11 @@ so you can navigate the tree without memorizing it.
   match events.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
+- `coach.toplist.competitions.played` — coaches ranked by number of distinct
+  competitions their teams have entered. Supports era filtering.
+- `coach.toplist.eras.active` — coaches ranked by number of distinct eras their
+  teams have existed across. Does not support era filtering (scoping to a single
+  era would always yield 0 or 1), so it is excluded from era-filtered runs.
 - `team.toplist.matches.played` — teams ranked by number of matches played.
 - `team.toplist.competitions.played` — teams ranked by number of distinct
   competitions entered. Supports era filtering.

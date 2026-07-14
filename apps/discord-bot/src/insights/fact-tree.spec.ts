@@ -24,6 +24,8 @@ function deps() {
     coaches: {
       countMatchesPlayedByCoach: vi.fn().mockResolvedValue([]),
       countTeamsByCoach: vi.fn().mockResolvedValue([]),
+      countCompetitionsByCoach: vi.fn().mockResolvedValue([]),
+      countErasByCoach: vi.fn().mockResolvedValue([]),
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as CoachesService,
     teams: {
@@ -60,8 +62,8 @@ function leafAt(path: string): FactLeaf {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly six leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(6);
+  it('exposes exactly eight leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(8);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -78,6 +80,25 @@ describe('buildFactTree', () => {
     await (leaf as FactLeaf).resolve();
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.coaches.countTeamsByCoach).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.competitions.played to the coach competition-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'coach.toplist.competitions.played',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.coaches.countCompetitionsByCoach).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.eras.active to the coach era-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'coach.toplist.eras.active');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.coaches.countErasByCoach).toHaveBeenCalled();
   });
 
   it('wires team.toplist.matches.played to the team match-count query', async () => {
@@ -132,8 +153,9 @@ describe('buildFactTree leaf capabilities', () => {
       expect.arrayContaining([
         resolvePath(tree, 'stats'),
         resolvePath(tree, 'team.toplist.eras.active'),
+        resolvePath(tree, 'coach.toplist.eras.active'),
       ]),
     );
-    expect(unsupported).toHaveLength(2);
+    expect(unsupported).toHaveLength(3);
   });
 });

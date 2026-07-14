@@ -3,6 +3,8 @@ import type { Db } from '@blood-bowl-tracker/db';
 import {
   coaches,
   coachExternalIds,
+  competitions,
+  competitionTeams,
   matches,
   matchTeams,
   teamEras,
@@ -111,6 +113,28 @@ export class CoachesService {
       .orderBy(desc(countDistinct(matches.id)));
   }
 
+  async countCompetitionsByCoach(
+    eraId?: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        coachId: coaches.id,
+        name: coaches.name,
+        count: countDistinct(competitions.id),
+      })
+      .from(competitions)
+      .innerJoin(
+        competitionTeams,
+        eq(competitionTeams.competitionId, competitions.id),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(countDistinct(competitions.id)));
+  }
+
   async countTeamsByCoach(
     eraId?: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
@@ -140,6 +164,22 @@ export class CoachesService {
       )
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(count(teams.id)));
+  }
+
+  async countErasByCoach(): Promise<
+    { coachId: number; name: string; count: number }[]
+  > {
+    return this.db
+      .select({
+        coachId: coaches.id,
+        name: coaches.name,
+        count: countDistinct(teamEras.eraId),
+      })
+      .from(teamEras)
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .groupBy(coaches.id, coaches.name)
+      .orderBy(desc(countDistinct(teamEras.eraId)));
   }
 
   countAll(): Promise<number> {
