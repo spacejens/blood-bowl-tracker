@@ -32,6 +32,15 @@ export interface EraConfig {
    * 'season'. Checked before match-date-based type/era resolution.
    */
   cupCompetitionIdOverrides?: string[];
+  /**
+   * Team codes whose players are pinned to this era regardless of their pid —
+   * for side-competition eras (Stunty Leeg, Dungeonbowl) whose players share
+   * the pid range of the concurrent regular era. Checked before
+   * playerIdOverrides and the firstPlayerId/lastPlayerId range, mirroring how
+   * seasonCompetitionIdOverrides/cupCompetitionIdOverrides are checked before
+   * match-date resolution. Team codes are the BBL team page `t` param.
+   */
+  teamCodeOverrides?: string[];
 }
 
 /**
@@ -121,6 +130,19 @@ export class EraConfigService {
       }
     }
 
+    const eraNameByOverriddenTeamCode = new Map<string, string>();
+    for (const era of eras) {
+      for (const teamCode of era.teamCodeOverrides ?? []) {
+        const existing = eraNameByOverriddenTeamCode.get(teamCode);
+        if (existing !== undefined) {
+          throw new Error(
+            `BBL_ERAS: team code ${teamCode} appears in teamCodeOverrides for both "${existing}" and "${era.name}".`,
+          );
+        }
+        eraNameByOverriddenTeamCode.set(teamCode, era.name);
+      }
+    }
+
     return eras;
   }
 
@@ -140,6 +162,7 @@ export class EraConfigService {
       playerIdOverrides,
       seasonCompetitionIdOverrides,
       cupCompetitionIdOverrides,
+      teamCodeOverrides,
     } = record;
 
     if (typeof name !== 'string' || name.trim() === '') {
@@ -220,6 +243,18 @@ export class EraConfigService {
       );
     }
 
+    if (
+      teamCodeOverrides !== undefined &&
+      (!Array.isArray(teamCodeOverrides) ||
+        !teamCodeOverrides.every(
+          (code) => typeof code === 'string' && code.trim() !== '',
+        ))
+    ) {
+      throw new Error(
+        `BBL_ERAS[${index}].teamCodeOverrides must be an array of non-empty strings when present.`,
+      );
+    }
+
     return {
       name,
       rulesSets: rulesSets as string[],
@@ -235,6 +270,9 @@ export class EraConfigService {
         : {}),
       ...(cupCompetitionIdOverrides !== undefined
         ? { cupCompetitionIdOverrides: cupCompetitionIdOverrides }
+        : {}),
+      ...(teamCodeOverrides !== undefined
+        ? { teamCodeOverrides: teamCodeOverrides }
         : {}),
     };
   }

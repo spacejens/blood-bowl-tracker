@@ -450,4 +450,62 @@ describe('EraConfigService', () => {
     ]);
     expect(() => makeService(json).getEras()).toThrow(/30/);
   });
+
+  it('parses teamCodeOverrides when present, leaving it undefined when absent', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        teamCodeOverrides: ['rad', 'sl-'],
+      },
+      {
+        name: 'BB2020',
+        rulesSets: ['BB2020'],
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+      },
+    ]);
+    const eras = makeService(json).getEras();
+    expect(eras[0].teamCodeOverrides).toEqual(['rad', 'sl-']);
+    expect(eras[1].teamCodeOverrides).toBeUndefined();
+  });
+
+  it('rejects teamCodeOverrides that is not an array of non-empty strings', () => {
+    const json = JSON.stringify([
+      {
+        name: 'LRB',
+        rulesSets: ['LRB'],
+        startDate: '2011-09-09',
+        firstPlayerId: 1,
+        teamCodeOverrides: ['rad', ''],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/teamCodeOverrides/);
+  });
+
+  it('rejects the same team code overridden into more than one era', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        teamCodeOverrides: ['rad'],
+      },
+      {
+        name: 'BB2020',
+        rulesSets: ['BB2020'],
+        startDate: '2021-09-01',
+        firstPlayerId: 5001,
+        teamCodeOverrides: ['rad'],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/rad/);
+  });
 });
