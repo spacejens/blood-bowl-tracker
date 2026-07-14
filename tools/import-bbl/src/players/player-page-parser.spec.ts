@@ -79,7 +79,22 @@ describe('PlayerPageParser', () => {
     expect(parser.extractPlayer(page)).toBeNull();
   });
 
-  it('returns null when the name (h1) is missing', () => {
+  it('returns a player with an empty name when the h1 is present but empty', () => {
+    const page = playerPage(
+      '<h1></h1>' +
+        '<a href="default.asp?p=pt&typID=53">Skeleton Linemen</a>' +
+        '<a href="default.asp?p=tm&t=nyt3">No name no pain!</a>',
+      '388',
+    );
+    expect(parser.extractPlayer(page)).toEqual({
+      pid: '388',
+      name: '',
+      typId: '53',
+      teamCode: 'nyt3',
+    });
+  });
+
+  it('returns null when there is no h1 element at all', () => {
     const page = playerPage(
       '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
         '<a href="default.asp?p=tm&t=knu">Knights</a>',

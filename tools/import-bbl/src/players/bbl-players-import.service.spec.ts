@@ -14,10 +14,10 @@ import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
 
-function plPage(player: BblPlayer | null): BblPage {
+function plPage(player: BblPlayer | null, pid = '388'): BblPage {
   return {
     type: 'pl',
-    params: { player: JSON.stringify(player) },
+    params: { player: JSON.stringify(player), pid },
     load: () => {
       throw new Error('load() should not be called in this test');
     },
@@ -286,9 +286,9 @@ describe('BblPlayersImportService', () => {
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
-  it('skips players the parser cannot read', async () => {
+  it('records an error and skips players the parser cannot read', async () => {
     const { service, upsertPlayerResult } = makeService(
-      makeReader([plPage(null)]),
+      makeReader([plPage(null, '388')]),
     );
 
     const { result } = await service.importPlayers(
@@ -300,6 +300,40 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0]?.message).toContain('388');
+    expect(result.errors[0]?.item).toEqual({ pid: '388' });
+  });
+
+  it('imports a player whose name is empty and maps its pid', async () => {
+    const namelessPlayer: BblPlayer = {
+      pid: '388',
+      name: '',
+      typId: '33',
+      teamCode: 'knu',
+    };
+    const { service, upsertPlayerResult } = makeService(
+      makeReader([plPage(namelessPlayer)]),
+    );
+
+    const { result, playerIdsByPid } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(playerIdsByPid.get('388')).toBe(900);
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      {
+        name: '',
+        teamEraId: 5000,
+        positionId: 200,
+        externalIds: [{ externalSystemId: 1, externalId: '388' }],
+      },
+      expect.any(Array),
+    );
   });
 
   it('skips and records an error when the pid-matched era was not imported', async () => {
