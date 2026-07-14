@@ -1,7 +1,14 @@
 import type { Db, Player } from '@blood-bowl-tracker/db';
-import { DB, playerExternalIds, players } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  matchEvents,
+  matchTeams,
+  playerExternalIds,
+  players,
+  teamEras,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, count, desc, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -85,6 +92,29 @@ export class PlayersService {
     }
 
     return { player, created };
+  }
+
+  async countMvpAwardsByPlayer(
+    eraId?: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'mvp_award'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(players.id, players.name)
+      .orderBy(desc(count(matchEvents.id)));
   }
 
   countAll(): Promise<number> {
