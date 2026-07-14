@@ -20,6 +20,19 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeCountBuilder(rows: unknown[]) {
+  return {
+    from: vi.fn(() => ({
+      innerJoin: vi.fn(() => ({
+        where: vi.fn().mockResolvedValue(rows),
+      })),
+    })),
+    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+      Promise.resolve(rows).then(resolve, reject),
+    catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
+  };
+}
+
 describe('ExternalSystemsService', () => {
   let service: ExternalSystemsService;
   let mockDb: {
@@ -70,6 +83,15 @@ describe('ExternalSystemsService', () => {
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    it('returns the distinct external-system count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 3 }]));
+      const service = new ExternalSystemsService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(3);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });
