@@ -19,6 +19,8 @@ import { EraConfigService } from '../eras/era-config.service';
 import { BblMatchDetailReaderService } from '../matches/bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatch } from '../matches/match-list-page-parser';
+import type { MatchMergeResolution } from '../matches/match-merge.service';
+import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchTeams } from '../matches/match-teams-page-parser';
 
 @Injectable()
@@ -31,6 +33,7 @@ export class BblTeamParticipationImportService {
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly eraConfig: EraConfigService,
     private readonly matchesImport: MatchesImportService,
+    private readonly matchMerge: MatchMergeService,
   ) {}
 
   /**
@@ -68,6 +71,7 @@ export class BblTeamParticipationImportService {
       await this.matchListReader.getMatchesByCompetitionId(errors);
     const matchTeamsByBblId =
       await this.matchDetailReader.getMatchTeamsByBblId(errors);
+    const merges = await this.matchMerge.resolve(errors);
 
     const teamIdsByCompetitionId = this.collectTeamIds(
       competitionsByBblId,
@@ -139,6 +143,7 @@ export class BblTeamParticipationImportService {
         matchTeamsByBblId,
         teamEraIdByTeamId,
         competitionIdsByBblId,
+        merges,
         errors,
       );
     }
@@ -173,6 +178,7 @@ export class BblTeamParticipationImportService {
     matchTeamsByBblId: Map<string, BblMatchTeams>,
     teamEraIdByTeamId: Map<string, number>,
     competitionIdsByBblId: Map<string, number>,
+    merges: MatchMergeResolution,
     errors: ImportError[],
   ): Promise<void> {
     const competitionId = competitionIdsByBblId.get(competitionBblId);
@@ -207,7 +213,7 @@ export class BblTeamParticipationImportService {
       await this.matchesImport.upsertMatch(
         {
           competitionId,
-          playedAt: match.date,
+          playedAt: merges.effectivePlayedAt(match.bblId, match.date),
           externalIds: [{ externalSystemId, externalId: match.bblId }],
           teamEraIds: [homeTeamEraId, awayTeamEraId],
         },

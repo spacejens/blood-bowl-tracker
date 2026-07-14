@@ -9,8 +9,22 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
+import { MatchMergeService } from '../matches/match-merge.service';
+import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+
+function makeMergeService(
+  matchesById: Record<string, { bblId: string; date: Date }[]>,
+  merges: [string, string][] = [],
+): MatchMergeService {
+  const reader = new BblMatchListReaderService({} as never, {} as never);
+  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
+    new Map(Object.entries(matchesById)),
+  );
+  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
+  return new MatchMergeService(reader, mergeConfig);
+}
 
 const MATCH_BBL_ID = '89';
 const MATCH_DB_ID = 42;
@@ -95,6 +109,7 @@ async function runImport(
     makeEventsReader(events),
     { upsertTeam } as unknown as TeamsImportService,
     { upsertMatchEvent } as unknown as MatchEventsImportService,
+    makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
   );
 
   const { result } = await service.importMatchEvents(
@@ -322,7 +337,7 @@ describe('BblMatchEventsImportService', () => {
     expect(captured).toHaveLength(0);
     expect(upsertMatchEvent).not.toHaveBeenCalled();
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve both')),
+      result.errors.some((e) => e.message.includes('could not resolve all')),
     ).toBe(true);
     expect(result.errors.some((e) => e.message.includes('"awy"'))).toBe(true);
   });
@@ -338,7 +353,391 @@ describe('BblMatchEventsImportService', () => {
 
     expect(captured).toHaveLength(0);
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve both')),
+      result.errors.some((e) => e.message.includes('could not resolve all')),
     ).toBe(true);
+  });
+
+  it('scenario merge: a casualty action in source A pairs with a Sustained-Injury consequence in source B', async () => {
+    const PRIMARY = '1061';
+    const SECONDARY = '1062';
+
+    const eventsA: BblMatchEvents = {
+      bblId: PRIMARY,
+      homeTeamId: 'a1',
+      awayTeamId: 'a2',
+      actions: [
+        { actionType: 'serious_injury', side: 'home', pid: 'attacker' },
+      ],
+      consequences: [],
+    };
+    const eventsB: BblMatchEvents = {
+      bblId: SECONDARY,
+      homeTeamId: 'b1',
+      awayTeamId: 'b2',
+      actions: [],
+      consequences: [
+        { consequenceType: 'miss_next_game', side: 'home', pid: 'victim' },
+      ],
+    };
+
+    const teamsByCode = new Map<string, UpsertTeamData>([
+      ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
+      ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
+      ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
+      ['b2', { name: 'B2', raceId: 4, coachId: 1, eras: [], externalIds: [] }],
+    ]);
+    const eraIdByName: Record<string, number> = {
+      a1: 101,
+      a2: 102,
+      b1: 103,
+      b2: 104,
+    };
+    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+      Promise.resolve({
+        eras: [
+          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
+        ],
+      }),
+    );
+
+    const captured: UpsertMatchEventData[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+      captured.push(data);
+      return Promise.resolve(true);
+    });
+
+    const matchListReader = new BblMatchListReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+      new Map([
+        [
+          '32',
+          [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        ],
+      ]),
+    );
+
+    const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+      new Map([
+        [PRIMARY, eventsA],
+        [SECONDARY, eventsB],
+      ]),
+    );
+
+    const service = new BblMatchEventsImportService(
+      matchListReader,
+      eventsReader,
+      { upsertTeam } as unknown as TeamsImportService,
+      { upsertMatchEvent } as unknown as MatchEventsImportService,
+      makeMergeService(
+        {
+          '32': [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        },
+        [[PRIMARY, SECONDARY]],
+      ),
+    );
+
+    const { result } = await service.importMatchEvents(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [
+              { externalSystemId: BBL_SYSTEM_ID, externalId: '32' },
+            ],
+          },
+        ],
+      ]),
+      teamsByCode,
+      // Both source ids point at the same DB match id, per Task 3.
+      new Map([
+        [PRIMARY, MATCH_DB_ID],
+        [SECONDARY, MATCH_DB_ID],
+      ]),
+      new Map([
+        ['attacker', 900],
+        ['victim', 901],
+      ]),
+    );
+
+    expect(result.success).toBe(true);
+    // Exactly one merged event: action from A (team a1) + consequence from B (team b1).
+    const merged = captured.filter(
+      (c) => c.actionType !== undefined && c.consequenceType !== undefined,
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      matchId: MATCH_DB_ID,
+      actionType: 'serious_injury',
+      consequenceType: 'miss_next_game',
+      actingTeamEraId: 101,
+      consequenceTeamEraId: 103,
+      actingPlayerId: 900,
+      consequencePlayerId: 901,
+    });
+    // External id uses the ACTION's source bblId + team code.
+    expect(merged[0].externalIds[0].externalId).toBe('1061-a1-serious-0');
+    // The secondary match is not processed on its own (no standalone events).
+    expect(captured).toHaveLength(1);
+  });
+
+  it('scenario merge: primary events page missing still imports the secondary partner occurrences', async () => {
+    const PRIMARY = '1061';
+    const SECONDARY = '1062';
+
+    const eventsB: BblMatchEvents = {
+      bblId: SECONDARY,
+      homeTeamId: 'b1',
+      awayTeamId: 'b2',
+      actions: [],
+      consequences: [
+        { consequenceType: 'miss_next_game', side: 'home', pid: 'victim' },
+      ],
+    };
+
+    const teamsByCode = new Map<string, UpsertTeamData>([
+      ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
+      ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
+      ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
+      ['b2', { name: 'B2', raceId: 4, coachId: 1, eras: [], externalIds: [] }],
+    ]);
+    const eraIdByName: Record<string, number> = {
+      a1: 101,
+      a2: 102,
+      b1: 103,
+      b2: 104,
+    };
+    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+      Promise.resolve({
+        eras: [
+          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
+        ],
+      }),
+    );
+
+    const captured: UpsertMatchEventData[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+      captured.push(data);
+      return Promise.resolve(true);
+    });
+
+    const matchListReader = new BblMatchListReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+      new Map([
+        [
+          '32',
+          [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        ],
+      ]),
+    );
+
+    const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
+      {} as never,
+    );
+    // PRIMARY's own events page is missing (e.g. failed to fetch/parse); only
+    // SECONDARY's page is present in the map.
+    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+      new Map([[SECONDARY, eventsB]]),
+    );
+
+    const service = new BblMatchEventsImportService(
+      matchListReader,
+      eventsReader,
+      { upsertTeam } as unknown as TeamsImportService,
+      { upsertMatchEvent } as unknown as MatchEventsImportService,
+      makeMergeService(
+        {
+          '32': [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
+          ],
+        },
+        [[PRIMARY, SECONDARY]],
+      ),
+    );
+
+    const { result } = await service.importMatchEvents(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [
+              { externalSystemId: BBL_SYSTEM_ID, externalId: '32' },
+            ],
+          },
+        ],
+      ]),
+      teamsByCode,
+      // Both source ids point at the same DB match id, so there IS an
+      // imported matchId; only the events data is missing for PRIMARY.
+      new Map([
+        [PRIMARY, MATCH_DB_ID],
+        [SECONDARY, MATCH_DB_ID],
+      ]),
+      new Map([['victim', 901]]),
+    );
+
+    expect(result.success).toBe(true);
+    // The secondary partner's occurrence must not be silently dropped just
+    // because the primary's own events page is missing.
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatchObject({
+      matchId: MATCH_DB_ID,
+      consequenceType: 'miss_next_game',
+      consequenceTeamEraId: 103,
+      consequencePlayerId: 901,
+    });
+    expect(captured[0].actionType).toBeUndefined();
+    expect(captured[0].externalIds[0].externalId).toBe(
+      '1062-b1-miss-next-game-0',
+    );
+  });
+
+  it('scenario merge ambiguous: two candidate victims across the pair fall through to independent events', async () => {
+    const PRIMARY = '1518';
+    const SECONDARY = '1519';
+
+    const eventsA: BblMatchEvents = {
+      bblId: PRIMARY,
+      homeTeamId: 'a1',
+      awayTeamId: 'a2',
+      actions: [
+        { actionType: 'serious_injury', side: 'home', pid: 'attacker' },
+      ],
+      consequences: [
+        { consequenceType: 'miss_next_game', side: 'away', pid: 'victim1' },
+      ],
+    };
+    const eventsB: BblMatchEvents = {
+      bblId: SECONDARY,
+      homeTeamId: 'b1',
+      awayTeamId: 'b2',
+      actions: [],
+      consequences: [
+        { consequenceType: 'miss_next_game', side: 'home', pid: 'victim2' },
+      ],
+    };
+
+    const teamsByCode = new Map<string, UpsertTeamData>([
+      ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
+      ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
+      ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
+      ['b2', { name: 'B2', raceId: 4, coachId: 1, eras: [], externalIds: [] }],
+    ]);
+    const eraIdByName: Record<string, number> = {
+      a1: 101,
+      a2: 102,
+      b1: 103,
+      b2: 104,
+    };
+    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+      Promise.resolve({
+        eras: [
+          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
+        ],
+      }),
+    );
+
+    const captured: UpsertMatchEventData[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+      captured.push(data);
+      return Promise.resolve(true);
+    });
+
+    const matchListReader = new BblMatchListReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+      new Map([
+        [
+          '46',
+          [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2018, 8, 22)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
+          ],
+        ],
+      ]),
+    );
+
+    const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
+      {} as never,
+    );
+    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+      new Map([
+        [PRIMARY, eventsA],
+        [SECONDARY, eventsB],
+      ]),
+    );
+
+    const service = new BblMatchEventsImportService(
+      matchListReader,
+      eventsReader,
+      { upsertTeam } as unknown as TeamsImportService,
+      { upsertMatchEvent } as unknown as MatchEventsImportService,
+      makeMergeService(
+        {
+          '46': [
+            { bblId: PRIMARY, date: new Date(Date.UTC(2018, 8, 22)) },
+            { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
+          ],
+        },
+        [[PRIMARY, SECONDARY]],
+      ),
+    );
+
+    await service.importMatchEvents(
+      new Map([
+        [
+          '46',
+          {
+            ...competition,
+            externalIds: [
+              { externalSystemId: BBL_SYSTEM_ID, externalId: '46' },
+            ],
+          },
+        ],
+      ]),
+      teamsByCode,
+      new Map([
+        [PRIMARY, MATCH_DB_ID],
+        [SECONDARY, MATCH_DB_ID],
+      ]),
+      new Map([
+        ['attacker', 900],
+        ['victim1', 901],
+        ['victim2', 902],
+      ]),
+    );
+
+    // One serious_injury action + two candidate miss_next_game consequences =>
+    // ambiguous, so NO merge: one action-only + two consequence-only events.
+    const merged = captured.filter(
+      (c) => c.actionType !== undefined && c.consequenceType !== undefined,
+    );
+    expect(merged).toHaveLength(0);
+    expect(captured).toHaveLength(3);
   });
 });
