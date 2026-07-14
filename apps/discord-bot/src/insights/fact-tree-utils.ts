@@ -1,10 +1,13 @@
 import type { InteractionReplyOptions } from 'discord.js';
 
-export type FactResolver = () => Promise<string | InteractionReplyOptions>;
-export type FactNode = FactResolver | { [segment: string]: FactNode };
+export interface FactLeaf {
+  supportsEra: boolean;
+  resolve: (eraId?: number) => Promise<string | InteractionReplyOptions>;
+}
+export type FactNode = FactLeaf | { [segment: string]: FactNode };
 
-function isLeaf(node: FactNode): node is FactResolver {
-  return typeof node === 'function';
+function isLeaf(node: FactNode): node is FactLeaf {
+  return typeof (node as FactLeaf).resolve === 'function';
 }
 
 export function resolvePath(
@@ -26,7 +29,7 @@ export function resolvePath(
   return current;
 }
 
-export function collectLeaves(node: FactNode): FactResolver[] {
+export function collectLeaves(node: FactNode): FactLeaf[] {
   if (isLeaf(node)) {
     return [node];
   }

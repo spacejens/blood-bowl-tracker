@@ -92,9 +92,9 @@ export class CoachesService {
     return { coach, created };
   }
 
-  async countMatchesPlayedByCoach(): Promise<
-    { coachId: number; name: string; count: number }[]
-  > {
+  async countMatchesPlayedByCoach(
+    eraId?: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
         coachId: coaches.id,
@@ -106,13 +106,26 @@ export class CoachesService {
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(matches.id)));
   }
 
-  async countTeamsByCoach(): Promise<
-    { coachId: number; name: string; count: number }[]
-  > {
+  async countTeamsByCoach(
+    eraId?: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    if (eraId === undefined) {
+      return this.db
+        .select({
+          coachId: coaches.id,
+          name: coaches.name,
+          count: count(teams.id),
+        })
+        .from(coaches)
+        .innerJoin(teams, eq(teams.coachId, coaches.id))
+        .groupBy(coaches.id, coaches.name)
+        .orderBy(desc(count(teams.id)));
+    }
     return this.db
       .select({
         coachId: coaches.id,
@@ -121,6 +134,10 @@ export class CoachesService {
       })
       .from(coaches)
       .innerJoin(teams, eq(teams.coachId, coaches.id))
+      .innerJoin(
+        teamEras,
+        and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, eraId)),
+      )
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(count(teams.id)));
   }

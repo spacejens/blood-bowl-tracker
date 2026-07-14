@@ -1,15 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import type { FactNode, FactResolver } from './fact-tree-utils';
+import type { FactLeaf, FactNode } from './fact-tree-utils';
 import {
   collectLeaves,
   nextSegmentCompletions,
   resolvePath,
 } from './fact-tree-utils';
 
-const leafA: FactResolver = () => Promise.resolve('A');
-const leafB: FactResolver = () => Promise.resolve('B');
-const leafC: FactResolver = () => Promise.resolve('C');
+const leafA: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('A'),
+};
+const leafB: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('B'),
+};
+const leafC: FactLeaf = {
+  supportsEra: false,
+  resolve: () => Promise.resolve('C'),
+};
 
 const tree: FactNode = {
   coach: {

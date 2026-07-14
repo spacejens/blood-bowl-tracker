@@ -36,6 +36,7 @@ const fmt = (n: number): string => n.toLocaleString('en-US');
 
 export async function resolveStatsSummary(
   deps: StatsSummaryDeps,
+  _eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
   const counts = await withDatabaseTimeout<number[] | null>(
     Promise.all([
