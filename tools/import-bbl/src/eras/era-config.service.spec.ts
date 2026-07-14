@@ -55,16 +55,12 @@ describe('EraConfigService', () => {
   });
 
   it('throws when an entry has an empty name', () => {
-    const eras = [
-      { name: '', rulesSets: ['BB2020'], startDate: '2021-09-01' },
-    ];
+    const eras = [{ name: '', rulesSets: ['BB2020'], startDate: '2021-09-01' }];
     expect(() => makeService(eras).getEras()).toThrow('name');
   });
 
   it('throws when an entry has an empty rulesSets array', () => {
-    const eras = [
-      { name: 'BB2020', rulesSets: [], startDate: '2021-09-01' },
-    ];
+    const eras = [{ name: 'BB2020', rulesSets: [], startDate: '2021-09-01' }];
     expect(() => makeService(eras).getEras()).toThrow('rulesSets');
   });
 
@@ -127,9 +123,7 @@ describe('EraConfigService', () => {
   });
 
   it('throws when firstPlayerId is missing', () => {
-    const eras = [
-      { name: 'LRB', rulesSets: ['LRB'], startDate: '2011-09-09' },
-    ];
+    const eras = [{ name: 'LRB', rulesSets: ['LRB'], startDate: '2011-09-09' }];
     expect(() => makeService(eras).getEras()).toThrow(/firstPlayerId/);
   });
 
