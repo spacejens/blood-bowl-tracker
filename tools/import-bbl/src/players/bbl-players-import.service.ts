@@ -84,6 +84,12 @@ export class BblPlayersImportService {
       try {
         const player = this.playerPageParser.extractPlayer(page);
         if (!player) {
+          errors.push(
+            makeImportError({
+              item: { pid: page.params.pid },
+              message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, position link, or team link.`,
+            }),
+          );
           continue;
         }
 
