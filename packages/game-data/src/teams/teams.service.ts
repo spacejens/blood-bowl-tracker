@@ -146,6 +146,14 @@ export class TeamsService {
     return countRows(this.db, teams);
   }
 
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(teamEras.teamId) })
+      .from(teamEras)
+      .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
+
   private async syncEras(
     teamId: number,
     eraIds: number[],
