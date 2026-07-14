@@ -43,6 +43,13 @@ so you can navigate the tree without memorizing it.
   Counts raw `mvp_award` match events per player, so a player credited with
   more than one MVP in a single match has each award counted. Supports era
   filtering.
+- `race.toplist.teams` — races ranked by number of teams that have chosen
+  them. Supports era filtering (an era scopes the count to teams active in
+  that era).
+- `race.toplist.matches.played` — races ranked by number of matches played by
+  teams of that race. Counts one participation per participating team, so a
+  match between two teams of the same race adds 2 to that race's total.
+  Supports era filtering.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.
