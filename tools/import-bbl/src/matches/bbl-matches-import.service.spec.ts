@@ -7,6 +7,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import type { BblMatch } from './match-list-page-parser';
+import { MatchMergeService } from './match-merge.service';
+import type { MatchMergeConfigService } from './match-merge-config.service';
 
 function makeReader(matchesById: Record<string, BblMatch[]>) {
   const reader = new BblMatchListReaderService({} as never, {} as never);
@@ -14,6 +16,14 @@ function makeReader(matchesById: Record<string, BblMatch[]>) {
     new Map(Object.entries(matchesById)),
   );
   return reader;
+}
+
+function makeMergeService(
+  reader: BblMatchListReaderService,
+  merges: [string, string][],
+): MatchMergeService {
+  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
+  return new MatchMergeService(reader, mergeConfig);
 }
 
 const match: BblMatch = {
@@ -31,10 +41,13 @@ const competition: UpsertCompetitionData = {
 
 describe('BblMatchesImportService', () => {
   it('upserts each match and returns its DB id keyed by BBL match id', async () => {
+    const reader = makeReader({ '3': [match] });
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
-    const service = new BblMatchesImportService(makeReader({ '3': [match] }), {
-      upsertMatchResult,
-    } as unknown as MatchesImportService);
+    const service = new BblMatchesImportService(
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, []),
+    );
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
@@ -54,12 +67,12 @@ describe('BblMatchesImportService', () => {
   });
 
   it('records an error and skips a competition absent from the id map', async () => {
+    const reader = makeReader({ '3': [match, { ...match, bblId: '90' }] });
     const upsertMatchResult = vi.fn();
     const service = new BblMatchesImportService(
-      makeReader({ '3': [match, { ...match, bblId: '90' }] }),
-      {
-        upsertMatchResult,
-      } as unknown as MatchesImportService,
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, []),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -75,10 +88,13 @@ describe('BblMatchesImportService', () => {
   });
 
   it('does not count or map a match whose upsert reports failure', async () => {
+    const reader = makeReader({ '3': [match] });
     const upsertMatchResult = vi.fn().mockResolvedValue(undefined);
-    const service = new BblMatchesImportService(makeReader({ '3': [match] }), {
-      upsertMatchResult,
-    } as unknown as MatchesImportService);
+    const service = new BblMatchesImportService(
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, []),
+    );
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
@@ -88,5 +104,100 @@ describe('BblMatchesImportService', () => {
     expect(result.imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
     expect(upsertMatchResult).toHaveBeenCalledTimes(1);
+  });
+
+  it('merges a configured pair into one upsert carrying both external ids and the canonical playedAt', async () => {
+    const primary: BblMatch = {
+      bblId: '1061',
+      date: new Date(Date.UTC(2016, 8, 25)),
+    };
+    const secondary: BblMatch = {
+      bblId: '1062',
+      date: new Date(Date.UTC(2016, 8, 24)),
+    };
+    const reader = makeReader({ '32': [primary, secondary] });
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 500 });
+    const service = new BblMatchesImportService(
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, [['1061', '1062']]),
+    );
+
+    const { result, matchIdsByBblId } = await service.importMatches(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [{ externalSystemId: 1, externalId: '32' }],
+          },
+        ],
+      ]),
+      new Map([['32', 99]]),
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertMatchResult).toHaveBeenCalledTimes(1);
+    expect(upsertMatchResult).toHaveBeenCalledWith(
+      {
+        competitionId: 99,
+        playedAt: new Date(Date.UTC(2016, 8, 24)),
+        externalIds: [
+          { externalSystemId: 1, externalId: '1061' },
+          { externalSystemId: 1, externalId: '1062' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(matchIdsByBblId.get('1061')).toBe(500);
+    expect(matchIdsByBblId.get('1062')).toBe(500);
+  });
+
+  it('imports both members of an unresolved pair independently, with a recorded error', async () => {
+    const a: BblMatch = {
+      bblId: '1061',
+      date: new Date(Date.UTC(2016, 8, 25)),
+    };
+    const b: BblMatch = { bblId: '1062', date: new Date(Date.UTC(2017, 9, 8)) };
+    // The two ids are in different competitions, so the pair does not resolve.
+    const reader = makeReader({ '32': [a], '40': [b] });
+    const upsertMatchResult = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 500 })
+      .mockResolvedValueOnce({ id: 600 });
+    const service = new BblMatchesImportService(
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, [['1061', '1062']]),
+    );
+
+    const { result, matchIdsByBblId } = await service.importMatches(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [{ externalSystemId: 1, externalId: '32' }],
+          },
+        ],
+        [
+          '40',
+          {
+            ...competition,
+            externalIds: [{ externalSystemId: 1, externalId: '40' }],
+          },
+        ],
+      ]),
+      new Map([
+        ['32', 99],
+        ['40', 88],
+      ]),
+    );
+
+    expect(upsertMatchResult).toHaveBeenCalledTimes(2);
+    expect(matchIdsByBblId.get('1061')).toBe(500);
+    expect(matchIdsByBblId.get('1062')).toBe(600);
+    // The unresolved-pair error is recorded by MatchMergeService.resolve().
+    expect(result.errors.some((e) => e.message.includes('1061'))).toBe(true);
   });
 });
