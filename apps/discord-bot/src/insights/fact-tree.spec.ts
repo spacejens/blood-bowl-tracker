@@ -135,6 +135,7 @@ describe('buildFactTree', () => {
     const d = deps();
     const leaf = resolvePath(buildFactTree(d), 'player.toplist.mvps');
     await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalled();
   });
 
