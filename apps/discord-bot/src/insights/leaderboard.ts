@@ -6,12 +6,20 @@ import {
 } from '../database-timeout';
 
 /**
- * Discord caps an embed description at 4096 characters. A tie group can be
- * far larger than any reasonable rank cutoff (e.g. most teams sharing the
- * same "eras active" count), so entries are also hard-capped independent of
- * rank/tie grouping to keep the rendered description well within that limit.
+ * A tie group can be far larger than the top-N cutoff (e.g. most teams sharing
+ * the same "eras active" count). Rendering the entire group would be an
+ * unreadable wall of near-identical rows, so entries are hard-capped
+ * independent of rank/tie grouping; the remainder is summarized as
+ * "…and NN more tied.".
  */
-const MAX_LEADERBOARD_ENTRIES = 50;
+const MAX_LEADERBOARD_ENTRIES = 10;
+
+/**
+ * The leaderboard always shows at least this many entries by position (not by
+ * distinct count value). If the entry at this position ties with later entries,
+ * the full tie group is shown, up to MAX_LEADERBOARD_ENTRIES.
+ */
+const MAX_LEADERBOARD_TOP_ENTRIES = 5;
 
 export interface RankedRows<T> {
   rows: (T & { rank: number })[];
@@ -20,26 +28,32 @@ export interface RankedRows<T> {
 
 export function topRanksWithTies<T extends { count: number }>(
   rows: T[],
-  maxRank: number,
+  topEntries: number,
   maxEntries: number = MAX_LEADERBOARD_ENTRIES,
 ): RankedRows<T> {
   const ranked: (T & { rank: number })[] = [];
   let rank = 0;
   let previousCount: number | null = null;
   let truncatedCount = 0;
+  let position = 0;
+  let boundaryValue: number | null = null;
   for (const row of rows) {
     if (previousCount === null || row.count !== previousCount) {
       rank += 1;
       previousCount = row.count;
     }
-    if (rank > maxRank) {
+    position += 1;
+    if (boundaryValue !== null && row.count !== boundaryValue) {
       break;
     }
     if (ranked.length >= maxEntries) {
       truncatedCount += 1;
-      continue;
+    } else {
+      ranked.push({ ...row, rank });
     }
-    ranked.push({ ...row, rank });
+    if (position === topEntries) {
+      boundaryValue = row.count;
+    }
   }
   return { rows: ranked, truncatedCount };
 }
@@ -73,6 +87,10 @@ export async function resolveToplist<T extends { name: string; count: number }>(
   if (rows === null) {
     return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
   }
-  const { rows: ranked, truncatedCount } = topRanksWithTies(rows, 5);
+  const { rows: ranked, truncatedCount } = topRanksWithTies(
+    rows,
+    MAX_LEADERBOARD_TOP_ENTRIES,
+    MAX_LEADERBOARD_ENTRIES,
+  );
   return formatLeaderboardEmbed(title, ranked, truncatedCount);
 }
