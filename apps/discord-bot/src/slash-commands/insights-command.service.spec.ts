@@ -65,7 +65,12 @@ function makeService() {
     searchByNamePrefix: vi.fn().mockResolvedValue([]),
     countAll: vi.fn().mockResolvedValue(0),
   } as unknown as ErasService;
-  const players = zero() as unknown as PlayersService;
+  const players = {
+    countMvpAwardsByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 7 }]),
+    countAll: vi.fn().mockResolvedValue(0),
+  } as unknown as PlayersService;
   const positions = zero() as unknown as PositionsService;
   const races = zero() as unknown as RacesService;
   const externalSystems = zero() as unknown as ExternalSystemsService;
@@ -89,6 +94,7 @@ function makeService() {
     ),
     coaches,
     teams,
+    players,
     eras,
     discordClient,
   };
@@ -274,7 +280,7 @@ describe('InsightsCommandService', () => {
   });
 
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
-    const { service, coaches, teams, eras } = makeService();
+    const { service, coaches, teams, players, eras } = makeService();
     (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 20,
       name: 'BB2020',
@@ -295,6 +301,8 @@ describe('InsightsCommandService', () => {
       (teams.countMatchesPlayedByTeam as ReturnType<typeof vi.fn>).mock.calls
         .length > 0 ||
       (teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>).mock.calls
         .length > 0;
     expect(calledWithEra).toBe(true);
   });
@@ -364,6 +372,42 @@ describe('InsightsCommandService', () => {
         {
           title: 'Coaches by competitions played — BB2020',
           description: '1. Roze Madder — 5',
+        },
+      ],
+    });
+  });
+
+  it('scopes player.toplist.mvps to the resolved era and names it in the title', async () => {
+    const { service, players, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('player.toplist.mvps', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countMvpAwardsByPlayer).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by MVP awards — BB2020',
+          description: '1. Griff Oberwald — 7',
+        },
+      ],
+    });
+  });
+
+  it('resolves player.toplist.mvps with no era, suffixed with "All time"', async () => {
+    const { service, players } = makeService();
+    const result = await service.execute(chatInput('player.toplist.mvps'));
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countMvpAwardsByPlayer).toHaveBeenCalled();
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by MVP awards — All time',
+          description: '1. Griff Oberwald — 7',
         },
       ],
     });

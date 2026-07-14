@@ -5,6 +5,7 @@ import {
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
+import { resolvePlayerMvpsToplist } from './facts/player-toplist';
 import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
 import {
@@ -64,6 +65,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsEra: false,
             resolve: () => resolveTeamErasActiveToplist(deps.teams),
           },
+        },
+      },
+    },
+    player: {
+      toplist: {
+        mvps: {
+          supportsEra: true,
+          resolve: (eraId) => resolvePlayerMvpsToplist(deps.players, eraId),
         },
       },
     },
