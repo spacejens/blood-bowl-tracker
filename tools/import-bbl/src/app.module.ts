@@ -5,6 +5,7 @@ import {
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { ImportBblConfigModule } from './config/import-bbl-config.module';
 import { CoachesModule } from './coaches/coaches.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { ErasModule } from './eras/eras.module';
@@ -25,6 +26,7 @@ export class AppModule {
       module: AppModule,
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
+        ImportBblConfigModule,
         ApiClientModule.forRootAsync({
           useFactory: (config: ApiClientConfigService) =>
             config.getApiBaseUrl(),
