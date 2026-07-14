@@ -39,12 +39,13 @@ Fully handled in code (no notes needed): `tm` (team pages — coach and race
 extraction), `pt` (position/player-type pages — name, "Can play for" races, and
 star marker), `tl` (master race-list page — see the note below).
 
-Not yet handled (candidates for future work): `m`/`mp` (per-match scores, gate,
-TD scorers, and sendings-off). Per-match **identity** (BBL id, date,
-competition) is already imported straight from the `ma` list rows, without
-reading `m`/`mp` pages at all — see the note on `ma` pages below. Also not yet
-handled: `ro` (rosters), `te` (league team list), `ch` (per-season player top
-charts), plus others.
+Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
+scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
+is imported straight from the `ma` list rows — see the note on `ma` pages
+below. The `m` detail page is read separately, for each match's two teams and
+its display name — see the note on `m` pages below. Also not yet handled: `ro`
+(rosters), `te` (league team list), `ch` (per-season player top charts), plus
+others.
 
 Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
 for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
@@ -79,13 +80,23 @@ The `so=t` variant is a different, team-sorted view (keyed by `t`) and is not
 used here. Each match row's `onclick` (e.g.
 `self.location.href='default.asp?p=m&m=<id>'`) carries the match's
 globally-unique numeric id; the matches import uses this as the match's BBL
-external id, so matches are established straight from the list rows without
-reading the `m`/`mp` pages themselves. For every competition other than those
-covered by `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see
-`BBL_ERAS` in [index.md](./index.md)), `type` is inferred from its match-date
-span: `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated
-against the 71 non-overridden competitions in the reference dataset; the
-nearest genuine cup spans at most 2 days, so 3 days has wide margin.
+external id. For every competition other than those covered by
+`seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see `BBL_ERAS` in
+[index.md](./index.md)), `type` is inferred from its match-date span:
+`(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against the
+71 non-overridden competitions in the reference dataset; the nearest genuine
+cup spans at most 2 days, so 3 days has wide margin.
+
+Note on `m` pages: `default.asp?p=m&m=<id>` is a single match's detail page.
+Its two teams are read from the `<a href="default.asp?p=tm&t=<id>">` links in
+the first `table.tblist tr.trborder` row's two `<td width="180">` cells (home
+first, away second). Its display name is the text after the comma in the bold
+header wrapping the competition link, e.g. `<b><a href="...p=ma...">Season
+4</a>, 11 - 12</b>` => name `"11 - 12"`, or `..., Bierhallentodball</b>` => name
+`"Bierhallentodball"` (the special cup-final label BBL uses for four-team
+Ogretoberfest finals, which this project stores as one merged match — see
+`MatchMergeService`). Names are not unique across matches (e.g. "Final"
+recurs every season) and are never used as an external id.
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results

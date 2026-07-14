@@ -1087,6 +1087,7 @@ describe('buildRpcRouter', () => {
         id: 1,
         competitionId: 20,
         teamEraIds: [100, 101],
+        name: 'Final',
         playedAt: new Date('2021-09-25'),
         createdAt: new Date('2026-01-01'),
       },
@@ -1110,6 +1111,7 @@ describe('buildRpcRouter', () => {
     const result = await call(router.matches.upsert, {
       competitionId: 20,
       playedAt: new Date('2021-09-25'),
+      name: 'Final',
       externalIds: [{ externalSystemId: 1, externalId: '89' }],
     });
 
@@ -1117,6 +1119,7 @@ describe('buildRpcRouter', () => {
       id: 1,
       competitionId: 20,
       teamEraIds: [100, 101],
+      name: 'Final',
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
       created: true,
@@ -1151,6 +1154,7 @@ describe('buildRpcRouter', () => {
       call(router.matches.upsert, {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
+        name: 'Final',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       }),
     ).rejects.toMatchObject({
@@ -1183,6 +1187,7 @@ describe('buildRpcRouter', () => {
       call(router.matches.upsert, {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
+        name: 'Final',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       }),
     ).rejects.toThrow('db unavailable');

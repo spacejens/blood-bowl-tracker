@@ -8,6 +8,7 @@ import type { ImportError } from './types';
 export interface UpsertMatchData {
   competitionId: number;
   playedAt: Date;
+  name: string;
   externalIds: { externalSystemId: number; externalId: string }[];
   teamEraIds?: number[];
 }

@@ -16,6 +16,7 @@ export class MatchUpsertConflictError extends Error {}
 export interface UpsertMatchData {
   competitionId: number;
   playedAt: Date;
+  name: string;
   externalIds: { externalSystemId: number; externalId: string }[];
   teamEraIds: number[];
 }
@@ -60,6 +61,7 @@ export class MatchesService {
     const values = {
       competitionId: data.competitionId,
       playedAt: data.playedAt,
+      name: data.name,
     };
 
     let match: Match;

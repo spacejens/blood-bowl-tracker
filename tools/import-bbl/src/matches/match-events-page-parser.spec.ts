@@ -16,6 +16,8 @@ const parser = new MatchEventsPageParser();
 // td's `background-image:url('gfx/bgdarktrans5.png')` style), then a
 // "Sustained Injuries" section of the same row shape.
 const HTML =
+  '<div align="center"><b>' +
+  '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
   '<table class="tblist" cellpadding="1" cellspacing="0">' +
   '<tr class="trborder">' +
   '<td align="center" valign="middle" width="180"><a href="default.asp?p=tm&t=hom"><img border="0" src="badges/hom-stor.jpg" alt="Team badge" height="60"><br><b>Home Team</b></a><br></td>' +

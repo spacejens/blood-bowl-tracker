@@ -21,7 +21,8 @@ describe('MatchTeamsPageParser', () => {
   it('extracts home and away team ids from the first tblist trborder row', () => {
     const page = matchPage(
       '100',
-      '<div><a href="default.asp?p=ma&so=s&s=4">Season 3</a></div>' +
+      '<div align="center" align="right"><b>' +
+        '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, 11 - 12</b></div>' +
         TEAM_TABLE,
     );
 
@@ -29,13 +30,16 @@ describe('MatchTeamsPageParser', () => {
       bblId: '100',
       homeTeamId: 'vor',
       awayTeamId: 'sti',
+      name: '11 - 12',
     });
   });
 
   it('preserves non-ASCII team ids', () => {
     const page = matchPage(
       '7',
-      '<table class="tblist"><tr class="trborder">' +
+      '<div align="center"><b>' +
+        '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
+        '<table class="tblist"><tr class="trborder">' +
         '<td width="180"><a href="default.asp?p=tm&t=äng"><b>A</b></a></td>' +
         '<td width="180"><a href="default.asp?p=tm&t=gås"><b>B</b></a></td>' +
         '</tr></table>',
@@ -45,13 +49,17 @@ describe('MatchTeamsPageParser', () => {
       bblId: '7',
       homeTeamId: 'äng',
       awayTeamId: 'gås',
+      name: 'Final',
     });
   });
 
   it('ignores p=tm links outside the team table', () => {
     const page = matchPage(
       '100',
-      '<a href="default.asp?p=tm&t=sidebar">Major Season</a>' + TEAM_TABLE,
+      '<div align="center"><b>' +
+        '<a href="default.asp?p=ma&so=s&s=6">Season 3</a>, Match 3</b></div>' +
+        '<a href="default.asp?p=tm&t=sidebar">Major Season</a>' +
+        TEAM_TABLE,
     );
 
     expect(parser.extractMatchTeams(page)?.homeTeamId).toBe('vor');
@@ -90,6 +98,35 @@ describe('MatchTeamsPageParser', () => {
         '<td width="180"><b>no link</b></td>' +
         '</tr></table>',
     );
+    expect(parser.extractMatchTeams(page)).toBeNull();
+  });
+
+  it('extracts a special cup-final name after the comma', () => {
+    const page = matchPage(
+      '200',
+      '<div align="center" align="right"><b>' +
+        '<a href="default.asp?p=ma&so=s&s=32">Ogretoberfest 4</a>, ' +
+        'Bierhallentodball</b></div>' +
+        TEAM_TABLE,
+    );
+
+    expect(parser.extractMatchTeams(page)?.name).toBe('Bierhallentodball');
+  });
+
+  it('returns null when the bold header has no text after the comma', () => {
+    const page = matchPage(
+      '201',
+      '<div align="center"><b>' +
+        '<a href="default.asp?p=ma&so=s&s=6">Season 4</a></b></div>' +
+        TEAM_TABLE,
+    );
+
+    expect(parser.extractMatchTeams(page)).toBeNull();
+  });
+
+  it('returns null when the competition-name header is absent', () => {
+    const page = matchPage('202', TEAM_TABLE);
+
     expect(parser.extractMatchTeams(page)).toBeNull();
   });
 });

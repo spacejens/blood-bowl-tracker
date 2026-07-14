@@ -14,6 +14,7 @@ const fakeMatch = {
   id: 1,
   competitionId: 20,
   playedAt: new Date('2021-09-25'),
+  name: 'Final',
   createdAt: new Date('2026-01-01'),
 };
 
@@ -72,6 +73,7 @@ describe('MatchesService', () => {
   const baseData = {
     competitionId: 20,
     playedAt: new Date('2021-09-25'),
+    name: 'Final',
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
     teamEraIds: [],
   };
@@ -94,6 +96,7 @@ describe('MatchesService', () => {
     expect(call?.values).toEqual({
       competitionId: 20,
       playedAt: new Date('2021-09-25'),
+      name: 'Final',
     });
   });
 
@@ -107,6 +110,7 @@ describe('MatchesService', () => {
     expect(updateCalls[0]?.set).toEqual({
       competitionId: 20,
       playedAt: new Date('2021-09-25'),
+      name: 'Final',
     });
   });
 
