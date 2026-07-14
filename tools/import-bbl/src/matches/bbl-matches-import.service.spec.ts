@@ -8,9 +8,9 @@ import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import type { BblMatch } from './match-list-page-parser';
-import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchMergeService } from './match-merge.service';
 import type { MatchMergeConfigService } from './match-merge-config.service';
+import type { BblMatchDetails } from './match-teams-page-parser';
 
 function makeReader(matchesById: Record<string, BblMatch[]>) {
   const reader = new BblMatchListReaderService({} as never, {} as never);
