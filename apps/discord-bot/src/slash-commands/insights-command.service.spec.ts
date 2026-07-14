@@ -334,8 +334,8 @@ describe('InsightsCommandService', () => {
       id: 20,
       name: 'BB2020',
     });
-    // Run the random-era path repeatedly; eras.active must never be chosen,
-    // so countErasByTeam (which takes no era) is never called.
+    // Pin random to select the last eligible leaf; eras.active is filtered
+    // out of the era-scoped pool, so countErasByTeam is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null, '20'));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
