@@ -3,6 +3,7 @@ import {
   competitions,
   competitionTeams,
   DB,
+  matchEvents,
   matches,
   matchTeams,
   teamEras,
@@ -10,7 +11,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -140,6 +141,98 @@ export class TeamsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(teamEras.eraId)));
+  }
+
+  async countTouchdownsScoredByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'touchdown'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countCompletionsByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'completion'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countInterceptionsByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'interception'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countDeflectionsByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'deflection'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
   }
 
   countAll(): Promise<number> {
