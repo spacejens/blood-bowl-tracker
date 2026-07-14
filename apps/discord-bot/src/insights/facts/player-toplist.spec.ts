@@ -17,8 +17,7 @@ describe('resolvePlayerMvpsToplist', () => {
       embeds: [
         {
           title: 'Players by MVP awards',
-          description:
-            '1. Griff Oberwald — 7\n1. Morg n Thorg — 7\n2. Zug — 3',
+          description: '1. Griff Oberwald — 7\n1. Morg n Thorg — 7\n2. Zug — 3',
         },
       ],
     });
