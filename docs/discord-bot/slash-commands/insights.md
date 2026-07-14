@@ -39,6 +39,10 @@ so you can navigate the tree without memorizing it.
 - `team.toplist.eras.active` — teams ranked by number of distinct eras they
   have existed across. Does not support era filtering (scoping to a single
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
+- `player.toplist.mvps` — players ranked by number of MVP awards won.
+  Counts raw `mvp_award` match events per player, so a player credited with
+  more than one MVP in a single match has each award counted. Supports era
+  filtering.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.
