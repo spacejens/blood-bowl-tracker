@@ -11,7 +11,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
 import type { BblMatchDetailReaderService } from '../matches/bbl-match-detail-reader.service';
-import type { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
+import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
+import { MatchMergeService } from '../matches/match-merge.service';
+import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
 import type { BblMatchTeams } from '../matches/match-teams-page-parser';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
@@ -42,6 +44,18 @@ function makeMatchDetailReader(teamsByBblId: Record<string, BblMatchTeams>) {
     .fn()
     .mockResolvedValue(new Map(Object.entries(teamsByBblId)));
   return { getMatchTeamsByBblId } as unknown as BblMatchDetailReaderService;
+}
+
+function makeMergeService(
+  matchesById: Record<string, { bblId: string; date: Date }[]>,
+  merges: [string, string][] = [],
+): MatchMergeService {
+  const reader = new BblMatchListReaderService({} as never, {} as never);
+  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
+    new Map(Object.entries(matchesById)),
+  );
+  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
+  return new MatchMergeService(reader, mergeConfig);
 }
 
 const home: UpsertTeamData = {
@@ -86,6 +100,7 @@ function makeService(opts: {
   upsertCompetition: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
   upsertMatch?: ReturnType<typeof vi.fn>;
+  matches?: Record<string, { bblId: string; date: Date }[]>;
 }) {
   return new BblTeamParticipationImportService(
     opts.matchListReader,
@@ -101,6 +116,7 @@ function makeService(opts: {
     {
       upsertMatch: opts.upsertMatch ?? vi.fn().mockResolvedValue(true),
     } as unknown as MatchesImportService,
+    makeMergeService(opts.matches ?? {}, []),
   );
 }
 
@@ -551,5 +567,101 @@ describe('BblTeamParticipationImportService', () => {
         e.message.includes('no imported competition id'),
       ),
     ).toBe(true);
+  });
+
+  it('uses the canonical playedAt for both members of a merged pair and unions their teams', async () => {
+    // Two source matches in competition '1', four distinct teams.
+    const matchA = { bblId: '1061', date: new Date(Date.UTC(2016, 8, 25)) };
+    const matchB = { bblId: '1062', date: new Date(Date.UTC(2016, 8, 24)) };
+
+    const teamA1: UpsertTeamData = {
+      name: 'A1',
+      raceId: 1,
+      coachId: 1,
+      eras: [],
+      externalIds: [{ externalSystemId: 1, externalId: 'a1' }],
+    };
+    const teamA2: UpsertTeamData = {
+      name: 'A2',
+      raceId: 2,
+      coachId: 1,
+      eras: [],
+      externalIds: [{ externalSystemId: 1, externalId: 'a2' }],
+    };
+    const teamB1: UpsertTeamData = {
+      name: 'B1',
+      raceId: 3,
+      coachId: 1,
+      eras: [],
+      externalIds: [{ externalSystemId: 1, externalId: 'b1' }],
+    };
+    const teamB2: UpsertTeamData = {
+      name: 'B2',
+      raceId: 4,
+      coachId: 1,
+      eras: [],
+      externalIds: [{ externalSystemId: 1, externalId: 'b2' }],
+    };
+
+    const upsertMatch = vi.fn().mockResolvedValue(true);
+    const eraIdByCode: Record<string, number> = {
+      a1: 11,
+      a2: 12,
+      b1: 13,
+      b2: 14,
+    };
+    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+      Promise.resolve({
+        eras: [
+          {
+            id: eraIdByCode[data.externalIds[0].externalId],
+            eraId: data.eras?.[0],
+          },
+        ],
+      }),
+    );
+
+    const service = new BblTeamParticipationImportService(
+      makeMatchListReader({ '1': [matchA, matchB] }),
+      makeMatchDetailReader({
+        '1061': { bblId: '1061', homeTeamId: 'a1', awayTeamId: 'a2' },
+        '1062': { bblId: '1062', homeTeamId: 'b1', awayTeamId: 'b2' },
+      }),
+      { upsertTeam } as unknown as TeamsImportService,
+      {
+        upsertCompetition: vi.fn().mockResolvedValue(true),
+      } as unknown as CompetitionsImportService,
+      {
+        upsertRulesSet: vi.fn().mockResolvedValue(true),
+      } as unknown as RulesSetsImportService,
+      { getEras: () => erasConfig } as unknown as EraConfigService,
+      { upsertMatch } as unknown as MatchesImportService,
+      makeMergeService({ '1': [matchA, matchB] }, [['1061', '1062']]),
+    );
+
+    await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([
+        ['a1', teamA1],
+        ['a2', teamA2],
+        ['b1', teamB1],
+        ['b2', teamB2],
+      ]),
+      new Map(),
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    const matchCalls = upsertMatch.mock.calls.map(
+      (c: unknown[]) => c[0] as { playedAt: Date; teamEraIds: number[] },
+    );
+    expect(matchCalls).toHaveLength(2);
+    // Both members use the earliest of the pair's dates (2016-09-24).
+    for (const call of matchCalls) {
+      expect(call.playedAt).toEqual(new Date(Date.UTC(2016, 8, 24)));
+    }
+    // Union of both calls' teamEraIds covers all four teams.
+    const allTeamEraIds = new Set(matchCalls.flatMap((c) => c.teamEraIds));
+    expect(allTeamEraIds).toEqual(new Set([11, 12, 13, 14]));
   });
 });
