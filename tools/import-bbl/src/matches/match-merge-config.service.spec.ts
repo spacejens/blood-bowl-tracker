@@ -47,9 +47,9 @@ describe('MatchMergeConfigService', () => {
     expect(() => makeService('[["1061"]]').getMerges()).toThrow(
       'BBL_MATCH_MERGES',
     );
-    expect(() =>
-      makeService('[["1061","1062","1063"]]').getMerges(),
-    ).toThrow('BBL_MATCH_MERGES');
+    expect(() => makeService('[["1061","1062","1063"]]').getMerges()).toThrow(
+      'BBL_MATCH_MERGES',
+    );
   });
 
   it('throws when an entry contains a non-string or empty id', () => {
@@ -62,9 +62,7 @@ describe('MatchMergeConfigService', () => {
   });
 
   it('throws when a pair contains the same id twice', () => {
-    expect(() => makeService('[["1061","1061"]]').getMerges()).toThrow(
-      '1061',
-    );
+    expect(() => makeService('[["1061","1061"]]').getMerges()).toThrow('1061');
   });
 
   it('throws when an id appears in more than one pair', () => {

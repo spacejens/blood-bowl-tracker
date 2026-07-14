@@ -60,7 +60,7 @@ export class MatchMergeConfigService {
         `BBL_MATCH_MERGES[${index}] must be a 2-element array of match ids.`,
       );
     }
-    const [a, b] = entry;
+    const [a, b] = entry as unknown[];
     if (
       typeof a !== 'string' ||
       a.trim() === '' ||
