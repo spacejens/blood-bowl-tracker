@@ -45,7 +45,10 @@ function deps() {
     leagues: zero() as unknown as LeaguesService,
     rulesSets: zero() as unknown as RulesSetsService,
     eras: zero() as unknown as ErasService,
-    players: zero() as unknown as PlayersService,
+    players: {
+      countMvpAwardsByPlayer: vi.fn().mockResolvedValue([]),
+      countAll: vi.fn().mockResolvedValue(0),
+    } as unknown as PlayersService,
     positions: zero() as unknown as PositionsService,
     races: zero() as unknown as RacesService,
     externalSystems: zero() as unknown as ExternalSystemsService,
@@ -62,8 +65,8 @@ function leafAt(path: string): FactLeaf {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly eight leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(8);
+  it('exposes exactly nine leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(9);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -128,6 +131,14 @@ describe('buildFactTree', () => {
     expect(d.teams.countErasByTeam).toHaveBeenCalled();
   });
 
+  it('wires player.toplist.mvps to the player mvp-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'player.toplist.mvps');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalled();
+  });
+
   it('wires stats to the entity-count summary', async () => {
     const d = deps();
     const leaf = resolvePath(buildFactTree(d), 'stats');
@@ -140,6 +151,10 @@ describe('buildFactTree', () => {
 describe('buildFactTree leaf capabilities', () => {
   it('marks coach.toplist.matches.played as era-supporting', () => {
     expect(leafAt('coach.toplist.matches.played').supportsEra).toBe(true);
+  });
+
+  it('marks player.toplist.mvps as era-supporting', () => {
+    expect(leafAt('player.toplist.mvps').supportsEra).toBe(true);
   });
 
   it('marks stats as NOT era-supporting', () => {

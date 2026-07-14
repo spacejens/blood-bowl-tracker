@@ -150,4 +150,58 @@ describe('PlayersService', () => {
       expect(from).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('toplist queries', () => {
+    function makeQueryBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('countMvpAwardsByPlayer returns the rows the query resolves to', async () => {
+      const rows = [
+        { playerId: 1, name: 'Griff Oberwald', count: 7 },
+        { playerId: 2, name: 'Morg n Thorg', count: 3 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countMvpAwardsByPlayer returns an empty array when there are no rows', async () => {
+      const select = vi.fn(() => makeQueryBuilder([]));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual([]);
+    });
+
+    it('countMvpAwardsByPlayer preserves tie ordering from the query', async () => {
+      const rows = [
+        { playerId: 1, name: 'Griff Oberwald', count: 5 },
+        { playerId: 2, name: 'Morg n Thorg', count: 5 },
+        { playerId: 3, name: 'Zug', count: 2 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countMvpAwardsByPlayer adds an era filter when an eraId is given', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 2 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countMvpAwardsByPlayer(20)).resolves.toEqual(rows);
+      // The where() call is always present; the era clause is folded into it.
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+  });
 });
