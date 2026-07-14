@@ -13,7 +13,7 @@ import type { BblMatchDetailReaderService } from '../matches/bbl-match-detail-re
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
-import type { BblMatchTeams } from '../matches/match-teams-page-parser';
+import type { BblMatchDetails } from '../matches/match-teams-page-parser';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
 const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
@@ -29,7 +29,7 @@ function makeMatchListReader(
 }
 
 /** A fake match-detail reader mapping each match bblId to its two team ids. */
-function makeMatchDetailReader(teamsByBblId: Record<string, BblMatchTeams>) {
+function makeMatchDetailReader(teamsByBblId: Record<string, BblMatchDetails>) {
   const getMatchTeamsByBblId = vi
     .fn()
     .mockResolvedValue(new Map(Object.entries(teamsByBblId)));
@@ -88,7 +88,7 @@ const matchTeams = (
   bblId: string,
   homeTeamId: string,
   awayTeamId: string,
-): BblMatchTeams => ({ bblId, homeTeamId, awayTeamId });
+): BblMatchDetails => ({ bblId, homeTeamId, awayTeamId, name: 'Match' });
 
 function makeService(opts: {
   matchListReader: BblMatchListReaderService;
@@ -641,8 +641,18 @@ describe('BblTeamParticipationImportService', () => {
     const service = new BblTeamParticipationImportService(
       makeMatchListReader({ '1': [matchA, matchB] }),
       makeMatchDetailReader({
-        '1061': { bblId: '1061', homeTeamId: 'a1', awayTeamId: 'a2' },
-        '1062': { bblId: '1062', homeTeamId: 'b1', awayTeamId: 'b2' },
+        '1061': {
+          bblId: '1061',
+          homeTeamId: 'a1',
+          awayTeamId: 'a2',
+          name: 'Match',
+        },
+        '1062': {
+          bblId: '1062',
+          homeTeamId: 'b1',
+          awayTeamId: 'b2',
+          name: 'Match',
+        },
       }),
       { upsertTeam } as unknown as TeamsImportService,
       {

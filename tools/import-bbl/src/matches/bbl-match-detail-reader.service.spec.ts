@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BblPage } from '../source/bbl-page';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
-import type { BblMatchTeams } from './match-teams-page-parser';
+import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 function page(params: Record<string, string>): BblPage {
@@ -28,7 +28,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-function makeParser(teamsById: Record<string, BblMatchTeams | null>) {
+function makeParser(teamsById: Record<string, BblMatchDetails | null>) {
   const parser = new MatchTeamsPageParser();
   vi.spyOn(parser, 'extractMatchTeams').mockImplementation(
     (p) => teamsById[p.params.m] ?? null,
@@ -36,10 +36,11 @@ function makeParser(teamsById: Record<string, BblMatchTeams | null>) {
   return parser;
 }
 
-const teamsOne: BblMatchTeams = {
+const teamsOne: BblMatchDetails = {
   bblId: '100',
   homeTeamId: 'vor',
   awayTeamId: 'sti',
+  name: 'Final',
 };
 
 describe('BblMatchDetailReaderService', () => {
