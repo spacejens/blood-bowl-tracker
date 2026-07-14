@@ -4,9 +4,11 @@ import type {
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
+import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import type { BblMatch } from './match-list-page-parser';
+import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchMergeService } from './match-merge.service';
 import type { MatchMergeConfigService } from './match-merge-config.service';
 
@@ -17,6 +19,23 @@ function makeReader(matchesById: Record<string, BblMatch[]>) {
   );
   return reader;
 }
+
+function makeDetailReader(
+  detailsById: Record<string, BblMatchDetails>,
+): BblMatchDetailReaderService {
+  return {
+    getMatchTeamsByBblId: vi
+      .fn()
+      .mockResolvedValue(new Map(Object.entries(detailsById))),
+  } as unknown as BblMatchDetailReaderService;
+}
+
+const detail = (bblId: string, name: string): BblMatchDetails => ({
+  bblId,
+  homeTeamId: 'a',
+  awayTeamId: 'b',
+  name,
+});
 
 function makeMergeService(
   reader: BblMatchListReaderService,
@@ -47,6 +66,7 @@ describe('BblMatchesImportService', () => {
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
+      makeDetailReader({ '89': detail('89', 'Match 3') }),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -60,6 +80,7 @@ describe('BblMatchesImportService', () => {
       {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 8, 25)),
+        name: 'Match 3',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       },
       expect.any(Array),
@@ -73,6 +94,7 @@ describe('BblMatchesImportService', () => {
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
+      makeDetailReader({}),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -94,6 +116,7 @@ describe('BblMatchesImportService', () => {
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
+      makeDetailReader({ '89': detail('89', 'Match 3') }),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -121,6 +144,7 @@ describe('BblMatchesImportService', () => {
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, [['1061', '1062']]),
+      makeDetailReader({ '1061': detail('1061', 'Bierhallentodball') }),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -142,6 +166,7 @@ describe('BblMatchesImportService', () => {
       {
         competitionId: 99,
         playedAt: new Date(Date.UTC(2016, 8, 24)),
+        name: 'Bierhallentodball',
         externalIds: [
           { externalSystemId: 1, externalId: '1061' },
           { externalSystemId: 1, externalId: '1062' },
@@ -169,6 +194,10 @@ describe('BblMatchesImportService', () => {
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, [['1061', '1062']]),
+      makeDetailReader({
+        '1061': detail('1061', 'Match A'),
+        '1062': detail('1062', 'Match B'),
+      }),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -199,5 +228,26 @@ describe('BblMatchesImportService', () => {
     expect(matchIdsByBblId.get('1062')).toBe(600);
     // The unresolved-pair error is recorded by MatchMergeService.resolve().
     expect(result.errors.some((e) => e.message.includes('1061'))).toBe(true);
+  });
+
+  it('records an error and skips a match with no detail-page entry', async () => {
+    const reader = makeReader({ '3': [match] });
+    const upsertMatchResult = vi.fn();
+    const service = new BblMatchesImportService(
+      reader,
+      { upsertMatchResult } as unknown as MatchesImportService,
+      makeMergeService(reader, []),
+      makeDetailReader({}),
+    );
+
+    const { result, matchIdsByBblId } = await service.importMatches(
+      new Map([['3', competition]]),
+      new Map([['3', 42]]),
+    );
+
+    expect(upsertMatchResult).not.toHaveBeenCalled();
+    expect(result.imported).toBe(0);
+    expect(matchIdsByBblId.size).toBe(0);
+    expect(result.errors).toHaveLength(1);
   });
 });

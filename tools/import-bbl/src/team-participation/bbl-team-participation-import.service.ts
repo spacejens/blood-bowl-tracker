@@ -197,6 +197,7 @@ export class BblTeamParticipationImportService {
         {
           competitionId,
           playedAt: merges.effectivePlayedAt(match.bblId, match.date),
+          name: teams.name,
           externalIds: [{ externalSystemId, externalId: match.bblId }],
           teamEraIds: [homeTeamEraId, awayTeamEraId],
         },

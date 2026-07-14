@@ -509,6 +509,7 @@ describe('BblTeamParticipationImportService', () => {
       {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 9, 1)),
+        name: 'Match',
         externalIds: [{ externalSystemId: 1, externalId: 'm1' }],
         teamEraIds: [1001, 1002],
       },

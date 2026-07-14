@@ -10,6 +10,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { MatchMergeService } from './match-merge.service';
 
@@ -19,6 +20,7 @@ export class BblMatchesImportService {
     private readonly matchListReader: BblMatchListReaderService,
     private readonly matchesImport: MatchesImportService,
     private readonly matchMerge: MatchMergeService,
+    private readonly matchDetailReader: BblMatchDetailReaderService,
   ) {}
 
   /**
@@ -47,6 +49,8 @@ export class BblMatchesImportService {
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
     const merges = await this.matchMerge.resolve(errors);
+    const detailsByBblId =
+      await this.matchDetailReader.getMatchTeamsByBblId(errors);
 
     for (const [competitionBblId, matches] of matchesByCompetitionId) {
       const competition = competitionsByBblId.get(competitionBblId);
@@ -70,6 +74,17 @@ export class BblMatchesImportService {
           continue;
         }
 
+        const details = detailsByBblId.get(match.bblId);
+        if (details === undefined) {
+          errors.push(
+            makeImportError({
+              item: { match: match.bblId },
+              message: `Skipping match ${match.bblId}: its detail page had no usable name.`,
+            }),
+          );
+          continue;
+        }
+
         const externalIds = [{ externalSystemId, externalId: match.bblId }];
         const partnerBblId = merges.partnerBblId(match.bblId);
         if (partnerBblId !== undefined) {
@@ -80,6 +95,7 @@ export class BblMatchesImportService {
           {
             competitionId,
             playedAt: merges.effectivePlayedAt(match.bblId, match.date),
+            name: details.name,
             externalIds,
           },
           errors,
