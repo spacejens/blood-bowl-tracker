@@ -20,7 +20,7 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { BblMatch } from '../matches/match-list-page-parser';
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
-import type { BblMatchTeams } from '../matches/match-teams-page-parser';
+import type { BblMatchDetails } from '../matches/match-teams-page-parser';
 
 @Injectable()
 export class BblTeamParticipationImportService {
@@ -158,7 +158,7 @@ export class BblTeamParticipationImportService {
     competitionBblId: string,
     competition: UpsertCompetitionData,
     matches: BblMatch[],
-    matchTeamsByBblId: Map<string, BblMatchTeams>,
+    matchTeamsByBblId: Map<string, BblMatchDetails>,
     teamEraIdByTeamId: Map<string, number>,
     competitionIdsByBblId: Map<string, number>,
     merges: MatchMergeResolution,
@@ -197,6 +197,7 @@ export class BblTeamParticipationImportService {
         {
           competitionId,
           playedAt: merges.effectivePlayedAt(match.bblId, match.date),
+          name: teams.name,
           externalIds: [{ externalSystemId, externalId: match.bblId }],
           teamEraIds: [homeTeamEraId, awayTeamEraId],
         },
@@ -217,7 +218,7 @@ export class BblTeamParticipationImportService {
   private collectTeamIds(
     competitionsByBblId: Map<string, UpsertCompetitionData>,
     matchesByCompetitionId: Map<string, BblMatch[]>,
-    matchTeamsByBblId: Map<string, BblMatchTeams>,
+    matchTeamsByBblId: Map<string, BblMatchDetails>,
     errors: ImportError[],
   ): Map<string, Set<string>> {
     const teamIdsByCompetitionId = new Map<string, Set<string>>();

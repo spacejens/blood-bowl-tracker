@@ -6,6 +6,7 @@ export const MatchSchema = z.object({
   id: z.number(),
   competitionId: z.number(),
   teamEraIds: z.array(z.number()),
+  name: z.string(),
   playedAt: z.coerce.date(),
   createdAt: z.coerce.date(),
 });
@@ -13,6 +14,7 @@ export const MatchSchema = z.object({
 export const UpsertMatchSchema = z.object({
   competitionId: z.number().int(),
   playedAt: z.date(),
+  name: z.string().min(1),
   externalIds: z.array(ExternalIdSchema).min(1),
   teamEraIds: z.array(z.number().int()).default([]),
 });

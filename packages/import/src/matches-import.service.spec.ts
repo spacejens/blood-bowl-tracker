@@ -18,6 +18,7 @@ describe('MatchesImportService', () => {
   const data = {
     competitionId: 20,
     playedAt: new Date('2021-09-25'),
+    name: 'Test Match',
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
   };
 
@@ -106,6 +107,7 @@ describe('MatchesImportService.upsertMatchResult', () => {
   const data = {
     competitionId: 20,
     playedAt: new Date('2021-09-25'),
+    name: 'Test Match',
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
   };
 

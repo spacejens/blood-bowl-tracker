@@ -205,12 +205,14 @@ export class BblCompetitionsImportService {
   /**
    * Resolve a competition's type and era DB id, or return undefined after
    * recording a skip error. A competition whose bblId is listed in an era's
-   * competitionIdOverrides is hard-assigned that era with type 'season',
-   * unconditionally and ahead of any match-date resolution (mirroring how
-   * playerIdOverrides pins a player to an era) — this is the only path for a
-   * competition with a genuinely empty match list. Otherwise the era and type
-   * are derived from the match dates: no dates => skip; span <= 3 days => cup,
-   * else season; earliest date matched against the configured era ranges.
+   * seasonCompetitionIdOverrides is hard-assigned that era with type 'season';
+   * one listed in cupCompetitionIdOverrides is hard-assigned that era with
+   * type 'cup'. Either override applies unconditionally and ahead of any
+   * match-date resolution (mirroring how playerIdOverrides pins a player to
+   * an era) — this is the only path for a competition with a genuinely empty
+   * match list. Otherwise the era and type are derived from the match dates:
+   * no dates => skip; span <= 3 days => cup, else season; earliest date
+   * matched against the configured era ranges.
    */
   private resolveTypeAndEra(
     competition: BblCompetition,
@@ -219,10 +221,15 @@ export class BblCompetitionsImportService {
     eraIdsByName: Map<string, number>,
     errors: ImportError[],
   ): { type: 'season' | 'cup'; eraId: number } | undefined {
-    const overrideEra = eras.find((era) =>
-      era.competitionIdOverrides?.includes(competition.bblId),
+    const seasonOverrideEra = eras.find((era) =>
+      era.seasonCompetitionIdOverrides?.includes(competition.bblId),
     );
+    const cupOverrideEra = eras.find((era) =>
+      era.cupCompetitionIdOverrides?.includes(competition.bblId),
+    );
+    const overrideEra = seasonOverrideEra ?? cupOverrideEra;
     if (overrideEra !== undefined) {
+      const overrideType = seasonOverrideEra !== undefined ? 'season' : 'cup';
       const eraId = eraIdsByName.get(overrideEra.name);
       if (eraId === undefined) {
         errors.push(
@@ -233,7 +240,7 @@ export class BblCompetitionsImportService {
         );
         return undefined;
       }
-      return { type: 'season', eraId };
+      return { type: overrideType, eraId };
     }
 
     if (dates.length === 0) {

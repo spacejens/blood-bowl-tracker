@@ -1,4 +1,4 @@
-import { integer, serial, timestamp } from 'drizzle-orm/pg-core';
+import { integer, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 import { competitions } from './competitions';
 import { historyTrackedTable } from './history';
@@ -10,6 +10,7 @@ const matchesTable = historyTrackedTable(gameData, 'matches', {
     .references(() => competitions.id)
     .notNull(),
   playedAt: timestamp('played_at', { withTimezone: true }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
 });
 
 export const matches = matchesTable.table;

@@ -39,12 +39,13 @@ Fully handled in code (no notes needed): `tm` (team pages — coach and race
 extraction), `pt` (position/player-type pages — name, "Can play for" races, and
 star marker), `tl` (master race-list page — see the note below).
 
-Not yet handled (candidates for future work): `m`/`mp` (per-match scores, gate,
-TD scorers, and sendings-off). Per-match **identity** (BBL id, date,
-competition) is already imported straight from the `ma` list rows, without
-reading `m`/`mp` pages at all — see the note on `ma` pages below. Also not yet
-handled: `ro` (rosters), `te` (league team list), `ch` (per-season player top
-charts), plus others.
+Not yet handled (candidates for future work): `mp` (per-match scores, gate, TD
+scorers, and sendings-off). Per-match **identity** (BBL id, date, competition)
+is imported straight from the `ma` list rows — see the note on `ma` pages
+below. The `m` detail page is read separately, for each match's two teams and
+its display name — see the note on `m` pages below. Also not yet handled: `ro`
+(rosters), `te` (league team list), `ch` (per-season player top charts), plus
+others.
 
 Note on `pt` pages: the `<h1>` is the position's display name and the "Can play
 for:" section lists its race(s) as `default.asp?p=tl#<raceId>` links (the same
@@ -79,23 +80,47 @@ The `so=t` variant is a different, team-sorted view (keyed by `t`) and is not
 used here. Each match row's `onclick` (e.g.
 `self.location.href='default.asp?p=m&m=<id>'`) carries the match's
 globally-unique numeric id; the matches import uses this as the match's BBL
-external id, so matches are established straight from the list rows without
-reading the `m`/`mp` pages themselves. A competition's `type` is inferred from
-its match-date span:
-`(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against all 74
-competitions in the reference dataset, including "Dungeon Bowl 1" (a 191-day
-season across only 4 matches) and "Stunty Leeg 2" (a season abandoned after 6
-days); the nearest genuine cup spans at most 2 days, so 3 days has wide margin.
+external id. For every competition other than those covered by
+`seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see `BBL_ERAS` in
+[index.md](./index.md)), `type` is inferred from its match-date span:
+`(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against the
+71 non-overridden competitions in the reference dataset; the nearest genuine
+cup spans at most 2 days, so 3 days has wide margin.
+
+Note on `m` pages: `default.asp?p=m&m=<id>` is a single match's detail page.
+Its two teams are read from the `<a href="default.asp?p=tm&t=<id>">` links in
+the first `table.tblist tr.trborder` row's two `<td width="180">` cells (home
+first, away second). Its display name is the text after the comma in the bold
+header wrapping the competition link, e.g. `<b><a href="...p=ma...">Season
+4</a>, 11 - 12</b>` => name `"11 - 12"`, or `..., Bierhallentodball</b>` => name
+`"Bierhallentodball"` (the special cup-final label BBL uses for four-team
+Ogretoberfest finals, which this project stores as one merged match — see
+`MatchMergeService`). Names are not unique across matches (e.g. "Final"
+recurs every season) and are never used as an external id.
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
 were backfilled in one sitting (rather than entered as they happened) can show
-a 0-day span indistinguishable from a genuine one-day cup. "Stunty Leeg 1"
-(11 matches, 0-day span) is a known instance: it misclassifies as `cup` but is
-almost certainly a season, matching "Stunty Leeg 2". No date-span threshold
-can fix this — roughly 20 genuine one-day cups share the same 0-day span. Left
-as-is; correct manually in the database if it matters, the same way any future
-similar case should be handled.
+a 0-day span indistinguishable from a genuine one-day cup. Roughly 20 genuine
+one-day cups share that same 0-day span, so no date-span threshold can
+distinguish them from a backfilled season. Three known instances need
+`BBL_ERAS` overrides, each for a different reason:
+
+- "Stunty Leeg 1" (`s=30`, 0-day span) is a genuine type-classification
+  ambiguity — a 0-day span is indistinguishable from a real one-day cup using
+  the heuristic alone — but is resolved correctly via
+  `cupCompetitionIdOverrides` regardless.
+- "Stunty Leeg 2" (`s=33`, 6-day span) is a genuine type _correction_: the
+  date-span heuristic would compute `season` (6 days is over the 3-day
+  cutoff), but it was actually a `cup`. `cupCompetitionIdOverrides` corrects
+  the type, not just the era.
+- "Dungeon Bowl 1" (`s=69`, 191-day span) has no type-classification issue at
+  all — the heuristic already computes `season` correctly on its own. Its
+  only problem is _era_ assignment: its dates would otherwise fall in
+  whichever regular era covers that date range. `seasonCompetitionIdOverrides`
+  fixes the era assignment.
+
+Any future similar case should be handled the same way.
 
 Note on the `tl` page: `default.asp?p=tl` (no further params) is a single
 per-league master race-list page. Each race is introduced by two anchors — a

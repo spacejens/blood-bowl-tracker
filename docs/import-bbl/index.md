@@ -31,10 +31,20 @@ tool directory, or exported in your shell:
   era, checked before the range bounds — BBL player ids are only roughly
   chronological, so a handful of players drafted right at an era changeover
   can land on the "wrong" side of a range split; overrides correct those known
-  exceptions without widening the range). Rules sets and eras are not present
-  in the source data, so they are supplied here. Each era's rules set names
-  and each era name are used as external IDs under both the configured BBL
-  external system and the `Name` external system.
+  exceptions without widening the range). Additionally,
+  `seasonCompetitionIdOverrides` and `cupCompetitionIdOverrides` are optional
+  arrays of competition bblIds hard-assigned to this era and forced to type
+  `season` or `cup` respectively, regardless of match dates — used for a
+  competition with an empty match list, or one whose date-span would otherwise
+  misclassify its type. `teamCodeOverrides` is an optional array of team codes
+  whose players are pinned to this era regardless of pid, for side-competition
+  eras (Stunty Leeg, Dungeonbowl) that share the concurrent regular era's pid
+  range. A competition bblId may appear in only one of the two competition
+  override lists across all eras, and a team code in only one era's
+  `teamCodeOverrides`. Rules sets and eras are not present in the source data,
+  so they are supplied here. Each era's rules set names and each era name are
+  used as external IDs under both the configured BBL external system and the
+  `Name` external system.
 - `BBL_MATCH_MERGES` — an optional JSON array of `[id, id]` BBL match-id pairs
   to merge into a single match, e.g.
   `[["1061","1062"],["1311","1312"]]`. BBL's match model only supports two
@@ -202,9 +212,10 @@ Re-running is always safe and fills any gaps left by transient failures.
 - **Players** — from player pages (`p=pl`). Keyed by the player's own numeric
   `pid` under the configured BBL external system only — unlike other entities,
   players get no `Name` external id, since player names are not guaranteed
-  unique across the league. A player's era is resolved from its `pid`, first
-  checking each era's `playerIdOverrides` list, then falling back to each
-  era's `firstPlayerId`/`lastPlayerId` range; its team era and position are
+  unique across the league. A player's era is resolved first by each era's
+  `teamCodeOverrides` (matching the player's team code), then by each era's
+  `playerIdOverrides` list, then by falling back to each era's
+  `firstPlayerId`/`lastPlayerId` range; its team era and position are
   resolved to local ids from the teams and positions imports. A
   player whose pid matches no configured era range, whose team code was not
   imported, or whose position cannot be resolved is skipped with a recorded
@@ -215,7 +226,10 @@ Re-running is always safe and fills any gaps left by transient failures.
   external system (`BBL` by default) and by exact name under the `Name` external
   system. `type` is `cup` when the match dates span 3 days or fewer, else
   `season`; `eraId` is the era whose configured date range contains the earliest
-  match date. A competition with no dated matches, or whose earliest date is
+  match date. A competition listed in an era's `seasonCompetitionIdOverrides`
+  or `cupCompetitionIdOverrides` is instead hard-assigned that era and forced
+  to type `season` or `cup` respectively, bypassing match-date resolution
+  entirely. A competition with no dated matches, or whose earliest date is
   outside every configured era, is skipped with a recorded error. The `p=cp`
   pages are out of scope (generic content pages, not reliably competitions).
   Imported after eras (referenced by `eraId`).
