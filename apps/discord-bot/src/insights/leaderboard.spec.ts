@@ -39,7 +39,7 @@ describe('topRanksWithTies', () => {
     });
   });
 
-  it('keeps ties that push the list past maxRank', () => {
+  it('keeps ties that push the list past topEntries', () => {
     const rows = [
       { name: 'a', count: 9 },
       { name: 'b', count: 7 },
@@ -56,7 +56,7 @@ describe('topRanksWithTies', () => {
     });
   });
 
-  it('returns all rows when there are fewer than maxRank', () => {
+  it('returns all rows when there are fewer than topEntries', () => {
     const rows = [{ name: 'a', count: 3 }];
     expect(topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [{ name: 'a', count: 3, rank: 1 }],
