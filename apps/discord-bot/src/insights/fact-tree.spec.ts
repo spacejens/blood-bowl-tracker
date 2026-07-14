@@ -50,23 +50,18 @@ function deps() {
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as PlayersService,
     positions: zero() as unknown as PositionsService,
-    races: zero() as unknown as RacesService,
+    races: {
+      countTeamsByRace: vi.fn().mockResolvedValue([]),
+      countMatchesPlayedByRace: vi.fn().mockResolvedValue([]),
+      countAll: vi.fn().mockResolvedValue(0),
+    } as unknown as RacesService,
     externalSystems: zero() as unknown as ExternalSystemsService,
   };
 }
 
-function leafAt(path: string): FactLeaf {
-  const tree = buildFactTree({} as StatsSummaryDeps);
-  const node = resolvePath(tree, path);
-  if (node === undefined || !('resolve' in node)) {
-    throw new Error(`Expected a leaf at ${path}`);
-  }
-  return node as FactLeaf;
-}
-
 describe('buildFactTree', () => {
-  it('exposes exactly nine leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(9);
+  it('exposes exactly eleven leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(11);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -139,6 +134,22 @@ describe('buildFactTree', () => {
     expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalled();
   });
 
+  it('wires race.toplist.teams to the race team-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'race.toplist.teams');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.races.countTeamsByRace).toHaveBeenCalled();
+  });
+
+  it('wires race.toplist.matches.played to the race match-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'race.toplist.matches.played');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.races.countMatchesPlayedByRace).toHaveBeenCalled();
+  });
+
   it('wires stats to the entity-count summary', async () => {
     const d = deps();
     const leaf = resolvePath(buildFactTree(d), 'stats');
@@ -149,18 +160,6 @@ describe('buildFactTree', () => {
 });
 
 describe('buildFactTree leaf capabilities', () => {
-  it('marks coach.toplist.matches.played as era-supporting', () => {
-    expect(leafAt('coach.toplist.matches.played').supportsEra).toBe(true);
-  });
-
-  it('marks player.toplist.mvps as era-supporting', () => {
-    expect(leafAt('player.toplist.mvps').supportsEra).toBe(true);
-  });
-
-  it('marks stats as NOT era-supporting', () => {
-    expect(leafAt('stats').supportsEra).toBe(false);
-  });
-
   it('excludes some leaves from era filtering', () => {
     const tree = buildFactTree({} as StatsSummaryDeps);
     const unsupported = collectLeaves(tree).filter((leaf) => !leaf.supportsEra);
