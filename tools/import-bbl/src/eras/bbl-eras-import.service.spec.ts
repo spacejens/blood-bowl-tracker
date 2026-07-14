@@ -25,14 +25,14 @@ function makeService(
 const eras: EraConfig[] = [
   {
     name: 'Living rulebook',
-    rulesSet: 'Living rulebook',
+    rulesSets: ['Living rulebook'],
     startDate: '2011-09-09',
     endDate: '2021-09-01',
     firstPlayerId: 1,
   },
   {
     name: 'BB2020',
-    rulesSet: 'BB2020',
+    rulesSets: ['BB2020'],
     startDate: '2021-09-01',
     firstPlayerId: 5001,
   },
@@ -70,7 +70,7 @@ describe('BblErasImportService', () => {
       {
         name: 'Living rulebook',
         leagueId: 10,
-        rulesSetId: 100,
+        rulesSetIds: [100],
         startDate: '2011-09-09',
         endDate: '2021-09-01',
         externalIds: [
@@ -85,7 +85,7 @@ describe('BblErasImportService', () => {
       {
         name: 'BB2020',
         leagueId: 10,
-        rulesSetId: 200,
+        rulesSetIds: [200],
         startDate: '2021-09-01',
         endDate: undefined,
         externalIds: [
@@ -155,6 +155,69 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
+  });
+
+  it('records an error and skips an era whose rules-set name does not resolve', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn();
+    const multiRulesSetEras: EraConfig[] = [
+      {
+        name: 'CRP era',
+        rulesSets: ['CRP', 'MISSING'],
+        startDate: '2016-01-01',
+        firstPlayerId: 1,
+      },
+    ];
+    const service = makeService(
+      () => multiRulesSetEras,
+      upsertExternalSystem,
+      upsertEra,
+    );
+
+    const { result } = await service.importEras(
+      10,
+      new Map([['CRP', 20]]),
+    );
+
+    expect(upsertEra).not.toHaveBeenCalled();
+    expect(result.errors[0].message).toMatch(/MISSING/);
+  });
+
+  it('resolves all rules-set names to ids and passes the array', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'CRP era' });
+    const multiRulesSetEras: EraConfig[] = [
+      {
+        name: 'CRP era',
+        rulesSets: ['CRP', 'CRP+'],
+        startDate: '2016-01-01',
+        firstPlayerId: 1,
+      },
+    ];
+    const service = makeService(
+      () => multiRulesSetEras,
+      upsertExternalSystem,
+      upsertEra,
+    );
+
+    await service.importEras(
+      10,
+      new Map([
+        ['CRP', 20],
+        ['CRP+', 21],
+      ]),
+    );
+
+    expect(upsertEra).toHaveBeenCalledWith(
+      expect.objectContaining({ rulesSetIds: [20, 21] }),
+      expect.anything(),
+    );
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
