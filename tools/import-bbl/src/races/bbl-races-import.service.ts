@@ -1,4 +1,8 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  UpsertRaceData,
+} from '@blood-bowl-tracker/import';
 import {
   ExternalSystemsImportService,
   makeImportError,
@@ -41,11 +45,13 @@ export class BblRacesImportService {
     result: ImportResult;
     raceIdsByBblId: Map<string, number>;
     racesByBblId: Map<string, { id: number; name: string }>;
+    racesByRaceId: Map<number, UpsertRaceData>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const raceIdsByBblId = new Map<string, number>();
     const racesByBblId = new Map<string, { id: number; name: string }>();
+    const racesByRaceId = new Map<number, UpsertRaceData>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -69,6 +75,7 @@ export class BblRacesImportService {
         result: makeImportResult({ imported, errors }),
         raceIdsByBblId,
         racesByBblId,
+        racesByRaceId,
       };
     }
 
@@ -87,6 +94,7 @@ export class BblRacesImportService {
             nameSystemId,
             raceIdsByBblId,
             racesByBblId,
+            racesByRaceId,
             errors,
           )
         ) {
@@ -116,6 +124,7 @@ export class BblRacesImportService {
               nameSystemId,
               raceIdsByBblId,
               racesByBblId,
+              racesByRaceId,
               errors,
             )
           ) {
@@ -139,15 +148,18 @@ export class BblRacesImportService {
       result: makeImportResult({ imported, errors }),
       raceIdsByBblId,
       racesByBblId,
+      racesByRaceId,
     };
   }
 
   /**
    * Upsert one parsed race unless its BBL id was already seen. Records the race
    * under the BBL (numeric id) and Name (exact name) external systems and
-   * populates the id/name maps. Returns true iff a new race was upserted, so the
-   * caller can increment its `imported` counter. Shared by the team-page and
-   * race-list passes so both key races identically.
+   * populates the id/name/data maps (the last keyed by the race's local id, so
+   * callers can re-upsert it later with an updated `eras` list). Returns true
+   * iff a new race was upserted, so the caller can increment its `imported`
+   * counter. Shared by the team-page and race-list passes so both key races
+   * identically.
    */
   private async upsertParsedRace(
     parsedRace: BblRace,
@@ -156,6 +168,7 @@ export class BblRacesImportService {
     nameSystemId: number,
     raceIdsByBblId: Map<string, number>,
     racesByBblId: Map<string, { id: number; name: string }>,
+    racesByRaceId: Map<number, UpsertRaceData>,
     errors: ImportError[],
   ): Promise<boolean> {
     if (seen.has(parsedRace.id)) {
@@ -163,16 +176,14 @@ export class BblRacesImportService {
     }
     seen.add(parsedRace.id);
 
-    const upsertedRace = await this.racesImport.upsertRace(
-      {
-        name: parsedRace.name,
-        externalIds: [
-          { externalSystemId: bblSystemId, externalId: parsedRace.id },
-          { externalSystemId: nameSystemId, externalId: parsedRace.name },
-        ],
-      },
-      errors,
-    );
+    const data: UpsertRaceData = {
+      name: parsedRace.name,
+      externalIds: [
+        { externalSystemId: bblSystemId, externalId: parsedRace.id },
+        { externalSystemId: nameSystemId, externalId: parsedRace.name },
+      ],
+    };
+    const upsertedRace = await this.racesImport.upsertRace(data, errors);
     if (!upsertedRace) {
       return false;
     }
@@ -182,6 +193,7 @@ export class BblRacesImportService {
       id: upsertedRace.id,
       name: parsedRace.name,
     });
+    racesByRaceId.set(upsertedRace.id, data);
     return true;
   }
 }

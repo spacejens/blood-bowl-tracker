@@ -50,7 +50,7 @@ async function run(): Promise<ImportResult> {
       .importTeamParticipation(
         competitionOutcome.competitionsByBblId,
         teamOutcome.teamsByCode,
-        rulesSetsOutcome.rulesSetsByName,
+        raceOutcome.racesByRaceId,
         eraOutcome.eraIdsByName,
         competitionOutcome.competitionIdsByBblId,
       );

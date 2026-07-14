@@ -145,9 +145,7 @@ describe('BblRulesSetsImportService', () => {
     const upsertedNames = upsertRulesSet.mock.calls.map(
       (c) => (c[0] as { name: string }).name,
     );
-    expect(new Set(upsertedNames)).toEqual(
-      new Set(['CRP', 'CRP+', 'BB2016']),
-    );
+    expect(new Set(upsertedNames)).toEqual(new Set(['CRP', 'CRP+', 'BB2016']));
     expect(
       upsertRulesSet.mock.calls.every(
         (c) => !('races' in (c[0] as Record<string, unknown>)),

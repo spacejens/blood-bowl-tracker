@@ -177,10 +177,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     );
 
-    const { result } = await service.importEras(
-      10,
-      new Map([['CRP', 20]]),
-    );
+    const { result } = await service.importEras(10, new Map([['CRP', 20]]));
 
     expect(upsertEra).not.toHaveBeenCalled();
     expect(result.errors[0].message).toMatch(/MISSING/);
