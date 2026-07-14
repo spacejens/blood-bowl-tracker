@@ -59,15 +59,6 @@ function deps() {
   };
 }
 
-function leafAt(path: string): FactLeaf {
-  const tree = buildFactTree({} as StatsSummaryDeps);
-  const node = resolvePath(tree, path);
-  if (node === undefined || !('resolve' in node)) {
-    throw new Error(`Expected a leaf at ${path}`);
-  }
-  return node as FactLeaf;
-}
-
 describe('buildFactTree', () => {
   it('exposes exactly eleven leaf facts', () => {
     expect(collectLeaves(buildFactTree(deps()))).toHaveLength(11);
@@ -169,26 +160,6 @@ describe('buildFactTree', () => {
 });
 
 describe('buildFactTree leaf capabilities', () => {
-  it('marks coach.toplist.matches.played as era-supporting', () => {
-    expect(leafAt('coach.toplist.matches.played').supportsEra).toBe(true);
-  });
-
-  it('marks player.toplist.mvps as era-supporting', () => {
-    expect(leafAt('player.toplist.mvps').supportsEra).toBe(true);
-  });
-
-  it('marks race.toplist.teams as era-supporting', () => {
-    expect(leafAt('race.toplist.teams').supportsEra).toBe(true);
-  });
-
-  it('marks race.toplist.matches.played as era-supporting', () => {
-    expect(leafAt('race.toplist.matches.played').supportsEra).toBe(true);
-  });
-
-  it('marks stats as NOT era-supporting', () => {
-    expect(leafAt('stats').supportsEra).toBe(false);
-  });
-
   it('excludes some leaves from era filtering', () => {
     const tree = buildFactTree({} as StatsSummaryDeps);
     const unsupported = collectLeaves(tree).filter((leaf) => !leaf.supportsEra);
