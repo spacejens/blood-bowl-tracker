@@ -68,8 +68,8 @@ export class EraConfigService {
   constructor(private readonly config: ImportBblConfigService) {}
 
   /**
-   * The eras the BBL league played through, supplied via the BBL_ERAS
-   * environment variable as a JSON array (not parsed from the source data).
+   * The eras the BBL league played through, supplied via the eras key in
+   * import-bbl-config.json5 (not parsed from the source data).
    * Each era names its rules set and its date range; endDate is optional for an
    * era still ongoing at import time. firstPlayerId is required; lastPlayerId
    * follows the same optional-when-ongoing rule as endDate, and the two must

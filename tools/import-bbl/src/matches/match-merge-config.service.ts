@@ -8,7 +8,7 @@ export class MatchMergeConfigService {
 
   /**
    * The BBL match-id pairs to merge into a single match, supplied via the
-   * optional BBL_MATCH_MERGES environment variable as a JSON array of
+   * optional matchMerges key in import-bbl-config.json5 as an array of
    * two-element string arrays, e.g. [["1061","1062"],["1311","1312"]]. Each
    * pair's two source matches (BBL cannot store a >2-team match, so a
    * four-team final is registered as two two-team rows) are folded into one DB
