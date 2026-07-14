@@ -73,6 +73,7 @@ function makeService(
       firstPlayerId: number;
       lastPlayerId?: number;
       playerIdOverrides?: number[];
+      teamCodeOverrides?: string[];
     }[];
   } = {},
 ) {
@@ -195,6 +196,47 @@ describe('BblPlayersImportService', () => {
       otherEraIdsByName,
     );
 
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [600] },
+      expect.any(Array),
+    );
+  });
+
+  it('resolves the era via teamCodeOverrides ahead of the pid range, matching the team era', async () => {
+    // goodPlayer has pid 42 and teamCode 'knu'. Its pid falls in "Regular"
+    // (1..9999), but 'knu' is pinned to "Stunty" via teamCodeOverrides, which
+    // must win — and the upserted team era must be the Stunty era (600), the
+    // same era competition resolution would assign that team.
+    const overrideEraIds = new Map<string, number>([
+      ['Regular', 500],
+      ['Stunty', 600],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 6000, eraId: 600 }] }),
+        eras: [
+          { name: 'Regular', firstPlayerId: 1, lastPlayerId: 9999 },
+          {
+            name: 'Stunty',
+            firstPlayerId: 1,
+            lastPlayerId: 9999,
+            teamCodeOverrides: ['knu'],
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      overrideEraIds,
+    );
+
+    expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
