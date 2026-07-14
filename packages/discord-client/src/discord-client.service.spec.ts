@@ -430,9 +430,7 @@ describe('DiscordClientService', () => {
       reply,
     });
     await flush();
-    expect(reply).toHaveBeenCalledWith(
-      'Sorry, something went wrong while handling that command.',
-    );
+    expect(reply).toHaveBeenCalledWith('I am badly hurt');
   });
 
   it('responds to an autocomplete interaction with the command choices', async () => {

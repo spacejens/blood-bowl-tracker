@@ -11,3 +11,18 @@ export async function resolveTeamMatchesPlayedToplist(
     teams.countMatchesPlayedByTeam(eraId),
   );
 }
+
+export async function resolveTeamCompetitionsPlayedToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by competitions played', () =>
+    teams.countCompetitionsByTeam(eraId),
+  );
+}
+
+export async function resolveTeamErasActiveToplist(
+  teams: TeamsService,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by eras active', () => teams.countErasByTeam());
+}

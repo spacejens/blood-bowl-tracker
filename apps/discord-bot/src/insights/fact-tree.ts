@@ -5,7 +5,11 @@ import {
 } from './facts/coach-toplist';
 import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
-import { resolveTeamMatchesPlayedToplist } from './facts/team-toplist';
+import {
+  resolveTeamCompetitionsPlayedToplist,
+  resolveTeamErasActiveToplist,
+  resolveTeamMatchesPlayedToplist,
+} from './facts/team-toplist';
 
 export function buildFactTree(deps: StatsSummaryDeps): FactNode {
   return {
@@ -31,6 +35,19 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsEra: true,
             resolve: (eraId) =>
               resolveTeamMatchesPlayedToplist(deps.teams, eraId),
+          },
+        },
+        competitions: {
+          played: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamCompetitionsPlayedToplist(deps.teams, eraId),
+          },
+        },
+        eras: {
+          active: {
+            supportsEra: false,
+            resolve: () => resolveTeamErasActiveToplist(deps.teams),
           },
         },
       },

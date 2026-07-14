@@ -28,6 +28,8 @@ function deps() {
     } as unknown as CoachesService,
     teams: {
       countMatchesPlayedByTeam: vi.fn().mockResolvedValue([]),
+      countCompetitionsByTeam: vi.fn().mockResolvedValue([]),
+      countErasByTeam: vi.fn().mockResolvedValue([]),
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as TeamsService,
     matches: {
@@ -58,8 +60,8 @@ function leafAt(path: string): FactLeaf {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly four leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(4);
+  it('exposes exactly six leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(6);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -86,6 +88,25 @@ describe('buildFactTree', () => {
     expect(d.teams.countMatchesPlayedByTeam).toHaveBeenCalled();
   });
 
+  it('wires team.toplist.competitions.played to the team competition-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.competitions.played',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countCompetitionsByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.eras.active to the team era-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'team.toplist.eras.active');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countErasByTeam).toHaveBeenCalled();
+  });
+
   it('wires stats to the entity-count summary', async () => {
     const d = deps();
     const leaf = resolvePath(buildFactTree(d), 'stats');
@@ -100,22 +121,19 @@ describe('buildFactTree leaf capabilities', () => {
     expect(leafAt('coach.toplist.matches.played').supportsEra).toBe(true);
   });
 
-  it('marks coach.toplist.teams as era-supporting', () => {
-    expect(leafAt('coach.toplist.teams').supportsEra).toBe(true);
-  });
-
-  it('marks team.toplist.matches.played as era-supporting', () => {
-    expect(leafAt('team.toplist.matches.played').supportsEra).toBe(true);
-  });
-
   it('marks stats as NOT era-supporting', () => {
     expect(leafAt('stats').supportsEra).toBe(false);
   });
 
-  it('every leaf except stats supports era filtering', () => {
-    const leaves = collectLeaves(buildFactTree({} as StatsSummaryDeps));
-    const unsupported = leaves.filter((leaf) => !leaf.supportsEra);
-    // Exactly one leaf (stats) opts out.
-    expect(unsupported).toHaveLength(1);
+  it('excludes some leaves from era filtering', () => {
+    const tree = buildFactTree({} as StatsSummaryDeps);
+    const unsupported = collectLeaves(tree).filter((leaf) => !leaf.supportsEra);
+    expect(unsupported).toEqual(
+      expect.arrayContaining([
+        resolvePath(tree, 'stats'),
+        resolvePath(tree, 'team.toplist.eras.active'),
+      ]),
+    );
+    expect(unsupported).toHaveLength(2);
   });
 });

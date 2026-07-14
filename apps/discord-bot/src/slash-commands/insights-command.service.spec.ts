@@ -36,6 +36,12 @@ function makeService() {
     countMatchesPlayedByTeam: vi
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 12 }]),
+    countCompetitionsByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
+    countErasByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 3 }]),
     countAll: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
   const matches = {
@@ -281,8 +287,59 @@ describe('InsightsCommandService', () => {
       (coaches.countTeamsByCoach as ReturnType<typeof vi.fn>).mock.calls
         .length > 0 ||
       (teams.countMatchesPlayedByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>).mock.calls
         .length > 0;
     expect(calledWithEra).toBe(true);
+  });
+
+  it('scopes team.toplist.competitions.played to the resolved era', async () => {
+    const { service, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('team.toplist.competitions.played', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.countCompetitionsByTeam).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by competitions played — BB2020',
+          description: '1. 40 grinders — 4',
+        },
+      ],
+    });
+  });
+
+  it('rejects an era on team.toplist.eras.active (not era-supporting)', async () => {
+    const { service, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('team.toplist.eras.active', '20'),
+    );
+    expect(result).toBe(
+      'Even the Assistant Coach cannot understand your request',
+    );
+  });
+
+  it('excludes team.toplist.eras.active from the random pool when an era is given', async () => {
+    const { service, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    // Pin random to select the last eligible leaf; eras.active is filtered
+    // out of the era-scoped pool, so countErasByTeam is never called.
+    vi.spyOn(Math, 'random').mockReturnValue(0.999999);
+    await service.execute(chatInput(null, '20'));
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.countErasByTeam).not.toHaveBeenCalled();
   });
 
   it('rejects an era id that does not resolve to a real era', async () => {

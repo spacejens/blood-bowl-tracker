@@ -29,6 +29,11 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `team.toplist.matches.played` — teams ranked by number of matches played.
+- `team.toplist.competitions.played` — teams ranked by number of distinct
+  competitions entered. Supports era filtering.
+- `team.toplist.eras.active` — teams ranked by number of distinct eras they
+  have existed across. Does not support era filtering (scoping to a single
+  era would always yield 0 or 1), so it is excluded from era-filtered runs.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.
