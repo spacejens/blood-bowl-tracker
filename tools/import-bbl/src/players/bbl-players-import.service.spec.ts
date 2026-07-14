@@ -243,6 +243,51 @@ describe('BblPlayersImportService', () => {
     );
   });
 
+  it('prefers teamCodeOverrides over playerIdOverrides when the two disagree', async () => {
+    // goodPlayer has pid 42 and teamCode 'knu'. Pid 42 is pinned to "Pid Era"
+    // via playerIdOverrides, but 'knu' is separately pinned to "Team Era" via
+    // teamCodeOverrides — teamCodeOverrides must win.
+    const overrideEraIds = new Map<string, number>([
+      ['Pid Era', 500],
+      ['Team Era', 600],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 6000, eraId: 600 }] }),
+        eras: [
+          {
+            name: 'Pid Era',
+            firstPlayerId: 1,
+            lastPlayerId: 9999,
+            playerIdOverrides: [42],
+          },
+          {
+            name: 'Team Era',
+            firstPlayerId: 1,
+            lastPlayerId: 9999,
+            teamCodeOverrides: ['knu'],
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      overrideEraIds,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [600] },
+      expect.any(Array),
+    );
+  });
+
   it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),

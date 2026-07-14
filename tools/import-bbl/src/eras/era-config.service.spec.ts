@@ -451,6 +451,22 @@ describe('EraConfigService', () => {
     expect(() => makeService(json).getEras()).toThrow(/30/);
   });
 
+  it('rejects the same competition id appearing in both season and cup overrides of the same era', () => {
+    const json = JSON.stringify([
+      {
+        name: 'Living rulebook',
+        rulesSets: ['Living rulebook'],
+        startDate: '2011-09-09',
+        endDate: '2021-09-01',
+        firstPlayerId: 1,
+        lastPlayerId: 5000,
+        seasonCompetitionIdOverrides: ['30'],
+        cupCompetitionIdOverrides: ['30'],
+      },
+    ]);
+    expect(() => makeService(json).getEras()).toThrow(/30/);
+  });
+
   it('parses teamCodeOverrides when present, leaving it undefined when absent', () => {
     const json = JSON.stringify([
       {
