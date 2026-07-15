@@ -168,7 +168,7 @@ export class ErasService {
       .from(eraRulesSets)
       .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
       .where(eq(eraRulesSets.eraId, eraId))
-      .orderBy(rulesSets.name);
+      .orderBy(rulesSets.id);
     return rows.map((r) => r.name);
   }
 

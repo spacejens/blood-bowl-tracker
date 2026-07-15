@@ -1,5 +1,11 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, eraExternalIds, eraRulesSets, eras } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eraExternalIds,
+  eraRulesSets,
+  eras,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -223,15 +229,18 @@ describe('ErasService', () => {
   });
 
   describe('getRulesSetNames', () => {
-    it("returns the era's rules-set names ordered by the query", async () => {
+    it("returns the era's rules-set names ordered by rules set id (earliest first)", async () => {
       const rows = [{ name: 'BB2016' }, { name: 'BB2020' }];
-      const select = vi.fn(() => makeCountBuilder(rows));
+      const builder = makeCountBuilder(rows);
+      const select = vi.fn(() => builder);
       const service = new ErasService({ select } as unknown as Db);
       await expect(service.getRulesSetNames(5)).resolves.toEqual([
         'BB2016',
         'BB2020',
       ]);
       expect(select).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
     });
 
     it('returns an empty array when the era has no rules sets', async () => {
