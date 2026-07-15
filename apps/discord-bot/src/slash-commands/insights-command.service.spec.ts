@@ -511,11 +511,14 @@ describe('InsightsCommandService', () => {
       id: 20,
       name: 'BB2020',
     });
-    // Pin random to the last eligible leaf; every era-supporting leaf is in
-    // the pool, so at least one race query must be reachable. Sweep the whole
-    // [0,1) space to prove both race leaves are era-supporting members.
+    // Every era-supporting leaf is in the pool, so at least one race query
+    // must be reachable. Sweep [0,1) in fine steps (pickRandom uses
+    // leaves[Math.floor(Math.random() * leaves.length)]) so every index is
+    // hit at least once regardless of how many era-supporting leaves exist.
     const seen = new Set<string>();
-    for (const r of [0, 0.25, 0.5, 0.75, 0.999999]) {
+    const sampleCount = 50;
+    for (let i = 0; i < sampleCount; i++) {
+      const r = i / sampleCount;
       vi.spyOn(Math, 'random').mockReturnValue(r);
       await service.execute(chatInput(null, '20'));
       vi.restoreAllMocks();
