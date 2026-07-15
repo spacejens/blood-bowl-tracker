@@ -117,7 +117,108 @@ export class PlayersService {
       .orderBy(desc(count(matchEvents.id)));
   }
 
+  async countTouchdownsScoredByPlayer(
+    eraId?: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'touchdown'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(players.id, players.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countCompletionsByPlayer(
+    eraId?: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'completion'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(players.id, players.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countInterceptionsByPlayer(
+    eraId?: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'interception'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(players.id, players.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countDeflectionsByPlayer(
+    eraId?: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        playerId: players.id,
+        name: players.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'deflection'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(players.id, players.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
   countAll(): Promise<number> {
     return countRows(this.db, players);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(players.id) })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .where(eq(teamEras.eraId, eraId));
+    return row.count;
   }
 }

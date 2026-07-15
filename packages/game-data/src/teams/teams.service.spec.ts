@@ -257,6 +257,73 @@ describe('TeamsService', () => {
       await expect(service.countErasByTeam()).resolves.toEqual(rows);
       expect(builder.where).not.toHaveBeenCalled();
     });
+
+    it('countTouchdownsScoredByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countTouchdownsScoredByTeam()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTouchdownsScoredByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTouchdownsScoredByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCompletionsByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countCompletionsByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countCompletionsByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCompletionsByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countInterceptionsByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 5 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countInterceptionsByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countInterceptionsByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countInterceptionsByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeflectionsByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countDeflectionsByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countDeflectionsByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeflectionsByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('countAll', () => {
@@ -267,6 +334,26 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct team count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 12 }]));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(12);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });

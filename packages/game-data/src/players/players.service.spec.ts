@@ -22,6 +22,18 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeCountBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 describe('PlayersService', () => {
   let service: PlayersService;
   let mockDb: {
@@ -151,6 +163,15 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('countByEra', () => {
+    it('returns the player count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 88 }]));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(88);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('toplist queries', () => {
     function makeQueryBuilder(rows: unknown[]) {
       const builder: Record<string, unknown> = {};
@@ -201,6 +222,73 @@ describe('PlayersService', () => {
       const service = new PlayersService({ select } as unknown as Db);
       await expect(service.countMvpAwardsByPlayer(20)).resolves.toEqual(rows);
       // The where() call is always present; the era clause is folded into it.
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTouchdownsScoredByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 9 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countTouchdownsScoredByPlayer()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTouchdownsScoredByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTouchdownsScoredByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCompletionsByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 6 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countCompletionsByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countCompletionsByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCompletionsByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countInterceptionsByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 4 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countInterceptionsByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countInterceptionsByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countInterceptionsByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeflectionsByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 3 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countDeflectionsByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countDeflectionsByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeflectionsByPlayer(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
   });

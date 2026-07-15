@@ -138,11 +138,23 @@ export class CompetitionsService {
     return countRows(this.db, competitions);
   }
 
-  async countByType(type: 'season' | 'cup'): Promise<number> {
+  async countByEra(eraId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: count() })
       .from(competitions)
-      .where(eq(competitions.type, type));
+      .where(eq(competitions.eraId, eraId));
+    return row.count;
+  }
+
+  async countByType(type: 'season' | 'cup', eraId?: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(competitions)
+      .where(
+        eraId === undefined
+          ? eq(competitions.type, type)
+          : and(eq(competitions.type, type), eq(competitions.eraId, eraId)),
+      );
     return row.count;
   }
 }

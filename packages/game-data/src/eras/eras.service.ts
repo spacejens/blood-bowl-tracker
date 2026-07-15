@@ -5,6 +5,7 @@ import {
   eraRulesSets,
   eras,
   leagues,
+  rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, ilike, or } from 'drizzle-orm';
@@ -159,6 +160,37 @@ export class ErasService {
       .innerJoin(leagues, eq(leagues.id, eras.leagueId))
       .where(ilike(eras.name, `${escapeLikePattern(prefix)}%`))
       .limit(limit);
+  }
+
+  async getRulesSetNames(eraId: number): Promise<string[]> {
+    const rows = await this.db
+      .select({ name: rulesSets.name })
+      .from(eraRulesSets)
+      .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
+      .where(eq(eraRulesSets.eraId, eraId))
+      .orderBy(rulesSets.id);
+    return rows.map((r) => r.name);
+  }
+
+  listErasWithLeague(): Promise<
+    {
+      id: number;
+      name: string;
+      leagueName: string;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: eras.id,
+        name: eras.name,
+        leagueName: leagues.name,
+        startDate: eras.startDate,
+        endDate: eras.endDate,
+      })
+      .from(eras)
+      .innerJoin(leagues, eq(leagues.id, eras.leagueId));
   }
 
   countAll(): Promise<number> {

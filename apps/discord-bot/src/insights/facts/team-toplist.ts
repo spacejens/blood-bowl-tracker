@@ -26,3 +26,39 @@ export async function resolveTeamErasActiveToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Teams by eras active', () => teams.countErasByTeam());
 }
+
+export async function resolveTeamTouchdownsScoredToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by touchdowns scored', () =>
+    teams.countTouchdownsScoredByTeam(eraId),
+  );
+}
+
+export async function resolveTeamCompletionsToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by completions', () =>
+    teams.countCompletionsByTeam(eraId),
+  );
+}
+
+export async function resolveTeamInterceptionsToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by interceptions', () =>
+    teams.countInterceptionsByTeam(eraId),
+  );
+}
+
+export async function resolveTeamDeflectionsToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by deflections', () =>
+    teams.countDeflectionsByTeam(eraId),
+  );
+}

@@ -249,4 +249,25 @@ describe('CoachesService', () => {
       expect(from).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByEra', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct coach count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 6 }]));
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(6);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
 });

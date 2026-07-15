@@ -1,9 +1,16 @@
 import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
-import { raceEras, raceExternalIds, races } from '@blood-bowl-tracker/db';
+import {
+  matchTeams,
+  raceEras,
+  raceExternalIds,
+  races,
+  teamEras,
+  teams,
+} from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -110,7 +117,64 @@ export class RacesService {
     return [...existingIds, ...toInsert];
   }
 
+  async countTeamsByRace(
+    eraId?: number,
+  ): Promise<{ raceId: number; name: string; count: number }[]> {
+    if (eraId === undefined) {
+      return this.db
+        .select({
+          raceId: races.id,
+          name: races.name,
+          count: count(teams.id),
+        })
+        .from(races)
+        .innerJoin(teams, eq(teams.raceId, races.id))
+        .groupBy(races.id, races.name)
+        .orderBy(desc(count(teams.id)));
+    }
+    return this.db
+      .select({
+        raceId: races.id,
+        name: races.name,
+        count: count(teams.id),
+      })
+      .from(races)
+      .innerJoin(teams, eq(teams.raceId, races.id))
+      .innerJoin(
+        teamEras,
+        and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, eraId)),
+      )
+      .groupBy(races.id, races.name)
+      .orderBy(desc(count(teams.id)));
+  }
+
+  async countMatchesPlayedByRace(
+    eraId?: number,
+  ): Promise<{ raceId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        raceId: races.id,
+        name: races.name,
+        count: count(matchTeams.id),
+      })
+      .from(matchTeams)
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(races, eq(races.id, teams.raceId))
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .groupBy(races.id, races.name)
+      .orderBy(desc(count(matchTeams.id)));
+  }
+
   countAll(): Promise<number> {
     return countRows(this.db, races);
+  }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(raceEras.raceId) })
+      .from(raceEras)
+      .where(eq(raceEras.eraId, eraId));
+    return row.count;
   }
 }
