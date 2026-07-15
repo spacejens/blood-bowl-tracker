@@ -387,6 +387,100 @@ describe('BblPlayersImportService', () => {
     );
   });
 
+  it('skips an autoAssignByPlayerId:false era in the pid-range scan even when its range also matches', async () => {
+    // Both "Disabled" and "Enabled" cover pid 42 via firstPlayerId/lastPlayerId,
+    // and neither uses teamCodeOverrides or playerIdOverrides for this player,
+    // so resolution must fall all the way through to the pid-range
+    // `eras.find(...)` scan. "Disabled" is listed FIRST and would be picked if
+    // the autoAssignByPlayerId guard were not applied; this proves the guard
+    // itself causes eras.find to skip past it to "Enabled".
+    const overrideEraIds = new Map<string, number>([
+      ['Disabled', 400],
+      ['Enabled', 500],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] }),
+        eras: [
+          {
+            identity: { name: 'Disabled', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: false,
+            },
+          },
+          {
+            identity: { name: 'Enabled', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      overrideEraIds,
+    );
+
+    expect(result.imported).toBe(1);
+    // Lands in "Enabled" (eraId 500), proving "Disabled" was genuinely
+    // skipped by the range scan rather than merely checked-and-not-matching.
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [500] },
+      expect.any(Array),
+    );
+  });
+
+  it('resolves via playerIdOverrides even when the pinned era has autoAssignByPlayerId:false', async () => {
+    // The playerIdOverrides lookup is built independently of the
+    // autoAssignByPlayerId flag, so a pid pinned to a flagged-off era must
+    // still resolve to it — the flag only affects the pid-range fallback.
+    const overrideEraIds = new Map<string, number>([['Pinned', 500]]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] }),
+        eras: [
+          {
+            identity: { name: 'Pinned', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              autoAssignByPlayerId: false,
+              playerIdOverrides: [42],
+            },
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      overrideEraIds,
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [500] },
+      expect.any(Array),
+    );
+  });
+
   it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
