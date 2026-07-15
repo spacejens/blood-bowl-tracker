@@ -13,11 +13,13 @@ export class LeagueConfigService {
    * systems.
    */
   getLeagueName(): string {
-    const name = this.config.get<string>('leagueName');
-    if (!name) {
+    const league = this.config.get<Record<string, unknown>>('league');
+    const name = league?.leagueName;
+    if (typeof name !== 'string' || name === '') {
       throw new Error(
-        'leagueName is not set in import-bbl-config.json5. Set it to the name ' +
-          'of the league the BBL data covers (e.g. "tLoEG").',
+        'league.leagueName is not set in import-bbl-config.json5. Set ' +
+          'league.leagueName to the name of the league the BBL data covers ' +
+          '(e.g. "tLoEG").',
       );
     }
     return name;
