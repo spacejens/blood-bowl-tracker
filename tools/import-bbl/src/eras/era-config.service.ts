@@ -234,8 +234,12 @@ export class EraConfigService {
     if (typeof raw !== 'object' || raw === null) {
       throw new Error(`BBL_ERAS[${index}].players must be an object.`);
     }
-    const { firstPlayerId, lastPlayerId, autoAssignByPlayerId, playerIdOverrides } =
-      raw as Record<string, unknown>;
+    const {
+      firstPlayerId,
+      lastPlayerId,
+      autoAssignByPlayerId,
+      playerIdOverrides,
+    } = raw as Record<string, unknown>;
 
     if (typeof autoAssignByPlayerId !== 'boolean') {
       throw new Error(
@@ -248,7 +252,10 @@ export class EraConfigService {
           `BBL_ERAS[${index}].players.firstPlayerId must be a positive integer.`,
         );
       }
-    } else if (firstPlayerId !== undefined && !isPositiveInteger(firstPlayerId)) {
+    } else if (
+      firstPlayerId !== undefined &&
+      !isPositiveInteger(firstPlayerId)
+    ) {
       throw new Error(
         `BBL_ERAS[${index}].players.firstPlayerId must be a positive integer when present.`,
       );
@@ -287,7 +294,7 @@ export class EraConfigService {
       ...(firstPlayerId !== undefined ? { firstPlayerId } : {}),
       ...(lastPlayerId !== undefined ? { lastPlayerId } : {}),
       ...(playerIdOverrides !== undefined
-        ? { playerIdOverrides: playerIdOverrides as number[] }
+        ? { playerIdOverrides: playerIdOverrides }
         : {}),
     };
   }

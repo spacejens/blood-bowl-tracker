@@ -13,8 +13,16 @@ function makeService(eras: unknown): EraConfigService {
 const validEras = [
   {
     identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-    dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-    players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
+    dates: {
+      startDate: '2011-09-09',
+      endDate: '2021-09-01',
+      autoAssignByDate: true,
+    },
+    players: {
+      firstPlayerId: 1,
+      lastPlayerId: 5000,
+      autoAssignByPlayerId: true,
+    },
   },
   {
     identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -81,9 +89,20 @@ describe('EraConfigService', () => {
   it('accepts an era spanning multiple rules sets', () => {
     const eras = [
       {
-        identity: { name: 'Living rulebook', rulesSets: ['CRP', 'CRP+', 'BB2016'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 1000, autoAssignByPlayerId: true },
+        identity: {
+          name: 'Living rulebook',
+          rulesSets: ['CRP', 'CRP+', 'BB2016'],
+        },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 1000,
+          autoAssignByPlayerId: true,
+        },
       },
     ];
     expect(makeService(eras).getEras()[0].identity.rulesSets).toEqual([
@@ -108,7 +127,11 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
-        dates: { startDate: '2021-09-01', endDate: 'later', autoAssignByDate: true },
+        dates: {
+          startDate: '2021-09-01',
+          endDate: 'later',
+          autoAssignByDate: true,
+        },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
@@ -123,9 +146,7 @@ describe('EraConfigService', () => {
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
-    expect(() => makeService(eras).getEras()).toThrow(
-      'dates.autoAssignByDate',
-    );
+    expect(() => makeService(eras).getEras()).toThrow('dates.autoAssignByDate');
   });
 
   it('throws when autoAssignByPlayerId is missing or not a boolean', () => {
@@ -149,16 +170,18 @@ describe('EraConfigService', () => {
         players: { autoAssignByPlayerId: true },
       },
     ];
-    expect(() => makeService(eras).getEras()).toThrow(
-      'players.firstPlayerId',
-    );
+    expect(() => makeService(eras).getEras()).toThrow('players.firstPlayerId');
   });
 
   it('allows firstPlayerId/lastPlayerId to be omitted when autoAssignByPlayerId is false', () => {
     const eras = [
       {
         identity: { name: 'Stunty', rulesSets: ['CRP'] },
-        dates: { startDate: '2016-03-12', endDate: '2016-11-26', autoAssignByDate: false },
+        dates: {
+          startDate: '2016-03-12',
+          endDate: '2016-11-26',
+          autoAssignByDate: false,
+        },
         players: { autoAssignByPlayerId: false },
         teams: { teamCodeOverrides: ['rad'] },
       },
@@ -174,13 +197,15 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Stunty', rulesSets: ['CRP'] },
-        dates: { startDate: '2016-03-12', endDate: '2016-11-26', autoAssignByDate: false },
+        dates: {
+          startDate: '2016-03-12',
+          endDate: '2016-11-26',
+          autoAssignByDate: false,
+        },
         players: { firstPlayerId: 0, autoAssignByPlayerId: false },
       },
     ];
-    expect(() => makeService(eras).getEras()).toThrow(
-      'players.firstPlayerId',
-    );
+    expect(() => makeService(eras).getEras()).toThrow('players.firstPlayerId');
   });
 
   it('rejects a non-integer lastPlayerId', () => {
@@ -188,7 +213,11 @@ describe('EraConfigService', () => {
       {
         identity: { name: 'LRB', rulesSets: ['LRB'] },
         dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 1.5, autoAssignByPlayerId: true },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 1.5,
+          autoAssignByPlayerId: true,
+        },
       },
     ];
     expect(() => makeService(eras).getEras()).toThrow('players.lastPlayerId');
@@ -199,7 +228,11 @@ describe('EraConfigService', () => {
       {
         identity: { name: 'LRB', rulesSets: ['LRB'] },
         dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 10, lastPlayerId: 5, autoAssignByPlayerId: true },
+        players: {
+          firstPlayerId: 10,
+          lastPlayerId: 5,
+          autoAssignByPlayerId: true,
+        },
       },
     ];
     expect(() => makeService(eras).getEras()).toThrow('players.firstPlayerId');
@@ -220,7 +253,11 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
         players: {
           firstPlayerId: 1,
           lastPlayerId: 5000,
@@ -244,7 +281,11 @@ describe('EraConfigService', () => {
       {
         identity: { name: 'LRB', rulesSets: ['LRB'] },
         dates: { startDate: '2011-09-09', autoAssignByDate: true },
-        players: { firstPlayerId: 1, autoAssignByPlayerId: true, playerIdOverrides: [4907, 0] },
+        players: {
+          firstPlayerId: 1,
+          autoAssignByPlayerId: true,
+          playerIdOverrides: [4907, 0],
+        },
       },
     ];
     expect(() => makeService(eras).getEras()).toThrow(
@@ -256,13 +297,26 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true, playerIdOverrides: [4907] },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+          playerIdOverrides: [4907],
+        },
       },
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 5001, autoAssignByPlayerId: true, playerIdOverrides: [4907] },
+        players: {
+          firstPlayerId: 5001,
+          autoAssignByPlayerId: true,
+          playerIdOverrides: [4907],
+        },
       },
     ];
     expect(() => makeService(eras).getEras()).toThrow(/4907/);
@@ -272,9 +326,20 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'], cupCompetitionIdOverrides: ['30', '33'] },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
+        competitions: {
+          seasonCompetitionIdOverrides: ['74'],
+          cupCompetitionIdOverrides: ['30', '33'],
+        },
       },
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -283,8 +348,13 @@ describe('EraConfigService', () => {
       },
     ];
     const result = makeService(eras).getEras();
-    expect(result[0].competitions?.seasonCompetitionIdOverrides).toEqual(['74']);
-    expect(result[0].competitions?.cupCompetitionIdOverrides).toEqual(['30', '33']);
+    expect(result[0].competitions?.seasonCompetitionIdOverrides).toEqual([
+      '74',
+    ]);
+    expect(result[0].competitions?.cupCompetitionIdOverrides).toEqual([
+      '30',
+      '33',
+    ]);
     expect(result[1].competitions).toBeUndefined();
   });
 
@@ -306,8 +376,16 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
         competitions: { seasonCompetitionIdOverrides: ['30'] },
       },
       {
@@ -324,8 +402,16 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
         teams: { teamCodeOverrides: ['rad', 'sl-'] },
       },
       {
@@ -343,8 +429,16 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
         teams: { teamCodeOverrides: ['rad'] },
       },
       {
@@ -361,8 +455,16 @@ describe('EraConfigService', () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
-        dates: { startDate: '2011-09-09', endDate: '2021-09-01', autoAssignByDate: true },
-        players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
         matches: { merges: [['1061', '1062']] },
       },
       {
