@@ -6,7 +6,13 @@ import {
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
 import { resolveErasList } from './facts/eras-list';
-import { resolvePlayerMvpsToplist } from './facts/player-toplist';
+import {
+  resolvePlayerCompletionsToplist,
+  resolvePlayerDeflectionsToplist,
+  resolvePlayerInterceptionsToplist,
+  resolvePlayerMvpsToplist,
+  resolvePlayerTouchdownsScoredToplist,
+} from './facts/player-toplist';
 import {
   resolveRaceMatchesPlayedToplist,
   resolveRaceTeamsToplist,
@@ -15,8 +21,12 @@ import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
 import {
   resolveTeamCompetitionsPlayedToplist,
+  resolveTeamCompletionsToplist,
+  resolveTeamDeflectionsToplist,
   resolveTeamErasActiveToplist,
+  resolveTeamInterceptionsToplist,
   resolveTeamMatchesPlayedToplist,
+  resolveTeamTouchdownsScoredToplist,
 } from './facts/team-toplist';
 
 export function buildFactTree(deps: StatsSummaryDeps): FactNode {
@@ -71,6 +81,26 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             resolve: () => resolveTeamErasActiveToplist(deps.teams),
           },
         },
+        touchdowns: {
+          scored: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamTouchdownsScoredToplist(deps.teams, eraId),
+          },
+        },
+        completions: {
+          supportsEra: true,
+          resolve: (eraId) => resolveTeamCompletionsToplist(deps.teams, eraId),
+        },
+        interceptions: {
+          supportsEra: true,
+          resolve: (eraId) =>
+            resolveTeamInterceptionsToplist(deps.teams, eraId),
+        },
+        deflections: {
+          supportsEra: true,
+          resolve: (eraId) => resolveTeamDeflectionsToplist(deps.teams, eraId),
+        },
       },
     },
     player: {
@@ -78,6 +108,28 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         mvps: {
           supportsEra: true,
           resolve: (eraId) => resolvePlayerMvpsToplist(deps.players, eraId),
+        },
+        touchdowns: {
+          scored: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolvePlayerTouchdownsScoredToplist(deps.players, eraId),
+          },
+        },
+        completions: {
+          supportsEra: true,
+          resolve: (eraId) =>
+            resolvePlayerCompletionsToplist(deps.players, eraId),
+        },
+        interceptions: {
+          supportsEra: true,
+          resolve: (eraId) =>
+            resolvePlayerInterceptionsToplist(deps.players, eraId),
+        },
+        deflections: {
+          supportsEra: true,
+          resolve: (eraId) =>
+            resolvePlayerDeflectionsToplist(deps.players, eraId),
         },
       },
     },

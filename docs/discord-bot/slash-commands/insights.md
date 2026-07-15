@@ -48,9 +48,33 @@ so you can navigate the tree without memorizing it.
 - `team.toplist.eras.active` — teams ranked by number of distinct eras they
   have existed across. Does not support era filtering (scoping to a single
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
+- `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
+  scored. Counts raw `touchdown` match events credited to the team. Supports
+  era filtering.
+- `team.toplist.completions` — teams ranked by number of passes completed.
+  Counts raw `completion` match events credited to the team. Supports era
+  filtering.
+- `team.toplist.interceptions` — teams ranked by number of interceptions made.
+  Counts raw `interception` match events credited to the team. Supports era
+  filtering.
+- `team.toplist.deflections` — teams ranked by number of passes deflected.
+  Counts raw `deflection` match events credited to the team. Supports era
+  filtering.
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with
   more than one MVP in a single match has each award counted. Supports era
+  filtering.
+- `player.toplist.touchdowns.scored` — players ranked by number of touchdowns
+  scored. Counts raw `touchdown` match events credited to the player. Supports
+  era filtering.
+- `player.toplist.completions` — players ranked by number of passes completed.
+  Counts raw `completion` match events credited to the player. Supports era
+  filtering.
+- `player.toplist.interceptions` — players ranked by number of interceptions
+  made. Counts raw `interception` match events credited to the player. Supports
+  era filtering.
+- `player.toplist.deflections` — players ranked by number of passes deflected.
+  Counts raw `deflection` match events credited to the player. Supports era
   filtering.
 - `race.toplist.teams` — races ranked by number of teams that have chosen
   them. Supports era filtering (an era scopes the count to teams active in
