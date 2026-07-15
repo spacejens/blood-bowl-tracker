@@ -33,11 +33,15 @@ export class ImportBblConfigService {
   }
 
   /**
-   * Base URL of the running api-server to import into, from `apiBaseUrl`.
-   * Defaults to http://localhost:3000 when unset.
+   * Base URL of the running api-server to import into, from
+   * `connection.apiBaseUrl`. Defaults to http://localhost:3000 when unset.
    */
   getApiBaseUrl(): string {
-    return this.get<string>('apiBaseUrl') ?? 'http://localhost:3000';
+    const connection = this.get<Record<string, unknown>>('connection');
+    const url = connection?.apiBaseUrl;
+    return typeof url === 'string' && url !== ''
+      ? url
+      : 'http://localhost:3000';
   }
 
   /**

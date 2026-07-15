@@ -27,8 +27,8 @@ describe('ImportBblConfigService', () => {
     const service = new ImportBblConfigService(
       join(dir, 'does-not-exist.json5'),
     );
-    expect(service.get('leagueName')).toBeUndefined();
-    expect(service.get('eras')).toBeUndefined();
+    expect(service.get('league')).toBeUndefined();
+    expect(service.get('connection')).toBeUndefined();
   });
 
   it('returns the default API base URL when the file is missing', () => {
@@ -41,15 +41,21 @@ describe('ImportBblConfigService', () => {
   it('parses JSON5 (comments, trailing commas, unquoted keys) and returns parsed values', () => {
     const path = writeConfig(`{
       // a comment
-      apiBaseUrl: 'http://example.test:3000',
-      leagueName: 'tLoEG',
-      eras: [
-        { name: 'First era', rulesSets: ['CRP'], startDate: '2011-09-09' },
-      ],
+      connection: { apiBaseUrl: 'http://example.test:3000' },
+      league: {
+        leagueName: 'tLoEG',
+        eras: [
+          { identity: { name: 'First era', rulesSets: ['CRP'] } },
+        ],
+      },
     }`);
     const service = new ImportBblConfigService(path);
-    expect(service.get<string>('leagueName')).toBe('tLoEG');
-    expect(service.get<unknown[]>('eras')).toHaveLength(1);
+    expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
+      'tLoEG',
+    );
+    expect(
+      service.get<{ eras: unknown[] }>('league')?.eras,
+    ).toHaveLength(1);
     expect(service.getApiBaseUrl()).toBe('http://example.test:3000');
   });
 
