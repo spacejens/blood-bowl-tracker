@@ -22,7 +22,10 @@ import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../database-timeout';
 import { InsightsCommandService } from './insights-command.service';
 
 function makeService() {
-  const zero = () => ({ countAll: vi.fn().mockResolvedValue(0) });
+  const zero = () => ({
+    countAll: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
+  });
   const coaches = {
     countMatchesPlayedByCoach: vi
       .fn()
@@ -37,6 +40,7 @@ function makeService() {
       .fn()
       .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
     countAll: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as CoachesService;
   const teams = {
     countMatchesPlayedByTeam: vi
@@ -49,14 +53,18 @@ function makeService() {
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 3 }]),
     countAll: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
   const matches = {
     countAll: vi.fn().mockResolvedValue(0),
     countMatchEvents: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
+    countMatchEventsByEra: vi.fn().mockResolvedValue(0),
   } as unknown as MatchesService;
   const competitions = {
     countAll: vi.fn().mockResolvedValue(0),
     countByType: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as CompetitionsService;
   const leagues = zero() as unknown as LeaguesService;
   const rulesSets = zero() as unknown as RulesSetsService;
@@ -64,12 +72,15 @@ function makeService() {
     findById: vi.fn().mockResolvedValue(undefined),
     searchByNamePrefix: vi.fn().mockResolvedValue([]),
     countAll: vi.fn().mockResolvedValue(0),
+    getRulesSetNames: vi.fn().mockResolvedValue([]),
+    listErasWithLeague: vi.fn().mockResolvedValue([]),
   } as unknown as ErasService;
   const players = {
     countMvpAwardsByPlayer: vi
       .fn()
       .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 7 }]),
     countAll: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as PlayersService;
   const positions = zero() as unknown as PositionsService;
   const races = {
@@ -80,6 +91,7 @@ function makeService() {
       .fn()
       .mockResolvedValue([{ raceId: 1, name: 'Orc', count: 40 }]),
     countAll: vi.fn().mockResolvedValue(0),
+    countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as RacesService;
   const externalSystems = zero() as unknown as ExternalSystemsService;
   const discordClient = {
@@ -170,15 +182,14 @@ describe('InsightsCommandService', () => {
     });
   });
 
-  it('does not suffix a non-era-supporting fact (stats) when no era is given', async () => {
+  it('does not suffix a non-era-supporting fact (eras.list) when no era is given', async () => {
     const { service } = makeService();
-    const result = await service.execute(chatInput('stats'));
+    const result = await service.execute(chatInput('eras.list'));
     expect(result).toEqual({
       embeds: [
         {
-          title: 'I have knowledge of',
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-          description: expect.any(String),
+          title: 'Eras',
+          description: 'No data recorded yet.',
         },
       ],
     });
@@ -276,13 +287,13 @@ describe('InsightsCommandService', () => {
     });
   });
 
-  it('rejects an era on a non-era-supporting category (stats)', async () => {
+  it('rejects an era on a non-era-supporting category (eras.list)', async () => {
     const { service, eras } = makeService();
     (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 20,
       name: 'BB2020',
     });
-    const result = await service.execute(chatInput('stats', '20'));
+    const result = await service.execute(chatInput('eras.list', '20'));
     expect(result).toBe(
       'Even the Assistant Coach cannot understand your request',
     );
@@ -294,11 +305,12 @@ describe('InsightsCommandService', () => {
       id: 20,
       name: 'BB2020',
     });
-    // Force pickRandom to the last eligible leaf; stats must have been excluded.
+    // Force pickRandom to the last eligible leaf in the era-supporting pool
+    // (stats is now era-supporting too, so it may legitimately be picked).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     const result = await service.execute(chatInput(null, '20'));
-    // No matter which era-supporting leaf is chosen, the reply is era-scoped,
-    // never the stats summary (which has no title suffix and opts out).
+    // No matter which era-supporting leaf is chosen, the reply is never the
+    // rejection message reserved for non-era-supporting categories.
     expect(result).not.toBe(
       'Even the Assistant Coach cannot understand your request',
     );
@@ -316,7 +328,10 @@ describe('InsightsCommandService', () => {
       (races.countTeamsByRace as ReturnType<typeof vi.fn>).mock.calls.length >
         0 ||
       (races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>).mock.calls
-        .length > 0;
+        .length > 0 ||
+      // stats is era-supporting too; getRulesSetNames is only called from
+      // the era-scoped stats path (eras.list opts out of era filtering).
+      (eras.getRulesSetNames as ReturnType<typeof vi.fn>).mock.calls.length > 0;
     expect(calledWithEra).toBe(true);
   });
 
