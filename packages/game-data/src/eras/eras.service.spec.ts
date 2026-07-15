@@ -223,7 +223,7 @@ describe('ErasService', () => {
   });
 
   describe('getRulesSetNames', () => {
-    it('returns the era\'s rules-set names ordered by the query', async () => {
+    it("returns the era's rules-set names ordered by the query", async () => {
       const rows = [{ name: 'BB2016' }, { name: 'BB2020' }];
       const select = vi.fn(() => makeCountBuilder(rows));
       const service = new ErasService({ select } as unknown as Db);
