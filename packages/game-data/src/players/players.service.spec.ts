@@ -381,5 +381,63 @@ describe('PlayersService', () => {
       await service.countTimesSentOffByPlayer(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
+
+    it('countCasualtiesSufferedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [
+        { playerId: 1, name: 'Griff Oberwald', count: 9 },
+        { playerId: 2, name: 'Zug', count: 4 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countCasualtiesSufferedByPlayer()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCasualtiesSufferedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesSufferedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countSeriousInjuriesSufferedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 5 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(
+        service.countSeriousInjuriesSufferedByPlayer(),
+      ).resolves.toEqual(rows);
+    });
+
+    it('countSeriousInjuriesSufferedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesSufferedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countLastingInjuriesSufferedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 3 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(
+        service.countLastingInjuriesSufferedByPlayer(),
+      ).resolves.toEqual(rows);
+    });
+
+    it('countLastingInjuriesSufferedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countLastingInjuriesSufferedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
   });
 });
