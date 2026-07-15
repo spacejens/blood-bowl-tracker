@@ -53,9 +53,7 @@ describe('ImportBblConfigService', () => {
     expect(service.get<{ leagueName: string }>('league')?.leagueName).toBe(
       'tLoEG',
     );
-    expect(
-      service.get<{ eras: unknown[] }>('league')?.eras,
-    ).toHaveLength(1);
+    expect(service.get<{ eras: unknown[] }>('league')?.eras).toHaveLength(1);
     expect(service.getApiBaseUrl()).toBe('http://example.test:3000');
   });
 
