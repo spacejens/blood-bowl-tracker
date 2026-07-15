@@ -23,16 +23,17 @@ so you can navigate the tree without memorizing it.
 ## Available facts
 
 - `stats` — a combined embed of entity counts (title "Statistics"): leagues,
-  external systems, rules sets, races, positions, coaches, eras, competitions
+  eras, external systems, rules sets, races, positions, coaches, competitions
   (with a season/cup breakdown), teams, players, matches, and match events.
   Supports era filtering. When an era is selected the title gains the usual
-  `— <era>` suffix and the body changes: the Leagues and Eras lines are dropped
-  (they would always read 1); External systems becomes the count of distinct
-  external systems the era has an external ID for, excluding the synthetic
-  `Name` system; Rules sets lists the era's own rules-set names (or `none`)
-  instead of a count; and Races, Positions, Coaches, Competitions, Teams,
-  Players, Matches, and Match events are each scoped to the selected era.
-  Positions is an approximation — it counts every position of any race
+  `— <era>` suffix and the body changes: Leagues and Eras both read 1
+  (intentionally kept, rather than dropped, for a consistent line set between
+  all-time and era-scoped output); External systems becomes the count of
+  distinct external systems the era has an external ID for, excluding the
+  synthetic `Name` system; Rules sets becomes the count of the era's own
+  rules sets (not a name list); and Races, Positions, Coaches, Competitions,
+  Teams, Players, Matches, and Match events are each scoped to the selected
+  era. Positions is an approximation — it counts every position of any race
   available in the era, since positions are not modelled per era (follow-up
   issue #153).
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.

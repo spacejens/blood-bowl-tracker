@@ -87,12 +87,12 @@ async function resolveAllTimeStats(
 
   const description = [
     `Leagues: ${fmt(leagues)}`,
+    `Eras: ${fmt(eras)}`,
     `External systems: ${fmt(externalSystems)}`,
     `Rules sets: ${fmt(rulesSets)}`,
     `Races: ${fmt(races)}`,
     `Positions: ${fmt(positions)}`,
     `Coaches: ${fmt(coaches)}`,
-    `Eras: ${fmt(eras)}`,
     `Competitions: ${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
     `Teams: ${fmt(teams)}`,
     `Players: ${fmt(players)}`,
@@ -169,12 +169,11 @@ async function resolveEraStats(
     return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
   }
 
-  const rulesSetsLine =
-    data.rulesSetNames.length > 0 ? data.rulesSetNames.join(', ') : 'none';
-
   const description = [
+    'Leagues: 1',
+    'Eras: 1',
     `External systems: ${fmt(data.externalSystems)}`,
-    `Rules sets: ${rulesSetsLine}`,
+    `Rules sets: ${fmt(data.rulesSetNames.length)}`,
     `Races: ${fmt(data.races)}`,
     `Positions: ${fmt(data.positions)}`,
     `Coaches: ${fmt(data.coaches)}`,

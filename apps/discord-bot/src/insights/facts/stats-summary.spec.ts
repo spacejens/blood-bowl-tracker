@@ -39,12 +39,12 @@ describe('resolveStatsSummary', () => {
           title: 'Statistics',
           description: [
             'Leagues: 3',
+            'Eras: 15',
             'External systems: 2',
             'Rules sets: 2',
             'Races: 24',
             'Positions: 120',
             'Coaches: 42',
-            'Eras: 15',
             'Competitions: 12 (8 seasons, 4 cups)',
             'Teams: 87',
             'Players: 640',
@@ -102,15 +102,17 @@ function makeEraDeps(
 }
 
 describe('resolveStatsSummary era-filtered', () => {
-  it('renders the era-scoped lines, dropping leagues/eras and replacing external systems and rules sets', async () => {
+  it('renders the era-scoped lines, showing leagues/eras as 1 and replacing external systems and rules sets', async () => {
     const result = await resolveStatsSummary(makeEraDeps(), 5);
     expect(result).toEqual({
       embeds: [
         {
           title: 'Statistics',
           description: [
+            'Leagues: 1',
+            'Eras: 1',
             'External systems: 2',
-            'Rules sets: BB2020, BB2016',
+            'Rules sets: 2',
             'Races: 10',
             'Positions: 50',
             'Coaches: 6',
@@ -125,7 +127,7 @@ describe('resolveStatsSummary era-filtered', () => {
     });
   });
 
-  it('renders "none" for the rules sets line when the era has no rules sets', async () => {
+  it('renders "0" for the rules sets line when the era has no rules sets', async () => {
     const result = await resolveStatsSummary(
       makeEraDeps({
         eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
@@ -134,7 +136,7 @@ describe('resolveStatsSummary era-filtered', () => {
     );
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
-    expect(description).toContain('Rules sets: none');
+    expect(description).toContain('Rules sets: 0');
   });
 
   it('scopes external systems by era (excluding the Name system via countByEra)', async () => {
