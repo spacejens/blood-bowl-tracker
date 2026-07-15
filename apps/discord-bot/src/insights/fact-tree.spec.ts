@@ -36,6 +36,11 @@ function deps() {
       countCompletionsByTeam: vi.fn().mockResolvedValue([]),
       countInterceptionsByTeam: vi.fn().mockResolvedValue([]),
       countDeflectionsByTeam: vi.fn().mockResolvedValue([]),
+      countCasualtiesCausedByTeam: vi.fn().mockResolvedValue([]),
+      countSeriousInjuriesCausedByTeam: vi.fn().mockResolvedValue([]),
+      countDeathsCausedByTeam: vi.fn().mockResolvedValue([]),
+      countFoulsCommittedByTeam: vi.fn().mockResolvedValue([]),
+      countTimesSentOffByTeam: vi.fn().mockResolvedValue([]),
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as TeamsService,
     matches: {
@@ -59,6 +64,11 @@ function deps() {
       countCompletionsByPlayer: vi.fn().mockResolvedValue([]),
       countInterceptionsByPlayer: vi.fn().mockResolvedValue([]),
       countDeflectionsByPlayer: vi.fn().mockResolvedValue([]),
+      countCasualtiesCausedByPlayer: vi.fn().mockResolvedValue([]),
+      countSeriousInjuriesCausedByPlayer: vi.fn().mockResolvedValue([]),
+      countDeathsCausedByPlayer: vi.fn().mockResolvedValue([]),
+      countFoulsCommittedByPlayer: vi.fn().mockResolvedValue([]),
+      countTimesSentOffByPlayer: vi.fn().mockResolvedValue([]),
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as PlayersService,
     positions: zero() as unknown as PositionsService,
@@ -72,8 +82,8 @@ function deps() {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly twenty leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(20);
+  it('exposes exactly thirty leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(30);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -214,6 +224,101 @@ describe('buildFactTree', () => {
     await (leaf as FactLeaf).resolve();
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.players.countDeflectionsByPlayer).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.casualties.caused to the team casualty-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.casualties.caused',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countCasualtiesCausedByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.injuries.serious.caused to the team serious-injury-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.injuries.serious.caused',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.deaths.caused to the team death-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'team.toplist.deaths.caused');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countDeathsCausedByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.fouls.committed to the team foul-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'team.toplist.fouls.committed');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countFoulsCommittedByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.sent_off to the team sent-off-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'team.toplist.sent_off');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.countTimesSentOffByTeam).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.casualties.caused to the player casualty-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'player.toplist.casualties.caused',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countCasualtiesCausedByPlayer).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.injuries.serious.caused to the player serious-injury-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'player.toplist.injuries.serious.caused',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countSeriousInjuriesCausedByPlayer).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.deaths.caused to the player death-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'player.toplist.deaths.caused');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countDeathsCausedByPlayer).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.fouls.committed to the player foul-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'player.toplist.fouls.committed',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countFoulsCommittedByPlayer).toHaveBeenCalled();
+  });
+
+  it('wires player.toplist.sent_off to the player sent-off-count query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'player.toplist.sent_off');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.players.countTimesSentOffByPlayer).toHaveBeenCalled();
   });
 
   it('wires race.toplist.teams to the race team-count query', async () => {

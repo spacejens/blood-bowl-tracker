@@ -291,5 +291,95 @@ describe('PlayersService', () => {
       await service.countDeflectionsByPlayer(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
+
+    it('countCasualtiesCausedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [
+        { playerId: 1, name: 'Morg n Thorg', count: 11 },
+        { playerId: 2, name: 'Griff Oberwald', count: 4 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countCasualtiesCausedByPlayer()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCasualtiesCausedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesCausedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countSeriousInjuriesCausedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 3 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(
+        service.countSeriousInjuriesCausedByPlayer(),
+      ).resolves.toEqual(rows);
+    });
+
+    it('countSeriousInjuriesCausedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesCausedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeathsCausedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 2 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countDeathsCausedByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countDeathsCausedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeathsCausedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countFoulsCommittedByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 6 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countFoulsCommittedByPlayer()).resolves.toEqual(
+        rows,
+      );
+    });
+
+    it('countFoulsCommittedByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countFoulsCommittedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTimesSentOffByPlayer returns the rows the query resolves to', async () => {
+      const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 5 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countTimesSentOffByPlayer()).resolves.toEqual(rows);
+    });
+
+    it('countTimesSentOffByPlayer adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTimesSentOffByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
   });
 });

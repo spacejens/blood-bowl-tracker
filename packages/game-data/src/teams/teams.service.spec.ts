@@ -324,6 +324,94 @@ describe('TeamsService', () => {
       await service.countDeflectionsByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
+
+    it('countCasualtiesCausedByTeam returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 22 },
+        { teamId: 2, name: 'Gouged Eye', count: 9 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countCasualtiesCausedByTeam()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCasualtiesCausedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesCausedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countSeriousInjuriesCausedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 7 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countSeriousInjuriesCausedByTeam()).resolves.toEqual(
+        rows,
+      );
+    });
+
+    it('countSeriousInjuriesCausedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesCausedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeathsCausedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countDeathsCausedByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countDeathsCausedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeathsCausedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countFoulsCommittedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 13 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countFoulsCommittedByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countFoulsCommittedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countFoulsCommittedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTimesSentOffByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countTimesSentOffByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countTimesSentOffByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTimesSentOffByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('countAll', () => {

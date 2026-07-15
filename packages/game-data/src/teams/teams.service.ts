@@ -11,7 +11,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, inArray, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -228,6 +228,129 @@ export class TeamsService {
       .where(
         and(
           eq(matchEvents.actionType, 'deflection'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countCasualtiesCausedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          inArray(matchEvents.actionType, [
+            'casualty',
+            'badly_hurt',
+            'serious_injury',
+            'death',
+          ]),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countSeriousInjuriesCausedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'serious_injury'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countDeathsCausedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'death'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countFoulsCommittedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actionType, 'foul'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countTimesSentOffByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(
+        matchTeams,
+        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.consequenceType, 'sent_off'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
         ),
       )

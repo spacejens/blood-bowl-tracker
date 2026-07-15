@@ -7,10 +7,15 @@ import {
 } from './facts/coach-toplist';
 import { resolveErasList } from './facts/eras-list';
 import {
+  resolvePlayerCasualtiesCausedToplist,
   resolvePlayerCompletionsToplist,
+  resolvePlayerDeathsCausedToplist,
   resolvePlayerDeflectionsToplist,
+  resolvePlayerFoulsCommittedToplist,
   resolvePlayerInterceptionsToplist,
   resolvePlayerMvpsToplist,
+  resolvePlayerSeriousInjuriesCausedToplist,
+  resolvePlayerTimesSentOffToplist,
   resolvePlayerTouchdownsScoredToplist,
 } from './facts/player-toplist';
 import {
@@ -20,12 +25,17 @@ import {
 import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
 import {
+  resolveTeamCasualtiesCausedToplist,
   resolveTeamCompetitionsPlayedToplist,
   resolveTeamCompletionsToplist,
+  resolveTeamDeathsCausedToplist,
   resolveTeamDeflectionsToplist,
   resolveTeamErasActiveToplist,
+  resolveTeamFoulsCommittedToplist,
   resolveTeamInterceptionsToplist,
   resolveTeamMatchesPlayedToplist,
+  resolveTeamSeriousInjuriesCausedToplist,
+  resolveTeamTimesSentOffToplist,
   resolveTeamTouchdownsScoredToplist,
 } from './facts/team-toplist';
 
@@ -101,6 +111,40 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsEra: true,
           resolve: (eraId) => resolveTeamDeflectionsToplist(deps.teams, eraId),
         },
+        casualties: {
+          caused: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamCasualtiesCausedToplist(deps.teams, eraId),
+          },
+        },
+        injuries: {
+          serious: {
+            caused: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolveTeamSeriousInjuriesCausedToplist(deps.teams, eraId),
+            },
+          },
+        },
+        deaths: {
+          caused: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamDeathsCausedToplist(deps.teams, eraId),
+          },
+        },
+        fouls: {
+          committed: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamFoulsCommittedToplist(deps.teams, eraId),
+          },
+        },
+        sent_off: {
+          supportsEra: true,
+          resolve: (eraId) => resolveTeamTimesSentOffToplist(deps.teams, eraId),
+        },
       },
     },
     player: {
@@ -130,6 +174,41 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsEra: true,
           resolve: (eraId) =>
             resolvePlayerDeflectionsToplist(deps.players, eraId),
+        },
+        casualties: {
+          caused: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolvePlayerCasualtiesCausedToplist(deps.players, eraId),
+          },
+        },
+        injuries: {
+          serious: {
+            caused: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolvePlayerSeriousInjuriesCausedToplist(deps.players, eraId),
+            },
+          },
+        },
+        deaths: {
+          caused: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolvePlayerDeathsCausedToplist(deps.players, eraId),
+          },
+        },
+        fouls: {
+          committed: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolvePlayerFoulsCommittedToplist(deps.players, eraId),
+          },
+        },
+        sent_off: {
+          supportsEra: true,
+          resolve: (eraId) =>
+            resolvePlayerTimesSentOffToplist(deps.players, eraId),
         },
       },
     },
