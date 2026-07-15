@@ -36,7 +36,7 @@ describe('resolveStatsSummary', () => {
     expect(result).toEqual({
       embeds: [
         {
-          title: 'I have knowledge of',
+          title: 'Statistics',
           description: [
             'Leagues: 3',
             'External systems: 2',
@@ -66,6 +66,94 @@ describe('resolveStatsSummary', () => {
         },
       });
       const promise = resolveStatsSummary(deps);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+function makeEraDeps(
+  overrides: Partial<Record<string, unknown>> = {},
+): StatsSummaryDeps {
+  return {
+    leagues: { countAll: vi.fn() },
+    externalSystems: { countByEra: vi.fn().mockResolvedValue(2) },
+    rulesSets: { countAll: vi.fn() },
+    races: { countByEra: vi.fn().mockResolvedValue(10) },
+    positions: { countByEra: vi.fn().mockResolvedValue(50) },
+    coaches: { countByEra: vi.fn().mockResolvedValue(6) },
+    eras: { getRulesSetNames: vi.fn().mockResolvedValue(['BB2020', 'BB2016']) },
+    competitions: {
+      countByEra: vi.fn().mockResolvedValue(5),
+      countByType: vi.fn((t: string) =>
+        Promise.resolve(t === 'season' ? 3 : 2),
+      ),
+    },
+    teams: { countByEra: vi.fn().mockResolvedValue(12) },
+    players: { countByEra: vi.fn().mockResolvedValue(140) },
+    matches: {
+      countByEra: vi.fn().mockResolvedValue(30),
+      countMatchEventsByEra: vi.fn().mockResolvedValue(500),
+    },
+    ...overrides,
+  } as unknown as StatsSummaryDeps;
+}
+
+describe('resolveStatsSummary era-filtered', () => {
+  it('renders the era-scoped lines, dropping leagues/eras and replacing external systems and rules sets', async () => {
+    const result = await resolveStatsSummary(makeEraDeps(), 5);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Statistics',
+          description: [
+            'External systems: 2',
+            'Rules sets: BB2020, BB2016',
+            'Races: 10',
+            'Positions: 50',
+            'Coaches: 6',
+            'Competitions: 5 (3 seasons, 2 cups)',
+            'Teams: 12',
+            'Players: 140',
+            'Matches: 30',
+            'Match events: 500',
+          ].join('\n'),
+        },
+      ],
+    });
+  });
+
+  it('renders "none" for the rules sets line when the era has no rules sets', async () => {
+    const result = await resolveStatsSummary(
+      makeEraDeps({
+        eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
+      }),
+      5,
+    );
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Rules sets: none');
+  });
+
+  it('scopes external systems by era (excluding the Name system via countByEra)', async () => {
+    const deps = makeEraDeps();
+    await resolveStatsSummary(deps, 5);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(deps.externalSystems.countByEra).toHaveBeenCalledWith(5);
+  });
+
+  it('falls back to the stunned message when an era count times out', async () => {
+    vi.useFakeTimers();
+    try {
+      const deps = makeEraDeps({
+        matches: {
+          countByEra: vi.fn().mockReturnValue(new Promise(() => {})),
+          countMatchEventsByEra: vi.fn().mockResolvedValue(0),
+        },
+      });
+      const promise = resolveStatsSummary(deps, 5);
       await vi.advanceTimersByTimeAsync(2000);
       await expect(promise).resolves.toBe('I am stunned');
     } finally {
