@@ -61,7 +61,7 @@ export class BblErasImportService {
     if (leagueId === undefined) {
       errors.push(
         makeImportError({
-          item: { eras: eras.map((e) => e.name) },
+          item: { eras: eras.map((e) => e.identity.name) },
           message:
             'Cannot import eras: the league was not imported successfully, so ' +
             'its id is unknown.',
@@ -73,7 +73,7 @@ export class BblErasImportService {
     for (const era of eras) {
       const rulesSetIds: number[] = [];
       let unresolved: string | undefined;
-      for (const name of era.rulesSets) {
+      for (const name of era.identity.rulesSets) {
         const id = rulesSetIdsByName.get(name);
         if (id === undefined) {
           unresolved = name;
@@ -85,7 +85,7 @@ export class BblErasImportService {
         errors.push(
           makeImportError({
             item: era,
-            message: `Cannot import era "${era.name}": its rules set "${unresolved}" was not imported successfully.`,
+            message: `Cannot import era "${era.identity.name}": its rules set "${unresolved}" was not imported successfully.`,
           }),
         );
         continue;
@@ -93,20 +93,20 @@ export class BblErasImportService {
 
       const upsertedEra = await this.erasImport.upsertEra(
         {
-          name: era.name,
+          name: era.identity.name,
           leagueId,
           rulesSetIds,
-          startDate: era.startDate,
-          endDate: era.endDate,
+          startDate: era.dates.startDate,
+          endDate: era.dates.endDate,
           externalIds: [
-            { externalSystemId: bblSystemId, externalId: era.name },
-            { externalSystemId: nameSystemId, externalId: era.name },
+            { externalSystemId: bblSystemId, externalId: era.identity.name },
+            { externalSystemId: nameSystemId, externalId: era.identity.name },
           ],
         },
         errors,
       );
       if (upsertedEra) {
-        eraIdsByName.set(era.name, upsertedEra.id);
+        eraIdsByName.set(era.identity.name, upsertedEra.id);
         imported += 1;
       }
     }
