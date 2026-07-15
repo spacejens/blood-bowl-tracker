@@ -90,14 +90,6 @@ camelCase, grouped into nested objects by concern:
     IDs under both the configured BBL external system and the `Name` external
     system.
 
-    The override-only eras in the example config (Stunty Leeg, Dungeonbowl)
-    carry real date ranges but set both `autoAssignByDate` and
-    `autoAssignByPlayerId` to `false` and omit `firstPlayerId`/`lastPlayerId`
-    (meaningless with the pid scan disabled) — every competition, team, and
-    player belonging to them is reached exclusively through the override
-    lists, since they share a date range and pid range with the concurrent
-    main-timeline era.
-
 ## Run it
 
 1. Copy the template and fill in real values:
