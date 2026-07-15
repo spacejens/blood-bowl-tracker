@@ -6,7 +6,7 @@ import type {
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { EraConfigService } from '../eras/era-config.service';
+import type { EraConfig, EraConfigService } from '../eras/era-config.service';
 import type { BblPage } from '../source/bbl-page';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -68,13 +68,7 @@ function makeService(
     upsertExternalSystem?: ReturnType<typeof vi.fn>;
     upsertTeam?: ReturnType<typeof vi.fn>;
     upsertPlayerResult?: ReturnType<typeof vi.fn>;
-    eras?: {
-      name: string;
-      firstPlayerId: number;
-      lastPlayerId?: number;
-      playerIdOverrides?: number[];
-      teamCodeOverrides?: string[];
-    }[];
+    eras?: EraConfig[];
   } = {},
 ) {
   const upsertExternalSystem = opts.upsertExternalSystem ?? externalSystemsOk();
@@ -83,8 +77,16 @@ function makeService(
     vi.fn().mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] });
   const upsertPlayerResult =
     opts.upsertPlayerResult ?? vi.fn().mockResolvedValue({ id: 900 });
-  const eras = opts.eras ?? [
-    { name: 'LRB', firstPlayerId: 1, lastPlayerId: 9999 },
+  const eras: EraConfig[] = opts.eras ?? [
+    {
+      identity: { name: 'LRB', rulesSets: ['LRB'] },
+      dates: { startDate: '2011-09-09', autoAssignByDate: true },
+      players: {
+        firstPlayerId: 1,
+        lastPlayerId: 9999,
+        autoAssignByPlayerId: true,
+      },
+    },
   ];
   const service = new BblPlayersImportService(
     reader,
@@ -143,12 +145,24 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
       {
         eras: [
-          { name: 'Second', firstPlayerId: 100, lastPlayerId: 9999 },
           {
-            name: 'LRB',
-            firstPlayerId: 1,
-            lastPlayerId: 10,
-            playerIdOverrides: [42],
+            identity: { name: 'Second', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 100,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+          {
+            identity: { name: 'LRB', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 10,
+              autoAssignByPlayerId: true,
+              playerIdOverrides: [42],
+            },
           },
         ],
       },
@@ -178,12 +192,24 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
       {
         eras: [
-          { name: 'LRB', firstPlayerId: 1, lastPlayerId: 9999 },
           {
-            name: 'Second',
-            firstPlayerId: 1,
-            lastPlayerId: 9999,
-            playerIdOverrides: [42],
+            identity: { name: 'LRB', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+          {
+            identity: { name: 'Second', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+              playerIdOverrides: [42],
+            },
           },
         ],
       },
@@ -218,12 +244,24 @@ describe('BblPlayersImportService', () => {
           .fn()
           .mockResolvedValue({ eras: [{ id: 6000, eraId: 600 }] }),
         eras: [
-          { name: 'Regular', firstPlayerId: 1, lastPlayerId: 9999 },
           {
-            name: 'Stunty',
-            firstPlayerId: 1,
-            lastPlayerId: 9999,
-            teamCodeOverrides: ['knu'],
+            identity: { name: 'Regular', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+          {
+            identity: { name: 'Stunty', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+            teams: { teamCodeOverrides: ['knu'] },
           },
         ],
       },
@@ -259,16 +297,24 @@ describe('BblPlayersImportService', () => {
           .mockResolvedValue({ eras: [{ id: 6000, eraId: 600 }] }),
         eras: [
           {
-            name: 'Pid Era',
-            firstPlayerId: 1,
-            lastPlayerId: 9999,
-            playerIdOverrides: [42],
+            identity: { name: 'Pid Era', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+              playerIdOverrides: [42],
+            },
           },
           {
-            name: 'Team Era',
-            firstPlayerId: 1,
-            lastPlayerId: 9999,
-            teamCodeOverrides: ['knu'],
+            identity: { name: 'Team Era', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+            teams: { teamCodeOverrides: ['knu'] },
           },
         ],
       },
@@ -288,10 +334,71 @@ describe('BblPlayersImportService', () => {
     );
   });
 
+  it('excludes an autoAssignByPlayerId:false era from the pid-range scan but still honors its teamCodeOverrides', async () => {
+    // 'knu' (goodPlayer.teamCode) is pinned to the override-only Side era via
+    // teamCodeOverrides. Side has no pid range and autoAssignByPlayerId:false,
+    // so nothing else can land there; the pid 42 would otherwise match Main.
+    const overrideEraIds = new Map<string, number>([
+      ['Main', 400],
+      ['Side', 500],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] }),
+        eras: [
+          {
+            identity: { name: 'Main', rulesSets: ['LRB'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+          {
+            identity: { name: 'Side', rulesSets: ['CRP'] },
+            dates: {
+              startDate: '2016-03-12',
+              endDate: '2016-11-26',
+              autoAssignByDate: false,
+            },
+            players: { autoAssignByPlayerId: false },
+            teams: { teamCodeOverrides: ['knu'] },
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers(
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      overrideEraIds,
+    );
+
+    expect(result.imported).toBe(1);
+    // Pinned to Side (eraId 500), not Main, via team code.
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [500] },
+      expect.any(Array),
+    );
+  });
+
   it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
-      { eras: [{ name: 'LRB', firstPlayerId: 1 }] },
+      {
+        eras: [
+          {
+            identity: { name: 'LRB', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          },
+        ],
+      },
     );
 
     const { result } = await service.importPlayers(
@@ -308,7 +415,19 @@ describe('BblPlayersImportService', () => {
   it('skips and records an error when no era range contains the pid', async () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
-      { eras: [{ name: 'LRB', firstPlayerId: 1, lastPlayerId: 10 }] },
+      {
+        eras: [
+          {
+            identity: { name: 'LRB', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 10,
+              autoAssignByPlayerId: true,
+            },
+          },
+        ],
+      },
     );
 
     const { result } = await service.importPlayers(
@@ -428,7 +547,15 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
       {
         eras: [
-          { name: 'Unimported Era', firstPlayerId: 1, lastPlayerId: 9999 },
+          {
+            identity: { name: 'Unimported Era', rulesSets: ['X'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
         ],
       },
     );
