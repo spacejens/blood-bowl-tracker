@@ -142,4 +142,27 @@ describe('resolveErasList', () => {
       vi.useRealTimers();
     }
   });
+
+  it('falls back to the stunned message when the rules-set lookup times out', async () => {
+    const eras = {
+      listErasWithLeague: vi.fn().mockResolvedValue([
+        {
+          id: 1,
+          name: 'Season 1',
+          leagueName: 'Premier',
+          startDate: '2020-01-01',
+          endDate: '2020-12-31',
+        },
+      ]),
+      getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
+    } as unknown as ErasService;
+    vi.useFakeTimers();
+    try {
+      const promise = resolveErasList(eras);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
