@@ -412,6 +412,80 @@ describe('TeamsService', () => {
       await service.countTimesSentOffByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
+
+    it('countCasualtiesSufferedByTeam returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 18 },
+        { teamId: 2, name: 'Gouged Eye', count: 7 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countCasualtiesSufferedByTeam()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCasualtiesSufferedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesSufferedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countSeriousInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 6 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(
+        service.countSeriousInjuriesSufferedByTeam(),
+      ).resolves.toEqual(rows);
+    });
+
+    it('countSeriousInjuriesSufferedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesSufferedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countLastingInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(
+        service.countLastingInjuriesSufferedByTeam(),
+      ).resolves.toEqual(rows);
+    });
+
+    it('countLastingInjuriesSufferedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countLastingInjuriesSufferedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeathsSufferedByTeam returns the rows the query resolves to', async () => {
+      const rows = [{ teamId: 1, name: '40 grinders', count: 2 }];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countDeathsSufferedByTeam()).resolves.toEqual(rows);
+    });
+
+    it('countDeathsSufferedByTeam adds an era filter when an eraId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeathsSufferedByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('countAll', () => {
