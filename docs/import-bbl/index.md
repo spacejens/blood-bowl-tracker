@@ -10,62 +10,85 @@ Configuration is supplied through a JSON5 file, `import-bbl-config.json5`, in
 the tool directory (`tools/import-bbl/`). JSON5 allows comments and multi-line
 structured values, so the era and match-merge lists can be documented and
 formatted inline. The file is the sole configuration source. Top-level keys are
-camelCase:
+camelCase, grouped into nested objects by concern:
 
 - `dataDir` — path to the folder that directly contains the
   `default.asp?p=...` files. This is a subfolder of the git-ignored `data/`
   directory (each `wget` download lands in its own subfolder). A relative path
   resolves against the current working directory. Ask the developer for the
   download if you don't have it.
-- `leagueName` — the name of the league the BBL data covers. The BBL data
-  mirror covers a single league whose name is not present in the data, so it is
-  supplied here. Used as the league's external ID under both the `BBL` and
-  `Name` external systems.
-- `eras` — a JSON array describing the eras the league played through. Each
-  entry has `name`, `rulesSets` (a non-empty array of the rules set names the
-  era spans, in chronological order — most eras list a single rules set, but
-  an era can span several, e.g. `["CRP", "CRP+", "BB2016"]`), `startDate`
-  (required, ISO `YYYY-MM-DD`), `endDate` (optional — omit for an era still
-  ongoing), `firstPlayerId` (required, positive integer), `lastPlayerId`
-  (optional, following the same still-ongoing rule as `endDate` — the two must
-  be either both omitted or both present; when `lastPlayerId` is omitted, the
-  era matches any pid `>= firstPlayerId` with no upper bound), and
-  `playerIdOverrides` (an optional array of pids explicitly assigned to this
-  era, checked before the range bounds — BBL player ids are only roughly
-  chronological, so a handful of players drafted right at an era changeover
-  can land on the "wrong" side of a range split; overrides correct those known
-  exceptions without widening the range). Additionally,
-  `seasonCompetitionIdOverrides` and `cupCompetitionIdOverrides` are optional
-  arrays of competition bblIds hard-assigned to this era and forced to type
-  `season` or `cup` respectively, regardless of match dates — used for a
-  competition with an empty match list, or one whose date-span would otherwise
-  misclassify its type. `teamCodeOverrides` is an optional array of team codes
-  whose players are pinned to this era regardless of pid, for side-competition
-  eras (Stunty Leeg, Dungeonbowl) that share the concurrent regular era's pid
-  range. A competition bblId may appear in only one of the two competition
-  override lists across all eras, and a team code in only one era's
-  `teamCodeOverrides`. Rules sets and eras are not present in the source data,
-  so they are supplied here. Each era's rules set names and each era name are
-  used as external IDs under both the configured BBL external system and the
-  `Name` external system.
-- `matchMerges` — an optional JSON array of `[id, id]` BBL match-id pairs
-  to merge into a single match, e.g.
-  `[["1061","1062"],["1311","1312"]]`. BBL's match model only supports two
-  teams, so the special four-team "Bierhallentodball" finals (Ogretoberfest
-  cups) were each registered as two separate two-team match rows. Each
-  configured pair is imported as one match carrying both source matches'
-  external ids, all four teams, and every event from both rows (with casualty
-  actions correlated to their Sustained-Injury consequences across both source
-  matches, not just within each). Both ids of a pair must appear in the same
-  competition's match list; a pair that does not resolve is left unmerged and
-  recorded as an error, with both ids imported as ordinary matches. Unset or
-  empty means no merges are configured (the common case). The `import-bbl-config.example.json5`
-  ships this league's six confirmed pairs as a working example.
 - `externalSystemName` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
-- `apiBaseUrl` — base URL of the running api-server to import into. Defaults
-  to `http://localhost:3000` (a local docker-compose deployment) if unset.
+- `connection` — runtime settings for reaching the api-server to import into.
+  The group itself is required (even though its only current field is
+  optional), so a future mandatory field under it doesn't need a breaking
+  change to introduce.
+  - `apiBaseUrl` — base URL of the running api-server to import into. Defaults
+    to `http://localhost:3000` (a local docker-compose deployment) if unset.
+- `league` — everything that describes the league being imported.
+  - `leagueName` — the name of the league the BBL data covers. The BBL data
+    mirror covers a single league whose name is not present in the data, so it
+    is supplied here. Used as the league's external ID under both the `BBL`
+    and `Name` external systems.
+  - `eras` — a JSON array describing the eras the league played through. Each
+    entry is grouped into six parts:
+    - `identity` — `name` and `rulesSets` (a non-empty array of the rules set
+      names the era spans, in chronological order — most eras list a single
+      rules set, but an era can span several, e.g.
+      `["CRP", "CRP+", "BB2016"]`).
+    - `dates` — `startDate` (required, ISO `YYYY-MM-DD`), `endDate` (optional
+      — omit for an era still ongoing), and `autoAssignByDate` (required
+      boolean). When `autoAssignByDate` is `false`, the era is excluded from
+      the automatic match-date → era resolution scan (its `startDate`/
+      `endDate` are still imported); the era is then only ever reached through
+      its competition override lists.
+    - `players` — `firstPlayerId` (required, positive integer, only when
+      `autoAssignByPlayerId` is `true`; optional otherwise), `lastPlayerId`
+      (optional, following the same still-ongoing rule as `endDate` — when
+      `lastPlayerId` is omitted, the era matches any pid `>= firstPlayerId`
+      with no upper bound), `autoAssignByPlayerId` (required boolean), and
+      `playerIdOverrides` (an optional array of pids explicitly assigned to
+      this era, checked before the range bounds — BBL player ids are only
+      roughly chronological, so a handful of players drafted right at an era
+      changeover can land on the "wrong" side of a range split; overrides
+      correct those known exceptions without widening the range). When
+      `autoAssignByPlayerId` is `false`, the era is excluded from the
+      pid-range fallback scan; the era is then only ever reached through
+      `teamCodeOverrides`/`playerIdOverrides`.
+    - `competitions` (optional) — `seasonCompetitionIdOverrides` and
+      `cupCompetitionIdOverrides`, optional arrays of competition bblIds
+      hard-assigned to this era and forced to type `season` or `cup`
+      respectively, regardless of match dates — used for a competition with an
+      empty match list, or one whose date-span would otherwise misclassify its
+      type.
+    - `teams` (optional) — `teamCodeOverrides`, an optional array of team
+      codes whose players are pinned to this era regardless of pid, for
+      side-competition eras (Stunty Leeg, Dungeonbowl) that share the
+      concurrent regular era's pid range.
+    - `matches` (optional) — `merges`, an optional JSON array of `[id, id]`
+      BBL match-id pairs to merge into a single match, e.g.
+      `[["1061","1062"],["1311","1312"]]`. BBL's match model only supports two
+      teams, so the special four-team "Bierhallentodball" finals
+      (Ogretoberfest cups) were each registered as two separate two-team match
+      rows. Each configured pair is imported as one match carrying both source
+      matches' external ids, all four teams, and every event from both rows
+      (with casualty actions correlated to their Sustained-Injury consequences
+      across both source matches, not just within each). Both ids of a pair
+      must appear in the same competition's match list; a pair that does not
+      resolve is left unmerged and recorded as an error, with both ids
+      imported as ordinary matches. Unset or empty means no merges are
+      configured for that era (the common case). The
+      `import-bbl-config.example.json5` ships this league's six confirmed
+      pairs, all under `First era`, as a working example.
+
+    A competition bblId may appear in only one of the two competition override
+    lists across all eras; a team code in only one era's `teamCodeOverrides`;
+    and a match id in only one `matches.merges` pair across all eras. Rules
+    sets and eras are not present in the source data, so they are supplied
+    here. Each era's rules set names and each era name are used as external
+    IDs under both the configured BBL external system and the `Name` external
+    system.
 
 ## Run it
 
@@ -218,8 +241,11 @@ Re-running is always safe and fills any gaps left by transient failures.
   unique across the league. A player's era is resolved first by each era's
   `teamCodeOverrides` (matching the player's team code), then by each era's
   `playerIdOverrides` list, then by falling back to each era's
-  `firstPlayerId`/`lastPlayerId` range; its team era and position are
-  resolved to local ids from the teams and positions imports. A
+  `firstPlayerId`/`lastPlayerId` range — that range fallback only considers
+  eras with `autoAssignByPlayerId: true`; an era with `autoAssignByPlayerId:
+  false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
+  team era and position are resolved to local ids from the teams and
+  positions imports. A
   player whose pid matches no configured era range, whose team code was not
   imported, or whose position cannot be resolved is skipped with a recorded
   error. Imported after teams, team eras, and positions (all referenced).
@@ -229,7 +255,10 @@ Re-running is always safe and fills any gaps left by transient failures.
   external system (`BBL` by default) and by exact name under the `Name` external
   system. `type` is `cup` when the match dates span 3 days or fewer, else
   `season`; `eraId` is the era whose configured date range contains the earliest
-  match date. A competition listed in an era's `seasonCompetitionIdOverrides`
+  match date, considering only eras with `autoAssignByDate: true` — an era
+  with `autoAssignByDate: false` is reached only through its
+  `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides`. A competition
+  listed in an era's `seasonCompetitionIdOverrides`
   or `cupCompetitionIdOverrides` is instead hard-assigned that era and forced
   to type `season` or `cup` respectively, bypassing match-date resolution
   entirely. A competition with no dated matches, or whose earliest date is
@@ -243,12 +272,14 @@ Re-running is always safe and fills any gaps left by transient failures.
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
-  A configured `matchMerges` pair is imported as a single match rather
-  than two: BBL cannot record a match with more than two teams, so each
-  four-team "Bierhallentodball" final exists as two two-team rows that this
-  import folds back into one N-team match (both external ids, four teams, and
-  the union of both rows' events). The merged match's played date is the
-  earliest of the pair's two source dates.
+  A pair configured under an era's `matches.merges` (folded from the old
+  top-level `matchMerges` list, now per-era; see Configuration above) is
+  imported as a single match rather than two: BBL cannot record a match with
+  more than two teams, so each four-team "Bierhallentodball" final exists as
+  two two-team rows that this import folds back into one N-team match (both
+  external ids, four teams, and the union of both rows' events). A match id
+  may appear in only one `matches.merges` pair across all eras. The merged
+  match's played date is the earliest of the pair's two source dates.
 
 - **Team eras / Competition teams / Race eras** — append-only join links
   derived from match participation, not read from any single page. A team is

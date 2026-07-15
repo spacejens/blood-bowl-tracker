@@ -33,11 +33,25 @@ export class ImportBblConfigService {
   }
 
   /**
-   * Base URL of the running api-server to import into, from `apiBaseUrl`.
-   * Defaults to http://localhost:3000 when unset.
+   * Base URL of the running api-server to import into, from
+   * `connection.apiBaseUrl`. Defaults to http://localhost:3000 when
+   * `apiBaseUrl` itself is unset, but the `connection` group must be
+   * present — kept mandatory so future mandatory fields under it (e.g. for
+   * issue #133) don't need a breaking change to introduce.
    */
   getApiBaseUrl(): string {
-    return this.get<string>('apiBaseUrl') ?? 'http://localhost:3000';
+    const connection = this.get<Record<string, unknown>>('connection');
+    if (typeof connection !== 'object' || connection === null) {
+      throw new Error(
+        'connection is not set in import-bbl-config.json5. Set it to an ' +
+          "object, e.g. { apiBaseUrl: 'http://localhost:3000' } (apiBaseUrl " +
+          'itself defaults to http://localhost:3000 if omitted).',
+      );
+    }
+    const url = connection.apiBaseUrl;
+    return typeof url === 'string' && url !== ''
+      ? url
+      : 'http://localhost:3000';
   }
 
   /**

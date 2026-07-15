@@ -24,17 +24,18 @@ function makeService(
 
 const eras: EraConfig[] = [
   {
-    name: 'Living rulebook',
-    rulesSets: ['Living rulebook'],
-    startDate: '2011-09-09',
-    endDate: '2021-09-01',
-    firstPlayerId: 1,
+    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+    dates: {
+      startDate: '2011-09-09',
+      endDate: '2021-09-01',
+      autoAssignByDate: true,
+    },
+    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
   },
   {
-    name: 'BB2020',
-    rulesSets: ['BB2020'],
-    startDate: '2021-09-01',
-    firstPlayerId: 5001,
+    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+    dates: { startDate: '2021-09-01', autoAssignByDate: true },
+    players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
   },
 ];
 
@@ -165,10 +166,9 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn();
     const multiRulesSetEras: EraConfig[] = [
       {
-        name: 'CRP era',
-        rulesSets: ['CRP', 'MISSING'],
-        startDate: '2016-01-01',
-        firstPlayerId: 1,
+        identity: { name: 'CRP era', rulesSets: ['CRP', 'MISSING'] },
+        dates: { startDate: '2016-01-01', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
     const service = makeService(
@@ -191,10 +191,9 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'CRP era' });
     const multiRulesSetEras: EraConfig[] = [
       {
-        name: 'CRP era',
-        rulesSets: ['CRP', 'CRP+'],
-        startDate: '2016-01-01',
-        firstPlayerId: 1,
+        identity: { name: 'CRP era', rulesSets: ['CRP', 'CRP+'] },
+        dates: { startDate: '2016-01-01', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
     const service = makeService(

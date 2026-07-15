@@ -222,20 +222,22 @@ export class BblCompetitionsImportService {
     errors: ImportError[],
   ): { type: 'season' | 'cup'; eraId: number } | undefined {
     const seasonOverrideEra = eras.find((era) =>
-      era.seasonCompetitionIdOverrides?.includes(competition.bblId),
+      era.competitions?.seasonCompetitionIdOverrides?.includes(
+        competition.bblId,
+      ),
     );
     const cupOverrideEra = eras.find((era) =>
-      era.cupCompetitionIdOverrides?.includes(competition.bblId),
+      era.competitions?.cupCompetitionIdOverrides?.includes(competition.bblId),
     );
     const overrideEra = seasonOverrideEra ?? cupOverrideEra;
     if (overrideEra !== undefined) {
       const overrideType = seasonOverrideEra !== undefined ? 'season' : 'cup';
-      const eraId = eraIdsByName.get(overrideEra.name);
+      const eraId = eraIdsByName.get(overrideEra.identity.name);
       if (eraId === undefined) {
         errors.push(
           makeImportError({
             item: competition,
-            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.name}" has no known database id (its rules set may have failed to import).`,
+            message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.identity.name}" has no known database id (its rules set may have failed to import).`,
           }),
         );
         return undefined;
@@ -287,11 +289,17 @@ export class BblCompetitionsImportService {
   ): { eraName: string | undefined; eraId: number | undefined } {
     const day = date.toISOString().slice(0, 10);
     for (const era of eras) {
+      if (era.dates.autoAssignByDate === false) {
+        continue;
+      }
       if (
-        day >= era.startDate &&
-        (era.endDate === undefined || day < era.endDate)
+        day >= era.dates.startDate &&
+        (era.dates.endDate === undefined || day < era.dates.endDate)
       ) {
-        return { eraName: era.name, eraId: eraIdsByName.get(era.name) };
+        return {
+          eraName: era.identity.name,
+          eraId: eraIdsByName.get(era.identity.name),
+        };
       }
     }
     return { eraName: undefined, eraId: undefined };
