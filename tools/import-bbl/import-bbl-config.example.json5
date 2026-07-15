@@ -7,10 +7,12 @@
 // `import-bbl-config.json5` is git-ignored. See docs/import-bbl/index.md for
 // configuration details and how to run the tool.
 {
-  // Runtime settings for reaching the api-server to import into.
+  // Runtime settings for reaching the api-server to import into. This group
+  // itself is required (even though its only current field is optional), so a
+  // future mandatory field under it doesn't need a breaking change later.
   connection: {
     // Base URL of the running api-server. Defaults to http://localhost:3000
-    // if the connection group or this field is omitted.
+    // if this field is omitted.
     apiBaseUrl: 'http://localhost:3000',
   },
 
@@ -37,8 +39,9 @@
     // comments on each field below, at its first appearance in this file.
     eras: [
       {
-        // Era name and the rules set(s) it spans, in chronological order (most
-        // eras list one; an era spanning a rules-set change lists several).
+        // Era name and the rules set(s) it spans -- a non-empty array, in
+        // chronological order (most eras list one; an era spanning a
+        // rules-set change lists several).
         identity: {
           name: 'First era',
           rulesSets: ['CRP', 'CRP+', 'BB2016'],
