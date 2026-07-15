@@ -27,6 +27,17 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeCountBuilder(rows: unknown[]) {
+  return {
+    from: vi.fn().mockReturnThis(),
+    innerJoin: vi.fn().mockReturnThis(),
+    where: vi.fn().mockResolvedValue(rows),
+    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+      Promise.resolve(rows).then(resolve, reject),
+    catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
+  };
+}
+
 describe('MatchesService', () => {
   let service: MatchesService;
   let externalIdRows: unknown[];
@@ -197,10 +208,22 @@ describe('MatchesService', () => {
       await expect(svc.countMatchEvents()).resolves.toBe(5200);
     });
   });
-});
 
-describe('test-append', () => {
-  it('should pass', () => {
-    expect(true).toBe(true);
+  describe('era-scoped counts', () => {
+    it('countByEra returns the distinct match count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 30 }]));
+      const service = new MatchesService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(30);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countMatchEventsByEra returns the match-event count for the era', async () => {
+      const builder = makeCountBuilder([{ count: 210 }]);
+      const select = vi.fn(() => builder);
+      const service = new MatchesService({ select } as unknown as Db);
+      await expect(service.countMatchEventsByEra(5)).resolves.toBe(210);
+      // match_events -> match_teams -> team_eras
+      expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+    });
   });
 });
