@@ -139,7 +139,6 @@ export class MatchesService {
     return countRows(this.db, matchEvents);
   }
 
-
   async countByEra(eraId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: countDistinct(matchTeams.matchId) })
