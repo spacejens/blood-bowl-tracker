@@ -5,6 +5,7 @@ import {
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './facts/coach-toplist';
+import { resolveErasList } from './facts/eras-list';
 import { resolvePlayerMvpsToplist } from './facts/player-toplist';
 import {
   resolveRaceMatchesPlayedToplist,
@@ -95,8 +96,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         },
       },
     },
+    eras: {
+      list: {
+        supportsEra: false,
+        resolve: () => resolveErasList(deps.eras),
+      },
+    },
     stats: {
-      supportsEra: false,
+      supportsEra: true,
       resolve: (eraId) => resolveStatsSummary(deps, eraId),
     },
   };
