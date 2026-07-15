@@ -31,10 +31,28 @@ describe('ImportBblConfigService', () => {
     expect(service.get('connection')).toBeUndefined();
   });
 
-  it('returns the default API base URL when the file is missing', () => {
+  it('throws when the file is missing, since connection is not set', () => {
     const service = new ImportBblConfigService(
       join(dir, 'does-not-exist.json5'),
     );
+    expect(() => service.getApiBaseUrl()).toThrow(
+      'connection is not set in import-bbl-config.json5',
+    );
+  });
+
+  it('throws when connection is not set', () => {
+    const path = writeConfig(`{
+      league: { leagueName: 'tLoEG', eras: [] },
+    }`);
+    const service = new ImportBblConfigService(path);
+    expect(() => service.getApiBaseUrl()).toThrow(
+      'connection is not set in import-bbl-config.json5',
+    );
+  });
+
+  it('returns the default API base URL when connection is present but apiBaseUrl is unset', () => {
+    const path = writeConfig(`{ connection: {} }`);
+    const service = new ImportBblConfigService(path);
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
   });
 

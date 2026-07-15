@@ -21,10 +21,11 @@ camelCase, grouped into nested objects by concern:
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
 - `connection` — runtime settings for reaching the api-server to import into.
-  Optional; omit the whole group to use defaults.
+  The group itself is required (even though its only current field is
+  optional), so a future mandatory field under it doesn't need a breaking
+  change to introduce.
   - `apiBaseUrl` — base URL of the running api-server to import into. Defaults
-    to `http://localhost:3000` (a local docker-compose deployment) if unset or
-    the `connection` group is omitted.
+    to `http://localhost:3000` (a local docker-compose deployment) if unset.
 - `league` — everything that describes the league being imported.
   - `leagueName` — the name of the league the BBL data covers. The BBL data
     mirror covers a single league whose name is not present in the data, so it
