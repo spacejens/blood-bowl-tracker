@@ -89,14 +89,14 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+9. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/import-bbl-config.json5`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
    if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for env_file in apps/discord-bot/.env tools/import-bbl/.env; do
-       if [ ! -f "$WORKTREE_ROOT/$env_file" ] && [ -f "$MAIN_ROOT/$env_file" ]; then
-         cp "$MAIN_ROOT/$env_file" "$WORKTREE_ROOT/$env_file"
+     for f in apps/discord-bot/.env tools/import-bbl/import-bbl-config.json5; do
+       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
+         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
        fi
      done
      if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then
@@ -136,14 +136,14 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/.env`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+6. **Sync gitignored worktree files** so later phases can touch BBL data and `.env`-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/import-bbl/import-bbl-config.json5`, and `tools/import-bbl/data/` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). `data/` can be very large, so it is symlinked rather than copied — same rationale as the `docs/plans` link above. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
    if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for env_file in apps/discord-bot/.env tools/import-bbl/.env; do
-       if [ ! -f "$WORKTREE_ROOT/$env_file" ] && [ -f "$MAIN_ROOT/$env_file" ]; then
-         cp "$MAIN_ROOT/$env_file" "$WORKTREE_ROOT/$env_file"
+     for f in apps/discord-bot/.env tools/import-bbl/import-bbl-config.json5; do
+       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
+         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
        fi
      done
      if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then

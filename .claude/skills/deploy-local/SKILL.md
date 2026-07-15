@@ -74,31 +74,31 @@ Run this section only if "Deploy the stack" was selected above.
 
 Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
 
-1. `tools/import-bbl/.env` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, sync both from the main checkout:
+1. `tools/import-bbl/import-bbl-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, sync both from the main checkout:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
    if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     if [ ! -f "$WORKTREE_ROOT/tools/import-bbl/.env" ] && [ -f "$MAIN_ROOT/tools/import-bbl/.env" ]; then
-       cp "$MAIN_ROOT/tools/import-bbl/.env" "$WORKTREE_ROOT/tools/import-bbl/.env"
+     if [ ! -f "$WORKTREE_ROOT/tools/import-bbl/import-bbl-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-bbl/import-bbl-config.json5" ]; then
+       cp "$MAIN_ROOT/tools/import-bbl/import-bbl-config.json5" "$WORKTREE_ROOT/tools/import-bbl/import-bbl-config.json5"
      fi
      if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then
        ln -s "$MAIN_ROOT/tools/import-bbl/data" "$WORKTREE_ROOT/tools/import-bbl/data"
      fi
    fi
    ```
-   Never overwrite a `.env` or `data` entry already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. `data/` holds the actual BBL data download and can be very large, so it is symlinked, never copied — same pattern `develop-feature` uses for `docs/plans`. Because `BBL_DATA_DIR` (see step 2) is typically a relative path resolved against `tools/import-bbl/`'s working directory, the symlinked `data/` directory mirrors the main checkout's structure closely enough that an existing relative value keeps resolving correctly with no rewriting needed.
-2. Check `tools/import-bbl/.env` is usable:
+   Never overwrite an `import-bbl-config.json5` or `data` entry already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. `data/` holds the actual BBL data download and can be very large, so it is symlinked, never copied — same pattern `develop-feature` uses for `docs/plans`. Because `dataDir` (see step 2) is typically a relative path resolved against `tools/import-bbl/`'s working directory, the symlinked `data/` directory mirrors the main checkout's structure closely enough that an existing relative value keeps resolving correctly with no rewriting needed.
+2. Check `tools/import-bbl/import-bbl-config.json5` is usable:
    ```bash
-   cat tools/import-bbl/.env 2>/dev/null
+   cat tools/import-bbl/import-bbl-config.json5 2>/dev/null
    ```
-   If the file doesn't exist, doesn't set `BBL_DATA_DIR`, still has the `.env.example` placeholder value (`BBL_DATA_DIR=data/<subfolder>`), or its value points to a folder that doesn't exist under `tools/import-bbl/`, ask the developer for the path to their BBL data download (per `docs/import-bbl/index.md`: "Ask the developer for the download if you don't have it"). Then write it into `.env`:
+   If the file doesn't exist, doesn't set `dataDir`, still has the `import-bbl-config.example.json5` placeholder value (`dataDir: 'data/<subfolder>'`), or its value points to a folder that doesn't exist under `tools/import-bbl/`, ask the developer for the path to their BBL data download (per `docs/import-bbl/index.md`: "Ask the developer for the download if you don't have it"). Then write it into `import-bbl-config.json5`:
    ```bash
-   if [ ! -f tools/import-bbl/.env ]; then
-     cp tools/import-bbl/.env.example tools/import-bbl/.env
+   if [ ! -f tools/import-bbl/import-bbl-config.json5 ]; then
+     cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.json5
    fi
    ```
-   followed by setting `BBL_DATA_DIR` in that file to the path the developer gave, replacing any existing `BBL_DATA_DIR=` line.
+   followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
 3. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run build

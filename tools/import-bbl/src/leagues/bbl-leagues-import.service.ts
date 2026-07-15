@@ -21,8 +21,8 @@ export class BblLeaguesImportService {
   ) {}
 
   /**
-   * Import the single league the BBL data covers. The name comes from
-   * BBL_LEAGUE_NAME (not parsed from the data) and is used as the league's
+   * Import the single league the BBL data covers. The name comes from the
+   * leagueName config key (not parsed from the data) and is used as the league's
    * external ID under two systems: BBL (canonical) and Name (cross-tool
    * matching). Idempotent: re-running upserts the existing league.
    */

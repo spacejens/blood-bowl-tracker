@@ -6,19 +6,22 @@ via the API. The source data is a `wget` mirror: a folder of HTML pages named
 
 ## Configuration
 
-Configuration is supplied through environment variables — an `.env` file in the
-tool directory, or exported in your shell:
+Configuration is supplied through a JSON5 file, `import-bbl-config.json5`, in
+the tool directory (`tools/import-bbl/`). JSON5 allows comments and multi-line
+structured values, so the era and match-merge lists can be documented and
+formatted inline. The file is the sole configuration source. Top-level keys are
+camelCase:
 
-- `BBL_DATA_DIR` — path to the folder that directly contains the
+- `dataDir` — path to the folder that directly contains the
   `default.asp?p=...` files. This is a subfolder of the git-ignored `data/`
   directory (each `wget` download lands in its own subfolder). A relative path
   resolves against the current working directory. Ask the developer for the
   download if you don't have it.
-- `BBL_LEAGUE_NAME` — the name of the league the BBL data covers. The BBL data
+- `leagueName` — the name of the league the BBL data covers. The BBL data
   mirror covers a single league whose name is not present in the data, so it is
   supplied here. Used as the league's external ID under both the `BBL` and
   `Name` external systems.
-- `BBL_ERAS` — a JSON array describing the eras the league played through. Each
+- `eras` — a JSON array describing the eras the league played through. Each
   entry has `name`, `rulesSets` (a non-empty array of the rules set names the
   era spans, in chronological order — most eras list a single rules set, but
   an era can span several, e.g. `["CRP", "CRP+", "BB2016"]`), `startDate`
@@ -45,7 +48,7 @@ tool directory, or exported in your shell:
   so they are supplied here. Each era's rules set names and each era name are
   used as external IDs under both the configured BBL external system and the
   `Name` external system.
-- `BBL_MATCH_MERGES` — an optional JSON array of `[id, id]` BBL match-id pairs
+- `matchMerges` — an optional JSON array of `[id, id]` BBL match-id pairs
   to merge into a single match, e.g.
   `[["1061","1062"],["1311","1312"]]`. BBL's match model only supports two
   teams, so the special four-team "Bierhallentodball" finals (Ogretoberfest
@@ -56,24 +59,24 @@ tool directory, or exported in your shell:
   matches, not just within each). Both ids of a pair must appear in the same
   competition's match list; a pair that does not resolve is left unmerged and
   recorded as an error, with both ids imported as ordinary matches. Unset or
-  empty means no merges are configured (the common case). The `.env.example`
+  empty means no merges are configured (the common case). The `import-bbl-config.example.json5`
   ships this league's six confirmed pairs as a working example.
-- `BBL_EXTERNAL_SYSTEM_NAME` — the name of the external system that BBL
+- `externalSystemName` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
-- `API_BASE_URL` — base URL of the running api-server to import into. Defaults
+- `apiBaseUrl` — base URL of the running api-server to import into. Defaults
   to `http://localhost:3000` (a local docker-compose deployment) if unset.
 
 ## Run it
 
 1. Copy the template and fill in real values:
    ```bash
-   cp tools/import-bbl/.env.example tools/import-bbl/.env
+   cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.json5
    ```
-   `tools/import-bbl/.env` is git-ignored, so your configuration is never
-   committed.
-2. Run the tool from the `tools/import-bbl/` directory so the `.env` is picked
-   up automatically:
+   `tools/import-bbl/import-bbl-config.json5` is git-ignored, so your
+   configuration is never committed.
+2. Run the tool from the `tools/import-bbl/` directory so the config file is
+   picked up automatically:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
@@ -168,15 +171,15 @@ Re-running is always safe and fills any gaps left by transient failures.
 
 ## Data types
 
-- **Leagues** — a single league from the `BBL_LEAGUE_NAME` config value (not
+- **Leagues** — a single league from the `leagueName` config value (not
   parsed from the data). Keyed by that name under the configured BBL external
   system (`BBL` by default) and the `Name` external system. Imported before
   coaches, as the foundational entity.
 - **Rules sets** — the distinct names across all eras' `rulesSets` arrays in
-  the `BBL_ERAS` config (not parsed from the data). Keyed by that name under
+  the `eras` config (not parsed from the data). Keyed by that name under
   the configured BBL external system and the `Name` external system. Imported
   after the league.
-- **Eras** — from the `BBL_ERAS` config (not parsed from the data). Each era
+- **Eras** — from the `eras` config (not parsed from the data). Each era
   references its league and one or more rules sets (all imported first) and
   carries a `startDate` and optional `endDate`. Keyed by the era name under the
   configured BBL external system and the `Name` external system. Imported
@@ -240,7 +243,7 @@ Re-running is always safe and fills any gaps left by transient failures.
   played date is the row's "result added" date. Imported after competitions
   (referenced by `competitionId`). Per-team results and per-player events are
   future work.
-  A configured `BBL_MATCH_MERGES` pair is imported as a single match rather
+  A configured `matchMerges` pair is imported as a single match rather
   than two: BBL cannot record a match with more than two teams, so each
   four-team "Bierhallentodball" final exists as two two-team rows that this
   import folds back into one N-team match (both external ids, four teams, and

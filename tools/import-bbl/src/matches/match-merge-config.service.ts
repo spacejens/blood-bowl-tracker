@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+
+import { ImportBblConfigService } from '../config/import-bbl-config.service';
 
 @Injectable()
 export class MatchMergeConfigService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly config: ImportBblConfigService) {}
 
   /**
    * The BBL match-id pairs to merge into a single match, supplied via the
-   * optional BBL_MATCH_MERGES environment variable as a JSON array of
+   * optional matchMerges key in import-bbl-config.json5 as an array of
    * two-element string arrays, e.g. [["1061","1062"],["1311","1312"]]. Each
    * pair's two source matches (BBL cannot store a >2-team match, so a
    * four-team final is registered as two two-team rows) are folded into one DB
@@ -15,28 +16,19 @@ export class MatchMergeConfigService {
    * not an error, since it only ever applies to a handful of known matches.
    */
   getMerges(): [string, string][] {
-    const raw = this.configService.get<string>('BBL_MATCH_MERGES');
-    if (!raw || raw.trim() === '') {
+    const raw = this.config.get<unknown>('matchMerges');
+    if (raw === undefined) {
       return [];
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
+    if (!Array.isArray(raw)) {
       throw new Error(
-        `BBL_MATCH_MERGES is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
+        'matchMerges in import-bbl-config.json5 must be an array of ' +
+          '[id, id] match-id pairs.',
       );
     }
 
-    if (!Array.isArray(parsed)) {
-      throw new Error(
-        'BBL_MATCH_MERGES must be a JSON array of [id, id] match-id pairs.',
-      );
-    }
-
-    const pairs = parsed.map((entry, index) => this.parsePair(entry, index));
+    const pairs = raw.map((entry, index) => this.parsePair(entry, index));
 
     const seen = new Map<string, number>();
     pairs.forEach(([a, b], index) => {

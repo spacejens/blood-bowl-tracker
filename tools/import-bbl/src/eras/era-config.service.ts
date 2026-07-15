@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+
+import { ImportBblConfigService } from '../config/import-bbl-config.service';
 
 export interface EraConfig {
   name: string;
@@ -64,42 +65,34 @@ function isPositiveInteger(value: unknown): value is number {
 
 @Injectable()
 export class EraConfigService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly config: ImportBblConfigService) {}
 
   /**
-   * The eras the BBL league played through, supplied via the BBL_ERAS
-   * environment variable as a JSON array (not parsed from the source data).
+   * The eras the BBL league played through, supplied via the eras key in
+   * import-bbl-config.json5 (not parsed from the source data).
    * Each era names its rules set and its date range; endDate is optional for an
    * era still ongoing at import time. firstPlayerId is required; lastPlayerId
    * follows the same optional-when-ongoing rule as endDate, and the two must
    * be either both omitted or both present.
    */
   getEras(): EraConfig[] {
-    const raw = this.configService.get<string>('BBL_ERAS');
-    if (!raw) {
+    const raw = this.config.get<unknown>('eras');
+    if (raw === undefined) {
       throw new Error(
-        'BBL_ERAS is not set. Set it to a JSON array of the eras the BBL ' +
-          'league played through, e.g. ' +
-          '[{"name":"Living rulebook","rulesSets":["Living rulebook"],' +
-          '"startDate":"2011-09-09","endDate":"2021-09-01"}].',
+        'eras is not set in import-bbl-config.json5. Set it to an array of ' +
+          'the eras the BBL league played through, e.g. ' +
+          '[{ name: "Living rulebook", rulesSets: ["Living rulebook"], ' +
+          'startDate: "2011-09-09", endDate: "2021-09-01" }].',
       );
     }
 
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
+    if (!Array.isArray(raw) || raw.length === 0) {
       throw new Error(
-        `BBL_ERAS is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
+        'eras in import-bbl-config.json5 must be a non-empty array of eras.',
       );
     }
 
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      throw new Error('BBL_ERAS must be a non-empty JSON array of eras.');
-    }
-
-    const eras = parsed.map((entry, index) => this.parseEra(entry, index));
+    const eras = raw.map((entry, index) => this.parseEra(entry, index));
 
     const eraNameByOverriddenPid = new Map<number, string>();
     for (const era of eras) {
