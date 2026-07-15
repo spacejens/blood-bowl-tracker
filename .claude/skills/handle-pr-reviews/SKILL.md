@@ -187,8 +187,6 @@ gh pr edit "$PR" --add-assignee @me
 ```
 Use `--add-assignee` (not `--assignee`) so any existing assignees are preserved — this covers pushing fixes to someone else's PR, or resuming your own after a gap. If this command fails, print a one-line warning and **continue** — this step is supplementary to the push that already succeeded, so it must not block the rest of the skill (matching the warn-and-continue pattern used for other post-push, best-effort steps here, such as the `deploy-local` offer below).
 
-After pushing, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, generate a SchemaSpy diagram, or any combination — selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
-
 ---
 
 ### Phase 5: Reply to items
@@ -222,7 +220,15 @@ Reply content:
 
 ---
 
-### Phase 6: Summary
+### Phase 6: Local deploy
+
+Skip this phase if no commits were made in Phase 2.
+
+After pushing, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, generate a SchemaSpy diagram, or any combination — selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
+
+---
+
+### Phase 7: Summary
 
 Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL.
 
