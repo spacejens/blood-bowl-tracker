@@ -152,6 +152,12 @@ export class PositionsService {
     return countRows(this.db, positions);
   }
 
+  /**
+   * Approximation: positions have no direct era relationship, so this counts
+   * every position of any race available in the era via positions_races ->
+   * race_eras. A position may not have existed for its race in every era the
+   * race spans. See issue #153 for a proper position-race-era model.
+   */
   async countByEra(eraId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: countDistinct(positionsRaces.positionId) })
