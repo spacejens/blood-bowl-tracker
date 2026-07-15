@@ -185,4 +185,13 @@ export class CoachesService {
   countAll(): Promise<number> {
     return countRows(this.db, coaches);
   }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(teams.coachId) })
+      .from(teamEras)
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
 }

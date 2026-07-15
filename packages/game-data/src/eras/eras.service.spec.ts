@@ -1,9 +1,28 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, eraExternalIds, eraRulesSets, eras } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eraExternalIds,
+  eraRulesSets,
+  eras,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ErasService, EraUpsertConflictError } from './eras.service';
+
+function makeCountBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
 
 const fakeEra = {
   id: 1,
@@ -206,6 +225,46 @@ describe('ErasService', () => {
       const condition = where.mock.calls[0][0];
       // The escaped pattern value is passed as a raw SQL parameter chunk.
       expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
+    });
+  });
+
+  describe('getRulesSetNames', () => {
+    it("returns the era's rules-set names ordered by rules set id (earliest first)", async () => {
+      const rows = [{ name: 'BB2016' }, { name: 'BB2020' }];
+      const builder = makeCountBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new ErasService({ select } as unknown as Db);
+      await expect(service.getRulesSetNames(5)).resolves.toEqual([
+        'BB2016',
+        'BB2020',
+      ]);
+      expect(select).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
+    });
+
+    it('returns an empty array when the era has no rules sets', async () => {
+      const select = vi.fn(() => makeCountBuilder([]));
+      const service = new ErasService({ select } as unknown as Db);
+      await expect(service.getRulesSetNames(5)).resolves.toEqual([]);
+    });
+  });
+
+  describe('listErasWithLeague', () => {
+    it('returns the rows the query resolves to', async () => {
+      const rows = [
+        {
+          id: 1,
+          name: 'Season 1',
+          leagueName: 'Premier',
+          startDate: '2020-01-01',
+          endDate: null,
+        },
+      ];
+      const select = vi.fn(() => makeCountBuilder(rows));
+      const service = new ErasService({ select } as unknown as Db);
+      await expect(service.listErasWithLeague()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 });

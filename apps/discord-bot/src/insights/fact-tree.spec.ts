@@ -48,7 +48,11 @@ function deps() {
     } as unknown as CompetitionsService,
     leagues: zero() as unknown as LeaguesService,
     rulesSets: zero() as unknown as RulesSetsService,
-    eras: zero() as unknown as ErasService,
+    eras: {
+      countAll: vi.fn().mockResolvedValue(0),
+      listErasWithLeague: vi.fn().mockResolvedValue([]),
+      getRulesSetNames: vi.fn().mockResolvedValue([]),
+    } as unknown as ErasService,
     players: {
       countMvpAwardsByPlayer: vi.fn().mockResolvedValue([]),
       countTouchdownsScoredByPlayer: vi.fn().mockResolvedValue([]),
@@ -68,8 +72,8 @@ function deps() {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly nineteen leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(19);
+  it('exposes exactly twenty leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(20);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -235,6 +239,14 @@ describe('buildFactTree', () => {
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(d.leagues.countAll).toHaveBeenCalled();
   });
+
+  it('wires eras.list to the eras list query', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'eras.list');
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.eras.listErasWithLeague).toHaveBeenCalled();
+  });
 });
 
 describe('buildFactTree leaf capabilities', () => {
@@ -243,7 +255,7 @@ describe('buildFactTree leaf capabilities', () => {
     const unsupported = collectLeaves(tree).filter((leaf) => !leaf.supportsEra);
     expect(unsupported).toEqual(
       expect.arrayContaining([
-        resolvePath(tree, 'stats'),
+        resolvePath(tree, 'eras.list'),
         resolvePath(tree, 'team.toplist.eras.active'),
         resolvePath(tree, 'coach.toplist.eras.active'),
       ]),

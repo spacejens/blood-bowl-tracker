@@ -36,7 +36,15 @@ const fmt = (n: number): string => n.toLocaleString('en-US');
 
 export async function resolveStatsSummary(
   deps: StatsSummaryDeps,
-  _eraId?: number,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return eraId === undefined
+    ? resolveAllTimeStats(deps)
+    : resolveEraStats(deps, eraId);
+}
+
+async function resolveAllTimeStats(
+  deps: StatsSummaryDeps,
 ): Promise<string | InteractionReplyOptions> {
   const counts = await withDatabaseTimeout<number[] | null>(
     Promise.all([
@@ -79,12 +87,12 @@ export async function resolveStatsSummary(
 
   const description = [
     `Leagues: ${fmt(leagues)}`,
+    `Eras: ${fmt(eras)}`,
     `External systems: ${fmt(externalSystems)}`,
     `Rules sets: ${fmt(rulesSets)}`,
     `Races: ${fmt(races)}`,
     `Positions: ${fmt(positions)}`,
     `Coaches: ${fmt(coaches)}`,
-    `Eras: ${fmt(eras)}`,
     `Competitions: ${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
     `Teams: ${fmt(teams)}`,
     `Players: ${fmt(players)}`,
@@ -92,5 +100,89 @@ export async function resolveStatsSummary(
     `Match events: ${fmt(matchEvents)}`,
   ].join('\n');
 
-  return { embeds: [{ title: 'I have knowledge of', description }] };
+  return { embeds: [{ title: 'Statistics', description }] };
+}
+
+async function resolveEraStats(
+  deps: StatsSummaryDeps,
+  eraId: number,
+): Promise<string | InteractionReplyOptions> {
+  const data = await withDatabaseTimeout<{
+    externalSystems: number;
+    races: number;
+    positions: number;
+    coaches: number;
+    competitions: number;
+    seasons: number;
+    cups: number;
+    teams: number;
+    players: number;
+    matches: number;
+    matchEvents: number;
+    rulesSetNames: string[];
+  } | null>(
+    Promise.all([
+      deps.externalSystems.countByEra(eraId),
+      deps.races.countByEra(eraId),
+      deps.positions.countByEra(eraId),
+      deps.coaches.countByEra(eraId),
+      deps.competitions.countByEra(eraId),
+      deps.competitions.countByType('season', eraId),
+      deps.competitions.countByType('cup', eraId),
+      deps.teams.countByEra(eraId),
+      deps.players.countByEra(eraId),
+      deps.matches.countByEra(eraId),
+      deps.matches.countMatchEventsByEra(eraId),
+      deps.eras.getRulesSetNames(eraId),
+    ]).then(
+      ([
+        externalSystems,
+        races,
+        positions,
+        coaches,
+        competitions,
+        seasons,
+        cups,
+        teams,
+        players,
+        matches,
+        matchEvents,
+        rulesSetNames,
+      ]) => ({
+        externalSystems,
+        races,
+        positions,
+        coaches,
+        competitions,
+        seasons,
+        cups,
+        teams,
+        players,
+        matches,
+        matchEvents,
+        rulesSetNames,
+      }),
+    ),
+    null,
+  );
+  if (data === null) {
+    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+  }
+
+  const description = [
+    'Leagues: 1',
+    'Eras: 1',
+    `External systems: ${fmt(data.externalSystems)}`,
+    `Rules sets: ${fmt(data.rulesSetNames.length)}`,
+    `Races: ${fmt(data.races)}`,
+    `Positions: ${fmt(data.positions)}`,
+    `Coaches: ${fmt(data.coaches)}`,
+    `Competitions: ${fmt(data.competitions)} (${fmt(data.seasons)} seasons, ${fmt(data.cups)} cups)`,
+    `Teams: ${fmt(data.teams)}`,
+    `Players: ${fmt(data.players)}`,
+    `Matches: ${fmt(data.matches)}`,
+    `Match events: ${fmt(data.matchEvents)}`,
+  ].join('\n');
+
+  return { embeds: [{ title: 'Statistics', description }] };
 }

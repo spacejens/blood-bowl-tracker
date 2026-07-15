@@ -30,6 +30,18 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeCountBuilder(rows: unknown[]) {
+  const where = vi.fn().mockResolvedValue(rows);
+  const builder = {
+    from: vi.fn(() => builder),
+    where,
+    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
+      Promise.resolve(rows).then(resolve, reject),
+    catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
+  };
+  return builder;
+}
+
 describe('CompetitionsService', () => {
   let service: CompetitionsService;
   let externalIdRows: unknown[];
@@ -173,6 +185,25 @@ describe('CompetitionsService', () => {
       } as unknown as Db);
       await expect(service.countByType('season')).resolves.toBe(4);
       expect(where).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    it('returns the competition count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 4 }]));
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(4);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByType with era', () => {
+    it('filters by era when an eraId is given', async () => {
+      const builder = makeCountBuilder([{ count: 2 }]);
+      const select = vi.fn(() => builder);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.countByType('season', 5)).resolves.toBe(2);
+      expect(builder.where).toHaveBeenCalledTimes(1);
     });
   });
 });

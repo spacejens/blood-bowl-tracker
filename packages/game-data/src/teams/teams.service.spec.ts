@@ -336,4 +336,24 @@ describe('TeamsService', () => {
       expect(from).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByEra', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct team count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 12 }]));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(12);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
 });

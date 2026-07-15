@@ -22,6 +22,18 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeCountBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 describe('PlayersService', () => {
   let service: PlayersService;
   let mockDb: {
@@ -148,6 +160,15 @@ describe('PlayersService', () => {
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('countByEra', () => {
+    it('returns the player count for the era', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 88 }]));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countByEra(5)).resolves.toBe(88);
+      expect(select).toHaveBeenCalledTimes(1);
     });
   });
 

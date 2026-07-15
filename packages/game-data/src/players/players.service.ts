@@ -212,4 +212,13 @@ export class PlayersService {
   countAll(): Promise<number> {
     return countRows(this.db, players);
   }
+
+  async countByEra(eraId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(players.id) })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
 }
