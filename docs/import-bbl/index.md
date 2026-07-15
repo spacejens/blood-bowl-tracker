@@ -16,9 +16,7 @@ camelCase, grouped into nested objects by concern:
   `default.asp?p=...` files. This is a subfolder of the git-ignored `data/`
   directory (each `wget` download lands in its own subfolder). A relative path
   resolves against the current working directory. Ask the developer for the
-  download if you don't have it. Kept at the top level (outside `league`)
-  because it describes where the source data lives on disk, not the league
-  itself.
+  download if you don't have it.
 - `externalSystemName` — the name of the external system that BBL
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
