@@ -8,13 +8,16 @@ import {
 import { resolveErasList } from './facts/eras-list';
 import {
   resolvePlayerCasualtiesCausedToplist,
+  resolvePlayerCasualtiesSufferedToplist,
   resolvePlayerCompletionsToplist,
   resolvePlayerDeathsCausedToplist,
   resolvePlayerDeflectionsToplist,
   resolvePlayerFoulsCommittedToplist,
   resolvePlayerInterceptionsToplist,
+  resolvePlayerLastingInjuriesSufferedToplist,
   resolvePlayerMvpsToplist,
   resolvePlayerSeriousInjuriesCausedToplist,
+  resolvePlayerSeriousInjuriesSufferedToplist,
   resolvePlayerTimesSentOffToplist,
   resolvePlayerTouchdownsScoredToplist,
 } from './facts/player-toplist';
@@ -26,15 +29,19 @@ import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
 import {
   resolveTeamCasualtiesCausedToplist,
+  resolveTeamCasualtiesSufferedToplist,
   resolveTeamCompetitionsPlayedToplist,
   resolveTeamCompletionsToplist,
   resolveTeamDeathsCausedToplist,
+  resolveTeamDeathsSufferedToplist,
   resolveTeamDeflectionsToplist,
   resolveTeamErasActiveToplist,
   resolveTeamFoulsCommittedToplist,
   resolveTeamInterceptionsToplist,
+  resolveTeamLastingInjuriesSufferedToplist,
   resolveTeamMatchesPlayedToplist,
   resolveTeamSeriousInjuriesCausedToplist,
+  resolveTeamSeriousInjuriesSufferedToplist,
   resolveTeamTimesSentOffToplist,
   resolveTeamTouchdownsScoredToplist,
 } from './facts/team-toplist';
@@ -117,6 +124,11 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             resolve: (eraId) =>
               resolveTeamCasualtiesCausedToplist(deps.teams, eraId),
           },
+          suffered: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamCasualtiesSufferedToplist(deps.teams, eraId),
+          },
         },
         injuries: {
           serious: {
@@ -125,6 +137,18 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               resolve: (eraId) =>
                 resolveTeamSeriousInjuriesCausedToplist(deps.teams, eraId),
             },
+            suffered: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolveTeamSeriousInjuriesSufferedToplist(deps.teams, eraId),
+            },
+          },
+          lasting: {
+            suffered: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolveTeamLastingInjuriesSufferedToplist(deps.teams, eraId),
+            },
           },
         },
         deaths: {
@@ -132,6 +156,11 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsEra: true,
             resolve: (eraId) =>
               resolveTeamDeathsCausedToplist(deps.teams, eraId),
+          },
+          suffered: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolveTeamDeathsSufferedToplist(deps.teams, eraId),
           },
         },
         fouls: {
@@ -181,6 +210,11 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             resolve: (eraId) =>
               resolvePlayerCasualtiesCausedToplist(deps.players, eraId),
           },
+          suffered: {
+            supportsEra: true,
+            resolve: (eraId) =>
+              resolvePlayerCasualtiesSufferedToplist(deps.players, eraId),
+          },
         },
         injuries: {
           serious: {
@@ -188,6 +222,24 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               supportsEra: true,
               resolve: (eraId) =>
                 resolvePlayerSeriousInjuriesCausedToplist(deps.players, eraId),
+            },
+            suffered: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolvePlayerSeriousInjuriesSufferedToplist(
+                  deps.players,
+                  eraId,
+                ),
+            },
+          },
+          lasting: {
+            suffered: {
+              supportsEra: true,
+              resolve: (eraId) =>
+                resolvePlayerLastingInjuriesSufferedToplist(
+                  deps.players,
+                  eraId,
+                ),
             },
           },
         },
