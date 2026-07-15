@@ -32,58 +32,47 @@
     // BBL and Name external systems.
     leagueName: '<league name>',
 
-    // Eras the league played through. Each era is grouped into:
-    //   identity: { name, rulesSets (non-empty array, chronological) }
-    //   dates:    { startDate (required YYYY-MM-DD), endDate (optional; omit
-    //               for an ongoing era), autoAssignByDate (required boolean) }
-    //   players:  { firstPlayerId (required when autoAssignByPlayerId is true,
-    //               optional otherwise), lastPlayerId (optional; when omitted
-    //               the range is open-ended above firstPlayerId),
-    //               autoAssignByPlayerId (required boolean), playerIdOverrides
-    //               (optional pids pinned to this era, checked before the
-    //               range -- for players drafted at an era changeover whose pid
-    //               lands on the "wrong" side of the split) }
-    //   competitions (optional): { seasonCompetitionIdOverrides,
-    //               cupCompetitionIdOverrides -- competition bblIds hard-assigned
-    //               to this era and forced to type season/cup regardless of
-    //               match dates; for empty or misclassified-span competitions }
-    //   teams (optional): { teamCodeOverrides -- team codes whose players are
-    //               pinned to this era regardless of pid, for side-competition
-    //               eras that share the concurrent regular era's pid range }
-    //   matches (optional): { merges -- [id, id] BBL match-id pairs merged into
-    //               a single match; see the comment on First era below }
-    //
-    // autoAssignByDate/autoAssignByPlayerId state each era's intent explicitly:
-    // set them false to keep an era OUT of the automatic match-date and pid-range
-    // scans, so it is only ever reached through its override lists. A competition
-    // bblId may appear in only one competition override list across all eras, and
-    // a team code in only one era's teamCodeOverrides.
-    //
-    // The two override-only eras below (First Stunty Leeg / First Dungeonbowl)
-    // are side competitions running concurrently with the main timeline. They
-    // carry their real date ranges but set autoAssignByDate/autoAssignByPlayerId
-    // to false so those ranges never capture unrelated competitions or players;
-    // every competition, team, and player is reached through the override lists.
-    // firstPlayerId/lastPlayerId are omitted for them (meaningless with the pid
-    // scan disabled). Note: a side era's teamCodeOverrides and its competition
-    // overrides are independent lists that must agree by hand -- teamCodeOverrides
-    // should list exactly the team codes that played in the overridden
-    // competitions (there is no cross-reference check between the two lists).
+    // Eras the league played through. Each era is grouped into identity, dates,
+    // players, and the optional competitions/teams/matches groups -- see the
+    // comments on each field below, at its first appearance in this file.
     eras: [
       {
+        // Era name and the rules set(s) it spans, in chronological order (most
+        // eras list one; an era spanning a rules-set change lists several).
         identity: {
           name: 'First era',
           rulesSets: ['CRP', 'CRP+', 'BB2016'],
         },
         dates: {
+          // startDate (required, YYYY-MM-DD) and endDate (optional -- omit for
+          // an era still ongoing) bound the era. Always imported into the era's
+          // DB record, regardless of autoAssignByDate below.
           startDate: '2011-09-09',
           endDate: '2021-09-01',
+          // Required boolean. true: a competition whose earliest match date
+          // falls in [startDate, endDate) is automatically assigned to this
+          // era. false: this era is never reached by that automatic scan --
+          // only through its competitions overrides below (see First Stunty
+          // Leeg era for an example).
           autoAssignByDate: true,
         },
         players: {
+          // firstPlayerId is required when autoAssignByPlayerId is true
+          // (optional otherwise); lastPlayerId is always optional -- when
+          // omitted, the range is open-ended above firstPlayerId.
           firstPlayerId: 1,
           lastPlayerId: 4868,
+          // Required boolean. true: a player whose pid falls in
+          // [firstPlayerId, lastPlayerId] is automatically assigned to this
+          // era. false: this era is never reached by that automatic scan --
+          // only through teamCodeOverrides/playerIdOverrides.
           autoAssignByPlayerId: true,
+          // Explicit pids assigned to this era regardless of the
+          // firstPlayerId/lastPlayerId range, checked before it -- BBL player
+          // ids are only roughly chronological, so a handful of players
+          // drafted right at an era changeover can land on the "wrong" side
+          // of a range split; overrides correct those known exceptions
+          // without widening the range.
           playerIdOverrides: [4907, 4909, 4911, 4912, 4914, 4915, 4921, 4922, 4923],
         },
         // BBL cannot store a match with more than two teams, so the four-team
@@ -124,6 +113,14 @@
             4833, 4838, 4839, 4842, 4846, 4865,
           ],
         },
+        // Optional group -- omit entirely when an era has neither override
+        // list. seasonCompetitionIdOverrides/cupCompetitionIdOverrides are
+        // competition bblIds hard-assigned to this era and forced to type
+        // season/cup respectively, regardless of match dates -- for a
+        // competition with a genuinely empty match list, or whose date span
+        // would otherwise misclassify its type. Checked before the
+        // match-date scan, so unaffected by autoAssignByDate. A competition
+        // bblId may appear in only one of these lists across all eras.
         competitions: {
           seasonCompetitionIdOverrides: ['74'],
         },
@@ -141,12 +138,26 @@
           endDate: '2016-11-26',
           autoAssignByDate: false,
         },
+        // firstPlayerId/lastPlayerId are omitted here -- they serve no
+        // purpose when autoAssignByPlayerId is false, since this era is only
+        // ever reached through teamCodeOverrides/playerIdOverrides below.
         players: {
           autoAssignByPlayerId: false,
         },
         competitions: {
           cupCompetitionIdOverrides: ['30', '33'],
         },
+        // Optional group -- omit entirely when an era has no team-code
+        // overrides. teamCodeOverrides pins the players of the listed team
+        // codes to this era regardless of pid, for a side-competition era
+        // (like this one) that shares its concurrent regular era's pid
+        // range. Checked before playerIdOverrides and the pid range, so
+        // unaffected by autoAssignByPlayerId. A team code may appear in only
+        // one era's teamCodeOverrides across all eras. Note: this list and
+        // the competitions overrides above are independent and must agree
+        // by hand -- teamCodeOverrides should list exactly the team codes
+        // that played in the overridden competitions (there is no
+        // cross-reference check between the two).
         teams: {
           teamCodeOverrides: ['rad', 'sl-', 'sl-2', 'his', 'oxt', 'ogh'],
         },
