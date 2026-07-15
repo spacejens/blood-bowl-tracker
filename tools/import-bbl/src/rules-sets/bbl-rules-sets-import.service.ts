@@ -45,7 +45,7 @@ export class BblRulesSetsImportService {
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
       names = [
-        ...new Set(this.eraConfig.getEras().flatMap((e) => e.rulesSets)),
+        ...new Set(this.eraConfig.getEras().flatMap((e) => e.identity.rulesSets)),
       ];
       bblSystemId =
         await this.externalSystemsImport.upsertExternalSystem(bblSystemName);

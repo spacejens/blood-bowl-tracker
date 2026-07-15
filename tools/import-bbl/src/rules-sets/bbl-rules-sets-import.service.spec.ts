@@ -24,17 +24,33 @@ function makeService(
 
 const twoErasSharingNothing: EraConfig[] = [
   {
-    name: 'Living rulebook',
-    rulesSets: ['Living rulebook'],
-    startDate: '2011-09-09',
-    endDate: '2021-09-01',
-    firstPlayerId: 1,
+    identity: {
+      name: 'Living rulebook',
+      rulesSets: ['Living rulebook'],
+    },
+    dates: {
+      startDate: '2011-09-09',
+      endDate: '2021-09-01',
+      autoAssignByDate: true,
+    },
+    players: {
+      firstPlayerId: 1,
+      autoAssignByPlayerId: true,
+    },
   },
   {
-    name: 'BB2020',
-    rulesSets: ['BB2020'],
-    startDate: '2021-09-01',
-    firstPlayerId: 5001,
+    identity: {
+      name: 'BB2020',
+      rulesSets: ['BB2020'],
+    },
+    dates: {
+      startDate: '2021-09-01',
+      autoAssignByDate: true,
+    },
+    players: {
+      firstPlayerId: 5001,
+      autoAssignByPlayerId: true,
+    },
   },
 ];
 
@@ -77,16 +93,32 @@ describe('BblRulesSetsImportService', () => {
   it('dedupes a rules set shared by multiple eras, upserting it once', async () => {
     const eras: EraConfig[] = [
       {
-        name: 'Era A',
-        rulesSets: ['BB2020'],
-        startDate: '2021-09-01',
-        firstPlayerId: 1,
+        identity: {
+          name: 'Era A',
+          rulesSets: ['BB2020'],
+        },
+        dates: {
+          startDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          autoAssignByPlayerId: true,
+        },
       },
       {
-        name: 'Era B',
-        rulesSets: ['BB2020'],
-        startDate: '2022-09-01',
-        firstPlayerId: 5001,
+        identity: {
+          name: 'Era B',
+          rulesSets: ['BB2020'],
+        },
+        dates: {
+          startDate: '2022-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 5001,
+          autoAssignByPlayerId: true,
+        },
       },
     ];
     const upsertExternalSystem = vi
@@ -110,18 +142,34 @@ describe('BblRulesSetsImportService', () => {
   it('imports the distinct rules-set names across all eras (flattened)', async () => {
     const eras: EraConfig[] = [
       {
-        name: 'Era A',
-        rulesSets: ['CRP', 'CRP+'],
-        startDate: '2011-09-09',
-        endDate: '2021-09-01',
-        firstPlayerId: 1,
-        lastPlayerId: 5000,
+        identity: {
+          name: 'Era A',
+          rulesSets: ['CRP', 'CRP+'],
+        },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
       },
       {
-        name: 'Era B',
-        rulesSets: ['CRP+', 'BB2016'],
-        startDate: '2021-09-01',
-        firstPlayerId: 5001,
+        identity: {
+          name: 'Era B',
+          rulesSets: ['CRP+', 'BB2016'],
+        },
+        dates: {
+          startDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 5001,
+          autoAssignByPlayerId: true,
+        },
       },
     ];
     const upsertExternalSystem = vi
@@ -169,10 +217,18 @@ describe('BblRulesSetsImportService', () => {
     const service = makeService(
       () => [
         {
-          name: 'BB2020',
-          rulesSets: ['BB2020'],
-          startDate: '2021-09-01',
-          firstPlayerId: 1,
+          identity: {
+            name: 'BB2020',
+            rulesSets: ['BB2020'],
+          },
+          dates: {
+            startDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: {
+            firstPlayerId: 1,
+            autoAssignByPlayerId: true,
+          },
         },
       ],
       upsertExternalSystem,
