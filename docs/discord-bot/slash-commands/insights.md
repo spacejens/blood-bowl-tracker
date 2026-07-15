@@ -22,10 +22,19 @@ so you can navigate the tree without memorizing it.
 
 ## Available facts
 
-- `stats` — a combined embed of entity counts (title "I have knowledge of"):
-  leagues, external systems, rules sets, races, positions, coaches, eras,
-  competitions (with a season/cup breakdown), teams, players, matches, and
-  match events.
+- `stats` — a combined embed of entity counts (title "Statistics"): leagues,
+  external systems, rules sets, races, positions, coaches, eras, competitions
+  (with a season/cup breakdown), teams, players, matches, and match events.
+  Supports era filtering. When an era is selected the title gains the usual
+  `— <era>` suffix and the body changes: the Leagues and Eras lines are dropped
+  (they would always read 1); External systems becomes the count of distinct
+  external systems the era has an external ID for, excluding the synthetic
+  `Name` system; Rules sets lists the era's own rules-set names (or `none`)
+  instead of a count; and Races, Positions, Coaches, Competitions, Teams,
+  Players, Matches, and Match events are each scoped to the selected era.
+  Positions is an approximation — it counts every position of any race
+  available in the era, since positions are not modelled per era (follow-up
+  issue #153).
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `coach.toplist.competitions.played` — coaches ranked by number of distinct
@@ -50,6 +59,12 @@ so you can navigate the tree without memorizing it.
   teams of that race. Counts one participation per participating team, so a
   match between two teams of the same race adds 2 to that race's total.
   Supports era filtering.
+- `eras.list` — a single embed listing every recorded era grouped by league,
+  leagues ordered by their earliest era and eras ordered chronologically
+  within each league. Each line reads `<era> (<league>): <start> – <end>`
+  (an ongoing era shows `present`), with a ` — Rules: ...` suffix when the era
+  has rules sets. Does not support the `era` filter option (it exists to list
+  all eras), so it is excluded from era-filtered runs.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.
