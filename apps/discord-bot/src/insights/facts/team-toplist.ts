@@ -62,3 +62,48 @@ export async function resolveTeamDeflectionsToplist(
     teams.countDeflectionsByTeam(eraId),
   );
 }
+
+export async function resolveTeamCasualtiesCausedToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by casualties inflicted', () =>
+    teams.countCasualtiesCausedByTeam(eraId),
+  );
+}
+
+export async function resolveTeamSeriousInjuriesCausedToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by serious injuries inflicted', () =>
+    teams.countSeriousInjuriesCausedByTeam(eraId),
+  );
+}
+
+export async function resolveTeamDeathsCausedToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by opponents killed', () =>
+    teams.countDeathsCausedByTeam(eraId),
+  );
+}
+
+export async function resolveTeamFoulsCommittedToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by fouls committed', () =>
+    teams.countFoulsCommittedByTeam(eraId),
+  );
+}
+
+export async function resolveTeamTimesSentOffToplist(
+  teams: TeamsService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Teams by times sent off', () =>
+    teams.countTimesSentOffByTeam(eraId),
+  );
+}

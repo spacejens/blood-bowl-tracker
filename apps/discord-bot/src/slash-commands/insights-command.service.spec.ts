@@ -64,6 +64,21 @@ function makeService() {
     countDeflectionsByTeam: vi
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
+    countCasualtiesCausedByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 22 }]),
+    countSeriousInjuriesCausedByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 7 }]),
+    countDeathsCausedByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
+    countFoulsCommittedByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 13 }]),
+    countTimesSentOffByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
@@ -103,6 +118,21 @@ function makeService() {
     countDeflectionsByPlayer: vi
       .fn()
       .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 4 }]),
+    countCasualtiesCausedByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 11 }]),
+    countSeriousInjuriesCausedByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 3 }]),
+    countDeathsCausedByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 2 }]),
+    countFoulsCommittedByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 6 }]),
+    countTimesSentOffByPlayer: vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 5 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
   } as unknown as PlayersService;
@@ -735,5 +765,104 @@ describe('InsightsCommandService', () => {
       (teams.countDeflectionsByTeam as ReturnType<typeof vi.fn>).mock.calls
         .length > 0;
     expect(anyOffenseCalled).toBe(true);
+  });
+
+  it('scopes player.toplist.casualties.caused to the resolved era and names it in the title', async () => {
+    const { service, players, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('player.toplist.casualties.caused', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countCasualtiesCausedByPlayer).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by casualties inflicted — BB2020',
+          description: '1. Morg n Thorg — 11',
+        },
+      ],
+    });
+  });
+
+  it('resolves player.toplist.sent_off with no era, suffixed with "All time"', async () => {
+    const { service, players } = makeService();
+    const result = await service.execute(chatInput('player.toplist.sent_off'));
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(players.countTimesSentOffByPlayer).toHaveBeenCalled();
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by times sent off — All time',
+          description: '1. Morg n Thorg — 5',
+        },
+      ],
+    });
+  });
+
+  it('scopes team.toplist.injuries.serious.caused to the resolved era and names it in the title', async () => {
+    const { service, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    const result = await service.execute(
+      chatInput('team.toplist.injuries.serious.caused', '20'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalledWith(20);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by serious injuries inflicted — BB2020',
+          description: '1. 40 grinders — 7',
+        },
+      ],
+    });
+  });
+
+  it('includes the violence facts in the era-scoped random pool', async () => {
+    const { service, players, teams, eras } = makeService();
+    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 20,
+      name: 'BB2020',
+    });
+    // Sweep [0,1) in fine steps so every era-supporting leaf index is hit;
+    // at least one violence/discipline query must be reachable.
+    const sampleCount = 60;
+    for (let i = 0; i < sampleCount; i++) {
+      vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
+      await service.execute(chatInput(null, '20'));
+      vi.restoreAllMocks();
+      (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+      });
+    }
+    const anyViolenceCalled =
+      (players.countCasualtiesCausedByPlayer as ReturnType<typeof vi.fn>).mock
+        .calls.length > 0 ||
+      (players.countSeriousInjuriesCausedByPlayer as ReturnType<typeof vi.fn>)
+        .mock.calls.length > 0 ||
+      (players.countDeathsCausedByPlayer as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (players.countFoulsCommittedByPlayer as ReturnType<typeof vi.fn>).mock
+        .calls.length > 0 ||
+      (players.countTimesSentOffByPlayer as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countCasualtiesCausedByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countSeriousInjuriesCausedByTeam as ReturnType<typeof vi.fn>).mock
+        .calls.length > 0 ||
+      (teams.countDeathsCausedByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countFoulsCommittedByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0 ||
+      (teams.countTimesSentOffByTeam as ReturnType<typeof vi.fn>).mock.calls
+        .length > 0;
+    expect(anyViolenceCalled).toBe(true);
   });
 });

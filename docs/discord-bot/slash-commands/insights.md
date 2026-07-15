@@ -61,6 +61,19 @@ so you can navigate the tree without memorizing it.
 - `team.toplist.deflections` — teams ranked by number of passes deflected.
   Counts raw `deflection` match events credited to the team. Supports era
   filtering.
+- `team.toplist.casualties.caused` — teams ranked by casualties inflicted.
+  Counts `casualty`, `badly_hurt`, `serious_injury`, and `death` match events
+  credited to the acting team. Supports era filtering.
+- `team.toplist.injuries.serious.caused` — teams ranked by serious injuries
+  inflicted. Counts `serious_injury` match events credited to the acting team.
+  Supports era filtering.
+- `team.toplist.deaths.caused` — teams ranked by opponents killed. Counts
+  `death` match events credited to the acting team. Supports era filtering.
+- `team.toplist.fouls.committed` — teams ranked by fouls committed. Counts
+  `foul` match events credited to the acting team. Supports era filtering.
+- `team.toplist.sent_off` — teams ranked by players sent off. Counts match
+  events whose consequence is `sent_off`, credited to the team the sent-off
+  player belongs to. Supports era filtering.
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with
   more than one MVP in a single match has each award counted. Supports era
@@ -77,6 +90,19 @@ so you can navigate the tree without memorizing it.
 - `player.toplist.deflections` — players ranked by number of passes deflected.
   Counts raw `deflection` match events credited to the player. Supports era
   filtering.
+- `player.toplist.casualties.caused` — players ranked by casualties inflicted.
+  Counts `casualty`, `badly_hurt`, `serious_injury`, and `death` match events
+  credited to the acting player. Supports era filtering.
+- `player.toplist.injuries.serious.caused` — players ranked by serious injuries
+  inflicted. Counts `serious_injury` match events credited to the acting
+  player. Supports era filtering.
+- `player.toplist.deaths.caused` — players ranked by opponents killed. Counts
+  `death` match events credited to the acting player. Supports era filtering.
+- `player.toplist.fouls.committed` — players ranked by fouls committed. Counts
+  `foul` match events credited to the acting player. Supports era filtering.
+- `player.toplist.sent_off` — players ranked by times sent off. Counts match
+  events whose consequence is `sent_off`, credited to the sent-off player.
+  Supports era filtering.
 - `race.toplist.teams` — races ranked by number of teams that have chosen
   them. Supports era filtering (an era scopes the count to teams active in
   that era).

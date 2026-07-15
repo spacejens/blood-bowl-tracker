@@ -47,3 +47,48 @@ export async function resolvePlayerDeflectionsToplist(
     players.countDeflectionsByPlayer(eraId),
   );
 }
+
+export async function resolvePlayerCasualtiesCausedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by casualties inflicted', () =>
+    players.countCasualtiesCausedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerSeriousInjuriesCausedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by serious injuries inflicted', () =>
+    players.countSeriousInjuriesCausedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerDeathsCausedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by opponents killed', () =>
+    players.countDeathsCausedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerFoulsCommittedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by fouls committed', () =>
+    players.countFoulsCommittedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerTimesSentOffToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by times sent off', () =>
+    players.countTimesSentOffByPlayer(eraId),
+  );
+}
