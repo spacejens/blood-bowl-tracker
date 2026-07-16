@@ -12,7 +12,7 @@ export const ERAS_LIST_TIMEOUT_MESSAGE =
   'The historian is still leafing through the record books.';
 export const ERAS_RULES_SET_TIMEOUT_MESSAGE =
   'The rules committee is still arguing over which edition applies.';
-export const ERAS_LIST_NO_DATA_MESSAGE = 'No eras have been chronicled yet.';
+export const ERAS_LIST_NO_DATA_MESSAGE = 'The commentators are clearly drunk.';
 
 // --- Stats summary (insights/facts/stats-summary.ts) ---
 export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
