@@ -444,7 +444,7 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20, undefined],
+      expectedCallArgs: [20],
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },
@@ -1040,15 +1040,18 @@ describe('InsightsCommandService', () => {
       eraId: 5,
     });
     const result = await service.execute(
-      chatInput('team.toplist.competitions.played', null, '30'),
+      chatInput('team.toplist.touchdowns.scored', null, '30'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(teams.countCompetitionsByTeam).toHaveBeenCalledWith(undefined, 30);
+    expect(teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
+      undefined,
+      30,
+    );
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Teams by competitions played — Major Season 24',
-          description: '1. 40 grinders — 4',
+          title: 'Teams by touchdowns scored — Major Season 24',
+          description: '1. 40 grinders — 15',
         },
       ],
     });

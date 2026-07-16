@@ -244,18 +244,6 @@ describe('TeamsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
-    it('countMatchesPlayedByTeam filters by competition when a competitionId is given', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
-      const builder = makeQueryBuilder(rows);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await expect(
-        service.countMatchesPlayedByTeam(undefined, 30),
-      ).resolves.toEqual(rows);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-    });
-
     it('countCompetitionsByTeam returns the rows the query resolves to', async () => {
       const rows = [
         { teamId: 1, name: '40 grinders', count: 4 },
@@ -283,18 +271,6 @@ describe('TeamsService', () => {
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
       await expect(service.countCompetitionsByTeam()).resolves.toEqual(rows);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-    });
-
-    it('countCompetitionsByTeam filters by competition when a competitionId is given', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 1 }];
-      const builder = makeQueryBuilder(rows);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await expect(
-        service.countCompetitionsByTeam(undefined, 30),
-      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 

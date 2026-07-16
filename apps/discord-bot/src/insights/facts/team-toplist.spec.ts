@@ -43,22 +43,19 @@ const cases: TeamCase[] = [
   {
     describeName: 'resolveTeamMatchesPlayedToplist',
     method: 'countMatchesPlayedByTeam',
-    resolve: (teams, eraId, competitionId) =>
-      resolveTeamMatchesPlayedToplist(teams, eraId, competitionId),
+    resolve: (teams, eraId) => resolveTeamMatchesPlayedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 12 }],
     eraRows: [{ teamId: 1, name: '40 grinders', count: 5 }],
-    competitionRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
     expectedTitle: 'Teams by matches played',
     expectedDescription: '1. 40 grinders — 12',
   },
   {
     describeName: 'resolveTeamCompetitionsPlayedToplist',
     method: 'countCompetitionsByTeam',
-    resolve: (teams, eraId, competitionId) =>
-      resolveTeamCompetitionsPlayedToplist(teams, eraId, competitionId),
+    resolve: (teams, eraId) =>
+      resolveTeamCompetitionsPlayedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
     eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
-    competitionRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     expectedTitle: 'Teams by competitions played',
     expectedDescription: '1. 40 grinders — 4',
   },
@@ -254,7 +251,9 @@ describe.each(cases)(
         const queryFn = vi.fn().mockResolvedValue(eraRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
         await resolve(teams, 20);
-        expect(queryFn).toHaveBeenCalledWith(20, undefined);
+        expect(queryFn).toHaveBeenCalledWith(
+          ...(competitionRows ? [20, undefined] : [20]),
+        );
       });
     }
 

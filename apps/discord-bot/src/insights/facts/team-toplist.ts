@@ -6,20 +6,18 @@ import { resolveToplist } from '../leaderboard';
 export async function resolveTeamMatchesPlayedToplist(
   teams: TeamsService,
   eraId?: number,
-  competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Teams by matches played', () =>
-    teams.countMatchesPlayedByTeam(eraId, competitionId),
+    teams.countMatchesPlayedByTeam(eraId),
   );
 }
 
 export async function resolveTeamCompetitionsPlayedToplist(
   teams: TeamsService,
   eraId?: number,
-  competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist('Teams by competitions played', () =>
-    teams.countCompetitionsByTeam(eraId, competitionId),
+    teams.countCompetitionsByTeam(eraId),
   );
 }
 

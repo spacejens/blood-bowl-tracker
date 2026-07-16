@@ -85,21 +85,17 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         matches: {
           played: {
             supportsEra: true,
-            supportsCompetition: true,
-            resolve: (eraId, competitionId) =>
-              resolveTeamMatchesPlayedToplist(deps.teams, eraId, competitionId),
+            supportsCompetition: false,
+            resolve: (eraId) =>
+              resolveTeamMatchesPlayedToplist(deps.teams, eraId),
           },
         },
         competitions: {
           played: {
             supportsEra: true,
-            supportsCompetition: true,
-            resolve: (eraId, competitionId) =>
-              resolveTeamCompetitionsPlayedToplist(
-                deps.teams,
-                eraId,
-                competitionId,
-              ),
+            supportsCompetition: false,
+            resolve: (eraId) =>
+              resolveTeamCompetitionsPlayedToplist(deps.teams, eraId),
           },
         },
         eras: {

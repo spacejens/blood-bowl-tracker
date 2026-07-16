@@ -460,6 +460,8 @@ describe('buildFactTree competition capabilities', () => {
       expect.arrayContaining([
         resolvePath(tree, 'eras.list'),
         resolvePath(tree, 'team.toplist.eras.active'),
+        resolvePath(tree, 'team.toplist.matches.played'),
+        resolvePath(tree, 'team.toplist.competitions.played'),
         resolvePath(tree, 'coach.toplist.eras.active'),
         resolvePath(tree, 'coach.toplist.matches.played'),
         resolvePath(tree, 'coach.toplist.teams'),
@@ -468,18 +470,21 @@ describe('buildFactTree competition capabilities', () => {
         resolvePath(tree, 'race.toplist.matches.played'),
       ]),
     );
-    expect(unsupported).toHaveLength(8);
+    expect(unsupported).toHaveLength(10);
   });
 
   it('forwards competitionId to an in-scope team leaf', async () => {
     const d = deps();
     const leaf = resolvePath(
       buildFactTree(d),
-      'team.toplist.competitions.played',
+      'team.toplist.touchdowns.scored',
     );
     await (leaf as FactLeaf).resolve(undefined, 30);
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(d.teams.countCompetitionsByTeam).toHaveBeenCalledWith(undefined, 30);
+    expect(d.teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
+      undefined,
+      30,
+    );
   });
 
   it('forwards competitionId to an in-scope player leaf', async () => {

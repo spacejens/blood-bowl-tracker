@@ -91,7 +91,6 @@ export class TeamsService {
 
   async countMatchesPlayedByTeam(
     eraId?: number,
-    competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -103,21 +102,13 @@ export class TeamsService {
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(matches.id)));
   }
 
   async countCompetitionsByTeam(
     eraId?: number,
-    competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -132,14 +123,7 @@ export class TeamsService {
       )
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(competitions.id, competitionId),
-        ),
-      )
+      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(competitions.id)));
   }
