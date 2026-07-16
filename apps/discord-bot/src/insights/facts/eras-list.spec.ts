@@ -1,6 +1,11 @@
 import type { ErasService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import {
+  ERAS_LIST_NO_DATA_MESSAGE,
+  ERAS_LIST_TIMEOUT_MESSAGE,
+  ERAS_RULES_SET_TIMEOUT_MESSAGE,
+} from '../../error-messages';
 import { resolveErasList } from './eras-list';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -28,7 +33,7 @@ describe('resolveErasList', () => {
   it('returns the empty-state embed when there are no eras', async () => {
     const result = await resolveErasList(makeEras([]));
     expect(result).toEqual({
-      embeds: [{ title: 'Eras', description: 'No data recorded yet.' }],
+      embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
     });
   });
 
@@ -137,6 +142,7 @@ describe('resolveErasList', () => {
           listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
           getRulesSetNames: vi.fn(),
         }) as unknown as ErasService,
+      ERAS_LIST_TIMEOUT_MESSAGE,
     );
   });
 
@@ -150,6 +156,7 @@ describe('resolveErasList', () => {
           listErasWithLeague: vi.fn().mockResolvedValue([{ id: 1 }]),
           getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
         }) as unknown as ErasService,
+      ERAS_RULES_SET_TIMEOUT_MESSAGE,
     );
   });
 });
