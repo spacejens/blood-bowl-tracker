@@ -15,17 +15,18 @@ import { CompetitionListPageParser } from './competition-list-page-parser';
 
 const erasConfig: EraConfig[] = [
   {
-    name: 'Living rulebook',
-    rulesSets: ['Living rulebook'],
-    startDate: '2011-09-09',
-    endDate: '2021-09-01',
-    firstPlayerId: 1,
+    identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+    dates: {
+      startDate: '2011-09-09',
+      endDate: '2021-09-01',
+      autoAssignByDate: true,
+    },
+    players: { firstPlayerId: 1, autoAssignByPlayerId: true },
   },
   {
-    name: 'BB2020',
-    rulesSets: ['BB2020'],
-    startDate: '2021-09-01',
-    firstPlayerId: 5001,
+    identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+    dates: { startDate: '2021-09-01', autoAssignByDate: true },
+    players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
   },
 ];
 
@@ -289,11 +290,10 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetitionResult,
       getEras: () => [
         {
-          name: 'BB2020',
-          rulesSets: ['BB2020'],
-          startDate: '2021-09-01',
-          firstPlayerId: 5001,
-          seasonCompetitionIdOverrides: ['74'],
+          identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+          dates: { startDate: '2021-09-01', autoAssignByDate: true },
+          players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+          competitions: { seasonCompetitionIdOverrides: ['74'] },
         },
       ],
       // "BB2020" is matched by seasonCompetitionIdOverrides, but is absent from
@@ -444,18 +444,19 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetitionResult,
       getEras: () => [
         {
-          name: 'Living rulebook',
-          rulesSets: ['Living rulebook'],
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          firstPlayerId: 1,
+          identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+          dates: {
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         },
         {
-          name: 'BB2020',
-          rulesSets: ['BB2020'],
-          startDate: '2021-09-01',
-          firstPlayerId: 5001,
-          seasonCompetitionIdOverrides: ['74'],
+          identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+          dates: { startDate: '2021-09-01', autoAssignByDate: true },
+          players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+          competitions: { seasonCompetitionIdOverrides: ['74'] },
         },
       ],
     });
@@ -501,18 +502,19 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetitionResult,
       getEras: () => [
         {
-          name: 'Living rulebook',
-          rulesSets: ['Living rulebook'],
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          firstPlayerId: 1,
+          identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+          dates: {
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         },
         {
-          name: 'BB2020',
-          rulesSets: ['BB2020'],
-          startDate: '2021-09-01',
-          firstPlayerId: 5001,
-          seasonCompetitionIdOverrides: ['74'],
+          identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+          dates: { startDate: '2021-09-01', autoAssignByDate: true },
+          players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+          competitions: { seasonCompetitionIdOverrides: ['74'] },
         },
       ],
     });
@@ -546,18 +548,19 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetitionResult,
       getEras: () => [
         {
-          name: 'Living rulebook',
-          rulesSets: ['Living rulebook'],
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          firstPlayerId: 1,
-          cupCompetitionIdOverrides: ['33'],
+          identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+          dates: {
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          competitions: { cupCompetitionIdOverrides: ['33'] },
         },
         {
-          name: 'BB2020',
-          rulesSets: ['BB2020'],
-          startDate: '2021-09-01',
-          firstPlayerId: 5001,
+          identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+          dates: { startDate: '2021-09-01', autoAssignByDate: true },
+          players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         },
       ],
     });
@@ -593,19 +596,23 @@ describe('BblCompetitionsImportService', () => {
       upsertCompetitionResult,
       getEras: () => [
         {
-          name: 'Living rulebook',
-          rulesSets: ['Living rulebook'],
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          firstPlayerId: 1,
+          identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+          dates: {
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         },
         {
-          name: 'Stunty',
-          rulesSets: ['Living rulebook'],
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          firstPlayerId: 1,
-          cupCompetitionIdOverrides: ['30'],
+          identity: { name: 'Stunty', rulesSets: ['Living rulebook'] },
+          dates: {
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            autoAssignByDate: true,
+          },
+          players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          competitions: { cupCompetitionIdOverrides: ['30'] },
         },
       ],
     });
@@ -625,5 +632,65 @@ describe('BblCompetitionsImportService', () => {
       }),
       expect.any(Array),
     );
+  });
+
+  it('excludes an autoAssignByDate:false era from date resolution but still honors its competition override', async () => {
+    // One override-only era (autoAssignByDate:false) whose date range would,
+    // if scanned, capture the dated competition below — proving the scan skips
+    // it. Its own override-listed competition still resolves to it.
+    const overrideOnlyEras: EraConfig[] = [
+      {
+        identity: { name: 'Main', rulesSets: ['BB2020'] },
+        dates: {
+          startDate: '2016-01-01',
+          endDate: '2017-01-01',
+          autoAssignByDate: true,
+        },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+      },
+      {
+        identity: { name: 'Side', rulesSets: ['CRP'] },
+        dates: {
+          startDate: '2016-01-01',
+          endDate: '2017-01-01',
+          autoAssignByDate: false,
+        },
+        players: { autoAssignByPlayerId: false },
+        competitions: { cupCompetitionIdOverrides: ['30'] },
+      },
+    ];
+    const eraIds = new Map<string, number>([
+      ['Main', 100],
+      ['Side', 200],
+    ]);
+    const upsertCompetitionResult = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 1 })
+      .mockResolvedValueOnce({ id: 30 });
+    const service = makeService({
+      reader: makeReader({ se: [page('se', { s: '66' })] }),
+      getEras: () => overrideOnlyEras,
+      listParser: makeListParser([
+        { bblId: '1', name: 'Dated Season' },
+        { bblId: '30', name: 'Side Cup' },
+      ]),
+      matchListReader: makeMatchListReader({
+        '1': [new Date('2016-06-01'), new Date('2016-08-01')],
+        '30': [new Date('2016-06-15')],
+      }),
+      upsertExternalSystem: vi
+        .fn()
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(2),
+      upsertCompetitionResult,
+    });
+
+    const { competitionsByBblId } = await service.importCompetitions(eraIds);
+
+    // The plain dated competition lands in Main (the only auto-assign era).
+    expect(competitionsByBblId.get('1')?.eraId).toBe(100);
+    // The override-listed competition lands in Side despite its date.
+    expect(competitionsByBblId.get('30')?.eraId).toBe(200);
+    expect(competitionsByBblId.get('30')?.type).toBe('cup');
   });
 });
