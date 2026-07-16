@@ -162,7 +162,7 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
+    const { result, eraIdsByRaceId } = await service.importTeamParticipation(
       new Map([['1', competition]]),
       new Map([
         ['sew', home],
@@ -189,6 +189,12 @@ describe('BblTeamParticipationImportService', () => {
     expect(upsertRace).toHaveBeenCalledWith(
       { ...vampireRace, eras: [200] },
       expect.any(Array),
+    );
+    expect(eraIdsByRaceId).toEqual(
+      new Map([
+        [5, new Set([200])],
+        [7, new Set([200])],
+      ]),
     );
   });
 
