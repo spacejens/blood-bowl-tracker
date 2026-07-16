@@ -1,6 +1,7 @@
 import type { TeamsService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import {
   resolveTeamCasualtiesCausedToplist,
   resolveTeamCasualtiesSufferedToplist,
@@ -266,13 +267,14 @@ describe.each(cases)(
       });
     }
 
-    it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
         (teams: TeamsService) => resolve(teams),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),
           }) as unknown as TeamsService,
+        TEAM_TOPLIST_TIMEOUT_MESSAGE,
       );
     });
   },

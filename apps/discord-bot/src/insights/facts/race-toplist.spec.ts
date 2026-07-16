@@ -1,6 +1,7 @@
 import type { RacesService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { RACE_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import {
   resolveRaceMatchesPlayedToplist,
   resolveRaceTeamsToplist,
@@ -66,13 +67,14 @@ describe.each(cases)(
       expect(queryFn).toHaveBeenCalledWith(20);
     });
 
-    it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
         (races: RacesService) => resolve(races),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),
           }) as unknown as RacesService,
+        RACE_TOPLIST_TIMEOUT_MESSAGE,
       );
     });
   },

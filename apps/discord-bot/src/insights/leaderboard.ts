@@ -1,9 +1,6 @@
 import type { InteractionReplyOptions } from 'discord.js';
 
-import {
-  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
-  withDatabaseTimeout,
-} from '../database-timeout';
+import { withDatabaseTimeout } from '../database-timeout';
 
 /**
  * A tie group can be far larger than the top-N cutoff (e.g. most teams sharing
@@ -60,9 +57,14 @@ export function topRanksWithTies<T extends { count: number }>(
 
 export function formatLeaderboardEmbed<
   T extends { name: string; count: number; rank: number },
->(title: string, rankedRows: T[], truncatedCount = 0): InteractionReplyOptions {
+>(
+  title: string,
+  rankedRows: T[],
+  noDataMessage: string,
+  truncatedCount = 0,
+): InteractionReplyOptions {
   if (rankedRows.length === 0) {
-    return { embeds: [{ title, description: 'No data recorded yet.' }] };
+    return { embeds: [{ title, description: noDataMessage }] };
   }
   const lines = rankedRows.map(
     (row) => `${row.rank}. ${row.name} — ${row.count}`,
@@ -75,22 +77,24 @@ export function formatLeaderboardEmbed<
 
 /**
  * Shared shape for the fact resolvers backing the `/insights` toplist facts:
- * run `fetchRows` under the database timeout, and either fall back to the
- * standard timeout message or format the top-ranked rows as a leaderboard
- * embed.
+ * run `fetchRows` under the database timeout, and either fall back to
+ * `timeoutMessage` or format the rows (using `noDataMessage` for an empty
+ * result) as a leaderboard embed.
  */
 export async function resolveToplist<T extends { name: string; count: number }>(
   title: string,
   fetchRows: () => Promise<T[]>,
+  timeoutMessage: string,
+  noDataMessage: string,
 ): Promise<string | InteractionReplyOptions> {
   const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
   if (rows === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return timeoutMessage;
   }
   const { rows: ranked, truncatedCount } = topRanksWithTies(
     rows,
     MAX_LEADERBOARD_TOP_ENTRIES,
     MAX_LEADERBOARD_ENTRIES,
   );
-  return formatLeaderboardEmbed(title, ranked, truncatedCount);
+  return formatLeaderboardEmbed(title, ranked, noDataMessage, truncatedCount);
 }
