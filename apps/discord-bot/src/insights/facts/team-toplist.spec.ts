@@ -29,9 +29,9 @@ interface TeamCase {
   method: keyof TeamsService;
   resolve: (teams: TeamsService, eraId?: number) => Promise<unknown>;
   rows: { teamId: number; name: string; count: number }[];
+  eraRows?: { teamId: number; name: string; count: number }[];
   expectedTitle: string;
   expectedDescription: string;
-  eraRows?: { teamId: number; name: string; count: number }[];
 }
 
 const cases: TeamCase[] = [
@@ -49,9 +49,9 @@ const cases: TeamCase[] = [
     resolve: (teams, eraId) =>
       resolveTeamCompetitionsPlayedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by competitions played',
     expectedDescription: '1. 40 grinders — 4',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamErasActiveToplist',
@@ -70,37 +70,37 @@ const cases: TeamCase[] = [
       { teamId: 2, name: 'Gouged Eye', count: 15 },
       { teamId: 3, name: 'Reikland Reavers', count: 6 },
     ],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
     expectedTitle: 'Teams by touchdowns scored',
     expectedDescription:
       '1. 40 grinders — 15\n1. Gouged Eye — 15\n2. Reikland Reavers — 6',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
   },
   {
     describeName: 'resolveTeamCompletionsToplist',
     method: 'countCompletionsByTeam',
     resolve: (teams, eraId) => resolveTeamCompletionsToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 8 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by completions',
     expectedDescription: '1. 40 grinders — 8',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamInterceptionsToplist',
     method: 'countInterceptionsByTeam',
     resolve: (teams, eraId) => resolveTeamInterceptionsToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 5 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by interceptions',
     expectedDescription: '1. 40 grinders — 5',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamDeflectionsToplist',
     method: 'countDeflectionsByTeam',
     resolve: (teams, eraId) => resolveTeamDeflectionsToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by deflections',
     expectedDescription: '1. 40 grinders — 4',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamCasualtiesCausedToplist',
@@ -111,10 +111,10 @@ const cases: TeamCase[] = [
       { teamId: 2, name: 'Gouged Eye', count: 22 },
       { teamId: 3, name: 'Reikland Reavers', count: 9 },
     ],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
     expectedTitle: 'Teams by casualties inflicted',
     expectedDescription:
       '1. 40 grinders — 22\n1. Gouged Eye — 22\n2. Reikland Reavers — 9',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
   },
   {
     describeName: 'resolveTeamSeriousInjuriesCausedToplist',
@@ -122,36 +122,36 @@ const cases: TeamCase[] = [
     resolve: (teams, eraId) =>
       resolveTeamSeriousInjuriesCausedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 7 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by serious injuries inflicted',
     expectedDescription: '1. 40 grinders — 7',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamDeathsCausedToplist',
     method: 'countDeathsCausedByTeam',
     resolve: (teams, eraId) => resolveTeamDeathsCausedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     expectedTitle: 'Teams by opponents killed',
     expectedDescription: '1. 40 grinders — 4',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
   },
   {
     describeName: 'resolveTeamFoulsCommittedToplist',
     method: 'countFoulsCommittedByTeam',
     resolve: (teams, eraId) => resolveTeamFoulsCommittedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 13 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by fouls committed',
     expectedDescription: '1. 40 grinders — 13',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamTimesSentOffToplist',
     method: 'countTimesSentOffByTeam',
     resolve: (teams, eraId) => resolveTeamTimesSentOffToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 8 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by times sent off',
     expectedDescription: '1. 40 grinders — 8',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamCasualtiesSufferedToplist',
@@ -163,10 +163,10 @@ const cases: TeamCase[] = [
       { teamId: 2, name: 'Gouged Eye', count: 18 },
       { teamId: 3, name: 'Chaos All-Stars', count: 5 },
     ],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
     expectedTitle: 'Teams by casualties suffered',
     expectedDescription:
       '1. 40 grinders — 18\n1. Gouged Eye — 18\n2. Chaos All-Stars — 5',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
   },
   {
     describeName: 'resolveTeamSeriousInjuriesSufferedToplist',
@@ -174,9 +174,9 @@ const cases: TeamCase[] = [
     resolve: (teams, eraId) =>
       resolveTeamSeriousInjuriesSufferedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 6 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by serious injuries suffered',
     expectedDescription: '1. 40 grinders — 6',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamLastingInjuriesSufferedToplist',
@@ -184,18 +184,18 @@ const cases: TeamCase[] = [
     resolve: (teams, eraId) =>
       resolveTeamLastingInjuriesSufferedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 4 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
     expectedTitle: 'Teams by lasting injuries suffered',
     expectedDescription: '1. 40 grinders — 4',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 2 }],
   },
   {
     describeName: 'resolveTeamDeathsSufferedToplist',
     method: 'countDeathsSufferedByTeam',
     resolve: (teams, eraId) => resolveTeamDeathsSufferedToplist(teams, eraId),
     rows: [{ teamId: 1, name: '40 grinders', count: 2 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
     expectedTitle: 'Teams by deaths suffered',
     expectedDescription: '1. 40 grinders — 2',
-    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
   },
 ];
 

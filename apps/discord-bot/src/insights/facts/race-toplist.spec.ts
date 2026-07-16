@@ -15,9 +15,9 @@ interface RaceCase {
   method: keyof RacesService;
   resolve: (races: RacesService, eraId?: number) => Promise<unknown>;
   rows: { raceId: number; name: string; count: number }[];
+  eraRows: { raceId: number; name: string; count: number }[];
   expectedTitle: string;
   expectedDescription: string;
-  eraRows: { raceId: number; name: string; count: number }[];
 }
 
 const cases: RaceCase[] = [
@@ -30,9 +30,9 @@ const cases: RaceCase[] = [
       { raceId: 2, name: 'Skaven', count: 12 },
       { raceId: 3, name: 'Elf', count: 4 },
     ],
+    eraRows: [{ raceId: 1, name: 'Orc', count: 3 }],
     expectedTitle: 'Races by teams',
     expectedDescription: '1. Orc — 12\n1. Skaven — 12\n2. Elf — 4',
-    eraRows: [{ raceId: 1, name: 'Orc', count: 3 }],
   },
   {
     describeName: 'resolveRaceMatchesPlayedToplist',
@@ -42,9 +42,9 @@ const cases: RaceCase[] = [
       { raceId: 1, name: 'Orc', count: 40 },
       { raceId: 2, name: 'Skaven', count: 18 },
     ],
+    eraRows: [{ raceId: 1, name: 'Orc', count: 6 }],
     expectedTitle: 'Races by matches played',
     expectedDescription: '1. Orc — 40\n2. Skaven — 18',
-    eraRows: [{ raceId: 1, name: 'Orc', count: 6 }],
   },
 ];
 

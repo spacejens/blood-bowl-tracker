@@ -26,9 +26,9 @@ interface PlayerCase {
   method: keyof PlayersService;
   resolve: (players: PlayersService, eraId?: number) => Promise<unknown>;
   rows: { playerId: number; name: string; count: number }[];
+  eraRows: { playerId: number; name: string; count: number }[];
   expectedTitle: string;
   expectedDescription: string;
-  eraRows: { playerId: number; name: string; count: number }[];
 }
 
 const cases: PlayerCase[] = [
@@ -41,10 +41,10 @@ const cases: PlayerCase[] = [
       { playerId: 2, name: 'Morg n Thorg', count: 7 },
       { playerId: 3, name: 'Zug', count: 3 },
     ],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     expectedTitle: 'Players by MVP awards',
     expectedDescription:
       '1. Griff Oberwald — 7\n1. Morg n Thorg — 7\n2. Zug — 3',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
   },
   {
     describeName: 'resolvePlayerTouchdownsScoredToplist',
@@ -56,10 +56,10 @@ const cases: PlayerCase[] = [
       { playerId: 2, name: 'Zug', count: 9 },
       { playerId: 3, name: 'Morg n Thorg', count: 4 },
     ],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     expectedTitle: 'Players by touchdowns scored',
     expectedDescription:
       '1. Griff Oberwald — 9\n1. Zug — 9\n2. Morg n Thorg — 4',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
   },
   {
     describeName: 'resolvePlayerCompletionsToplist',
@@ -67,9 +67,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerCompletionsToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 6 }],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by completions',
     expectedDescription: '1. Griff Oberwald — 6',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
   },
   {
     describeName: 'resolvePlayerInterceptionsToplist',
@@ -77,9 +77,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerInterceptionsToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 5 }],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by interceptions',
     expectedDescription: '1. Griff Oberwald — 5',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
   },
   {
     describeName: 'resolvePlayerDeflectionsToplist',
@@ -87,9 +87,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerDeflectionsToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 4 }],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by deflections',
     expectedDescription: '1. Griff Oberwald — 4',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
   },
   {
     describeName: 'resolvePlayerCasualtiesCausedToplist',
@@ -101,10 +101,10 @@ const cases: PlayerCase[] = [
       { playerId: 2, name: 'Grashnak Blackhoof', count: 11 },
       { playerId: 3, name: 'Griff Oberwald', count: 4 },
     ],
+    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 3 }],
     expectedTitle: 'Players by casualties inflicted',
     expectedDescription:
       '1. Morg n Thorg — 11\n1. Grashnak Blackhoof — 11\n2. Griff Oberwald — 4',
-    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 3 }],
   },
   {
     describeName: 'resolvePlayerSeriousInjuriesCausedToplist',
@@ -112,9 +112,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerSeriousInjuriesCausedToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 3 }],
+    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     expectedTitle: 'Players by serious injuries inflicted',
     expectedDescription: '1. Morg n Thorg — 3',
-    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
   },
   {
     describeName: 'resolvePlayerDeathsCausedToplist',
@@ -122,9 +122,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerDeathsCausedToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
+    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     expectedTitle: 'Players by opponents killed',
     expectedDescription: '1. Morg n Thorg — 2',
-    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
   },
   {
     describeName: 'resolvePlayerFoulsCommittedToplist',
@@ -132,9 +132,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerFoulsCommittedToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 6 }],
+    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     expectedTitle: 'Players by fouls committed',
     expectedDescription: '1. Morg n Thorg — 6',
-    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
   },
   {
     describeName: 'resolvePlayerTimesSentOffToplist',
@@ -142,9 +142,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerTimesSentOffToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 5 }],
+    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     expectedTitle: 'Players by times sent off',
     expectedDescription: '1. Morg n Thorg — 5',
-    eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
   },
   {
     describeName: 'resolvePlayerCasualtiesSufferedToplist',
@@ -156,10 +156,10 @@ const cases: PlayerCase[] = [
       { playerId: 2, name: 'Zug', count: 12 },
       { playerId: 3, name: 'Morg n Thorg', count: 3 },
     ],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     expectedTitle: 'Players by casualties suffered',
     expectedDescription:
       '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
   },
   {
     describeName: 'resolvePlayerSeriousInjuriesSufferedToplist',
@@ -167,9 +167,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerSeriousInjuriesSufferedToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 5 }],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by serious injuries suffered',
     expectedDescription: '1. Griff Oberwald — 5',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
   },
   {
     describeName: 'resolvePlayerLastingInjuriesSufferedToplist',
@@ -177,9 +177,9 @@ const cases: PlayerCase[] = [
     resolve: (players, eraId) =>
       resolvePlayerLastingInjuriesSufferedToplist(players, eraId),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 4 }],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by lasting injuries suffered',
     expectedDescription: '1. Griff Oberwald — 4',
-    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
   },
 ];
 
