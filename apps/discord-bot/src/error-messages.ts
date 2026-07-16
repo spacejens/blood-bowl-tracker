@@ -20,7 +20,7 @@ export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
 export const STATS_SUMMARY_ERA_TIMEOUT_MESSAGE =
   'The librarian got lost somewhere in the archives.';
 export const STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE =
-  "The League Secretary can't find that competition anywhere in the standings.";
+  "The league secretary can't find that competition anywhere in the standings.";
 export const STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE =
   'The scorekeeper dropped the clipboard mid-count.';
 
@@ -49,6 +49,6 @@ export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE =
 export const INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE =
   'The referee rejects your request.';
 export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
-  "Even the League Secretary can't find that competition in the fixture list.";
+  "Even the league secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
   "Even the Ref's assistant can't scope that to a competition.";
