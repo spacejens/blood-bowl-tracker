@@ -449,3 +449,47 @@ describe('buildFactTree leaf capabilities', () => {
     expect(unsupported).toHaveLength(3);
   });
 });
+
+describe('buildFactTree competition capabilities', () => {
+  it('excludes coach, race, eras.list and eras.active leaves from competition filtering', () => {
+    const tree = buildFactTree({} as StatsSummaryDeps);
+    const unsupported = collectLeaves(tree).filter(
+      (leaf) => !leaf.supportsCompetition,
+    );
+    expect(unsupported).toEqual(
+      expect.arrayContaining([
+        resolvePath(tree, 'eras.list'),
+        resolvePath(tree, 'team.toplist.eras.active'),
+        resolvePath(tree, 'coach.toplist.eras.active'),
+        resolvePath(tree, 'coach.toplist.matches.played'),
+        resolvePath(tree, 'coach.toplist.teams'),
+        resolvePath(tree, 'coach.toplist.competitions.played'),
+        resolvePath(tree, 'race.toplist.teams'),
+        resolvePath(tree, 'race.toplist.matches.played'),
+      ]),
+    );
+    expect(unsupported).toHaveLength(8);
+  });
+
+  it('forwards competitionId to an in-scope team leaf', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.competitions.played',
+    );
+    await (leaf as FactLeaf).resolve(undefined, 30);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(d.teams.countCompetitionsByTeam).toHaveBeenCalledWith(undefined, 30);
+  });
+
+  it('forwards competitionId to an in-scope player leaf', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'player.toplist.mvps');
+    await (leaf as FactLeaf).resolve(undefined, 30);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalledWith(
+      undefined,
+      30,
+    );
+  });
+});

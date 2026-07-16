@@ -9,14 +9,17 @@ import {
 
 const leafA: FactLeaf = {
   supportsEra: false,
+  supportsCompetition: false,
   resolve: () => Promise.resolve('A'),
 };
 const leafB: FactLeaf = {
   supportsEra: false,
+  supportsCompetition: false,
   resolve: () => Promise.resolve('B'),
 };
 const leafC: FactLeaf = {
   supportsEra: false,
+  supportsCompetition: false,
   resolve: () => Promise.resolve('C'),
 };
 
