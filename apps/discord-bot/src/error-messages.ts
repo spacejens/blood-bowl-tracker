@@ -34,7 +34,8 @@ export const TEAM_TOPLIST_TIMEOUT_MESSAGE =
 export const TEAM_TOPLIST_NO_DATA_MESSAGE = 'No team has taken the field yet.';
 export const COACH_TOPLIST_TIMEOUT_MESSAGE =
   'The coaches are still bickering on the sideline.';
-export const COACH_TOPLIST_NO_DATA_MESSAGE = 'No coach has clocked in yet.';
+export const COACH_TOPLIST_NO_DATA_MESSAGE =
+  'The referee has ejected the coaches from the stadium.';
 export const RACE_TOPLIST_TIMEOUT_MESSAGE =
   'The team buses are stuck in traffic outside the stadium.';
 export const RACE_TOPLIST_NO_DATA_MESSAGE = 'No race has fielded a team yet.';
