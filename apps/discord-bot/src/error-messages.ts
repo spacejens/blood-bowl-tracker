@@ -47,7 +47,7 @@ export const INSIGHTS_ERA_NOT_FOUND_MESSAGE =
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE =
   'That insight refuses to be pinned to a single era.';
 export const INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE =
-  'The referee rejects your request';
+  'The referee rejects your request.';
 export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
   "Even the League Secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
