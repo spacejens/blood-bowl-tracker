@@ -18,7 +18,12 @@ import {
   UpsertMatchEventSchema,
 } from './schemas/match-event';
 import { PlayerSchema, UpsertPlayerSchema } from './schemas/player';
-import { PositionSchema, UpsertPositionSchema } from './schemas/position';
+import {
+  PositionSchema,
+  SyncPositionRaceErasResultSchema,
+  SyncPositionRaceErasSchema,
+  UpsertPositionSchema,
+} from './schemas/position';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
@@ -53,6 +58,9 @@ export const contract = {
       .input(UpsertPositionSchema)
       .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
       .output(PositionSchema.extend({ created: z.boolean() })),
+    syncRaceEras: oc
+      .input(SyncPositionRaceErasSchema)
+      .output(SyncPositionRaceErasResultSchema),
   },
   rulesSets: {
     upsert: oc
