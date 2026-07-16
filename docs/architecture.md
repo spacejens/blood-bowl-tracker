@@ -153,11 +153,12 @@ Every error or status message the Discord bot can send to a user lives in
 string constant.
 
 - **One constant per call site.** Each constant is referenced from exactly one
-  place in production code. When a user reports a message, searching the
-  codebase for that exact text points to the single code path that produced
-  it. Shared helpers that back several call sites (e.g. `resolveToplist` in
-  `insights/leaderboard.ts`) take the message as a parameter so each caller
-  supplies its own constant rather than sharing one.
+  place in production code — or, for a fact backed by a shared helper (e.g.
+  `resolveToplist` in `insights/leaderboard.ts`), from every call site within
+  that one originating fact, since the helper takes the message as a
+  parameter rather than hardcoding it. When a user reports a message,
+  searching the codebase for that exact text points to the single code path
+  (or single fact) that produced it.
 - **In-universe, never technical.** Message text is deliberately lighthearted
   and Blood Bowl-flavored (apothecaries, referees, coaching staff, historians,
   …). It never describes the underlying failure (a database timeout, a missing
