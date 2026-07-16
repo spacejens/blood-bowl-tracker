@@ -282,14 +282,17 @@ Re-running is always safe and fills any gaps left by transient failures.
   match's played date is the earliest of the pair's two source dates.
 
 - **Team eras / Competition teams / Race eras** — append-only join links
-  derived from match participation, not read from any single page. A team is
-  linked to an era (`team_eras`) when it played a completed match in a
-  competition whose era covers that match; the competition is linked to that
+  derived from two sources, unioned per competition: real match participation,
+  and each competition's standings page (`p=se&s=<id>`), which lists every
+  registered team — including teams that played no matches. A team is linked to
+  an era (`team_eras`) when it played a completed match in, or is registered
+  for, a competition whose era covers it; the competition is linked to that
   team-era (`competition_teams`); and the team's race is linked to that era
-  (`race_eras`). These are historical facts, so the syncs only
-  ever insert missing links — they never update or delete. A match team id that
-  matches no imported team, and a match with no detail page, are skipped with a
-  recorded error.
+  (`race_eras`). These are historical facts, so the syncs only ever insert
+  missing links — they never update or delete. A registered-but-unplayed team
+  contributes no `match_teams` rows. A team id that matches no imported team, a
+  match with no detail page, and a standings row with no team code are skipped
+  with a recorded error.
 
 Imported records are matched across systems by external IDs (a coach, for
 example, carries an external ID under the configured BBL external system and
