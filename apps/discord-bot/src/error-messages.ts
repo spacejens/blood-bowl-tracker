@@ -42,7 +42,7 @@ export const RACE_TOPLIST_NO_DATA_MESSAGE = 'The NAF has collapsed.';
 
 // --- /insights command (slash-commands/insights-command.service.ts) ---
 export const INSIGHTS_UNMATCHED_CATEGORY_MESSAGE =
-  "Even the Apothecary can't make sense of that one.";
+  "Even the apothecary can't put that one together.";
 export const INSIGHTS_ERA_NOT_FOUND_MESSAGE =
   "The Assistant Coach can't find that era in the history books.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE =
