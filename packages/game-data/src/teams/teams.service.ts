@@ -358,6 +358,135 @@ export class TeamsService {
       .orderBy(desc(count(matchEvents.id)));
   }
 
+  async countCasualtiesSufferedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(
+        matchTeams,
+        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          inArray(matchEvents.consequenceType, [
+            'casualty',
+            'badly_hurt',
+            'death',
+            'serious_injury',
+            'niggling_injury',
+            'miss_next_game',
+            'stat_reduction_ma',
+            'stat_reduction_st',
+            'stat_reduction_ag',
+            'stat_reduction_av',
+          ]),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countSeriousInjuriesSufferedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(
+        matchTeams,
+        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          inArray(matchEvents.consequenceType, [
+            'serious_injury',
+            'niggling_injury',
+            'miss_next_game',
+            'stat_reduction_ma',
+            'stat_reduction_st',
+            'stat_reduction_ag',
+            'stat_reduction_av',
+          ]),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countLastingInjuriesSufferedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(
+        matchTeams,
+        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          inArray(matchEvents.consequenceType, [
+            'niggling_injury',
+            'stat_reduction_ma',
+            'stat_reduction_st',
+            'stat_reduction_ag',
+            'stat_reduction_av',
+          ]),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
+  async countDeathsSufferedByTeam(
+    eraId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return this.db
+      .select({
+        teamId: teams.id,
+        name: teams.name,
+        count: count(matchEvents.id),
+      })
+      .from(matchEvents)
+      .innerJoin(
+        matchTeams,
+        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+      )
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.consequenceType, 'death'),
+          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+        ),
+      )
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(count(matchEvents.id)));
+  }
+
   countAll(): Promise<number> {
     return countRows(this.db, teams);
   }

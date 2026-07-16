@@ -3,15 +3,19 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   resolveTeamCasualtiesCausedToplist,
+  resolveTeamCasualtiesSufferedToplist,
   resolveTeamCompetitionsPlayedToplist,
   resolveTeamCompletionsToplist,
   resolveTeamDeathsCausedToplist,
+  resolveTeamDeathsSufferedToplist,
   resolveTeamDeflectionsToplist,
   resolveTeamErasActiveToplist,
   resolveTeamFoulsCommittedToplist,
   resolveTeamInterceptionsToplist,
+  resolveTeamLastingInjuriesSufferedToplist,
   resolveTeamMatchesPlayedToplist,
   resolveTeamSeriousInjuriesCausedToplist,
+  resolveTeamSeriousInjuriesSufferedToplist,
   resolveTeamTimesSentOffToplist,
   resolveTeamTouchdownsScoredToplist,
 } from './team-toplist';
@@ -505,6 +509,189 @@ describe('resolveTeamTimesSentOffToplist', () => {
         countTimesSentOffByTeam: vi.fn().mockReturnValue(new Promise(() => {})),
       } as unknown as TeamsService;
       const promise = resolveTeamTimesSentOffToplist(teams);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolveTeamCasualtiesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows including a tie', async () => {
+    const teams = {
+      countCasualtiesSufferedByTeam: vi.fn().mockResolvedValue([
+        { teamId: 1, name: '40 grinders', count: 18 },
+        { teamId: 2, name: 'Gouged Eye', count: 18 },
+        { teamId: 3, name: 'Chaos All-Stars', count: 5 },
+      ]),
+    } as unknown as TeamsService;
+    const result = await resolveTeamCasualtiesSufferedToplist(teams);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by casualties suffered',
+          description:
+            '1. 40 grinders — 18\n1. Gouged Eye — 18\n2. Chaos All-Stars — 5',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countCasualtiesSufferedByTeam = vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 3 }]);
+    const teams = { countCasualtiesSufferedByTeam } as unknown as TeamsService;
+    await resolveTeamCasualtiesSufferedToplist(teams, 20);
+    expect(countCasualtiesSufferedByTeam).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const teams = {
+        countCasualtiesSufferedByTeam: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as TeamsService;
+      const promise = resolveTeamCasualtiesSufferedToplist(teams);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolveTeamSeriousInjuriesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows', async () => {
+    const teams = {
+      countSeriousInjuriesSufferedByTeam: vi
+        .fn()
+        .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 6 }]),
+    } as unknown as TeamsService;
+    const result = await resolveTeamSeriousInjuriesSufferedToplist(teams);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by serious injuries suffered',
+          description: '1. 40 grinders — 6',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countSeriousInjuriesSufferedByTeam = vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 2 }]);
+    const teams = {
+      countSeriousInjuriesSufferedByTeam,
+    } as unknown as TeamsService;
+    await resolveTeamSeriousInjuriesSufferedToplist(teams, 20);
+    expect(countSeriousInjuriesSufferedByTeam).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const teams = {
+        countSeriousInjuriesSufferedByTeam: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as TeamsService;
+      const promise = resolveTeamSeriousInjuriesSufferedToplist(teams);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolveTeamLastingInjuriesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows', async () => {
+    const teams = {
+      countLastingInjuriesSufferedByTeam: vi
+        .fn()
+        .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
+    } as unknown as TeamsService;
+    const result = await resolveTeamLastingInjuriesSufferedToplist(teams);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by lasting injuries suffered',
+          description: '1. 40 grinders — 4',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countLastingInjuriesSufferedByTeam = vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 2 }]);
+    const teams = {
+      countLastingInjuriesSufferedByTeam,
+    } as unknown as TeamsService;
+    await resolveTeamLastingInjuriesSufferedToplist(teams, 20);
+    expect(countLastingInjuriesSufferedByTeam).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const teams = {
+        countLastingInjuriesSufferedByTeam: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as TeamsService;
+      const promise = resolveTeamLastingInjuriesSufferedToplist(teams);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolveTeamDeathsSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows', async () => {
+    const teams = {
+      countDeathsSufferedByTeam: vi
+        .fn()
+        .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 2 }]),
+    } as unknown as TeamsService;
+    const result = await resolveTeamDeathsSufferedToplist(teams);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by deaths suffered',
+          description: '1. 40 grinders — 2',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countDeathsSufferedByTeam = vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 1 }]);
+    const teams = { countDeathsSufferedByTeam } as unknown as TeamsService;
+    await resolveTeamDeathsSufferedToplist(teams, 20);
+    expect(countDeathsSufferedByTeam).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const teams = {
+        countDeathsSufferedByTeam: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as TeamsService;
+      const promise = resolveTeamDeathsSufferedToplist(teams);
       await vi.advanceTimersByTimeAsync(2000);
       await expect(promise).resolves.toBe('I am stunned');
     } finally {

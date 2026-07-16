@@ -11,7 +11,7 @@
     "format": "pnpm -r run format",
     "format:fix": "pnpm -r run format:fix",
     "test": "pnpm -r run test",
-    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm test",
+    "verify": "pnpm build && pnpm lint && pnpm typecheck && pnpm format && pnpm test",
     "db:diagram": "tools/db-diagram/db-diagram.sh",
     "hygiene:deps": "ncu -u --workspaces",
     "hygiene:deps:list": "ncu --workspaces --format group",
