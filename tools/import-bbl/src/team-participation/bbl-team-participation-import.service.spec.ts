@@ -14,6 +14,7 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
 const eraIdsByName = new Map<string, number>([['BB2020', 200]]);
@@ -34,6 +35,23 @@ function makeMatchDetailReader(teamsByBblId: Record<string, BblMatchDetails>) {
     .fn()
     .mockResolvedValue(new Map(Object.entries(teamsByBblId)));
   return { getMatchTeamsByBblId } as unknown as BblMatchDetailReaderService;
+}
+
+/** A fake standings reader mapping each competition id to its registered team codes. */
+function makeStandingsReader(idsByCompetition: Record<string, string[]> = {}) {
+  const getRegisteredTeamIdsByCompetitionId = vi
+    .fn()
+    .mockResolvedValue(
+      new Map(
+        Object.entries(idsByCompetition).map(([id, codes]) => [
+          id,
+          new Set(codes),
+        ]),
+      ),
+    );
+  return {
+    getRegisteredTeamIdsByCompetitionId,
+  } as unknown as BblCompetitionStandingsReaderService;
 }
 
 function makeMergeService(
@@ -98,6 +116,7 @@ function makeService(opts: {
   upsertRace: ReturnType<typeof vi.fn>;
   upsertMatch?: ReturnType<typeof vi.fn>;
   matches?: Record<string, { bblId: string; date: Date }[]>;
+  standings?: Record<string, string[]>;
 }) {
   return new BblTeamParticipationImportService(
     opts.matchListReader,
@@ -113,6 +132,7 @@ function makeService(opts: {
       upsertMatch: opts.upsertMatch ?? vi.fn().mockResolvedValue(true),
     } as unknown as MatchesImportService,
     makeMergeService(opts.matches ?? {}, []),
+    makeStandingsReader(opts.standings),
   );
 }
 
@@ -664,6 +684,7 @@ describe('BblTeamParticipationImportService', () => {
       } as unknown as RacesImportService,
       { upsertMatch } as unknown as MatchesImportService,
       makeMergeService({ '1': [matchA, matchB] }, [['1061', '1062']]),
+      makeStandingsReader(),
     );
 
     await service.importTeamParticipation(
@@ -690,5 +711,135 @@ describe('BblTeamParticipationImportService', () => {
     // Union of both calls' teamEraIds covers all four teams.
     const allTeamEraIds = new Set(matchCalls.flatMap((c) => c.teamEraIds));
     expect(allTeamEraIds).toEqual(new Set([11, 12, 13, 14]));
+  });
+
+  it('links a team present only in the standings roster (zero matches)', async () => {
+    const upsertTeam = vi
+      .fn()
+      .mockResolvedValue({ id: 3, eras: [{ id: 1003, eraId: 200 }] });
+    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertRace = vi.fn().mockResolvedValue({ id: 1 });
+
+    // No matches at all for competition '1'; the roster is the only source.
+    const service = makeService({
+      matchListReader: makeMatchListReader({}),
+      matchDetailReader: makeMatchDetailReader({}),
+      upsertTeam,
+      upsertCompetition,
+      upsertRace,
+      standings: { '1': ['sew'] },
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      racesByRaceId,
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...home, eras: [200] },
+      expect.any(Array),
+    );
+    expect(upsertCompetition).toHaveBeenCalledWith(
+      { ...competition, teamEraIds: [1003] },
+      expect.any(Array),
+    );
+  });
+
+  it('does not double-process a team present in both matches and the roster', async () => {
+    const upsertTeam = vi
+      .fn()
+      .mockResolvedValue({ id: 1, eras: [{ id: 1001, eraId: 200 }] });
+    const upsertCompetition = vi.fn().mockResolvedValue(true);
+    const upsertRace = vi.fn().mockResolvedValue({ id: 1 });
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({
+        '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }],
+      }),
+      matchDetailReader: makeMatchDetailReader({
+        m1: matchTeams('m1', 'sew', 'sew'),
+      }),
+      upsertTeam,
+      upsertCompetition,
+      upsertRace,
+      standings: { '1': ['sew'] },
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      racesByRaceId,
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(result.imported).toBe(1);
+    // Set union dedupes 'sew': the team is upserted exactly once.
+    expect(upsertTeam).toHaveBeenCalledTimes(1);
+    expect(upsertCompetition).toHaveBeenCalledWith(
+      { ...competition, teamEraIds: [1001] },
+      expect.any(Array),
+    );
+  });
+
+  it('records an error and skips a roster team code it cannot resolve', async () => {
+    const upsertTeam = vi.fn();
+    const upsertCompetition = vi.fn();
+    const upsertRace = vi.fn();
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({}),
+      matchDetailReader: makeMatchDetailReader({}),
+      upsertTeam,
+      upsertCompetition,
+      upsertRace,
+      standings: { '1': ['ghost'] },
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      racesByRaceId,
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(result.imported).toBe(0);
+    expect(upsertTeam).not.toHaveBeenCalled();
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('could not resolve team id "ghost"'),
+      ),
+    ).toBe(true);
+  });
+
+  it('does not redundantly re-sync a competition with zero matches and zero registered teams (its row, with empty teamEraIds, was already created by BblCompetitionsImportService)', async () => {
+    const upsertTeam = vi.fn();
+    const upsertCompetition = vi.fn();
+    const upsertRace = vi.fn();
+
+    const service = makeService({
+      matchListReader: makeMatchListReader({}),
+      matchDetailReader: makeMatchDetailReader({}),
+      upsertTeam,
+      upsertCompetition,
+      upsertRace,
+      standings: {},
+    });
+
+    const { result } = await service.importTeamParticipation(
+      new Map([['1', competition]]),
+      new Map([['sew', home]]),
+      racesByRaceId,
+      eraIdsByName,
+      new Map([['1', 42]]),
+    );
+
+    expect(result.imported).toBe(0);
+    expect(upsertCompetition).not.toHaveBeenCalled();
   });
 });

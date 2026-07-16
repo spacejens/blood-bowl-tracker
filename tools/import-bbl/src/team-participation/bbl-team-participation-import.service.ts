@@ -21,6 +21,7 @@ import type { BblMatch } from '../matches/match-list-page-parser';
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 
 @Injectable()
 export class BblTeamParticipationImportService {
@@ -32,20 +33,32 @@ export class BblTeamParticipationImportService {
     private readonly racesImport: RacesImportService,
     private readonly matchesImport: MatchesImportService,
     private readonly matchMerge: MatchMergeService,
+    private readonly competitionStandingsReader: BblCompetitionStandingsReaderService,
   ) {}
 
   /**
-   * Derive team_eras, competition_teams, and race_eras from real match
-   * participation. For each competition, the distinct team ids of its completed
-   * matches — read from each match's own detail page (`p=m&m=<id>`) rather than
-   * the truncatable match-list names — are resolved to imported teams by page
-   * id; each team's era is synced (yielding a team_eras id) and collected into
-   * the competition's teamEraIds; the team's race is recorded against the
+   * Derive team_eras, competition_teams, and race_eras from two sources of
+   * competition membership, unioned per competition:
+   *   1. Real match participation — for each competition, the distinct team ids
+   *      of its completed matches, read from each match's own detail page
+   *      (`p=m&m=<id>`) rather than the truncatable match-list names.
+   *   2. The competition's standings page (`p=se&s=<id>`), which lists every
+   *      registered team — including teams with a 0-0 record that played no
+   *      matches (issue #155), which source 1 alone can never surface.
+   * Each resulting team id is resolved to an imported team by page id; each
+   * team's era is synced (yielding a team_eras id) and collected into the
+   * competition's teamEraIds; the team's race is recorded against the
    * competition's era. The competition is then re-upserted with its
    * teamEraIds (writing competition_teams), and a final pass re-upserts each
    * race with the accumulated era ids (writing race_eras). All three syncs are
-   * append-only. An unresolvable team id is recorded as an error and skipped; it
-   * does not block the rest of the competition. Idempotent.
+   * append-only. A registered-but-unplayed team simply contributes no
+   * match_teams rows, which is correct. An unresolvable team id is recorded as
+   * an error and skipped; it does not block the rest of the competition. A
+   * competition with neither matches nor registered teams has nothing to
+   * sync here and is skipped entirely; its own row (with an empty
+   * teamEraIds) was already created upstream by BblCompetitionsImportService,
+   * so this is not a missing import.
+   * Idempotent.
    */
   async importTeamParticipation(
     competitionsByBblId: Map<string, UpsertCompetitionData>,
@@ -69,6 +82,19 @@ export class BblTeamParticipationImportService {
       matchTeamsByBblId,
       errors,
     );
+
+    const registeredTeamIdsByCompetitionId =
+      await this.competitionStandingsReader.getRegisteredTeamIdsByCompetitionId(
+        errors,
+      );
+    for (const [bblId, registeredIds] of registeredTeamIdsByCompetitionId) {
+      const ids = teamIdsByCompetitionId.get(bblId) ?? new Set<string>();
+      for (const id of registeredIds) {
+        ids.add(id);
+      }
+      teamIdsByCompetitionId.set(bblId, ids);
+    }
+
     const eraIdsByRaceId = new Map<number, Set<number>>();
 
     for (const [bblId, competition] of competitionsByBblId) {
