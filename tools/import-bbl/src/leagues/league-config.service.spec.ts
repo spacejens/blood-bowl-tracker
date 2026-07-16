@@ -5,21 +5,19 @@ import { LeagueConfigService } from './league-config.service';
 
 function makeService(name: string | undefined): LeagueConfigService {
   const config = {
-    get: (_key: string) => name,
+    get: (key: string) => (key === 'league' ? { leagueName: name } : undefined),
   } as unknown as ImportBblConfigService;
   return new LeagueConfigService(config);
 }
 
 describe('LeagueConfigService', () => {
   it('returns the configured league name', () => {
-    const service = makeService('tLoEG');
-    expect(service.getLeagueName()).toBe('tLoEG');
+    expect(makeService('tLoEG').getLeagueName()).toBe('tLoEG');
   });
 
   it('throws when leagueName is not set', () => {
-    const service = makeService(undefined);
-    expect(() => service.getLeagueName()).toThrow(
-      'leagueName is not set in import-bbl-config.json5',
+    expect(() => makeService(undefined).getLeagueName()).toThrow(
+      'league.leagueName is not set in import-bbl-config.json5',
     );
   });
 });

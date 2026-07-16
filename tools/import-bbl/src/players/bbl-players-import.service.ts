@@ -75,13 +75,13 @@ export class BblPlayersImportService {
     }
     const eraByOverriddenPid = new Map<number, (typeof eras)[number]>();
     for (const era of eras) {
-      for (const pid of era.playerIdOverrides ?? []) {
+      for (const pid of era.players.playerIdOverrides ?? []) {
         eraByOverriddenPid.set(pid, era);
       }
     }
     const eraByOverriddenTeamCode = new Map<string, (typeof eras)[number]>();
     for (const era of eras) {
-      for (const teamCode of era.teamCodeOverrides ?? []) {
+      for (const teamCode of era.teams?.teamCodeOverrides ?? []) {
         eraByOverriddenTeamCode.set(teamCode, era);
       }
     }
@@ -105,8 +105,11 @@ export class BblPlayersImportService {
           eraByOverriddenPid.get(pidNumber) ??
           eras.find(
             (e) =>
-              pidNumber >= e.firstPlayerId &&
-              (e.lastPlayerId === undefined || pidNumber <= e.lastPlayerId),
+              e.players.autoAssignByPlayerId &&
+              e.players.firstPlayerId !== undefined &&
+              pidNumber >= e.players.firstPlayerId &&
+              (e.players.lastPlayerId === undefined ||
+                pidNumber <= e.players.lastPlayerId),
           );
         if (!era) {
           errors.push(
@@ -118,12 +121,12 @@ export class BblPlayersImportService {
           continue;
         }
 
-        const eraId = eraIdsByName.get(era.name);
+        const eraId = eraIdsByName.get(era.identity.name);
         if (eraId === undefined) {
           errors.push(
             makeImportError({
-              item: { pid: player.pid, era: era.name },
-              message: `Skipped player "${player.name}" (${player.pid}): era "${era.name}" not imported`,
+              item: { pid: player.pid, era: era.identity.name },
+              message: `Skipped player "${player.name}" (${player.pid}): era "${era.identity.name}" not imported`,
             }),
           );
           continue;
