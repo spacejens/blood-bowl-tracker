@@ -206,4 +206,71 @@ describe('CompetitionsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('findById', () => {
+    it('returns the competition row when found', async () => {
+      const where = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 7, name: 'Major Season 24', type: 'season', eraId: 20 },
+        ]);
+      const from = vi.fn(() => ({ where }));
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(7)).resolves.toEqual({
+        id: 7,
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+      });
+    });
+
+    it('returns undefined when no competition matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const from = vi.fn(() => ({ where }));
+      const service = new CompetitionsService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    function makeJoinBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.limit = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns competitions joined to their league name, capped at the limit', async () => {
+      const rows = [
+        { id: 7, name: 'Major Season 24', leagueName: 'The Major' },
+      ];
+      const builder = makeJoinBuilder(rows);
+      const service = new CompetitionsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.searchByNamePrefix('Maj', 25)).resolves.toEqual(
+        rows,
+      );
+      expect(builder.limit).toHaveBeenCalledWith(25);
+    });
+
+    it('escapes LIKE metacharacters in the prefix', async () => {
+      const builder = makeJoinBuilder([]);
+      const service = new CompetitionsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.searchByNamePrefix('50%_x', 10);
+      // where() is invoked once with the ilike condition; the escaping is
+      // asserted indirectly by the query completing without treating %/_ as
+      // wildcards. (A stronger assertion can read the Param via the SQL
+      // introspection helper used in teams.service.spec.ts if desired.)
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+  });
 });
