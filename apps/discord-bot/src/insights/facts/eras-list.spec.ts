@@ -145,15 +145,9 @@ describe('resolveErasList', () => {
       (eras: ErasService) => resolveErasList(eras),
       () =>
         ({
-          listErasWithLeague: vi.fn().mockResolvedValue([
-            {
-              id: 1,
-              name: 'Season 1',
-              leagueName: 'Premier',
-              startDate: '2020-01-01',
-              endDate: '2020-12-31',
-            },
-          ]),
+          // Only the era id is read before the rules-set lookup times out,
+          // so a minimal single-era array is enough to reach that lookup.
+          listErasWithLeague: vi.fn().mockResolvedValue([{ id: 1 }]),
           getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
         }) as unknown as ErasService,
     );
