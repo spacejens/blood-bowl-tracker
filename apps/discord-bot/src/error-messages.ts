@@ -37,7 +37,7 @@ export const COACH_TOPLIST_TIMEOUT_MESSAGE =
 export const COACH_TOPLIST_NO_DATA_MESSAGE =
   'The referee has ejected the coaches from the stadium.';
 export const RACE_TOPLIST_TIMEOUT_MESSAGE =
-  'The team buses are stuck in traffic outside the stadium.';
+  'The team wagons are stuck in traffic outside the stadium.';
 export const RACE_TOPLIST_NO_DATA_MESSAGE = 'No race has fielded a team yet.';
 
 // --- /insights command (slash-commands/insights-command.service.ts) ---
