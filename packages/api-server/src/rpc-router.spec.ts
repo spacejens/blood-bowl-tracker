@@ -40,7 +40,10 @@ function makeServices() {
     racesService: { upsert: vi.fn() } as unknown as RacesService,
     rulesSetsService: { upsert: vi.fn() } as unknown as RulesSetsService,
     erasService: { upsert: vi.fn() } as unknown as ErasService,
-    positionsService: { upsert: vi.fn() } as unknown as PositionsService,
+    positionsService: {
+      upsert: vi.fn(),
+      syncRaceEras: vi.fn(),
+    } as unknown as PositionsService,
     teamsService: { upsert: vi.fn() } as unknown as TeamsService,
     competitionsService: {
       upsert: vi.fn(),
@@ -744,7 +747,6 @@ describe('buildRpcRouter', () => {
         id: 1,
         name: 'Lineman',
         isStarPlayer: false,
-        races: [{ raceId: 7, isDeleted: false }],
         createdAt: new Date('2026-01-01'),
       },
       created: true,
@@ -767,7 +769,6 @@ describe('buildRpcRouter', () => {
     const result = await call(router.positions.upsert, {
       name: 'Lineman',
       isStarPlayer: false,
-      races: [{ raceId: 7, isDeleted: false }],
       externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
     });
 
@@ -775,9 +776,48 @@ describe('buildRpcRouter', () => {
       id: 1,
       name: 'Lineman',
       isStarPlayer: false,
-      races: [{ raceId: 7, isDeleted: false }],
       createdAt: new Date('2026-01-01'),
       created: true,
+    });
+  });
+
+  it('positions.syncRaceEras forwards input and returns the service result unchanged', async () => {
+    const services = makeServices();
+    (
+      services.positionsService.syncRaceEras as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      positionId: 1,
+      raceEraIds: [10, 11],
+    });
+    const router = buildRpcRouter(
+      services.coachesService,
+      services.externalSystemsService,
+      services.leaguesService,
+      services.racesService,
+      services.rulesSetsService,
+      services.erasService,
+      services.positionsService,
+      services.teamsService,
+      services.competitionsService,
+      services.matchesService,
+      services.playersService,
+      services.matchEventsService,
+    );
+
+    const input = {
+      positionId: 1,
+      raceEras: [
+        { raceId: 7, eraId: 1 },
+        { raceId: 7, eraId: 2 },
+      ],
+    };
+    const result = await call(router.positions.syncRaceEras, input);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(services.positionsService.syncRaceEras).toHaveBeenCalledWith(input);
+    expect(result).toEqual({
+      positionId: 1,
+      raceEraIds: [10, 11],
     });
   });
 
@@ -809,7 +849,6 @@ describe('buildRpcRouter', () => {
       call(router.positions.upsert, {
         name: 'Lineman',
         isStarPlayer: false,
-        races: [{ raceId: 7, isDeleted: false }],
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
       }),
     ).rejects.toMatchObject({
@@ -842,7 +881,6 @@ describe('buildRpcRouter', () => {
       call(router.positions.upsert, {
         name: 'Lineman',
         isStarPlayer: false,
-        races: [{ raceId: 7, isDeleted: false }],
         externalIds: [{ externalSystemId: 1, externalId: '10-7' }],
       }),
     ).rejects.toThrow('db unavailable');

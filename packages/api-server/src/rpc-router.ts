@@ -115,6 +115,9 @@ export function buildRpcRouter(
           }
         },
       ),
+      syncRaceEras: implement(contract.positions.syncRaceEras).handler(
+        async ({ input }) => positionsService.syncRaceEras(input),
+      ),
     },
     rulesSets: {
       upsert: implement(contract.rulesSets.upsert).handler(
