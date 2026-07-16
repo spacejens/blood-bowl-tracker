@@ -224,7 +224,7 @@ Reply content:
 
 Skip this phase if no commits were made in Phase 2.
 
-After pushing, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, generate a SchemaSpy diagram, or any combination — selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
+**REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front whether to deploy the stack, run the BBL import, generate a SchemaSpy diagram, or any combination — selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
 ---
 
