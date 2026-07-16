@@ -21,7 +21,7 @@ import {
 } from './team-toplist';
 import {
   expectLeaderboardEmbed,
-  expectStunnedOnTimeout,
+  expectTimeoutFallback,
 } from './toplist.test-helpers';
 
 interface TeamCase {
@@ -267,7 +267,7 @@ describe.each(cases)(
     }
 
     it('falls back to "I am stunned" when the query does not respond in time', async () => {
-      await expectStunnedOnTimeout(
+      await expectTimeoutFallback(
         (teams: TeamsService) => resolve(teams),
         () =>
           ({

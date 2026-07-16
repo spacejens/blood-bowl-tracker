@@ -2,7 +2,7 @@ import type { ErasService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { resolveErasList } from './eras-list';
-import { expectStunnedOnTimeout } from './toplist.test-helpers';
+import { expectTimeoutFallback } from './toplist.test-helpers';
 
 type EraRow = {
   id: number;
@@ -130,7 +130,7 @@ describe('resolveErasList', () => {
   });
 
   it('falls back to the stunned message when the era query times out', async () => {
-    await expectStunnedOnTimeout(
+    await expectTimeoutFallback(
       (eras: ErasService) => resolveErasList(eras),
       () =>
         ({
@@ -141,7 +141,7 @@ describe('resolveErasList', () => {
   });
 
   it('falls back to the stunned message when the rules-set lookup times out', async () => {
-    await expectStunnedOnTimeout(
+    await expectTimeoutFallback(
       (eras: ErasService) => resolveErasList(eras),
       () =>
         ({

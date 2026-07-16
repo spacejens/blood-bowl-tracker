@@ -7,7 +7,7 @@ import {
 } from './race-toplist';
 import {
   expectLeaderboardEmbed,
-  expectStunnedOnTimeout,
+  expectTimeoutFallback,
 } from './toplist.test-helpers';
 
 interface RaceCase {
@@ -67,7 +67,7 @@ describe.each(cases)(
     });
 
     it('falls back to "I am stunned" when the query does not respond in time', async () => {
-      await expectStunnedOnTimeout(
+      await expectTimeoutFallback(
         (races: RacesService) => resolve(races),
         () =>
           ({

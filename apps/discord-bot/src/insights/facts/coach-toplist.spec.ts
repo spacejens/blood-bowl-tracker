@@ -9,7 +9,7 @@ import {
 } from './coach-toplist';
 import {
   expectLeaderboardEmbed,
-  expectStunnedOnTimeout,
+  expectTimeoutFallback,
 } from './toplist.test-helpers';
 
 interface ToplistCase {
@@ -76,7 +76,7 @@ describe.each(cases)(
     });
 
     it('falls back to "I am stunned" when the query does not respond in time', async () => {
-      await expectStunnedOnTimeout(
+      await expectTimeoutFallback(
         (coaches: CoachesService) => resolve(coaches),
         () =>
           ({

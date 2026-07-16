@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../../database-timeout';
 import type { StatsSummaryDeps } from './stats-summary';
 import { resolveStatsSummary } from './stats-summary';
-import { expectStunnedOnTimeout } from './toplist.test-helpers';
+import { expectTimeoutFallback } from './toplist.test-helpers';
 
 function makeDeps(
   overrides: Partial<Record<string, unknown>> = {},
@@ -59,7 +59,7 @@ describe('resolveStatsSummary', () => {
   });
 
   it('falls back to "I am stunned" when a count does not respond in time', async () => {
-    await expectStunnedOnTimeout(
+    await expectTimeoutFallback(
       (deps: StatsSummaryDeps) => resolveStatsSummary(deps),
       () =>
         makeDeps({
@@ -145,7 +145,7 @@ describe('resolveStatsSummary era-filtered', () => {
   });
 
   it('falls back to the stunned message when an era count times out', async () => {
-    await expectStunnedOnTimeout(
+    await expectTimeoutFallback(
       (deps: StatsSummaryDeps) => resolveStatsSummary(deps, 5),
       () =>
         makeEraDeps({
@@ -256,7 +256,7 @@ describe('resolveStatsSummary competition-filtered', () => {
   });
 
   it('falls back to the stunned message when a competition count times out', async () => {
-    await expectStunnedOnTimeout(
+    await expectTimeoutFallback(
       (deps: StatsSummaryDeps) => resolveStatsSummary(deps, undefined, 7),
       () =>
         makeCompetitionDeps({

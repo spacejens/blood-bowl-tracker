@@ -18,7 +18,7 @@ import {
 } from './player-toplist';
 import {
   expectLeaderboardEmbed,
-  expectStunnedOnTimeout,
+  expectTimeoutFallback,
 } from './toplist.test-helpers';
 
 interface PlayerCase {
@@ -246,7 +246,7 @@ describe.each(cases)(
     }
 
     it('falls back to "I am stunned" when the query does not respond in time', async () => {
-      await expectStunnedOnTimeout(
+      await expectTimeoutFallback(
         (players: PlayersService) => resolve(players),
         () =>
           ({
