@@ -3,13 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   resolvePlayerCasualtiesCausedToplist,
+  resolvePlayerCasualtiesSufferedToplist,
   resolvePlayerCompletionsToplist,
   resolvePlayerDeathsCausedToplist,
   resolvePlayerDeflectionsToplist,
   resolvePlayerFoulsCommittedToplist,
   resolvePlayerInterceptionsToplist,
+  resolvePlayerLastingInjuriesSufferedToplist,
   resolvePlayerMvpsToplist,
   resolvePlayerSeriousInjuriesCausedToplist,
+  resolvePlayerSeriousInjuriesSufferedToplist,
   resolvePlayerTimesSentOffToplist,
   resolvePlayerTouchdownsScoredToplist,
 } from './player-toplist';
@@ -461,6 +464,147 @@ describe('resolvePlayerTimesSentOffToplist', () => {
           .mockReturnValue(new Promise(() => {})),
       } as unknown as PlayersService;
       const promise = resolvePlayerTimesSentOffToplist(players);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolvePlayerCasualtiesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows including a tie', async () => {
+    const players = {
+      countCasualtiesSufferedByPlayer: vi.fn().mockResolvedValue([
+        { playerId: 1, name: 'Griff Oberwald', count: 12 },
+        { playerId: 2, name: 'Zug', count: 12 },
+        { playerId: 3, name: 'Morg n Thorg', count: 3 },
+      ]),
+    } as unknown as PlayersService;
+    const result = await resolvePlayerCasualtiesSufferedToplist(players);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by casualties suffered',
+          description:
+            '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countCasualtiesSufferedByPlayer = vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 3 }]);
+    const players = {
+      countCasualtiesSufferedByPlayer,
+    } as unknown as PlayersService;
+    await resolvePlayerCasualtiesSufferedToplist(players, 20);
+    expect(countCasualtiesSufferedByPlayer).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const players = {
+        countCasualtiesSufferedByPlayer: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as PlayersService;
+      const promise = resolvePlayerCasualtiesSufferedToplist(players);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolvePlayerSeriousInjuriesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows', async () => {
+    const players = {
+      countSeriousInjuriesSufferedByPlayer: vi
+        .fn()
+        .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 5 }]),
+    } as unknown as PlayersService;
+    const result = await resolvePlayerSeriousInjuriesSufferedToplist(players);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by serious injuries suffered',
+          description: '1. Griff Oberwald — 5',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countSeriousInjuriesSufferedByPlayer = vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 2 }]);
+    const players = {
+      countSeriousInjuriesSufferedByPlayer,
+    } as unknown as PlayersService;
+    await resolvePlayerSeriousInjuriesSufferedToplist(players, 20);
+    expect(countSeriousInjuriesSufferedByPlayer).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const players = {
+        countSeriousInjuriesSufferedByPlayer: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as PlayersService;
+      const promise = resolvePlayerSeriousInjuriesSufferedToplist(players);
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('I am stunned');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe('resolvePlayerLastingInjuriesSufferedToplist', () => {
+  it('returns a leaderboard embed built from the query rows', async () => {
+    const players = {
+      countLastingInjuriesSufferedByPlayer: vi
+        .fn()
+        .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 4 }]),
+    } as unknown as PlayersService;
+    const result = await resolvePlayerLastingInjuriesSufferedToplist(players);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Players by lasting injuries suffered',
+          description: '1. Griff Oberwald — 4',
+        },
+      ],
+    });
+  });
+
+  it('passes the era id through to the query', async () => {
+    const countLastingInjuriesSufferedByPlayer = vi
+      .fn()
+      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 2 }]);
+    const players = {
+      countLastingInjuriesSufferedByPlayer,
+    } as unknown as PlayersService;
+    await resolvePlayerLastingInjuriesSufferedToplist(players, 20);
+    expect(countLastingInjuriesSufferedByPlayer).toHaveBeenCalledWith(20);
+  });
+
+  it('falls back to "I am stunned" when the query does not respond in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const players = {
+        countLastingInjuriesSufferedByPlayer: vi
+          .fn()
+          .mockReturnValue(new Promise(() => {})),
+      } as unknown as PlayersService;
+      const promise = resolvePlayerLastingInjuriesSufferedToplist(players);
       await vi.advanceTimersByTimeAsync(2000);
       await expect(promise).resolves.toBe('I am stunned');
     } finally {

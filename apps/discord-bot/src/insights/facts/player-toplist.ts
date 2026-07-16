@@ -92,3 +92,30 @@ export async function resolvePlayerTimesSentOffToplist(
     players.countTimesSentOffByPlayer(eraId),
   );
 }
+
+export async function resolvePlayerCasualtiesSufferedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by casualties suffered', () =>
+    players.countCasualtiesSufferedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerSeriousInjuriesSufferedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by serious injuries suffered', () =>
+    players.countSeriousInjuriesSufferedByPlayer(eraId),
+  );
+}
+
+export async function resolvePlayerLastingInjuriesSufferedToplist(
+  players: PlayersService,
+  eraId?: number,
+): Promise<string | InteractionReplyOptions> {
+  return resolveToplist('Players by lasting injuries suffered', () =>
+    players.countLastingInjuriesSufferedByPlayer(eraId),
+  );
+}
