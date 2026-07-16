@@ -47,7 +47,7 @@ export {
 } from './players/players.service';
 export { PositionsModule } from './positions/positions.module';
 export type {
-  PositionWithRaces,
+  SyncPositionRaceErasData,
   UpsertPositionData,
 } from './positions/positions.service';
 export {
