@@ -105,13 +105,14 @@ export class PositionsService {
       raceEraRows.map((r) => [`${r.raceId}:${r.eraId}`, r.id]),
     );
 
-    const raceEraIds: number[] = [];
+    const resolvedIds: number[] = [];
     for (const re of data.raceEras) {
       const id = idByKey.get(`${re.raceId}:${re.eraId}`);
       if (id !== undefined) {
-        raceEraIds.push(id);
+        resolvedIds.push(id);
       }
     }
+    const raceEraIds = [...new Set(resolvedIds)];
 
     if (raceEraIds.length > 0) {
       const existing = await this.db

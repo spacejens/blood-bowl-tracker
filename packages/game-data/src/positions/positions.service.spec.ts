@@ -234,6 +234,29 @@ describe('PositionsService', () => {
       expect(call?.values).toEqual([{ positionId: 1, raceEraId: 100 }]);
     });
 
+    it('dedupes duplicate resolved race_era ids so only one row is inserted', async () => {
+      const { db, calls } = makeSyncDb(
+        [
+          { id: 100, raceId: 2, eraId: 5 },
+          { id: 100, raceId: 3, eraId: 5 },
+        ],
+        [],
+      );
+      const service = new PositionsService(db);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 3, eraId: 5 },
+        ],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      const call = calls.find((c) => c.table === positionsRaceEras);
+      expect(call?.values).toEqual([{ positionId: 1, raceEraId: 100 }]);
+    });
+
     it('returns an empty list and inserts nothing for empty input', async () => {
       const { db, calls } = makeSyncDb([], []);
       const service = new PositionsService(db);
