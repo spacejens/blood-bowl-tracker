@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../../database-timeout';
+import {
+  STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
+  STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
+} from '../../error-messages';
 import type { StatsSummaryDeps } from './stats-summary';
 import { resolveStatsSummary } from './stats-summary';
 import { expectTimeoutFallback } from './toplist.test-helpers';
@@ -58,7 +63,7 @@ describe('resolveStatsSummary', () => {
     });
   });
 
-  it('falls back to "I am stunned" when a count does not respond in time', async () => {
+  it('falls back to the all-time timeout message when a count does not respond in time', async () => {
     await expectTimeoutFallback(
       (deps: StatsSummaryDeps) => resolveStatsSummary(deps),
       () =>
@@ -68,6 +73,7 @@ describe('resolveStatsSummary', () => {
             countMatchEvents: vi.fn().mockResolvedValue(0),
           },
         }),
+      STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
     );
   });
 });
@@ -154,6 +160,7 @@ describe('resolveStatsSummary era-filtered', () => {
             countMatchEventsByEra: vi.fn().mockResolvedValue(0),
           },
         }),
+      STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
     );
   });
 });
@@ -252,7 +259,7 @@ describe('resolveStatsSummary competition-filtered', () => {
       undefined,
       999,
     );
-    expect(result).toBe(DATABASE_TIMEOUT_FALLBACK_MESSAGE);
+    expect(result).toBe(STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('falls back to the stunned message when a competition count times out', async () => {
@@ -265,6 +272,7 @@ describe('resolveStatsSummary competition-filtered', () => {
             countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
           },
         }),
+      STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
     );
   });
 });
