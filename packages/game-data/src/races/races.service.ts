@@ -1,6 +1,7 @@
 import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  competitionTeams,
   matchTeams,
   raceEras,
   raceExternalIds,
@@ -175,6 +176,16 @@ export class RacesService {
       .select({ count: countDistinct(raceEras.raceId) })
       .from(raceEras)
       .where(eq(raceEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(teams.raceId) })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(competitionTeams.competitionId, competitionId));
     return row.count;
   }
 }

@@ -226,4 +226,22 @@ describe('MatchesService', () => {
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('competition-scoped counts', () => {
+    it('countByCompetition returns the match count for the competition', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 30 }]));
+      const service = new MatchesService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(30);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countMatchEventsByCompetition returns the match-event count for the competition', async () => {
+      const builder = makeCountBuilder([{ count: 500 }]);
+      const select = vi.fn(() => builder);
+      const service = new MatchesService({ select } as unknown as Db);
+      await expect(service.countMatchEventsByCompetition(7)).resolves.toBe(500);
+      // match_events -> matches
+      expect(builder.innerJoin).toHaveBeenCalledTimes(1);
+    });
+  });
 });

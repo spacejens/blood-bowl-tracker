@@ -194,4 +194,14 @@ export class CoachesService {
       .where(eq(teamEras.eraId, eraId));
     return row.count;
   }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(teams.coachId) })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(competitionTeams.competitionId, competitionId));
+    return row.count;
+  }
 }

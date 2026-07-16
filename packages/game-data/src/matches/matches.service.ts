@@ -8,7 +8,7 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -155,6 +155,23 @@ export class MatchesService {
       .innerJoin(matchTeams, eq(matchTeams.matchId, matchEvents.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(matches)
+      .where(eq(matches.competitionId, competitionId));
+    return row.count;
+  }
+
+  async countMatchEventsByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(matchEvents.id) })
+      .from(matchEvents)
+      .innerJoin(matches, eq(matches.id, matchEvents.matchId))
+      .where(eq(matches.competitionId, competitionId));
     return row.count;
   }
 }

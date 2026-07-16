@@ -53,17 +53,20 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         matches: {
           played: {
             supportsEra: true,
+            supportsCompetition: false,
             resolve: (eraId) =>
               resolveCoachMatchesPlayedToplist(deps.coaches, eraId),
           },
         },
         teams: {
           supportsEra: true,
+          supportsCompetition: false,
           resolve: (eraId) => resolveCoachTeamsToplist(deps.coaches, eraId),
         },
         competitions: {
           played: {
             supportsEra: true,
+            supportsCompetition: false,
             resolve: (eraId) =>
               resolveCoachCompetitionsPlayedToplist(deps.coaches, eraId),
           },
@@ -71,6 +74,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         eras: {
           active: {
             supportsEra: false,
+            supportsCompetition: false,
             resolve: () => resolveCoachErasActiveToplist(deps.coaches),
           },
         },
@@ -81,6 +85,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         matches: {
           played: {
             supportsEra: true,
+            supportsCompetition: false,
             resolve: (eraId) =>
               resolveTeamMatchesPlayedToplist(deps.teams, eraId),
           },
@@ -88,6 +93,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         competitions: {
           played: {
             supportsEra: true,
+            supportsCompetition: false,
             resolve: (eraId) =>
               resolveTeamCompetitionsPlayedToplist(deps.teams, eraId),
           },
@@ -95,84 +101,133 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         eras: {
           active: {
             supportsEra: false,
+            supportsCompetition: false,
             resolve: () => resolveTeamErasActiveToplist(deps.teams),
           },
         },
         touchdowns: {
           scored: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamTouchdownsScoredToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamTouchdownsScoredToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
           },
         },
         completions: {
           supportsEra: true,
-          resolve: (eraId) => resolveTeamCompletionsToplist(deps.teams, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolveTeamCompletionsToplist(deps.teams, eraId, competitionId),
         },
         interceptions: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolveTeamInterceptionsToplist(deps.teams, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolveTeamInterceptionsToplist(deps.teams, eraId, competitionId),
         },
         deflections: {
           supportsEra: true,
-          resolve: (eraId) => resolveTeamDeflectionsToplist(deps.teams, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolveTeamDeflectionsToplist(deps.teams, eraId, competitionId),
         },
         casualties: {
           caused: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamCasualtiesCausedToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamCasualtiesCausedToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
           },
           suffered: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamCasualtiesSufferedToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamCasualtiesSufferedToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
           },
         },
         injuries: {
           serious: {
             caused: {
               supportsEra: true,
-              resolve: (eraId) =>
-                resolveTeamSeriousInjuriesCausedToplist(deps.teams, eraId),
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
+                resolveTeamSeriousInjuriesCausedToplist(
+                  deps.teams,
+                  eraId,
+                  competitionId,
+                ),
             },
             suffered: {
               supportsEra: true,
-              resolve: (eraId) =>
-                resolveTeamSeriousInjuriesSufferedToplist(deps.teams, eraId),
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
+                resolveTeamSeriousInjuriesSufferedToplist(
+                  deps.teams,
+                  eraId,
+                  competitionId,
+                ),
             },
           },
           lasting: {
             suffered: {
               supportsEra: true,
-              resolve: (eraId) =>
-                resolveTeamLastingInjuriesSufferedToplist(deps.teams, eraId),
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
+                resolveTeamLastingInjuriesSufferedToplist(
+                  deps.teams,
+                  eraId,
+                  competitionId,
+                ),
             },
           },
         },
         deaths: {
           caused: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamDeathsCausedToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamDeathsCausedToplist(deps.teams, eraId, competitionId),
           },
           suffered: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamDeathsSufferedToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamDeathsSufferedToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
           },
         },
         fouls: {
           committed: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolveTeamFoulsCommittedToplist(deps.teams, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamFoulsCommittedToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
           },
         },
         sent_off: {
           supportsEra: true,
-          resolve: (eraId) => resolveTeamTimesSentOffToplist(deps.teams, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolveTeamTimesSentOffToplist(deps.teams, eraId, competitionId),
         },
       },
     },
@@ -180,65 +235,98 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
       toplist: {
         mvps: {
           supportsEra: true,
-          resolve: (eraId) => resolvePlayerMvpsToplist(deps.players, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolvePlayerMvpsToplist(deps.players, eraId, competitionId),
         },
         touchdowns: {
           scored: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolvePlayerTouchdownsScoredToplist(deps.players, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolvePlayerTouchdownsScoredToplist(
+                deps.players,
+                eraId,
+                competitionId,
+              ),
           },
         },
         completions: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolvePlayerCompletionsToplist(deps.players, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolvePlayerCompletionsToplist(deps.players, eraId, competitionId),
         },
         interceptions: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolvePlayerInterceptionsToplist(deps.players, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolvePlayerInterceptionsToplist(
+              deps.players,
+              eraId,
+              competitionId,
+            ),
         },
         deflections: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolvePlayerDeflectionsToplist(deps.players, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolvePlayerDeflectionsToplist(deps.players, eraId, competitionId),
         },
         casualties: {
           caused: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolvePlayerCasualtiesCausedToplist(deps.players, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolvePlayerCasualtiesCausedToplist(
+                deps.players,
+                eraId,
+                competitionId,
+              ),
           },
           suffered: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolvePlayerCasualtiesSufferedToplist(deps.players, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolvePlayerCasualtiesSufferedToplist(
+                deps.players,
+                eraId,
+                competitionId,
+              ),
           },
         },
         injuries: {
           serious: {
             caused: {
               supportsEra: true,
-              resolve: (eraId) =>
-                resolvePlayerSeriousInjuriesCausedToplist(deps.players, eraId),
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
+                resolvePlayerSeriousInjuriesCausedToplist(
+                  deps.players,
+                  eraId,
+                  competitionId,
+                ),
             },
             suffered: {
               supportsEra: true,
-              resolve: (eraId) =>
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
                 resolvePlayerSeriousInjuriesSufferedToplist(
                   deps.players,
                   eraId,
+                  competitionId,
                 ),
             },
           },
           lasting: {
             suffered: {
               supportsEra: true,
-              resolve: (eraId) =>
+              supportsCompetition: true,
+              resolve: (eraId, competitionId) =>
                 resolvePlayerLastingInjuriesSufferedToplist(
                   deps.players,
                   eraId,
+                  competitionId,
                 ),
             },
           },
@@ -246,21 +334,36 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         deaths: {
           caused: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolvePlayerDeathsCausedToplist(deps.players, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolvePlayerDeathsCausedToplist(
+                deps.players,
+                eraId,
+                competitionId,
+              ),
           },
         },
         fouls: {
           committed: {
             supportsEra: true,
-            resolve: (eraId) =>
-              resolvePlayerFoulsCommittedToplist(deps.players, eraId),
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolvePlayerFoulsCommittedToplist(
+                deps.players,
+                eraId,
+                competitionId,
+              ),
           },
         },
         sent_off: {
           supportsEra: true,
-          resolve: (eraId) =>
-            resolvePlayerTimesSentOffToplist(deps.players, eraId),
+          supportsCompetition: true,
+          resolve: (eraId, competitionId) =>
+            resolvePlayerTimesSentOffToplist(
+              deps.players,
+              eraId,
+              competitionId,
+            ),
         },
       },
     },
@@ -268,11 +371,13 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
       toplist: {
         teams: {
           supportsEra: true,
+          supportsCompetition: false,
           resolve: (eraId) => resolveRaceTeamsToplist(deps.races, eraId),
         },
         matches: {
           played: {
             supportsEra: true,
+            supportsCompetition: false,
             resolve: (eraId) =>
               resolveRaceMatchesPlayedToplist(deps.races, eraId),
           },
@@ -282,12 +387,15 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
     eras: {
       list: {
         supportsEra: false,
+        supportsCompetition: false,
         resolve: () => resolveErasList(deps.eras),
       },
     },
     stats: {
       supportsEra: true,
-      resolve: (eraId) => resolveStatsSummary(deps, eraId),
+      supportsCompetition: true,
+      resolve: (eraId, competitionId) =>
+        resolveStatsSummary(deps, eraId, competitionId),
     },
   };
 }

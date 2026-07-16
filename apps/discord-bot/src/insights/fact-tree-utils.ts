@@ -2,7 +2,11 @@ import type { InteractionReplyOptions } from 'discord.js';
 
 export interface FactLeaf {
   supportsEra: boolean;
-  resolve: (eraId?: number) => Promise<string | InteractionReplyOptions>;
+  supportsCompetition: boolean;
+  resolve: (
+    eraId?: number,
+    competitionId?: number,
+  ) => Promise<string | InteractionReplyOptions>;
 }
 export type FactNode = FactLeaf | { [segment: string]: FactNode };
 

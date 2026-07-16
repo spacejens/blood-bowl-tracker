@@ -449,3 +449,69 @@ describe('buildFactTree leaf capabilities', () => {
     expect(unsupported).toHaveLength(3);
   });
 });
+
+describe('buildFactTree competition capabilities', () => {
+  it('includes only the team/player toplists and stats that support competition filtering', () => {
+    const tree = buildFactTree({} as StatsSummaryDeps);
+    const supported = collectLeaves(tree).filter(
+      (leaf) => leaf.supportsCompetition,
+    );
+    expect(supported).toEqual(
+      expect.arrayContaining([
+        resolvePath(tree, 'team.toplist.touchdowns.scored'),
+        resolvePath(tree, 'team.toplist.completions'),
+        resolvePath(tree, 'team.toplist.interceptions'),
+        resolvePath(tree, 'team.toplist.deflections'),
+        resolvePath(tree, 'team.toplist.casualties.caused'),
+        resolvePath(tree, 'team.toplist.casualties.suffered'),
+        resolvePath(tree, 'team.toplist.injuries.serious.caused'),
+        resolvePath(tree, 'team.toplist.injuries.serious.suffered'),
+        resolvePath(tree, 'team.toplist.injuries.lasting.suffered'),
+        resolvePath(tree, 'team.toplist.deaths.caused'),
+        resolvePath(tree, 'team.toplist.deaths.suffered'),
+        resolvePath(tree, 'team.toplist.fouls.committed'),
+        resolvePath(tree, 'team.toplist.sent_off'),
+        resolvePath(tree, 'player.toplist.mvps'),
+        resolvePath(tree, 'player.toplist.touchdowns.scored'),
+        resolvePath(tree, 'player.toplist.completions'),
+        resolvePath(tree, 'player.toplist.interceptions'),
+        resolvePath(tree, 'player.toplist.deflections'),
+        resolvePath(tree, 'player.toplist.casualties.caused'),
+        resolvePath(tree, 'player.toplist.casualties.suffered'),
+        resolvePath(tree, 'player.toplist.injuries.serious.caused'),
+        resolvePath(tree, 'player.toplist.injuries.serious.suffered'),
+        resolvePath(tree, 'player.toplist.injuries.lasting.suffered'),
+        resolvePath(tree, 'player.toplist.deaths.caused'),
+        resolvePath(tree, 'player.toplist.fouls.committed'),
+        resolvePath(tree, 'player.toplist.sent_off'),
+        resolvePath(tree, 'stats'),
+      ]),
+    );
+    expect(supported).toHaveLength(27);
+  });
+
+  it('forwards competitionId to an in-scope team leaf', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.touchdowns.scored',
+    );
+    await (leaf as FactLeaf).resolve(undefined, 30);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(d.teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
+      undefined,
+      30,
+    );
+  });
+
+  it('forwards competitionId to an in-scope player leaf', async () => {
+    const d = deps();
+    const leaf = resolvePath(buildFactTree(d), 'player.toplist.mvps');
+    await (leaf as FactLeaf).resolve(undefined, 30);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalledWith(
+      undefined,
+      30,
+    );
+  });
+});

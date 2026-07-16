@@ -1,10 +1,13 @@
 import type { Db, Position } from '@blood-bowl-tracker/db';
 import {
+  competitionTeams,
   DB,
   positionExternalIds,
   positions,
   positionsRaces,
   raceEras,
+  teamEras,
+  teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, eq, or } from 'drizzle-orm';
@@ -164,6 +167,22 @@ export class PositionsService {
       .from(positionsRaces)
       .innerJoin(raceEras, eq(raceEras.raceId, positionsRaces.raceId))
       .where(eq(raceEras.eraId, eraId));
+    return row.count;
+  }
+
+  /**
+   * Approximation: mirrors countByEra — counts every position of any race
+   * played by a team in the competition, without accounting for whether the
+   * position existed for that race at the time. See issue #153.
+   */
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(positionsRaces.positionId) })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(positionsRaces, eq(positionsRaces.raceId, teams.raceId))
+      .where(eq(competitionTeams.competitionId, competitionId));
     return row.count;
   }
 }

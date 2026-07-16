@@ -218,4 +218,13 @@ describe('RacesService', () => {
       expect(select).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByCompetition', () => {
+    it('returns the distinct race count for the competition', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 5 }]));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(5);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
 });

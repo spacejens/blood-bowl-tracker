@@ -4,9 +4,11 @@ import {
   competitions,
   competitionTeams,
   DB,
+  eras,
+  leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, or } from 'drizzle-orm';
+import { and, count, eq, ilike, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -22,6 +24,10 @@ export interface UpsertCompetitionData {
 
 export interface CompetitionWithTeamEras extends Competition {
   teamEraIds: number[];
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
 @Injectable()
@@ -156,5 +162,40 @@ export class CompetitionsService {
           : and(eq(competitions.type, type), eq(competitions.eraId, eraId)),
       );
     return row.count;
+  }
+
+  async findById(
+    id: number,
+  ): Promise<
+    | { id: number; name: string; type: 'season' | 'cup'; eraId: number }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        type: competitions.type,
+        eraId: competitions.eraId,
+      })
+      .from(competitions)
+      .where(eq(competitions.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; leagueName: string }[]> {
+    return this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        leagueName: leagues.name,
+      })
+      .from(competitions)
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .innerJoin(leagues, eq(leagues.id, eras.leagueId))
+      .where(ilike(competitions.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
   }
 }

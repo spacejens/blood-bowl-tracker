@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../../database-timeout';
 import type { StatsSummaryDeps } from './stats-summary';
 import { resolveStatsSummary } from './stats-summary';
 import { expectStunnedOnTimeout } from './toplist.test-helpers';
@@ -151,6 +152,117 @@ describe('resolveStatsSummary era-filtered', () => {
           matches: {
             countByEra: vi.fn().mockReturnValue(new Promise(() => {})),
             countMatchEventsByEra: vi.fn().mockResolvedValue(0),
+          },
+        }),
+    );
+  });
+});
+
+function makeCompetitionDeps(
+  overrides: Partial<Record<string, unknown>> = {},
+): StatsSummaryDeps {
+  return {
+    leagues: { countAll: vi.fn() },
+    externalSystems: { countByCompetition: vi.fn().mockResolvedValue(2) },
+    rulesSets: { countAll: vi.fn() },
+    races: { countByCompetition: vi.fn().mockResolvedValue(4) },
+    positions: { countByCompetition: vi.fn().mockResolvedValue(20) },
+    coaches: { countByCompetition: vi.fn().mockResolvedValue(6) },
+    eras: { getRulesSetNames: vi.fn().mockResolvedValue(['BB2020']) },
+    competitions: {
+      findById: vi.fn().mockResolvedValue({
+        id: 7,
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 5,
+      }),
+    },
+    teams: { countByCompetition: vi.fn().mockResolvedValue(8) },
+    players: { countByCompetition: vi.fn().mockResolvedValue(90) },
+    matches: {
+      countByCompetition: vi.fn().mockResolvedValue(15),
+      countMatchEventsByCompetition: vi.fn().mockResolvedValue(250),
+    },
+    ...overrides,
+  } as unknown as StatsSummaryDeps;
+}
+
+describe('resolveStatsSummary competition-filtered', () => {
+  it('renders competition-scoped lines with leagues/eras/competitions as 1 and a season breakdown', async () => {
+    const result = await resolveStatsSummary(
+      makeCompetitionDeps(),
+      undefined,
+      7,
+    );
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Statistics',
+          description: [
+            'Leagues: 1',
+            'Eras: 1',
+            'External systems: 2',
+            'Rules sets: 1',
+            'Races: 4',
+            'Positions: 20',
+            'Coaches: 6',
+            'Competitions: 1 (1 seasons, 0 cups)',
+            'Teams: 8',
+            'Players: 90',
+            'Matches: 15',
+            'Match events: 250',
+          ].join('\n'),
+        },
+      ],
+    });
+  });
+
+  it('shows a cup breakdown when the competition type is cup', async () => {
+    const result = await resolveStatsSummary(
+      makeCompetitionDeps({
+        competitions: {
+          findById: vi.fn().mockResolvedValue({
+            id: 8,
+            name: 'Spike Cup',
+            type: 'cup',
+            eraId: 5,
+          }),
+        },
+      }),
+      undefined,
+      8,
+    );
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Competitions: 1 (0 seasons, 1 cups)');
+  });
+
+  it('reuses the era rules-set names keyed by the competition era', async () => {
+    const deps = makeCompetitionDeps();
+    await resolveStatsSummary(deps, undefined, 7);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(deps.eras.getRulesSetNames).toHaveBeenCalledWith(5);
+  });
+
+  it('returns the fallback message when the competition cannot be found', async () => {
+    const result = await resolveStatsSummary(
+      makeCompetitionDeps({
+        competitions: { findById: vi.fn().mockResolvedValue(undefined) },
+      }),
+      undefined,
+      999,
+    );
+    expect(result).toBe(DATABASE_TIMEOUT_FALLBACK_MESSAGE);
+  });
+
+  it('falls back to the stunned message when a competition count times out', async () => {
+    await expectStunnedOnTimeout(
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, undefined, 7),
+      () =>
+        makeCompetitionDeps({
+          matches: {
+            countByCompetition: vi.fn().mockReturnValue(new Promise(() => {})),
+            countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
           },
         }),
     );

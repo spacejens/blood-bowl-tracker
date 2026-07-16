@@ -1,6 +1,10 @@
 import type { ExternalSystem, NewExternalSystem } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
-import { eraExternalIds, externalSystems } from '@blood-bowl-tracker/db';
+import {
+  competitionExternalIds,
+  eraExternalIds,
+  externalSystems,
+} from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, eq, ne } from 'drizzle-orm';
@@ -53,6 +57,23 @@ export class ExternalSystemsService {
       .where(
         and(
           eq(eraExternalIds.eraId, eraId),
+          ne(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
+        ),
+      );
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(externalSystems.id) })
+      .from(competitionExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, competitionExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(competitionExternalIds.competitionId, competitionId),
           ne(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
         ),
       );
