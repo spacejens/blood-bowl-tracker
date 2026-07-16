@@ -21,6 +21,14 @@ import type {
 } from 'discord.js';
 import { ApplicationCommandOptionType } from 'discord.js';
 
+import {
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
+  INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
+  INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE,
+  INSIGHTS_ERA_NOT_FOUND_MESSAGE,
+  INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
+} from '../error-messages';
 import { buildFactTree } from '../insights/fact-tree';
 import type { FactLeaf, FactNode } from '../insights/fact-tree-utils';
 import {
@@ -29,15 +37,6 @@ import {
   resolvePath,
 } from '../insights/fact-tree-utils';
 
-const UNMATCHED_FALLBACK_MESSAGE =
-  "Even the Apothecary can't make sense of that one.";
-const ERA_REJECTION_MESSAGE =
-  'Even the Assistant Coach cannot understand your request';
-const ERA_COMPETITION_CONFLICT_MESSAGE = 'The referee rejects your request';
-const COMPETITION_NOT_FOUND_MESSAGE =
-  "Even the League Secretary can't find that competition in the fixture list.";
-const COMPETITION_CATEGORY_REJECTION_MESSAGE =
-  "Even the Ref's assistant can't scope that to a competition.";
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
@@ -116,7 +115,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     const competitionOption = interaction.options.getString('competition');
 
     if (eraOption !== null && competitionOption !== null) {
-      return ERA_COMPETITION_CONFLICT_MESSAGE;
+      return INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE;
     }
 
     let era: { id: number; name: string } | undefined;
@@ -126,7 +125,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
         ? await this.eras.findById(eraId)
         : undefined;
       if (!found) {
-        return ERA_REJECTION_MESSAGE;
+        return INSIGHTS_ERA_NOT_FOUND_MESSAGE;
       }
       era = found;
     }
@@ -138,7 +137,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
         ? await this.competitions.findById(competitionId)
         : undefined;
       if (!found) {
-        return COMPETITION_NOT_FOUND_MESSAGE;
+        return INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE;
       }
       competition = found;
     }
@@ -149,20 +148,20 @@ export class InsightsCommandService implements OnApplicationBootstrap {
 
     const node = resolvePath(this.factTree, category);
     if (node === undefined) {
-      return UNMATCHED_FALLBACK_MESSAGE;
+      return INSIGHTS_UNMATCHED_CATEGORY_MESSAGE;
     }
 
     let leaves = collectLeaves(node);
     if (era) {
       leaves = leaves.filter((leaf) => leaf.supportsEra);
       if (leaves.length === 0) {
-        return ERA_REJECTION_MESSAGE;
+        return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE;
       }
     }
     if (competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
       if (leaves.length === 0) {
-        return COMPETITION_CATEGORY_REJECTION_MESSAGE;
+        return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE;
       }
     }
 
