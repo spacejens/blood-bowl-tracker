@@ -261,6 +261,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countMvpAwardsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countMvpAwardsByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countTouchdownsScoredByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 9 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -280,6 +290,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countTouchdownsScoredByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTouchdownsScoredByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countCompletionsByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 6 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -293,6 +313,16 @@ describe('PlayersService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countCompletionsByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countCompletionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCompletionsByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
@@ -312,6 +342,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countInterceptionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countInterceptionsByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countDeflectionsByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -325,6 +365,16 @@ describe('PlayersService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeflectionsByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeflectionsByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeflectionsByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
@@ -350,6 +400,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countCasualtiesCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesCausedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countSeriousInjuriesCausedByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -368,6 +428,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countSeriousInjuriesCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesCausedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countDeathsCausedByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 2 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -381,6 +451,16 @@ describe('PlayersService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeathsCausedByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeathsCausedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeathsCausedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
@@ -402,6 +482,16 @@ describe('PlayersService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countFoulsCommittedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countFoulsCommittedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countTimesSentOffByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 5 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -415,6 +505,16 @@ describe('PlayersService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countTimesSentOffByPlayer(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countTimesSentOffByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countTimesSentOffByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
@@ -461,6 +561,16 @@ describe('PlayersService', () => {
       ]);
     });
 
+    it('countCasualtiesSufferedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesSufferedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countSeriousInjuriesSufferedByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 5 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -497,6 +607,16 @@ describe('PlayersService', () => {
       ]);
     });
 
+    it('countSeriousInjuriesSufferedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesSufferedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
     it('countLastingInjuriesSufferedByPlayer returns the rows the query resolves to', async () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -529,6 +649,16 @@ describe('PlayersService', () => {
         'stat_reduction_ag',
         'stat_reduction_av',
       ]);
+    });
+
+    it('countLastingInjuriesSufferedByPlayer joins matches and filters by competition when a competitionId is given', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countLastingInjuriesSufferedByPlayer(undefined, 30);
+      expect(builder.innerJoin).toHaveBeenCalled();
+      expect(builder.where).toHaveBeenCalledTimes(1);
     });
   });
 });

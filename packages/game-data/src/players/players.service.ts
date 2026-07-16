@@ -1,6 +1,7 @@
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
   DB,
+  matches,
   matchEvents,
   matchTeams,
   playerExternalIds,
@@ -96,6 +97,7 @@ export class PlayersService {
 
   async countMvpAwardsByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -106,11 +108,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'mvp_award'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -119,6 +125,7 @@ export class PlayersService {
 
   async countTouchdownsScoredByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -129,11 +136,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'touchdown'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -142,6 +153,7 @@ export class PlayersService {
 
   async countCompletionsByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -152,11 +164,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'completion'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -165,6 +181,7 @@ export class PlayersService {
 
   async countInterceptionsByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -175,11 +192,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'interception'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -188,6 +209,7 @@ export class PlayersService {
 
   async countDeflectionsByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -198,11 +220,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'deflection'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -211,6 +237,7 @@ export class PlayersService {
 
   async countCasualtiesCausedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -221,6 +248,7 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
@@ -231,6 +259,9 @@ export class PlayersService {
             'death',
           ]),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -239,6 +270,7 @@ export class PlayersService {
 
   async countSeriousInjuriesCausedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -249,11 +281,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'serious_injury'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -262,6 +298,7 @@ export class PlayersService {
 
   async countDeathsCausedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -272,11 +309,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'death'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -285,6 +326,7 @@ export class PlayersService {
 
   async countFoulsCommittedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -295,11 +337,15 @@ export class PlayersService {
       .from(matchEvents)
       .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
       .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.actionType, 'foul'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -308,6 +354,7 @@ export class PlayersService {
 
   async countTimesSentOffByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -321,11 +368,15 @@ export class PlayersService {
         matchTeams,
         eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
       )
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
           eq(matchEvents.consequenceType, 'sent_off'),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -334,6 +385,7 @@ export class PlayersService {
 
   async countCasualtiesSufferedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -347,6 +399,7 @@ export class PlayersService {
         matchTeams,
         eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
       )
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
@@ -363,6 +416,9 @@ export class PlayersService {
             'stat_reduction_av',
           ]),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -371,6 +427,7 @@ export class PlayersService {
 
   async countSeriousInjuriesSufferedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -384,6 +441,7 @@ export class PlayersService {
         matchTeams,
         eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
       )
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
@@ -397,6 +455,9 @@ export class PlayersService {
             'stat_reduction_av',
           ]),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
@@ -405,6 +466,7 @@ export class PlayersService {
 
   async countLastingInjuriesSufferedByPlayer(
     eraId?: number,
+    competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -418,6 +480,7 @@ export class PlayersService {
         matchTeams,
         eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
       )
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(
         and(
@@ -429,6 +492,9 @@ export class PlayersService {
             'stat_reduction_av',
           ]),
           eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
+          competitionId === undefined
+            ? undefined
+            : eq(matches.competitionId, competitionId),
         ),
       )
       .groupBy(players.id, players.name)
