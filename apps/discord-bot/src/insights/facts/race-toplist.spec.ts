@@ -15,8 +15,8 @@ interface RaceCase {
   method: keyof RacesService;
   resolve: (races: RacesService, eraId?: number) => Promise<unknown>;
   rows: { raceId: number; name: string; count: number }[];
-  title: string;
-  description: string;
+  expectedTitle: string;
+  expectedDescription: string;
   eraRows: { raceId: number; name: string; count: number }[];
 }
 
@@ -30,8 +30,8 @@ const cases: RaceCase[] = [
       { raceId: 2, name: 'Skaven', count: 12 },
       { raceId: 3, name: 'Elf', count: 4 },
     ],
-    title: 'Races by teams',
-    description: '1. Orc — 12\n1. Skaven — 12\n2. Elf — 4',
+    expectedTitle: 'Races by teams',
+    expectedDescription: '1. Orc — 12\n1. Skaven — 12\n2. Elf — 4',
     eraRows: [{ raceId: 1, name: 'Orc', count: 3 }],
   },
   {
@@ -42,21 +42,21 @@ const cases: RaceCase[] = [
       { raceId: 1, name: 'Orc', count: 40 },
       { raceId: 2, name: 'Skaven', count: 18 },
     ],
-    title: 'Races by matches played',
-    description: '1. Orc — 40\n2. Skaven — 18',
+    expectedTitle: 'Races by matches played',
+    expectedDescription: '1. Orc — 40\n2. Skaven — 18',
     eraRows: [{ raceId: 1, name: 'Orc', count: 6 }],
   },
 ];
 
 describe.each(cases)(
   '$describeName',
-  ({ method, resolve, rows, title, description, eraRows }) => {
+  ({ method, resolve, rows, expectedTitle, expectedDescription, eraRows }) => {
     it('returns a leaderboard embed built from the query rows', async () => {
       const races = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as RacesService;
       const result = await resolve(races);
-      expectLeaderboardEmbed(result, title, description);
+      expectLeaderboardEmbed(result, expectedTitle, expectedDescription);
     });
 
     it('passes the era id through to the query', async () => {

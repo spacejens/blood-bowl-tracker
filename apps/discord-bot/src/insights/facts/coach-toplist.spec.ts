@@ -17,8 +17,8 @@ interface ToplistCase {
   method: keyof CoachesService;
   resolve: (coaches: CoachesService) => Promise<unknown>;
   rows: { coachId: number; name: string; count: number }[];
-  title: string;
-  description: string;
+  expectedTitle: string;
+  expectedDescription: string;
 }
 
 const cases: ToplistCase[] = [
@@ -31,16 +31,17 @@ const cases: ToplistCase[] = [
       { coachId: 2, name: 'Grashnak', count: 9 },
       { coachId: 3, name: 'Skabsquik', count: 4 },
     ],
-    title: 'Coaches by matches played',
-    description: '1. Roze Madder — 9\n1. Grashnak — 9\n2. Skabsquik — 4',
+    expectedTitle: 'Coaches by matches played',
+    expectedDescription:
+      '1. Roze Madder — 9\n1. Grashnak — 9\n2. Skabsquik — 4',
   },
   {
     describeName: 'resolveCoachTeamsToplist',
     method: 'countTeamsByCoach',
     resolve: (coaches) => resolveCoachTeamsToplist(coaches),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
-    title: 'Coaches by teams coached',
-    description: '1. Roze Madder — 3',
+    expectedTitle: 'Coaches by teams coached',
+    expectedDescription: '1. Roze Madder — 3',
   },
   {
     describeName: 'resolveCoachCompetitionsPlayedToplist',
@@ -50,28 +51,28 @@ const cases: ToplistCase[] = [
       { coachId: 1, name: 'Roze Madder', count: 5 },
       { coachId: 2, name: 'Grashnak', count: 2 },
     ],
-    title: 'Coaches by competitions played',
-    description: '1. Roze Madder — 5\n2. Grashnak — 2',
+    expectedTitle: 'Coaches by competitions played',
+    expectedDescription: '1. Roze Madder — 5\n2. Grashnak — 2',
   },
   {
     describeName: 'resolveCoachErasActiveToplist',
     method: 'countErasByCoach',
     resolve: (coaches) => resolveCoachErasActiveToplist(coaches),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
-    title: 'Coaches by eras active',
-    description: '1. Roze Madder — 3',
+    expectedTitle: 'Coaches by eras active',
+    expectedDescription: '1. Roze Madder — 3',
   },
 ];
 
 describe.each(cases)(
   '$describeName',
-  ({ method, resolve, rows, title, description }) => {
+  ({ method, resolve, rows, expectedTitle, expectedDescription }) => {
     it('returns a leaderboard embed built from the query rows', async () => {
       const coaches = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as CoachesService;
       const result = await resolve(coaches);
-      expectLeaderboardEmbed(result, title, description);
+      expectLeaderboardEmbed(result, expectedTitle, expectedDescription);
     });
 
     it('falls back to "I am stunned" when the query does not respond in time', async () => {

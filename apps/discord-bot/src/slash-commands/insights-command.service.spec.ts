@@ -415,52 +415,52 @@ describe('InsightsCommandService', () => {
     selectMock: (
       ctx: ReturnType<typeof makeService>,
     ) => ReturnType<typeof vi.fn>;
-    title: string;
-    description: string;
+    expectedTitle: string;
+    expectedDescription: string;
   }>([
     {
       factPath: 'team.toplist.competitions.played',
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
-      title: 'Teams by competitions played — BB2020',
-      description: '1. 40 grinders — 4',
+      expectedTitle: 'Teams by competitions played — BB2020',
+      expectedDescription: '1. 40 grinders — 4',
     },
     {
       factPath: 'coach.toplist.competitions.played',
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.coaches.countCompetitionsByCoach as ReturnType<typeof vi.fn>,
-      title: 'Coaches by competitions played — BB2020',
-      description: '1. Roze Madder — 5',
+      expectedTitle: 'Coaches by competitions played — BB2020',
+      expectedDescription: '1. Roze Madder — 5',
     },
     {
       factPath: 'player.toplist.mvps',
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>,
-      title: 'Players by MVP awards — BB2020',
-      description: '1. Griff Oberwald — 7',
+      expectedTitle: 'Players by MVP awards — BB2020',
+      expectedDescription: '1. Griff Oberwald — 7',
     },
     {
       factPath: 'race.toplist.teams',
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countTeamsByRace as ReturnType<typeof vi.fn>,
-      title: 'Races by teams — BB2020',
-      description: '1. Orc — 12',
+      expectedTitle: 'Races by teams — BB2020',
+      expectedDescription: '1. Orc — 12',
     },
     {
       factPath: 'race.toplist.matches.played',
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>,
-      title: 'Races by matches played — BB2020',
-      description: '1. Orc — 40',
+      expectedTitle: 'Races by matches played — BB2020',
+      expectedDescription: '1. Orc — 40',
     },
   ])(
     'scopes $factPath to the resolved era and names it in the title',
-    async ({ factPath, selectMock, title, description }) => {
+    async ({ factPath, selectMock, expectedTitle, expectedDescription }) => {
       const ctx = makeService();
       (ctx.eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
@@ -469,7 +469,7 @@ describe('InsightsCommandService', () => {
       const result = await ctx.service.execute(chatInput(factPath, '20'));
       expect(selectMock(ctx)).toHaveBeenCalledWith(20);
       expect(result).toEqual({
-        embeds: [{ title, description }],
+        embeds: [{ title: expectedTitle, description: expectedDescription }],
       });
     },
   );

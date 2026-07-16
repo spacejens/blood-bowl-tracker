@@ -34,8 +34,10 @@ export async function expectStunnedOnTimeout<S>(
  */
 export function expectLeaderboardEmbed(
   result: unknown,
-  title: string,
-  description: string,
+  expectedTitle: string,
+  expectedDescription: string,
 ): void {
-  expect(result).toEqual({ embeds: [{ title, description }] });
+  expect(result).toEqual({
+    embeds: [{ title: expectedTitle, description: expectedDescription }],
+  });
 }
