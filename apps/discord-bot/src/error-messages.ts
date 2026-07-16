@@ -18,7 +18,7 @@ export const ERAS_LIST_NO_DATA_MESSAGE = 'The commentators are clearly drunk.';
 export const STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE =
   'The statistician fainted before finishing the tally.';
 export const STATS_SUMMARY_ERA_TIMEOUT_MESSAGE =
-  'The archivist got lost somewhere in that era.';
+  'The librarian got lost somewhere in the archives.';
 export const STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE =
   "The League Secretary can't find that competition anywhere in the standings.";
 export const STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE =
