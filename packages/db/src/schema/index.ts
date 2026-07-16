@@ -19,7 +19,7 @@ export * from './players';
 export * from './players-external-ids';
 export * from './positions';
 export * from './positions-external-ids';
-export * from './positions-races';
+export * from './positions-race-eras';
 export * from './race-eras';
 export * from './race-external-ids';
 export * from './races';
