@@ -31,15 +31,13 @@ export const PLAYER_TOPLIST_NO_DATA_MESSAGE =
   'No player has stepped onto the pitch yet.';
 export const TEAM_TOPLIST_TIMEOUT_MESSAGE =
   'The teams are stuck in the tunnel and running late.';
-export const TEAM_TOPLIST_NO_DATA_MESSAGE =
-  'No team has taken the field yet.';
+export const TEAM_TOPLIST_NO_DATA_MESSAGE = 'No team has taken the field yet.';
 export const COACH_TOPLIST_TIMEOUT_MESSAGE =
   'The coaches are still bickering on the sideline.';
 export const COACH_TOPLIST_NO_DATA_MESSAGE = 'No coach has clocked in yet.';
 export const RACE_TOPLIST_TIMEOUT_MESSAGE =
   'The team buses are stuck in traffic outside the stadium.';
-export const RACE_TOPLIST_NO_DATA_MESSAGE =
-  'No race has fielded a team yet.';
+export const RACE_TOPLIST_NO_DATA_MESSAGE = 'No race has fielded a team yet.';
 
 // --- /insights command (slash-commands/insights-command.service.ts) ---
 export const INSIGHTS_UNMATCHED_CATEGORY_MESSAGE =

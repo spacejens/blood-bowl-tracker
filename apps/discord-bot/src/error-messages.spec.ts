@@ -19,9 +19,9 @@ describe('error-messages', () => {
   it('uses distinct text for every constant (one message per call site)', () => {
     const seen = new Map<string, string>();
     for (const [name, value] of values) {
-      const prior = seen.get(value as string);
+      const prior = seen.get(value);
       expect(prior, `${name} duplicates ${prior ?? ''}`).toBeUndefined();
-      seen.set(value as string, name);
+      seen.set(value, name);
     }
   });
 });
