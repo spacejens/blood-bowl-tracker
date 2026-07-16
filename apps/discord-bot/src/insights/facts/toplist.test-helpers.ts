@@ -6,18 +6,18 @@ import { expect, vi } from 'vitest';
  * Encapsulates the database-timeout fallback assertion shared across the
  * `/insights` toplist fact resolvers: install fake timers, invoke the resolver
  * with a service whose query never resolves, advance past the 2000ms timeout,
- * and assert the resolver falls back to `expectedMessage` (default `'I am stunned'`).
+ * and assert the resolver falls back to `expectedMessage`.
  * Real timers are always restored.
  *
  * @param invoke  calls the resolver under test with the supplied fake service
  * @param makeNeverResolvingService  builds a service whose relevant query
  *   returns `new Promise(() => {})` (never settles)
- * @param expectedMessage  the expected fallback message (default `'I am stunned'`)
+ * @param expectedMessage  the expected fallback message
  */
 export async function expectTimeoutFallback<S>(
   invoke: (service: S) => Promise<unknown>,
   makeNeverResolvingService: () => S,
-  expectedMessage = 'I am stunned',
+  expectedMessage: string,
 ): Promise<void> {
   vi.useFakeTimers();
   try {

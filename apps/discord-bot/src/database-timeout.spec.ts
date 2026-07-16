@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
-  DATABASE_TIMEOUT_MS,
-  withDatabaseTimeout,
-} from './database-timeout';
+import { DATABASE_TIMEOUT_MS, withDatabaseTimeout } from './database-timeout';
 
 describe('withDatabaseTimeout', () => {
   afterEach(() => {
@@ -33,8 +29,7 @@ describe('withDatabaseTimeout', () => {
     ).rejects.toThrow('db down');
   });
 
-  it('exposes "I am stunned" as the default fallback within the Discord window', () => {
-    expect(DATABASE_TIMEOUT_FALLBACK_MESSAGE).toBe('I am stunned');
+  it('keeps the fallback timeout within the Discord interaction window', () => {
     expect(DATABASE_TIMEOUT_MS).toBeLessThan(3000);
   });
 });
