@@ -8,8 +8,12 @@ import type { ImportError } from './types';
 export interface UpsertPositionData {
   name: string;
   isStarPlayer: boolean;
-  races: { raceId: number; isDeleted: boolean }[];
   externalIds: { externalSystemId: number; externalId: string }[];
+}
+
+export interface SyncPositionRaceErasData {
+  positionId: number;
+  raceEras: { raceId: number; eraId: number }[];
 }
 
 @Injectable()
@@ -26,6 +30,16 @@ export class PositionsImportService {
       errors,
       (err) =>
         `Failed to import position "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  syncRaceEras(data: SyncPositionRaceErasData, errors: ImportError[]) {
+    return this.importRunner.recordUpsertResult(
+      () => this.client.positions.syncRaceEras(data),
+      data,
+      errors,
+      (err) =>
+        `Failed to sync race eras for position ${data.positionId}: ${err instanceof Error ? err.message : String(err)}`,
     );
   }
 }
