@@ -410,26 +410,69 @@ describe('InsightsCommandService', () => {
     expect(calledWithEra).toBe(true);
   });
 
-  it('scopes team.toplist.competitions.played to the resolved era', async () => {
-    const { service, teams, eras } = makeService();
-    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 20,
-      name: 'BB2020',
-    });
-    const result = await service.execute(
-      chatInput('team.toplist.competitions.played', '20'),
-    );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.countCompetitionsByTeam).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by competitions played — BB2020',
-          description: '1. 40 grinders — 4',
-        },
-      ],
-    });
-  });
+  it.each<{
+    factPath: string;
+    selectMock: (
+      ctx: ReturnType<typeof makeService>,
+    ) => ReturnType<typeof vi.fn>;
+    title: string;
+    description: string;
+  }>([
+    {
+      factPath: 'team.toplist.competitions.played',
+      selectMock: (ctx) =>
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+        ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
+      title: 'Teams by competitions played — BB2020',
+      description: '1. 40 grinders — 4',
+    },
+    {
+      factPath: 'coach.toplist.competitions.played',
+      selectMock: (ctx) =>
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+        ctx.coaches.countCompetitionsByCoach as ReturnType<typeof vi.fn>,
+      title: 'Coaches by competitions played — BB2020',
+      description: '1. Roze Madder — 5',
+    },
+    {
+      factPath: 'player.toplist.mvps',
+      selectMock: (ctx) =>
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+        ctx.players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>,
+      title: 'Players by MVP awards — BB2020',
+      description: '1. Griff Oberwald — 7',
+    },
+    {
+      factPath: 'race.toplist.teams',
+      selectMock: (ctx) =>
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+        ctx.races.countTeamsByRace as ReturnType<typeof vi.fn>,
+      title: 'Races by teams — BB2020',
+      description: '1. Orc — 12',
+    },
+    {
+      factPath: 'race.toplist.matches.played',
+      selectMock: (ctx) =>
+        // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+        ctx.races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>,
+      title: 'Races by matches played — BB2020',
+      description: '1. Orc — 40',
+    },
+  ])(
+    'scopes $factPath to the resolved era and names it in the title',
+    async ({ factPath, selectMock, title, description }) => {
+      const ctx = makeService();
+      (ctx.eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 20,
+        name: 'BB2020',
+      });
+      const result = await ctx.service.execute(chatInput(factPath, '20'));
+      expect(selectMock(ctx)).toHaveBeenCalledWith(20);
+      expect(result).toEqual({
+        embeds: [{ title, description }],
+      });
+    },
+  );
 
   it('rejects an era on team.toplist.eras.active (not era-supporting)', async () => {
     const { service, eras } = makeService();
@@ -459,48 +502,6 @@ describe('InsightsCommandService', () => {
     expect(teams.countErasByTeam).not.toHaveBeenCalled();
   });
 
-  it('scopes coach.toplist.competitions.played to the resolved era', async () => {
-    const { service, coaches, eras } = makeService();
-    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 20,
-      name: 'BB2020',
-    });
-    const result = await service.execute(
-      chatInput('coach.toplist.competitions.played', '20'),
-    );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.countCompetitionsByCoach).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by competitions played — BB2020',
-          description: '1. Roze Madder — 5',
-        },
-      ],
-    });
-  });
-
-  it('scopes player.toplist.mvps to the resolved era and names it in the title', async () => {
-    const { service, players, eras } = makeService();
-    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 20,
-      name: 'BB2020',
-    });
-    const result = await service.execute(
-      chatInput('player.toplist.mvps', '20'),
-    );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.countMvpAwardsByPlayer).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by MVP awards — BB2020',
-          description: '1. Griff Oberwald — 7',
-        },
-      ],
-    });
-  });
-
   it('resolves player.toplist.mvps with no era, suffixed with "All time"', async () => {
     const { service, players } = makeService();
     const result = await service.execute(chatInput('player.toplist.mvps'));
@@ -511,46 +512,6 @@ describe('InsightsCommandService', () => {
         {
           title: 'Players by MVP awards — All time',
           description: '1. Griff Oberwald — 7',
-        },
-      ],
-    });
-  });
-
-  it('scopes race.toplist.teams to the resolved era and names it in the title', async () => {
-    const { service, races, eras } = makeService();
-    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 20,
-      name: 'BB2020',
-    });
-    const result = await service.execute(chatInput('race.toplist.teams', '20'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.countTeamsByRace).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Races by teams — BB2020',
-          description: '1. Orc — 12',
-        },
-      ],
-    });
-  });
-
-  it('scopes race.toplist.matches.played to the resolved era and names it in the title', async () => {
-    const { service, races, eras } = makeService();
-    (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 20,
-      name: 'BB2020',
-    });
-    const result = await service.execute(
-      chatInput('race.toplist.matches.played', '20'),
-    );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.countMatchesPlayedByRace).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Races by matches played — BB2020',
-          description: '1. Orc — 40',
         },
       ],
     });
