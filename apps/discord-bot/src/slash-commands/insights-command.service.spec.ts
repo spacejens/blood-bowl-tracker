@@ -25,6 +25,7 @@ function makeService() {
   const zero = () => ({
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
   });
   const coaches = {
     countMatchesPlayedByCoach: vi
@@ -41,6 +42,7 @@ function makeService() {
       .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as CoachesService;
   const teams = {
     countMatchesPlayedByTeam: vi
@@ -93,17 +95,22 @@ function makeService() {
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as TeamsService;
   const matches = {
     countAll: vi.fn().mockResolvedValue(0),
     countMatchEvents: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
     countMatchEventsByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
+    countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as MatchesService;
   const competitions = {
     countAll: vi.fn().mockResolvedValue(0),
     countByType: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    findById: vi.fn().mockResolvedValue(undefined),
+    searchByNamePrefix: vi.fn().mockResolvedValue([]),
   } as unknown as CompetitionsService;
   const leagues = zero() as unknown as LeaguesService;
   const rulesSets = zero() as unknown as RulesSetsService;
@@ -156,6 +163,7 @@ function makeService() {
       .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 5 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as PlayersService;
   const positions = zero() as unknown as PositionsService;
   const races = {
@@ -167,6 +175,7 @@ function makeService() {
       .mockResolvedValue([{ raceId: 1, name: 'Orc', count: 40 }]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
+    countByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as RacesService;
   const externalSystems = zero() as unknown as ExternalSystemsService;
   const discordClient = {
@@ -192,6 +201,7 @@ function makeService() {
     players,
     eras,
     races,
+    competitions,
     discordClient,
   };
 }
@@ -199,10 +209,13 @@ function makeService() {
 function chatInput(
   category: string | null,
   era: string | null = null,
+  competition: string | null = null,
 ): ChatInputCommandInteraction {
   return {
     options: {
-      getString: vi.fn((name: string) => (name === 'era' ? era : category)),
+      getString: vi.fn((name: string) =>
+        name === 'era' ? era : name === 'competition' ? competition : category,
+      ),
     },
   } as unknown as ChatInputCommandInteraction;
 }
@@ -338,6 +351,13 @@ describe('InsightsCommandService', () => {
         type: 3,
         autocomplete: true,
       },
+      {
+        name: 'competition',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+        description: expect.any(String),
+        type: 3,
+        autocomplete: true,
+      },
     ]);
   });
 
@@ -415,6 +435,7 @@ describe('InsightsCommandService', () => {
     selectMock: (
       ctx: ReturnType<typeof makeService>,
     ) => ReturnType<typeof vi.fn>;
+    expectedCallArgs: unknown[];
     expectedTitle: string;
     expectedDescription: string;
   }>([
@@ -423,6 +444,7 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
+      expectedCallArgs: [20, undefined],
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },
@@ -431,6 +453,7 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.coaches.countCompetitionsByCoach as ReturnType<typeof vi.fn>,
+      expectedCallArgs: [20],
       expectedTitle: 'Coaches by competitions played — BB2020',
       expectedDescription: '1. Roze Madder — 5',
     },
@@ -439,6 +462,7 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>,
+      expectedCallArgs: [20, undefined],
       expectedTitle: 'Players by MVP awards — BB2020',
       expectedDescription: '1. Griff Oberwald — 7',
     },
@@ -447,6 +471,7 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countTeamsByRace as ReturnType<typeof vi.fn>,
+      expectedCallArgs: [20],
       expectedTitle: 'Races by teams — BB2020',
       expectedDescription: '1. Orc — 12',
     },
@@ -455,19 +480,26 @@ describe('InsightsCommandService', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>,
+      expectedCallArgs: [20],
       expectedTitle: 'Races by matches played — BB2020',
       expectedDescription: '1. Orc — 40',
     },
   ])(
     'scopes $factPath to the resolved era and names it in the title',
-    async ({ factPath, selectMock, expectedTitle, expectedDescription }) => {
+    async ({
+      factPath,
+      selectMock,
+      expectedCallArgs,
+      expectedTitle,
+      expectedDescription,
+    }) => {
       const ctx = makeService();
       (ctx.eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
         name: 'BB2020',
       });
       const result = await ctx.service.execute(chatInput(factPath, '20'));
-      expect(selectMock(ctx)).toHaveBeenCalledWith(20);
+      expect(selectMock(ctx)).toHaveBeenCalledWith(...expectedCallArgs);
       expect(result).toEqual({
         embeds: [{ title: expectedTitle, description: expectedDescription }],
       });
@@ -648,7 +680,10 @@ describe('InsightsCommandService', () => {
       chatInput('player.toplist.touchdowns.scored', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.countTouchdownsScoredByPlayer).toHaveBeenCalledWith(20);
+    expect(players.countTouchdownsScoredByPlayer).toHaveBeenCalledWith(
+      20,
+      undefined,
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -686,7 +721,7 @@ describe('InsightsCommandService', () => {
       chatInput('team.toplist.interceptions', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(20);
+    expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(20, undefined);
     expect(result).toEqual({
       embeds: [
         {
@@ -759,7 +794,10 @@ describe('InsightsCommandService', () => {
       chatInput('player.toplist.casualties.caused', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.countCasualtiesCausedByPlayer).toHaveBeenCalledWith(20);
+    expect(players.countCasualtiesCausedByPlayer).toHaveBeenCalledWith(
+      20,
+      undefined,
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -795,7 +833,10 @@ describe('InsightsCommandService', () => {
       chatInput('team.toplist.injuries.serious.caused', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalledWith(20);
+    expect(teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalledWith(
+      20,
+      undefined,
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -858,7 +899,10 @@ describe('InsightsCommandService', () => {
       chatInput('player.toplist.casualties.suffered', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.countCasualtiesSufferedByPlayer).toHaveBeenCalledWith(20);
+    expect(players.countCasualtiesSufferedByPlayer).toHaveBeenCalledWith(
+      20,
+      undefined,
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -879,7 +923,10 @@ describe('InsightsCommandService', () => {
       chatInput('team.toplist.injuries.lasting.suffered', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.countLastingInjuriesSufferedByTeam).toHaveBeenCalledWith(20);
+    expect(teams.countLastingInjuriesSufferedByTeam).toHaveBeenCalledWith(
+      20,
+      undefined,
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -941,5 +988,129 @@ describe('InsightsCommandService', () => {
       (teams.countDeathsSufferedByTeam as ReturnType<typeof vi.fn>).mock.calls
         .length > 0;
     expect(anySufferedCalled).toBe(true);
+  });
+
+  it('advertises a competition option alongside category and era', () => {
+    const { service } = makeService();
+    const command = service.buildCommand();
+    expect(command.options).toHaveLength(3);
+    expect(command.options?.[2]).toEqual({
+      name: 'competition',
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+      description: expect.any(String),
+      type: 3,
+      autocomplete: true,
+    });
+  });
+
+  it('rejects a request that supplies both an era and a competition', async () => {
+    const { service, eras, competitions } = makeService();
+    const result = await service.execute(
+      chatInput('coach.toplist.matches.played', '20', '30'),
+    );
+    expect(result).toBe('The referee rejects your request');
+    // mutual exclusion is checked before any lookup
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(eras.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(competitions.findById).not.toHaveBeenCalled();
+  });
+
+  it('rejects a competition id that does not resolve to a real competition', async () => {
+    const { service, competitions } = makeService();
+    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
+      undefined,
+    );
+    const result = await service.execute(
+      chatInput('team.toplist.competitions.played', null, '999'),
+    );
+    expect(result).toBe(
+      "Even the League Secretary can't find that competition in the fixture list.",
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(competitions.findById).toHaveBeenCalledWith(999);
+  });
+
+  it('scopes an in-scope category to the resolved competition and names it in the title', async () => {
+    const { service, teams, competitions } = makeService();
+    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 30,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 5,
+    });
+    const result = await service.execute(
+      chatInput('team.toplist.competitions.played', null, '30'),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(teams.countCompetitionsByTeam).toHaveBeenCalledWith(undefined, 30);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by competitions played — Major Season 24',
+          description: '1. 40 grinders — 4',
+        },
+      ],
+    });
+  });
+
+  it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {
+    const { service, competitions } = makeService();
+    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 30,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 5,
+    });
+    const result = await service.execute(
+      chatInput('coach.toplist.competitions.played', null, '30'),
+    );
+    expect(result).toBe(
+      "Even the Ref's assistant can't scope that to a competition.",
+    );
+  });
+
+  it('rejects a competition on eras.list (not competition-supporting)', async () => {
+    const { service, competitions } = makeService();
+    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 30,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 5,
+    });
+    const result = await service.execute(chatInput('eras.list', null, '30'));
+    expect(result).toBe(
+      "Even the Ref's assistant can't scope that to a competition.",
+    );
+  });
+
+  it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
+    const { service, competitions } = makeService();
+    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 30,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 5,
+    });
+    vi.spyOn(Math, 'random').mockReturnValue(0.999999);
+    const result = await service.execute(chatInput(null, null, '30'));
+    expect(result).not.toBe(
+      "Even the Ref's assistant can't scope that to a competition.",
+    );
+  });
+
+  it('returns competition autocomplete choices labelled "<name> (<league>)" with id values', async () => {
+    const { service, competitions } = makeService();
+    (
+      competitions.searchByNamePrefix as ReturnType<typeof vi.fn>
+    ).mockResolvedValue([
+      { id: 30, name: 'Major Season 24', leagueName: 'The Major' },
+    ]);
+    const choices = await service.autocomplete(
+      autocompleteInteraction('competition', 'maj'),
+    );
+    expect(choices).toEqual([
+      { name: 'Major Season 24 (The Major)', value: '30' },
+    ]);
   });
 });

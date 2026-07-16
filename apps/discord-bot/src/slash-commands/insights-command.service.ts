@@ -33,6 +33,11 @@ const UNMATCHED_FALLBACK_MESSAGE =
   "Even the Apothecary can't make sense of that one.";
 const ERA_REJECTION_MESSAGE =
   'Even the Assistant Coach cannot understand your request';
+const ERA_COMPETITION_CONFLICT_MESSAGE = 'The referee rejects your request';
+const COMPETITION_NOT_FOUND_MESSAGE =
+  "Even the League Secretary can't find that competition in the fixture list.";
+const COMPETITION_CATEGORY_REJECTION_MESSAGE =
+  "Even the Ref's assistant can't scope that to a competition.";
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
@@ -91,6 +96,12 @@ export class InsightsCommandService implements OnApplicationBootstrap {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'competition',
+          description: 'Scope the insight to a single competition (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -102,6 +113,11 @@ export class InsightsCommandService implements OnApplicationBootstrap {
   ): Promise<string | InteractionReplyOptions> {
     const category = interaction.options.getString('category');
     const eraOption = interaction.options.getString('era');
+    const competitionOption = interaction.options.getString('competition');
+
+    if (eraOption !== null && competitionOption !== null) {
+      return ERA_COMPETITION_CONFLICT_MESSAGE;
+    }
 
     let era: { id: number; name: string } | undefined;
     if (eraOption !== null) {
@@ -115,8 +131,20 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       era = found;
     }
 
+    let competition: { id: number; name: string } | undefined;
+    if (competitionOption !== null) {
+      const competitionId = Number(competitionOption);
+      const found = Number.isInteger(competitionId)
+        ? await this.competitions.findById(competitionId)
+        : undefined;
+      if (!found) {
+        return COMPETITION_NOT_FOUND_MESSAGE;
+      }
+      competition = found;
+    }
+
     if (!category) {
-      return this.resolveRandomFact(era);
+      return this.resolveRandomFact(era, competition);
     }
 
     const node = resolvePath(this.factTree, category);
@@ -131,26 +159,41 @@ export class InsightsCommandService implements OnApplicationBootstrap {
         return ERA_REJECTION_MESSAGE;
       }
     }
+    if (competition) {
+      leaves = leaves.filter((leaf) => leaf.supportsCompetition);
+      if (leaves.length === 0) {
+        return COMPETITION_CATEGORY_REJECTION_MESSAGE;
+      }
+    }
 
     const picked = this.pickRandom(leaves);
-    const reply = await picked.resolve(era?.id);
-    return picked.supportsEra
-      ? this.applyTitleSuffix(reply, era?.name ?? 'All time')
+    const reply = await picked.resolve(era?.id, competition?.id);
+    return picked.supportsCompetition || picked.supportsEra
+      ? this.applyTitleSuffix(
+          reply,
+          competition?.name ?? era?.name ?? 'All time',
+        )
       : reply;
   }
 
-  async resolveRandomFact(era?: {
-    id: number;
-    name: string;
-  }): Promise<string | InteractionReplyOptions> {
+  async resolveRandomFact(
+    era?: { id: number; name: string },
+    competition?: { id: number; name: string },
+  ): Promise<string | InteractionReplyOptions> {
     let leaves = collectLeaves(this.factTree);
     if (era) {
       leaves = leaves.filter((leaf) => leaf.supportsEra);
     }
+    if (competition) {
+      leaves = leaves.filter((leaf) => leaf.supportsCompetition);
+    }
     const picked = this.pickRandom(leaves);
-    const reply = await picked.resolve(era?.id);
-    return picked.supportsEra
-      ? this.applyTitleSuffix(reply, era?.name ?? 'All time')
+    const reply = await picked.resolve(era?.id, competition?.id);
+    return picked.supportsCompetition || picked.supportsEra
+      ? this.applyTitleSuffix(
+          reply,
+          competition?.name ?? era?.name ?? 'All time',
+        )
       : reply;
   }
 
@@ -188,6 +231,16 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       return eras.map((era) => ({
         name: `${era.name} (${era.leagueName})`,
         value: String(era.id),
+      }));
+    }
+    if (focused.name === 'competition') {
+      const competitions = await this.competitions.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return competitions.map((competition) => ({
+        name: `${competition.name} (${competition.leagueName})`,
+        value: String(competition.id),
       }));
     }
     return nextSegmentCompletions(this.factTree, focused.value)
