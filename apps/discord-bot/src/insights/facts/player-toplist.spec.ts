@@ -486,7 +486,8 @@ describe('resolvePlayerCasualtiesSufferedToplist', () => {
       embeds: [
         {
           title: 'Players by casualties suffered',
-          description: '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
+          description:
+            '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
         },
       ],
     });

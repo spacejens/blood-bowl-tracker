@@ -1,9 +1,45 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, teamEras, teamExternalIds, teams } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { Param, SQL } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
+
+/**
+ * Recovers the literal value(s) passed to `inArray()` or `eq()` from the
+ * `SQL` condition object drizzle-orm builds internally, so tests can assert
+ * on the exact consequenceType filter list rather than just that `where`
+ * was called.
+ */
+function paramValue(param: Param): string {
+  return (param as unknown as { value: string }).value;
+}
+
+function firstWhereCondition(builder: Record<string, unknown>): unknown {
+  const mockFn = builder.where as { mock: { calls: unknown[][] } };
+  return mockFn.mock.calls[0][0];
+}
+
+function extractFilterValues(
+  condition: unknown,
+): string | string[] | undefined {
+  if (!(condition instanceof SQL)) return undefined;
+  for (const chunk of condition.queryChunks) {
+    if (chunk instanceof SQL) {
+      const nested = extractFilterValues(chunk);
+      if (nested !== undefined) return nested;
+    } else if (chunk instanceof Param) {
+      return paramValue(chunk);
+    } else if (Array.isArray(chunk)) {
+      const values = chunk
+        .filter((c): c is Param => c instanceof Param)
+        .map(paramValue);
+      if (values.length > 0) return values;
+    }
+  }
+  return undefined;
+}
 
 const fakeTeam = {
   id: 1,
@@ -435,6 +471,27 @@ describe('TeamsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countCasualtiesSufferedByTeam filters on the full casualty-suffered consequence type list', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCasualtiesSufferedByTeam();
+      const condition = firstWhereCondition(builder);
+      expect(extractFilterValues(condition)).toEqual([
+        'casualty',
+        'badly_hurt',
+        'death',
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+      ]);
+    });
+
     it('countSeriousInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 6 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -451,6 +508,24 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countSeriousInjuriesSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countSeriousInjuriesSufferedByTeam filters on the serious-injury-suffered consequence type list', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countSeriousInjuriesSufferedByTeam();
+      const condition = firstWhereCondition(builder);
+      expect(extractFilterValues(condition)).toEqual([
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+      ]);
     });
 
     it('countLastingInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
@@ -471,6 +546,22 @@ describe('TeamsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
+    it('countLastingInjuriesSufferedByTeam filters on the lasting-injury-suffered consequence type list', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countLastingInjuriesSufferedByTeam();
+      const condition = firstWhereCondition(builder);
+      expect(extractFilterValues(condition)).toEqual([
+        'niggling_injury',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+      ]);
+    });
+
     it('countDeathsSufferedByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 2 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
@@ -485,6 +576,16 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countDeathsSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+    });
+
+    it('countDeathsSufferedByTeam filters on the single death consequence type (not inArray)', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countDeathsSufferedByTeam();
+      const condition = firstWhereCondition(builder);
+      expect(extractFilterValues(condition)).toBe('death');
     });
   });
 

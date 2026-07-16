@@ -14,7 +14,7 @@
     "format:fix": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run test"
+    "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
     "@blood-bowl-tracker/api-client": "workspace:*",
