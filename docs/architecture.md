@@ -66,6 +66,26 @@ tools/
 
 **One import tool per source.** Importing data from different upstream applications requires different extraction and transformation logic. Separate tools keep each integration self-contained, sharing common upsert/client-wrapping logic via `packages/import`.
 
+## Testing
+
+Unit tests run under Vitest as `*.spec.ts` files alongside the code they cover,
+with a 90% coverage threshold (lines, functions, branches, statements) enforced
+per workspace.
+
+Reusable test-only helpers — data builders and shared mock/assertion utilities —
+live in `*.test-helpers.ts` modules co-located with the specs that use them.
+These files:
+
+- are **test-only** and must **never be imported by production code**;
+- are excluded from coverage (each workspace's `vitest.config.ts` lists
+  `'src/**/*.test-helpers.ts'` in `coverage.exclude`, exactly as it does for
+  `*.spec.ts`), so helper code does not distort the production coverage gate;
+- are still ordinary modules — test discovery is unaffected, which stays
+  `include: ['src/**/*.spec.ts']`.
+
+Helpers live in the workspace that uses them. A helper is promoted to a shared
+package only if the same helper is genuinely needed in two or more workspaces.
+
 ## Database
 
 ### Migrations

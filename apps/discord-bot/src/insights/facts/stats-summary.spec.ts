@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { StatsSummaryDeps } from './stats-summary';
 import { resolveStatsSummary } from './stats-summary';
+import { expectStunnedOnTimeout } from './toplist.test-helpers';
 
 function makeDeps(
   overrides: Partial<Record<string, unknown>> = {},
@@ -57,20 +58,16 @@ describe('resolveStatsSummary', () => {
   });
 
   it('falls back to "I am stunned" when a count does not respond in time', async () => {
-    vi.useFakeTimers();
-    try {
-      const deps = makeDeps({
-        matches: {
-          countAll: vi.fn().mockReturnValue(new Promise(() => {})),
-          countMatchEvents: vi.fn().mockResolvedValue(0),
-        },
-      });
-      const promise = resolveStatsSummary(deps);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
+    await expectStunnedOnTimeout(
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps),
+      () =>
+        makeDeps({
+          matches: {
+            countAll: vi.fn().mockReturnValue(new Promise(() => {})),
+            countMatchEvents: vi.fn().mockResolvedValue(0),
+          },
+        }),
+    );
   });
 });
 
@@ -147,19 +144,15 @@ describe('resolveStatsSummary era-filtered', () => {
   });
 
   it('falls back to the stunned message when an era count times out', async () => {
-    vi.useFakeTimers();
-    try {
-      const deps = makeEraDeps({
-        matches: {
-          countByEra: vi.fn().mockReturnValue(new Promise(() => {})),
-          countMatchEventsByEra: vi.fn().mockResolvedValue(0),
-        },
-      });
-      const promise = resolveStatsSummary(deps, 5);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
+    await expectStunnedOnTimeout(
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, 5),
+      () =>
+        makeEraDeps({
+          matches: {
+            countByEra: vi.fn().mockReturnValue(new Promise(() => {})),
+            countMatchEventsByEra: vi.fn().mockResolvedValue(0),
+          },
+        }),
+    );
   });
 });

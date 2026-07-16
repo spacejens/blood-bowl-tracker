@@ -9,6 +9,10 @@ import type { BblPage } from '../source/bbl-page';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
+import {
+  makeCoachRecord,
+  makeTwoSystemUpsertMock,
+} from './bbl-coaches-import.test-helpers';
 import { CoachPageParser } from './coach-page-parser';
 
 /** A fake team page carrying its coach name in params for the stub parser. */
@@ -60,16 +64,8 @@ function makeService(
 
 describe('BblCoachesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
@@ -84,16 +80,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
@@ -108,16 +96,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService(
       makeReader([page('Hugo E')]),
       upsertExternalSystem,
@@ -140,16 +120,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('deduplicates a coach appearing on multiple team pages', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService(
       makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
       upsertExternalSystem,
@@ -163,16 +135,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('skips team pages that have no coach', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService(
       makeReader([page(null), page('Tommy')]),
       upsertExternalSystem,
@@ -186,22 +150,14 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records an error and continues when a coach upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
     const upsertCoach = vi
       .fn()
       .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
         return Promise.resolve(undefined);
       })
-      .mockResolvedValue({
-        id: 6,
-        name: 'Tommy',
-        createdAt: new Date(),
-        created: true,
-      });
+      .mockResolvedValue(makeCoachRecord({ id: 6, name: 'Tommy' }));
     const service = makeService(
       makeReader([page('Hugo E'), page('Tommy')]),
       upsertExternalSystem,
@@ -216,16 +172,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach')
       .mockImplementationOnce(() => {
@@ -256,16 +204,8 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records a stringified error when a team page throws a non-Error value', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
-    const upsertCoach = vi.fn().mockResolvedValue({
-      id: 100,
-      name: 'Hugo E',
-      createdAt: new Date(),
-      created: true,
-    });
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -328,24 +268,11 @@ describe('BblCoachesImportService', () => {
   });
 
   it('returns a coachIdsByName map from coach name to upserted db id', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const upsertExternalSystem = makeTwoSystemUpsertMock();
     const upsertCoach = vi
       .fn()
-      .mockResolvedValueOnce({
-        id: 100,
-        name: 'Hugo E',
-        createdAt: new Date(),
-        created: true,
-      })
-      .mockResolvedValueOnce({
-        id: 200,
-        name: 'Roze Madder',
-        createdAt: new Date(),
-        created: true,
-      });
+      .mockResolvedValueOnce(makeCoachRecord())
+      .mockResolvedValueOnce(makeCoachRecord({ id: 200, name: 'Roze Madder' }));
     const service = makeService(
       makeReader([page('Hugo E'), page('Roze Madder')]),
       upsertExternalSystem,

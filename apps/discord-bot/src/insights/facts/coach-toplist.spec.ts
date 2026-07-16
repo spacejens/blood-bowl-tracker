@@ -7,96 +7,87 @@ import {
   resolveCoachMatchesPlayedToplist,
   resolveCoachTeamsToplist,
 } from './coach-toplist';
+import {
+  expectLeaderboardEmbed,
+  expectStunnedOnTimeout,
+} from './toplist.test-helpers';
 
-describe('resolveCoachMatchesPlayedToplist', () => {
-  it('returns a leaderboard embed built from the query rows', async () => {
-    const coaches = {
-      countMatchesPlayedByCoach: vi.fn().mockResolvedValue([
-        { coachId: 1, name: 'Roze Madder', count: 9 },
-        { coachId: 2, name: 'Grashnak', count: 9 },
-        { coachId: 3, name: 'Skabsquik', count: 4 },
-      ]),
-    } as unknown as CoachesService;
-    const result = await resolveCoachMatchesPlayedToplist(coaches);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by matches played',
-          description: '1. Roze Madder — 9\n1. Grashnak — 9\n2. Skabsquik — 4',
-        },
-      ],
-    });
-  });
+interface ToplistCase {
+  describeName: string;
+  method: keyof CoachesService;
+  resolve: (coaches: CoachesService) => Promise<unknown>;
+  rows: { coachId: number; name: string; count: number }[];
+  expectedTitle: string;
+  expectedDescription: string;
+}
 
-  it('falls back to "I am stunned" when the query does not respond in time', async () => {
-    vi.useFakeTimers();
-    try {
+const cases: ToplistCase[] = [
+  {
+    describeName: 'resolveCoachMatchesPlayedToplist',
+    method: 'countMatchesPlayedByCoach',
+    resolve: (coaches) => resolveCoachMatchesPlayedToplist(coaches),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 9 },
+      { coachId: 2, name: 'Grashnak', count: 9 },
+      { coachId: 3, name: 'Skabsquik', count: 4 },
+    ],
+    expectedTitle: 'Coaches by matches played',
+    expectedDescription:
+      '1. Roze Madder — 9\n1. Grashnak — 9\n2. Skabsquik — 4',
+  },
+  {
+    describeName: 'resolveCoachTeamsToplist',
+    method: 'countTeamsByCoach',
+    resolve: (coaches) => resolveCoachTeamsToplist(coaches),
+    rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
+    expectedTitle: 'Coaches by teams coached',
+    expectedDescription: '1. Roze Madder — 3',
+  },
+  {
+    describeName: 'resolveCoachCompetitionsPlayedToplist',
+    method: 'countCompetitionsByCoach',
+    resolve: (coaches) => resolveCoachCompetitionsPlayedToplist(coaches),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 5 },
+      { coachId: 2, name: 'Grashnak', count: 2 },
+    ],
+    expectedTitle: 'Coaches by competitions played',
+    expectedDescription: '1. Roze Madder — 5\n2. Grashnak — 2',
+  },
+  {
+    describeName: 'resolveCoachErasActiveToplist',
+    method: 'countErasByCoach',
+    resolve: (coaches) => resolveCoachErasActiveToplist(coaches),
+    rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
+    expectedTitle: 'Coaches by eras active',
+    expectedDescription: '1. Roze Madder — 3',
+  },
+];
+
+describe.each(cases)(
+  '$describeName',
+  ({ method, resolve, rows, expectedTitle, expectedDescription }) => {
+    it('returns a leaderboard embed built from the query rows', async () => {
       const coaches = {
-        countMatchesPlayedByCoach: vi
-          .fn()
-          .mockReturnValue(new Promise(() => {})),
+        [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as CoachesService;
-      const promise = resolveCoachMatchesPlayedToplist(coaches);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-});
-
-describe('resolveCoachTeamsToplist', () => {
-  it('returns a leaderboard embed built from the query rows', async () => {
-    const coaches = {
-      countTeamsByCoach: vi
-        .fn()
-        .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
-    } as unknown as CoachesService;
-    const result = await resolveCoachTeamsToplist(coaches);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by teams coached',
-          description: '1. Roze Madder — 3',
-        },
-      ],
+      const result = await resolve(coaches);
+      expectLeaderboardEmbed(result, expectedTitle, expectedDescription);
     });
-  });
 
-  it('falls back to "I am stunned" when the query does not respond in time', async () => {
-    vi.useFakeTimers();
-    try {
-      const coaches = {
-        countTeamsByCoach: vi.fn().mockReturnValue(new Promise(() => {})),
-      } as unknown as CoachesService;
-      const promise = resolveCoachTeamsToplist(coaches);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-});
+    it('falls back to "I am stunned" when the query does not respond in time', async () => {
+      await expectStunnedOnTimeout(
+        (coaches: CoachesService) => resolve(coaches),
+        () =>
+          ({
+            [method]: vi.fn().mockReturnValue(new Promise(() => {})),
+          }) as unknown as CoachesService,
+      );
+    });
+  },
+);
 
 describe('resolveCoachCompetitionsPlayedToplist', () => {
-  it('returns a leaderboard embed built from the query rows', async () => {
-    const coaches = {
-      countCompetitionsByCoach: vi.fn().mockResolvedValue([
-        { coachId: 1, name: 'Roze Madder', count: 5 },
-        { coachId: 2, name: 'Grashnak', count: 2 },
-      ]),
-    } as unknown as CoachesService;
-    const result = await resolveCoachCompetitionsPlayedToplist(coaches);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by competitions played',
-          description: '1. Roze Madder — 5\n2. Grashnak — 2',
-        },
-      ],
-    });
-  });
-
   it('passes the era id through to the query', async () => {
     const countCompetitionsByCoach = vi
       .fn()
@@ -106,54 +97,5 @@ describe('resolveCoachCompetitionsPlayedToplist', () => {
     } as unknown as CoachesService;
     await resolveCoachCompetitionsPlayedToplist(coaches, 20);
     expect(countCompetitionsByCoach).toHaveBeenCalledWith(20);
-  });
-
-  it('falls back to "I am stunned" when the query does not respond in time', async () => {
-    vi.useFakeTimers();
-    try {
-      const coaches = {
-        countCompetitionsByCoach: vi
-          .fn()
-          .mockReturnValue(new Promise(() => {})),
-      } as unknown as CoachesService;
-      const promise = resolveCoachCompetitionsPlayedToplist(coaches);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-});
-
-describe('resolveCoachErasActiveToplist', () => {
-  it('returns a leaderboard embed built from the query rows', async () => {
-    const coaches = {
-      countErasByCoach: vi
-        .fn()
-        .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
-    } as unknown as CoachesService;
-    const result = await resolveCoachErasActiveToplist(coaches);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by eras active',
-          description: '1. Roze Madder — 3',
-        },
-      ],
-    });
-  });
-
-  it('falls back to "I am stunned" when the query does not respond in time', async () => {
-    vi.useFakeTimers();
-    try {
-      const coaches = {
-        countErasByCoach: vi.fn().mockReturnValue(new Promise(() => {})),
-      } as unknown as CoachesService;
-      const promise = resolveCoachErasActiveToplist(coaches);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });

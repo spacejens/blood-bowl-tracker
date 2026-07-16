@@ -2,6 +2,7 @@ import type { ErasService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { resolveErasList } from './eras-list';
+import { expectStunnedOnTimeout } from './toplist.test-helpers';
 
 type EraRow = {
   id: number;
@@ -129,40 +130,26 @@ describe('resolveErasList', () => {
   });
 
   it('falls back to the stunned message when the era query times out', async () => {
-    const eras = {
-      listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
-      getRulesSetNames: vi.fn(),
-    } as unknown as ErasService;
-    vi.useFakeTimers();
-    try {
-      const promise = resolveErasList(eras);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
+    await expectStunnedOnTimeout(
+      (eras: ErasService) => resolveErasList(eras),
+      () =>
+        ({
+          listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
+          getRulesSetNames: vi.fn(),
+        }) as unknown as ErasService,
+    );
   });
 
   it('falls back to the stunned message when the rules-set lookup times out', async () => {
-    const eras = {
-      listErasWithLeague: vi.fn().mockResolvedValue([
-        {
-          id: 1,
-          name: 'Season 1',
-          leagueName: 'Premier',
-          startDate: '2020-01-01',
-          endDate: '2020-12-31',
-        },
-      ]),
-      getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
-    } as unknown as ErasService;
-    vi.useFakeTimers();
-    try {
-      const promise = resolveErasList(eras);
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('I am stunned');
-    } finally {
-      vi.useRealTimers();
-    }
+    await expectStunnedOnTimeout(
+      (eras: ErasService) => resolveErasList(eras),
+      () =>
+        ({
+          // Only the era id is read before the rules-set lookup times out,
+          // so a minimal single-era array is enough to reach that lookup.
+          listErasWithLeague: vi.fn().mockResolvedValue([{ id: 1 }]),
+          getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
+        }) as unknown as ErasService,
+    );
   });
 });
