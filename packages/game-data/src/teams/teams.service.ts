@@ -580,6 +580,15 @@ export class TeamsService {
     return row.count;
   }
 
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(teamEras.teamId) })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .where(eq(competitionTeams.competitionId, competitionId));
+    return row.count;
+  }
+
   private async syncEras(
     teamId: number,
     eraIds: number[],

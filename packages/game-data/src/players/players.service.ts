@@ -1,5 +1,6 @@
 import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
+  competitionTeams,
   DB,
   matches,
   matchEvents,
@@ -511,6 +512,18 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByCompetition(competitionId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(players.id) })
+      .from(players)
+      .innerJoin(
+        competitionTeams,
+        eq(competitionTeams.teamEraId, players.teamEraId),
+      )
+      .where(eq(competitionTeams.competitionId, competitionId));
     return row.count;
   }
 }

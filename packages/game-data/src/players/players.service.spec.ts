@@ -208,6 +208,15 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('countByCompetition', () => {
+    it('returns the player count for the competition', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 42 }]));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(42);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('toplist queries', () => {
     function makeQueryBuilder(rows: unknown[]) {
       const builder: Record<string, unknown> = {};

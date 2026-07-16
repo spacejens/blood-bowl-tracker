@@ -773,4 +773,25 @@ describe('TeamsService', () => {
       expect(select).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByCompetition', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct team count for the competition', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 9 }]));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(9);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
 });

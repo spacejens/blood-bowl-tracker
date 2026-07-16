@@ -94,4 +94,13 @@ describe('ExternalSystemsService', () => {
       expect(select).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByCompetition', () => {
+    it('returns the distinct external-system count for the competition', async () => {
+      const select = vi.fn(() => makeCountBuilder([{ count: 2 }]));
+      const service = new ExternalSystemsService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(2);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -226,4 +226,15 @@ describe('PositionsService', () => {
       expect(builder.innerJoin).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('countByCompetition', () => {
+    it('returns the distinct position count for races available in the competition', async () => {
+      const builder = makeCountBuilder([{ count: 25 }]);
+      const select = vi.fn(() => builder);
+      const service = new PositionsService({ select } as unknown as Db);
+      await expect(service.countByCompetition(7)).resolves.toBe(25);
+      // competition_teams -> team_eras -> teams -> positions_races
+      expect(builder.innerJoin).toHaveBeenCalledTimes(3);
+    });
+  });
 });
