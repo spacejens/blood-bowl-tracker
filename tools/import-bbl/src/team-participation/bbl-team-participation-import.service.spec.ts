@@ -817,7 +817,7 @@ describe('BblTeamParticipationImportService', () => {
     ).toBe(true);
   });
 
-  it('still skips a competition with zero matches and zero registered teams', async () => {
+  it('does not redundantly re-sync a competition with zero matches and zero registered teams (its row, with empty teamEraIds, was already created by BblCompetitionsImportService)', async () => {
     const upsertTeam = vi.fn();
     const upsertCompetition = vi.fn();
     const upsertRace = vi.fn();

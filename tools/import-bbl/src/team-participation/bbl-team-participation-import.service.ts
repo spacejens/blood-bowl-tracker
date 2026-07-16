@@ -53,7 +53,11 @@ export class BblTeamParticipationImportService {
    * race with the accumulated era ids (writing race_eras). All three syncs are
    * append-only. A registered-but-unplayed team simply contributes no
    * match_teams rows, which is correct. An unresolvable team id is recorded as
-   * an error and skipped; it does not block the rest of the competition.
+   * an error and skipped; it does not block the rest of the competition. A
+   * competition with neither matches nor registered teams has nothing to
+   * sync here and is skipped entirely; its own row (with an empty
+   * teamEraIds) was already created upstream by BblCompetitionsImportService,
+   * so this is not a missing import.
    * Idempotent.
    */
   async importTeamParticipation(
