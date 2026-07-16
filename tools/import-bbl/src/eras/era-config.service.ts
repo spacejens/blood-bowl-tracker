@@ -51,6 +51,18 @@ export interface EraConfig {
      */
     merges: unknown[];
   };
+  /**
+   * Position availability overrides for this era, for cases where the
+   * zero-players heuristic mis-decides a position's availability. The era is
+   * implied by the containing era block (no eraId field).
+   */
+  positions?: {
+    /** BBL position typId. */
+    positionId: string;
+    /** BBL race bblId. */
+    raceId: string;
+    available: boolean;
+  }[];
 }
 
 /**
@@ -167,6 +179,7 @@ export class EraConfigService {
     const competitions = this.parseCompetitions(record.competitions, index);
     const teams = this.parseTeams(record.teams, index);
     const matches = this.parseMatches(record.matches, index);
+    const positions = this.parsePositions(record.positions, index);
 
     return {
       identity,
@@ -175,6 +188,7 @@ export class EraConfigService {
       ...(competitions !== undefined ? { competitions } : {}),
       ...(teams !== undefined ? { teams } : {}),
       ...(matches !== undefined ? { matches } : {}),
+      ...(positions !== undefined ? { positions } : {}),
     };
   }
 
@@ -374,5 +388,41 @@ export class EraConfigService {
       );
     }
     return { merges };
+  }
+
+  private parsePositions(raw: unknown, index: number): EraConfig['positions'] {
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(raw)) {
+      throw new Error(`BBL_ERAS[${index}].positions must be an array.`);
+    }
+    return raw.map((entry, entryIndex) => {
+      if (typeof entry !== 'object' || entry === null) {
+        throw new Error(
+          `BBL_ERAS[${index}].positions[${entryIndex}] must be an object.`,
+        );
+      }
+      const { positionId, raceId, available } = entry as Record<
+        string,
+        unknown
+      >;
+      if (typeof positionId !== 'string' || positionId.trim() === '') {
+        throw new Error(
+          `BBL_ERAS[${index}].positions[${entryIndex}].positionId must be a non-empty string.`,
+        );
+      }
+      if (typeof raceId !== 'string' || raceId.trim() === '') {
+        throw new Error(
+          `BBL_ERAS[${index}].positions[${entryIndex}].raceId must be a non-empty string.`,
+        );
+      }
+      if (typeof available !== 'boolean') {
+        throw new Error(
+          `BBL_ERAS[${index}].positions[${entryIndex}].available must be a boolean.`,
+        );
+      }
+      return { positionId, raceId, available };
+    });
   }
 }
