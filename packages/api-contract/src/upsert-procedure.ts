@@ -8,8 +8,8 @@ import { z } from 'zod';
  */
 export function upsertProcedure<
   TInput extends z.ZodType,
-  TEntity extends z.ZodObject,
->(inputSchema: TInput, entitySchema: TEntity) {
+  TShape extends z.ZodRawShape,
+>(inputSchema: TInput, entitySchema: z.ZodObject<TShape>) {
   return oc
     .input(inputSchema)
     .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
@@ -24,8 +24,8 @@ export function upsertProcedure<
  */
 export function upsertProcedureWithoutConflict<
   TInput extends z.ZodType,
-  TEntity extends z.ZodObject,
->(inputSchema: TInput, entitySchema: TEntity) {
+  TShape extends z.ZodRawShape,
+>(inputSchema: TInput, entitySchema: z.ZodObject<TShape>) {
   return oc
     .input(inputSchema)
     .output(entitySchema.extend({ created: z.boolean() }));
