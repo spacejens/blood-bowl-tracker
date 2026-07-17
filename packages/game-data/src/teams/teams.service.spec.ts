@@ -1,45 +1,15 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, teamEras, teamExternalIds, teams } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
-import { Param, SQL } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
-
-/**
- * Recovers the literal value(s) passed to `inArray()` or `eq()` from the
- * `SQL` condition object drizzle-orm builds internally, so tests can assert
- * on the exact consequenceType filter list rather than just that `where`
- * was called.
- */
-function paramValue(param: Param): string {
-  return (param as unknown as { value: string }).value;
-}
-
-function firstWhereCondition(builder: Record<string, unknown>): unknown {
-  const mockFn = builder.where as { mock: { calls: unknown[][] } };
-  return mockFn.mock.calls[0][0];
-}
-
-function extractFilterValues(
-  condition: unknown,
-): string | string[] | undefined {
-  if (!(condition instanceof SQL)) return undefined;
-  for (const chunk of condition.queryChunks) {
-    if (chunk instanceof SQL) {
-      const nested = extractFilterValues(chunk);
-      if (nested !== undefined) return nested;
-    } else if (chunk instanceof Param) {
-      return paramValue(chunk);
-    } else if (Array.isArray(chunk)) {
-      const values = chunk
-        .filter((c): c is Param => c instanceof Param)
-        .map(paramValue);
-      if (values.length > 0) return values;
-    }
-  }
-  return undefined;
-}
 
 const fakeTeam = {
   id: 1,
@@ -242,6 +212,10 @@ describe('TeamsService', () => {
       await expect(service.countMatchesPlayedByTeam(20)).resolves.toEqual(rows);
       // The era-filtered path must add a WHERE clause.
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.match_id', 'matches.id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
     });
 
     it('countCompetitionsByTeam returns the rows the query resolves to', async () => {
@@ -263,6 +237,10 @@ describe('TeamsService', () => {
       await expect(service.countCompetitionsByTeam(20)).resolves.toEqual(rows);
       // The era-filtered path must add a WHERE clause.
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['competition_teams.competition_id', 'competitions.id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
     });
 
     it('countCompetitionsByTeam still calls where (with undefined) when no era is given', async () => {
@@ -279,10 +257,14 @@ describe('TeamsService', () => {
         { teamId: 1, name: '40 grinders', count: 3 },
         { teamId: 2, name: 'Reikland Reavers', count: 3 },
       ];
-      const select = vi.fn(() => makeQueryBuilder(rows));
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
       await expect(service.countErasByTeam()).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['teams.id', 'team_eras.team_id'],
+      );
     });
 
     it('countErasByTeam takes no era filter and issues no where clause', async () => {
@@ -311,6 +293,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countTouchdownsScoredByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'touchdown',
+        20,
+      ]);
     });
 
     it('countTouchdownsScoredByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -321,6 +307,14 @@ describe('TeamsService', () => {
       await service.countTouchdownsScoredByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'touchdown',
+        30,
+      ]);
     });
 
     it('countCompletionsByTeam returns the rows the query resolves to', async () => {
@@ -337,6 +331,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countCompletionsByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'completion',
+        20,
+      ]);
     });
 
     it('countCompletionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -347,6 +345,14 @@ describe('TeamsService', () => {
       await service.countCompletionsByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'completion',
+        30,
+      ]);
     });
 
     it('countInterceptionsByTeam returns the rows the query resolves to', async () => {
@@ -363,6 +369,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countInterceptionsByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'interception',
+        20,
+      ]);
     });
 
     it('countInterceptionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -373,6 +383,14 @@ describe('TeamsService', () => {
       await service.countInterceptionsByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'interception',
+        30,
+      ]);
     });
 
     it('countDeflectionsByTeam returns the rows the query resolves to', async () => {
@@ -389,6 +407,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countDeflectionsByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'deflection',
+        20,
+      ]);
     });
 
     it('countDeflectionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -399,6 +421,14 @@ describe('TeamsService', () => {
       await service.countDeflectionsByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'deflection',
+        30,
+      ]);
     });
 
     it('countCasualtiesCausedByTeam returns the rows the query resolves to', async () => {
@@ -421,6 +451,13 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countCasualtiesCausedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'casualty',
+        'badly_hurt',
+        'serious_injury',
+        'death',
+        20,
+      ]);
     });
 
     it('countCasualtiesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -431,6 +468,17 @@ describe('TeamsService', () => {
       await service.countCasualtiesCausedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'casualty',
+        'badly_hurt',
+        'serious_injury',
+        'death',
+        30,
+      ]);
     });
 
     it('countSeriousInjuriesCausedByTeam returns the rows the query resolves to', async () => {
@@ -449,6 +497,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countSeriousInjuriesCausedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'serious_injury',
+        20,
+      ]);
     });
 
     it('countSeriousInjuriesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -459,6 +511,14 @@ describe('TeamsService', () => {
       await service.countSeriousInjuriesCausedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'serious_injury',
+        30,
+      ]);
     });
 
     it('countDeathsCausedByTeam returns the rows the query resolves to', async () => {
@@ -475,6 +535,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countDeathsCausedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'death',
+        20,
+      ]);
     });
 
     it('countDeathsCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -485,6 +549,14 @@ describe('TeamsService', () => {
       await service.countDeathsCausedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'death',
+        30,
+      ]);
     });
 
     it('countFoulsCommittedByTeam returns the rows the query resolves to', async () => {
@@ -501,6 +573,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countFoulsCommittedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'foul',
+        20,
+      ]);
     });
 
     it('countFoulsCommittedByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -511,6 +587,14 @@ describe('TeamsService', () => {
       await service.countFoulsCommittedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.acting_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'foul',
+        30,
+      ]);
     });
 
     it('countTimesSentOffByTeam returns the rows the query resolves to', async () => {
@@ -527,6 +611,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countTimesSentOffByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'sent_off',
+        20,
+      ]);
     });
 
     it('countTimesSentOffByTeam joins matches and filters by competition when a competitionId is given', async () => {
@@ -537,6 +625,14 @@ describe('TeamsService', () => {
       await service.countTimesSentOffByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'sent_off',
+        30,
+      ]);
     });
 
     it('countCasualtiesSufferedByTeam returns the rows the query resolves to', async () => {
@@ -559,6 +655,19 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countCasualtiesSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'casualty',
+        'badly_hurt',
+        'death',
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        20,
+      ]);
     });
 
     it('countCasualtiesSufferedByTeam filters on the full casualty-suffered consequence type list', async () => {
@@ -567,7 +676,7 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countCasualtiesSufferedByTeam();
-      const condition = firstWhereCondition(builder);
+      const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'casualty',
         'badly_hurt',
@@ -590,6 +699,23 @@ describe('TeamsService', () => {
       await service.countCasualtiesSufferedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'casualty',
+        'badly_hurt',
+        'death',
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        30,
+      ]);
     });
 
     it('countSeriousInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
@@ -608,6 +734,16 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countSeriousInjuriesSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        20,
+      ]);
     });
 
     it('countSeriousInjuriesSufferedByTeam filters on the serious-injury-suffered consequence type list', async () => {
@@ -616,7 +752,7 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countSeriousInjuriesSufferedByTeam();
-      const condition = firstWhereCondition(builder);
+      const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'serious_injury',
         'niggling_injury',
@@ -636,6 +772,20 @@ describe('TeamsService', () => {
       await service.countSeriousInjuriesSufferedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'serious_injury',
+        'niggling_injury',
+        'miss_next_game',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        30,
+      ]);
     });
 
     it('countLastingInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
@@ -654,6 +804,14 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countLastingInjuriesSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'niggling_injury',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        20,
+      ]);
     });
 
     it('countLastingInjuriesSufferedByTeam filters on the lasting-injury-suffered consequence type list', async () => {
@@ -662,7 +820,7 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countLastingInjuriesSufferedByTeam();
-      const condition = firstWhereCondition(builder);
+      const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'niggling_injury',
         'stat_reduction_ma',
@@ -680,6 +838,18 @@ describe('TeamsService', () => {
       await service.countLastingInjuriesSufferedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'niggling_injury',
+        'stat_reduction_ma',
+        'stat_reduction_st',
+        'stat_reduction_ag',
+        'stat_reduction_av',
+        30,
+      ]);
     });
 
     it('countDeathsSufferedByTeam returns the rows the query resolves to', async () => {
@@ -696,6 +866,10 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countDeathsSufferedByTeam(20);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'death',
+        20,
+      ]);
     });
 
     it('countDeathsSufferedByTeam filters on the single death consequence type', async () => {
@@ -704,7 +878,7 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeathsSufferedByTeam();
-      const condition = firstWhereCondition(builder);
+      const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual(['death']);
     });
 
@@ -716,6 +890,14 @@ describe('TeamsService', () => {
       await service.countDeathsSufferedByTeam(undefined, 30);
       expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'death',
+        30,
+      ]);
     });
   });
 
@@ -743,10 +925,12 @@ describe('TeamsService', () => {
     }
 
     it('returns the distinct team count for the era', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 12 }]));
+      const builder = makeCountBuilder([{ count: 12 }]);
+      const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(12);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
 
@@ -764,10 +948,15 @@ describe('TeamsService', () => {
     }
 
     it('returns the distinct team count for the competition', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 9 }]));
+      const builder = makeCountBuilder([{ count: 9 }]);
+      const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(9);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['team_eras.id', 'competition_teams.team_era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
 });
