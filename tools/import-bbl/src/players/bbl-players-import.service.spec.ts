@@ -575,7 +575,11 @@ describe('BblPlayersImportService', () => {
   it('records an error and returns early when external systems fail', async () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
-      { upsertExternalSystem: vi.fn().mockRejectedValue(new Error('boom')) },
+      {
+        upsertExternalSystem: vi
+          .fn()
+          .mockRejectedValue(new Error('network timeout')),
+      },
     );
 
     const { result, playerIdsByPid } = await service.importPlayers(
@@ -586,6 +590,14 @@ describe('BblPlayersImportService', () => {
     );
 
     expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    // Message is passed through with this caller's prefix: the assertion now
+    // fails if production stops surfacing the real error text.
+    expect(result.errors[0].message).toBe(
+      'Failed to upsert external system: network timeout',
+    );
+    // Players bootstraps only the BBL external system (no Name system).
+    expect(result.errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(playerIdsByPid.size).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
