@@ -10,6 +10,11 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
+import {
   PositionsService,
   PositionUpsertConflictError,
 } from './positions.service';
@@ -285,6 +290,11 @@ describe('PositionsService', () => {
       const service = new PositionsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(40);
       expect(builder.innerJoin).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['race_eras.id', 'positions_race_eras.race_era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
 
@@ -295,6 +305,25 @@ describe('PositionsService', () => {
       const service = new PositionsService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(25);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['team_eras.id', 'competition_teams.team_era_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['teams.id', 'team_eras.team_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        [
+          'race_eras.race_id',
+          'teams.race_id',
+          'race_eras.era_id',
+          'team_eras.era_id',
+        ],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 3, 1))).toEqual(
+        ['positions_race_eras.race_era_id', 'race_eras.id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
 });
