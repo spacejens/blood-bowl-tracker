@@ -1,5 +1,4 @@
 import { oc } from '@orpc/contract';
-import { z } from 'zod';
 
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
 import {
@@ -27,80 +26,55 @@ import {
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
+import {
+  upsertProcedure,
+  upsertProcedureWithoutConflict,
+} from './upsert-procedure';
 
 export const contract = {
   coaches: {
-    upsert: oc
-      .input(UpsertCoachSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(CoachSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertCoachSchema, CoachSchema),
   },
   leagues: {
-    upsert: oc
-      .input(UpsertLeagueSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(LeagueSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertLeagueSchema, LeagueSchema),
   },
   races: {
-    upsert: oc
-      .input(UpsertRaceSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(RaceSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertRaceSchema, RaceSchema),
   },
   players: {
-    upsert: oc
-      .input(UpsertPlayerSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(PlayerSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertPlayerSchema, PlayerSchema),
   },
   positions: {
-    upsert: oc
-      .input(UpsertPositionSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(PositionSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
       .output(SyncPositionRaceErasResultSchema),
   },
   rulesSets: {
-    upsert: oc
-      .input(UpsertRulesSetSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(RulesSetSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
   },
   eras: {
-    upsert: oc
-      .input(UpsertEraSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(EraSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertEraSchema, EraSchema),
   },
   competitions: {
-    upsert: oc
-      .input(UpsertCompetitionSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(CompetitionSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertCompetitionSchema, CompetitionSchema),
   },
   matches: {
-    upsert: oc
-      .input(UpsertMatchSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(MatchSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertMatchSchema, MatchSchema),
   },
   matchEvents: {
-    upsert: oc
-      .input(UpsertMatchEventSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(MatchEventSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertMatchEventSchema, MatchEventSchema),
   },
   teams: {
-    upsert: oc
-      .input(UpsertTeamSchema)
-      .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
-      .output(TeamSchema.extend({ created: z.boolean() })),
+    upsert: upsertProcedure(UpsertTeamSchema, TeamSchema),
   },
   externalSystems: {
-    upsert: oc
-      .input(UpsertExternalSystemSchema)
-      .output(ExternalSystemSchema.extend({ created: z.boolean() })),
+    // The only upsert with no CONFLICT error: an external system is matched
+    // by name alone (see ExternalSystemsService.upsert), so there's no
+    // possibility of multiple existing rows to conflict between.
+    upsert: upsertProcedureWithoutConflict(
+      UpsertExternalSystemSchema,
+      ExternalSystemSchema,
+    ),
   },
 };
