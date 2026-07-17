@@ -1,8 +1,6 @@
-import type {
-  ExternalSystemsImportService,
-  ImportError,
-} from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
+import type { ExternalSystemsImportService } from './external-systems-import.service';
+import type { ImportError } from './types';
+import { makeImportError } from './types';
 
 /**
  * Upsert the external systems an import needs, in order, returning their ids in
@@ -22,13 +20,13 @@ export async function upsertExternalSystems(
 }
 
 /**
- * The ImportError every import service records when its external-system
- * bootstrap fails.
+ * The ImportError an import service records when its external-system bootstrap
+ * fails.
  *
- * `messagePrefix` exists only because two callers (players, positions) prefix
- * the message where the other seven do not. That inconsistency predates this
- * helper and a spec asserts on it, so it is preserved per caller rather than
- * silently normalised.
+ * `messagePrefix` exists only because callers disagree on whether to prefix the
+ * message, and at least one spec asserts on a prefixed form. The wording is
+ * left to each caller rather than normalised here, so moving this helper cannot
+ * silently change any import tool's error text.
  */
 export function externalSystemBootstrapError(
   names: readonly string[],

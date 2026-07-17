@@ -4,6 +4,10 @@ export type { UpsertCompetitionData } from './competitions-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export type { UpsertEraData } from './eras-import.service';
 export { ErasImportService } from './eras-import.service';
+export {
+  externalSystemBootstrapError,
+  upsertExternalSystems,
+} from './external-system-bootstrap';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
 export { ImportRunnerService } from './import-runner.service';

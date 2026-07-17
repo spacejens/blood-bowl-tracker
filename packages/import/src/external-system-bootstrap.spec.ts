@@ -1,10 +1,10 @@
-import type { ExternalSystemsImportService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   externalSystemBootstrapError,
   upsertExternalSystems,
 } from './external-system-bootstrap';
+import type { ExternalSystemsImportService } from './external-systems-import.service';
 
 describe('upsertExternalSystems', () => {
   it('upserts every name and returns the ids in the same order', async () => {

@@ -5,19 +5,17 @@ import type {
 } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfig, EraConfigService } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import {
-  externalSystemBootstrapError,
-  upsertExternalSystems,
-} from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { pageParseError } from '../source/page-parse-error';

@@ -1,18 +1,16 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
   PositionsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { PlayerPageParser } from '../players/player-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import {
-  externalSystemBootstrapError,
-  upsertExternalSystems,
-} from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { pageParseError } from '../source/page-parse-error';

@@ -4,20 +4,18 @@ import type {
   UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
   PlayersImportService,
   TeamsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import {
-  externalSystemBootstrapError,
-  upsertExternalSystems,
-} from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { pageParseError } from '../source/page-parse-error';
 import { PlayerPageParser } from './player-page-parser';
