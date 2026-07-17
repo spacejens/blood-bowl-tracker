@@ -345,7 +345,7 @@ describe('BblPositionsImportService', () => {
     );
   });
 
-  it('imports a star player as one row with a positions_races row per resolved race and a bare-name external id', async () => {
+  it('imports a star player as one row with a positions_race_eras row per resolved race and a bare-name external id', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
       makeReader(
