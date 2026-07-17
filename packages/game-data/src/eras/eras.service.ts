@@ -47,18 +47,19 @@ export class ErasService {
   async upsert(
     data: UpsertEraData,
   ): Promise<{ era: EraWithRulesSets; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      eraExternalIds,
-      eraExternalIds.eraId,
-      eraExternalIds.externalSystemId,
-      eraExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctEraIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        eraExternalIds,
+        eraExternalIds.eraId,
+        eraExternalIds.externalSystemId,
+        eraExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctEraIds.length > 1) {
       throw new EraUpsertConflictError(
-        `External IDs matched multiple existing eras: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing eras: ${distinctEraIds.join(', ')}`,
       );
     }
 
@@ -70,7 +71,7 @@ export class ErasService {
     };
 
     let era: Era;
-    const created = ownerIds.length === 0;
+    const created = distinctEraIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(eras).values(values).returning();
@@ -79,7 +80,7 @@ export class ErasService {
       const result = await this.db
         .update(eras)
         .set(values)
-        .where(eq(eras.id, ownerIds[0]))
+        .where(eq(eras.id, distinctEraIds[0]))
         .returning();
       era = result[0];
     }

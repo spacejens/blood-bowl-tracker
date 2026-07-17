@@ -36,25 +36,26 @@ export class PositionsService {
   async upsert(
     data: UpsertPositionData,
   ): Promise<{ position: Position; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      positionExternalIds,
-      positionExternalIds.positionId,
-      positionExternalIds.externalSystemId,
-      positionExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctPositionIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        positionExternalIds,
+        positionExternalIds.positionId,
+        positionExternalIds.externalSystemId,
+        positionExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctPositionIds.length > 1) {
       throw new PositionUpsertConflictError(
-        `External IDs matched multiple existing positions: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing positions: ${distinctPositionIds.join(', ')}`,
       );
     }
 
     const values = { name: data.name, isStarPlayer: data.isStarPlayer };
 
     let position: Position;
-    const created = ownerIds.length === 0;
+    const created = distinctPositionIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(positions).values(values).returning();
@@ -63,7 +64,7 @@ export class PositionsService {
       const result = await this.db
         .update(positions)
         .set(values)
-        .where(eq(positions.id, ownerIds[0]))
+        .where(eq(positions.id, distinctPositionIds[0]))
         .returning();
       position = result[0];
     }

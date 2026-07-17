@@ -36,23 +36,24 @@ export class RacesService {
   async upsert(
     data: UpsertRaceData,
   ): Promise<{ race: RaceWithEras; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      raceExternalIds,
-      raceExternalIds.raceId,
-      raceExternalIds.externalSystemId,
-      raceExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctRaceIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        raceExternalIds,
+        raceExternalIds.raceId,
+        raceExternalIds.externalSystemId,
+        raceExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctRaceIds.length > 1) {
       throw new RaceUpsertConflictError(
-        `External IDs matched multiple existing races: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing races: ${distinctRaceIds.join(', ')}`,
       );
     }
 
     let race: Race;
-    const created = ownerIds.length === 0;
+    const created = distinctRaceIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -64,7 +65,7 @@ export class RacesService {
       const result = await this.db
         .update(races)
         .set({ name: data.name })
-        .where(eq(races.id, ownerIds[0]))
+        .where(eq(races.id, distinctRaceIds[0]))
         .returning();
       race = result[0];
     }

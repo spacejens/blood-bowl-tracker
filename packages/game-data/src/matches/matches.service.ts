@@ -35,18 +35,19 @@ export class MatchesService {
   async upsert(
     data: UpsertMatchData,
   ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      matchExternalIds,
-      matchExternalIds.matchId,
-      matchExternalIds.externalSystemId,
-      matchExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctMatchIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        matchExternalIds,
+        matchExternalIds.matchId,
+        matchExternalIds.externalSystemId,
+        matchExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctMatchIds.length > 1) {
       throw new MatchUpsertConflictError(
-        `External IDs matched multiple existing matches: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing matches: ${distinctMatchIds.join(', ')}`,
       );
     }
 
@@ -57,7 +58,7 @@ export class MatchesService {
     };
 
     let match: Match;
-    const created = ownerIds.length === 0;
+    const created = distinctMatchIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(matches).values(values).returning();
@@ -66,7 +67,7 @@ export class MatchesService {
       const result = await this.db
         .update(matches)
         .set(values)
-        .where(eq(matches.id, ownerIds[0]))
+        .where(eq(matches.id, distinctMatchIds[0]))
         .returning();
       match = result[0];
     }

@@ -32,23 +32,24 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      coachExternalIds,
-      coachExternalIds.coachId,
-      coachExternalIds.externalSystemId,
-      coachExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctCoachIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        coachExternalIds,
+        coachExternalIds.coachId,
+        coachExternalIds.externalSystemId,
+        coachExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctCoachIds.length > 1) {
       throw new CoachUpsertConflictError(
-        `External IDs matched multiple existing coaches: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing coaches: ${distinctCoachIds.join(', ')}`,
       );
     }
 
     let coach: Coach;
-    const created = ownerIds.length === 0;
+    const created = distinctCoachIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -60,7 +61,7 @@ export class CoachesService {
       const result = await this.db
         .update(coaches)
         .set({ name: data.name })
-        .where(eq(coaches.id, ownerIds[0]))
+        .where(eq(coaches.id, distinctCoachIds[0]))
         .returning();
       coach = result[0];
     }

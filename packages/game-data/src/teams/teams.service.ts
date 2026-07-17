@@ -53,18 +53,19 @@ export class TeamsService {
   async upsert(
     data: UpsertTeamData,
   ): Promise<{ team: TeamWithEras; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      teamExternalIds,
-      teamExternalIds.teamId,
-      teamExternalIds.externalSystemId,
-      teamExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctTeamIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        teamExternalIds,
+        teamExternalIds.teamId,
+        teamExternalIds.externalSystemId,
+        teamExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctTeamIds.length > 1) {
       throw new TeamUpsertConflictError(
-        `External IDs matched multiple existing teams: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing teams: ${distinctTeamIds.join(', ')}`,
       );
     }
 
@@ -75,7 +76,7 @@ export class TeamsService {
     };
 
     let team: Team;
-    const created = ownerIds.length === 0;
+    const created = distinctTeamIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(teams).values(values).returning();
@@ -84,7 +85,7 @@ export class TeamsService {
       const result = await this.db
         .update(teams)
         .set(values)
-        .where(eq(teams.id, ownerIds[0]))
+        .where(eq(teams.id, distinctTeamIds[0]))
         .returning();
       team = result[0];
     }

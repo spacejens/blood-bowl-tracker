@@ -21,23 +21,24 @@ export class RulesSetsService {
   async upsert(
     data: UpsertRulesSetData,
   ): Promise<{ rulesSet: RulesSet; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      rulesSetExternalIds,
-      rulesSetExternalIds.rulesSetId,
-      rulesSetExternalIds.externalSystemId,
-      rulesSetExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctRulesSetIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        rulesSetExternalIds,
+        rulesSetExternalIds.rulesSetId,
+        rulesSetExternalIds.externalSystemId,
+        rulesSetExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctRulesSetIds.length > 1) {
       throw new RulesSetUpsertConflictError(
-        `External IDs matched multiple existing rules sets: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing rules sets: ${distinctRulesSetIds.join(', ')}`,
       );
     }
 
     let rulesSet: RulesSet;
-    const created = ownerIds.length === 0;
+    const created = distinctRulesSetIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -49,7 +50,7 @@ export class RulesSetsService {
       const result = await this.db
         .update(rulesSets)
         .set({ name: data.name })
-        .where(eq(rulesSets.id, ownerIds[0]))
+        .where(eq(rulesSets.id, distinctRulesSetIds[0]))
         .returning();
       rulesSet = result[0];
     }

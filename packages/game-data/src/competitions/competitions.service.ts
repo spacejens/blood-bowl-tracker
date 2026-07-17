@@ -39,18 +39,19 @@ export class CompetitionsService {
   async upsert(
     data: UpsertCompetitionData,
   ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
-    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-      this.db,
-      competitionExternalIds,
-      competitionExternalIds.competitionId,
-      competitionExternalIds.externalSystemId,
-      competitionExternalIds.externalId,
-      data.externalIds,
-    );
+    const { ownerIds: distinctCompetitionIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        competitionExternalIds,
+        competitionExternalIds.competitionId,
+        competitionExternalIds.externalSystemId,
+        competitionExternalIds.externalId,
+        data.externalIds,
+      );
 
-    if (ownerIds.length > 1) {
+    if (distinctCompetitionIds.length > 1) {
       throw new CompetitionUpsertConflictError(
-        `External IDs matched multiple existing competitions: ${ownerIds.join(', ')}`,
+        `External IDs matched multiple existing competitions: ${distinctCompetitionIds.join(', ')}`,
       );
     }
 
@@ -61,7 +62,7 @@ export class CompetitionsService {
     };
 
     let competition: Competition;
-    const created = ownerIds.length === 0;
+    const created = distinctCompetitionIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -73,7 +74,7 @@ export class CompetitionsService {
       const result = await this.db
         .update(competitions)
         .set(values)
-        .where(eq(competitions.id, ownerIds[0]))
+        .where(eq(competitions.id, distinctCompetitionIds[0]))
         .returning();
       competition = result[0];
     }
