@@ -58,6 +58,43 @@ interface StatsSummaryValues {
   matchEvents: number;
 }
 
+/**
+ * Result of the era view's `Promise.all` count query. Element order must match
+ * that array exactly: externalSystems, races, positions, coaches, competitions,
+ * seasons, cups, teams, players, matches, matchEvents, rulesSetNames.
+ */
+type EraCounts = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  string[],
+];
+
+/**
+ * Result of the competition view's `Promise.all` count query. Element order
+ * must match that array exactly: externalSystems, races, positions, coaches,
+ * teams, players, matches, matchEvents, rulesSetNames.
+ */
+type CompetitionCounts = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  string[],
+];
+
 function statsSummaryEmbed(
   values: StatsSummaryValues,
 ): InteractionReplyOptions {
@@ -154,23 +191,7 @@ async function resolveEraStats(
   deps: StatsSummaryDeps,
   eraId: number,
 ): Promise<string | InteractionReplyOptions> {
-  const counts = await withDatabaseTimeout<
-    | [
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        number,
-        string[],
-      ]
-    | null
-  >(
+  const counts = await withDatabaseTimeout<EraCounts | null>(
     Promise.all([
       deps.externalSystems.countByEra(eraId),
       deps.races.countByEra(eraId),
@@ -229,10 +250,7 @@ async function resolveCompetitionStats(
   if (competition === undefined) {
     return STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE;
   }
-  const counts = await withDatabaseTimeout<
-    | [number, number, number, number, number, number, number, number, string[]]
-    | null
-  >(
+  const counts = await withDatabaseTimeout<CompetitionCounts | null>(
     Promise.all([
       deps.externalSystems.countByCompetition(competitionId),
       deps.races.countByCompetition(competitionId),
