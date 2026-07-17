@@ -84,6 +84,11 @@ export class PositionsService {
     return { position, created };
   }
 
+  /**
+   * Upsert-only: inserts any of `data.raceEras` not already present, but
+   * never removes a previously persisted row. Availability evidence
+   * accumulates and is never revoked by a later sync.
+   */
   async syncRaceEras(
     data: SyncPositionRaceErasData,
   ): Promise<{ positionId: number; raceEraIds: number[] }> {
