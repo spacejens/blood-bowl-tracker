@@ -6,6 +6,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class LeagueUpsertConflictError extends Error {}
 
@@ -65,22 +66,13 @@ export class LeaguesService {
       league = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      leagueExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ leagueId: league.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(leagueExternalIds).values(
-        newExternalIds.map((e) => ({
-          leagueId: league.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     return { league, created };
   }

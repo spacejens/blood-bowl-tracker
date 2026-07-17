@@ -29,6 +29,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class TeamUpsertConflictError extends Error {}
 
@@ -99,7 +100,13 @@ export class TeamsService {
     }
 
     const eras = await this.syncEras(team.id, data.eras);
-    await this.syncExternalIds(team.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      teamExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ teamId: team.id, ...pair }),
+    );
 
     return { team: { ...team, eras }, created };
   }
@@ -357,28 +364,5 @@ export class TeamsService {
       .returning({ id: teamEras.id, eraId: teamEras.eraId });
 
     return [...existing, ...inserted];
-  }
-
-  private async syncExternalIds(
-    teamId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(teamExternalIds).values(
-        newExternalIds.map((e) => ({
-          teamId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 }

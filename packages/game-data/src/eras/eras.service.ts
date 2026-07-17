@@ -11,6 +11,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, ilike, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class EraUpsertConflictError extends Error {}
 
@@ -93,22 +94,13 @@ export class ErasService {
       era = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      eraExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ eraId: era.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(eraExternalIds).values(
-        newExternalIds.map((e) => ({
-          eraId: era.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     const rulesSetIds = await this.syncRulesSets(era.id, data.rulesSetIds);
     return { era: { ...era, rulesSetIds }, created };

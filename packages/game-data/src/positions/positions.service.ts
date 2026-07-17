@@ -13,6 +13,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, eq, inArray, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class PositionUpsertConflictError extends Error {}
 
@@ -79,7 +80,13 @@ export class PositionsService {
       position = result[0];
     }
 
-    await this.syncExternalIds(position.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      positionExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ positionId: position.id, ...pair }),
+    );
 
     return { position, created };
   }
@@ -137,29 +144,6 @@ export class PositionsService {
     }
 
     return { positionId: data.positionId, raceEraIds };
-  }
-
-  private async syncExternalIds(
-    positionId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(positionExternalIds).values(
-        newExternalIds.map((e) => ({
-          positionId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {

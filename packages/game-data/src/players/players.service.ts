@@ -26,6 +26,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class PlayerUpsertConflictError extends Error {}
 
@@ -89,22 +90,13 @@ export class PlayersService {
       player = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      playerExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ playerId: player.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(playerExternalIds).values(
-        newExternalIds.map((e) => ({
-          playerId: player.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     return { player, created };
   }

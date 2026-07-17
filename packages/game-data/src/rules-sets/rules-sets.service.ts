@@ -4,6 +4,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class RulesSetUpsertConflictError extends Error {}
 
@@ -65,32 +66,15 @@ export class RulesSetsService {
       rulesSet = result[0];
     }
 
-    await this.syncExternalIds(rulesSet.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      rulesSetExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ rulesSetId: rulesSet.id, ...pair }),
+    );
 
     return { rulesSet, created };
-  }
-
-  private async syncExternalIds(
-    rulesSetId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(rulesSetExternalIds).values(
-        newExternalIds.map((e) => ({
-          rulesSetId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {
