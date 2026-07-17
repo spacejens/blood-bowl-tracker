@@ -305,7 +305,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countTouchdownsScoredByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -343,7 +342,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countCompletionsByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -381,7 +379,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countInterceptionsByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -419,7 +416,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeflectionsByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -466,7 +462,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countCasualtiesCausedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -509,7 +504,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countSeriousInjuriesCausedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -547,7 +541,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeathsCausedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -585,7 +578,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countFoulsCommittedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -623,7 +615,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countTimesSentOffByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -697,7 +688,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countCasualtiesSufferedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -770,7 +760,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countSeriousInjuriesSufferedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -836,7 +825,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countLastingInjuriesSufferedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -888,7 +876,6 @@ describe('TeamsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.countDeathsSufferedByTeam(undefined, 30);
-      expect(builder.innerJoin).toHaveBeenCalled();
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(

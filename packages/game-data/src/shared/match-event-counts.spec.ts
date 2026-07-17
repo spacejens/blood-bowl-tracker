@@ -5,6 +5,11 @@ import {
   countMatchEventsByPlayer,
   countMatchEventsByTeam,
 } from './match-event-counts';
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from './query-assertions.test-helpers';
 
 function makeQueryBuilder(rows: unknown[]): Record<string, unknown> {
   const builder: Record<string, unknown> = {};
@@ -39,7 +44,14 @@ describe('countMatchEventsByPlayer', () => {
       types: ['touchdown'],
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'players.id',
+      'match_events.acting_player_id',
+    ]);
     expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'touchdown',
+    ]);
   });
 
   it('joins four tables for the consequence role', async () => {
@@ -50,7 +62,14 @@ describe('countMatchEventsByPlayer', () => {
       types: ['sent_off'],
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'players.id',
+      'match_events.consequence_player_id',
+    ]);
     expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'sent_off',
+    ]);
   });
 });
 
@@ -70,6 +89,13 @@ describe('countMatchEventsByTeam', () => {
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByTeam(db, { role: 'consequence', types: ['death'] });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'match_teams.id',
+      'match_events.consequence_match_team_id',
+    ]);
     expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'death',
+    ]);
   });
 });

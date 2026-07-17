@@ -16,8 +16,8 @@ import {
  */
 
 /** Recover the literal value drizzle stored inside a `Param`. */
-export function paramValue(param: Param): string {
-  return (param as unknown as { value: string }).value;
+export function paramValue(param: Param): string | number {
+  return (param as unknown as { value: string | number }).value;
 }
 
 /**
@@ -40,7 +40,7 @@ export function firstCallArg(
  */
 export function extractFilterValues(
   condition: unknown,
-): string | string[] | undefined {
+): string | number | (string | number)[] | undefined {
   if (!is(condition, SQL)) return undefined;
   for (const chunk of condition.queryChunks) {
     if (is(chunk, SQL)) {
