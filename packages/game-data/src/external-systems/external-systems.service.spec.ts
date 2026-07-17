@@ -3,6 +3,11 @@ import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractAllFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { ExternalSystemsService } from './external-systems.service';
 
 const fakeSystem = {
@@ -21,16 +26,11 @@ function makeFromBuilder(rows: unknown[]) {
 }
 
 function makeCountBuilder(rows: unknown[]) {
-  return {
-    from: vi.fn(() => ({
-      innerJoin: vi.fn(() => ({
-        where: vi.fn().mockResolvedValue(rows),
-      })),
-    })),
-    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
-      Promise.resolve(rows).then(resolve, reject),
-    catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
-  };
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn().mockResolvedValue(rows);
+  return builder;
 }
 
 describe('ExternalSystemsService', () => {
@@ -88,19 +88,39 @@ describe('ExternalSystemsService', () => {
 
   describe('countByEra', () => {
     it('returns the distinct external-system count for the era', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 3 }]));
+      const builder = makeCountBuilder([{ count: 3 }]);
+      const select = vi.fn(() => builder);
       const service = new ExternalSystemsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(3);
       expect(select).toHaveBeenCalledTimes(1);
+
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['external_systems.id', 'eras_external_ids.external_system_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        5,
+        'Name',
+      ]);
     });
   });
 
   describe('countByCompetition', () => {
     it('returns the distinct external-system count for the competition', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 2 }]));
+      const builder = makeCountBuilder([{ count: 2 }]);
+      const select = vi.fn(() => builder);
       const service = new ExternalSystemsService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(2);
       expect(select).toHaveBeenCalledTimes(1);
+
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['external_systems.id', 'competitions_external_ids.external_system_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        7,
+        'Name',
+      ]);
     });
   });
 });

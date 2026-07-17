@@ -8,6 +8,11 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { MatchesService, MatchUpsertConflictError } from './matches.service';
 
 const fakeMatch = {
@@ -211,10 +216,15 @@ describe('MatchesService', () => {
 
   describe('era-scoped counts', () => {
     it('countByEra returns the distinct match count for the era', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 30 }]));
+      const builder = makeCountBuilder([{ count: 30 }]);
+      const select = vi.fn(() => builder);
       const service = new MatchesService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(30);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['team_eras.id', 'match_teams.team_era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
 
     it('countMatchEventsByEra returns the match-event count for the era', async () => {
@@ -224,15 +234,24 @@ describe('MatchesService', () => {
       await expect(service.countMatchEventsByEra(5)).resolves.toBe(210);
       // match_events -> match_teams -> team_eras
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.match_id', 'match_events.match_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['team_eras.id', 'match_teams.team_era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
 
   describe('competition-scoped counts', () => {
     it('countByCompetition returns the match count for the competition', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 30 }]));
+      const builder = makeCountBuilder([{ count: 30 }]);
+      const select = vi.fn(() => builder);
       const service = new MatchesService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(30);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
 
     it('countMatchEventsByCompetition returns the match-event count for the competition', async () => {
@@ -242,6 +261,10 @@ describe('MatchesService', () => {
       await expect(service.countMatchEventsByCompetition(7)).resolves.toBe(500);
       // match_events -> matches
       expect(builder.innerJoin).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['matches.id', 'match_events.match_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
 });

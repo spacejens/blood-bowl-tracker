@@ -3,6 +3,11 @@ import { DB, raceEras, raceExternalIds, races } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { RacesService, RaceUpsertConflictError } from './races.service';
 
 const fakeRace = {
@@ -187,6 +192,12 @@ describe('RacesService', () => {
       await expect(service.countTeamsByRace(20)).resolves.toEqual(rows);
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['teams.race_id', 'races.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['team_eras.team_id', 'teams.id', 'team_eras.era_id'],
+      );
     });
 
     it('countMatchesPlayedByRace returns the rows the query resolves to', async () => {
@@ -207,24 +218,35 @@ describe('RacesService', () => {
       const service = new RacesService({ select } as unknown as Db);
       await expect(service.countMatchesPlayedByRace(20)).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
     });
   });
 
   describe('countByEra', () => {
     it('returns the distinct race count for the era', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 8 }]));
+      const builder = makeCountBuilder([{ count: 8 }]);
+      const select = vi.fn(() => builder);
       const service = new RacesService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(8);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
 
   describe('countByCompetition', () => {
     it('returns the distinct race count for the competition', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 5 }]));
+      const builder = makeCountBuilder([{ count: 5 }]);
+      const select = vi.fn(() => builder);
       const service = new RacesService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(5);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['team_eras.id', 'competition_teams.team_era_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['teams.id', 'team_eras.team_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
 });
