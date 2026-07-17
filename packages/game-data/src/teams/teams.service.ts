@@ -10,7 +10,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { countMatchEventsByTeam } from '../shared/match-event-counts';
@@ -29,6 +29,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class TeamUpsertConflictError extends Error {}
@@ -52,29 +53,18 @@ export class TeamsService {
   async upsert(
     data: UpsertTeamData,
   ): Promise<{ team: TeamWithEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        teamId: teamExternalIds.teamId,
-        externalSystemId: teamExternalIds.externalSystemId,
-        externalId: teamExternalIds.externalId,
-      })
-      .from(teamExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(teamExternalIds.externalSystemId, e.externalSystemId),
-              eq(teamExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      teamExternalIds,
+      teamExternalIds.teamId,
+      teamExternalIds.externalSystemId,
+      teamExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctTeamIds = [...new Set(existingRows.map((r) => r.teamId))];
-
-    if (distinctTeamIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new TeamUpsertConflictError(
-        `External IDs matched multiple existing teams: ${distinctTeamIds.join(', ')}`,
+        `External IDs matched multiple existing teams: ${ownerIds.join(', ')}`,
       );
     }
 
@@ -85,7 +75,7 @@ export class TeamsService {
     };
 
     let team: Team;
-    const created = distinctTeamIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(teams).values(values).returning();
@@ -94,7 +84,7 @@ export class TeamsService {
       const result = await this.db
         .update(teams)
         .set(values)
-        .where(eq(teams.id, distinctTeamIds[0]))
+        .where(eq(teams.id, ownerIds[0]))
         .returning();
       team = result[0];
     }

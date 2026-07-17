@@ -8,9 +8,10 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, eq, or } from 'drizzle-orm';
+import { count, countDistinct, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class MatchUpsertConflictError extends Error {}
@@ -34,29 +35,18 @@ export class MatchesService {
   async upsert(
     data: UpsertMatchData,
   ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        matchId: matchExternalIds.matchId,
-        externalSystemId: matchExternalIds.externalSystemId,
-        externalId: matchExternalIds.externalId,
-      })
-      .from(matchExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(matchExternalIds.externalSystemId, e.externalSystemId),
-              eq(matchExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      matchExternalIds,
+      matchExternalIds.matchId,
+      matchExternalIds.externalSystemId,
+      matchExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctMatchIds = [...new Set(existingRows.map((r) => r.matchId))];
-
-    if (distinctMatchIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new MatchUpsertConflictError(
-        `External IDs matched multiple existing matches: ${distinctMatchIds.join(', ')}`,
+        `External IDs matched multiple existing matches: ${ownerIds.join(', ')}`,
       );
     }
 
@@ -67,7 +57,7 @@ export class MatchesService {
     };
 
     let match: Match;
-    const created = distinctMatchIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(matches).values(values).returning();
@@ -76,7 +66,7 @@ export class MatchesService {
       const result = await this.db
         .update(matches)
         .set(values)
-        .where(eq(matches.id, distinctMatchIds[0]))
+        .where(eq(matches.id, ownerIds[0]))
         .returning();
       match = result[0];
     }

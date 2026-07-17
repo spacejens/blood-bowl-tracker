@@ -77,7 +77,7 @@ describe('RulesSetsService', () => {
 
   it('updates the matching rules set when exactly one external ID matches', async () => {
     externalIdRows = [
-      { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
+      { ownerId: 1, externalSystemId: 1, externalId: 'BB2020' },
     ];
 
     const result = await service.upsert(baseData);
@@ -88,8 +88,8 @@ describe('RulesSetsService', () => {
 
   it('throws RulesSetUpsertConflictError when external IDs match different rules sets', async () => {
     externalIdRows = [
-      { rulesSetId: 1, externalSystemId: 1, externalId: 'BB2020' },
-      { rulesSetId: 2, externalSystemId: 2, externalId: 'BB2020' },
+      { ownerId: 1, externalSystemId: 1, externalId: 'BB2020' },
+      { ownerId: 2, externalSystemId: 2, externalId: 'BB2020' },
     ];
 
     await expect(service.upsert(baseData)).rejects.toThrow(

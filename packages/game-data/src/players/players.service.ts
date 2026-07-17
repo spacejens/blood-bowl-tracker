@@ -7,7 +7,7 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, or } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { countMatchEventsByPlayer } from '../shared/match-event-counts';
@@ -26,6 +26,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class PlayerUpsertConflictError extends Error {}
@@ -44,34 +45,23 @@ export class PlayersService {
   async upsert(
     data: UpsertPlayerData,
   ): Promise<{ player: Player; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        playerId: playerExternalIds.playerId,
-        externalSystemId: playerExternalIds.externalSystemId,
-        externalId: playerExternalIds.externalId,
-      })
-      .from(playerExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(playerExternalIds.externalSystemId, e.externalSystemId),
-              eq(playerExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      playerExternalIds,
+      playerExternalIds.playerId,
+      playerExternalIds.externalSystemId,
+      playerExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctPlayerIds = [...new Set(existingRows.map((r) => r.playerId))];
-
-    if (distinctPlayerIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new PlayerUpsertConflictError(
-        `External IDs matched multiple existing players: ${distinctPlayerIds.join(', ')}`,
+        `External IDs matched multiple existing players: ${ownerIds.join(', ')}`,
       );
     }
 
     let player: Player;
-    const created = distinctPlayerIds.length === 0;
+    const created = ownerIds.length === 0;
     const columns = {
       name: data.name,
       teamEraId: data.teamEraId,
@@ -85,7 +75,7 @@ export class PlayersService {
       const result = await this.db
         .update(players)
         .set(columns)
-        .where(eq(players.id, distinctPlayerIds[0]))
+        .where(eq(players.id, ownerIds[0]))
         .returning();
       player = result[0];
     }

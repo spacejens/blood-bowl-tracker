@@ -10,9 +10,10 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, eq, inArray, or } from 'drizzle-orm';
+import { and, countDistinct, eq, inArray } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class PositionUpsertConflictError extends Error {}
@@ -35,38 +36,25 @@ export class PositionsService {
   async upsert(
     data: UpsertPositionData,
   ): Promise<{ position: Position; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        positionId: positionExternalIds.positionId,
-        externalSystemId: positionExternalIds.externalSystemId,
-        externalId: positionExternalIds.externalId,
-      })
-      .from(positionExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(positionExternalIds.externalSystemId, e.externalSystemId),
-              eq(positionExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      positionExternalIds,
+      positionExternalIds.positionId,
+      positionExternalIds.externalSystemId,
+      positionExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctPositionIds = [
-      ...new Set(existingRows.map((r) => r.positionId)),
-    ];
-
-    if (distinctPositionIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new PositionUpsertConflictError(
-        `External IDs matched multiple existing positions: ${distinctPositionIds.join(', ')}`,
+        `External IDs matched multiple existing positions: ${ownerIds.join(', ')}`,
       );
     }
 
     const values = { name: data.name, isStarPlayer: data.isStarPlayer };
 
     let position: Position;
-    const created = distinctPositionIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(positions).values(values).returning();
@@ -75,7 +63,7 @@ export class PositionsService {
       const result = await this.db
         .update(positions)
         .set(values)
-        .where(eq(positions.id, distinctPositionIds[0]))
+        .where(eq(positions.id, ownerIds[0]))
         .returning();
       position = result[0];
     }

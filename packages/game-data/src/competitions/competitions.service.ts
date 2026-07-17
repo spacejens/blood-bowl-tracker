@@ -8,9 +8,10 @@ import {
   leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike, or } from 'drizzle-orm';
+import { and, count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class CompetitionUpsertConflictError extends Error {}
@@ -38,31 +39,18 @@ export class CompetitionsService {
   async upsert(
     data: UpsertCompetitionData,
   ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        competitionId: competitionExternalIds.competitionId,
-        externalSystemId: competitionExternalIds.externalSystemId,
-        externalId: competitionExternalIds.externalId,
-      })
-      .from(competitionExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(competitionExternalIds.externalSystemId, e.externalSystemId),
-              eq(competitionExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      competitionExternalIds,
+      competitionExternalIds.competitionId,
+      competitionExternalIds.externalSystemId,
+      competitionExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctCompetitionIds = [
-      ...new Set(existingRows.map((r) => r.competitionId)),
-    ];
-
-    if (distinctCompetitionIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new CompetitionUpsertConflictError(
-        `External IDs matched multiple existing competitions: ${distinctCompetitionIds.join(', ')}`,
+        `External IDs matched multiple existing competitions: ${ownerIds.join(', ')}`,
       );
     }
 
@@ -73,7 +61,7 @@ export class CompetitionsService {
     };
 
     let competition: Competition;
-    const created = distinctCompetitionIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -85,7 +73,7 @@ export class CompetitionsService {
       const result = await this.db
         .update(competitions)
         .set(values)
-        .where(eq(competitions.id, distinctCompetitionIds[0]))
+        .where(eq(competitions.id, ownerIds[0]))
         .returning();
       competition = result[0];
     }

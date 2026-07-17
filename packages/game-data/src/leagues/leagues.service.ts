@@ -3,9 +3,10 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class LeagueUpsertConflictError extends Error {}
@@ -22,34 +23,23 @@ export class LeaguesService {
   async upsert(
     data: UpsertLeagueData,
   ): Promise<{ league: League; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        leagueId: leagueExternalIds.leagueId,
-        externalSystemId: leagueExternalIds.externalSystemId,
-        externalId: leagueExternalIds.externalId,
-      })
-      .from(leagueExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(leagueExternalIds.externalSystemId, e.externalSystemId),
-              eq(leagueExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      leagueExternalIds,
+      leagueExternalIds.leagueId,
+      leagueExternalIds.externalSystemId,
+      leagueExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctLeagueIds = [...new Set(existingRows.map((r) => r.leagueId))];
-
-    if (distinctLeagueIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new LeagueUpsertConflictError(
-        `External IDs matched multiple existing leagues: ${distinctLeagueIds.join(', ')}`,
+        `External IDs matched multiple existing leagues: ${ownerIds.join(', ')}`,
       );
     }
 
     let league: League;
-    const created = distinctLeagueIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -61,7 +51,7 @@ export class LeaguesService {
       const result = await this.db
         .update(leagues)
         .set({ name: data.name })
-        .where(eq(leagues.id, distinctLeagueIds[0]))
+        .where(eq(leagues.id, ownerIds[0]))
         .returning();
       league = result[0];
     }

@@ -142,7 +142,7 @@ describe('TeamsService', () => {
   });
 
   it('updates the matching team when exactly one external ID matches', async () => {
-    externalIdRows = [{ teamId: 1, externalSystemId: 1, externalId: '40g' }];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '40g' }];
 
     const result = await service.upsert(baseData);
 
@@ -152,8 +152,8 @@ describe('TeamsService', () => {
 
   it('throws TeamUpsertConflictError when external IDs match different teams', async () => {
     externalIdRows = [
-      { teamId: 1, externalSystemId: 1, externalId: '40g' },
-      { teamId: 2, externalSystemId: 2, externalId: '40 grinders' },
+      { ownerId: 1, externalSystemId: 1, externalId: '40g' },
+      { ownerId: 2, externalSystemId: 2, externalId: '40 grinders' },
     ];
 
     await expect(service.upsert(baseData)).rejects.toThrow(
@@ -164,7 +164,7 @@ describe('TeamsService', () => {
   });
 
   it('inserts only the external IDs that are new for an existing team', async () => {
-    externalIdRows = [{ teamId: 1, externalSystemId: 1, externalId: '40g' }];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '40g' }];
 
     await service.upsert(baseData);
 

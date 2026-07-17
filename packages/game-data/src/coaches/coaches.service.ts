@@ -12,9 +12,10 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class CoachUpsertConflictError extends Error {}
@@ -31,34 +32,23 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        coachId: coachExternalIds.coachId,
-        externalSystemId: coachExternalIds.externalSystemId,
-        externalId: coachExternalIds.externalId,
-      })
-      .from(coachExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(coachExternalIds.externalSystemId, e.externalSystemId),
-              eq(coachExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      coachExternalIds,
+      coachExternalIds.coachId,
+      coachExternalIds.externalSystemId,
+      coachExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctCoachIds = [...new Set(existingRows.map((r) => r.coachId))];
-
-    if (distinctCoachIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new CoachUpsertConflictError(
-        `External IDs matched multiple existing coaches: ${distinctCoachIds.join(', ')}`,
+        `External IDs matched multiple existing coaches: ${ownerIds.join(', ')}`,
       );
     }
 
     let coach: Coach;
-    const created = distinctCoachIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -70,7 +60,7 @@ export class CoachesService {
       const result = await this.db
         .update(coaches)
         .set({ name: data.name })
-        .where(eq(coaches.id, distinctCoachIds[0]))
+        .where(eq(coaches.id, ownerIds[0]))
         .returning();
       coach = result[0];
     }

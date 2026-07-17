@@ -8,9 +8,10 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, ilike, or } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class EraUpsertConflictError extends Error {}
@@ -46,29 +47,18 @@ export class ErasService {
   async upsert(
     data: UpsertEraData,
   ): Promise<{ era: EraWithRulesSets; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        eraId: eraExternalIds.eraId,
-        externalSystemId: eraExternalIds.externalSystemId,
-        externalId: eraExternalIds.externalId,
-      })
-      .from(eraExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(eraExternalIds.externalSystemId, e.externalSystemId),
-              eq(eraExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      eraExternalIds,
+      eraExternalIds.eraId,
+      eraExternalIds.externalSystemId,
+      eraExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctEraIds = [...new Set(existingRows.map((r) => r.eraId))];
-
-    if (distinctEraIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new EraUpsertConflictError(
-        `External IDs matched multiple existing eras: ${distinctEraIds.join(', ')}`,
+        `External IDs matched multiple existing eras: ${ownerIds.join(', ')}`,
       );
     }
 
@@ -80,7 +70,7 @@ export class ErasService {
     };
 
     let era: Era;
-    const created = distinctEraIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db.insert(eras).values(values).returning();
@@ -89,7 +79,7 @@ export class ErasService {
       const result = await this.db
         .update(eras)
         .set(values)
-        .where(eq(eras.id, distinctEraIds[0]))
+        .where(eq(eras.id, ownerIds[0]))
         .returning();
       era = result[0];
     }

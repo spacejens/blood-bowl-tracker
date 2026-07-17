@@ -117,7 +117,7 @@ describe('RacesService', () => {
     });
 
     it('updates the matching race when exactly one external ID matches', async () => {
-      externalIdRows = [{ raceId: 1, externalSystemId: 1, externalId: 'Orc' }];
+      externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: 'Orc' }];
       const result = await service.upsert(baseData);
       expect(result.created).toBe(false);
       expect(updateCalls.some((c) => c.table === races)).toBe(true);
@@ -125,8 +125,8 @@ describe('RacesService', () => {
 
     it('throws RaceUpsertConflictError when external IDs match different races', async () => {
       externalIdRows = [
-        { raceId: 1, externalSystemId: 1, externalId: 'Orc' },
-        { raceId: 2, externalSystemId: 2, externalId: 'Orc' },
+        { ownerId: 1, externalSystemId: 1, externalId: 'Orc' },
+        { ownerId: 2, externalSystemId: 2, externalId: 'Orc' },
       ];
       await expect(service.upsert(baseData)).rejects.toThrow(
         RaceUpsertConflictError,

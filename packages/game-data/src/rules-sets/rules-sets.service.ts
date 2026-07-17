@@ -1,9 +1,10 @@
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
 import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class RulesSetUpsertConflictError extends Error {}
@@ -20,36 +21,23 @@ export class RulesSetsService {
   async upsert(
     data: UpsertRulesSetData,
   ): Promise<{ rulesSet: RulesSet; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        rulesSetId: rulesSetExternalIds.rulesSetId,
-        externalSystemId: rulesSetExternalIds.externalSystemId,
-        externalId: rulesSetExternalIds.externalId,
-      })
-      .from(rulesSetExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(rulesSetExternalIds.externalSystemId, e.externalSystemId),
-              eq(rulesSetExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
-      );
+    const { ownerIds, existingRows } = await resolveExistingByExternalIds(
+      this.db,
+      rulesSetExternalIds,
+      rulesSetExternalIds.rulesSetId,
+      rulesSetExternalIds.externalSystemId,
+      rulesSetExternalIds.externalId,
+      data.externalIds,
+    );
 
-    const distinctRulesSetIds = [
-      ...new Set(existingRows.map((r) => r.rulesSetId)),
-    ];
-
-    if (distinctRulesSetIds.length > 1) {
+    if (ownerIds.length > 1) {
       throw new RulesSetUpsertConflictError(
-        `External IDs matched multiple existing rules sets: ${distinctRulesSetIds.join(', ')}`,
+        `External IDs matched multiple existing rules sets: ${ownerIds.join(', ')}`,
       );
     }
 
     let rulesSet: RulesSet;
-    const created = distinctRulesSetIds.length === 0;
+    const created = ownerIds.length === 0;
 
     if (created) {
       const result = await this.db
@@ -61,7 +49,7 @@ export class RulesSetsService {
       const result = await this.db
         .update(rulesSets)
         .set({ name: data.name })
-        .where(eq(rulesSets.id, distinctRulesSetIds[0]))
+        .where(eq(rulesSets.id, ownerIds[0]))
         .returning();
       rulesSet = result[0];
     }

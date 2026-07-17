@@ -114,9 +114,7 @@ describe('PositionsService', () => {
   });
 
   it('updates the matching position when exactly one external ID matches', async () => {
-    externalIdRows = [
-      { positionId: 1, externalSystemId: 1, externalId: '10-7' },
-    ];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }];
 
     const result = await service.upsert(data);
 
@@ -126,8 +124,8 @@ describe('PositionsService', () => {
 
   it('throws PositionUpsertConflictError when external IDs match different positions', async () => {
     externalIdRows = [
-      { positionId: 1, externalSystemId: 1, externalId: '10-7' },
-      { positionId: 2, externalSystemId: 2, externalId: 'Orc: Lineman' },
+      { ownerId: 1, externalSystemId: 1, externalId: '10-7' },
+      { ownerId: 2, externalSystemId: 2, externalId: 'Orc: Lineman' },
     ];
 
     await expect(service.upsert(data)).rejects.toThrow(
@@ -138,9 +136,7 @@ describe('PositionsService', () => {
   });
 
   it('inserts only the external IDs that are new for an existing position', async () => {
-    externalIdRows = [
-      { positionId: 1, externalSystemId: 1, externalId: '10-7' },
-    ];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }];
 
     await service.upsert(data);
 

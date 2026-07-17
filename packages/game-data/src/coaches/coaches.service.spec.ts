@@ -81,7 +81,7 @@ describe('CoachesService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+            { ownerId: 1, externalSystemId: 1, externalId: 'id:47' },
           ]),
         );
 
@@ -97,9 +97,9 @@ describe('CoachesService', () => {
     it('throws CoachUpsertConflictError when external IDs match different coaches', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          { ownerId: 1, externalSystemId: 1, externalId: 'id:47' },
           {
-            coachId: 2,
+            ownerId: 2,
             externalSystemId: 1,
             externalId: 'name:roze madder',
           },
@@ -116,9 +116,9 @@ describe('CoachesService', () => {
     it('does not re-insert external IDs that already exist on the matched coach', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+          { ownerId: 1, externalSystemId: 1, externalId: 'id:47' },
           {
-            coachId: 1,
+            ownerId: 1,
             externalSystemId: 1,
             externalId: 'name:roze madder',
           },
@@ -135,7 +135,7 @@ describe('CoachesService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { coachId: 1, externalSystemId: 1, externalId: 'id:47' },
+            { ownerId: 1, externalSystemId: 1, externalId: 'id:47' },
           ]),
         );
       const insertValues = vi.fn(() => ({
