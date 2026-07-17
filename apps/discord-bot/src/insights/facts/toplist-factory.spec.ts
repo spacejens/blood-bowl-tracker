@@ -22,7 +22,7 @@ interface StubService {
 
 describe('makeToplistResolvers', () => {
   it('builds one resolver per entry, keyed by the entry name', () => {
-    const resolvers = makeToplistResolvers<StubService, 'alpha' | 'beta'>(
+    const resolvers = makeToplistResolvers<'alpha' | 'beta', StubService>(
       { alpha: 'A title', beta: 'B title' },
       'timed out',
       'no data',
@@ -31,7 +31,7 @@ describe('makeToplistResolvers', () => {
   });
 
   it('calls the named method with the era and competition and titles the embed', async () => {
-    const resolvers = makeToplistResolvers<StubService, 'alpha'>(
+    const resolvers = makeToplistResolvers<'alpha', StubService>(
       { alpha: 'A title' },
       'timed out',
       'no data',
@@ -45,7 +45,7 @@ describe('makeToplistResolvers', () => {
   });
 
   it('falls back to the no-data message for an empty result', async () => {
-    const resolvers = makeToplistResolvers<StubService, 'alpha'>(
+    const resolvers = makeToplistResolvers<'alpha', StubService>(
       { alpha: 'A title' },
       'timed out',
       'no data',

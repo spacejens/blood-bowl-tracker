@@ -13,7 +13,7 @@ type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
  * Every player toplist is the same resolver over a different count: the table
  * below (count method -> embed title) is the whole of what varies.
  */
-const resolvers = makeToplistResolvers<PlayersService, PlayerToplistMethod>(
+const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>(
   {
     countMvpAwardsByPlayer: 'Players by MVP awards',
     countTouchdownsScoredByPlayer: 'Players by touchdowns scored',

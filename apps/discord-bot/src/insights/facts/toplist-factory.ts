@@ -36,8 +36,11 @@ export type ToplistResolver<TService> = (
  * so the table is the only part worth reading.
  */
 export function makeToplistResolvers<
-  TService,
-  TMethod extends ScopedCountMethods<TService> & string,
+  TMethod extends string,
+  TService extends Record<
+    TMethod,
+    (eraId?: number, competitionId?: number) => Promise<CountedRow[]>
+  >,
 >(
   titles: Record<TMethod, string>,
   timeoutMessage: string,
@@ -46,19 +49,9 @@ export function makeToplistResolvers<
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
     resolvers[method] = (service, eraId, competitionId) => {
-      // `strictBindCallApply` is off for this project, so `.call`/`.bind`
-      // resolve to the untyped `Function` overloads and would return `any`
-      // here. Casting the whole service to a record of the bound-method
-      // shape and invoking through property access instead keeps `this`
-      // bound to `service` (same object, just re-typed) without losing the
-      // return type.
-      const countMethods = service as unknown as Record<
-        TMethod,
-        (eraId?: number, competitionId?: number) => Promise<CountedRow[]>
-      >;
       return resolveToplist(
         titles[method],
-        () => countMethods[method](eraId, competitionId),
+        () => service[method](eraId, competitionId),
         timeoutMessage,
         noDataMessage,
       );

@@ -36,7 +36,7 @@ const _teamToplistMethods = [
 ] as const satisfies readonly ScopedCountMethods<TeamsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
-const resolvers = makeToplistResolvers<TeamsService, TeamToplistMethod>(
+const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>(
   {
     countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
     countCompletionsByTeam: 'Teams by completions',
