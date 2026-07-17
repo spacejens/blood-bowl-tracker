@@ -114,8 +114,8 @@ its DDL automatically.
 Adding a new table therefore only requires calling `historyTrackedTable()`
 instead of `gameData.table()` (or another schema's `.table()`) — running
 `pnpm run db:generate` once produces a single migration with the table, its
-history companion, and both its triggers (the temporal-tables `versioning()`
-trigger and a `set_updated_at()` trigger) together. A completeness spec
+history companion, and all three of its triggers (a `reject_no_op_update()` guard, the temporal-tables `versioning()`
+trigger, and a `set_updated_at()` trigger) together. A completeness spec
 (`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
 is ever added without going through `historyTrackedTable()`.
 
@@ -129,6 +129,25 @@ removed, the corresponding history-table `DROP COLUMN` is rewritten to
 `ALTER COLUMN ... DROP NOT NULL`, so the column survives as nullable and
 old history rows are preserved. Only future migrations are affected;
 existing migrations are never rewritten.
+
+Each tracked table also carries a `"0_<table>_reject_no_op_update"` trigger
+running the generic `reject_no_op_update()` function
+(`packages/db/sql/reject_no_op_update_function.sql`). It is a `BEFORE UPDATE`
+trigger that returns `NULL` when `NEW IS NOT DISTINCT FROM OLD`, cancelling
+the row's update entirely so no subsequent trigger fires; otherwise it
+returns `NEW` and the update proceeds. Without it, an upsert of an unchanged
+row would still bump `updated_at` and write a new history row: Postgres fires
+same-timing triggers in alphabetical trigger-name order, so `set_updated_at`
+would mutate `NEW.updated_at` before `versioning()`'s own no-op guard
+(`IF NEW IS NOT DISTINCT FROM OLD THEN RETURN OLD`) could ever see an
+unchanged row. The `0_` name prefix sorts this trigger ahead of both
+`<table>_set_updated_at` and `<table>_versioning` regardless of table name,
+so it runs first — before anything has mutated `NEW` — making its
+`NEW`-vs-`OLD` comparison a true "did the data actually change" check. The
+leading digit is why the trigger name is double-quoted. The 29 tables that
+predate this trigger were retrofitted by the
+`20260717130000_add_reject_no_op_update_triggers` migration; new tables get
+it automatically via `db:generate`.
 
 The `versioning()` trigger function is vendored unmodified from
 [nearform/temporal_tables](https://github.com/nearform/temporal_tables) at
