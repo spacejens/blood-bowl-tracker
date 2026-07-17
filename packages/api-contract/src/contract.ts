@@ -46,6 +46,10 @@ export const contract = {
   },
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
+    // Not an upsert: this adds position-race-era availability links without
+    // ever removing or overwriting existing ones (see
+    // PositionsService.syncRaceEras), so there's no conflict to detect and
+    // no entity+created shape to return — just the resulting link ids.
     syncRaceEras: oc
       .input(SyncPositionRaceErasSchema)
       .output(SyncPositionRaceErasResultSchema),
