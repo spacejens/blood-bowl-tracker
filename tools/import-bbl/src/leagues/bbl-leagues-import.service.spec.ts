@@ -149,9 +149,7 @@ describe('BblLeaguesImportService', () => {
   it('records one error and skips the league when an external system upsert fails', async () => {
     const upsertExternalSystem = vi
       .fn()
-      .mockRejectedValue(
-        new Error('Failed to upsert external system "BBL": internal error'),
-      );
+      .mockRejectedValue(new Error('network timeout'));
     const upsertLeague = vi.fn();
     const service = makeService(
       () => 'Test League',
@@ -162,9 +160,14 @@ describe('BblLeaguesImportService', () => {
     const result = await service.importLeague();
 
     expect(result.result.success).toBe(false);
-    expect(
-      result.result.errors.some((e) => e.message.includes('external system')),
-    ).toBe(true);
+    expect(result.result.errors).toHaveLength(1);
+    // Message is passed through unchanged (this caller adds no prefix): the
+    // assertion now fails if production stops surfacing the real error text.
+    expect(result.result.errors[0].message).toBe('network timeout');
+    // And the error names the external systems the bootstrap tried to upsert.
+    expect(result.result.errors[0].item).toEqual({
+      externalSystems: ['BBL', 'Name'],
+    });
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 

@@ -9,6 +9,11 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { ErasService, EraUpsertConflictError } from './eras.service';
 
 function makeCountBuilder(rows: unknown[]) {
@@ -184,6 +189,8 @@ describe('ErasService', () => {
         id: 7,
         name: 'BB2020',
       });
+      expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe(7);
     });
 
     it('returns undefined when no era matches', async () => {
@@ -193,6 +200,8 @@ describe('ErasService', () => {
         select: vi.fn(() => ({ from })),
       } as unknown as Db);
       await expect(service.findById(999)).resolves.toBeUndefined();
+      expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe(999);
     });
   });
 
@@ -208,6 +217,10 @@ describe('ErasService', () => {
       } as unknown as Db);
       await expect(service.searchByNamePrefix('bb', 25)).resolves.toEqual(rows);
       expect(limit).toHaveBeenCalledWith(25);
+      expect(extractJoinColumns(firstCallArg(innerJoin, 0, 1))).toEqual([
+        'leagues.id',
+        'eras.league_id',
+      ]);
     });
 
     it('escapes LIKE metacharacters in the prefix before matching', async () => {
@@ -243,6 +256,11 @@ describe('ErasService', () => {
       expect(select).toHaveBeenCalledTimes(1);
 
       expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['rules_sets.id', 'era_rules_sets.rules_set_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
 
     it('returns an empty array when the era has no rules sets', async () => {
@@ -263,10 +281,14 @@ describe('ErasService', () => {
           endDate: null,
         },
       ];
-      const select = vi.fn(() => makeCountBuilder(rows));
+      const builder = makeCountBuilder(rows);
+      const select = vi.fn(() => builder);
       const service = new ErasService({ select } as unknown as Db);
       await expect(service.listErasWithLeague()).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['leagues.id', 'eras.league_id'],
+      );
     });
   });
 });

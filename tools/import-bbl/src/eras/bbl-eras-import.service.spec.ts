@@ -239,16 +239,21 @@ describe('BblErasImportService', () => {
   it('records one error and imports nothing when an external system upsert fails', async () => {
     const upsertExternalSystem = vi
       .fn()
-      .mockRejectedValue(new Error('Failed to upsert external system "BBL"'));
+      .mockRejectedValue(new Error('network timeout'));
     const upsertEra = vi.fn();
     const service = makeService(() => eras, upsertExternalSystem, upsertEra);
 
     const { result } = await service.importEras(10, rulesSetIds);
 
     expect(result.success).toBe(false);
-    expect(
-      result.errors.some((e) => e.message.includes('external system')),
-    ).toBe(true);
+    expect(result.errors).toHaveLength(1);
+    // Message is passed through unchanged (this caller adds no prefix): the
+    // assertion now fails if production stops surfacing the real error text.
+    expect(result.errors[0].message).toBe('network timeout');
+    // And the error names the external systems the bootstrap tried to upsert.
+    expect(result.errors[0].item).toEqual({
+      externalSystems: ['BBL', 'Name'],
+    });
     expect(upsertEra).not.toHaveBeenCalled();
   });
 });

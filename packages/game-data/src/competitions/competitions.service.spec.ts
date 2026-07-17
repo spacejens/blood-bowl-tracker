@@ -9,6 +9,12 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  extractAllFilterValues,
+  extractFilterValues,
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
+import {
   CompetitionsService,
   CompetitionUpsertConflictError,
 } from './competitions.service';
@@ -183,15 +189,18 @@ describe('CompetitionsService', () => {
       } as unknown as Db);
       await expect(service.countByType('season')).resolves.toBe(4);
       expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe('season');
     });
   });
 
   describe('countByEra', () => {
     it('returns the competition count for the era', async () => {
-      const select = vi.fn(() => makeCountBuilder([{ count: 4 }]));
+      const builder = makeCountBuilder([{ count: 4 }]);
+      const select = vi.fn(() => builder);
       const service = new CompetitionsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(4);
       expect(select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
 
@@ -202,6 +211,10 @@ describe('CompetitionsService', () => {
       const service = new CompetitionsService({ select } as unknown as Db);
       await expect(service.countByType('season', 5)).resolves.toBe(2);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'season',
+        5,
+      ]);
     });
   });
 
@@ -256,6 +269,12 @@ describe('CompetitionsService', () => {
         rows,
       );
       expect(builder.limit).toHaveBeenCalledWith(25);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['eras.id', 'competitions.era_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['leagues.id', 'eras.league_id'],
+      );
     });
 
     it('escapes LIKE metacharacters in the prefix', async () => {
@@ -264,11 +283,17 @@ describe('CompetitionsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.searchByNamePrefix('50%_x', 10);
-      // where() is invoked once with the ilike condition; the escaping is
-      // asserted indirectly by the query completing without treating %/_ as
-      // wildcards. (A stronger assertion can read the Param via the SQL
-      // introspection helper used in teams.service.spec.ts if desired.)
       expect(builder.where).toHaveBeenCalledTimes(1);
+      // ilike() (unlike eq()/inArray()) embeds its pattern as a raw string
+      // chunk rather than a Param, so extractFilterValues (which only reads
+      // Param chunks) can't reach it; read the raw string chunk directly.
+      const condition = firstCallArg(builder.where) as {
+        queryChunks: unknown[];
+      };
+      const pattern = condition.queryChunks.find(
+        (chunk): chunk is string => typeof chunk === 'string',
+      );
+      expect(pattern).toBe('50\\%\\_x%');
     });
   });
 });
