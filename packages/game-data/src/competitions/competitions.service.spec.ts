@@ -188,6 +188,7 @@ describe('CompetitionsService', () => {
         select: vi.fn(() => ({ from })),
       } as unknown as Db);
       await expect(service.countByType('season')).resolves.toBe(4);
+      expect(where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(where))).toBe('season');
     });
   });
@@ -198,6 +199,7 @@ describe('CompetitionsService', () => {
       const select = vi.fn(() => builder);
       const service = new CompetitionsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(4);
+      expect(select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
     });
   });
@@ -208,6 +210,7 @@ describe('CompetitionsService', () => {
       const select = vi.fn(() => builder);
       const service = new CompetitionsService({ select } as unknown as Db);
       await expect(service.countByType('season', 5)).resolves.toBe(2);
+      expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'season',
         5,
@@ -280,6 +283,7 @@ describe('CompetitionsService', () => {
         select: vi.fn(() => builder),
       } as unknown as Db);
       await service.searchByNamePrefix('50%_x', 10);
+      expect(builder.where).toHaveBeenCalledTimes(1);
       // ilike() (unlike eq()/inArray()) embeds its pattern as a raw string
       // chunk rather than a Param, so extractFilterValues (which only reads
       // Param chunks) can't reach it; read the raw string chunk directly.
