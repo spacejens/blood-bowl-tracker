@@ -6,7 +6,85 @@ import {
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { resolveToplist } from '../leaderboard';
+import type { ScopedCountMethods } from './toplist-factory';
+import { makeToplistResolvers } from './toplist-factory';
 
+/**
+ * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
+ * take fewer parameters than the (eraId?, competitionId?) shape the factory
+ * binds to, but a function accepting fewer optional parameters is still
+ * assignable to one expecting more, so `ScopedCountMethods<TeamsService>`
+ * would otherwise include them too. Naming the 13 uniform methods explicitly
+ * keeps those three out and still gets checked against `ScopedCountMethods`
+ * via `satisfies` below, so a genuinely mismatched entry still fails to
+ * compile.
+ */
+const _teamToplistMethods = [
+  'countTouchdownsScoredByTeam',
+  'countCompletionsByTeam',
+  'countInterceptionsByTeam',
+  'countDeflectionsByTeam',
+  'countCasualtiesCausedByTeam',
+  'countSeriousInjuriesCausedByTeam',
+  'countDeathsCausedByTeam',
+  'countFoulsCommittedByTeam',
+  'countTimesSentOffByTeam',
+  'countCasualtiesSufferedByTeam',
+  'countSeriousInjuriesSufferedByTeam',
+  'countLastingInjuriesSufferedByTeam',
+  'countDeathsSufferedByTeam',
+] as const satisfies readonly ScopedCountMethods<TeamsService>[];
+type TeamToplistMethod = (typeof _teamToplistMethods)[number];
+
+const resolvers = makeToplistResolvers<TeamsService, TeamToplistMethod>(
+  {
+    countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
+    countCompletionsByTeam: 'Teams by completions',
+    countInterceptionsByTeam: 'Teams by interceptions',
+    countDeflectionsByTeam: 'Teams by deflections',
+    countCasualtiesCausedByTeam: 'Teams by casualties inflicted',
+    countSeriousInjuriesCausedByTeam: 'Teams by serious injuries inflicted',
+    countDeathsCausedByTeam: 'Teams by opponents killed',
+    countFoulsCommittedByTeam: 'Teams by fouls committed',
+    countTimesSentOffByTeam: 'Teams by times sent off',
+    countCasualtiesSufferedByTeam: 'Teams by casualties suffered',
+    countSeriousInjuriesSufferedByTeam: 'Teams by serious injuries suffered',
+    countLastingInjuriesSufferedByTeam: 'Teams by lasting injuries suffered',
+    countDeathsSufferedByTeam: 'Teams by deaths suffered',
+  },
+  TEAM_TOPLIST_TIMEOUT_MESSAGE,
+  TEAM_TOPLIST_NO_DATA_MESSAGE,
+);
+
+export const resolveTeamTouchdownsScoredToplist =
+  resolvers.countTouchdownsScoredByTeam;
+export const resolveTeamCompletionsToplist = resolvers.countCompletionsByTeam;
+export const resolveTeamInterceptionsToplist =
+  resolvers.countInterceptionsByTeam;
+export const resolveTeamDeflectionsToplist = resolvers.countDeflectionsByTeam;
+export const resolveTeamCasualtiesCausedToplist =
+  resolvers.countCasualtiesCausedByTeam;
+export const resolveTeamSeriousInjuriesCausedToplist =
+  resolvers.countSeriousInjuriesCausedByTeam;
+export const resolveTeamDeathsCausedToplist = resolvers.countDeathsCausedByTeam;
+export const resolveTeamFoulsCommittedToplist =
+  resolvers.countFoulsCommittedByTeam;
+export const resolveTeamTimesSentOffToplist = resolvers.countTimesSentOffByTeam;
+export const resolveTeamCasualtiesSufferedToplist =
+  resolvers.countCasualtiesSufferedByTeam;
+export const resolveTeamSeriousInjuriesSufferedToplist =
+  resolvers.countSeriousInjuriesSufferedByTeam;
+export const resolveTeamLastingInjuriesSufferedToplist =
+  resolvers.countLastingInjuriesSufferedByTeam;
+export const resolveTeamDeathsSufferedToplist =
+  resolvers.countDeathsSufferedByTeam;
+
+/**
+ * The three toplists below take a narrower scope than the table above allows
+ * (matches played and competitions played are era-scoped only; eras active is
+ * unscoped), so they stay hand-written rather than widening their public
+ * signatures to accept a competitionId they would ignore.
+ */
 export async function resolveTeamMatchesPlayedToplist(
   teams: TeamsService,
   eraId?: number,
@@ -37,175 +115,6 @@ export async function resolveTeamErasActiveToplist(
   return resolveToplist(
     'Teams by eras active',
     () => teams.countErasByTeam(),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamTouchdownsScoredToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by touchdowns scored',
-    () => teams.countTouchdownsScoredByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamCompletionsToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by completions',
-    () => teams.countCompletionsByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamInterceptionsToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by interceptions',
-    () => teams.countInterceptionsByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamDeflectionsToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by deflections',
-    () => teams.countDeflectionsByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamCasualtiesCausedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by casualties inflicted',
-    () => teams.countCasualtiesCausedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamSeriousInjuriesCausedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by serious injuries inflicted',
-    () => teams.countSeriousInjuriesCausedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamDeathsCausedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by opponents killed',
-    () => teams.countDeathsCausedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamFoulsCommittedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by fouls committed',
-    () => teams.countFoulsCommittedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamTimesSentOffToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by times sent off',
-    () => teams.countTimesSentOffByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamCasualtiesSufferedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by casualties suffered',
-    () => teams.countCasualtiesSufferedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamSeriousInjuriesSufferedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by serious injuries suffered',
-    () => teams.countSeriousInjuriesSufferedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamLastingInjuriesSufferedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by lasting injuries suffered',
-    () => teams.countLastingInjuriesSufferedByTeam(eraId, competitionId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
-}
-
-export async function resolveTeamDeathsSufferedToplist(
-  teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
-): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by deaths suffered',
-    () => teams.countDeathsSufferedByTeam(eraId, competitionId),
     TEAM_TOPLIST_TIMEOUT_MESSAGE,
     TEAM_TOPLIST_NO_DATA_MESSAGE,
   );
