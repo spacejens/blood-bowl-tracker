@@ -20,14 +20,18 @@ export class MatchesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertMatch(data: UpsertMatchData, errors: ImportError[]): Promise<boolean> {
+  private static errorMessage(data: UpsertMatchData) {
     const bblId = data.externalIds[0]?.externalId;
+    return (err: unknown): string =>
+      `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`;
+  }
+
+  upsertMatch(data: UpsertMatchData, errors: ImportError[]): Promise<boolean> {
     return this.importRunner.recordUpsert(
       () => this.client.matches.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`,
+      MatchesImportService.errorMessage(data),
     );
   }
 
@@ -40,13 +44,11 @@ export class MatchesImportService {
     data: UpsertMatchData,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
-    const bblId = data.externalIds[0]?.externalId;
     return this.importRunner.recordUpsertResult(
       () => this.client.matches.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`,
+      MatchesImportService.errorMessage(data),
     );
   }
 }

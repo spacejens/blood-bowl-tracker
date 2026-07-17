@@ -20,6 +20,11 @@ export class CompetitionsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
+  private static errorMessage(data: UpsertCompetitionData) {
+    return (err: unknown): string =>
+      `Failed to import competition "${data.name}": ${err instanceof Error ? err.message : String(err)}`;
+  }
+
   upsertCompetition(
     data: UpsertCompetitionData,
     errors: ImportError[],
@@ -28,8 +33,7 @@ export class CompetitionsImportService {
       () => this.client.competitions.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import competition "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+      CompetitionsImportService.errorMessage(data),
     );
   }
 
@@ -46,8 +50,7 @@ export class CompetitionsImportService {
       () => this.client.competitions.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import competition "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+      CompetitionsImportService.errorMessage(data),
     );
   }
 }

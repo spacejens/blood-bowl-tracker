@@ -123,9 +123,7 @@ describe('CompetitionsService', () => {
   });
 
   it('updates the matching competition when exactly one external ID matches', async () => {
-    externalIdRows = [
-      { competitionId: 1, externalSystemId: 1, externalId: '73' },
-    ];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '73' }];
 
     const result = await service.upsert(baseData);
 
@@ -135,8 +133,8 @@ describe('CompetitionsService', () => {
 
   it('throws CompetitionUpsertConflictError when external IDs match different competitions', async () => {
     externalIdRows = [
-      { competitionId: 1, externalSystemId: 1, externalId: '73' },
-      { competitionId: 2, externalSystemId: 2, externalId: 'Major Season 24' },
+      { ownerId: 1, externalSystemId: 1, externalId: '73' },
+      { ownerId: 2, externalSystemId: 2, externalId: 'Major Season 24' },
     ];
 
     await expect(service.upsert(baseData)).rejects.toThrow(

@@ -129,7 +129,7 @@ describe('PlayersService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { playerId: 1, externalSystemId: 1, externalId: '12345' },
+            { ownerId: 1, externalSystemId: 1, externalId: '12345' },
           ]),
         );
 
@@ -142,8 +142,8 @@ describe('PlayersService', () => {
     it('throws PlayerUpsertConflictError when external IDs match different players', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { playerId: 1, externalSystemId: 1, externalId: '12345' },
-          { playerId: 2, externalSystemId: 2, externalId: 'Griff Oberwald' },
+          { ownerId: 1, externalSystemId: 1, externalId: '12345' },
+          { ownerId: 2, externalSystemId: 2, externalId: 'Griff Oberwald' },
         ]),
       );
 
@@ -157,8 +157,8 @@ describe('PlayersService', () => {
     it('does not re-insert external IDs that already exist on the matched player', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { playerId: 1, externalSystemId: 1, externalId: '12345' },
-          { playerId: 1, externalSystemId: 2, externalId: 'Griff Oberwald' },
+          { ownerId: 1, externalSystemId: 1, externalId: '12345' },
+          { ownerId: 1, externalSystemId: 2, externalId: 'Griff Oberwald' },
         ]),
       );
 
@@ -172,7 +172,7 @@ describe('PlayersService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { playerId: 1, externalSystemId: 1, externalId: '12345' },
+            { ownerId: 1, externalSystemId: 1, externalId: '12345' },
           ]),
         );
       const insertValues = vi.fn(() => ({

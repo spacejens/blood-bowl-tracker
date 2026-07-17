@@ -8,9 +8,11 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, eq, or } from 'drizzle-orm';
+import { count, countDistinct, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class MatchUpsertConflictError extends Error {}
 
@@ -33,25 +35,15 @@ export class MatchesService {
   async upsert(
     data: UpsertMatchData,
   ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        matchId: matchExternalIds.matchId,
-        externalSystemId: matchExternalIds.externalSystemId,
-        externalId: matchExternalIds.externalId,
-      })
-      .from(matchExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(matchExternalIds.externalSystemId, e.externalSystemId),
-              eq(matchExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctMatchIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        matchExternalIds,
+        matchExternalIds.matchId,
+        matchExternalIds.externalSystemId,
+        matchExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctMatchIds = [...new Set(existingRows.map((r) => r.matchId))];
 
     if (distinctMatchIds.length > 1) {
       throw new MatchUpsertConflictError(
@@ -80,7 +72,13 @@ export class MatchesService {
       match = result[0];
     }
 
-    await this.syncExternalIds(match.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      matchExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ matchId: match.id, ...pair }),
+    );
     const teamEraIds = await this.syncTeams(match.id, data.teamEraIds);
 
     return { match: { ...match, teamEraIds }, created };
@@ -106,29 +104,6 @@ export class MatchesService {
     }
 
     return [...existingIds, ...toInsert];
-  }
-
-  private async syncExternalIds(
-    matchId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(matchExternalIds).values(
-        newExternalIds.map((e) => ({
-          matchId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {

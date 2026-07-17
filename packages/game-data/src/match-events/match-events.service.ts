@@ -10,7 +10,10 @@ import {
   matchTeams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
+
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class MatchEventUpsertConflictError extends Error {}
 
@@ -43,28 +46,18 @@ export class MatchEventsService {
       data.consequenceTeamEraId,
     );
 
-    const existingRows = await this.db
-      .select({
-        matchEventId: matchEventExternalIds.matchEventId,
-        externalSystemId: matchEventExternalIds.externalSystemId,
-        externalId: matchEventExternalIds.externalId,
-      })
-      .from(matchEventExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(matchEventExternalIds.externalSystemId, e.externalSystemId),
-              eq(matchEventExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctMatchEventIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        matchEventExternalIds,
+        matchEventExternalIds.matchEventId,
+        matchEventExternalIds.externalSystemId,
+        matchEventExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctIds = [...new Set(existingRows.map((r) => r.matchEventId))];
-    if (distinctIds.length > 1) {
+    if (distinctMatchEventIds.length > 1) {
       throw new MatchEventUpsertConflictError(
-        `External IDs matched multiple existing match events: ${distinctIds.join(', ')}`,
+        `External IDs matched multiple existing match events: ${distinctMatchEventIds.join(', ')}`,
       );
     }
 
@@ -79,7 +72,7 @@ export class MatchEventsService {
     };
 
     let matchEvent: MatchEvent;
-    const created = distinctIds.length === 0;
+    const created = distinctMatchEventIds.length === 0;
     if (created) {
       const result = await this.db
         .insert(matchEvents)
@@ -90,12 +83,18 @@ export class MatchEventsService {
       const result = await this.db
         .update(matchEvents)
         .set(values)
-        .where(eq(matchEvents.id, distinctIds[0]))
+        .where(eq(matchEvents.id, distinctMatchEventIds[0]))
         .returning();
       matchEvent = result[0];
     }
 
-    await this.syncExternalIds(matchEvent.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      matchEventExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ matchEventId: matchEvent.id, ...pair }),
+    );
 
     return { matchEvent, created };
   }
@@ -122,27 +121,5 @@ export class MatchEventsService {
       );
     }
     return matchTeamId;
-  }
-
-  private async syncExternalIds(
-    matchEventId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-    if (newExternalIds.length > 0) {
-      await this.db.insert(matchEventExternalIds).values(
-        newExternalIds.map((e) => ({
-          matchEventId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 }

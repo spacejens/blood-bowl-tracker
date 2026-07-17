@@ -12,9 +12,11 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class CoachUpsertConflictError extends Error {}
 
@@ -30,25 +32,15 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        coachId: coachExternalIds.coachId,
-        externalSystemId: coachExternalIds.externalSystemId,
-        externalId: coachExternalIds.externalId,
-      })
-      .from(coachExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(coachExternalIds.externalSystemId, e.externalSystemId),
-              eq(coachExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctCoachIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        coachExternalIds,
+        coachExternalIds.coachId,
+        coachExternalIds.externalSystemId,
+        coachExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctCoachIds = [...new Set(existingRows.map((r) => r.coachId))];
 
     if (distinctCoachIds.length > 1) {
       throw new CoachUpsertConflictError(
@@ -74,22 +66,13 @@ export class CoachesService {
       coach = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      coachExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ coachId: coach.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(coachExternalIds).values(
-        newExternalIds.map((e) => ({
-          coachId: coach.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     return { coach, created };
   }

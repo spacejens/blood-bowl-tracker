@@ -112,7 +112,7 @@ describe('MatchesService', () => {
   });
 
   it('updates the matching match when exactly one external ID matches', async () => {
-    externalIdRows = [{ matchId: 1, externalSystemId: 1, externalId: '89' }];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '89' }];
 
     const result = await service.upsert(baseData);
 
@@ -127,8 +127,8 @@ describe('MatchesService', () => {
 
   it('throws MatchUpsertConflictError when external IDs match different matches', async () => {
     externalIdRows = [
-      { matchId: 1, externalSystemId: 1, externalId: '89' },
-      { matchId: 2, externalSystemId: 1, externalId: '90' },
+      { ownerId: 1, externalSystemId: 1, externalId: '89' },
+      { ownerId: 2, externalSystemId: 1, externalId: '90' },
     ];
 
     await expect(service.upsert(baseData)).rejects.toThrow(
@@ -139,7 +139,7 @@ describe('MatchesService', () => {
   });
 
   it('inserts only the external-id pairs that are new', async () => {
-    externalIdRows = [{ matchId: 1, externalSystemId: 1, externalId: '89' }];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '89' }];
 
     await service.upsert({
       ...baseData,
@@ -156,7 +156,7 @@ describe('MatchesService', () => {
   });
 
   it('does not insert external-id rows when all pairs already exist', async () => {
-    externalIdRows = [{ matchId: 1, externalSystemId: 1, externalId: '89' }];
+    externalIdRows = [{ ownerId: 1, externalSystemId: 1, externalId: '89' }];
 
     await service.upsert(baseData);
 

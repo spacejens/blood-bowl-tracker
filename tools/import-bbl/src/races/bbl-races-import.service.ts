@@ -4,16 +4,18 @@ import type {
   UpsertRaceData,
 } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
-  makeImportError,
   makeImportResult,
   RacesImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
 import { RacePageParser } from './race-page-parser';
@@ -57,19 +59,16 @@ export class BblRacesImportService {
     let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
@@ -101,14 +100,7 @@ export class BblRacesImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'team', error));
         continue;
       }
     }
@@ -132,14 +124,7 @@ export class BblRacesImportService {
           }
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse race list page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'race list', error));
         continue;
       }
     }

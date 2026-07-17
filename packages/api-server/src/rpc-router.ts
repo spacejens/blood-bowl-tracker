@@ -26,6 +26,8 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { implement } from '@orpc/server';
 
+import { runUpsert } from './upsert-handler';
+
 export function buildRpcRouter(
   coachesService: CoachesService,
   externalSystemsService: ExternalSystemsService,
@@ -42,78 +44,44 @@ export function buildRpcRouter(
 ) {
   return {
     coaches: {
-      upsert: implement(contract.coaches.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { coach, created } = await coachesService.upsert(input);
-            return { ...coach, created };
-          } catch (err) {
-            if (err instanceof CoachUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.coaches.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, CoachUpsertConflictError, async () => {
+          const { coach, created } = await coachesService.upsert(input);
+          return { entity: coach, created };
+        }),
       ),
     },
     leagues: {
-      upsert: implement(contract.leagues.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { league, created } = await leaguesService.upsert(input);
-            return { ...league, created };
-          } catch (err) {
-            if (err instanceof LeagueUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.leagues.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, LeagueUpsertConflictError, async () => {
+          const { league, created } = await leaguesService.upsert(input);
+          return { entity: league, created };
+        }),
       ),
     },
     races: {
-      upsert: implement(contract.races.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { race, created } = await racesService.upsert(input);
-            return { ...race, created };
-          } catch (err) {
-            if (err instanceof RaceUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.races.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, RaceUpsertConflictError, async () => {
+          const { race, created } = await racesService.upsert(input);
+          return { entity: race, created };
+        }),
       ),
     },
     players: {
-      upsert: implement(contract.players.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { player, created } = await playersService.upsert(input);
-            return { ...player, created };
-          } catch (err) {
-            if (err instanceof PlayerUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.players.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, PlayerUpsertConflictError, async () => {
+          const { player, created } = await playersService.upsert(input);
+          return { entity: player, created };
+        }),
       ),
     },
     positions: {
       upsert: implement(contract.positions.upsert).handler(
-        async ({ input, errors }) => {
-          try {
+        ({ input, errors }) =>
+          runUpsert(errors, PositionUpsertConflictError, async () => {
             const { position, created } = await positionsService.upsert(input);
-            return { ...position, created };
-          } catch (err) {
-            if (err instanceof PositionUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+            return { entity: position, created };
+          }),
       ),
       syncRaceEras: implement(contract.positions.syncRaceEras).handler(
         async ({ input }) => positionsService.syncRaceEras(input),
@@ -121,97 +89,63 @@ export function buildRpcRouter(
     },
     rulesSets: {
       upsert: implement(contract.rulesSets.upsert).handler(
-        async ({ input, errors }) => {
-          try {
+        ({ input, errors }) =>
+          runUpsert(errors, RulesSetUpsertConflictError, async () => {
             const { rulesSet, created } = await rulesSetsService.upsert(input);
-            return { ...rulesSet, created };
-          } catch (err) {
-            if (err instanceof RulesSetUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+            return { entity: rulesSet, created };
+          }),
       ),
     },
     eras: {
-      upsert: implement(contract.eras.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { era, created } = await erasService.upsert(input);
-            return { ...era, created };
-          } catch (err) {
-            if (err instanceof EraUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.eras.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, EraUpsertConflictError, async () => {
+          const { era, created } = await erasService.upsert(input);
+          return { entity: era, created };
+        }),
       ),
     },
     competitions: {
       upsert: implement(contract.competitions.upsert).handler(
-        async ({ input, errors }) => {
-          try {
+        ({ input, errors }) =>
+          runUpsert(errors, CompetitionUpsertConflictError, async () => {
             const { competition, created } =
               await competitionsService.upsert(input);
-            return { ...competition, created };
-          } catch (err) {
-            if (err instanceof CompetitionUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+            return { entity: competition, created };
+          }),
       ),
     },
     matches: {
-      upsert: implement(contract.matches.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { match, created } = await matchesService.upsert(input);
-            return { ...match, created };
-          } catch (err) {
-            if (err instanceof MatchUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.matches.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, MatchUpsertConflictError, async () => {
+          const { match, created } = await matchesService.upsert(input);
+          return { entity: match, created };
+        }),
       ),
     },
     matchEvents: {
       upsert: implement(contract.matchEvents.upsert).handler(
-        async ({ input, errors }) => {
-          try {
+        ({ input, errors }) =>
+          runUpsert(errors, MatchEventUpsertConflictError, async () => {
             const { matchEvent, created } =
               await matchEventsService.upsert(input);
-            return { ...matchEvent, created };
-          } catch (err) {
-            if (err instanceof MatchEventUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+            return { entity: matchEvent, created };
+          }),
       ),
     },
     teams: {
-      upsert: implement(contract.teams.upsert).handler(
-        async ({ input, errors }) => {
-          try {
-            const { team, created } = await teamsService.upsert(input);
-            return { ...team, created };
-          } catch (err) {
-            if (err instanceof TeamUpsertConflictError) {
-              throw errors.CONFLICT({ message: err.message });
-            }
-            throw err;
-          }
-        },
+      upsert: implement(contract.teams.upsert).handler(({ input, errors }) =>
+        runUpsert(errors, TeamUpsertConflictError, async () => {
+          const { team, created } = await teamsService.upsert(input);
+          return { entity: team, created };
+        }),
       ),
     },
     externalSystems: {
+      // The only upsert with no CONFLICT error in the contract: an external
+      // system is looked up and matched by its name alone (see
+      // ExternalSystemsService.upsert), so there is no ambiguity between
+      // multiple existing rows for it to catch. Hand-written rather than run
+      // through runUpsert so the absence is deliberate and visible.
       upsert: implement(contract.externalSystems.upsert).handler(
         async ({ input }) => {
           const { system, created } =

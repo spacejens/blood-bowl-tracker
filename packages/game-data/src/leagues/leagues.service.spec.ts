@@ -78,7 +78,7 @@ describe('LeaguesService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { leagueId: 1, externalSystemId: 1, externalId: 'Test League' },
+            { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
           ]),
         );
 
@@ -91,8 +91,8 @@ describe('LeaguesService', () => {
     it('throws LeagueUpsertConflictError when external IDs match different leagues', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { leagueId: 1, externalSystemId: 1, externalId: 'Test League' },
-          { leagueId: 2, externalSystemId: 2, externalId: 'Test League' },
+          { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
+          { ownerId: 2, externalSystemId: 2, externalId: 'Test League' },
         ]),
       );
 
@@ -106,8 +106,8 @@ describe('LeaguesService', () => {
     it('does not re-insert external IDs that already exist on the matched league', async () => {
       mockDb.select().from.mockReturnValue(
         makeFromBuilder([
-          { leagueId: 1, externalSystemId: 1, externalId: 'Test League' },
-          { leagueId: 1, externalSystemId: 2, externalId: 'Test League' },
+          { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
+          { ownerId: 1, externalSystemId: 2, externalId: 'Test League' },
         ]),
       );
 
@@ -121,7 +121,7 @@ describe('LeaguesService', () => {
         .select()
         .from.mockReturnValue(
           makeFromBuilder([
-            { leagueId: 1, externalSystemId: 1, externalId: 'Test League' },
+            { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
           ]),
         );
       const insertValues = vi.fn(() => ({

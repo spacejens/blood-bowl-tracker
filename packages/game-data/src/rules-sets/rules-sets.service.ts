@@ -1,9 +1,11 @@
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
 import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class RulesSetUpsertConflictError extends Error {}
 
@@ -19,27 +21,15 @@ export class RulesSetsService {
   async upsert(
     data: UpsertRulesSetData,
   ): Promise<{ rulesSet: RulesSet; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        rulesSetId: rulesSetExternalIds.rulesSetId,
-        externalSystemId: rulesSetExternalIds.externalSystemId,
-        externalId: rulesSetExternalIds.externalId,
-      })
-      .from(rulesSetExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(rulesSetExternalIds.externalSystemId, e.externalSystemId),
-              eq(rulesSetExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctRulesSetIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        rulesSetExternalIds,
+        rulesSetExternalIds.rulesSetId,
+        rulesSetExternalIds.externalSystemId,
+        rulesSetExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctRulesSetIds = [
-      ...new Set(existingRows.map((r) => r.rulesSetId)),
-    ];
 
     if (distinctRulesSetIds.length > 1) {
       throw new RulesSetUpsertConflictError(
@@ -65,32 +55,15 @@ export class RulesSetsService {
       rulesSet = result[0];
     }
 
-    await this.syncExternalIds(rulesSet.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      rulesSetExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ rulesSetId: rulesSet.id, ...pair }),
+    );
 
     return { rulesSet, created };
-  }
-
-  private async syncExternalIds(
-    rulesSetId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(rulesSetExternalIds).values(
-        newExternalIds.map((e) => ({
-          rulesSetId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {

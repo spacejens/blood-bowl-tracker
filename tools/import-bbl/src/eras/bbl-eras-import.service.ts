@@ -1,9 +1,11 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -41,19 +43,16 @@ export class BblErasImportService {
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
       eras = this.eraConfig.getEras();
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
       );
       return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }

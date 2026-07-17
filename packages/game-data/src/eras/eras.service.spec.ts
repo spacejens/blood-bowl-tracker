@@ -127,7 +127,9 @@ describe('ErasService', () => {
   });
 
   it('updates the matching era when exactly one external ID matches', async () => {
-    externalIdRows = [{ eraId: 1, externalSystemId: 1, externalId: 'BB2020' }];
+    externalIdRows = [
+      { ownerId: 1, externalSystemId: 1, externalId: 'BB2020' },
+    ];
     const result = await service.upsert(baseData);
     expect(result.created).toBe(false);
     expect(updateCalls.some((c) => c.table === eras)).toBe(true);
@@ -135,8 +137,8 @@ describe('ErasService', () => {
 
   it('throws EraUpsertConflictError when external IDs match different eras', async () => {
     externalIdRows = [
-      { eraId: 1, externalSystemId: 1, externalId: 'BB2020' },
-      { eraId: 2, externalSystemId: 2, externalId: 'BB2020' },
+      { ownerId: 1, externalSystemId: 1, externalId: 'BB2020' },
+      { ownerId: 2, externalSystemId: 2, externalId: 'BB2020' },
     ];
     await expect(service.upsert(baseData)).rejects.toThrow(
       EraUpsertConflictError,

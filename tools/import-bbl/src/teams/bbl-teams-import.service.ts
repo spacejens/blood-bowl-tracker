@@ -4,10 +4,12 @@ import type {
   UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
   TeamsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -16,6 +18,7 @@ import { RacePageParser } from '../races/race-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import { TeamPageParser } from './team-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
@@ -61,19 +64,16 @@ export class BblTeamsImportService {
     let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
@@ -134,14 +134,7 @@ export class BblTeamsImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'team', error));
         continue;
       }
     }

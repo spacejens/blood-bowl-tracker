@@ -4,17 +4,20 @@ import type {
   UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
   PlayersImportService,
   TeamsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { pageParseError } from '../source/page-parse-error';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -61,16 +64,16 @@ export class BblPlayersImportService {
     let bblSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
+      [bblSystemId] = await upsertExternalSystems(this.externalSystemsImport, [
+        bblSystemName,
+      ]);
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: { externalSystems: [bblSystemName] },
-          message: `Failed to upsert external system: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName],
+          error,
+          'Failed to upsert external system: ',
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
@@ -210,14 +213,7 @@ export class BblPlayersImportService {
           racesActiveByEra.add(`${team.raceId}:${eraId}`);
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse player page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'player', error));
         continue;
       }
     }

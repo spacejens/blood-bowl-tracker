@@ -1,8 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
+import { pageParseError } from '../source/page-parse-error';
 import { CompetitionStandingsPageParser } from './competition-standings-page-parser';
 
 const STANDINGS_PAGE_TYPE = 'se';
@@ -47,14 +47,7 @@ export class BblCompetitionStandingsReaderService {
           this.parser.extractRegisteredTeamIds(page, errors),
         );
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse standings page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'standings', error));
       }
     }
     this.cache = teamIdsByCompetitionId;

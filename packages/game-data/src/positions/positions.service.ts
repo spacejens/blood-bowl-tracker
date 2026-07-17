@@ -10,9 +10,11 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, eq, inArray, or } from 'drizzle-orm';
+import { and, countDistinct, eq, inArray } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class PositionUpsertConflictError extends Error {}
 
@@ -34,27 +36,15 @@ export class PositionsService {
   async upsert(
     data: UpsertPositionData,
   ): Promise<{ position: Position; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        positionId: positionExternalIds.positionId,
-        externalSystemId: positionExternalIds.externalSystemId,
-        externalId: positionExternalIds.externalId,
-      })
-      .from(positionExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(positionExternalIds.externalSystemId, e.externalSystemId),
-              eq(positionExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctPositionIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        positionExternalIds,
+        positionExternalIds.positionId,
+        positionExternalIds.externalSystemId,
+        positionExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctPositionIds = [
-      ...new Set(existingRows.map((r) => r.positionId)),
-    ];
 
     if (distinctPositionIds.length > 1) {
       throw new PositionUpsertConflictError(
@@ -79,7 +69,13 @@ export class PositionsService {
       position = result[0];
     }
 
-    await this.syncExternalIds(position.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      positionExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ positionId: position.id, ...pair }),
+    );
 
     return { position, created };
   }
@@ -137,29 +133,6 @@ export class PositionsService {
     }
 
     return { positionId: data.positionId, raceEraIds };
-  }
-
-  private async syncExternalIds(
-    positionId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(positionExternalIds).values(
-        newExternalIds.map((e) => ({
-          positionId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {

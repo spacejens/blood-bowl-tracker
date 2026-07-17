@@ -32,7 +32,7 @@ function makeFromBuilder(rows: unknown[]) {
 
 describe('MatchEventsService', () => {
   let service: MatchEventsService;
-  let externalIdRows: { matchEventId: number }[];
+  let externalIdRows: { ownerId: number }[];
   let matchTeamRows: { id: number; teamEraId: number }[];
   let insertCalls: { table: unknown; values: unknown }[];
   let updateCalls: { table: unknown; set: unknown }[];
@@ -95,7 +95,7 @@ describe('MatchEventsService', () => {
   });
 
   it('updates the matching event when exactly one external id matches', async () => {
-    externalIdRows = [{ matchEventId: 1 }];
+    externalIdRows = [{ ownerId: 1 }];
 
     const result = await service.upsert(baseData);
 
@@ -104,7 +104,7 @@ describe('MatchEventsService', () => {
   });
 
   it('throws MatchEventUpsertConflictError when external ids match different events', async () => {
-    externalIdRows = [{ matchEventId: 1 }, { matchEventId: 2 }];
+    externalIdRows = [{ ownerId: 1 }, { ownerId: 2 }];
 
     await expect(service.upsert(baseData)).rejects.toThrow(
       MatchEventUpsertConflictError,
@@ -121,7 +121,7 @@ describe('MatchEventsService', () => {
   });
 
   it('inserts only new external-id pairs on update', async () => {
-    externalIdRows = [{ matchEventId: 1 }];
+    externalIdRows = [{ ownerId: 1 }];
 
     await service.upsert(baseData);
 

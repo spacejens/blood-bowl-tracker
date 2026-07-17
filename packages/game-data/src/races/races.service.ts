@@ -11,9 +11,11 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, or } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class RaceUpsertConflictError extends Error {}
 
@@ -34,25 +36,15 @@ export class RacesService {
   async upsert(
     data: UpsertRaceData,
   ): Promise<{ race: RaceWithEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        raceId: raceExternalIds.raceId,
-        externalSystemId: raceExternalIds.externalSystemId,
-        externalId: raceExternalIds.externalId,
-      })
-      .from(raceExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(raceExternalIds.externalSystemId, e.externalSystemId),
-              eq(raceExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctRaceIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        raceExternalIds,
+        raceExternalIds.raceId,
+        raceExternalIds.externalSystemId,
+        raceExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctRaceIds = [...new Set(existingRows.map((r) => r.raceId))];
 
     if (distinctRaceIds.length > 1) {
       throw new RaceUpsertConflictError(
@@ -78,22 +70,13 @@ export class RacesService {
       race = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      raceExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ raceId: race.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(raceExternalIds).values(
-        newExternalIds.map((e) => ({
-          raceId: race.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     const eras = await this.syncEras(race.id, data.eras ?? []);
     return { race: { ...race, eras }, created };

@@ -8,9 +8,11 @@ import {
   leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike, or } from 'drizzle-orm';
+import { and, count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class CompetitionUpsertConflictError extends Error {}
 
@@ -37,27 +39,15 @@ export class CompetitionsService {
   async upsert(
     data: UpsertCompetitionData,
   ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        competitionId: competitionExternalIds.competitionId,
-        externalSystemId: competitionExternalIds.externalSystemId,
-        externalId: competitionExternalIds.externalId,
-      })
-      .from(competitionExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(competitionExternalIds.externalSystemId, e.externalSystemId),
-              eq(competitionExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctCompetitionIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        competitionExternalIds,
+        competitionExternalIds.competitionId,
+        competitionExternalIds.externalSystemId,
+        competitionExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctCompetitionIds = [
-      ...new Set(existingRows.map((r) => r.competitionId)),
-    ];
 
     if (distinctCompetitionIds.length > 1) {
       throw new CompetitionUpsertConflictError(
@@ -90,7 +80,13 @@ export class CompetitionsService {
     }
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
-    await this.syncExternalIds(competition.id, data.externalIds, existingRows);
+    await insertMissingExternalIds(
+      this.db,
+      competitionExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ competitionId: competition.id, ...pair }),
+    );
 
     return { competition: { ...competition, teamEraIds }, created };
   }
@@ -115,29 +111,6 @@ export class CompetitionsService {
     }
 
     return [...existingIds, ...toInsert];
-  }
-
-  private async syncExternalIds(
-    competitionId: number,
-    externalIds: { externalSystemId: number; externalId: string }[],
-    existingRows: { externalSystemId: number; externalId: string }[],
-  ): Promise<void> {
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
-    );
-    const newExternalIds = externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(competitionExternalIds).values(
-        newExternalIds.map((e) => ({
-          competitionId,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
   }
 
   countAll(): Promise<number> {

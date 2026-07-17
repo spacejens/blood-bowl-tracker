@@ -1,9 +1,11 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
   makeImportError,
   makeImportResult,
   PositionsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -11,6 +13,7 @@ import { PlayerPageParser } from '../players/player-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import { PositionPageParser } from './position-page-parser';
 
 const POSITION_PAGE_TYPE = 'pt';
@@ -122,21 +125,17 @@ export class BblPositionsImportService {
     let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: `Failed to upsert external system: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+          'Failed to upsert external system: ',
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
@@ -311,14 +310,7 @@ export class BblPositionsImportService {
           }
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse position page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'position', error));
         continue;
       }
     }

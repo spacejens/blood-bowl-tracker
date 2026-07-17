@@ -8,9 +8,11 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, ilike, or } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
+import { insertMissingExternalIds } from '../shared/sync-external-ids';
 
 export class EraUpsertConflictError extends Error {}
 
@@ -45,25 +47,15 @@ export class ErasService {
   async upsert(
     data: UpsertEraData,
   ): Promise<{ era: EraWithRulesSets; created: boolean }> {
-    const existingRows = await this.db
-      .select({
-        eraId: eraExternalIds.eraId,
-        externalSystemId: eraExternalIds.externalSystemId,
-        externalId: eraExternalIds.externalId,
-      })
-      .from(eraExternalIds)
-      .where(
-        or(
-          ...data.externalIds.map((e) =>
-            and(
-              eq(eraExternalIds.externalSystemId, e.externalSystemId),
-              eq(eraExternalIds.externalId, e.externalId),
-            ),
-          ),
-        ),
+    const { ownerIds: distinctEraIds, existingRows } =
+      await resolveExistingByExternalIds(
+        this.db,
+        eraExternalIds,
+        eraExternalIds.eraId,
+        eraExternalIds.externalSystemId,
+        eraExternalIds.externalId,
+        data.externalIds,
       );
-
-    const distinctEraIds = [...new Set(existingRows.map((r) => r.eraId))];
 
     if (distinctEraIds.length > 1) {
       throw new EraUpsertConflictError(
@@ -93,22 +85,13 @@ export class ErasService {
       era = result[0];
     }
 
-    const existingPairs = new Set(
-      existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
+    await insertMissingExternalIds(
+      this.db,
+      eraExternalIds,
+      existingRows,
+      data.externalIds,
+      (pair) => ({ eraId: era.id, ...pair }),
     );
-    const newExternalIds = data.externalIds.filter(
-      (e) => !existingPairs.has(`${e.externalSystemId}:${e.externalId}`),
-    );
-
-    if (newExternalIds.length > 0) {
-      await this.db.insert(eraExternalIds).values(
-        newExternalIds.map((e) => ({
-          eraId: era.id,
-          externalSystemId: e.externalSystemId,
-          externalId: e.externalId,
-        })),
-      );
-    }
 
     const rulesSetIds = await this.syncRulesSets(era.id, data.rulesSetIds);
     return { era: { ...era, rulesSetIds }, created };

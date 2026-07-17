@@ -4,10 +4,11 @@ import type {
   UpsertRulesSetData,
 } from '@blood-bowl-tracker/import';
 import {
+  externalSystemBootstrapError,
   ExternalSystemsImportService,
-  makeImportError,
   makeImportResult,
   RulesSetsImportService,
+  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -49,19 +50,16 @@ export class BblRulesSetsImportService {
           this.eraConfig.getEras().flatMap((e) => e.identity.rulesSets),
         ),
       ];
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
