@@ -20,6 +20,7 @@ import {
 } from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import {
   BblCompetition,
   CompetitionListPageParser,
@@ -191,12 +192,7 @@ export class BblCompetitionsImportService {
           return this.competitionListPageParser.extractCompetitions(page);
         } catch (error) {
           errors.push(
-            makeImportError({
-              item: { page: page.params },
-              message: `Failed to parse master competition list page ${JSON.stringify(page.params)}: ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }),
+            pageParseError(page.params, 'master competition list', error),
           );
           return null;
         }

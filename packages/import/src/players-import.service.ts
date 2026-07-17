@@ -19,6 +19,11 @@ export class PlayersImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
+  private static errorMessage(data: UpsertPlayerData) {
+    return (err: unknown): string =>
+      `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`;
+  }
+
   upsertPlayer(
     data: UpsertPlayerData,
     errors: ImportError[],
@@ -27,8 +32,7 @@ export class PlayersImportService {
       () => this.client.players.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+      PlayersImportService.errorMessage(data),
     );
   }
 
@@ -46,8 +50,7 @@ export class PlayersImportService {
       () => this.client.players.upsert(data),
       data,
       errors,
-      (err) =>
-        `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+      PlayersImportService.errorMessage(data),
     );
   }
 }

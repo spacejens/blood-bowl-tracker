@@ -19,6 +19,7 @@ import {
   upsertExternalSystems,
 } from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { pageParseError } from '../source/page-parse-error';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -214,14 +215,7 @@ export class BblPlayersImportService {
           racesActiveByEra.add(`${team.raceId}:${eraId}`);
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse player page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'player', error));
         continue;
       }
     }

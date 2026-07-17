@@ -97,42 +97,39 @@ export class MatchEventsPageParser {
 
       const action = ACTION_LABELS.find((a) => a.test.test(label));
       if (action) {
-        for (const side of ['home', 'away'] as const) {
-          for (const pid of this.occurrences(
-            $,
-            side === 'home' ? homeCell : awayCell,
-          )) {
-            actions.push({ actionType: action.actionType, side, pid });
-          }
+        for (const { side, pid } of this.sideOccurrences(
+          $,
+          homeCell,
+          awayCell,
+        )) {
+          actions.push({ actionType: action.actionType, side, pid });
         }
         return;
       }
 
       if (SENT_OFF.test(label)) {
-        for (const side of ['home', 'away'] as const) {
-          for (const pid of this.occurrences(
-            $,
-            side === 'home' ? homeCell : awayCell,
-          )) {
-            consequences.push({ consequenceType: 'sent_off', side, pid });
-          }
+        for (const { side, pid } of this.sideOccurrences(
+          $,
+          homeCell,
+          awayCell,
+        )) {
+          consequences.push({ consequenceType: 'sent_off', side, pid });
         }
         return;
       }
 
       const consequence = CONSEQUENCE_LABELS.find((c) => c.test.test(label));
       if (consequence) {
-        for (const side of ['home', 'away'] as const) {
-          for (const pid of this.occurrences(
-            $,
-            side === 'home' ? homeCell : awayCell,
-          )) {
-            consequences.push({
-              consequenceType: consequence.consequenceType,
-              side,
-              pid,
-            });
-          }
+        for (const { side, pid } of this.sideOccurrences(
+          $,
+          homeCell,
+          awayCell,
+        )) {
+          consequences.push({
+            consequenceType: consequence.consequenceType,
+            side,
+            pid,
+          });
         }
       }
     });
@@ -152,6 +149,28 @@ export class MatchEventsPageParser {
    * cell with descriptive text but no player link yields a single `null` (an
    * unidentifiable victim). A cell with N player links yields N pids.
    */
+  /**
+   * Every (side, pid) occurrence across the two side cells of a row, in home-
+   * then-away order. The three event kinds a row can carry all walk the cells
+   * the same way and differ only in what they push.
+   */
+  private sideOccurrences(
+    $: ReturnType<BblPage['load']>,
+    homeCell: ReturnType<ReturnType<BblPage['load']>>,
+    awayCell: ReturnType<ReturnType<BblPage['load']>>,
+  ): { side: BblEventSide; pid: string | null }[] {
+    const result: { side: BblEventSide; pid: string | null }[] = [];
+    for (const side of ['home', 'away'] as const) {
+      for (const pid of this.occurrences(
+        $,
+        side === 'home' ? homeCell : awayCell,
+      )) {
+        result.push({ side, pid });
+      }
+    }
+    return result;
+  }
+
   private occurrences(
     $: ReturnType<BblPage['load']>,
     cell: ReturnType<ReturnType<BblPage['load']>>,

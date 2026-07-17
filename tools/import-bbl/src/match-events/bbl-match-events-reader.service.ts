@@ -1,10 +1,10 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventsPageParser } from '../matches/match-events-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
+import { pageParseError } from '../source/page-parse-error';
 
 const MATCH_DETAIL_PAGE_TYPE = 'm';
 
@@ -42,14 +42,7 @@ export class BblMatchEventsReaderService {
         }
         matchEventsByBblId.set(events.bblId, events);
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse match events page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'match events', error));
       }
     }
     this.cache = matchEventsByBblId;

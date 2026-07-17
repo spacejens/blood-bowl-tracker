@@ -2,7 +2,6 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
   ExternalSystemsImportService,
-  makeImportError,
   makeImportResult,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -14,6 +13,7 @@ import {
 } from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import { CoachPageParser } from './coach-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
@@ -86,14 +86,7 @@ export class BblCoachesImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'team', error));
         continue;
       }
     }

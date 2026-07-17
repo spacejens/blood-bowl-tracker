@@ -118,29 +118,23 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       return INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE;
     }
 
-    let era: { id: number; name: string } | undefined;
-    if (eraOption !== null) {
-      const eraId = Number(eraOption);
-      const found = Number.isInteger(eraId)
-        ? await this.eras.findById(eraId)
-        : undefined;
-      if (!found) {
-        return INSIGHTS_ERA_NOT_FOUND_MESSAGE;
-      }
-      era = found;
+    const eraResult = await this.resolveScopeOption(eraOption, (id) =>
+      this.eras.findById(id),
+    );
+    if (eraResult.kind === 'notFound') {
+      return INSIGHTS_ERA_NOT_FOUND_MESSAGE;
     }
+    const era = eraResult.kind === 'found' ? eraResult.value : undefined;
 
-    let competition: { id: number; name: string } | undefined;
-    if (competitionOption !== null) {
-      const competitionId = Number(competitionOption);
-      const found = Number.isInteger(competitionId)
-        ? await this.competitions.findById(competitionId)
-        : undefined;
-      if (!found) {
-        return INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE;
-      }
-      competition = found;
+    const competitionResult = await this.resolveScopeOption(
+      competitionOption,
+      (id) => this.competitions.findById(id),
+    );
+    if (competitionResult.kind === 'notFound') {
+      return INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE;
     }
+    const competition =
+      competitionResult.kind === 'found' ? competitionResult.value : undefined;
 
     if (!category) {
       return this.resolveRandomFact(era, competition);
@@ -165,14 +159,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
       }
     }
 
-    const picked = this.pickRandom(leaves);
-    const reply = await picked.resolve(era?.id, competition?.id);
-    return picked.supportsCompetition || picked.supportsEra
-      ? this.applyTitleSuffix(
-          reply,
-          competition?.name ?? era?.name ?? 'All time',
-        )
-      : reply;
+    return this.resolveLeaf(leaves, era, competition);
   }
 
   async resolveRandomFact(
@@ -186,6 +173,38 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     if (competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
     }
+    return this.resolveLeaf(leaves, era, competition);
+  }
+
+  /**
+   * An era or competition named by a slash-command option: absent when the
+   * option was not given, `notFound` when it was given but names nothing.
+   */
+  private async resolveScopeOption(
+    option: string | null,
+    findById: (id: number) => Promise<{ id: number; name: string } | undefined>,
+  ): Promise<
+    | { kind: 'absent' }
+    | { kind: 'found'; value: { id: number; name: string } }
+    | { kind: 'notFound' }
+  > {
+    if (option === null) {
+      return { kind: 'absent' };
+    }
+    const id = Number(option);
+    const found = Number.isInteger(id) ? await findById(id) : undefined;
+    return found ? { kind: 'found', value: found } : { kind: 'notFound' };
+  }
+
+  /**
+   * Pick one of the candidate leaves at random and render it, suffixing the
+   * embed title with the scope when the leaf is scope-aware.
+   */
+  private async resolveLeaf(
+    leaves: FactLeaf[],
+    era?: { id: number; name: string },
+    competition?: { id: number; name: string },
+  ): Promise<string | InteractionReplyOptions> {
     const picked = this.pickRandom(leaves);
     const reply = await picked.resolve(era?.id, competition?.id);
     return picked.supportsCompetition || picked.supportsEra
@@ -227,20 +246,14 @@ export class InsightsCommandService implements OnApplicationBootstrap {
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return eras.map((era) => ({
-        name: `${era.name} (${era.leagueName})`,
-        value: String(era.id),
-      }));
+      return this.toScopeChoices(eras);
     }
     if (focused.name === 'competition') {
       const competitions = await this.competitions.searchByNamePrefix(
         focused.value,
         MAX_AUTOCOMPLETE_CHOICES,
       );
-      return competitions.map((competition) => ({
-        name: `${competition.name} (${competition.leagueName})`,
-        value: String(competition.id),
-      }));
+      return this.toScopeChoices(competitions);
     }
     return nextSegmentCompletions(this.factTree, focused.value)
       .slice(0, MAX_AUTOCOMPLETE_CHOICES)
@@ -249,5 +262,15 @@ export class InsightsCommandService implements OnApplicationBootstrap {
 
   private pickRandom(leaves: FactLeaf[]): FactLeaf {
     return leaves[Math.floor(Math.random() * leaves.length)];
+  }
+
+  /** The autocomplete choice shape for a named, league-scoped entity. */
+  private toScopeChoices(
+    rows: { id: number; name: string; leagueName: string }[],
+  ): { name: string; value: string }[] {
+    return rows.map((row) => ({
+      name: `${row.name} (${row.leagueName})`,
+      value: String(row.id),
+    }));
   }
 }

@@ -3,6 +3,7 @@ import { makeImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
+import { pageParseError } from '../source/page-parse-error';
 import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
@@ -46,14 +47,7 @@ export class BblMatchDetailReaderService {
         }
         matchTeamsByBblId.set(teams.bblId, teams);
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse match detail page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'match detail', error));
       }
     }
     this.cache = matchTeamsByBblId;

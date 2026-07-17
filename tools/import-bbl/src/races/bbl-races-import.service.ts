@@ -5,7 +5,6 @@ import type {
 } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemsImportService,
-  makeImportError,
   makeImportResult,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
@@ -18,6 +17,7 @@ import {
 } from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import { pageParseError } from '../source/page-parse-error';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
 import { RacePageParser } from './race-page-parser';
@@ -102,14 +102,7 @@ export class BblRacesImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse team page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'team', error));
         continue;
       }
     }
@@ -133,14 +126,7 @@ export class BblRacesImportService {
           }
         }
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse race list page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'race list', error));
         continue;
       }
     }

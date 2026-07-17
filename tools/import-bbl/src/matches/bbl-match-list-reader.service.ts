@@ -1,8 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
+import { pageParseError } from '../source/page-parse-error';
 import type { BblMatch } from './match-list-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
 
@@ -48,14 +48,7 @@ export class BblMatchListReaderService {
           this.matchListPageParser.extractMatches(page),
         );
       } catch (error) {
-        errors.push(
-          makeImportError({
-            item: { page: page.params },
-            message: `Failed to parse match list page ${JSON.stringify(page.params)}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
-          }),
-        );
+        errors.push(pageParseError(page.params, 'match list', error));
       }
     }
     this.cache = matchesByCompetitionId;
