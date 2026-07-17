@@ -3,6 +3,10 @@ import { describe, expect, it } from 'vitest';
 
 import { contract } from './contract';
 import { UpsertCoachSchema } from './schemas/coach';
+import {
+  SyncPositionRaceErasSchema,
+  UpsertPositionSchema,
+} from './schemas/position';
 
 function errorCodesOf(procedure: AnyContractProcedure): string[] {
   const errorMap = procedure['~orpc'].errorMap as Record<string, unknown>;
@@ -32,5 +36,28 @@ describe('contract', () => {
       externalIds: [],
     });
     expect(result.success).toBe(false);
+  });
+
+  it('accepts a valid syncRaceEras input', () => {
+    expect(() =>
+      SyncPositionRaceErasSchema.parse({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 2, eraId: 6 },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it('strips a races field from an upsert payload', () => {
+    const parsed = UpsertPositionSchema.safeParse({
+      name: 'Lineman',
+      isStarPlayer: false,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      races: [{ raceId: 1, isDeleted: false }],
+    });
+    expect(parsed.success).toBe(true);
+    expect((parsed.data as Record<string, unknown>).races).toBeUndefined();
   });
 });

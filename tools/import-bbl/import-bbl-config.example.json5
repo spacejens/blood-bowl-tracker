@@ -127,6 +127,18 @@
         competitions: {
           seasonCompetitionIdOverrides: ['74'],
         },
+        // Optional group -- omit entirely when an era has no position
+        // overrides. Each entry is keyed by positionId (BBL position typId)
+        // and raceId (BBL race bblId); the era itself is implied by which
+        // era block the entry is nested under, so there is no eraId field
+        // here. Used when the zero-players heuristic (a position with no
+        // players recorded in this era is assumed unavailable) mis-decides a
+        // position's availability -- e.g. a position that existed in this
+        // era's rules set but genuinely went unused, or one that was removed
+        // but happens to have leftover player records.
+        positions: [
+          { positionId: '12', raceId: '3', available: false },
+        ],
       },
       {
         identity: {

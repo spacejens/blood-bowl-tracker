@@ -489,4 +489,83 @@ describe('EraConfigService', () => {
     ];
     expect(() => makeService(eras).getEras()).toThrow('matches.merges');
   });
+
+  it('parses positions overrides when present, leaving it undefined when absent', () => {
+    const eras = [
+      {
+        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: {
+          firstPlayerId: 1,
+          lastPlayerId: 5000,
+          autoAssignByPlayerId: true,
+        },
+        positions: [{ positionId: '12', raceId: '3', available: false }],
+      },
+      {
+        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+      },
+    ];
+    const result = makeService(eras).getEras();
+    expect(result[0].positions).toEqual([
+      { positionId: '12', raceId: '3', available: false },
+    ]);
+    expect(result[1].positions).toBeUndefined();
+  });
+
+  it('rejects a non-array positions', () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        positions: 'nope',
+      },
+    ];
+    expect(() => makeService(eras).getEras()).toThrow('positions');
+  });
+
+  it('rejects a positions entry with a non-string positionId', () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        positions: [{ positionId: 12, raceId: '3', available: false }],
+      },
+    ];
+    expect(() => makeService(eras).getEras()).toThrow(
+      'positions[0].positionId',
+    );
+  });
+
+  it('rejects a positions entry with a non-string raceId', () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        positions: [{ positionId: '12', raceId: 3, available: false }],
+      },
+    ];
+    expect(() => makeService(eras).getEras()).toThrow('positions[0].raceId');
+  });
+
+  it('rejects a positions entry with a non-boolean available', () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        positions: [{ positionId: '12', raceId: '3', available: 'no' }],
+      },
+    ];
+    expect(() => makeService(eras).getEras()).toThrow('positions[0].available');
+  });
 });

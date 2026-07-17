@@ -46,10 +46,17 @@ export class BblPlayersImportService {
     positionIdsByBblId: Map<string, number>,
     racesByBblId: Map<string, { id: number; name: string }>,
     eraIdsByName: Map<string, number>,
-  ): Promise<{ result: ImportResult; playerIdsByPid: Map<string, number> }> {
+  ): Promise<{
+    result: ImportResult;
+    playerIdsByPid: Map<string, number>;
+    positionsUsedByEra: Set<string>;
+    racesActiveByEra: Set<string>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByPid = new Map<string, number>();
+    const positionsUsedByEra = new Set<string>();
+    const racesActiveByEra = new Set<string>();
 
     let bblSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
@@ -65,7 +72,12 @@ export class BblPlayersImportService {
           }`,
         }),
       );
-      return { result: makeImportResult({ imported, errors }), playerIdsByPid };
+      return {
+        result: makeImportResult({ imported, errors }),
+        playerIdsByPid,
+        positionsUsedByEra,
+        racesActiveByEra,
+      };
     }
 
     const eras = this.eraConfig.getEras();
@@ -194,6 +206,8 @@ export class BblPlayersImportService {
         if (upserted) {
           imported += 1;
           playerIdsByPid.set(player.pid, upserted.id);
+          positionsUsedByEra.add(`${positionId}:${eraId}`);
+          racesActiveByEra.add(`${team.raceId}:${eraId}`);
         }
       } catch (error) {
         errors.push(
@@ -208,6 +222,11 @@ export class BblPlayersImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), playerIdsByPid };
+    return {
+      result: makeImportResult({ imported, errors }),
+      playerIdsByPid,
+      positionsUsedByEra,
+      racesActiveByEra,
+    };
   }
 }

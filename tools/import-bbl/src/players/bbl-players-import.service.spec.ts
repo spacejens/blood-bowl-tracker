@@ -115,12 +115,13 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
     );
 
-    const { result, playerIdsByPid } = await service.importPlayers(
-      teamsByCode,
-      positionIdsByBblId,
-      racesByBblId,
-      eraIdsByName,
-    );
+    const { result, playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
+      await service.importPlayers(
+        teamsByCode,
+        positionIdsByBblId,
+        racesByBblId,
+        eraIdsByName,
+      );
 
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
@@ -138,6 +139,9 @@ describe('BblPlayersImportService', () => {
       },
       expect.any(Array),
     );
+    // positionId 200, eraId 500 (from eraIdsByName), team.raceId 70.
+    expect(positionsUsedByEra).toEqual(new Set(['200:500']));
+    expect(racesActiveByEra).toEqual(new Set(['70:500']));
   });
 
   it('resolves the era via playerIdOverrides when the pid is outside every range', async () => {
@@ -744,5 +748,22 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(0);
     expect(playerIdsByPid.size).toBe(0);
     expect(upsertPlayerResult).toHaveBeenCalled();
+  });
+
+  it('contributes no usage keys for a skipped or errored player', async () => {
+    const { service } = makeService(
+      makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
+    );
+
+    const { positionsUsedByEra, racesActiveByEra } =
+      await service.importPlayers(
+        teamsByCode,
+        positionIdsByBblId,
+        racesByBblId,
+        eraIdsByName,
+      );
+
+    expect(positionsUsedByEra.size).toBe(0);
+    expect(racesActiveByEra.size).toBe(0);
   });
 });

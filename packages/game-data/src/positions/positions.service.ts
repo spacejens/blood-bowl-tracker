@@ -4,13 +4,13 @@ import {
   DB,
   positionExternalIds,
   positions,
-  positionsRaces,
+  positionsRaceEras,
   raceEras,
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, eq, or } from 'drizzle-orm';
+import { and, countDistinct, eq, inArray, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 
@@ -19,12 +19,12 @@ export class PositionUpsertConflictError extends Error {}
 export interface UpsertPositionData {
   name: string;
   isStarPlayer: boolean;
-  races: { raceId: number; isDeleted: boolean }[];
   externalIds: { externalSystemId: number; externalId: string }[];
 }
 
-export interface PositionWithRaces extends Position {
-  races: { raceId: number; isDeleted: boolean }[];
+export interface SyncPositionRaceErasData {
+  positionId: number;
+  raceEras: { raceId: number; eraId: number }[];
 }
 
 @Injectable()
@@ -33,7 +33,7 @@ export class PositionsService {
 
   async upsert(
     data: UpsertPositionData,
-  ): Promise<{ position: PositionWithRaces; created: boolean }> {
+  ): Promise<{ position: Position; created: boolean }> {
     const existingRows = await this.db
       .select({
         positionId: positionExternalIds.positionId,
@@ -79,53 +79,64 @@ export class PositionsService {
       position = result[0];
     }
 
-    await this.syncRaces(position.id, data.races);
     await this.syncExternalIds(position.id, data.externalIds, existingRows);
 
-    return { position: { ...position, races: data.races }, created };
+    return { position, created };
   }
 
-  private async syncRaces(
-    positionId: number,
-    races: { raceId: number; isDeleted: boolean }[],
-  ): Promise<void> {
-    const existing = await this.db
-      .select({
-        raceId: positionsRaces.raceId,
-        isDeleted: positionsRaces.isDeleted,
-      })
-      .from(positionsRaces)
-      .where(eq(positionsRaces.positionId, positionId));
+  /**
+   * Upsert-only: inserts any of `data.raceEras` not already present, but
+   * never removes a previously persisted row. Availability evidence
+   * accumulates and is never revoked by a later sync.
+   */
+  async syncRaceEras(
+    data: SyncPositionRaceErasData,
+  ): Promise<{ positionId: number; raceEraIds: number[] }> {
+    if (data.raceEras.length === 0) {
+      return { positionId: data.positionId, raceEraIds: [] };
+    }
 
-    const existingByRaceId = new Map(
-      existing.map((r) => [r.raceId, r.isDeleted]),
+    const raceIds = [...new Set(data.raceEras.map((re) => re.raceId))];
+    const raceEraRows = await this.db
+      .select({
+        id: raceEras.id,
+        raceId: raceEras.raceId,
+        eraId: raceEras.eraId,
+      })
+      .from(raceEras)
+      .where(inArray(raceEras.raceId, raceIds));
+
+    const idByKey = new Map(
+      raceEraRows.map((r) => [`${r.raceId}:${r.eraId}`, r.id]),
     );
 
-    const toInsert = races.filter((r) => !existingByRaceId.has(r.raceId));
-    if (toInsert.length > 0) {
-      await this.db.insert(positionsRaces).values(
-        toInsert.map((r) => ({
-          positionId,
-          raceId: r.raceId,
-          isDeleted: r.isDeleted,
-        })),
-      );
-    }
-
-    for (const r of races) {
-      const current = existingByRaceId.get(r.raceId);
-      if (current !== undefined && current !== r.isDeleted) {
-        await this.db
-          .update(positionsRaces)
-          .set({ isDeleted: r.isDeleted })
-          .where(
-            and(
-              eq(positionsRaces.positionId, positionId),
-              eq(positionsRaces.raceId, r.raceId),
-            ),
-          );
+    const resolvedIds: number[] = [];
+    for (const re of data.raceEras) {
+      const id = idByKey.get(`${re.raceId}:${re.eraId}`);
+      if (id !== undefined) {
+        resolvedIds.push(id);
       }
     }
+    const raceEraIds = [...new Set(resolvedIds)];
+
+    if (raceEraIds.length > 0) {
+      const existing = await this.db
+        .select({ raceEraId: positionsRaceEras.raceEraId })
+        .from(positionsRaceEras)
+        .where(eq(positionsRaceEras.positionId, data.positionId));
+      const existingIds = new Set(existing.map((r) => r.raceEraId));
+      const toInsert = raceEraIds.filter((id) => !existingIds.has(id));
+      if (toInsert.length > 0) {
+        await this.db.insert(positionsRaceEras).values(
+          toInsert.map((raceEraId) => ({
+            positionId: data.positionId,
+            raceEraId,
+          })),
+        );
+      }
+    }
+
+    return { positionId: data.positionId, raceEraIds };
   }
 
   private async syncExternalIds(
@@ -155,33 +166,32 @@ export class PositionsService {
     return countRows(this.db, positions);
   }
 
-  /**
-   * Approximation: positions have no direct era relationship, so this counts
-   * every position of any race available in the era via positions_races ->
-   * race_eras. A position may not have existed for its race in every era the
-   * race spans. See issue #153 for a proper position-race-era model.
-   */
   async countByEra(eraId: number): Promise<number> {
     const [row] = await this.db
-      .select({ count: countDistinct(positionsRaces.positionId) })
-      .from(positionsRaces)
-      .innerJoin(raceEras, eq(raceEras.raceId, positionsRaces.raceId))
+      .select({ count: countDistinct(positionsRaceEras.positionId) })
+      .from(positionsRaceEras)
+      .innerJoin(raceEras, eq(raceEras.id, positionsRaceEras.raceEraId))
       .where(eq(raceEras.eraId, eraId));
     return row.count;
   }
 
-  /**
-   * Approximation: mirrors countByEra — counts every position of any race
-   * played by a team in the competition, without accounting for whether the
-   * position existed for that race at the time. See issue #153.
-   */
   async countByCompetition(competitionId: number): Promise<number> {
     const [row] = await this.db
-      .select({ count: countDistinct(positionsRaces.positionId) })
+      .select({ count: countDistinct(positionsRaceEras.positionId) })
       .from(competitionTeams)
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(positionsRaces, eq(positionsRaces.raceId, teams.raceId))
+      .innerJoin(
+        raceEras,
+        and(
+          eq(raceEras.raceId, teams.raceId),
+          eq(raceEras.eraId, teamEras.eraId),
+        ),
+      )
+      .innerJoin(
+        positionsRaceEras,
+        eq(positionsRaceEras.raceEraId, raceEras.id),
+      )
       .where(eq(competitionTeams.competitionId, competitionId));
     return row.count;
   }

@@ -66,7 +66,10 @@ export class BblTeamParticipationImportService {
     racesByRaceId: Map<number, UpsertRaceData>,
     eraIdsByName: Map<string, number>,
     competitionIdsByBblId: Map<string, number>,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{
+    result: ImportResult;
+    eraIdsByRaceId: Map<number, Set<number>>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -168,7 +171,7 @@ export class BblTeamParticipationImportService {
       await this.racesImport.upsertRace({ ...race, eras: [...eraIds] }, errors);
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: makeImportResult({ imported, errors }), eraIdsByRaceId };
   }
 
   /**

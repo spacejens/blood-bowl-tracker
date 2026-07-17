@@ -112,7 +112,7 @@ describe('BblPositionsImportService', () => {
       upsertPosition,
     );
 
-    const { result } = await service.importPositions(
+    const { result, positionRaceCandidates } = await service.importPositions(
       racesByBblId,
       teamRaceIdsByCode,
     );
@@ -122,7 +122,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Goblin Linemen',
         isStarPlayer: false,
-        races: [{ raceId: 480, isDeleted: false }],
         externalIds: [
           { externalSystemId: 1, externalId: '33-48' },
           {
@@ -137,7 +136,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Goblin Linemen',
         isStarPlayer: false,
-        races: [{ raceId: 70, isDeleted: false }],
         externalIds: [
           { externalSystemId: 1, externalId: '33-7' },
           { externalSystemId: 2, externalId: 'Goblin Team: Goblin Linemen' },
@@ -145,9 +143,14 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    // both rows resolve to the same upserted id 100 in this test's mock
+    expect(positionRaceCandidates.get(100)).toEqual({
+      isStarPlayer: false,
+      raceDbIds: new Set([480, 70]),
+    });
   });
 
-  it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate isDeleted:true row', async () => {
+  it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate candidate row', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
       makeReader(
@@ -172,20 +175,17 @@ describe('BblPositionsImportService', () => {
       upsertPosition,
     );
 
-    const { result, positionIdsByBblId } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
+    const { result, positionIdsByBblId, positionRaceCandidates } =
+      await service.importPositions(racesByBblId, teamRaceIdsByCode);
 
     expect(result.imported).toBe(2);
     expect(positionIdsByBblId.get('60-7')).toBe(100);
     expect(positionIdsByBblId.get('60-14')).toBe(100);
-    // listed race: isDeleted false
+    // listed race
     expect(upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
-        races: [{ raceId: 70, isDeleted: false }],
         externalIds: [
           { externalSystemId: 1, externalId: '60-7' },
           { externalSystemId: 2, externalId: 'Goblin Team: Minotaur 2' },
@@ -193,12 +193,11 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
-    // extra reverse-engineered race: duplicate row, isDeleted true
+    // extra reverse-engineered race: duplicate row
     expect(upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
-        races: [{ raceId: 140, isDeleted: true }],
         externalIds: [
           { externalSystemId: 1, externalId: '60-14' },
           { externalSystemId: 2, externalId: 'Norse Team: Minotaur 2' },
@@ -206,9 +205,15 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    // both rows resolve to the same upserted id 100 in this test's mock;
+    // the extra race is now just another candidate, not isDeleted
+    expect(positionRaceCandidates.get(100)).toEqual({
+      isStarPlayer: false,
+      raceDbIds: new Set([70, 140]),
+    });
   });
 
-  it('imports listed races and an extra reverse-engineered race (star) merged into one isDeleted:false row', async () => {
+  it('imports listed races and an extra reverse-engineered race (star) merged into one row', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
       makeReader(
@@ -233,10 +238,8 @@ describe('BblPositionsImportService', () => {
       upsertPosition,
     );
 
-    const { result, positionIdsByBblId } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
+    const { result, positionIdsByBblId, positionRaceCandidates } =
+      await service.importPositions(racesByBblId, teamRaceIdsByCode);
 
     expect(result.imported).toBe(2);
     expect(positionIdsByBblId.get('60-7')).toBe(100);
@@ -246,7 +249,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
-        races: [{ raceId: 70, isDeleted: false }],
         externalIds: [
           { externalSystemId: 1, externalId: '60-7' },
           { externalSystemId: 2, externalId: 'Goblin Team: Minotaur 2' },
@@ -259,7 +261,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Minotaur 2',
         isStarPlayer: true,
-        races: [{ raceId: 140, isDeleted: false }],
         externalIds: [
           { externalSystemId: 2, externalId: 'Minotaur 2' },
           { externalSystemId: 1, externalId: '60-14' },
@@ -268,6 +269,12 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    // both rows resolve to the same upserted id 100 in this test's mock;
+    // the star candidate merges with the listed-race candidate
+    expect(positionRaceCandidates.get(100)).toEqual({
+      isStarPlayer: true,
+      raceDbIds: new Set([70, 140]),
+    });
   });
 
   it('imports only listed races when the reverse-engineered race is already listed (dedup, no regression)', async () => {
@@ -338,7 +345,7 @@ describe('BblPositionsImportService', () => {
     );
   });
 
-  it('imports a star player as one row with a positions_races row per resolved race and a bare-name external id', async () => {
+  it('imports a star player as one row with a positions_race_eras row per resolved race and a bare-name external id', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
       makeReader(
@@ -369,10 +376,8 @@ describe('BblPositionsImportService', () => {
       upsertPosition,
     );
 
-    const { result, positionIdsByBblId } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
+    const { result, positionIdsByBblId, positionRaceCandidates } =
+      await service.importPositions(racesByBblId, teamRaceIdsByCode);
 
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('99-14')).toBe(100);
@@ -382,10 +387,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Wilhelm Chaney',
         isStarPlayer: true,
-        races: [
-          { raceId: 140, isDeleted: false },
-          { raceId: 480, isDeleted: false },
-        ],
         externalIds: [
           { externalSystemId: 2, externalId: 'Wilhelm Chaney' },
           { externalSystemId: 1, externalId: '99-14' },
@@ -399,9 +400,13 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    expect(positionRaceCandidates.get(100)).toEqual({
+      isStarPlayer: true,
+      raceDbIds: new Set([140, 480]),
+    });
   });
 
-  it('imports a defunct-race position as duplicate rows with isDeleted true', async () => {
+  it('imports a defunct-race position as duplicate rows, recorded as a candidate', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const service = makeService(
       makeReader(
@@ -426,10 +431,8 @@ describe('BblPositionsImportService', () => {
       upsertPosition,
     );
 
-    const { result, positionIdsByBblId } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
+    const { result, positionIdsByBblId, positionRaceCandidates } =
+      await service.importPositions(racesByBblId, teamRaceIdsByCode);
 
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('121-14')).toBe(100);
@@ -437,7 +440,6 @@ describe('BblPositionsImportService', () => {
       {
         name: 'Norse Catchers',
         isStarPlayer: false,
-        races: [{ raceId: 140, isDeleted: true }],
         externalIds: [
           { externalSystemId: 1, externalId: '121-14' },
           { externalSystemId: 2, externalId: 'Norse Team: Norse Catchers' },
@@ -445,6 +447,10 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    expect(positionRaceCandidates.get(100)).toEqual({
+      isStarPlayer: false,
+      raceDbIds: new Set([140]),
+    });
   });
 
   it('skips a zero-race star player when no player is found and records an error', async () => {

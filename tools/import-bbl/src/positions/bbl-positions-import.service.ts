@@ -62,18 +62,22 @@ export class BblPositionsImportService {
    * Import every position found on the BBL `p=pt` pages.
    *
    * - Pages that list race(s) via `p=tl#` links import one position row per
-   *   race (isStarPlayer false, each relation isDeleted false), keyed by the
-   *   composite `<typId>-<raceBblId>` (BBL) and `<raceName>: <positionName>`
-   *   (Name), as before.
+   *   race (isStarPlayer false), keyed by the composite `<typId>-<raceBblId>`
+   *   (BBL) and `<raceName>: <positionName>` (Name), as before.
    * - Regardless of whether races are listed, player pages are scanned to
    *   reverse-engineer any ADDITIONAL race(s) that field the position (matched
    *   by typId via `teamRaceIdsByCode`), deduped against the listed races. Any
    *   extra race imports under the zero-listed-races convention: if the page
-   *   carries the `None (star player)` marker, ONE row with a positions_races
-   *   row per extra race (isDeleted false) plus a bare-name Name external id;
-   *   otherwise duplicate rows, one per extra race, each relation isDeleted true.
+   *   carries the `None (star player)` marker, ONE row with a bare-name Name
+   *   external id plus the composite external ids for every extra race;
+   *   otherwise duplicate rows, one per extra race.
    * - Positions that list no race and resolve to none from player history are
    *   skipped with a recorded error, as before.
+   * - No relation is recorded as deleted at import time any more: every race
+   *   a position row is upserted for (listed or reverse-engineered) is
+   *   instead accumulated into `positionRaceCandidates`, keyed by the
+   *   upserted DB position id, for a later era-availability heuristic
+   *   (Phase 2) to decide which candidate races are actually available.
    *
    * `racesByBblId` (from the races import) resolves a listed race's BBL id and
    * gives, inverted, the BBL id + name for a DB race id resolved via players.
@@ -85,10 +89,34 @@ export class BblPositionsImportService {
   ): Promise<{
     result: ImportResult;
     positionIdsByBblId: Map<string, number>;
+    positionRaceCandidates: Map<
+      number,
+      { isStarPlayer: boolean; raceDbIds: Set<number> }
+    >;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const positionIdsByBblId = new Map<string, number>();
+    const positionRaceCandidates = new Map<
+      number,
+      { isStarPlayer: boolean; raceDbIds: Set<number> }
+    >();
+    const recordCandidate = (
+      positionId: number,
+      isStarPlayer: boolean,
+      raceDbIds: number[],
+    ) => {
+      const existing = positionRaceCandidates.get(positionId);
+      if (existing) {
+        existing.isStarPlayer = existing.isStarPlayer || isStarPlayer;
+        for (const id of raceDbIds) existing.raceDbIds.add(id);
+      } else {
+        positionRaceCandidates.set(positionId, {
+          isStarPlayer,
+          raceDbIds: new Set(raceDbIds),
+        });
+      }
+    };
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -113,6 +141,7 @@ export class BblPositionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         positionIdsByBblId,
+        positionRaceCandidates,
       };
     }
 
@@ -182,7 +211,6 @@ export class BblPositionsImportService {
             {
               name: position.name,
               isStarPlayer: false,
-              races: [{ raceId: dbId, isDeleted: false }],
               externalIds: raceExternalIds(
                 bblSystemId,
                 nameSystemId,
@@ -199,6 +227,7 @@ export class BblPositionsImportService {
               `${position.typId}-${race.bblId}`,
               upserted.id,
             );
+            recordCandidate(upserted.id, false, [dbId]);
           }
         }
 
@@ -237,10 +266,6 @@ export class BblPositionsImportService {
             {
               name: position.name,
               isStarPlayer: true,
-              races: resolved.map((r) => ({
-                raceId: r.dbId,
-                isDeleted: false,
-              })),
               externalIds,
             },
             errors,
@@ -253,6 +278,11 @@ export class BblPositionsImportService {
                 upserted.id,
               );
             }
+            recordCandidate(
+              upserted.id,
+              true,
+              resolved.map((r) => r.dbId),
+            );
           }
         } else {
           for (const race of resolved) {
@@ -260,7 +290,6 @@ export class BblPositionsImportService {
               {
                 name: position.name,
                 isStarPlayer: false,
-                races: [{ raceId: race.dbId, isDeleted: true }],
                 externalIds: raceExternalIds(
                   bblSystemId,
                   nameSystemId,
@@ -277,6 +306,7 @@ export class BblPositionsImportService {
                 `${position.typId}-${race.bblId}`,
                 upserted.id,
               );
+              recordCandidate(upserted.id, false, [race.dbId]);
             }
           }
         }
@@ -296,6 +326,7 @@ export class BblPositionsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       positionIdsByBblId,
+      positionRaceCandidates,
     };
   }
 

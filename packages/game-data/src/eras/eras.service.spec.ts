@@ -239,7 +239,7 @@ describe('ErasService', () => {
         'BB2020',
       ]);
       expect(select).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+
       expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
     });
 

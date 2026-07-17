@@ -3,7 +3,8 @@ import {
   DB,
   positionExternalIds,
   positions,
-  positionsRaces,
+  positionsRaceEras,
+  raceEras,
 } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -88,18 +89,17 @@ describe('PositionsService', () => {
   const data = {
     name: 'Lineman',
     isStarPlayer: false,
-    races: [{ raceId: 7, isDeleted: false }],
     externalIds: [
       { externalSystemId: 1, externalId: '10-7' },
       { externalSystemId: 2, externalId: 'Orc: Lineman' },
     ],
   };
 
-  it('creates a new position with its races when no external IDs match', async () => {
+  it('creates a new position when no external IDs match', async () => {
     const result = await service.upsert(data);
 
     expect(result).toEqual({
-      position: { ...fakePosition, races: data.races },
+      position: fakePosition,
       created: true,
     });
     expect(insertCalls.some((c) => c.table === positions)).toBe(true);
@@ -117,7 +117,6 @@ describe('PositionsService', () => {
     externalIdRows = [
       { positionId: 1, externalSystemId: 1, externalId: '10-7' },
     ];
-    existingRaceRows = [{ raceId: 7, isDeleted: false }];
 
     const result = await service.upsert(data);
 
@@ -151,58 +150,125 @@ describe('PositionsService', () => {
     ]);
   });
 
-  it('inserts a positions_races row for a race relation that does not exist yet', async () => {
-    existingRaceRows = [];
+  describe('syncRaceEras', () => {
+    function makeSyncDb(raceEraRows: unknown[], existingRows: unknown[]) {
+      const calls: { table: unknown; values: unknown }[] = [];
+      const db = {
+        select: () => ({
+          from: (table: unknown) =>
+            makeFromBuilder(table === raceEras ? raceEraRows : existingRows),
+        }),
+        insert: (table: unknown) => ({
+          values: (values: unknown) => {
+            calls.push({ table, values });
+            return Promise.resolve();
+          },
+        }),
+      };
+      return { db: db as unknown as Db, calls };
+    }
 
-    await service.upsert(data);
+    it('resolves (raceId, eraId) pairs to race_era ids and inserts positions_race_eras rows', async () => {
+      const { db, calls } = makeSyncDb(
+        [
+          { id: 100, raceId: 2, eraId: 5 },
+          { id: 101, raceId: 2, eraId: 6 },
+        ],
+        [],
+      );
+      const service = new PositionsService(db);
 
-    const call = insertCalls.find((c) => c.table === positionsRaces);
-    expect(call?.values).toEqual([
-      { positionId: 1, raceId: 7, isDeleted: false },
-    ]);
-  });
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 2, eraId: 6 },
+        ],
+      });
 
-  it('updates isDeleted on an existing positions_races relation when it changed', async () => {
-    externalIdRows = [
-      { positionId: 1, externalSystemId: 1, externalId: '10-7' },
-    ];
-    existingRaceRows = [{ raceId: 7, isDeleted: false }];
-
-    await service.upsert({ ...data, races: [{ raceId: 7, isDeleted: true }] });
-
-    const insert = insertCalls.find((c) => c.table === positionsRaces);
-    const update = updateCalls.find((c) => c.table === positionsRaces);
-    expect(insert).toBeUndefined();
-    expect(update?.set).toEqual({ isDeleted: true });
-  });
-
-  it('leaves positions_races untouched when the relation is unchanged', async () => {
-    externalIdRows = [
-      { positionId: 1, externalSystemId: 1, externalId: '10-7' },
-    ];
-    existingRaceRows = [{ raceId: 7, isDeleted: false }];
-
-    await service.upsert(data);
-
-    expect(insertCalls.some((c) => c.table === positionsRaces)).toBe(false);
-    expect(updateCalls.some((c) => c.table === positionsRaces)).toBe(false);
-  });
-
-  it('returns the requested races and star flag on the position', async () => {
-    const result = await service.upsert({
-      name: 'Wilhelm Chaney',
-      isStarPlayer: true,
-      races: [
-        { raceId: 7, isDeleted: false },
-        { raceId: 8, isDeleted: false },
-      ],
-      externalIds: [{ externalSystemId: 1, externalId: '99-14' }],
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100, 101] });
+      const call = calls.find((c) => c.table === positionsRaceEras);
+      expect(call?.values).toEqual([
+        { positionId: 1, raceEraId: 100 },
+        { positionId: 1, raceEraId: 101 },
+      ]);
     });
 
-    expect(result.position.races).toEqual([
-      { raceId: 7, isDeleted: false },
-      { raceId: 8, isDeleted: false },
-    ]);
+    it('does not re-insert an already-present positions_race_eras row', async () => {
+      const { db, calls } = makeSyncDb(
+        [
+          { id: 100, raceId: 2, eraId: 5 },
+          { id: 101, raceId: 2, eraId: 6 },
+        ],
+        [{ raceEraId: 100 }],
+      );
+      const service = new PositionsService(db);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 2, eraId: 6 },
+        ],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100, 101] });
+      const call = calls.find((c) => c.table === positionsRaceEras);
+      expect(call?.values).toEqual([{ positionId: 1, raceEraId: 101 }]);
+    });
+
+    it('skips a (raceId, eraId) pair that has no matching race_era row', async () => {
+      const { db, calls } = makeSyncDb([{ id: 100, raceId: 2, eraId: 5 }], []);
+      const service = new PositionsService(db);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 2, eraId: 6 },
+        ],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      const call = calls.find((c) => c.table === positionsRaceEras);
+      expect(call?.values).toEqual([{ positionId: 1, raceEraId: 100 }]);
+    });
+
+    it('dedupes duplicate resolved race_era ids so only one row is inserted', async () => {
+      const { db, calls } = makeSyncDb(
+        [
+          { id: 100, raceId: 2, eraId: 5 },
+          { id: 100, raceId: 3, eraId: 5 },
+        ],
+        [],
+      );
+      const service = new PositionsService(db);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [
+          { raceId: 2, eraId: 5 },
+          { raceId: 3, eraId: 5 },
+        ],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [100] });
+      const call = calls.find((c) => c.table === positionsRaceEras);
+      expect(call?.values).toEqual([{ positionId: 1, raceEraId: 100 }]);
+    });
+
+    it('returns an empty list and inserts nothing for empty input', async () => {
+      const { db, calls } = makeSyncDb([], []);
+      const service = new PositionsService(db);
+
+      const result = await service.syncRaceEras({
+        positionId: 1,
+        raceEras: [],
+      });
+
+      expect(result).toEqual({ positionId: 1, raceEraIds: [] });
+      expect(calls).toHaveLength(0);
+    });
   });
 
   describe('countAll', () => {
@@ -217,24 +283,22 @@ describe('PositionsService', () => {
   });
 
   describe('countByEra', () => {
-    it('returns the distinct position count for races available in the era', async () => {
+    it('counts distinct positions available in the era via positions_race_eras', async () => {
       const builder = makeCountBuilder([{ count: 40 }]);
       const select = vi.fn(() => builder);
       const service = new PositionsService({ select } as unknown as Db);
       await expect(service.countByEra(5)).resolves.toBe(40);
-      // positions_races joined to race_eras
       expect(builder.innerJoin).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('countByCompetition', () => {
-    it('returns the distinct position count for races available in the competition', async () => {
+    it('counts distinct positions available for each team-era in the competition', async () => {
       const builder = makeCountBuilder([{ count: 25 }]);
       const select = vi.fn(() => builder);
       const service = new PositionsService({ select } as unknown as Db);
       await expect(service.countByCompetition(7)).resolves.toBe(25);
-      // competition_teams -> team_eras -> teams -> positions_races
-      expect(builder.innerJoin).toHaveBeenCalledTimes(3);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     });
   });
 });
