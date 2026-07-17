@@ -698,7 +698,7 @@ describe('TeamsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
-    it('countDeathsSufferedByTeam filters on the single death consequence type (not inArray)', async () => {
+    it('countDeathsSufferedByTeam filters on the single death consequence type', async () => {
       const builder = makeQueryBuilder([]);
       const service = new TeamsService({
         select: vi.fn(() => builder),
