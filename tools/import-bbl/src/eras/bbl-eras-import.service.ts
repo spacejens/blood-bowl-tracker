@@ -7,6 +7,10 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
+import {
+  externalSystemBootstrapError,
+  upsertExternalSystems,
+} from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { EraConfig, EraConfigService } from './era-config.service';
@@ -41,19 +45,16 @@ export class BblErasImportService {
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
       eras = this.eraConfig.getEras();
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
-      nameSystemId = await this.externalSystemsImport.upsertExternalSystem(
-        NAME_EXTERNAL_SYSTEM_NAME,
+      [bblSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
       );
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: {
-            externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          },
-          message: error instanceof Error ? error.message : String(error),
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
       );
       return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }

@@ -14,6 +14,10 @@ import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
+import {
+  externalSystemBootstrapError,
+  upsertExternalSystems,
+} from '../source/external-system-bootstrap';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PlayerPageParser } from './player-page-parser';
 
@@ -61,16 +65,16 @@ export class BblPlayersImportService {
     let bblSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
     try {
-      bblSystemId =
-        await this.externalSystemsImport.upsertExternalSystem(bblSystemName);
+      [bblSystemId] = await upsertExternalSystems(this.externalSystemsImport, [
+        bblSystemName,
+      ]);
     } catch (error) {
       errors.push(
-        makeImportError({
-          item: { externalSystems: [bblSystemName] },
-          message: `Failed to upsert external system: ${
-            error instanceof Error ? error.message : String(error)
-          }`,
-        }),
+        externalSystemBootstrapError(
+          [bblSystemName],
+          error,
+          'Failed to upsert external system: ',
+        ),
       );
       return {
         result: makeImportResult({ imported, errors }),
