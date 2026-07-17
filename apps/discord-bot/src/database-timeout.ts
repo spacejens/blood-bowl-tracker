@@ -1,12 +1,4 @@
 /**
- * Default reply used when a database query does not respond in time.
- *
- * Exported for reuse: any database-backed reply that can time out should fall
- * back to this message so the bot stays responsive.
- */
-export const DATABASE_TIMEOUT_FALLBACK_MESSAGE = 'I am stunned';
-
-/**
  * How long to wait for the database before falling back. Kept comfortably
  * under Discord's ~3 second interaction-acknowledgement window so a slash
  * command can always reply in time.

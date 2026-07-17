@@ -1,6 +1,10 @@
 import type { PlayersService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
+import {
+  PLAYER_TOPLIST_NO_DATA_MESSAGE,
+  PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+} from '../../error-messages';
 import { resolveToplist } from '../leaderboard';
 
 export async function resolvePlayerMvpsToplist(
@@ -8,8 +12,11 @@ export async function resolvePlayerMvpsToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by MVP awards', () =>
-    players.countMvpAwardsByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by MVP awards',
+    () => players.countMvpAwardsByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -18,8 +25,11 @@ export async function resolvePlayerTouchdownsScoredToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by touchdowns scored', () =>
-    players.countTouchdownsScoredByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by touchdowns scored',
+    () => players.countTouchdownsScoredByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -28,8 +38,11 @@ export async function resolvePlayerCompletionsToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by completions', () =>
-    players.countCompletionsByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by completions',
+    () => players.countCompletionsByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -38,8 +51,11 @@ export async function resolvePlayerInterceptionsToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by interceptions', () =>
-    players.countInterceptionsByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by interceptions',
+    () => players.countInterceptionsByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -48,8 +64,11 @@ export async function resolvePlayerDeflectionsToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by deflections', () =>
-    players.countDeflectionsByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by deflections',
+    () => players.countDeflectionsByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -58,8 +77,11 @@ export async function resolvePlayerCasualtiesCausedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by casualties inflicted', () =>
-    players.countCasualtiesCausedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by casualties inflicted',
+    () => players.countCasualtiesCausedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -68,8 +90,11 @@ export async function resolvePlayerSeriousInjuriesCausedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by serious injuries inflicted', () =>
-    players.countSeriousInjuriesCausedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by serious injuries inflicted',
+    () => players.countSeriousInjuriesCausedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -78,8 +103,11 @@ export async function resolvePlayerDeathsCausedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by opponents killed', () =>
-    players.countDeathsCausedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by opponents killed',
+    () => players.countDeathsCausedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -88,8 +116,11 @@ export async function resolvePlayerFoulsCommittedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by fouls committed', () =>
-    players.countFoulsCommittedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by fouls committed',
+    () => players.countFoulsCommittedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -98,8 +129,11 @@ export async function resolvePlayerTimesSentOffToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by times sent off', () =>
-    players.countTimesSentOffByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by times sent off',
+    () => players.countTimesSentOffByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -108,8 +142,11 @@ export async function resolvePlayerCasualtiesSufferedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by casualties suffered', () =>
-    players.countCasualtiesSufferedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by casualties suffered',
+    () => players.countCasualtiesSufferedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -118,8 +155,11 @@ export async function resolvePlayerSeriousInjuriesSufferedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by serious injuries suffered', () =>
-    players.countSeriousInjuriesSufferedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by serious injuries suffered',
+    () => players.countSeriousInjuriesSufferedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }
 
@@ -128,7 +168,10 @@ export async function resolvePlayerLastingInjuriesSufferedToplist(
   eraId?: number,
   competitionId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist('Players by lasting injuries suffered', () =>
-    players.countLastingInjuriesSufferedByPlayer(eraId, competitionId),
+  return resolveToplist(
+    'Players by lasting injuries suffered',
+    () => players.countLastingInjuriesSufferedByPlayer(eraId, competitionId),
+    PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+    PLAYER_TOPLIST_NO_DATA_MESSAGE,
   );
 }

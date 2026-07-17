@@ -107,7 +107,7 @@ Every table in `packages/db/src/schema` is built with `historyTrackedTable()`
 (`packages/db/src/schema/history.ts`), not a direct `<schema>.table(...)`
 call. It automatically adds `created_at`, `updated_at`, `history_version`,
 and `history_period` columns, derives a companion `<table>_history` table
-that mirrors the tracked table's *current* columns (name, type, and
+that mirrors the tracked table's _current_ columns (name, type, and
 nullability), and registers the table so `pnpm run db:generate` can finish
 its DDL automatically.
 
@@ -145,6 +145,27 @@ update onward), every tracked row has a referencing history row from the
 moment it's created — so deleting a tracked row is always blocked, not
 just rows that have accumulated history. This is intentional and
 permanent: there is no supported way to hard-delete a tracked row.
+
+## Discord bot user-facing messages
+
+Every error or status message the Discord bot can send to a user lives in
+`apps/discord-bot/src/error-messages.ts` as a named `SCREAMING_SNAKE_CASE`
+string constant.
+
+- **One constant per call site.** Each constant is referenced from exactly one
+  place in production code — or, for a fact backed by a shared helper (e.g.
+  `resolveToplist` in `insights/leaderboard.ts`), from every call site within
+  that one originating fact, since the helper takes the message as a
+  parameter rather than hardcoding it. When a user reports a message,
+  searching the codebase for that exact text points to the single code path
+  (or single fact) that produced it.
+- **In-universe, never technical.** Message text is deliberately lighthearted
+  and Blood Bowl-flavored (apothecaries, referees, coaching staff, historians,
+  …). It never describes the underlying failure (a database timeout, a missing
+  row) in technical terms.
+- **Out of scope.** Internal-only log/console output, startup/config-validation
+  errors thrown before the bot can reply, and embed _titles_ for successful
+  results are not messages of this kind and stay where they are.
 
 ## Docker
 

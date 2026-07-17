@@ -18,7 +18,16 @@ import type {
 } from 'discord.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { DATABASE_TIMEOUT_FALLBACK_MESSAGE } from '../database-timeout';
+import {
+  COACH_TOPLIST_TIMEOUT_MESSAGE,
+  ERAS_LIST_NO_DATA_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
+  INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
+  INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE,
+  INSIGHTS_ERA_NOT_FOUND_MESSAGE,
+  INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
+} from '../error-messages';
 import { InsightsCommandService } from './insights-command.service';
 
 function makeService() {
@@ -277,7 +286,7 @@ describe('InsightsCommandService', () => {
       embeds: [
         {
           title: 'Eras',
-          description: 'No data recorded yet.',
+          description: ERAS_LIST_NO_DATA_MESSAGE,
         },
       ],
     });
@@ -310,7 +319,7 @@ describe('InsightsCommandService', () => {
   it('returns the apothecary fallback for an unknown path', async () => {
     const { service } = makeService();
     const result = await service.execute(chatInput('coach.nope'));
-    expect(result).toBe("Even the Apothecary can't make sense of that one.");
+    expect(result).toBe(INSIGHTS_UNMATCHED_CATEGORY_MESSAGE);
   });
 
   it('returns category autocomplete choices for the focused partial path', async () => {
@@ -389,9 +398,7 @@ describe('InsightsCommandService', () => {
       name: 'BB2020',
     });
     const result = await service.execute(chatInput('eras.list', '20'));
-    expect(result).toBe(
-      'Even the Assistant Coach cannot understand your request',
-    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
   });
 
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
@@ -406,9 +413,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(chatInput(null, '20'));
     // No matter which era-supporting leaf is chosen, the reply is never the
     // rejection message reserved for non-era-supporting categories.
-    expect(result).not.toBe(
-      'Even the Assistant Coach cannot understand your request',
-    );
+    expect(result).not.toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
     const calledWithEra =
       (coaches.countMatchesPlayedByCoach as ReturnType<typeof vi.fn>).mock.calls
         .length > 0 ||
@@ -515,9 +520,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('team.toplist.eras.active', '20'),
     );
-    expect(result).toBe(
-      'Even the Assistant Coach cannot understand your request',
-    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
   });
 
   it('excludes team.toplist.eras.active from the random pool when an era is given', async () => {
@@ -591,9 +594,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('coach.toplist.eras.active', '20'),
     );
-    expect(result).toBe(
-      'Even the Assistant Coach cannot understand your request',
-    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
   });
 
   it('excludes coach.toplist.eras.active from the random pool when an era is given', async () => {
@@ -616,14 +617,12 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', '999'),
     );
-    expect(result).toBe(
-      'Even the Assistant Coach cannot understand your request',
-    );
+    expect(result).toBe(INSIGHTS_ERA_NOT_FOUND_MESSAGE);
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(eras.findById).toHaveBeenCalledWith(999);
   });
 
-  it('passes the DB-timeout fallback string through unchanged when an era is given', async () => {
+  it('passes the per-fact timeout message through unchanged when an era is given', async () => {
     vi.useFakeTimers();
     try {
       const { service, coaches, eras } = makeService();
@@ -640,7 +639,7 @@ describe('InsightsCommandService', () => {
       );
       await vi.advanceTimersByTimeAsync(2000);
 
-      await expect(promise).resolves.toBe(DATABASE_TIMEOUT_FALLBACK_MESSAGE);
+      await expect(promise).resolves.toBe(COACH_TOPLIST_TIMEOUT_MESSAGE);
     } finally {
       vi.useRealTimers();
     }
@@ -1008,7 +1007,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', '20', '30'),
     );
-    expect(result).toBe('The referee rejects your request');
+    expect(result).toBe(INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE);
     // mutual exclusion is checked before any lookup
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(eras.findById).not.toHaveBeenCalled();
@@ -1024,9 +1023,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('team.toplist.competitions.played', null, '999'),
     );
-    expect(result).toBe(
-      "Even the League Secretary can't find that competition in the fixture list.",
-    );
+    expect(result).toBe(INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE);
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(competitions.findById).toHaveBeenCalledWith(999);
   });
@@ -1068,9 +1065,7 @@ describe('InsightsCommandService', () => {
     const result = await service.execute(
       chatInput('coach.toplist.competitions.played', null, '30'),
     );
-    expect(result).toBe(
-      "Even the Ref's assistant can't scope that to a competition.",
-    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE);
   });
 
   it('rejects a competition on eras.list (not competition-supporting)', async () => {
@@ -1082,9 +1077,7 @@ describe('InsightsCommandService', () => {
       eraId: 5,
     });
     const result = await service.execute(chatInput('eras.list', null, '30'));
-    expect(result).toBe(
-      "Even the Ref's assistant can't scope that to a competition.",
-    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE);
   });
 
   it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
@@ -1098,7 +1091,7 @@ describe('InsightsCommandService', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     const result = await service.execute(chatInput(null, null, '30'));
     expect(result).not.toBe(
-      "Even the Ref's assistant can't scope that to a competition.",
+      INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
     );
   });
 
