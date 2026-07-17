@@ -72,6 +72,37 @@ describe('BblPositionRaceErasImportService', () => {
     expect(result.errors).toHaveLength(0);
   });
 
+  it('includes a star player position in an era where the race was active but the position went unused', async () => {
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+    const positionsUsedByEra = new Set<string>();
+    const racesActiveByEra = new Set(['7:500']);
+    const syncRaceErasMock = vi
+      .fn()
+      .mockResolvedValue({ positionId: 100, raceEraIds: [1] });
+    const service = new BblPositionRaceErasImportService(
+      makePositionsImport(syncRaceErasMock),
+      makeEraConfig([]),
+    );
+
+    await service.syncPositionRaceEras(
+      positionRaceCandidates,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+      eraIdsByRaceId,
+      positionsUsedByEra,
+      racesActiveByEra,
+    );
+
+    expect(syncRaceErasMock).toHaveBeenCalledWith(
+      { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
+      expect.any(Array),
+    );
+  });
+
   it('includes a regular position in an era where a player used it', async () => {
     const positionRaceCandidates = new Map([
       [100, { isStarPlayer: false, raceDbIds: new Set([7]) }],
