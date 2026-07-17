@@ -36,6 +36,7 @@ tmp/
 # Local application data (a directory in the main checkout, a symlink in
 # worktrees — no trailing slash so both forms are ignored)
 tools/import-bbl/data
+tools/import-tp/data
 
 # tools/import-bbl real config (the committed template is
 # import-bbl-config.example.json5)
