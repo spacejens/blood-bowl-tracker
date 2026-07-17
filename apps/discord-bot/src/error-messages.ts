@@ -52,4 +52,4 @@ export const INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE =
 export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
   "Even the league secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
-  "Even the Ref's assistant can't scope that to a competition.";
+  "Even the referee's assistant won't accept your bribes.";
