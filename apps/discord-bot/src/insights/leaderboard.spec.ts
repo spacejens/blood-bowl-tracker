@@ -158,11 +158,15 @@ describe('topRanksWithTies', () => {
 
 describe('formatLeaderboardEmbed', () => {
   it('builds an embed with one line per ranked row', () => {
-    const result = formatLeaderboardEmbed('Coaches by matches', [
-      { name: 'a', count: 9, rank: 1 },
-      { name: 'b', count: 9, rank: 1 },
-      { name: 'c', count: 4, rank: 2 },
-    ]);
+    const result = formatLeaderboardEmbed(
+      'Coaches by matches',
+      [
+        { name: 'a', count: 9, rank: 1 },
+        { name: 'b', count: 9, rank: 1 },
+        { name: 'c', count: 4, rank: 2 },
+      ],
+      'No data placeholder',
+    );
     expect(result).toEqual({
       embeds: [
         {
@@ -173,13 +177,17 @@ describe('formatLeaderboardEmbed', () => {
     });
   });
 
-  it('uses a placeholder description when there are no rows', () => {
-    const result = formatLeaderboardEmbed('Coaches by matches', []);
+  it('uses the supplied no-data message when there are no rows', () => {
+    const result = formatLeaderboardEmbed(
+      'Coaches by matches',
+      [],
+      'Nobody has laced up their boots yet.',
+    );
     expect(result).toEqual({
       embeds: [
         {
           title: 'Coaches by matches',
-          description: 'No data recorded yet.',
+          description: 'Nobody has laced up their boots yet.',
         },
       ],
     });
@@ -192,6 +200,7 @@ describe('formatLeaderboardEmbed', () => {
         { name: 'a', count: 2, rank: 1 },
         { name: 'b', count: 2, rank: 1 },
       ],
+      'No data placeholder',
       250,
     );
     expect(result).toEqual({
@@ -211,8 +220,11 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await resolveToplist('Teams by eras active', () =>
-      Promise.resolve(rows),
+    const result = await resolveToplist(
+      'Teams by eras active',
+      () => Promise.resolve(rows),
+      'timeout placeholder',
+      'no-data placeholder',
     );
     const expectedLines = [
       ...Array.from({ length: 10 }, (_, i) => `1. t${i} — 1`),

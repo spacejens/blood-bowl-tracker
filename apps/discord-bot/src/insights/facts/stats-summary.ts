@@ -13,10 +13,13 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
+import { withDatabaseTimeout } from '../../database-timeout';
 import {
-  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
-  withDatabaseTimeout,
-} from '../../database-timeout';
+  STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
+  STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
+} from '../../error-messages';
 
 export interface StatsSummaryDeps {
   leagues: LeaguesService;
@@ -70,7 +73,7 @@ async function resolveAllTimeStats(
     null,
   );
   if (counts === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE;
   }
   const [
     leagues,
@@ -170,7 +173,7 @@ async function resolveEraStats(
     null,
   );
   if (data === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return STATS_SUMMARY_ERA_TIMEOUT_MESSAGE;
   }
 
   const description = [
@@ -197,7 +200,7 @@ async function resolveCompetitionStats(
 ): Promise<string | InteractionReplyOptions> {
   const competition = await deps.competitions.findById(competitionId);
   if (competition === undefined) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE;
   }
   const data = await withDatabaseTimeout<{
     externalSystems: number;
@@ -246,7 +249,7 @@ async function resolveCompetitionStats(
     null,
   );
   if (data === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE;
   }
 
   const seasons = competition.type === 'season' ? 1 : 0;

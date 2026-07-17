@@ -1,10 +1,12 @@
 import type { ErasService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
+import { withDatabaseTimeout } from '../../database-timeout';
 import {
-  DATABASE_TIMEOUT_FALLBACK_MESSAGE,
-  withDatabaseTimeout,
-} from '../../database-timeout';
+  ERAS_LIST_NO_DATA_MESSAGE,
+  ERAS_LIST_TIMEOUT_MESSAGE,
+  ERAS_RULES_SET_TIMEOUT_MESSAGE,
+} from '../../error-messages';
 
 interface EraEntry {
   id: number;
@@ -20,11 +22,11 @@ export async function resolveErasList(
 ): Promise<string | InteractionReplyOptions> {
   const rows = await withDatabaseTimeout(eras.listErasWithLeague(), null);
   if (rows === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return ERAS_LIST_TIMEOUT_MESSAGE;
   }
   if (rows.length === 0) {
     return {
-      embeds: [{ title: 'Eras', description: 'No data recorded yet.' }],
+      embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
     };
   }
 
@@ -33,7 +35,7 @@ export async function resolveErasList(
     null,
   );
   if (rulesSetNames === null) {
-    return DATABASE_TIMEOUT_FALLBACK_MESSAGE;
+    return ERAS_RULES_SET_TIMEOUT_MESSAGE;
   }
 
   const entries: EraEntry[] = rows.map((row, index) => ({
