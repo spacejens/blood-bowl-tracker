@@ -46,7 +46,7 @@ export class MatchEventsService {
       data.consequenceTeamEraId,
     );
 
-    const { ownerIds: distinctIds, existingRows } =
+    const { ownerIds: distinctMatchEventIds, existingRows } =
       await resolveExistingByExternalIds(
         this.db,
         matchEventExternalIds,
@@ -55,9 +55,9 @@ export class MatchEventsService {
         matchEventExternalIds.externalId,
         data.externalIds,
       );
-    if (distinctIds.length > 1) {
+    if (distinctMatchEventIds.length > 1) {
       throw new MatchEventUpsertConflictError(
-        `External IDs matched multiple existing match events: ${distinctIds.join(', ')}`,
+        `External IDs matched multiple existing match events: ${distinctMatchEventIds.join(', ')}`,
       );
     }
 
@@ -72,7 +72,7 @@ export class MatchEventsService {
     };
 
     let matchEvent: MatchEvent;
-    const created = distinctIds.length === 0;
+    const created = distinctMatchEventIds.length === 0;
     if (created) {
       const result = await this.db
         .insert(matchEvents)
@@ -83,7 +83,7 @@ export class MatchEventsService {
       const result = await this.db
         .update(matchEvents)
         .set(values)
-        .where(eq(matchEvents.id, distinctIds[0]))
+        .where(eq(matchEvents.id, distinctMatchEventIds[0]))
         .returning();
       matchEvent = result[0];
     }
