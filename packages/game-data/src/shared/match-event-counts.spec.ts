@@ -26,7 +26,7 @@ describe('countMatchEventsByPlayer', () => {
     const select = vi.fn(() => makeQueryBuilder(rows));
     const db = { select } as unknown as Db;
     await expect(
-      countMatchEventsByPlayer(db, 'acting', ['touchdown']),
+      countMatchEventsByPlayer(db, { role: 'acting', types: ['touchdown'] }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
   });
@@ -34,7 +34,10 @@ describe('countMatchEventsByPlayer', () => {
   it('joins four tables for the acting role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByPlayer(db, 'acting', ['touchdown']);
+    await countMatchEventsByPlayer(db, {
+      role: 'acting',
+      types: ['touchdown'],
+    });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(builder.where).toHaveBeenCalledTimes(1);
   });
@@ -42,7 +45,10 @@ describe('countMatchEventsByPlayer', () => {
   it('joins four tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByPlayer(db, 'consequence', ['sent_off']);
+    await countMatchEventsByPlayer(db, {
+      role: 'consequence',
+      types: ['sent_off'],
+    });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(builder.where).toHaveBeenCalledTimes(1);
   });
@@ -54,7 +60,7 @@ describe('countMatchEventsByTeam', () => {
     const select = vi.fn(() => makeQueryBuilder(rows));
     const db = { select } as unknown as Db;
     await expect(
-      countMatchEventsByTeam(db, 'acting', ['touchdown']),
+      countMatchEventsByTeam(db, { role: 'acting', types: ['touchdown'] }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
   });
@@ -62,7 +68,7 @@ describe('countMatchEventsByTeam', () => {
   it('joins four tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByTeam(db, 'consequence', ['death']);
+    await countMatchEventsByTeam(db, { role: 'consequence', types: ['death'] });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(builder.where).toHaveBeenCalledTimes(1);
   });

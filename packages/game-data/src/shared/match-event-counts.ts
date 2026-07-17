@@ -23,23 +23,31 @@ import type { ActionType, ConsequenceType } from './match-event-types';
 export type MatchEventRole = 'acting' | 'consequence';
 
 /**
+ * A role paired with the type set that role's filter operates over. Modelled
+ * as a discriminated union (rather than independent `role` and `types`
+ * parameters) so that a role/type-set mismatch — e.g. `role: 'acting'` with
+ * consequence-only types — is a compile error instead of a cast-hidden bug
+ * that only fails at the database.
+ */
+export type MatchEventSelector =
+  | { role: 'acting'; types: readonly ActionType[] }
+  | { role: 'consequence'; types: readonly ConsequenceType[] };
+
+/**
  * The where clause shared by every match-event count: the type filter for the
- * given role, optionally narrowed to an era and/or a competition. `undefined`
- * for either scope means "no filter", matching the public `count*` signatures.
+ * given selector's role, optionally narrowed to an era and/or a competition.
+ * `undefined` for either scope means "no filter", matching the public
+ * `count*` signatures.
  */
 export function matchEventFilter(
-  role: MatchEventRole,
-  types: readonly ActionType[] | readonly ConsequenceType[],
+  selector: MatchEventSelector,
   eraId?: number,
   competitionId?: number,
 ): SQL | undefined {
   return and(
-    role === 'acting'
-      ? inArray(matchEvents.actionType, types as readonly ActionType[])
-      : inArray(
-          matchEvents.consequenceType,
-          types as readonly ConsequenceType[],
-        ),
+    selector.role === 'acting'
+      ? inArray(matchEvents.actionType, selector.types)
+      : inArray(matchEvents.consequenceType, selector.types),
     eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
     competitionId === undefined
       ? undefined
@@ -48,14 +56,12 @@ export function matchEventFilter(
 }
 
 /**
- * Match events of the given types, in the given role, counted per player and
- * ordered most-first. Ties keep the query's natural order — the caller ranks
- * them.
+ * Match events matching the given selector, counted per player and ordered
+ * most-first. Ties keep the query's natural order — the caller ranks them.
  */
 export async function countMatchEventsByPlayer(
   db: Db,
-  role: MatchEventRole,
-  types: readonly ActionType[] | readonly ConsequenceType[],
+  selector: MatchEventSelector,
   eraId?: number,
   competitionId?: number,
 ): Promise<{ playerId: number; name: string; count: number }[]> {
@@ -70,7 +76,7 @@ export async function countMatchEventsByPlayer(
       players,
       eq(
         players.id,
-        role === 'acting'
+        selector.role === 'acting'
           ? matchEvents.actingPlayerId
           : matchEvents.consequencePlayerId,
       ),
@@ -79,29 +85,28 @@ export async function countMatchEventsByPlayer(
       matchTeams,
       eq(
         matchTeams.id,
-        role === 'acting'
+        selector.role === 'acting'
           ? matchEvents.actingMatchTeamId
           : matchEvents.consequenceMatchTeamId,
       ),
     )
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-    .where(matchEventFilter(role, types, eraId, competitionId))
+    .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(players.id, players.name)
     .orderBy(desc(count(matchEvents.id)));
 }
 
 /**
- * Match events of the given types, in the given role, counted per team and
- * ordered most-first. The join graph differs from the per-player one (it
+ * Match events matching the given selector, counted per team and ordered
+ * most-first. The join graph differs from the per-player one (it
  * reaches `teams` through `teamEras` rather than joining `players`), which is
  * why the two groupings are separate functions rather than one parameterised
  * over the select shape.
  */
 export async function countMatchEventsByTeam(
   db: Db,
-  role: MatchEventRole,
-  types: readonly ActionType[] | readonly ConsequenceType[],
+  selector: MatchEventSelector,
   eraId?: number,
   competitionId?: number,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
@@ -116,7 +121,7 @@ export async function countMatchEventsByTeam(
       matchTeams,
       eq(
         matchTeams.id,
-        role === 'acting'
+        selector.role === 'acting'
           ? matchEvents.actingMatchTeamId
           : matchEvents.consequenceMatchTeamId,
       ),
@@ -124,7 +129,7 @@ export async function countMatchEventsByTeam(
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
-    .where(matchEventFilter(role, types, eraId, competitionId))
+    .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(teams.id, teams.name)
     .orderBy(desc(count(matchEvents.id)));
 }
