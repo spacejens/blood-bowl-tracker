@@ -15,8 +15,20 @@ import {
 } from './db-generate.js';
 
 describe('buildTriggerSql', () => {
-  it('builds DROP+CREATE statements for both the versioning and set_updated_at triggers', () => {
+  it('builds DROP+CREATE statements for the reject_no_op_update, versioning, and set_updated_at triggers, guard first', () => {
     const result = buildTriggerSql('game_data', 'coaches');
+    expect(result).toContain(
+      'DROP TRIGGER IF EXISTS "0_coaches_reject_no_op_update" ON "game_data"."coaches";',
+    );
+    expect(result).toContain('CREATE TRIGGER "0_coaches_reject_no_op_update"');
+    expect(result).toContain('EXECUTE PROCEDURE reject_no_op_update();');
+    // The guard trigger must be emitted ahead of the other two triggers.
+    expect(result.indexOf('0_coaches_reject_no_op_update')).toBeLessThan(
+      result.indexOf('coaches_versioning'),
+    );
+    expect(result.indexOf('0_coaches_reject_no_op_update')).toBeLessThan(
+      result.indexOf('coaches_set_updated_at'),
+    );
     expect(result).toContain(
       'DROP TRIGGER IF EXISTS coaches_versioning ON "game_data"."coaches";',
     );
