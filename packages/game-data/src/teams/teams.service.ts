@@ -4,16 +4,31 @@ import {
   competitionTeams,
   DB,
   matches,
-  matchEvents,
   matchTeams,
   teamEras,
   teamExternalIds,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, inArray, or } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, or } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { countMatchEventsByTeam } from '../shared/match-event-counts';
+import {
+  CASUALTY_CAUSED_TYPES,
+  CASUALTY_SUFFERED_TYPES,
+  COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEATH_SUFFERED_TYPES,
+  DEFLECTION_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  LASTING_INJURY_SUFFERED_TYPES,
+  SENT_OFF_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  SERIOUS_INJURY_SUFFERED_TYPES,
+  TOUCHDOWN_TYPES,
+} from '../shared/match-event-types';
 
 export class TeamUpsertConflictError extends Error {}
 
@@ -143,413 +158,160 @@ export class TeamsService {
       .orderBy(desc(countDistinct(teamEras.eraId)));
   }
 
-  async countTouchdownsScoredByTeam(
+  countTouchdownsScoredByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'touchdown'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: TOUCHDOWN_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countCompletionsByTeam(
+  countCompletionsByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'completion'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: COMPLETION_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countInterceptionsByTeam(
+  countInterceptionsByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'interception'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: INTERCEPTION_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countDeflectionsByTeam(
+  countDeflectionsByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'deflection'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: DEFLECTION_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countCasualtiesCausedByTeam(
+  countCasualtiesCausedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          inArray(matchEvents.actionType, [
-            'casualty',
-            'badly_hurt',
-            'serious_injury',
-            'death',
-          ]),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: CASUALTY_CAUSED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countSeriousInjuriesCausedByTeam(
+  countSeriousInjuriesCausedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'serious_injury'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countDeathsCausedByTeam(
+  countDeathsCausedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'death'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: DEATH_CAUSED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countFoulsCommittedByTeam(
+  countFoulsCommittedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.actionType, 'foul'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'acting', types: FOUL_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countTimesSentOffByTeam(
+  countTimesSentOffByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(
-        matchTeams,
-        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
-      )
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.consequenceType, 'sent_off'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'consequence', types: SENT_OFF_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countCasualtiesSufferedByTeam(
+  countCasualtiesSufferedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(
-        matchTeams,
-        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
-      )
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          inArray(matchEvents.consequenceType, [
-            'casualty',
-            'badly_hurt',
-            'death',
-            'serious_injury',
-            'niggling_injury',
-            'miss_next_game',
-            'stat_reduction_ma',
-            'stat_reduction_st',
-            'stat_reduction_ag',
-            'stat_reduction_av',
-          ]),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countSeriousInjuriesSufferedByTeam(
+  countSeriousInjuriesSufferedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(
-        matchTeams,
-        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
-      )
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          inArray(matchEvents.consequenceType, [
-            'serious_injury',
-            'niggling_injury',
-            'miss_next_game',
-            'stat_reduction_ma',
-            'stat_reduction_st',
-            'stat_reduction_ag',
-            'stat_reduction_av',
-          ]),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countLastingInjuriesSufferedByTeam(
+  countLastingInjuriesSufferedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(
-        matchTeams,
-        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
-      )
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          inArray(matchEvents.consequenceType, [
-            'niggling_injury',
-            'stat_reduction_ma',
-            'stat_reduction_st',
-            'stat_reduction_ag',
-            'stat_reduction_av',
-          ]),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
-  async countDeathsSufferedByTeam(
+  countDeathsSufferedByTeam(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        teamId: teams.id,
-        name: teams.name,
-        count: count(matchEvents.id),
-      })
-      .from(matchEvents)
-      .innerJoin(
-        matchTeams,
-        eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
-      )
-      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
-        and(
-          eq(matchEvents.consequenceType, 'death'),
-          eraId === undefined ? undefined : eq(teamEras.eraId, eraId),
-          competitionId === undefined
-            ? undefined
-            : eq(matches.competitionId, competitionId),
-        ),
-      )
-      .groupBy(teams.id, teams.name)
-      .orderBy(desc(count(matchEvents.id)));
+    return countMatchEventsByTeam(
+      this.db,
+      { role: 'consequence', types: DEATH_SUFFERED_TYPES },
+      eraId,
+      competitionId,
+    );
   }
 
   countAll(): Promise<number> {

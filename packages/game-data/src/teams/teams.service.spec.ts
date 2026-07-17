@@ -705,7 +705,7 @@ describe('TeamsService', () => {
       } as unknown as Db);
       await service.countDeathsSufferedByTeam();
       const condition = firstWhereCondition(builder);
-      expect(extractFilterValues(condition)).toBe('death');
+      expect(extractFilterValues(condition)).toEqual(['death']);
     });
 
     it('countDeathsSufferedByTeam joins matches and filters by competition when a competitionId is given', async () => {
