@@ -59,6 +59,31 @@ export function extractFilterValues(
 }
 
 /**
+ * Recover every literal value(s) passed to `eq()` / `inArray()` anywhere in a
+ * captured `SQL` condition tree, in encounter order. Unlike `extractFilterValues`
+ * (which stops at the first `Param`-bearing chunk it finds — the right choice for
+ * a single-clause `where()`), this walks the whole tree, so it's the one to reach
+ * a value buried inside an `and(...)` of several clauses — e.g. a type-list
+ * `inArray()` combined with an optional `eq(teamEras.eraId, eraId)`. Mirrors how
+ * `extractJoinColumns` walks the whole tree for `Column`s rather than stopping
+ * at the first one.
+ */
+export function extractAllFilterValues(condition: unknown): unknown[] {
+  const values: unknown[] = [];
+  const walk = (node: unknown): void => {
+    if (is(node, Param)) {
+      values.push(paramValue(node));
+    } else if (is(node, SQL)) {
+      for (const chunk of node.queryChunks) walk(chunk);
+    } else if (Array.isArray(node)) {
+      for (const chunk of node) walk(chunk);
+    }
+  };
+  walk(condition);
+  return values;
+}
+
+/**
  * Recover the fully-qualified `"table.column"` names a join/filter condition
  * references, in encounter order. Given `eq(teamEras.id, players.teamEraId)`
  * returns `['team_eras.id', 'players.team_era_id']`. Walks the SQL queryChunks

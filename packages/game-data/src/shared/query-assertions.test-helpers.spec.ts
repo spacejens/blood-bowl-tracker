@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -43,5 +44,18 @@ describe('query-assertions test helpers', () => {
     );
     expect(cols).toContain('team_eras.id');
     expect(cols).toContain('players.team_era_id');
+  });
+
+  it('extractAllFilterValues recovers a single eq() literal', () => {
+    expect(extractAllFilterValues(eq(teamEras.eraId, 20))).toEqual([20]);
+  });
+
+  it('extractAllFilterValues recovers every value across an and() of two conditions', () => {
+    // extractFilterValues would stop at the first one (the inArray list);
+    // extractAllFilterValues walks the whole tree and finds both.
+    const values = extractAllFilterValues(
+      and(inArray(players.name, ['a', 'b']), eq(teamEras.eraId, 20)),
+    );
+    expect(values).toEqual(['a', 'b', 20]);
   });
 });
