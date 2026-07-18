@@ -130,6 +130,40 @@ removed, the corresponding history-table `DROP COLUMN` is rewritten to
 old history rows are preserved. Only future migrations are affected;
 existing migrations are never rewritten.
 
+Postgres fires same-timing triggers on a table in alphabetical trigger-name
+order, so `<table>_set_updated_at` always fires before `<table>_versioning`
+(`s` < `v`) — this ordering is required, not incidental, and the trigger
+names are deliberately left unprefixed to keep it. `set_updated_at()`
+(`packages/db/sql/set_updated_at_function.sql`, not vendored) is
+conditional: it skips the `updated_at` bump when `NEW IS NOT DISTINCT FROM
+OLD`. Because it fires first, before anything else has touched the row,
+that comparison is a true "did the caller's `UPDATE` actually change
+anything" check — it bumps `updated_at` only on a real change, and leaves
+it untouched on a genuine no-op upsert.
+
+`versioning()` then fires second and sees the row exactly as it will be
+written: for a no-op, `NEW` is still identical to `OLD` in every column
+(including `updated_at`), so its own built-in no-op guard
+(`IF NEW IS NOT DISTINCT FROM OLD THEN RETURN OLD`) correctly skips writing
+a history row; for a real change, `updated_at` has already been bumped, so
+the history row `versioning()` inserts for the new "current version" (it
+inserts using `NEW`) correctly captures the fresh timestamp rather than a
+stale one. Both triggers always return `NEW`/`OLD`, never `NULL`, so
+`UPDATE ... RETURNING` always returns the row, no-op or not — important
+because `packages/game-data`'s upsert methods rely on getting a row back
+from `RETURNING` on every upsert.
+
+Reversing this order (making `versioning()` fire first, e.g. via a `0_`
+name prefix) was tried and rejected: `versioning()`'s history `INSERT` uses
+`NEW` at the moment it runs, which would then be *before*
+`set_updated_at()` had bumped anything, so a genuine update's new history
+row would capture the row's *previous* `updated_at` instead of its current
+one — confirmed via manual testing. The 29 tables that predate this fix
+only needed `set_updated_at()` replaced (`CREATE OR REPLACE FUNCTION` is
+safe to re-run everywhere), via the
+`20260717130000_make_set_updated_at_conditional` migration; their trigger
+names and firing order were already correct.
+
 The `versioning()` trigger function is vendored unmodified from
 [nearform/temporal_tables](https://github.com/nearform/temporal_tables) at
 `packages/db/vendor/nearform/temporal_tables/versioning_function.sql`, checksum-

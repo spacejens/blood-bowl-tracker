@@ -53,6 +53,19 @@ export function findNewHistoryTables(
 export function buildTriggerSql(schemaName: string, tableName: string): string {
   const trackedTable = `"${schemaName}"."${tableName}"`;
   const historyRelation = `${schemaName}.${tableName}_history`;
+  // Trigger names are unprefixed, so Postgres's alphabetical same-timing
+  // firing order runs <table>_set_updated_at before <table>_versioning
+  // ('s' < 'v'). This order is required, not incidental: set_updated_at
+  // fires first, while NEW still equals OLD in every column (nothing else
+  // has touched the row yet), so its own no-op check is a true "did
+  // anything change" comparison — it bumps updated_at only on a real
+  // change. versioning() then runs second and sees the row exactly as it
+  // will be written (with updated_at already bumped for a real change, or
+  // untouched for a no-op), so its built-in no-op guard and its history
+  // INSERT (which uses NEW) both see accurate data. Reversing this order
+  // was tried and rejected: versioning's history INSERT would then capture
+  // NEW before set_updated_at's bump, writing a stale updated_at into the
+  // new history row. See docs/architecture.md "History tracking".
   return [
     `DROP TRIGGER IF EXISTS ${tableName}_versioning ON ${trackedTable};`,
     `CREATE TRIGGER ${tableName}_versioning\n  BEFORE INSERT OR UPDATE OR DELETE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE versioning(\n    'history_period', '${historyRelation}',\n    true, true, true, false, true, 'history_version'\n  );`,
