@@ -20,6 +20,17 @@ import { RacePageParser } from './race-page-parser';
 const TEAM_PAGE_TYPE = 'tm';
 const RACE_LIST_PAGE_TYPE = 'tl';
 
+interface UpsertParsedRaceOptions {
+  parsedRace: BblRace;
+  seen: Set<string>;
+  bblSystemId: number;
+  nameSystemId: number;
+  raceIdsByBblId: Map<string, number>;
+  racesByBblId: Map<string, { id: number; name: string }>;
+  racesByRaceId: Map<number, UpsertRace>;
+  errors: ImportError[];
+}
+
 @Injectable()
 export class BblRacesImportService {
   constructor(
@@ -83,7 +94,7 @@ export class BblRacesImportService {
           continue;
         }
         if (
-          await this.upsertParsedRace(
+          await this.upsertParsedRace({
             parsedRace,
             seen,
             bblSystemId,
@@ -92,7 +103,7 @@ export class BblRacesImportService {
             racesByBblId,
             racesByRaceId,
             errors,
-          )
+          })
         ) {
           imported += 1;
         }
@@ -106,7 +117,7 @@ export class BblRacesImportService {
       try {
         for (const parsedRace of this.raceListPageParser.extractRaces(page)) {
           if (
-            await this.upsertParsedRace(
+            await this.upsertParsedRace({
               parsedRace,
               seen,
               bblSystemId,
@@ -115,7 +126,7 @@ export class BblRacesImportService {
               racesByBblId,
               racesByRaceId,
               errors,
-            )
+            })
           ) {
             imported += 1;
           }
@@ -144,15 +155,18 @@ export class BblRacesImportService {
    * identically.
    */
   private async upsertParsedRace(
-    parsedRace: BblRace,
-    seen: Set<string>,
-    bblSystemId: number,
-    nameSystemId: number,
-    raceIdsByBblId: Map<string, number>,
-    racesByBblId: Map<string, { id: number; name: string }>,
-    racesByRaceId: Map<number, UpsertRace>,
-    errors: ImportError[],
+    options: UpsertParsedRaceOptions,
   ): Promise<boolean> {
+    const {
+      parsedRace,
+      seen,
+      bblSystemId,
+      nameSystemId,
+      raceIdsByBblId,
+      racesByBblId,
+      racesByRaceId,
+      errors,
+    } = options;
     if (seen.has(parsedRace.id)) {
       return false;
     }
