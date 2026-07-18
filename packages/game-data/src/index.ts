@@ -51,7 +51,6 @@ export { RacesModule } from './races/races.module';
 export type { UpsertRaceData } from './races/races.service';
 export { RacesService, RaceUpsertConflictError } from './races/races.service';
 export { RulesSetsModule } from './rules-sets/rules-sets.module';
-export type { UpsertRulesSetData } from './rules-sets/rules-sets.service';
 export {
   RulesSetsService,
   RulesSetUpsertConflictError,

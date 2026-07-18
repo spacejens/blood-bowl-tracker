@@ -1,14 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertRulesSetData {
-  name: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 @Injectable()
 export class RulesSetsImportService {
@@ -17,7 +13,7 @@ export class RulesSetsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertRulesSet(data: UpsertRulesSetData, errors: ImportError[]) {
+  upsertRulesSet(data: UpsertRulesSet, errors: ImportError[]) {
     return this.importRunner.recordUpsertResult(
       () => this.client.rulesSets.upsert(data),
       data,
