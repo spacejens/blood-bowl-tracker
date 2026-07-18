@@ -53,4 +53,27 @@ export default tseslint.config(
       'local/max-function-params': ['error', { max: 3 }],
     },
   },
+  {
+    files: ['**/*.ts'],
+    ignores: [
+      '**/*.spec.ts',
+      '**/*.e2e-spec.ts',
+      'apps/discord-bot/src/insights/fact-tree.ts',
+    ],
+    rules: {
+      'max-lines': [
+        'error',
+        { max: 500, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
+  {
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
+    rules: {
+      'max-lines': [
+        'error',
+        { max: 1000, skipBlankLines: true, skipComments: true },
+      ],
+    },
+  },
 );
