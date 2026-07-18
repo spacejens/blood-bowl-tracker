@@ -29,8 +29,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class TeamUpsertConflictError extends UpsertConflictError {}
@@ -54,52 +53,29 @@ export class TeamsService {
   async upsert(
     data: UpsertTeamData,
   ): Promise<{ team: TeamWithEras; created: boolean }> {
-    const { ownerIds: distinctTeamIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        teamExternalIds,
-        teamExternalIds.teamId,
-        teamExternalIds.externalSystemId,
-        teamExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctTeamIds.length > 1) {
-      throw new TeamUpsertConflictError(
-        `External IDs matched multiple existing teams: ${distinctTeamIds.join(', ')}`,
-      );
-    }
-
-    const values = {
-      name: data.name,
-      raceId: data.raceId,
-      coachId: data.coachId,
-    };
-
-    let team: Team;
-    const created = distinctTeamIds.length === 0;
-
-    if (created) {
-      const result = await this.db.insert(teams).values(values).returning();
-      team = result[0];
-    } else {
-      const result = await this.db
-        .update(teams)
-        .set(values)
-        .where(eq(teams.id, distinctTeamIds[0]))
-        .returning();
-      team = result[0];
-    }
+    const { row: team, created } = await upsertByExternalIds<
+      typeof teams,
+      typeof teamExternalIds
+    >({
+      db: this.db,
+      entityTable: teams,
+      entityIdColumn: teams.id,
+      values: {
+        name: data.name,
+        raceId: data.raceId,
+        coachId: data.coachId,
+      },
+      externalIdTable: teamExternalIds,
+      ownerIdColumn: teamExternalIds.teamId,
+      externalSystemIdColumn: teamExternalIds.externalSystemId,
+      externalIdColumn: teamExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: TeamUpsertConflictError,
+      entityLabelPlural: 'teams',
+      buildExternalIdRow: (teamId, pair) => ({ teamId, ...pair }),
+    });
 
     const eras = await this.syncEras(team.id, data.eras);
-    await insertMissingExternalIds(
-      this.db,
-      teamExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ teamId: team.id, ...pair }),
-    );
-
     return { team: { ...team, eras }, created };
   }
 
