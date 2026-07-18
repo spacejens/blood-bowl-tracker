@@ -37,6 +37,17 @@ interface CollectTeamIdsOptions {
   errors: ImportError[];
 }
 
+interface SyncMatchTeamsOptions {
+  competitionBblId: string;
+  competition: UpsertCompetition;
+  matches: BblMatch[];
+  matchTeamsByBblId: Map<string, BblMatchDetails>;
+  teamEraIdByTeamId: Map<string, number>;
+  competitionIdsByBblId: Map<string, number>;
+  merges: MatchMergeResolution;
+  errors: ImportError[];
+}
+
 @Injectable()
 export class BblTeamParticipationImportService {
   constructor(
@@ -200,16 +211,7 @@ export class BblTeamParticipationImportService {
    * imported DB id, or a match whose two team ids do not both resolve, is
    * recorded as an error and skipped without affecting the rest. Idempotent.
    */
-  private async syncMatchTeams(options: {
-    competitionBblId: string;
-    competition: UpsertCompetition;
-    matches: BblMatch[];
-    matchTeamsByBblId: Map<string, BblMatchDetails>;
-    teamEraIdByTeamId: Map<string, number>;
-    competitionIdsByBblId: Map<string, number>;
-    merges: MatchMergeResolution;
-    errors: ImportError[];
-  }): Promise<void> {
+  private async syncMatchTeams(options: SyncMatchTeamsOptions): Promise<void> {
     const {
       competitionBblId,
       competition,
