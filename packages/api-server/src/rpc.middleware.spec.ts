@@ -15,7 +15,7 @@ import type {
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { Logger } from '@nestjs/common';
-import { ORPCError, isDefinedError } from '@orpc/server';
+import { isDefinedError, ORPCError } from '@orpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleMock = vi.fn();
@@ -31,6 +31,7 @@ vi.mock('./rpc-router', () => ({
 }));
 
 import { RPCHandler } from '@orpc/server/node';
+
 import { RpcMiddleware } from './rpc.middleware';
 
 describe('RpcMiddleware', () => {
@@ -149,7 +150,7 @@ describe('RpcMiddleware', () => {
     ).rejects.toBe(boom);
 
     expect(errorSpy).toHaveBeenCalledTimes(1);
-    const [message, stack] = errorSpy.mock.calls[0];
+    const [message, stack] = errorSpy.mock.calls[0] as [string, string];
     expect(message).toContain('POST');
     expect(message).toContain('/rpc/coaches/upsert');
     expect(stack).toBe(boom.stack);
@@ -183,7 +184,7 @@ describe('RpcMiddleware', () => {
 
     expect(errorSpy).not.toHaveBeenCalled();
     expect(warnSpy).toHaveBeenCalledTimes(1);
-    const [message] = warnSpy.mock.calls[0];
+    const [message] = warnSpy.mock.calls[0] as [string];
     expect(message).toContain('POST');
     expect(message).toContain('/rpc/coaches/upsert');
     expect(message).toContain('Coach already exists');

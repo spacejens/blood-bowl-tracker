@@ -60,11 +60,11 @@ export class RpcMiddleware implements NestMiddleware {
       ),
       {
         interceptors: [
-          async ({ next, request }) => {
+          async (opts) => {
             try {
-              return await next();
+              return await opts.next();
             } catch (err) {
-              const location = `${request.method} ${request.url.pathname}`;
+              const location = `${opts.request.method} ${opts.request.url.pathname}`;
               if (isDefinedError(err)) {
                 // Defined errors (e.g. CONFLICT) are expected business
                 // outcomes, not bugs — warn with the message, no stack.
