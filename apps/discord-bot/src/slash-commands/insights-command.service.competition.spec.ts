@@ -10,7 +10,7 @@ import {
   makeService,
 } from './insights-command.service.test-helpers';
 
-describe('InsightsCommandService', () => {
+describe('InsightsCommandService — competition scoping', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
