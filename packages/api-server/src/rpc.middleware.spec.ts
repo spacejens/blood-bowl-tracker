@@ -14,6 +14,8 @@ import type {
   RulesSetsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import { Logger } from '@nestjs/common';
+import { isDefinedError, ORPCError } from '@orpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const handleMock = vi.fn();
@@ -28,11 +30,37 @@ vi.mock('./rpc-router', () => ({
   buildRpcRouter: vi.fn().mockReturnValue({}),
 }));
 
+import { RPCHandler } from '@orpc/server/node';
+
 import { RpcMiddleware } from './rpc.middleware';
 
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
   const next = vi.fn();
+
+  type StandardHandleResult = { matched: boolean; response?: unknown };
+
+  type RpcInterceptor = (options: {
+    prefix: string;
+    context: Record<never, never>;
+    request: { method: string; url: URL };
+    next: () => Promise<StandardHandleResult>;
+  }) => Promise<StandardHandleResult>;
+
+  // The interceptor is passed as the 2nd constructor arg to RPCHandler:
+  //   new RPCHandler(router, { interceptors: [fn] })
+  // RPCHandler is mocked, so its recorded call args expose the array.
+  const getInterceptor = (): RpcInterceptor => {
+    const options = vi.mocked(RPCHandler).mock.calls[0][1] as unknown as {
+      interceptors: RpcInterceptor[];
+    };
+    return options.interceptors[0];
+  };
+
+  const makeRequest = (): { method: string; url: URL } => ({
+    method: 'POST',
+    url: new URL('http://localhost/rpc/coaches/upsert'),
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -101,5 +129,89 @@ describe('RpcMiddleware', () => {
       context: {},
     });
     expect(next).not.toHaveBeenCalled();
+  });
+
+  it('logs unhandled errors at error level with method, path, and stack, then rethrows unchanged', async () => {
+    const errorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const boom = new Error('database exploded');
+    next.mockRejectedValue(boom);
+
+    const interceptor = getInterceptor();
+
+    await expect(
+      interceptor({
+        prefix: '/rpc',
+        context: {},
+        request: makeRequest(),
+        next,
+      }),
+    ).rejects.toBe(boom);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    const [message, stack] = errorSpy.mock.calls[0] as [string, string];
+    expect(message).toContain('POST');
+    expect(message).toContain('/rpc/coaches/upsert');
+    expect(stack).toBe(boom.stack);
+  });
+
+  it('logs defined errors at warn level with method, path, and message (no stack), then rethrows unchanged', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const conflict = new ORPCError('CONFLICT', {
+      defined: true,
+      message: 'Coach already exists',
+    });
+    // Sanity-check the fixture actually reads as a defined error.
+    expect(isDefinedError(conflict)).toBe(true);
+    next.mockRejectedValue(conflict);
+
+    const interceptor = getInterceptor();
+
+    await expect(
+      interceptor({
+        prefix: '/rpc',
+        context: {},
+        request: makeRequest(),
+        next,
+      }),
+    ).rejects.toBe(conflict);
+
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+    const [message] = warnSpy.mock.calls[0] as [string];
+    expect(message).toContain('POST');
+    expect(message).toContain('/rpc/coaches/upsert');
+    expect(message).toContain('Coach already exists');
+  });
+
+  it('passes the next() result through unchanged and logs nothing on success', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const errorSpy = vi
+      .spyOn(Logger.prototype, 'error')
+      .mockImplementation(() => undefined);
+    const result = { matched: true, response: { status: 200 } };
+    next.mockResolvedValue(result);
+
+    const interceptor = getInterceptor();
+
+    await expect(
+      interceptor({
+        prefix: '/rpc',
+        context: {},
+        request: makeRequest(),
+        next,
+      }),
+    ).resolves.toBe(result);
+
+    expect(warnSpy).not.toHaveBeenCalled();
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });
