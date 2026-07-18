@@ -15,7 +15,8 @@ import {
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import type { NestMiddleware } from '@nestjs/common';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { isDefinedError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 
 import { buildRpcRouter } from './rpc-router';
@@ -25,6 +26,8 @@ const RPC_PREFIX = '/rpc';
 @Injectable()
 export class RpcMiddleware implements NestMiddleware {
   private readonly handler: RPCHandler<Record<never, never>>;
+
+  private readonly logger = new Logger(RpcMiddleware.name);
 
   constructor(
     coachesService: CoachesService,
@@ -55,6 +58,30 @@ export class RpcMiddleware implements NestMiddleware {
         playersService,
         matchEventsService,
       ),
+      {
+        interceptors: [
+          async (opts) => {
+            try {
+              return await opts.next();
+            } catch (err) {
+              const location = `${opts.request.method} ${opts.request.url.pathname}`;
+              if (isDefinedError(err)) {
+                // Defined errors (e.g. CONFLICT) are expected business
+                // outcomes, not bugs — warn with the message, no stack.
+                this.logger.warn(
+                  `Defined error handling RPC request ${location}: ${(err as Error).message}`,
+                );
+              } else {
+                this.logger.error(
+                  `Unhandled error handling RPC request ${location}`,
+                  err instanceof Error ? err.stack : String(err),
+                );
+              }
+              throw err;
+            }
+          },
+        ],
+      },
     );
   }
 
