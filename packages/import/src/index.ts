@@ -9,7 +9,6 @@ export {
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
 export { ImportRunnerService } from './import-runner.service';
-export type { UpsertLeagueData } from './leagues-import.service';
 export { LeaguesImportService } from './leagues-import.service';
 export type { UpsertMatchEventData } from './match-events-import.service';
 export { MatchEventsImportService } from './match-events-import.service';

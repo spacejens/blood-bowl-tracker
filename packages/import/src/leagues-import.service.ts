@@ -1,14 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertLeague } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertLeagueData {
-  name: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 @Injectable()
 export class LeaguesImportService {
@@ -17,7 +13,7 @@ export class LeaguesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertLeague(data: UpsertLeagueData, errors: ImportError[]) {
+  upsertLeague(data: UpsertLeague, errors: ImportError[]) {
     return this.importRunner.recordUpsertResult(
       () => this.client.leagues.upsert(data),
       data,

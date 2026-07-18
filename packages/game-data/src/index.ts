@@ -17,7 +17,6 @@ export { ErasService, EraUpsertConflictError } from './eras/eras.service';
 export { ExternalSystemsModule } from './external-systems/external-systems.module';
 export { ExternalSystemsService } from './external-systems/external-systems.service';
 export { LeaguesModule } from './leagues/leagues.module';
-export type { UpsertLeagueData } from './leagues/leagues.service';
 export {
   LeaguesService,
   LeagueUpsertConflictError,
