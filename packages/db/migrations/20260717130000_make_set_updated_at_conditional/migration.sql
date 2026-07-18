@@ -1,0 +1,10 @@
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW IS NOT DISTINCT FROM OLD THEN
+    RETURN NEW;
+  END IF;
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
