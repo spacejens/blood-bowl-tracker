@@ -24,8 +24,8 @@
   // Subdirectory names are TP's own slugs and don't necessarily match the
   // era's display name in the database.
   eras: [
-    { name: 'Fourth era', dataSubdir: 'fourth-era' },
-    { name: 'Second Dungeon Bowl era', dataSubdir: 'second-dungeon-bowl-era' },
     { name: 'Third era', dataSubdir: 'third-era' },
+    { name: 'Second Dungeon Bowl era', dataSubdir: 'second-dungeon-bowl-era' },
+    { name: 'Fourth era', dataSubdir: 'fourth-era' },
   ],
 }
