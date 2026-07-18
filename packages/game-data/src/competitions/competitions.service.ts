@@ -11,10 +11,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class CompetitionUpsertConflictError extends Error {}
+export class CompetitionUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertCompetitionData {
   name: string;
@@ -39,55 +39,29 @@ export class CompetitionsService {
   async upsert(
     data: UpsertCompetitionData,
   ): Promise<{ competition: CompetitionWithTeamEras; created: boolean }> {
-    const { ownerIds: distinctCompetitionIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        competitionExternalIds,
-        competitionExternalIds.competitionId,
-        competitionExternalIds.externalSystemId,
-        competitionExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctCompetitionIds.length > 1) {
-      throw new CompetitionUpsertConflictError(
-        `External IDs matched multiple existing competitions: ${distinctCompetitionIds.join(', ')}`,
-      );
-    }
-
-    const values = {
-      name: data.name,
-      type: data.type,
-      eraId: data.eraId,
-    };
-
-    let competition: Competition;
-    const created = distinctCompetitionIds.length === 0;
-
-    if (created) {
-      const result = await this.db
-        .insert(competitions)
-        .values(values)
-        .returning();
-      competition = result[0];
-    } else {
-      const result = await this.db
-        .update(competitions)
-        .set(values)
-        .where(eq(competitions.id, distinctCompetitionIds[0]))
-        .returning();
-      competition = result[0];
-    }
+    const { row: competition, created } = await upsertByExternalIds<
+      typeof competitions,
+      typeof competitionExternalIds
+    >({
+      db: this.db,
+      entityTable: competitions,
+      entityIdColumn: competitions.id,
+      values: {
+        name: data.name,
+        type: data.type,
+        eraId: data.eraId,
+      },
+      externalIdTable: competitionExternalIds,
+      ownerIdColumn: competitionExternalIds.competitionId,
+      externalSystemIdColumn: competitionExternalIds.externalSystemId,
+      externalIdColumn: competitionExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: CompetitionUpsertConflictError,
+      entityLabelPlural: 'competitions',
+      buildExternalIdRow: (competitionId, pair) => ({ competitionId, ...pair }),
+    });
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
-    await insertMissingExternalIds(
-      this.db,
-      competitionExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ competitionId: competition.id, ...pair }),
-    );
-
     return { competition: { ...competition, teamEraIds }, created };
   }
 

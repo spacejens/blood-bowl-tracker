@@ -11,10 +11,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class EraUpsertConflictError extends Error {}
+export class EraUpsertConflictError extends UpsertConflictError {}
 
 /**
  * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default
@@ -47,51 +47,28 @@ export class ErasService {
   async upsert(
     data: UpsertEraData,
   ): Promise<{ era: EraWithRulesSets; created: boolean }> {
-    const { ownerIds: distinctEraIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        eraExternalIds,
-        eraExternalIds.eraId,
-        eraExternalIds.externalSystemId,
-        eraExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctEraIds.length > 1) {
-      throw new EraUpsertConflictError(
-        `External IDs matched multiple existing eras: ${distinctEraIds.join(', ')}`,
-      );
-    }
-
-    const values = {
-      name: data.name,
-      leagueId: data.leagueId,
-      startDate: data.startDate,
-      endDate: data.endDate ?? null,
-    };
-
-    let era: Era;
-    const created = distinctEraIds.length === 0;
-
-    if (created) {
-      const result = await this.db.insert(eras).values(values).returning();
-      era = result[0];
-    } else {
-      const result = await this.db
-        .update(eras)
-        .set(values)
-        .where(eq(eras.id, distinctEraIds[0]))
-        .returning();
-      era = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      eraExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ eraId: era.id, ...pair }),
-    );
+    const { row: era, created } = await upsertByExternalIds<
+      typeof eras,
+      typeof eraExternalIds
+    >({
+      db: this.db,
+      entityTable: eras,
+      entityIdColumn: eras.id,
+      values: {
+        name: data.name,
+        leagueId: data.leagueId,
+        startDate: data.startDate,
+        endDate: data.endDate ?? null,
+      },
+      externalIdTable: eraExternalIds,
+      ownerIdColumn: eraExternalIds.eraId,
+      externalSystemIdColumn: eraExternalIds.externalSystemId,
+      externalIdColumn: eraExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: EraUpsertConflictError,
+      entityLabelPlural: 'eras',
+      buildExternalIdRow: (eraId, pair) => ({ eraId, ...pair }),
+    });
 
     const rulesSetIds = await this.syncRulesSets(era.id, data.rulesSetIds);
     return { era: { ...era, rulesSetIds }, created };
