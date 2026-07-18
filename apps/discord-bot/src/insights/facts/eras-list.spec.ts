@@ -1,11 +1,12 @@
 import type { ErasService } from '@blood-bowl-tracker/game-data';
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
-  ERAS_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import { resolveErasList } from './eras-list';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -17,15 +18,9 @@ type EraRow = {
   endDate: string | null;
 };
 
-function makeEras(
-  rows: EraRow[],
-  rulesByEra: Record<number, string[]> = {},
-): ErasService {
+function makeEras(rows: EraRow[]): ErasService {
   return {
     listErasWithLeague: vi.fn().mockResolvedValue(rows),
-    getRulesSetNames: vi.fn((eraId: number) =>
-      Promise.resolve(rulesByEra[eraId] ?? []),
-    ),
   } as unknown as ErasService;
 }
 
@@ -37,33 +32,42 @@ describe('resolveErasList', () => {
     });
   });
 
-  it('renders a single era with its rules sets', async () => {
+  it('renders a single era with a deepdive button and no inline rules', async () => {
     const result = await resolveErasList(
-      makeEras(
-        [
-          {
-            id: 1,
-            name: 'Season 1',
-            leagueName: 'Premier',
-            startDate: '2020-01-01',
-            endDate: '2020-12-31',
-          },
-        ],
-        { 1: ['BB2016', 'BB2020'] },
-      ),
+      makeEras([
+        {
+          id: 1,
+          name: 'Season 1',
+          leagueName: 'Premier',
+          startDate: '2020-01-01',
+          endDate: '2020-12-31',
+        },
+      ]),
     );
     expect(result).toEqual({
       embeds: [
         {
           title: 'Eras',
-          description:
-            'Season 1 (Premier): 2020-01-01 – 2020-12-31 — Rules: BB2016, BB2020',
+          description: 'Season 1 (Premier): 2020-01-01 – 2020-12-31',
+        },
+      ],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Season 1',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+            },
+          ],
         },
       ],
     });
   });
 
-  it('renders an ongoing era with no end date as "present" and omits the rules suffix when empty', async () => {
+  it('renders an ongoing era with no end date as "present" and still attaches a deepdive button', async () => {
     const result = await resolveErasList(
       makeEras([
         {
@@ -80,6 +84,19 @@ describe('resolveErasList', () => {
         {
           title: 'Eras',
           description: 'Season 1 (Premier): 2020-01-01 – present',
+        },
+      ],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Season 1',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+            },
+          ],
         },
       ],
     });
@@ -131,6 +148,37 @@ describe('resolveErasList', () => {
           ].join('\n'),
         },
       ],
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'A Season 1',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'A Season 2',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}2`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'B Season 1',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}4`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'B Season 2',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}3`,
+            },
+          ],
+        },
+      ],
     });
   });
 
@@ -140,23 +188,28 @@ describe('resolveErasList', () => {
       () =>
         ({
           listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
-          getRulesSetNames: vi.fn(),
         }) as unknown as ErasService,
       ERAS_LIST_TIMEOUT_MESSAGE,
     );
   });
 
-  it('falls back to the stunned message when the rules-set lookup times out', async () => {
-    await expectTimeoutFallback(
-      (eras: ErasService) => resolveErasList(eras),
-      () =>
-        ({
-          // Only the era id is read before the rules-set lookup times out,
-          // so a minimal single-era array is enough to reach that lookup.
-          listErasWithLeague: vi.fn().mockResolvedValue([{ id: 1 }]),
-          getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
-        }) as unknown as ErasService,
-      ERAS_RULES_SET_TIMEOUT_MESSAGE,
+  it('caps deepdive buttons at 25 even when more eras are listed', async () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      id: i + 1,
+      name: `Era ${i + 1}`,
+      leagueName: 'League',
+      startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
+      endDate: null,
+    }));
+    const result = (await resolveErasList(makeEras(rows))) as {
+      embeds: unknown[];
+      components: { components: unknown[] }[];
+    };
+    const totalButtons = result.components.reduce(
+      (sum, row) => sum + row.components.length,
+      0,
     );
+    expect(result.components).toHaveLength(5); // 5 rows
+    expect(totalButtons).toBe(25); // 5 per row
   });
 });

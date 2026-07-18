@@ -1,12 +1,13 @@
 import type { ErasService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
+import { ButtonStyle, ComponentType } from 'discord.js';
 
 import { withDatabaseTimeout } from '../../database-timeout';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
-  ERAS_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 
 interface EraEntry {
   id: number;
@@ -14,8 +15,12 @@ interface EraEntry {
   leagueName: string;
   startDate: string;
   endDate: string | null;
-  rulesSetNames: string[];
 }
+
+/** Discord allows at most 5 buttons per action row and 5 rows per message. */
+const MAX_BUTTONS_PER_ROW = 5;
+const MAX_BUTTON_ROWS = 5;
+const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
 
 export async function resolveErasList(
   eras: ErasService,
@@ -30,21 +35,8 @@ export async function resolveErasList(
     };
   }
 
-  const rulesSetNames = await withDatabaseTimeout(
-    Promise.all(rows.map((row) => eras.getRulesSetNames(row.id))),
-    null,
-  );
-  if (rulesSetNames === null) {
-    return ERAS_RULES_SET_TIMEOUT_MESSAGE;
-  }
-
-  const entries: EraEntry[] = rows.map((row, index) => ({
-    ...row,
-    rulesSetNames: rulesSetNames[index],
-  }));
-
   const byLeague = new Map<string, EraEntry[]>();
-  for (const entry of entries) {
+  for (const entry of rows) {
     const list = byLeague.get(entry.leagueName) ?? [];
     list.push(entry);
     byLeague.set(entry.leagueName, list);
@@ -56,17 +48,30 @@ export async function resolveErasList(
     a[0].startDate.localeCompare(b[0].startDate),
   );
 
-  const lines: string[] = [];
-  for (const list of leaguesOrdered) {
-    for (const era of list) {
-      const end = era.endDate ?? 'present';
-      let line = `${era.name} (${era.leagueName}): ${era.startDate} – ${end}`;
-      if (era.rulesSetNames.length > 0) {
-        line += ` — Rules: ${era.rulesSetNames.join(', ')}`;
-      }
-      lines.push(line);
-    }
+  const ordered: EraEntry[] = leaguesOrdered.flat();
+
+  const lines = ordered.map((era) => {
+    const end = era.endDate ?? 'present';
+    return `${era.name} (${era.leagueName}): ${era.startDate} – ${end}`;
+  });
+
+  const buttons = ordered.slice(0, MAX_BUTTONS).map((era) => ({
+    type: ComponentType.Button as const,
+    style: ButtonStyle.Primary as const,
+    label: era.name,
+    custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${era.id}`,
+  }));
+
+  const components = [];
+  for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
+    components.push({
+      type: ComponentType.ActionRow as const,
+      components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
+    });
   }
 
-  return { embeds: [{ title: 'Eras', description: lines.join('\n') }] };
+  return {
+    embeds: [{ title: 'Eras', description: lines.join('\n') }],
+    components,
+  };
 }
