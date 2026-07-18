@@ -24,10 +24,7 @@ export {
   MatchEventUpsertConflictError,
 } from './match-events/match-events.service';
 export { MatchesModule } from './matches/matches.module';
-export type {
-  MatchWithTeamEras,
-  UpsertMatchData,
-} from './matches/matches.service';
+export type { MatchWithTeamEras } from './matches/matches.service';
 export {
   MatchesService,
   MatchUpsertConflictError,

@@ -94,6 +94,7 @@ export class BblMatchesImportService {
             playedAt: merges.effectivePlayedAt(match.bblId, match.date),
             name: details.name,
             externalIds,
+            teamEraIds: [],
           },
           errors,
         );

@@ -1,3 +1,4 @@
+import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import type { Db, Match } from '@blood-bowl-tracker/db';
 import {
   DB,
@@ -16,14 +17,6 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class MatchUpsertConflictError extends UpsertConflictError {}
 
-export interface UpsertMatchData {
-  competitionId: number;
-  playedAt: Date;
-  name: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-  teamEraIds: number[];
-}
-
 export interface MatchWithTeamEras extends Match {
   teamEraIds: number[];
 }
@@ -33,7 +26,7 @@ export class MatchesService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async upsert(
-    data: UpsertMatchData,
+    data: UpsertMatch,
   ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
     const { row: match, created } = await upsertByExternalIds<
       typeof matches,

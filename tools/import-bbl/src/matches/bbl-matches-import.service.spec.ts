@@ -80,6 +80,7 @@ describe('BblMatchesImportService', () => {
         playedAt: new Date(Date.UTC(2021, 8, 25)),
         name: 'Match 3',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
+        teamEraIds: [],
       },
       expect.any(Array),
     );
@@ -169,6 +170,7 @@ describe('BblMatchesImportService', () => {
           { externalSystemId: 1, externalId: '1061' },
           { externalSystemId: 1, externalId: '1062' },
         ],
+        teamEraIds: [],
       },
       expect.any(Array),
     );
