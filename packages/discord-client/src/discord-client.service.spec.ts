@@ -323,6 +323,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -341,6 +342,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn();
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'unknown',
       reply,
@@ -354,6 +356,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn();
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => false,
       reply,
     });

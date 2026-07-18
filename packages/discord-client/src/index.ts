@@ -3,7 +3,10 @@ export type {
   DiscordClientModuleOptions,
 } from './discord-client.module';
 export { DiscordClientModule } from './discord-client.module';
-export type { SlashCommandDefinition } from './discord-client.service';
+export type {
+  ButtonHandler,
+  SlashCommandDefinition,
+} from './discord-client.service';
 export {
   DISCORD_BOT_TOKEN,
   DiscordClientService,
