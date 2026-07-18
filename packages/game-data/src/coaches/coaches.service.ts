@@ -17,8 +17,9 @@ import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class CoachUpsertConflictError extends Error {}
+export class CoachUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertCoachData {
   name: string;

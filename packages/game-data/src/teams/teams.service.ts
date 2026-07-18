@@ -31,8 +31,9 @@ import {
 } from '../shared/match-event-types';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class TeamUpsertConflictError extends Error {}
+export class TeamUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertTeamData {
   name: string;

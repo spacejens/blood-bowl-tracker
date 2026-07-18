@@ -8,8 +8,9 @@ import { eq } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class LeagueUpsertConflictError extends Error {}
+export class LeagueUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertLeagueData {
   name: string;

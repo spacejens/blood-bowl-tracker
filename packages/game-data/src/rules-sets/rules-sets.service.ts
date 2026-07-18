@@ -6,8 +6,9 @@ import { eq } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class RulesSetUpsertConflictError extends Error {}
+export class RulesSetUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertRulesSetData {
   name: string;

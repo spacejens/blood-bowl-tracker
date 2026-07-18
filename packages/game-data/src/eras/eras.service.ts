@@ -13,8 +13,9 @@ import { eq, ilike } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class EraUpsertConflictError extends Error {}
+export class EraUpsertConflictError extends UpsertConflictError {}
 
 /**
  * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default

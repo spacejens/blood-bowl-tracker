@@ -15,8 +15,9 @@ import { and, countDistinct, eq, inArray } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class PositionUpsertConflictError extends Error {}
+export class PositionUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertPositionData {
   name: string;

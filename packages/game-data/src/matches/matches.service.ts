@@ -13,8 +13,9 @@ import { count, countDistinct, eq } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
 import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class MatchUpsertConflictError extends Error {}
+export class MatchUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertMatchData {
   competitionId: number;
