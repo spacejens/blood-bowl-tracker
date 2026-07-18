@@ -62,7 +62,10 @@ export async function resolveErasList(
     custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${era.id}`,
   }));
 
-  const components = [];
+  const components: {
+    type: ComponentType.ActionRow;
+    components: typeof buttons;
+  }[] = [];
   for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
     components.push({
       type: ComponentType.ActionRow as const,

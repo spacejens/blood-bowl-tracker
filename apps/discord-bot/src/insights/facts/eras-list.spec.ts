@@ -201,7 +201,7 @@ describe('resolveErasList', () => {
       startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
       endDate: null,
     }));
-    const result = (await resolveErasList(makeEras(rows))) as {
+    const result = (await resolveErasList(makeEras(rows))) as unknown as {
       embeds: unknown[];
       components: { components: unknown[] }[];
     };
