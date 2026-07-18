@@ -70,156 +70,156 @@ export class PlayersService {
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: MVP_AWARD_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: MVP_AWARD_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countTouchdownsScoredByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: TOUCHDOWN_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: TOUCHDOWN_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countCompletionsByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: COMPLETION_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: COMPLETION_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countInterceptionsByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: INTERCEPTION_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: INTERCEPTION_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countDeflectionsByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: DEFLECTION_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: DEFLECTION_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countCasualtiesCausedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: CASUALTY_CAUSED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countSeriousInjuriesCausedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countDeathsCausedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: DEATH_CAUSED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countFoulsCommittedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'acting', types: FOUL_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'acting', types: FOUL_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countTimesSentOffByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'consequence', types: SENT_OFF_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'consequence', types: SENT_OFF_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countCasualtiesSufferedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countSeriousInjuriesSufferedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countLastingInjuriesSufferedByPlayer(
     eraId?: number,
     competitionId?: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
-    return countMatchEventsByPlayer(
-      this.db,
-      { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
+    return countMatchEventsByPlayer({
+      db: this.db,
+      selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
       eraId,
       competitionId,
-    );
+    });
   }
 
   countAll(): Promise<number> {

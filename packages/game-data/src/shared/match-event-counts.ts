@@ -56,15 +56,24 @@ export function matchEventFilter(
 }
 
 /**
+ * Options shared by every match-event count: the database handle, the
+ * role/type selector, and the optional era/competition scope.
+ */
+export interface CountMatchEventsOptions {
+  db: Db;
+  selector: MatchEventSelector;
+  eraId?: number;
+  competitionId?: number;
+}
+
+/**
  * Match events matching the given selector, counted per player and ordered
  * most-first. Ties keep the query's natural order — the caller ranks them.
  */
 export async function countMatchEventsByPlayer(
-  db: Db,
-  selector: MatchEventSelector,
-  eraId?: number,
-  competitionId?: number,
+  options: CountMatchEventsOptions,
 ): Promise<{ playerId: number; name: string; count: number }[]> {
+  const { db, selector, eraId, competitionId } = options;
   return db
     .select({
       playerId: players.id,
@@ -105,11 +114,9 @@ export async function countMatchEventsByPlayer(
  * over the select shape.
  */
 export async function countMatchEventsByTeam(
-  db: Db,
-  selector: MatchEventSelector,
-  eraId?: number,
-  competitionId?: number,
+  options: CountMatchEventsOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
+  const { db, selector, eraId, competitionId } = options;
   return db
     .select({
       teamId: teams.id,
