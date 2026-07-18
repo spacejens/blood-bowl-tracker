@@ -13,16 +13,16 @@ function makeDb(): { db: Db; values: ReturnType<typeof vi.fn> } {
 describe('insertMissingExternalIds', () => {
   it('inserts only the pairs not already present', async () => {
     const { db, values } = makeDb();
-    await insertMissingExternalIds(
+    await insertMissingExternalIds({
       db,
-      rulesSetExternalIds,
-      [{ externalSystemId: 1, externalId: 'a' }],
-      [
+      externalIdTable: rulesSetExternalIds,
+      existingRows: [{ externalSystemId: 1, externalId: 'a' }],
+      externalIds: [
         { externalSystemId: 1, externalId: 'a' },
         { externalSystemId: 2, externalId: 'b' },
       ],
-      (pair) => ({ rulesSetId: 99, ...pair }),
-    );
+      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+    });
     expect(values).toHaveBeenCalledWith([
       { rulesSetId: 99, externalSystemId: 2, externalId: 'b' },
     ]);
@@ -30,13 +30,13 @@ describe('insertMissingExternalIds', () => {
 
   it('does not touch the database when every pair already exists', async () => {
     const { db, values } = makeDb();
-    await insertMissingExternalIds(
+    await insertMissingExternalIds({
       db,
-      rulesSetExternalIds,
-      [{ externalSystemId: 1, externalId: 'a' }],
-      [{ externalSystemId: 1, externalId: 'a' }],
-      (pair) => ({ rulesSetId: 99, ...pair }),
-    );
+      externalIdTable: rulesSetExternalIds,
+      existingRows: [{ externalSystemId: 1, externalId: 'a' }],
+      externalIds: [{ externalSystemId: 1, externalId: 'a' }],
+      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+    });
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).not.toHaveBeenCalled();
     expect(values).not.toHaveBeenCalled();
@@ -44,13 +44,13 @@ describe('insertMissingExternalIds', () => {
 
   it('distinguishes the same external id in different systems', async () => {
     const { db, values } = makeDb();
-    await insertMissingExternalIds(
+    await insertMissingExternalIds({
       db,
-      rulesSetExternalIds,
-      [{ externalSystemId: 1, externalId: 'a' }],
-      [{ externalSystemId: 2, externalId: 'a' }],
-      (pair) => ({ rulesSetId: 99, ...pair }),
-    );
+      externalIdTable: rulesSetExternalIds,
+      existingRows: [{ externalSystemId: 1, externalId: 'a' }],
+      externalIds: [{ externalSystemId: 2, externalId: 'a' }],
+      buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
+    });
     expect(values).toHaveBeenCalledWith([
       { rulesSetId: 99, externalSystemId: 2, externalId: 'a' },
     ]);

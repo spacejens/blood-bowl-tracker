@@ -18,13 +18,18 @@ export interface ExternalIdPair {
  * Kept internal to this package (not re-exported from index.ts), like
  * shared/count-all.ts.
  */
+export interface InsertMissingExternalIdsOptions<T extends PgTable> {
+  db: Db;
+  externalIdTable: T;
+  existingRows: readonly ExternalIdPair[];
+  externalIds: readonly ExternalIdPair[];
+  buildRow: (pair: ExternalIdPair) => InferInsertModel<T>;
+}
+
 export async function insertMissingExternalIds<T extends PgTable>(
-  db: Db,
-  table: T,
-  existingRows: readonly ExternalIdPair[],
-  externalIds: readonly ExternalIdPair[],
-  buildRow: (pair: ExternalIdPair) => InferInsertModel<T>,
+  options: InsertMissingExternalIdsOptions<T>,
 ): Promise<void> {
+  const { db, externalIdTable, existingRows, externalIds, buildRow } = options;
   const existingPairs = new Set(
     existingRows.map((r) => `${r.externalSystemId}:${r.externalId}`),
   );
@@ -33,6 +38,6 @@ export async function insertMissingExternalIds<T extends PgTable>(
   );
 
   if (newExternalIds.length > 0) {
-    await db.insert(table).values(newExternalIds.map(buildRow));
+    await db.insert(externalIdTable).values(newExternalIds.map(buildRow));
   }
 }

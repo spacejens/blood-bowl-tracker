@@ -14,14 +14,14 @@ describe('resolveExistingByExternalIds', () => {
   it('returns no owner ids and no rows when nothing matches', async () => {
     const db = makeDb([]);
     await expect(
-      resolveExistingByExternalIds(
+      resolveExistingByExternalIds({
         db,
-        rulesSetExternalIds,
-        rulesSetExternalIds.rulesSetId,
-        rulesSetExternalIds.externalSystemId,
-        rulesSetExternalIds.externalId,
-        [{ externalSystemId: 1, externalId: 'a' }],
-      ),
+        externalIdTable: rulesSetExternalIds,
+        ownerIdColumn: rulesSetExternalIds.rulesSetId,
+        externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+        externalIdColumn: rulesSetExternalIds.externalId,
+        externalIds: [{ externalSystemId: 1, externalId: 'a' }],
+      }),
     ).resolves.toEqual({ ownerIds: [], existingRows: [] });
   });
 
@@ -32,14 +32,14 @@ describe('resolveExistingByExternalIds', () => {
     const db = { select } as unknown as Db;
 
     await expect(
-      resolveExistingByExternalIds(
+      resolveExistingByExternalIds({
         db,
-        rulesSetExternalIds,
-        rulesSetExternalIds.rulesSetId,
-        rulesSetExternalIds.externalSystemId,
-        rulesSetExternalIds.externalId,
-        [],
-      ),
+        externalIdTable: rulesSetExternalIds,
+        ownerIdColumn: rulesSetExternalIds.rulesSetId,
+        externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+        externalIdColumn: rulesSetExternalIds.externalId,
+        externalIds: [],
+      }),
     ).resolves.toEqual({ ownerIds: [], existingRows: [] });
 
     expect(select).not.toHaveBeenCalled();
@@ -52,17 +52,17 @@ describe('resolveExistingByExternalIds', () => {
       { ownerId: 5, externalSystemId: 1, externalId: 'a' },
       { ownerId: 5, externalSystemId: 2, externalId: 'b' },
     ]);
-    const result = await resolveExistingByExternalIds(
+    const result = await resolveExistingByExternalIds({
       db,
-      rulesSetExternalIds,
-      rulesSetExternalIds.rulesSetId,
-      rulesSetExternalIds.externalSystemId,
-      rulesSetExternalIds.externalId,
-      [
+      externalIdTable: rulesSetExternalIds,
+      ownerIdColumn: rulesSetExternalIds.rulesSetId,
+      externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+      externalIdColumn: rulesSetExternalIds.externalId,
+      externalIds: [
         { externalSystemId: 1, externalId: 'a' },
         { externalSystemId: 2, externalId: 'b' },
       ],
-    );
+    });
     expect(result.ownerIds).toEqual([5]);
     expect(result.existingRows).toEqual([
       { externalSystemId: 1, externalId: 'a' },
@@ -75,17 +75,17 @@ describe('resolveExistingByExternalIds', () => {
       { ownerId: 5, externalSystemId: 1, externalId: 'a' },
       { ownerId: 6, externalSystemId: 2, externalId: 'b' },
     ]);
-    const result = await resolveExistingByExternalIds(
+    const result = await resolveExistingByExternalIds({
       db,
-      rulesSetExternalIds,
-      rulesSetExternalIds.rulesSetId,
-      rulesSetExternalIds.externalSystemId,
-      rulesSetExternalIds.externalId,
-      [
+      externalIdTable: rulesSetExternalIds,
+      ownerIdColumn: rulesSetExternalIds.rulesSetId,
+      externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+      externalIdColumn: rulesSetExternalIds.externalId,
+      externalIds: [
         { externalSystemId: 1, externalId: 'a' },
         { externalSystemId: 2, externalId: 'b' },
       ],
-    );
+    });
     expect(result.ownerIds).toEqual([5, 6]);
   });
 });
