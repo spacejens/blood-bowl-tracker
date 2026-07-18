@@ -22,12 +22,12 @@ export class CompetitionsImportService {
     data: UpsertCompetition,
     errors: ImportError[],
   ): Promise<boolean> {
-    return this.importRunner.recordUpsert(
-      () => this.client.competitions.upsert(data),
-      data,
+    return this.importRunner.recordUpsert({
+      upsert: () => this.client.competitions.upsert(data),
+      item: data,
       errors,
-      CompetitionsImportService.errorMessage(data),
-    );
+      buildErrorMessage: CompetitionsImportService.errorMessage(data),
+    });
   }
 
   /**
@@ -39,11 +39,11 @@ export class CompetitionsImportService {
     data: UpsertCompetition,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.competitions.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.competitions.upsert(data),
+      item: data,
       errors,
-      CompetitionsImportService.errorMessage(data),
-    );
+      buildErrorMessage: CompetitionsImportService.errorMessage(data),
+    });
   }
 }

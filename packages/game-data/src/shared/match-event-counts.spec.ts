@@ -31,7 +31,10 @@ describe('countMatchEventsByPlayer', () => {
     const select = vi.fn(() => makeQueryBuilder(rows));
     const db = { select } as unknown as Db;
     await expect(
-      countMatchEventsByPlayer(db, { role: 'acting', types: ['touchdown'] }),
+      countMatchEventsByPlayer({
+        db,
+        selector: { role: 'acting', types: ['touchdown'] },
+      }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
   });
@@ -39,9 +42,9 @@ describe('countMatchEventsByPlayer', () => {
   it('joins four tables for the acting role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByPlayer(db, {
-      role: 'acting',
-      types: ['touchdown'],
+    await countMatchEventsByPlayer({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
@@ -57,9 +60,9 @@ describe('countMatchEventsByPlayer', () => {
   it('joins four tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByPlayer(db, {
-      role: 'consequence',
-      types: ['sent_off'],
+    await countMatchEventsByPlayer({
+      db,
+      selector: { role: 'consequence', types: ['sent_off'] },
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
@@ -79,7 +82,10 @@ describe('countMatchEventsByTeam', () => {
     const select = vi.fn(() => makeQueryBuilder(rows));
     const db = { select } as unknown as Db;
     await expect(
-      countMatchEventsByTeam(db, { role: 'acting', types: ['touchdown'] }),
+      countMatchEventsByTeam({
+        db,
+        selector: { role: 'acting', types: ['touchdown'] },
+      }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
   });
@@ -87,7 +93,10 @@ describe('countMatchEventsByTeam', () => {
   it('joins four tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await countMatchEventsByTeam(db, { role: 'consequence', types: ['death'] });
+    await countMatchEventsByTeam({
+      db,
+      selector: { role: 'consequence', types: ['death'] },
+    });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'match_teams.id',

@@ -28,6 +28,14 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // competitions in the mirror (see the competitions design doc); do not change.
 const CUP_MAX_SPAN_DAYS = 3;
 
+interface ResolveTypeAndEraOptions {
+  competition: BblCompetition;
+  dates: Date[];
+  eras: EraConfig[];
+  eraIdsByName: Map<string, number>;
+  errors: ImportError[];
+}
+
 @Injectable()
 export class BblCompetitionsImportService {
   constructor(
@@ -110,13 +118,13 @@ export class BblCompetitionsImportService {
     }
 
     for (const competition of competitions) {
-      const resolved = this.resolveTypeAndEra(
+      const resolved = this.resolveTypeAndEra({
         competition,
-        datesByCompetitionId.get(competition.bblId) ?? [],
+        dates: datesByCompetitionId.get(competition.bblId) ?? [],
         eras,
         eraIdsByName,
         errors,
-      );
+      });
       if (resolved === undefined) {
         continue;
       }
@@ -208,13 +216,14 @@ export class BblCompetitionsImportService {
    * no dates => skip; span <= 3 days => cup, else season; earliest date
    * matched against the configured era ranges.
    */
-  private resolveTypeAndEra(
-    competition: BblCompetition,
-    dates: Date[],
-    eras: EraConfig[],
-    eraIdsByName: Map<string, number>,
-    errors: ImportError[],
-  ): { type: 'season' | 'cup'; eraId: number } | undefined {
+  private resolveTypeAndEra({
+    competition,
+    dates,
+    eras,
+    eraIdsByName,
+    errors,
+  }: ResolveTypeAndEraOptions):
+    { type: 'season' | 'cup'; eraId: number } | undefined {
     const seasonOverrideEra = eras.find((era) =>
       era.competitions?.seasonCompetitionIdOverrides?.includes(
         competition.bblId,

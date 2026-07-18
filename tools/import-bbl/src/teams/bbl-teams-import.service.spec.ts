@@ -73,17 +73,25 @@ function makeCoachParser(): CoachPageParser {
   return parser;
 }
 
-function makeService(
-  reader: BblSourceReader,
-  upsertExternalSystem: ReturnType<typeof vi.fn>,
-  upsertTeam: ReturnType<typeof vi.fn>,
+interface MakeServiceOptions {
+  reader: BblSourceReader;
+  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  upsertTeam: ReturnType<typeof vi.fn>;
   parsers?: {
     team?: TeamPageParser;
     race?: RacePageParser;
     coach?: CoachPageParser;
-  },
-  getBblSystemName: () => string = () => 'BBL',
-) {
+  };
+  getBblSystemName?: () => string;
+}
+
+function makeService({
+  reader,
+  upsertExternalSystem,
+  upsertTeam,
+  parsers,
+  getBblSystemName = () => 'BBL',
+}: MakeServiceOptions) {
   return new BblTeamsImportService(
     reader,
     parsers?.team ?? makeTeamParser(),
@@ -105,8 +113,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -116,7 +124,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     await service.importTeams(raceIds, coachIds);
 
@@ -131,8 +139,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -142,9 +150,9 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-      undefined,
-      () => 'MyLeague',
-    );
+      parsers: undefined,
+      getBblSystemName: () => 'MyLeague',
+    });
 
     await service.importTeams(raceIds, coachIds);
 
@@ -158,8 +166,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -169,7 +177,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result, teamsByName } = await service.importTeams(
       raceIds,
@@ -208,8 +216,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -225,7 +233,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -239,11 +247,11 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
+    const service = makeService({
+      reader: makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -257,8 +265,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -268,7 +276,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -285,13 +293,13 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({ teamId: '40g', teamName: '40 grinders', coachName: 'Hugo E' }),
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -307,8 +315,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -318,7 +326,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -342,8 +350,8 @@ describe('BblTeamsImportService', () => {
         });
         return Promise.resolve(false);
       });
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -353,7 +361,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -374,12 +382,12 @@ describe('BblTeamsImportService', () => {
     vi.spyOn(teamParser, 'extractTeam').mockImplementation(() => {
       throw new Error('bad page');
     });
-    const service = makeService(
-      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+    const service = makeService({
+      reader: makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
       upsertExternalSystem,
       upsertTeam,
-      { team: teamParser },
-    );
+      parsers: { team: teamParser },
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -402,12 +410,12 @@ describe('BblTeamsImportService', () => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
     });
-    const service = makeService(
-      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+    const service = makeService({
+      reader: makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
       upsertExternalSystem,
       upsertTeam,
-      { team: teamParser },
-    );
+      parsers: { team: teamParser },
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -422,8 +430,8 @@ describe('BblTeamsImportService', () => {
       .fn()
       .mockRejectedValue(new Error('network timeout'));
     const upsertTeam = vi.fn();
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -433,7 +441,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -452,8 +460,8 @@ describe('BblTeamsImportService', () => {
   it('stringifies a non-Error thrown by the external system upsert', async () => {
     const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
     const upsertTeam = vi.fn();
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -463,7 +471,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
@@ -478,8 +486,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -489,7 +497,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { teamRaceIdsByCode } = await service.importTeams(raceIds, coachIds);
 
@@ -502,8 +510,8 @@ describe('BblTeamsImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      makeReader([
+    const service = makeService({
+      reader: makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -513,7 +521,7 @@ describe('BblTeamsImportService', () => {
       ]),
       upsertExternalSystem,
       upsertTeam,
-    );
+    });
 
     const { result, teamsByName, teamsByCode } = await service.importTeams(
       raceIds,

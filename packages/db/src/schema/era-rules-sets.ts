@@ -5,10 +5,10 @@ import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 import { rulesSets } from './rules-sets';
 
-const eraRulesSetsTable = historyTrackedTable(
-  gameData,
-  'era_rules_sets',
-  {
+const eraRulesSetsTable = historyTrackedTable({
+  schema: gameData,
+  name: 'era_rules_sets',
+  columns: {
     id: serial('id').primaryKey(),
     eraId: integer('era_id')
       .references(() => eras.id)
@@ -17,13 +17,13 @@ const eraRulesSetsTable = historyTrackedTable(
       .references(() => rulesSets.id)
       .notNull(),
   },
-  (t) => ({
+  extraConfig: (t) => ({
     uniqueEraRulesSet: unique('era_rules_sets_era_id_rules_set_id_unique').on(
       t.eraId,
       t.rulesSetId,
     ),
   }),
-);
+});
 
 export const eraRulesSets = eraRulesSetsTable.table;
 export const eraRulesSetsHistory = eraRulesSetsTable.historyTable;

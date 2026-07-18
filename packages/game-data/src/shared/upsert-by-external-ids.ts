@@ -62,14 +62,7 @@ export async function upsertByExternalIds<
 >(
   opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
 ): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
-  const { ownerIds, existingRows } = await resolveExistingByExternalIds(
-    opts.db,
-    opts.externalIdTable,
-    opts.ownerIdColumn,
-    opts.externalSystemIdColumn,
-    opts.externalIdColumn,
-    opts.externalIds,
-  );
+  const { ownerIds, existingRows } = await resolveExistingByExternalIds(opts);
 
   if (ownerIds.length > 1) {
     throw new opts.ConflictErrorClass(
@@ -91,13 +84,13 @@ export async function upsertByExternalIds<
   const row = rows[0];
   const ownerId = (row as { id: number }).id;
 
-  await insertMissingExternalIds(
-    opts.db,
-    opts.externalIdTable,
+  await insertMissingExternalIds({
+    db: opts.db,
+    externalIdTable: opts.externalIdTable,
     existingRows,
-    opts.externalIds,
-    (pair) => opts.buildExternalIdRow(ownerId, pair),
-  );
+    externalIds: opts.externalIds,
+    buildRow: (pair) => opts.buildExternalIdRow(ownerId, pair),
+  });
 
   return { row, created };
 }

@@ -56,14 +56,14 @@ export interface HistoryRegistryEntry {
 
 export const historyRegistry: HistoryRegistryEntry[] = [];
 
-export function historyTrackedTable<
+export interface HistoryTrackedTableOptions<
   TColumns extends Record<string, AnyPgColumnBuilder> & {
     id: AnyPgColumnBuilder;
   },
->(
-  schema: PgSchema,
-  name: string,
-  columns: TColumns,
+> {
+  schema: PgSchema;
+  name: string;
+  columns: TColumns;
   extraConfig?: (
     self: PgBuildExtraConfigColumns<
       TColumns & {
@@ -73,8 +73,19 @@ export function historyTrackedTable<
         historyPeriod: AnyPgColumnBuilder;
       }
     >,
-  ) => PgTableExtraConfig,
-) {
+  ) => PgTableExtraConfig;
+}
+
+export function historyTrackedTable<
+  TColumns extends Record<string, AnyPgColumnBuilder> & {
+    id: AnyPgColumnBuilder;
+  },
+>({
+  schema,
+  name,
+  columns,
+  extraConfig,
+}: HistoryTrackedTableOptions<TColumns>) {
   const trackedColumns = {
     ...columns,
     createdAt: timestamp('created_at', { withTimezone: true })

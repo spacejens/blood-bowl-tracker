@@ -116,12 +116,12 @@ describe('BblPlayersImportService', () => {
     );
 
     const { result, playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
-      await service.importPlayers(
+      await service.importPlayers({
         teamsByCode,
         positionIdsByBblId,
         racesByBblId,
         eraIdsByName,
-      );
+      });
 
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
@@ -172,12 +172,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -219,12 +219,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    await service.importPlayers(
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      otherEraIdsByName,
-    );
+      eraIdsByName: otherEraIdsByName,
+    });
 
     expect(upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
@@ -271,12 +271,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      overrideEraIds,
-    );
+      eraIdsByName: overrideEraIds,
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -324,12 +324,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      overrideEraIds,
-    );
+      eraIdsByName: overrideEraIds,
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -376,12 +376,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      overrideEraIds,
-    );
+      eraIdsByName: overrideEraIds,
+    });
 
     expect(result.imported).toBe(1);
     // Pinned to Side (eraId 500), not Main, via team code.
@@ -431,12 +431,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      overrideEraIds,
-    );
+      eraIdsByName: overrideEraIds,
+    });
 
     expect(result.imported).toBe(1);
     // Lands in "Enabled" (eraId 500), proving "Disabled" was genuinely
@@ -471,12 +471,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
-      overrideEraIds,
-    );
+      eraIdsByName: overrideEraIds,
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -499,12 +499,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertPlayerResult).toHaveBeenCalled();
@@ -528,12 +528,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -545,12 +545,12 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -561,12 +561,12 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage({ ...goodPlayer, typId: '99' })]),
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -582,12 +582,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result, playerIdsByPid } = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.success).toBe(false);
     expect(result.errors).toHaveLength(1);
@@ -607,12 +607,12 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(null, '388')]),
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
@@ -632,12 +632,12 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(namelessPlayer)]),
     );
 
-    const { result, playerIdsByPid } = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(1);
     expect(playerIdsByPid.get('388')).toBe(900);
@@ -670,12 +670,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -689,12 +689,12 @@ describe('BblPlayersImportService', () => {
       { upsertTeam: vi.fn().mockResolvedValue(undefined) },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
@@ -710,12 +710,12 @@ describe('BblPlayersImportService', () => {
       },
     );
 
-    const { result } = await service.importPlayers(
+    const { result } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -731,12 +731,12 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
     );
 
-    const { result } = await service.importPlayers(
-      localTeamsByCode,
+    const { result } = await service.importPlayers({
+      teamsByCode: localTeamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
@@ -750,12 +750,12 @@ describe('BblPlayersImportService', () => {
       { upsertPlayerResult: vi.fn().mockResolvedValue(undefined) },
     );
 
-    const { result, playerIdsByPid } = await service.importPlayers(
+    const { result, playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
-    );
+    });
 
     expect(result.imported).toBe(0);
     expect(playerIdsByPid.size).toBe(0);
@@ -768,12 +768,12 @@ describe('BblPlayersImportService', () => {
     );
 
     const { positionsUsedByEra, racesActiveByEra } =
-      await service.importPlayers(
+      await service.importPlayers({
         teamsByCode,
         positionIdsByBblId,
         racesByBblId,
         eraIdsByName,
-      );
+      });
 
     expect(positionsUsedByEra.size).toBe(0);
     expect(racesActiveByEra.size).toBe(0);

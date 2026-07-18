@@ -49,12 +49,12 @@ export function makeToplistResolvers<
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
     resolvers[method] = (service, eraId, competitionId) => {
-      return resolveToplist(
-        titles[method],
-        () => service[method](eraId, competitionId),
+      return resolveToplist({
+        title: titles[method],
+        fetchRows: () => service[method](eraId, competitionId),
         timeoutMessage,
         noDataMessage,
-      );
+      });
     };
   }
   return resolvers;

@@ -22,18 +22,38 @@ import type { ExternalIdPair } from './sync-external-ids';
  * (`number`/`string`) data types through `db.select()` instead of widening to
  * `unknown` — that widening is what would have forced a cast on the return.
  */
+export interface ResolveExistingByExternalIdsOptions<
+  TOwnerIdColumn extends PgColumn,
+  TExternalSystemIdColumn extends PgColumn,
+  TExternalIdColumn extends PgColumn,
+> {
+  db: Db;
+  externalIdTable: PgTable;
+  ownerIdColumn: TOwnerIdColumn;
+  externalSystemIdColumn: TExternalSystemIdColumn;
+  externalIdColumn: TExternalIdColumn;
+  externalIds: readonly ExternalIdPair[];
+}
+
 export async function resolveExistingByExternalIds<
   TOwnerIdColumn extends PgColumn,
   TExternalSystemIdColumn extends PgColumn,
   TExternalIdColumn extends PgColumn,
 >(
-  db: Db,
-  table: PgTable,
-  ownerIdColumn: TOwnerIdColumn,
-  externalSystemIdColumn: TExternalSystemIdColumn,
-  externalIdColumn: TExternalIdColumn,
-  externalIds: readonly ExternalIdPair[],
+  options: ResolveExistingByExternalIdsOptions<
+    TOwnerIdColumn,
+    TExternalSystemIdColumn,
+    TExternalIdColumn
+  >,
 ): Promise<{ ownerIds: number[]; existingRows: ExternalIdPair[] }> {
+  const {
+    db,
+    externalIdTable,
+    ownerIdColumn,
+    externalSystemIdColumn,
+    externalIdColumn,
+    externalIds,
+  } = options;
   if (externalIds.length === 0) {
     return { ownerIds: [], existingRows: [] };
   }
@@ -44,7 +64,7 @@ export async function resolveExistingByExternalIds<
       externalSystemId: externalSystemIdColumn,
       externalId: externalIdColumn,
     })
-    .from(table)
+    .from(externalIdTable)
     .where(
       or(
         ...externalIds.map((e) =>

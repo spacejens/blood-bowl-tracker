@@ -14,12 +14,12 @@ export class RulesSetsImportService {
   ) {}
 
   upsertRulesSet(data: UpsertRulesSet, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.rulesSets.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.rulesSets.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import rules set "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

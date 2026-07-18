@@ -18,12 +18,12 @@ export class MatchEventsImportService {
     errors: ImportError[],
   ): Promise<boolean> {
     const externalId = data.externalIds[0]?.externalId;
-    return this.importRunner.recordUpsert(
-      () => this.client.matchEvents.upsert(data),
-      data,
+    return this.importRunner.recordUpsert({
+      upsert: () => this.client.matchEvents.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import match event "${externalId}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

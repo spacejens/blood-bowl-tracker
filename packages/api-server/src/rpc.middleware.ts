@@ -44,7 +44,7 @@ export class RpcMiddleware implements NestMiddleware {
     matchEventsService: MatchEventsService,
   ) {
     this.handler = new RPCHandler(
-      buildRpcRouter(
+      buildRpcRouter({
         coachesService,
         externalSystemsService,
         leaguesService,
@@ -57,7 +57,7 @@ export class RpcMiddleware implements NestMiddleware {
         matchesService,
         playersService,
         matchEventsService,
-      ),
+      }),
       {
         interceptors: [
           async (opts) => {

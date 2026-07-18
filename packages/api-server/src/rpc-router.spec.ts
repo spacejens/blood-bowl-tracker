@@ -58,38 +58,13 @@ function makeServices() {
 
 describe('buildRpcRouter', () => {
   it('coaches.upsert returns the flat entity with a created flag', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { coachesService } = services;
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
       created: true,
     });
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.coaches.upsert, {
       name: 'Roze Madder',
@@ -105,39 +80,14 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { coachesService } = services;
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.coaches.upsert, {
@@ -151,37 +101,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('coaches.upsert rethrows errors that are not a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { coachesService } = services;
     (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.coaches.upsert, {
@@ -192,40 +117,15 @@ describe('buildRpcRouter', () => {
   });
 
   it('externalSystems.upsert returns the flat entity with a created flag', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { externalSystemsService } = services;
     (
       externalSystemsService.upsert as ReturnType<typeof vi.fn>
     ).mockResolvedValue({
       system: { id: 1, name: 'BBL', createdAt: new Date('2026-01-01') },
       created: false,
     });
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.externalSystems.upsert, { name: 'BBL' });
 
@@ -238,20 +138,8 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert returns the flat entity with a created flag', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { leaguesService } = services;
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       league: {
         id: 1,
@@ -260,20 +148,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.leagues.upsert, {
       name: 'Test League',
@@ -289,39 +164,14 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { leaguesService } = services;
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new LeagueUpsertConflictError(
         'External IDs matched multiple existing leagues: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.leagues.upsert, {
@@ -335,37 +185,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('leagues.upsert rethrows errors that are not a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { leaguesService } = services;
     (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.leagues.upsert, {
@@ -376,20 +201,8 @@ describe('buildRpcRouter', () => {
   });
 
   it('races.upsert returns the flat entity with a created flag', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { racesService } = services;
     (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       race: {
         id: 1,
@@ -399,20 +212,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.races.upsert, {
       name: 'Orc',
@@ -430,39 +230,14 @@ describe('buildRpcRouter', () => {
   });
 
   it('races.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { racesService } = services;
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new RaceUpsertConflictError(
         'External IDs matched multiple existing races: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.races.upsert, {
@@ -476,37 +251,12 @@ describe('buildRpcRouter', () => {
   });
 
   it('races.upsert rethrows errors that are not a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { racesService } = services;
     (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.races.upsert, {
@@ -528,20 +278,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.rulesSets.upsert, {
       name: 'BB2020',
@@ -565,20 +302,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing rules sets: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.rulesSets.upsert, {
@@ -596,20 +320,7 @@ describe('buildRpcRouter', () => {
     (
       services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.rulesSets.upsert, {
@@ -635,20 +346,7 @@ describe('buildRpcRouter', () => {
         created: true,
       },
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.eras.upsert, {
       name: 'BB2020',
@@ -678,20 +376,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing eras: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.eras.upsert, {
@@ -712,20 +397,7 @@ describe('buildRpcRouter', () => {
     (services.erasService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('db unavailable'),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.eras.upsert, {
@@ -751,20 +423,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.positions.upsert, {
       name: 'Lineman',
@@ -789,20 +448,7 @@ describe('buildRpcRouter', () => {
       positionId: 1,
       raceEraIds: [10, 11],
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const input = {
       positionId: 1,
@@ -830,20 +476,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing positions: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.positions.upsert, {
@@ -862,20 +495,7 @@ describe('buildRpcRouter', () => {
     (
       services.positionsService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.positions.upsert, {
@@ -901,20 +521,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.teams.upsert, {
       name: '40 grinders',
@@ -943,20 +550,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing teams: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.teams.upsert, {
@@ -976,20 +570,7 @@ describe('buildRpcRouter', () => {
     (
       services.teamsService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.teams.upsert, {
@@ -1016,20 +597,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.competitions.upsert, {
       name: 'Major Season 24',
@@ -1058,20 +626,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing competitions: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.competitions.upsert, {
@@ -1091,20 +646,7 @@ describe('buildRpcRouter', () => {
     (
       services.competitionsService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.competitions.upsert, {
@@ -1131,20 +673,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.matches.upsert, {
       competitionId: 20,
@@ -1173,20 +702,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing matches: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.matches.upsert, {
@@ -1206,20 +722,7 @@ describe('buildRpcRouter', () => {
     (
       services.matchesService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.matches.upsert, {
@@ -1232,20 +735,8 @@ describe('buildRpcRouter', () => {
   });
 
   it('players.upsert returns the flat entity with a created flag', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { playersService } = services;
     (playersService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
       player: {
         id: 1,
@@ -1256,20 +747,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.players.upsert, {
       name: 'Griff Oberwald',
@@ -1289,39 +767,14 @@ describe('buildRpcRouter', () => {
   });
 
   it('players.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const {
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    } = makeServices();
+    const services = makeServices();
+    const { playersService } = services;
     (playersService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
       new PlayerUpsertConflictError(
         'External IDs matched multiple existing players: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      coachesService,
-      externalSystemsService,
-      leaguesService,
-      racesService,
-      rulesSetsService,
-      erasService,
-      positionsService,
-      teamsService,
-      competitionsService,
-      matchesService,
-      playersService,
-      matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.players.upsert, {
@@ -1351,20 +804,7 @@ describe('buildRpcRouter', () => {
       },
       created: true,
     });
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     const result = await call(router.matchEvents.upsert, {
       matchId: 10,
@@ -1390,20 +830,7 @@ describe('buildRpcRouter', () => {
         'External IDs matched multiple existing match events: 1, 2',
       ),
     );
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.matchEvents.upsert, {
@@ -1424,20 +851,7 @@ describe('buildRpcRouter', () => {
     (
       services.matchEventsService.upsert as ReturnType<typeof vi.fn>
     ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRpcRouter(
-      services.coachesService,
-      services.externalSystemsService,
-      services.leaguesService,
-      services.racesService,
-      services.rulesSetsService,
-      services.erasService,
-      services.positionsService,
-      services.teamsService,
-      services.competitionsService,
-      services.matchesService,
-      services.playersService,
-      services.matchEventsService,
-    );
+    const router = buildRpcRouter(services);
 
     await expect(
       call(router.matchEvents.upsert, {

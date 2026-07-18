@@ -48,43 +48,41 @@ async function run(): Promise<ImportResult> {
       .importTeams(raceOutcome.raceIdsByBblId, coachOutcome.coachIdsByName);
     const teamParticipationOutcome = await app
       .get(BblTeamParticipationImportService)
-      .importTeamParticipation(
-        competitionOutcome.competitionsByBblId,
-        teamOutcome.teamsByCode,
-        raceOutcome.racesByRaceId,
-        eraOutcome.eraIdsByName,
-        competitionOutcome.competitionIdsByBblId,
-      );
+      .importTeamParticipation({
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
+        teamsByCode: teamOutcome.teamsByCode,
+        racesByRaceId: raceOutcome.racesByRaceId,
+        eraIdsByName: eraOutcome.eraIdsByName,
+        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+      });
     const positionOutcome = await app
       .get(BblPositionsImportService)
       .importPositions(raceOutcome.racesByBblId, teamOutcome.teamRaceIdsByCode);
-    const playerOutcome = await app
-      .get(BblPlayersImportService)
-      .importPlayers(
-        teamOutcome.teamsByCode,
-        positionOutcome.positionIdsByBblId,
-        raceOutcome.racesByBblId,
-        eraOutcome.eraIdsByName,
-      );
+    const playerOutcome = await app.get(BblPlayersImportService).importPlayers({
+      teamsByCode: teamOutcome.teamsByCode,
+      positionIdsByBblId: positionOutcome.positionIdsByBblId,
+      racesByBblId: raceOutcome.racesByBblId,
+      eraIdsByName: eraOutcome.eraIdsByName,
+    });
     const positionRaceErasOutcome = await app
       .get(BblPositionRaceErasImportService)
-      .syncPositionRaceEras(
-        positionOutcome.positionRaceCandidates,
-        positionOutcome.positionIdsByBblId,
-        raceOutcome.racesByBblId,
-        eraOutcome.eraIdsByName,
-        teamParticipationOutcome.eraIdsByRaceId,
-        playerOutcome.positionsUsedByEra,
-        playerOutcome.racesActiveByEra,
-      );
+      .syncPositionRaceEras({
+        positionRaceCandidates: positionOutcome.positionRaceCandidates,
+        positionIdsByBblId: positionOutcome.positionIdsByBblId,
+        racesByBblId: raceOutcome.racesByBblId,
+        eraIdsByName: eraOutcome.eraIdsByName,
+        eraIdsByRaceId: teamParticipationOutcome.eraIdsByRaceId,
+        positionsUsedByEra: playerOutcome.positionsUsedByEra,
+        racesActiveByEra: playerOutcome.racesActiveByEra,
+      });
     const matchEventsOutcome = await app
       .get(BblMatchEventsImportService)
-      .importMatchEvents(
-        competitionOutcome.competitionsByBblId,
-        teamOutcome.teamsByCode,
-        matchOutcome.matchIdsByBblId,
-        playerOutcome.playerIdsByPid,
-      );
+      .importMatchEvents({
+        competitionsByBblId: competitionOutcome.competitionsByBblId,
+        teamsByCode: teamOutcome.teamsByCode,
+        matchIdsByBblId: matchOutcome.matchIdsByBblId,
+        playerIdsByPid: playerOutcome.playerIdsByPid,
+      });
 
     const results = [
       leagueOutcome.result,

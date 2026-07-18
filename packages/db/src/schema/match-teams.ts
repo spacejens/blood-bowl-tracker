@@ -5,10 +5,10 @@ import { matches } from './matches';
 import { gameData } from './pg-schema';
 import { teamEras } from './team-eras';
 
-const matchTeamsTable = historyTrackedTable(
-  gameData,
-  'match_teams',
-  {
+const matchTeamsTable = historyTrackedTable({
+  schema: gameData,
+  name: 'match_teams',
+  columns: {
     id: serial('id').primaryKey(),
     matchId: integer('match_id')
       .references(() => matches.id)
@@ -17,13 +17,13 @@ const matchTeamsTable = historyTrackedTable(
       .references(() => teamEras.id)
       .notNull(),
   },
-  (t) => ({
+  extraConfig: (t) => ({
     uniqueMatchTeam: unique('match_teams_match_id_team_era_id_unique').on(
       t.matchId,
       t.teamEraId,
     ),
   }),
-);
+});
 
 export const matchTeams = matchTeamsTable.table;
 export const matchTeamsHistory = matchTeamsTable.historyTable;

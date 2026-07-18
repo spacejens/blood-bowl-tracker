@@ -9,12 +9,19 @@ import type { ExternalSystemNameConfigService } from '../source/external-system-
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import type { LeagueConfigService } from './league-config.service';
 
-function makeService(
-  getLeagueName: () => string,
-  upsertExternalSystem: ReturnType<typeof vi.fn>,
-  upsertLeague: ReturnType<typeof vi.fn>,
-  getBblSystemName: () => string = () => 'BBL',
-) {
+interface MakeServiceOptions {
+  getLeagueName: () => string;
+  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  upsertLeague: ReturnType<typeof vi.fn>;
+  getBblSystemName?: () => string;
+}
+
+function makeService({
+  getLeagueName,
+  upsertExternalSystem,
+  upsertLeague,
+  getBblSystemName = () => 'BBL',
+}: MakeServiceOptions) {
   return new BblLeaguesImportService(
     { getLeagueName } as unknown as LeagueConfigService,
     { upsertLeague } as unknown as LeaguesImportService,
@@ -35,11 +42,11 @@ describe('BblLeaguesImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     await service.importLeague();
 
@@ -54,12 +61,12 @@ describe('BblLeaguesImportService', () => {
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const upsertLeague = vi.fn().mockResolvedValue(true);
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-      () => 'MyLeague',
-    );
+      getBblSystemName: () => 'MyLeague',
+    });
 
     await service.importLeague();
 
@@ -78,11 +85,11 @@ describe('BblLeaguesImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     const result = await service.importLeague();
 
@@ -112,11 +119,11 @@ describe('BblLeaguesImportService', () => {
         errors.push({ item: {}, message: 'Failed to import league' });
         return Promise.resolve(undefined);
       });
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     const result = await service.importLeague();
 
@@ -129,13 +136,13 @@ describe('BblLeaguesImportService', () => {
   it('records one error and skips the league when BBL_LEAGUE_NAME is unset', async () => {
     const upsertExternalSystem = vi.fn();
     const upsertLeague = vi.fn();
-    const service = makeService(
-      () => {
+    const service = makeService({
+      getLeagueName: () => {
         throw new Error('BBL_LEAGUE_NAME is not set.');
       },
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     const result = await service.importLeague();
 
@@ -151,11 +158,11 @@ describe('BblLeaguesImportService', () => {
       .fn()
       .mockRejectedValue(new Error('network timeout'));
     const upsertLeague = vi.fn();
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     const result = await service.importLeague();
 
@@ -174,11 +181,11 @@ describe('BblLeaguesImportService', () => {
   it('stringifies a non-Error thrown while resolving config or systems', async () => {
     const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
     const upsertLeague = vi.fn();
-    const service = makeService(
-      () => 'Test League',
+    const service = makeService({
+      getLeagueName: () => 'Test League',
       upsertExternalSystem,
       upsertLeague,
-    );
+    });
 
     const result = await service.importLeague();
 

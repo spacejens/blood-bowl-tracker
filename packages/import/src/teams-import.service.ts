@@ -14,12 +14,12 @@ export class TeamsImportService {
   ) {}
 
   upsertTeam(data: UpsertTeam, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.teams.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.teams.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import team "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

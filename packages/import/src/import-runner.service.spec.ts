@@ -39,12 +39,12 @@ describe('ImportRunnerService', () => {
     it('returns true and records no error on success', async () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
-      const result = await service.recordUpsert(
-        () => Promise.resolve({ id: 1 }),
-        { id: 1 },
+      const result = await service.recordUpsert({
+        upsert: () => Promise.resolve({ id: 1 }),
+        item: { id: 1 },
         errors,
-        () => 'unused',
-      );
+        buildErrorMessage: () => 'unused',
+      });
       expect(result).toBe(true);
       expect(errors).toHaveLength(0);
     });
@@ -53,12 +53,13 @@ describe('ImportRunnerService', () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
       const item = { id: 2, name: 'Gruk' };
-      const result = await service.recordUpsert(
-        () => Promise.reject(new Error('conflict')),
+      const result = await service.recordUpsert({
+        upsert: () => Promise.reject(new Error('conflict')),
         item,
         errors,
-        (err) => `Failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+        buildErrorMessage: (err) =>
+          `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
       expect(result).toBe(false);
       expect(errors).toHaveLength(1);
       expect(errors[0]).toEqual({ item, message: 'Failed: conflict' });
@@ -69,12 +70,12 @@ describe('ImportRunnerService', () => {
     it('returns the resolved value and records no error on success', async () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
-      const result = await service.recordUpsertResult(
-        () => Promise.resolve({ id: 5, name: 'BB2020' }),
-        { name: 'BB2020' },
+      const result = await service.recordUpsertResult({
+        upsert: () => Promise.resolve({ id: 5, name: 'BB2020' }),
+        item: { name: 'BB2020' },
         errors,
-        () => 'unused',
-      );
+        buildErrorMessage: () => 'unused',
+      });
       expect(result).toEqual({ id: 5, name: 'BB2020' });
       expect(errors).toHaveLength(0);
     });
@@ -83,12 +84,13 @@ describe('ImportRunnerService', () => {
       const service = new ImportRunnerService();
       const errors: ImportError[] = [];
       const item = { name: 'BB2020' };
-      const result = await service.recordUpsertResult(
-        () => Promise.reject(new Error('conflict')),
+      const result = await service.recordUpsertResult({
+        upsert: () => Promise.reject(new Error('conflict')),
         item,
         errors,
-        (err) => `Failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
+        buildErrorMessage: (err) =>
+          `Failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
       expect(result).toBeUndefined();
       expect(errors).toEqual([{ item, message: 'Failed: conflict' }]);
     });

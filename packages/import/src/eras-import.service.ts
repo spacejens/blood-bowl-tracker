@@ -14,12 +14,12 @@ export class ErasImportService {
   ) {}
 
   upsertEra(data: UpsertEra, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.eras.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.eras.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import era "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

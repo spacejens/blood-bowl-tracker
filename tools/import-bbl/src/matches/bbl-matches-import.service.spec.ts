@@ -7,7 +7,10 @@ import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import type { BblMatch } from './match-list-page-parser';
 import { MatchMergeService } from './match-merge.service';
-import type { MatchMergeConfigService } from './match-merge-config.service';
+import type {
+  MatchMergeConfigService,
+  MatchMergePair,
+} from './match-merge-config.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
 
 function makeReader(matchesById: Record<string, BblMatch[]>) {
@@ -37,7 +40,7 @@ const detail = (bblId: string, name: string): BblMatchDetails => ({
 
 function makeMergeService(
   reader: BblMatchListReaderService,
-  merges: [string, string][],
+  merges: MatchMergePair[],
 ): MatchMergeService {
   const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
   return new MatchMergeService(reader, mergeConfig);
@@ -142,7 +145,9 @@ describe('BblMatchesImportService', () => {
     const service = new BblMatchesImportService(
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, [['1061', '1062']]),
+      makeMergeService(reader, [
+        { firstMatchId: '1061', secondMatchId: '1062' },
+      ]),
       makeDetailReader({ '1061': detail('1061', 'Bierhallentodball') }),
     );
 
@@ -193,7 +198,9 @@ describe('BblMatchesImportService', () => {
     const service = new BblMatchesImportService(
       reader,
       { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, [['1061', '1062']]),
+      makeMergeService(reader, [
+        { firstMatchId: '1061', secondMatchId: '1062' },
+      ]),
       makeDetailReader({
         '1061': detail('1061', 'Match A'),
         '1062': detail('1062', 'Match B'),

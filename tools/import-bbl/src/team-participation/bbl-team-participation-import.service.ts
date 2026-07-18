@@ -22,6 +22,32 @@ import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 
+export interface ImportTeamParticipationOptions {
+  competitionsByBblId: Map<string, UpsertCompetition>;
+  teamsByCode: Map<string, UpsertTeam>;
+  racesByRaceId: Map<number, UpsertRace>;
+  eraIdsByName: Map<string, number>;
+  competitionIdsByBblId: Map<string, number>;
+}
+
+interface CollectTeamIdsOptions {
+  competitionsByBblId: Map<string, UpsertCompetition>;
+  matchesByCompetitionId: Map<string, BblMatch[]>;
+  matchTeamsByBblId: Map<string, BblMatchDetails>;
+  errors: ImportError[];
+}
+
+interface SyncMatchTeamsOptions {
+  competitionBblId: string;
+  competition: UpsertCompetition;
+  matches: BblMatch[];
+  matchTeamsByBblId: Map<string, BblMatchDetails>;
+  teamEraIdByTeamId: Map<string, number>;
+  competitionIdsByBblId: Map<string, number>;
+  merges: MatchMergeResolution;
+  errors: ImportError[];
+}
+
 @Injectable()
 export class BblTeamParticipationImportService {
   constructor(
@@ -59,13 +85,16 @@ export class BblTeamParticipationImportService {
    * so this is not a missing import.
    * Idempotent.
    */
-  async importTeamParticipation(
-    competitionsByBblId: Map<string, UpsertCompetition>,
-    teamsByCode: Map<string, UpsertTeam>,
-    racesByRaceId: Map<number, UpsertRace>,
-    eraIdsByName: Map<string, number>,
-    competitionIdsByBblId: Map<string, number>,
-  ): Promise<{
+  async importTeamParticipation({
+    competitionsByBblId,
+    teamsByCode,
+    racesByRaceId,
+    // eraIdsByName is part of the public options shape (mirrors the sibling
+    // import services' signatures) but this step derives eraIdsByRaceId from
+    // each team's own era field, not by era name, so it goes unused here.
+    eraIdsByName: _eraIdsByName,
+    competitionIdsByBblId,
+  }: ImportTeamParticipationOptions): Promise<{
     result: ImportResult;
     eraIdsByRaceId: Map<number, Set<number>>;
   }> {
@@ -78,12 +107,12 @@ export class BblTeamParticipationImportService {
       await this.matchDetailReader.getMatchTeamsByBblId(errors);
     const merges = await this.matchMerge.resolve(errors);
 
-    const teamIdsByCompetitionId = this.collectTeamIds(
+    const teamIdsByCompetitionId = this.collectTeamIds({
       competitionsByBblId,
       matchesByCompetitionId,
       matchTeamsByBblId,
       errors,
-    );
+    });
 
     const registeredTeamIdsByCompetitionId =
       await this.competitionStandingsReader.getRegisteredTeamIdsByCompetitionId(
@@ -150,16 +179,16 @@ export class BblTeamParticipationImportService {
         }
       }
 
-      await this.syncMatchTeams(
-        bblId,
+      await this.syncMatchTeams({
+        competitionBblId: bblId,
         competition,
-        matchesByCompetitionId.get(bblId) ?? [],
+        matches: matchesByCompetitionId.get(bblId) ?? [],
         matchTeamsByBblId,
         teamEraIdByTeamId,
         competitionIdsByBblId,
         merges,
         errors,
-      );
+      });
     }
 
     for (const [raceId, eraIds] of eraIdsByRaceId) {
@@ -182,16 +211,17 @@ export class BblTeamParticipationImportService {
    * imported DB id, or a match whose two team ids do not both resolve, is
    * recorded as an error and skipped without affecting the rest. Idempotent.
    */
-  private async syncMatchTeams(
-    competitionBblId: string,
-    competition: UpsertCompetition,
-    matches: BblMatch[],
-    matchTeamsByBblId: Map<string, BblMatchDetails>,
-    teamEraIdByTeamId: Map<string, number>,
-    competitionIdsByBblId: Map<string, number>,
-    merges: MatchMergeResolution,
-    errors: ImportError[],
-  ): Promise<void> {
+  private async syncMatchTeams(options: SyncMatchTeamsOptions): Promise<void> {
+    const {
+      competitionBblId,
+      competition,
+      matches,
+      matchTeamsByBblId,
+      teamEraIdByTeamId,
+      competitionIdsByBblId,
+      merges,
+      errors,
+    } = options;
     const competitionId = competitionIdsByBblId.get(competitionBblId);
     if (competitionId === undefined) {
       errors.push(
@@ -243,12 +273,12 @@ export class BblTeamParticipationImportService {
    * entry is recorded as an error and skipped without affecting the rest of
    * the competition.
    */
-  private collectTeamIds(
-    competitionsByBblId: Map<string, UpsertCompetition>,
-    matchesByCompetitionId: Map<string, BblMatch[]>,
-    matchTeamsByBblId: Map<string, BblMatchDetails>,
-    errors: ImportError[],
-  ): Map<string, Set<string>> {
+  private collectTeamIds({
+    competitionsByBblId,
+    matchesByCompetitionId,
+    matchTeamsByBblId,
+    errors,
+  }: CollectTeamIdsOptions): Map<string, Set<string>> {
     const teamIdsByCompetitionId = new Map<string, Set<string>>();
     for (const [competitionId, matches] of matchesByCompetitionId) {
       const competitionName =

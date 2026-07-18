@@ -4,13 +4,17 @@ import { competitions } from './competitions';
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 
-const matchesTable = historyTrackedTable(gameData, 'matches', {
-  id: serial('id').primaryKey(),
-  competitionId: integer('competition_id')
-    .references(() => competitions.id)
-    .notNull(),
-  playedAt: timestamp('played_at', { withTimezone: true }).notNull(),
-  name: varchar('name', { length: 255 }).notNull(),
+const matchesTable = historyTrackedTable({
+  schema: gameData,
+  name: 'matches',
+  columns: {
+    id: serial('id').primaryKey(),
+    competitionId: integer('competition_id')
+      .references(() => competitions.id)
+      .notNull(),
+    playedAt: timestamp('played_at', { withTimezone: true }).notNull(),
+    name: varchar('name', { length: 255 }).notNull(),
+  },
 });
 
 export const matches = matchesTable.table;

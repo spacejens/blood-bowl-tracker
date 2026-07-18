@@ -3,6 +3,20 @@ import { Injectable } from '@nestjs/common';
 import type { ImportError } from './types';
 import { makeImportError } from './types';
 
+export interface RecordUpsertOptions {
+  upsert: () => Promise<unknown>;
+  item: unknown;
+  errors: ImportError[];
+  buildErrorMessage: (error: unknown) => string;
+}
+
+export interface RecordUpsertResultOptions<T> {
+  upsert: () => Promise<T>;
+  item: unknown;
+  errors: ImportError[];
+  buildErrorMessage: (error: unknown) => string;
+}
+
 @Injectable()
 export class ImportRunnerService {
   async upsertExternalSystem(
@@ -20,12 +34,12 @@ export class ImportRunnerService {
     }
   }
 
-  async recordUpsert(
-    upsert: () => Promise<unknown>,
-    item: unknown,
-    errors: ImportError[],
-    buildErrorMessage: (error: unknown) => string,
-  ): Promise<boolean> {
+  async recordUpsert({
+    upsert,
+    item,
+    errors,
+    buildErrorMessage,
+  }: RecordUpsertOptions): Promise<boolean> {
     try {
       await upsert();
       return true;
@@ -35,12 +49,12 @@ export class ImportRunnerService {
     }
   }
 
-  async recordUpsertResult<T>(
-    upsert: () => Promise<T>,
-    item: unknown,
-    errors: ImportError[],
-    buildErrorMessage: (error: unknown) => string,
-  ): Promise<T | undefined> {
+  async recordUpsertResult<T>({
+    upsert,
+    item,
+    errors,
+    buildErrorMessage,
+  }: RecordUpsertResultOptions<T>): Promise<T | undefined> {
     try {
       return await upsert();
     } catch (err) {

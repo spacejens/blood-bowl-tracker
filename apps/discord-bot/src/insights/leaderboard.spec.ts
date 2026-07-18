@@ -158,15 +158,15 @@ describe('topRanksWithTies', () => {
 
 describe('formatLeaderboardEmbed', () => {
   it('builds an embed with one line per ranked row', () => {
-    const result = formatLeaderboardEmbed(
-      'Coaches by matches',
-      [
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 9, rank: 1 },
         { name: 'c', count: 4, rank: 2 },
       ],
-      'No data placeholder',
-    );
+      noDataMessage: 'No data placeholder',
+    });
     expect(result).toEqual({
       embeds: [
         {
@@ -178,11 +178,11 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('uses the supplied no-data message when there are no rows', () => {
-    const result = formatLeaderboardEmbed(
-      'Coaches by matches',
-      [],
-      'Nobody has laced up their boots yet.',
-    );
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows: [],
+      noDataMessage: 'Nobody has laced up their boots yet.',
+    });
     expect(result).toEqual({
       embeds: [
         {
@@ -194,15 +194,15 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('appends a truncation note when rows were cut off by the entry cap', () => {
-    const result = formatLeaderboardEmbed(
-      'Teams by eras active',
-      [
+    const result = formatLeaderboardEmbed({
+      title: 'Teams by eras active',
+      rankedRows: [
         { name: 'a', count: 2, rank: 1 },
         { name: 'b', count: 2, rank: 1 },
       ],
-      'No data placeholder',
-      250,
-    );
+      noDataMessage: 'No data placeholder',
+      truncatedCount: 250,
+    });
     expect(result).toEqual({
       embeds: [
         {
@@ -220,12 +220,12 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await resolveToplist(
-      'Teams by eras active',
-      () => Promise.resolve(rows),
-      'timeout placeholder',
-      'no-data placeholder',
-    );
+    const result = await resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    });
     const expectedLines = [
       ...Array.from({ length: 10 }, (_, i) => `1. t${i} — 1`),
       '…and 5 more tied.',

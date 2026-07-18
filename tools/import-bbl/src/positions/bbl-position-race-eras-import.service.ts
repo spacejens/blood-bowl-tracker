@@ -8,6 +8,19 @@ import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
 
+export interface SyncPositionRaceErasOptions {
+  positionRaceCandidates: Map<
+    number,
+    { isStarPlayer: boolean; raceDbIds: Set<number> }
+  >;
+  positionIdsByBblId: Map<string, number>;
+  racesByBblId: Map<string, { id: number; name: string }>;
+  eraIdsByName: Map<string, number>;
+  eraIdsByRaceId: Map<number, Set<number>>;
+  positionsUsedByEra: Set<string>;
+  racesActiveByEra: Set<string>;
+}
+
 @Injectable()
 export class BblPositionRaceErasImportService {
   constructor(
@@ -36,18 +49,15 @@ export class BblPositionRaceErasImportService {
    * `PositionsImportService.syncRaceEras` call (the generic write endpoint;
    * all decision-making lives here, not there). Idempotent.
    */
-  async syncPositionRaceEras(
-    positionRaceCandidates: Map<
-      number,
-      { isStarPlayer: boolean; raceDbIds: Set<number> }
-    >,
-    positionIdsByBblId: Map<string, number>,
-    racesByBblId: Map<string, { id: number; name: string }>,
-    eraIdsByName: Map<string, number>,
-    eraIdsByRaceId: Map<number, Set<number>>,
-    positionsUsedByEra: Set<string>,
-    racesActiveByEra: Set<string>,
-  ): Promise<{ result: ImportResult }> {
+  async syncPositionRaceEras({
+    positionRaceCandidates,
+    positionIdsByBblId,
+    racesByBblId,
+    eraIdsByName,
+    eraIdsByRaceId,
+    positionsUsedByEra,
+    racesActiveByEra,
+  }: SyncPositionRaceErasOptions): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
 

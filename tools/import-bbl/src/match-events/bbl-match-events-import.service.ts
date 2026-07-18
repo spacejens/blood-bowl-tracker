@@ -122,6 +122,37 @@ interface EmittedEvent {
   consequencePid?: string | null;
 }
 
+interface EmitEventsOptions {
+  combined: CombinedOccurrences;
+  matchId: number;
+  externalSystemId: number;
+  teamEraIdByCode: Map<string, number>;
+  playerIdsByPid: Map<string, number>;
+  errors: ImportError[];
+}
+
+interface ImportMatchEventsOptions {
+  competitionsByBblId: Map<string, UpsertCompetition>;
+  teamsByCode: Map<string, UpsertTeam>;
+  matchIdsByBblId: Map<string, number>;
+  playerIdsByPid: Map<string, number>;
+}
+
+interface ResolveTeamEraIdOptions {
+  code: string;
+  competition: UpsertCompetition;
+  teamsByCode: Map<string, UpsertTeam>;
+  teamEraIdByCode: Map<string, number | undefined>;
+  errors: ImportError[];
+}
+
+interface ResolvePlayerIdOptions {
+  pid: string | null | undefined;
+  matchBblId: string;
+  playerIdsByPid: Map<string, number>;
+  errors: ImportError[];
+}
+
 /**
  * Build the combined, team-coded occurrences of one match (or a merged pair,
  * when a partner's events are supplied). Each side occurrence is tagged with
@@ -263,12 +294,12 @@ export class BblMatchEventsImportService {
    * (recorded as a non-fatal error) but the event is still emitted, since the
    * external id does not depend on the player. Idempotent.
    */
-  async importMatchEvents(
-    competitionsByBblId: Map<string, UpsertCompetition>,
-    teamsByCode: Map<string, UpsertTeam>,
-    matchIdsByBblId: Map<string, number>,
-    playerIdsByPid: Map<string, number>,
-  ): Promise<{ result: ImportResult }> {
+  async importMatchEvents({
+    competitionsByBblId,
+    teamsByCode,
+    matchIdsByBblId,
+    playerIdsByPid,
+  }: ImportMatchEventsOptions): Promise<{ result: ImportResult }> {
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -321,13 +352,13 @@ export class BblMatchEventsImportService {
           const teamEraIdByCode = new Map<string, number>();
           let unresolvedTeam = false;
           for (const code of combined.teamCodes) {
-            const teamEraId = await this.resolveTeamEraId(
+            const teamEraId = await this.resolveTeamEraId({
               code,
               competition,
               teamsByCode,
-              teamEraIdCache,
+              teamEraIdByCode: teamEraIdCache,
               errors,
-            );
+            });
             if (teamEraId === undefined) {
               unresolvedTeam = true;
             } else {
@@ -344,14 +375,14 @@ export class BblMatchEventsImportService {
             continue;
           }
 
-          imported += await this.emitEvents(
+          imported += await this.emitEvents({
             combined,
             matchId,
             externalSystemId,
             teamEraIdByCode,
             playerIdsByPid,
             errors,
-          );
+          });
         } catch (error) {
           errors.push(
             makeImportError({
@@ -374,14 +405,15 @@ export class BblMatchEventsImportService {
    * each occurrence's own source match bblId. Returns the number of events whose
    * upsert reported success.
    */
-  private async emitEvents(
-    combined: CombinedOccurrences,
-    matchId: number,
-    externalSystemId: number,
-    teamEraIdByCode: Map<string, number>,
-    playerIdsByPid: Map<string, number>,
-    errors: ImportError[],
-  ): Promise<number> {
+  private async emitEvents(options: EmitEventsOptions): Promise<number> {
+    const {
+      combined,
+      matchId,
+      externalSystemId,
+      teamEraIdByCode,
+      playerIdsByPid,
+      errors,
+    } = options;
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
 
@@ -422,21 +454,21 @@ export class BblMatchEventsImportService {
           event.consequenceTeamCode,
         );
       }
-      const actingPlayerId = this.resolvePlayerId(
-        event.actingPid,
-        event.actingSourceBblId ?? sourceBblId,
+      const actingPlayerId = this.resolvePlayerId({
+        pid: event.actingPid,
+        matchBblId: event.actingSourceBblId ?? sourceBblId,
         playerIdsByPid,
         errors,
-      );
+      });
       if (actingPlayerId !== undefined) {
         data.actingPlayerId = actingPlayerId;
       }
-      const consequencePlayerId = this.resolvePlayerId(
-        event.consequencePid,
-        event.consequenceSourceBblId ?? sourceBblId,
+      const consequencePlayerId = this.resolvePlayerId({
+        pid: event.consequencePid,
+        matchBblId: event.consequenceSourceBblId ?? sourceBblId,
         playerIdsByPid,
         errors,
-      );
+      });
       if (consequencePlayerId !== undefined) {
         data.consequencePlayerId = consequencePlayerId;
       }
@@ -455,13 +487,13 @@ export class BblMatchEventsImportService {
    * `teamEraIdByCode`. An unknown code or a team that does not resolve to the
    * competition's era is recorded as an error and cached as `undefined`.
    */
-  private async resolveTeamEraId(
-    code: string,
-    competition: UpsertCompetition,
-    teamsByCode: Map<string, UpsertTeam>,
-    teamEraIdByCode: Map<string, number | undefined>,
-    errors: ImportError[],
-  ): Promise<number | undefined> {
+  private async resolveTeamEraId({
+    code,
+    competition,
+    teamsByCode,
+    teamEraIdByCode,
+    errors,
+  }: ResolveTeamEraIdOptions): Promise<number | undefined> {
     if (teamEraIdByCode.has(code)) {
       return teamEraIdByCode.get(code);
     }
@@ -495,12 +527,12 @@ export class BblMatchEventsImportService {
    * yields `undefined` and records a non-fatal error so the event is still
    * emitted with a null player.
    */
-  private resolvePlayerId(
-    pid: string | null | undefined,
-    matchBblId: string,
-    playerIdsByPid: Map<string, number>,
-    errors: ImportError[],
-  ): number | undefined {
+  private resolvePlayerId({
+    pid,
+    matchBblId,
+    playerIdsByPid,
+    errors,
+  }: ResolvePlayerIdOptions): number | undefined {
     if (pid === null || pid === undefined) {
       return undefined;
     }

@@ -79,6 +79,18 @@ pnpm exec nest generate service <name>
 
 Entry point is `src/main.ts`; the root module is `src/app.module.ts`. Import new feature modules into the root module.
 
+## Function parameter limit
+
+Functions and methods take at most 3 parameters — enforced repo-wide by the
+custom `local/max-function-params` ESLint rule (in `tools/eslint-rules`). Beyond
+three, pass a single named options-object type instead of positional parameters;
+this keeps call sites readable and prevents transposing two same-typed arguments.
+
+**Constructors are exempt** — NestJS DI constructors routinely inject 5+
+providers, which are typed, compiler-checked, and wired by the framework rather
+than hand-ordered by a caller, so the fragility the rule guards against does not
+apply. Do not refactor DI constructors into props objects to satisfy the rule.
+
 ## Adding a new workspace package
 
 1. Create the folder under `apps/`, `packages/`, or `tools/` with its own `package.json`.

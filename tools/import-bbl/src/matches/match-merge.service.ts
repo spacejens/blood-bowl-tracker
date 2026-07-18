@@ -61,26 +61,29 @@ export class MatchMergeService {
     const partnerByBblId = new Map<string, string>();
     const effectiveByBblId = new Map<string, Date>();
 
-    for (const [a, b] of merges) {
-      const la = locationByBblId.get(a);
-      const lb = locationByBblId.get(b);
+    for (const { firstMatchId, secondMatchId } of merges) {
+      const la = locationByBblId.get(firstMatchId);
+      const lb = locationByBblId.get(secondMatchId);
       if (!la || !lb || la.competitionId !== lb.competitionId) {
         errors.push(
           makeImportError({
-            item: { matches: [a, b] },
-            message: `Skipping match merge for pair [${a}, ${b}]: both match ids must appear in the same competition's match list, but they do not. Importing them as independent matches.`,
+            item: { matches: [firstMatchId, secondMatchId] },
+            message: `Skipping match merge for pair [${firstMatchId}, ${secondMatchId}]: both match ids must appear in the same competition's match list, but they do not. Importing them as independent matches.`,
           }),
         );
         continue;
       }
-      const primary = Number(a) <= Number(b) ? a : b;
+      const primary =
+        Number(firstMatchId) <= Number(secondMatchId)
+          ? firstMatchId
+          : secondMatchId;
       const earliest = la.date <= lb.date ? la.date : lb.date;
-      primaryBblIdByBblId.set(a, primary);
-      primaryBblIdByBblId.set(b, primary);
-      partnerByBblId.set(a, b);
-      partnerByBblId.set(b, a);
-      effectiveByBblId.set(a, earliest);
-      effectiveByBblId.set(b, earliest);
+      primaryBblIdByBblId.set(firstMatchId, primary);
+      primaryBblIdByBblId.set(secondMatchId, primary);
+      partnerByBblId.set(firstMatchId, secondMatchId);
+      partnerByBblId.set(secondMatchId, firstMatchId);
+      effectiveByBblId.set(firstMatchId, earliest);
+      effectiveByBblId.set(secondMatchId, earliest);
     }
 
     this.cache = {

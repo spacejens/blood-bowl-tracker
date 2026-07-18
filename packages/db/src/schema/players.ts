@@ -5,15 +5,19 @@ import { gameData } from './pg-schema';
 import { positions } from './positions';
 import { teamEras } from './team-eras';
 
-const playersTable = historyTrackedTable(gameData, 'players', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  teamEraId: integer('team_era_id')
-    .references(() => teamEras.id)
-    .notNull(),
-  positionId: integer('position_id')
-    .references(() => positions.id)
-    .notNull(),
+const playersTable = historyTrackedTable({
+  schema: gameData,
+  name: 'players',
+  columns: {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    teamEraId: integer('team_era_id')
+      .references(() => teamEras.id)
+      .notNull(),
+    positionId: integer('position_id')
+      .references(() => positions.id)
+      .notNull(),
+  },
 });
 
 export const players = playersTable.table;

@@ -9,13 +9,17 @@ export const competitionTypeEnum = gameData.enum('competition_type', [
   'cup',
 ]);
 
-const competitionsTable = historyTrackedTable(gameData, 'competitions', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
-  type: competitionTypeEnum('type').notNull(),
-  eraId: integer('era_id')
-    .references(() => eras.id)
-    .notNull(),
+const competitionsTable = historyTrackedTable({
+  schema: gameData,
+  name: 'competitions',
+  columns: {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    type: competitionTypeEnum('type').notNull(),
+    eraId: integer('era_id')
+      .references(() => eras.id)
+      .notNull(),
+  },
 });
 
 export const competitions = competitionsTable.table;

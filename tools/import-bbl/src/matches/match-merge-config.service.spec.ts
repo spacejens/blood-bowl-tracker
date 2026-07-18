@@ -37,8 +37,8 @@ describe('MatchMergeConfigService', () => {
       ]),
     ]);
     expect(service.getMerges()).toEqual([
-      ['1061', '1062'],
-      ['1311', '1312'],
+      { firstMatchId: '1061', secondMatchId: '1062' },
+      { firstMatchId: '1311', secondMatchId: '1312' },
     ]);
   });
 
@@ -48,8 +48,8 @@ describe('MatchMergeConfigService', () => {
       era('Second', [['2001', '2002']]),
     ]);
     expect(service.getMerges()).toEqual([
-      ['1061', '1062'],
-      ['2001', '2002'],
+      { firstMatchId: '1061', secondMatchId: '1062' },
+      { firstMatchId: '2001', secondMatchId: '2002' },
     ]);
   });
 

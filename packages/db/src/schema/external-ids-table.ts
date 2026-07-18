@@ -38,9 +38,14 @@ export function externalIdsTable<TKey extends string>(
     externalId: typeof externalIdColumn;
   };
 
-  return historyTrackedTable(schema, tableName, columns, (t) => ({
-    uniqueExternalId: unique(
-      `${tableName}_external_system_id_external_id_unique`,
-    ).on(t.externalSystemId, t.externalId),
-  }));
+  return historyTrackedTable({
+    schema,
+    name: tableName,
+    columns,
+    extraConfig: (t) => ({
+      uniqueExternalId: unique(
+        `${tableName}_external_system_id_external_id_unique`,
+      ).on(t.externalSystemId, t.externalId),
+    }),
+  });
 }

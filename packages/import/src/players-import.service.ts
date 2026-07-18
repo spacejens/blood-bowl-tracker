@@ -19,12 +19,12 @@ export class PlayersImportService {
   }
 
   upsertPlayer(data: UpsertPlayer, errors: ImportError[]): Promise<boolean> {
-    return this.importRunner.recordUpsert(
-      () => this.client.players.upsert(data),
-      data,
+    return this.importRunner.recordUpsert({
+      upsert: () => this.client.players.upsert(data),
+      item: data,
       errors,
-      PlayersImportService.errorMessage(data),
-    );
+      buildErrorMessage: PlayersImportService.errorMessage(data),
+    });
   }
 
   /**
@@ -37,11 +37,11 @@ export class PlayersImportService {
     data: UpsertPlayer,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.players.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.players.upsert(data),
+      item: data,
       errors,
-      PlayersImportService.errorMessage(data),
-    );
+      buildErrorMessage: PlayersImportService.errorMessage(data),
+    });
   }
 }

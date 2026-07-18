@@ -14,12 +14,12 @@ export class RacesImportService {
   ) {}
 
   upsertRace(data: UpsertRace, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.races.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.races.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import race "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }
