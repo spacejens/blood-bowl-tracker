@@ -1,11 +1,9 @@
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
 import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class RulesSetUpsertConflictError extends UpsertConflictError {}
@@ -22,47 +20,23 @@ export class RulesSetsService {
   async upsert(
     data: UpsertRulesSetData,
   ): Promise<{ rulesSet: RulesSet; created: boolean }> {
-    const { ownerIds: distinctRulesSetIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        rulesSetExternalIds,
-        rulesSetExternalIds.rulesSetId,
-        rulesSetExternalIds.externalSystemId,
-        rulesSetExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctRulesSetIds.length > 1) {
-      throw new RulesSetUpsertConflictError(
-        `External IDs matched multiple existing rules sets: ${distinctRulesSetIds.join(', ')}`,
-      );
-    }
-
-    let rulesSet: RulesSet;
-    const created = distinctRulesSetIds.length === 0;
-
-    if (created) {
-      const result = await this.db
-        .insert(rulesSets)
-        .values({ name: data.name })
-        .returning();
-      rulesSet = result[0];
-    } else {
-      const result = await this.db
-        .update(rulesSets)
-        .set({ name: data.name })
-        .where(eq(rulesSets.id, distinctRulesSetIds[0]))
-        .returning();
-      rulesSet = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      rulesSetExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ rulesSetId: rulesSet.id, ...pair }),
-    );
+    const { row: rulesSet, created } = await upsertByExternalIds<
+      typeof rulesSets,
+      typeof rulesSetExternalIds
+    >({
+      db: this.db,
+      entityTable: rulesSets,
+      entityIdColumn: rulesSets.id,
+      values: { name: data.name },
+      externalIdTable: rulesSetExternalIds,
+      ownerIdColumn: rulesSetExternalIds.rulesSetId,
+      externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+      externalIdColumn: rulesSetExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: RulesSetUpsertConflictError,
+      entityLabelPlural: 'rules sets',
+      buildExternalIdRow: (rulesSetId, pair) => ({ rulesSetId, ...pair }),
+    });
 
     return { rulesSet, created };
   }

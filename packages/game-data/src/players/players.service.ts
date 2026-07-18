@@ -26,8 +26,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}
@@ -46,49 +45,29 @@ export class PlayersService {
   async upsert(
     data: UpsertPlayerData,
   ): Promise<{ player: Player; created: boolean }> {
-    const { ownerIds: distinctPlayerIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        playerExternalIds,
-        playerExternalIds.playerId,
-        playerExternalIds.externalSystemId,
-        playerExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctPlayerIds.length > 1) {
-      throw new PlayerUpsertConflictError(
-        `External IDs matched multiple existing players: ${distinctPlayerIds.join(', ')}`,
-      );
-    }
-
-    let player: Player;
-    const created = distinctPlayerIds.length === 0;
     const columns = {
       name: data.name,
       teamEraId: data.teamEraId,
       positionId: data.positionId,
     };
 
-    if (created) {
-      const result = await this.db.insert(players).values(columns).returning();
-      player = result[0];
-    } else {
-      const result = await this.db
-        .update(players)
-        .set(columns)
-        .where(eq(players.id, distinctPlayerIds[0]))
-        .returning();
-      player = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      playerExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ playerId: player.id, ...pair }),
-    );
+    const { row: player, created } = await upsertByExternalIds<
+      typeof players,
+      typeof playerExternalIds
+    >({
+      db: this.db,
+      entityTable: players,
+      entityIdColumn: players.id,
+      values: columns,
+      externalIdTable: playerExternalIds,
+      ownerIdColumn: playerExternalIds.playerId,
+      externalSystemIdColumn: playerExternalIds.externalSystemId,
+      externalIdColumn: playerExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: PlayerUpsertConflictError,
+      entityLabelPlural: 'players',
+      buildExternalIdRow: (playerId, pair) => ({ playerId, ...pair }),
+    });
 
     return { player, created };
   }

@@ -15,8 +15,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class CoachUpsertConflictError extends UpsertConflictError {}
@@ -33,47 +32,23 @@ export class CoachesService {
   async upsert(
     data: UpsertCoachData,
   ): Promise<{ coach: Coach; created: boolean }> {
-    const { ownerIds: distinctCoachIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        coachExternalIds,
-        coachExternalIds.coachId,
-        coachExternalIds.externalSystemId,
-        coachExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctCoachIds.length > 1) {
-      throw new CoachUpsertConflictError(
-        `External IDs matched multiple existing coaches: ${distinctCoachIds.join(', ')}`,
-      );
-    }
-
-    let coach: Coach;
-    const created = distinctCoachIds.length === 0;
-
-    if (created) {
-      const result = await this.db
-        .insert(coaches)
-        .values({ name: data.name })
-        .returning();
-      coach = result[0];
-    } else {
-      const result = await this.db
-        .update(coaches)
-        .set({ name: data.name })
-        .where(eq(coaches.id, distinctCoachIds[0]))
-        .returning();
-      coach = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      coachExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ coachId: coach.id, ...pair }),
-    );
+    const { row: coach, created } = await upsertByExternalIds<
+      typeof coaches,
+      typeof coachExternalIds
+    >({
+      db: this.db,
+      entityTable: coaches,
+      entityIdColumn: coaches.id,
+      values: { name: data.name },
+      externalIdTable: coachExternalIds,
+      ownerIdColumn: coachExternalIds.coachId,
+      externalSystemIdColumn: coachExternalIds.externalSystemId,
+      externalIdColumn: coachExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: CoachUpsertConflictError,
+      entityLabelPlural: 'coaches',
+      buildExternalIdRow: (coachId, pair) => ({ coachId, ...pair }),
+    });
 
     return { coach, created };
   }

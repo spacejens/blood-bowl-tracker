@@ -13,8 +13,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, eq, inArray } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class PositionUpsertConflictError extends UpsertConflictError {}
@@ -37,46 +36,23 @@ export class PositionsService {
   async upsert(
     data: UpsertPositionData,
   ): Promise<{ position: Position; created: boolean }> {
-    const { ownerIds: distinctPositionIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        positionExternalIds,
-        positionExternalIds.positionId,
-        positionExternalIds.externalSystemId,
-        positionExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctPositionIds.length > 1) {
-      throw new PositionUpsertConflictError(
-        `External IDs matched multiple existing positions: ${distinctPositionIds.join(', ')}`,
-      );
-    }
-
-    const values = { name: data.name, isStarPlayer: data.isStarPlayer };
-
-    let position: Position;
-    const created = distinctPositionIds.length === 0;
-
-    if (created) {
-      const result = await this.db.insert(positions).values(values).returning();
-      position = result[0];
-    } else {
-      const result = await this.db
-        .update(positions)
-        .set(values)
-        .where(eq(positions.id, distinctPositionIds[0]))
-        .returning();
-      position = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      positionExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ positionId: position.id, ...pair }),
-    );
+    const { row: position, created } = await upsertByExternalIds<
+      typeof positions,
+      typeof positionExternalIds
+    >({
+      db: this.db,
+      entityTable: positions,
+      entityIdColumn: positions.id,
+      values: { name: data.name, isStarPlayer: data.isStarPlayer },
+      externalIdTable: positionExternalIds,
+      ownerIdColumn: positionExternalIds.positionId,
+      externalSystemIdColumn: positionExternalIds.externalSystemId,
+      externalIdColumn: positionExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: PositionUpsertConflictError,
+      entityLabelPlural: 'positions',
+      buildExternalIdRow: (positionId, pair) => ({ positionId, ...pair }),
+    });
 
     return { position, created };
   }
