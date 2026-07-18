@@ -243,6 +243,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'testuser#0001', id: '123' },
@@ -267,6 +268,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -292,6 +294,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -401,6 +404,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     const interaction = {
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'testuser#0001', id: '123' },
@@ -425,6 +429,7 @@ describe('DiscordClientService', () => {
     const reply = vi.fn().mockResolvedValue(undefined);
     interactionHandler()({
       isAutocomplete: () => false,
+      isButton: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       reply,
@@ -473,5 +478,62 @@ describe('DiscordClientService', () => {
     });
     await flush();
     expect(respond).not.toHaveBeenCalled();
+  });
+
+  it('dispatches a button interaction to the handler whose prefix matches its customId', async () => {
+    await service.onModuleInit();
+    const handler = vi.fn().mockResolvedValue('era details');
+    service.registerButtonHandler('deepdive:era:', handler);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:7',
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
+      reply,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(handler).toHaveBeenCalledWith(interaction);
+    expect(reply).toHaveBeenCalledWith('era details');
+  });
+
+  it('ignores a button interaction whose customId matches no registered prefix', async () => {
+    await service.onModuleInit();
+    service.registerButtonHandler('deepdive:era:', vi.fn());
+    const reply = vi.fn();
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isChatInputCommand: () => false,
+      customId: 'something:else:1',
+      reply,
+    });
+    await flush();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('replies with an error when a button handler throws', async () => {
+    await service.onModuleInit();
+    service.registerButtonHandler(
+      'deepdive:era:',
+      vi.fn().mockRejectedValue(new Error('boom')),
+    );
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:7',
+      user: { tag: 'u#1', id: '1' },
+      channelId: '2',
+      channel: { name: 'c' },
+      reply,
+    });
+    await flush();
+    expect(reply).toHaveBeenCalledWith('I am badly hurt');
   });
 });

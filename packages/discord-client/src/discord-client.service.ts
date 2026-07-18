@@ -9,6 +9,7 @@ import type {
   ApplicationCommandOptionChoiceData,
   ApplicationCommandOptionData,
   AutocompleteInteraction,
+  ButtonInteraction,
   ChatInputCommandInteraction,
   Interaction,
   InteractionReplyOptions,
@@ -32,6 +33,10 @@ export interface SlashCommandDefinition {
   ) => Promise<ApplicationCommandOptionChoiceData[]>;
 }
 
+export type ButtonHandler = (
+  interaction: ButtonInteraction,
+) => Promise<string | InteractionReplyOptions>;
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
@@ -44,6 +49,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     string,
     NonNullable<SlashCommandDefinition['autocomplete']>
   >();
+  private readonly buttonHandlers = new Map<string, ButtonHandler>();
 
   constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -121,6 +127,15 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /**
+   * Registers a handler for button interactions whose `customId` starts with
+   * `prefix`. Prefixes are matched with `startsWith`, first match wins, so
+   * distinct features must use non-overlapping prefixes (e.g. `deepdive:era:`).
+   */
+  registerButtonHandler(prefix: string, handler: ButtonHandler): void {
+    this.buttonHandlers.set(prefix, handler);
+  }
+
   private async handleInteraction(interaction: Interaction): Promise<void> {
     if (interaction.isAutocomplete()) {
       const autocomplete = this.autocompleteHandlers.get(
@@ -131,6 +146,33 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       }
       const choices = await autocomplete(interaction);
       await interaction.respond(choices);
+      return;
+    }
+    if (interaction.isButton()) {
+      const entry = [...this.buttonHandlers.entries()].find(([prefix]) =>
+        interaction.customId.startsWith(prefix),
+      );
+      if (!entry) {
+        return;
+      }
+      const [, handler] = entry;
+      try {
+        const content = await handler(interaction);
+        const channelName =
+          interaction.channel && 'name' in interaction.channel
+            ? interaction.channel.name
+            : 'unknown channel';
+        this.logger.log(
+          `Handled button ${interaction.customId} from ${interaction.user.tag} (${interaction.user.id}) in ${channelName} (${interaction.channelId})`,
+        );
+        await interaction.reply(content);
+      } catch (error) {
+        this.logger.error(
+          `Failed to handle button ${interaction.customId}`,
+          error,
+        );
+        await interaction.reply('I am badly hurt');
+      }
       return;
     }
     if (!interaction.isChatInputCommand()) {
