@@ -93,7 +93,6 @@ describe('InsightsCommandService — random pick', () => {
     // must be reachable. Sweep [0,1) in fine steps (pickRandom uses
     // leaves[Math.floor(Math.random() * leaves.length)]) so every index is
     // hit at least once regardless of how many era-supporting leaves exist.
-    const seen = new Set<string>();
     const sampleCount = 50;
     for (let i = 0; i < sampleCount; i++) {
       const r = i / sampleCount;
@@ -111,8 +110,6 @@ describe('InsightsCommandService — random pick', () => {
     const matchesCalled =
       (races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>).mock.calls
         .length > 0;
-    seen.add(String(teamsCalled));
-    seen.add(String(matchesCalled));
     expect(teamsCalled || matchesCalled).toBe(true);
   });
 

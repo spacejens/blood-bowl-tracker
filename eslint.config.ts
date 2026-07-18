@@ -55,7 +55,11 @@ export default tseslint.config(
   },
   {
     files: ['**/*.ts'],
-    ignores: ['**/*.spec.ts', 'apps/discord-bot/src/insights/fact-tree.ts'],
+    ignores: [
+      '**/*.spec.ts',
+      '**/*.e2e-spec.ts',
+      'apps/discord-bot/src/insights/fact-tree.ts',
+    ],
     rules: {
       'max-lines': [
         'error',
@@ -64,7 +68,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts'],
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts'],
     rules: {
       'max-lines': [
         'error',
