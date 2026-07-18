@@ -14,10 +14,10 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class RaceUpsertConflictError extends Error {}
+export class RaceUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertRaceData {
   name: string;
@@ -36,47 +36,23 @@ export class RacesService {
   async upsert(
     data: UpsertRaceData,
   ): Promise<{ race: RaceWithEras; created: boolean }> {
-    const { ownerIds: distinctRaceIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        raceExternalIds,
-        raceExternalIds.raceId,
-        raceExternalIds.externalSystemId,
-        raceExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctRaceIds.length > 1) {
-      throw new RaceUpsertConflictError(
-        `External IDs matched multiple existing races: ${distinctRaceIds.join(', ')}`,
-      );
-    }
-
-    let race: Race;
-    const created = distinctRaceIds.length === 0;
-
-    if (created) {
-      const result = await this.db
-        .insert(races)
-        .values({ name: data.name })
-        .returning();
-      race = result[0];
-    } else {
-      const result = await this.db
-        .update(races)
-        .set({ name: data.name })
-        .where(eq(races.id, distinctRaceIds[0]))
-        .returning();
-      race = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      raceExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ raceId: race.id, ...pair }),
-    );
+    const { row: race, created } = await upsertByExternalIds<
+      typeof races,
+      typeof raceExternalIds
+    >({
+      db: this.db,
+      entityTable: races,
+      entityIdColumn: races.id,
+      values: { name: data.name },
+      externalIdTable: raceExternalIds,
+      ownerIdColumn: raceExternalIds.raceId,
+      externalSystemIdColumn: raceExternalIds.externalSystemId,
+      externalIdColumn: raceExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: RaceUpsertConflictError,
+      entityLabelPlural: 'races',
+      buildExternalIdRow: (raceId, pair) => ({ raceId, ...pair }),
+    });
 
     const eras = await this.syncEras(race.id, data.eras ?? []);
     return { race: { ...race, eras }, created };

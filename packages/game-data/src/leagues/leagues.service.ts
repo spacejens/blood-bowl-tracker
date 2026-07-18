@@ -3,13 +3,12 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class LeagueUpsertConflictError extends Error {}
+export class LeagueUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertLeagueData {
   name: string;
@@ -23,47 +22,23 @@ export class LeaguesService {
   async upsert(
     data: UpsertLeagueData,
   ): Promise<{ league: League; created: boolean }> {
-    const { ownerIds: distinctLeagueIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        leagueExternalIds,
-        leagueExternalIds.leagueId,
-        leagueExternalIds.externalSystemId,
-        leagueExternalIds.externalId,
-        data.externalIds,
-      );
-
-    if (distinctLeagueIds.length > 1) {
-      throw new LeagueUpsertConflictError(
-        `External IDs matched multiple existing leagues: ${distinctLeagueIds.join(', ')}`,
-      );
-    }
-
-    let league: League;
-    const created = distinctLeagueIds.length === 0;
-
-    if (created) {
-      const result = await this.db
-        .insert(leagues)
-        .values({ name: data.name })
-        .returning();
-      league = result[0];
-    } else {
-      const result = await this.db
-        .update(leagues)
-        .set({ name: data.name })
-        .where(eq(leagues.id, distinctLeagueIds[0]))
-        .returning();
-      league = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      leagueExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ leagueId: league.id, ...pair }),
-    );
+    const { row: league, created } = await upsertByExternalIds<
+      typeof leagues,
+      typeof leagueExternalIds
+    >({
+      db: this.db,
+      entityTable: leagues,
+      entityIdColumn: leagues.id,
+      values: { name: data.name },
+      externalIdTable: leagueExternalIds,
+      ownerIdColumn: leagueExternalIds.leagueId,
+      externalSystemIdColumn: leagueExternalIds.externalSystemId,
+      externalIdColumn: leagueExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: LeagueUpsertConflictError,
+      entityLabelPlural: 'leagues',
+      buildExternalIdRow: (leagueId, pair) => ({ leagueId, ...pair }),
+    });
 
     return { league, created };
   }

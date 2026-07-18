@@ -12,10 +12,10 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 
-import { resolveExistingByExternalIds } from '../shared/resolve-existing-by-external-ids';
-import { insertMissingExternalIds } from '../shared/sync-external-ids';
+import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
+import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
-export class MatchEventUpsertConflictError extends Error {}
+export class MatchEventUpsertConflictError extends UpsertConflictError {}
 
 export interface UpsertMatchEventData {
   matchId: number;
@@ -46,21 +46,6 @@ export class MatchEventsService {
       data.consequenceTeamEraId,
     );
 
-    const { ownerIds: distinctMatchEventIds, existingRows } =
-      await resolveExistingByExternalIds(
-        this.db,
-        matchEventExternalIds,
-        matchEventExternalIds.matchEventId,
-        matchEventExternalIds.externalSystemId,
-        matchEventExternalIds.externalId,
-        data.externalIds,
-      );
-    if (distinctMatchEventIds.length > 1) {
-      throw new MatchEventUpsertConflictError(
-        `External IDs matched multiple existing match events: ${distinctMatchEventIds.join(', ')}`,
-      );
-    }
-
     const values = {
       matchId: data.matchId,
       actingMatchTeamId: actingMatchTeamId ?? null,
@@ -71,30 +56,23 @@ export class MatchEventsService {
       consequenceType: data.consequenceType ?? null,
     };
 
-    let matchEvent: MatchEvent;
-    const created = distinctMatchEventIds.length === 0;
-    if (created) {
-      const result = await this.db
-        .insert(matchEvents)
-        .values(values)
-        .returning();
-      matchEvent = result[0];
-    } else {
-      const result = await this.db
-        .update(matchEvents)
-        .set(values)
-        .where(eq(matchEvents.id, distinctMatchEventIds[0]))
-        .returning();
-      matchEvent = result[0];
-    }
-
-    await insertMissingExternalIds(
-      this.db,
-      matchEventExternalIds,
-      existingRows,
-      data.externalIds,
-      (pair) => ({ matchEventId: matchEvent.id, ...pair }),
-    );
+    const { row: matchEvent, created } = await upsertByExternalIds<
+      typeof matchEvents,
+      typeof matchEventExternalIds
+    >({
+      db: this.db,
+      entityTable: matchEvents,
+      entityIdColumn: matchEvents.id,
+      values,
+      externalIdTable: matchEventExternalIds,
+      ownerIdColumn: matchEventExternalIds.matchEventId,
+      externalSystemIdColumn: matchEventExternalIds.externalSystemId,
+      externalIdColumn: matchEventExternalIds.externalId,
+      externalIds: data.externalIds,
+      ConflictErrorClass: MatchEventUpsertConflictError,
+      entityLabelPlural: 'match events',
+      buildExternalIdRow: (matchEventId, pair) => ({ matchEventId, ...pair }),
+    });
 
     return { matchEvent, created };
   }
