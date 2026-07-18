@@ -14,7 +14,6 @@ export type { UpsertMatchEventData } from './match-events-import.service';
 export { MatchEventsImportService } from './match-events-import.service';
 export type { UpsertMatchData } from './matches-import.service';
 export { MatchesImportService } from './matches-import.service';
-export type { UpsertPlayerData } from './players-import.service';
 export { PlayersImportService } from './players-import.service';
 export type {
   SyncPositionRaceErasData,

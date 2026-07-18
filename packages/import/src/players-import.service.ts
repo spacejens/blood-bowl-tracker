@@ -1,16 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertPlayer } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertPlayerData {
-  name: string;
-  teamEraId: number;
-  positionId: number;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 @Injectable()
 export class PlayersImportService {
@@ -19,15 +13,12 @@ export class PlayersImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  private static errorMessage(data: UpsertPlayerData) {
+  private static errorMessage(data: UpsertPlayer) {
     return (err: unknown): string =>
       `Failed to import player "${data.name}": ${err instanceof Error ? err.message : String(err)}`;
   }
 
-  upsertPlayer(
-    data: UpsertPlayerData,
-    errors: ImportError[],
-  ): Promise<boolean> {
+  upsertPlayer(data: UpsertPlayer, errors: ImportError[]): Promise<boolean> {
     return this.importRunner.recordUpsert(
       () => this.client.players.upsert(data),
       data,
@@ -43,7 +34,7 @@ export class PlayersImportService {
    * them).
    */
   upsertPlayerResult(
-    data: UpsertPlayerData,
+    data: UpsertPlayer,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
     return this.importRunner.recordUpsertResult(
