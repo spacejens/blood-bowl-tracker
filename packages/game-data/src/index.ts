@@ -42,10 +42,7 @@ export {
   PlayerUpsertConflictError,
 } from './players/players.service';
 export { PositionsModule } from './positions/positions.module';
-export type {
-  SyncPositionRaceErasData,
-  UpsertPositionData,
-} from './positions/positions.service';
+export type { SyncPositionRaceErasData } from './positions/positions.service';
 export {
   PositionsService,
   PositionUpsertConflictError,

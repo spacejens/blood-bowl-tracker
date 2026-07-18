@@ -1,15 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertPositionData {
-  name: string;
-  isStarPlayer: boolean;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 export interface SyncPositionRaceErasData {
   positionId: number;
@@ -23,7 +18,7 @@ export class PositionsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertPosition(data: UpsertPositionData, errors: ImportError[]) {
+  upsertPosition(data: UpsertPosition, errors: ImportError[]) {
     return this.importRunner.recordUpsertResult(
       () => this.client.positions.upsert(data),
       data,
