@@ -14,7 +14,10 @@ import { describe, expect, it, vi } from 'vitest';
 import type { BblMatchDetailReaderService } from '../matches/bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { MatchMergeService } from '../matches/match-merge.service';
-import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
+import type {
+  MatchMergeConfigService,
+  MatchMergePair,
+} from '../matches/match-merge-config.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
@@ -58,7 +61,7 @@ function makeStandingsReader(idsByCompetition: Record<string, string[]> = {}) {
 
 function makeMergeService(
   matchesById: Record<string, { bblId: string; date: Date }[]>,
-  merges: [string, string][] = [],
+  merges: MatchMergePair[] = [],
 ): MatchMergeService {
   const reader = new BblMatchListReaderService({} as never, {} as never);
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
@@ -693,7 +696,9 @@ describe('BblTeamParticipationImportService', () => {
         upsertRace: vi.fn().mockResolvedValue({ id: 1 }),
       } as unknown as RacesImportService,
       { upsertMatch } as unknown as MatchesImportService,
-      makeMergeService({ '1': [matchA, matchB] }, [['1061', '1062']]),
+      makeMergeService({ '1': [matchA, matchB] }, [
+        { firstMatchId: '1061', secondMatchId: '1062' },
+      ]),
       makeStandingsReader(),
     );
 

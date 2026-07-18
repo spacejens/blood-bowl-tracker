@@ -12,13 +12,16 @@ import { describe, expect, it, vi } from 'vitest';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchMergeService } from '../matches/match-merge.service';
-import type { MatchMergeConfigService } from '../matches/match-merge-config.service';
+import type {
+  MatchMergeConfigService,
+  MatchMergePair,
+} from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 
 function makeMergeService(
   matchesById: Record<string, { bblId: string; date: Date }[]>,
-  merges: [string, string][] = [],
+  merges: MatchMergePair[] = [],
 ): MatchMergeService {
   const reader = new BblMatchListReaderService({} as never, {} as never);
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
@@ -447,7 +450,7 @@ describe('BblMatchEventsImportService', () => {
             { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
           ],
         },
-        [[PRIMARY, SECONDARY]],
+        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
     );
 
@@ -574,7 +577,7 @@ describe('BblMatchEventsImportService', () => {
             { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
           ],
         },
-        [[PRIMARY, SECONDARY]],
+        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
     );
 
@@ -706,7 +709,7 @@ describe('BblMatchEventsImportService', () => {
             { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
           ],
         },
-        [[PRIMARY, SECONDARY]],
+        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
     );
 
