@@ -1,5 +1,4 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
-import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import {
   CoachesService,
   CompetitionsService,
@@ -13,7 +12,7 @@ import {
   RulesSetsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
@@ -36,11 +35,12 @@ import {
   nextSegmentCompletions,
   resolvePath,
 } from '../insights/fact-tree-utils';
+import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
-export class InsightsCommandService implements OnApplicationBootstrap {
+export class InsightsCommandService implements OnModuleInit {
   private readonly factTree: FactNode;
 
   constructor(
@@ -55,7 +55,7 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     private readonly positions: PositionsService,
     private readonly races: RacesService,
     private readonly externalSystems: ExternalSystemsService,
-    private readonly discordClient: DiscordClientService,
+    private readonly registry: SlashCommandRegistryService,
   ) {
     this.factTree = buildFactTree({
       coaches: this.coaches,
@@ -72,10 +72,8 @@ export class InsightsCommandService implements OnApplicationBootstrap {
     });
   }
 
-  async onApplicationBootstrap(): Promise<void> {
-    // registerCommands replaces a guild's full command list, so every slash
-    // command must be registered in this single call.
-    await this.discordClient.registerCommands([this.buildCommand()]);
+  onModuleInit(): void {
+    this.registry.register(this.buildCommand());
   }
 
   buildCommand(): SlashCommandDefinition {
