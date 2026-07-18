@@ -1,3 +1,4 @@
+import type { UpsertEra } from '@blood-bowl-tracker/api-contract';
 import type { Db, Era } from '@blood-bowl-tracker/db';
 import {
   DB,
@@ -27,15 +28,6 @@ function escapeLikePattern(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
-export interface UpsertEraData {
-  name: string;
-  leagueId: number;
-  rulesSetIds: number[];
-  startDate: string;
-  endDate?: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
-
 export interface EraWithRulesSets extends Era {
   rulesSetIds: number[];
 }
@@ -45,7 +37,7 @@ export class ErasService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async upsert(
-    data: UpsertEraData,
+    data: UpsertEra,
   ): Promise<{ era: EraWithRulesSets; created: boolean }> {
     const { row: era, created } = await upsertByExternalIds<
       typeof eras,

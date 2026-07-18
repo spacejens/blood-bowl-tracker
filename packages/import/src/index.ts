@@ -1,7 +1,6 @@
 export { CoachesImportService } from './coaches-import.service';
 export type { UpsertCompetitionData } from './competitions-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
-export type { UpsertEraData } from './eras-import.service';
 export { ErasImportService } from './eras-import.service';
 export {
   externalSystemBootstrapError,
