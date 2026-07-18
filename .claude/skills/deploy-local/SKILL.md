@@ -20,7 +20,7 @@ Takes no arguments.
 0. Ask the developer which action(s) to perform, via a multi-select question with exactly these four options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
-   - **Run the TP import** — run `tools/import-tp/`'s discovery script against the configured TP data (currently a dry run — see #192; no database writes yet).
+   - **Run the TP import** — run `tools/import-tp/`'s discovery script against the configured TP data.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
    The developer may select any combination of the four options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
