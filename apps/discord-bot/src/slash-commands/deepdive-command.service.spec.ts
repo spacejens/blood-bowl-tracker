@@ -180,4 +180,22 @@ describe('DeepdiveCommandService', () => {
     );
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
+
+  it('returns the not-found message for non-numeric era input without hitting the database', async () => {
+    const { service, eras } = makeService();
+    const result = await service.execute(chatInput('abc'));
+    expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
+  });
+
+  it('returns the not-found message for a non-numeric era button id without hitting the database', async () => {
+    const { service, eras } = makeService();
+    const result = await service.handleEraButton(
+      buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}abc`),
+    );
+    expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
+  });
 });

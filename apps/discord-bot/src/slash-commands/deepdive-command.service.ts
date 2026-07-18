@@ -14,7 +14,10 @@ import type {
 import { ApplicationCommandOptionType } from 'discord.js';
 
 import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
-import { DEEPDIVE_USAGE_MESSAGE } from '../error-messages';
+import {
+  DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_USAGE_MESSAGE,
+} from '../error-messages';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
@@ -94,11 +97,18 @@ export class DeepdiveCommandService implements OnModuleInit {
 
   /**
    * Parses an era id (from a slash option or a button customId) and renders
-   * the deepdive. A non-integer or unknown id falls through to
-   * `resolveEraDeepdive`'s not-found handling via a `NaN` lookup.
+   * the deepdive. A non-integer value (e.g. free text typed into the
+   * autocompleted option without picking a suggestion) is rejected up front
+   * with the not-found message, before any database lookup — an unguarded
+   * `NaN` would otherwise reach `eras.findByIdWithLeague` and cause Postgres
+   * to reject the query outright. An unknown but well-formed id still falls
+   * through to `resolveEraDeepdive`'s normal not-found handling.
    */
   private resolveEra(value: string): Promise<string | InteractionReplyOptions> {
     const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
+    }
     return resolveEraDeepdive(id, {
       eras: this.eras,
       competitions: this.competitions,
