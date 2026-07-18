@@ -28,20 +28,36 @@ import { implement } from '@orpc/server';
 
 import { runUpsert } from './upsert-handler';
 
-export function buildRpcRouter(
-  coachesService: CoachesService,
-  externalSystemsService: ExternalSystemsService,
-  leaguesService: LeaguesService,
-  racesService: RacesService,
-  rulesSetsService: RulesSetsService,
-  erasService: ErasService,
-  positionsService: PositionsService,
-  teamsService: TeamsService,
-  competitionsService: CompetitionsService,
-  matchesService: MatchesService,
-  playersService: PlayersService,
-  matchEventsService: MatchEventsService,
-) {
+export interface RpcServices {
+  coachesService: CoachesService;
+  externalSystemsService: ExternalSystemsService;
+  leaguesService: LeaguesService;
+  racesService: RacesService;
+  rulesSetsService: RulesSetsService;
+  erasService: ErasService;
+  positionsService: PositionsService;
+  teamsService: TeamsService;
+  competitionsService: CompetitionsService;
+  matchesService: MatchesService;
+  playersService: PlayersService;
+  matchEventsService: MatchEventsService;
+}
+
+export function buildRpcRouter(services: RpcServices) {
+  const {
+    coachesService,
+    externalSystemsService,
+    leaguesService,
+    racesService,
+    rulesSetsService,
+    erasService,
+    positionsService,
+    teamsService,
+    competitionsService,
+    matchesService,
+    playersService,
+    matchEventsService,
+  } = services;
   return {
     coaches: {
       upsert: implement(contract.coaches.upsert).handler(({ input, errors }) =>
