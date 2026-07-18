@@ -16,9 +16,13 @@ describe('historyTrackedTable', () => {
   });
 
   it('appends created_at, updated_at, history_version and history_period to the tracked table', () => {
-    const { table } = historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
+    const { table } = historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+      },
     });
 
     const columnNames = getTableConfig(table).columns.map((c) => c.name);
@@ -45,18 +49,26 @@ describe('historyTrackedTable', () => {
   });
 
   it('names the companion history table with the reserved suffix', () => {
-    const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
+    const { historyTable } = historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+      },
     });
     expect(getTableConfig(historyTable).name).toBe('widgets_history');
   });
 
   it('mirrors tracked column nullability onto the history table (not uniformly nullable)', () => {
-    const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
-      nickname: varchar('nickname', { length: 100 }),
+    const { historyTable } = historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+        nickname: varchar('nickname', { length: 100 }),
+      },
     });
     const byName = Object.fromEntries(
       getTableConfig(historyTable).columns.map((c) => [c.name, c]),
@@ -66,10 +78,14 @@ describe('historyTrackedTable', () => {
   });
 
   it('history table mirrors exactly the current tracked columns plus id/history bookkeeping', () => {
-    const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
-      nickname: varchar('nickname', { length: 100 }),
+    const { historyTable } = historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+        nickname: varchar('nickname', { length: 100 }),
+      },
     });
     const columnNames = getTableConfig(historyTable)
       .columns.map((c) => c.name)
@@ -88,9 +104,13 @@ describe('historyTrackedTable', () => {
   });
 
   it('gives the history table an id column (FK, not primary key) and PK on (id, history_version)', () => {
-    const { historyTable } = historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
+    const { historyTable } = historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+      },
     });
     const config = getTableConfig(historyTable);
     expect(config.primaryKeys).toHaveLength(1);
@@ -99,9 +119,13 @@ describe('historyTrackedTable', () => {
   });
 
   it('registers the table in the history registry', () => {
-    historyTrackedTable(testSchema, 'widgets', {
-      id: integer('id').primaryKey(),
-      name: varchar('name', { length: 255 }).notNull(),
+    historyTrackedTable({
+      schema: testSchema,
+      name: 'widgets',
+      columns: {
+        id: integer('id').primaryKey(),
+        name: varchar('name', { length: 255 }).notNull(),
+      },
     });
     expect(historyRegistry).toEqual([
       {

@@ -48,15 +48,15 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig([]),
     );
 
-    const { result } = await service.syncPositionRaceEras(
+    const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
       eraIdsByRaceId,
-      new Set(),
-      new Set(),
-    );
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       {
@@ -87,7 +87,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig([]),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -95,7 +95,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
@@ -118,7 +118,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig([]),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -126,7 +126,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
@@ -149,7 +149,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig([]),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -157,7 +157,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [] },
@@ -180,7 +180,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig([]),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -188,7 +188,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
@@ -216,7 +216,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig(eras),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -224,7 +224,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [] },
@@ -252,7 +252,7 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig(eras),
     );
 
-    await service.syncPositionRaceEras(
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -260,7 +260,7 @@ describe('BblPositionRaceErasImportService', () => {
       eraIdsByRaceId,
       positionsUsedByEra,
       racesActiveByEra,
-    );
+    });
 
     expect(syncRaceErasMock).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
@@ -286,15 +286,15 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig(eras),
     );
 
-    const { result } = await service.syncPositionRaceEras(
+    const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
       eraIdsByRaceId,
-      new Set(),
-      new Set(),
-    );
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('999');
@@ -320,15 +320,15 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig(eras),
     );
 
-    const { result } = await service.syncPositionRaceEras(
+    const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
       eraIdsByRaceId,
-      new Set(),
-      new Set(),
-    );
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('unknown-race');
@@ -353,15 +353,15 @@ describe('BblPositionRaceErasImportService', () => {
       makeEraConfig(eras),
     );
 
-    const { result } = await service.syncPositionRaceEras(
+    const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
       eraIdsByRaceId,
-      new Set(),
-      new Set(),
-    );
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
 
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('Unknown era');

@@ -55,14 +55,21 @@ export function topRanksWithTies<T extends { count: number }>(
   return { rows: ranked, truncatedCount };
 }
 
+export interface FormatLeaderboardEmbedOptions<T> {
+  title: string;
+  rankedRows: T[];
+  noDataMessage: string;
+  truncatedCount?: number;
+}
+
 export function formatLeaderboardEmbed<
   T extends { name: string; count: number; rank: number },
->(
-  title: string,
-  rankedRows: T[],
-  noDataMessage: string,
+>({
+  title,
+  rankedRows,
+  noDataMessage,
   truncatedCount = 0,
-): InteractionReplyOptions {
+}: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
   if (rankedRows.length === 0) {
     return { embeds: [{ title, description: noDataMessage }] };
   }
@@ -81,12 +88,21 @@ export function formatLeaderboardEmbed<
  * `timeoutMessage` or format the rows (using `noDataMessage` for an empty
  * result) as a leaderboard embed.
  */
-export async function resolveToplist<T extends { name: string; count: number }>(
-  title: string,
-  fetchRows: () => Promise<T[]>,
-  timeoutMessage: string,
-  noDataMessage: string,
-): Promise<string | InteractionReplyOptions> {
+export interface ResolveToplistOptions<T> {
+  title: string;
+  fetchRows: () => Promise<T[]>;
+  timeoutMessage: string;
+  noDataMessage: string;
+}
+
+export async function resolveToplist<
+  T extends { name: string; count: number },
+>({
+  title,
+  fetchRows,
+  timeoutMessage,
+  noDataMessage,
+}: ResolveToplistOptions<T>): Promise<string | InteractionReplyOptions> {
   const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
   if (rows === null) {
     return timeoutMessage;
@@ -96,5 +112,10 @@ export async function resolveToplist<T extends { name: string; count: number }>(
     MAX_LEADERBOARD_TOP_ENTRIES,
     MAX_LEADERBOARD_ENTRIES,
   );
-  return formatLeaderboardEmbed(title, ranked, noDataMessage, truncatedCount);
+  return formatLeaderboardEmbed({
+    title,
+    rankedRows: ranked,
+    noDataMessage,
+    truncatedCount,
+  });
 }

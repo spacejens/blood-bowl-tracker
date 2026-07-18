@@ -19,22 +19,22 @@ export class PositionsImportService {
   ) {}
 
   upsertPosition(data: UpsertPosition, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.positions.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.positions.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import position "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 
   syncRaceEras(data: SyncPositionRaceErasData, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.positions.syncRaceEras(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.positions.syncRaceEras(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to sync race eras for position ${data.positionId}: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

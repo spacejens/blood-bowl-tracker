@@ -19,6 +19,13 @@ import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
 
+interface ImportPlayersOptions {
+  teamsByCode: Map<string, UpsertTeam>;
+  positionIdsByBblId: Map<string, number>;
+  racesByBblId: Map<string, { id: number; name: string }>;
+  eraIdsByName: Map<string, number>;
+}
+
 @Injectable()
 export class BblPlayersImportService {
   constructor(
@@ -41,12 +48,12 @@ export class BblPlayersImportService {
    * names are not guaranteed unique across the league. Players that cannot be
    * fully resolved are recorded as errors and skipped. Idempotent.
    */
-  async importPlayers(
-    teamsByCode: Map<string, UpsertTeam>,
-    positionIdsByBblId: Map<string, number>,
-    racesByBblId: Map<string, { id: number; name: string }>,
-    eraIdsByName: Map<string, number>,
-  ): Promise<{
+  async importPlayers({
+    teamsByCode,
+    positionIdsByBblId,
+    racesByBblId,
+    eraIdsByName,
+  }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;

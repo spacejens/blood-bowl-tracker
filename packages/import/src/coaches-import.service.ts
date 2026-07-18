@@ -14,12 +14,12 @@ export class CoachesImportService {
   ) {}
 
   upsertCoach(data: UpsertCoach, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.coaches.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.coaches.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import coach "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

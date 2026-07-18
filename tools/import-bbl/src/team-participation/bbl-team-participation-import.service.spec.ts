@@ -169,16 +169,16 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result, eraIdsByRaceId } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([
+    const { result, eraIdsByRaceId } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([
         ['sew', home],
         ['vor', away],
       ]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -237,19 +237,19 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    await service.importTeamParticipation(
-      new Map([
+    await service.importTeamParticipation({
+      competitionsByBblId: new Map([
         ['1', competition],
         ['2', otherEraCompetition],
       ]),
-      new Map([['sew', home]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([
+      competitionIdsByBblId: new Map([
         ['1', 42],
         ['2', 43],
       ]),
-    );
+    });
 
     expect(upsertRace).toHaveBeenCalledWith(
       { ...orcRace, eras: [200, 999] },
@@ -276,13 +276,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledTimes(1);
@@ -321,13 +321,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertCompetition).toHaveBeenCalledWith(
@@ -354,13 +354,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertTeam).not.toHaveBeenCalled();
@@ -393,16 +393,16 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([
         ['sew', home],
         ['vor', away],
       ]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertCompetition).toHaveBeenCalledWith(
@@ -430,13 +430,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
-      new Map(),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
+      racesByRaceId: new Map(),
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertRace).not.toHaveBeenCalled();
@@ -459,13 +459,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertCompetition).not.toHaveBeenCalled();
@@ -490,13 +490,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertRace,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertCompetition).toHaveBeenCalledTimes(1);
@@ -527,16 +527,16 @@ describe('BblTeamParticipationImportService', () => {
       upsertMatch,
     });
 
-    await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([
+    await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([
         ['sew', home],
         ['vor', away],
       ]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(upsertMatch).toHaveBeenCalledWith(
       {
@@ -569,13 +569,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertMatch,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(upsertMatch).not.toHaveBeenCalled();
     expect(
@@ -604,13 +604,13 @@ describe('BblTeamParticipationImportService', () => {
       upsertMatch,
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map(),
-    );
+      competitionIdsByBblId: new Map(),
+    });
 
     expect(upsertMatch).not.toHaveBeenCalled();
     expect(
@@ -702,9 +702,9 @@ describe('BblTeamParticipationImportService', () => {
       makeStandingsReader(),
     );
 
-    await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([
+    await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([
         ['a1', teamA1],
         ['a2', teamA2],
         ['b1', teamB1],
@@ -712,8 +712,8 @@ describe('BblTeamParticipationImportService', () => {
       ]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     const matchCalls = upsertMatch.mock.calls.map(
       (c: unknown[]) => c[0] as { playedAt: Date; teamEraIds: number[] },
@@ -745,13 +745,13 @@ describe('BblTeamParticipationImportService', () => {
       standings: { '1': ['sew'] },
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -784,13 +784,13 @@ describe('BblTeamParticipationImportService', () => {
       standings: { '1': ['sew'] },
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(1);
     // Set union dedupes 'sew': the team is upserted exactly once.
@@ -815,13 +815,13 @@ describe('BblTeamParticipationImportService', () => {
       standings: { '1': ['ghost'] },
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertTeam).not.toHaveBeenCalled();
@@ -846,13 +846,13 @@ describe('BblTeamParticipationImportService', () => {
       standings: {},
     });
 
-    const { result } = await service.importTeamParticipation(
-      new Map([['1', competition]]),
-      new Map([['sew', home]]),
+    const { result } = await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([['sew', home]]),
       racesByRaceId,
       eraIdsByName,
-      new Map([['1', 42]]),
-    );
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
 
     expect(result.imported).toBe(0);
     expect(upsertCompetition).not.toHaveBeenCalled();

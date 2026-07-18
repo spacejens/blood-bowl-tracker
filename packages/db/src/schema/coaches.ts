@@ -3,9 +3,13 @@ import { serial, varchar } from 'drizzle-orm/pg-core';
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 
-const coachesTable = historyTrackedTable(gameData, 'coaches', {
-  id: serial('id').primaryKey(),
-  name: varchar('name', { length: 255 }).notNull(),
+const coachesTable = historyTrackedTable({
+  schema: gameData,
+  name: 'coaches',
+  columns: {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+  },
 });
 
 export const coaches = coachesTable.table;

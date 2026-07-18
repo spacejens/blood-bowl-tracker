@@ -89,33 +89,33 @@ export async function resolveTeamMatchesPlayedToplist(
   teams: TeamsService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by matches played',
-    () => teams.countMatchesPlayedByTeam(eraId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
+  return resolveToplist({
+    title: 'Teams by matches played',
+    fetchRows: () => teams.countMatchesPlayedByTeam(eraId),
+    timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+    noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+  });
 }
 
 export async function resolveTeamCompetitionsPlayedToplist(
   teams: TeamsService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by competitions played',
-    () => teams.countCompetitionsByTeam(eraId),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
+  return resolveToplist({
+    title: 'Teams by competitions played',
+    fetchRows: () => teams.countCompetitionsByTeam(eraId),
+    timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+    noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+  });
 }
 
 export async function resolveTeamErasActiveToplist(
   teams: TeamsService,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Teams by eras active',
-    () => teams.countErasByTeam(),
-    TEAM_TOPLIST_TIMEOUT_MESSAGE,
-    TEAM_TOPLIST_NO_DATA_MESSAGE,
-  );
+  return resolveToplist({
+    title: 'Teams by eras active',
+    fetchRows: () => teams.countErasByTeam(),
+    timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+    noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+  });
 }

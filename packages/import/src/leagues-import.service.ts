@@ -14,12 +14,12 @@ export class LeaguesImportService {
   ) {}
 
   upsertLeague(data: UpsertLeague, errors: ImportError[]) {
-    return this.importRunner.recordUpsertResult(
-      () => this.client.leagues.upsert(data),
-      data,
+    return this.importRunner.recordUpsertResult({
+      upsert: () => this.client.leagues.upsert(data),
+      item: data,
       errors,
-      (err) =>
+      buildErrorMessage: (err) =>
         `Failed to import league "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
-    );
+    });
   }
 }

@@ -5,9 +5,11 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import { maxFunctionParams } from './tools/eslint-rules/src/max-function-params.ts';
+
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/coverage/**', 'eslint.config.mjs'],
+    ignores: ['**/dist/**', '**/coverage/**', 'eslint.config.ts'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -38,6 +40,7 @@ export default tseslint.config(
   {
     plugins: {
       'simple-import-sort': simpleImportSort,
+      local: { rules: { 'max-function-params': maxFunctionParams } },
     },
     rules: {
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
@@ -47,6 +50,7 @@ export default tseslint.config(
       ],
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
+      'local/max-function-params': ['error', { max: 3 }],
     },
   },
 );

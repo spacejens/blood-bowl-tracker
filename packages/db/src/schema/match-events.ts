@@ -34,10 +34,10 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
   'sent_off',
 ]);
 
-const matchEventsTable = historyTrackedTable(
-  gameData,
-  'match_events',
-  {
+const matchEventsTable = historyTrackedTable({
+  schema: gameData,
+  name: 'match_events',
+  columns: {
     id: serial('id').primaryKey(),
     matchId: integer('match_id')
       .references(() => matches.id)
@@ -55,13 +55,13 @@ const matchEventsTable = historyTrackedTable(
     actionType: actionTypeEnum('action_type'),
     consequenceType: consequenceTypeEnum('consequence_type'),
   },
-  (t) => ({
+  extraConfig: (t) => ({
     actionOrConsequence: check(
       'match_events_action_or_consequence',
       sql`${t.actionType} IS NOT NULL OR ${t.consequenceType} IS NOT NULL`,
     ),
   }),
-);
+});
 
 export const matchEvents = matchEventsTable.table;
 export const matchEventsHistory = matchEventsTable.historyTable;

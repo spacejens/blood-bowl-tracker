@@ -117,16 +117,18 @@ async function runImport(
     makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
   );
 
-  const { result } = await service.importMatchEvents(
-    new Map([['3', competition]]),
-    overrides.teamsByCode ??
+  const { result } = await service.importMatchEvents({
+    competitionsByBblId: new Map([['3', competition]]),
+    teamsByCode:
+      overrides.teamsByCode ??
       new Map([
         ['hme', homeTeam],
         ['awy', awayTeam],
       ]),
-    overrides.matchIdsByBblId ?? new Map([[MATCH_BBL_ID, MATCH_DB_ID]]),
-    new Map(Object.entries(playerIds)),
-  );
+    matchIdsByBblId:
+      overrides.matchIdsByBblId ?? new Map([[MATCH_BBL_ID, MATCH_DB_ID]]),
+    playerIdsByPid: new Map(Object.entries(playerIds)),
+  });
 
   return { captured, result, upsertTeam, upsertMatchEvent };
 }
@@ -454,8 +456,8 @@ describe('BblMatchEventsImportService', () => {
       ),
     );
 
-    const { result } = await service.importMatchEvents(
-      new Map([
+    const { result } = await service.importMatchEvents({
+      competitionsByBblId: new Map([
         [
           '32',
           {
@@ -468,15 +470,15 @@ describe('BblMatchEventsImportService', () => {
       ]),
       teamsByCode,
       // Both source ids point at the same DB match id, per Task 3.
-      new Map([
+      matchIdsByBblId: new Map([
         [PRIMARY, MATCH_DB_ID],
         [SECONDARY, MATCH_DB_ID],
       ]),
-      new Map([
+      playerIdsByPid: new Map([
         ['attacker', 900],
         ['victim', 901],
       ]),
-    );
+    });
 
     expect(result.success).toBe(true);
     // Exactly one merged event: action from A (team a1) + consequence from B (team b1).
@@ -581,8 +583,8 @@ describe('BblMatchEventsImportService', () => {
       ),
     );
 
-    const { result } = await service.importMatchEvents(
-      new Map([
+    const { result } = await service.importMatchEvents({
+      competitionsByBblId: new Map([
         [
           '32',
           {
@@ -596,12 +598,12 @@ describe('BblMatchEventsImportService', () => {
       teamsByCode,
       // Both source ids point at the same DB match id, so there IS an
       // imported matchId; only the events data is missing for PRIMARY.
-      new Map([
+      matchIdsByBblId: new Map([
         [PRIMARY, MATCH_DB_ID],
         [SECONDARY, MATCH_DB_ID],
       ]),
-      new Map([['victim', 901]]),
-    );
+      playerIdsByPid: new Map([['victim', 901]]),
+    });
 
     expect(result.success).toBe(true);
     // The secondary partner's occurrence must not be silently dropped just
@@ -713,8 +715,8 @@ describe('BblMatchEventsImportService', () => {
       ),
     );
 
-    await service.importMatchEvents(
-      new Map([
+    await service.importMatchEvents({
+      competitionsByBblId: new Map([
         [
           '46',
           {
@@ -726,16 +728,16 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
       teamsByCode,
-      new Map([
+      matchIdsByBblId: new Map([
         [PRIMARY, MATCH_DB_ID],
         [SECONDARY, MATCH_DB_ID],
       ]),
-      new Map([
+      playerIdsByPid: new Map([
         ['attacker', 900],
         ['victim1', 901],
         ['victim2', 902],
       ]),
-    );
+    });
 
     // One serious_injury action + two candidate miss_next_game consequences =>
     // ambiguous, so NO merge: one action-only + two consequence-only events.

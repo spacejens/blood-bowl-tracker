@@ -11,22 +11,22 @@ export async function resolveRaceTeamsToplist(
   races: RacesService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Races by teams',
-    () => races.countTeamsByRace(eraId),
-    RACE_TOPLIST_TIMEOUT_MESSAGE,
-    RACE_TOPLIST_NO_DATA_MESSAGE,
-  );
+  return resolveToplist({
+    title: 'Races by teams',
+    fetchRows: () => races.countTeamsByRace(eraId),
+    timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
+    noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
+  });
 }
 
 export async function resolveRaceMatchesPlayedToplist(
   races: RacesService,
   eraId?: number,
 ): Promise<string | InteractionReplyOptions> {
-  return resolveToplist(
-    'Races by matches played',
-    () => races.countMatchesPlayedByRace(eraId),
-    RACE_TOPLIST_TIMEOUT_MESSAGE,
-    RACE_TOPLIST_NO_DATA_MESSAGE,
-  );
+  return resolveToplist({
+    title: 'Races by matches played',
+    fetchRows: () => races.countMatchesPlayedByRace(eraId),
+    timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
+    noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
+  });
 }
