@@ -1,4 +1,3 @@
-export type { UpsertCoachData } from './coaches-import.service';
 export { CoachesImportService } from './coaches-import.service';
 export type { UpsertCompetitionData } from './competitions-import.service';
 export { CompetitionsImportService } from './competitions-import.service';

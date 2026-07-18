@@ -1,5 +1,4 @@
 export { CoachesModule } from './coaches/coaches.module';
-export type { UpsertCoachData } from './coaches/coaches.service';
 export {
   CoachesService,
   CoachUpsertConflictError,
