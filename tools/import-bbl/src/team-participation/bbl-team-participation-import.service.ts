@@ -150,16 +150,16 @@ export class BblTeamParticipationImportService {
         }
       }
 
-      await this.syncMatchTeams(
-        bblId,
+      await this.syncMatchTeams({
+        competitionBblId: bblId,
         competition,
-        matchesByCompetitionId.get(bblId) ?? [],
+        matches: matchesByCompetitionId.get(bblId) ?? [],
         matchTeamsByBblId,
         teamEraIdByTeamId,
         competitionIdsByBblId,
         merges,
         errors,
-      );
+      });
     }
 
     for (const [raceId, eraIds] of eraIdsByRaceId) {
@@ -182,16 +182,26 @@ export class BblTeamParticipationImportService {
    * imported DB id, or a match whose two team ids do not both resolve, is
    * recorded as an error and skipped without affecting the rest. Idempotent.
    */
-  private async syncMatchTeams(
-    competitionBblId: string,
-    competition: UpsertCompetition,
-    matches: BblMatch[],
-    matchTeamsByBblId: Map<string, BblMatchDetails>,
-    teamEraIdByTeamId: Map<string, number>,
-    competitionIdsByBblId: Map<string, number>,
-    merges: MatchMergeResolution,
-    errors: ImportError[],
-  ): Promise<void> {
+  private async syncMatchTeams(options: {
+    competitionBblId: string;
+    competition: UpsertCompetition;
+    matches: BblMatch[];
+    matchTeamsByBblId: Map<string, BblMatchDetails>;
+    teamEraIdByTeamId: Map<string, number>;
+    competitionIdsByBblId: Map<string, number>;
+    merges: MatchMergeResolution;
+    errors: ImportError[];
+  }): Promise<void> {
+    const {
+      competitionBblId,
+      competition,
+      matches,
+      matchTeamsByBblId,
+      teamEraIdByTeamId,
+      competitionIdsByBblId,
+      merges,
+      errors,
+    } = options;
     const competitionId = competitionIdsByBblId.get(competitionBblId);
     if (competitionId === undefined) {
       errors.push(
