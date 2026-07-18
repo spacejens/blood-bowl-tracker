@@ -1,10 +1,12 @@
-import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type {
+  UpsertCompetition,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
 import type {
   CompetitionsImportService,
   MatchesImportService,
   RacesImportService,
   TeamsImportService,
-  UpsertCompetitionData,
   UpsertRaceData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -81,7 +83,7 @@ const away: UpsertTeam = {
   externalIds: [{ externalSystemId: 1, externalId: 'vor' }],
 };
 
-const competition: UpsertCompetitionData = {
+const competition: UpsertCompetition = {
   name: 'Major Season 1',
   type: 'season',
   eraId: 200,
@@ -199,7 +201,7 @@ describe('BblTeamParticipationImportService', () => {
   });
 
   it('re-upserts each race that participated, with the set of eras it appeared in', async () => {
-    const otherEraCompetition: UpsertCompetitionData = {
+    const otherEraCompetition: UpsertCompetition = {
       ...competition,
       name: 'Major Season 2',
       eraId: 999,

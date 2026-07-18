@@ -1,7 +1,5 @@
-import type {
-  MatchesImportService,
-  UpsertCompetitionData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { MatchesImportService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
@@ -50,7 +48,7 @@ const match: BblMatch = {
   date: new Date(Date.UTC(2021, 8, 25)),
 };
 
-const competition: UpsertCompetitionData = {
+const competition: UpsertCompetition = {
   name: 'Major Season 3',
   type: 'season',
   eraId: 200,

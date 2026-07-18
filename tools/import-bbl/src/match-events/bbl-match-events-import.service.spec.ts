@@ -1,11 +1,11 @@
 import type {
+  UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
 import type {
   MatchEventsImportService,
   TeamsImportService,
-  UpsertCompetitionData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -34,7 +34,7 @@ const HOME_TEAM_ERA_ID = 1000;
 const AWAY_TEAM_ERA_ID = 2000;
 const BBL_SYSTEM_ID = 1;
 
-const competition: UpsertCompetitionData = {
+const competition: UpsertCompetition = {
   name: 'Major Season 3',
   type: 'season',
   eraId: 200,

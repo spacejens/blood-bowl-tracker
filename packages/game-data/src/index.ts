@@ -4,10 +4,7 @@ export {
   CoachUpsertConflictError,
 } from './coaches/coaches.service';
 export { CompetitionsModule } from './competitions/competitions.module';
-export type {
-  CompetitionWithTeamEras,
-  UpsertCompetitionData,
-} from './competitions/competitions.service';
+export type { CompetitionWithTeamEras } from './competitions/competitions.service';
 export {
   CompetitionsService,
   CompetitionUpsertConflictError,

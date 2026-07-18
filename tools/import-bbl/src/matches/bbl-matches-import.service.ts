@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertCompetitionData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   makeImportError,
   makeImportResult,
@@ -39,7 +36,7 @@ export class BblMatchesImportService {
    * Idempotent.
    */
   async importMatches(
-    competitionsByBblId: Map<string, UpsertCompetitionData>,
+    competitionsByBblId: Map<string, UpsertCompetition>,
     competitionIdsByBblId: Map<string, number>,
   ): Promise<{ result: ImportResult; matchIdsByBblId: Map<string, number> }> {
     let imported = 0;

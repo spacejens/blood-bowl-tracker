@@ -1,17 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertCompetitionData {
-  name: string;
-  type: 'season' | 'cup';
-  eraId: number;
-  teamEraIds?: number[];
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 @Injectable()
 export class CompetitionsImportService {
@@ -20,13 +13,13 @@ export class CompetitionsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  private static errorMessage(data: UpsertCompetitionData) {
+  private static errorMessage(data: UpsertCompetition) {
     return (err: unknown): string =>
       `Failed to import competition "${data.name}": ${err instanceof Error ? err.message : String(err)}`;
   }
 
   upsertCompetition(
-    data: UpsertCompetitionData,
+    data: UpsertCompetition,
     errors: ImportError[],
   ): Promise<boolean> {
     return this.importRunner.recordUpsert(
@@ -43,7 +36,7 @@ export class CompetitionsImportService {
    * the caller needs the competition's DB id (e.g. to link matches to it).
    */
   upsertCompetitionResult(
-    data: UpsertCompetitionData,
+    data: UpsertCompetition,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
     return this.importRunner.recordUpsertResult(

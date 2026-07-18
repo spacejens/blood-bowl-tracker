@@ -1,14 +1,11 @@
 import type {
   ActionType,
   ConsequenceType,
+  UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type {
-  ImportError,
-  ImportResult,
-  UpsertCompetitionData,
-} from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   makeImportError,
   makeImportResult,
@@ -267,7 +264,7 @@ export class BblMatchEventsImportService {
    * external id does not depend on the player. Idempotent.
    */
   async importMatchEvents(
-    competitionsByBblId: Map<string, UpsertCompetitionData>,
+    competitionsByBblId: Map<string, UpsertCompetition>,
     teamsByCode: Map<string, UpsertTeam>,
     matchIdsByBblId: Map<string, number>,
     playerIdsByPid: Map<string, number>,
@@ -460,7 +457,7 @@ export class BblMatchEventsImportService {
    */
   private async resolveTeamEraId(
     code: string,
-    competition: UpsertCompetitionData,
+    competition: UpsertCompetition,
     teamsByCode: Map<string, UpsertTeam>,
     teamEraIdByCode: Map<string, number | undefined>,
     errors: ImportError[],

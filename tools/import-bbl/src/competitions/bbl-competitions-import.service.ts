@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertCompetitionData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   externalSystemBootstrapError,
@@ -54,18 +51,18 @@ export class BblCompetitionsImportService {
    * configured era, are skipped with a recorded error. Idempotent.
    *
    * Also returns `competitionIdsByBblId`, mapping each imported competition's
-   * BBL id to its DB id — `UpsertCompetitionData` (used for
+   * BBL id to its DB id — `UpsertCompetition` (used for
    * `competitionsByBblId`) carries no DB id, but matches need one to set their
    * `competitionId`.
    */
   async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
     result: ImportResult;
-    competitionsByBblId: Map<string, UpsertCompetitionData>;
+    competitionsByBblId: Map<string, UpsertCompetition>;
     competitionIdsByBblId: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
-    const competitionsByBblId = new Map<string, UpsertCompetitionData>();
+    const competitionsByBblId = new Map<string, UpsertCompetition>();
     const competitionIdsByBblId = new Map<string, number>();
 
     let bblSystemId: number;
@@ -124,7 +121,7 @@ export class BblCompetitionsImportService {
         continue;
       }
 
-      const competitionData: UpsertCompetitionData = {
+      const competitionData: UpsertCompetition = {
         name: competition.name,
         type: resolved.type,
         eraId: resolved.eraId,
