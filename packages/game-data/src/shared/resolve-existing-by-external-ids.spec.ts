@@ -25,6 +25,28 @@ describe('resolveExistingByExternalIds', () => {
     ).resolves.toEqual({ ownerIds: [], existingRows: [] });
   });
 
+  it('returns nothing and never queries when externalIds is empty', async () => {
+    const where = vi.fn().mockResolvedValue([]);
+    const from = vi.fn(() => ({ where }));
+    const select = vi.fn(() => ({ from }));
+    const db = { select } as unknown as Db;
+
+    await expect(
+      resolveExistingByExternalIds(
+        db,
+        rulesSetExternalIds,
+        rulesSetExternalIds.rulesSetId,
+        rulesSetExternalIds.externalSystemId,
+        rulesSetExternalIds.externalId,
+        [],
+      ),
+    ).resolves.toEqual({ ownerIds: [], existingRows: [] });
+
+    expect(select).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
+    expect(where).not.toHaveBeenCalled();
+  });
+
   it('dedupes owner ids across several matching external ids', async () => {
     const db = makeDb([
       { ownerId: 5, externalSystemId: 1, externalId: 'a' },

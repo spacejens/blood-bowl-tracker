@@ -34,6 +34,10 @@ export async function resolveExistingByExternalIds<
   externalIdColumn: TExternalIdColumn,
   externalIds: readonly ExternalIdPair[],
 ): Promise<{ ownerIds: number[]; existingRows: ExternalIdPair[] }> {
+  if (externalIds.length === 0) {
+    return { ownerIds: [], existingRows: [] };
+  }
+
   const rows = await db
     .select({
       ownerId: ownerIdColumn,
