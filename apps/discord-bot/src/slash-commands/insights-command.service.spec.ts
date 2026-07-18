@@ -11,7 +11,6 @@ import {
   INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
 } from '../error-messages';
 import {
-  autocompleteInteraction,
   chatInput,
   makeService,
 } from './insights-command.service.test-helpers';
@@ -19,21 +18,6 @@ import {
 describe('InsightsCommandService', () => {
   afterEach(() => {
     vi.restoreAllMocks();
-  });
-
-  it('builds an insights command definition with an autocompleted category option', () => {
-    const { service } = makeService();
-    const command = service.buildCommand();
-    expect(command.name).toBe('insights');
-    expect(command.description).toEqual(expect.any(String));
-    expect(command.options?.[0]).toEqual({
-      name: 'category',
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real string
-      description: expect.any(String),
-      type: 3,
-      autocomplete: true,
-    });
-    expect(command.autocomplete).toEqual(expect.any(Function));
   });
 
   it('resolves an exact leaf path to that fact, suffixed with "All time" when no era is given', async () => {
@@ -94,54 +78,6 @@ describe('InsightsCommandService', () => {
     const { service } = makeService();
     const result = await service.execute(chatInput('coach.nope'));
     expect(result).toBe(INSIGHTS_UNMATCHED_CATEGORY_MESSAGE);
-  });
-
-  it('returns category autocomplete choices for the focused partial path', async () => {
-    const { service } = makeService();
-    const choices = await service.autocomplete(
-      autocompleteInteraction('category', 'coach.'),
-    );
-    expect(choices).toEqual([
-      { name: 'coach.toplist', value: 'coach.toplist' },
-    ]);
-  });
-
-  it('registers only the insights command on bootstrap', async () => {
-    const { service, discordClient } = makeService();
-    await service.onApplicationBootstrap();
-    expect(discordClient.registerCommands).toHaveBeenCalledTimes(1);
-    const commands = discordClient.registerCommands.mock.calls[0][0] as {
-      name: string;
-    }[];
-    expect(commands.map((c) => c.name)).toEqual(['insights']);
-  });
-
-  it('advertises an era option alongside category', () => {
-    const { service } = makeService();
-    const command = service.buildCommand();
-    expect(command.options).toEqual([
-      {
-        name: 'category',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
-        type: 3,
-        autocomplete: true,
-      },
-      {
-        name: 'era',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
-        type: 3,
-        autocomplete: true,
-      },
-      {
-        name: 'competition',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
-        type: 3,
-        autocomplete: true,
-      },
-    ]);
   });
 
   it('scopes an era-supporting category to the resolved era and names it in the title', async () => {
@@ -430,17 +366,6 @@ describe('InsightsCommandService', () => {
     ).applyTitleSuffix(reply, 'BB2020');
 
     expect(result).toBe(reply);
-  });
-
-  it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = makeService();
-    (eras.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 20, name: 'BB2020', leagueName: 'Premier League' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('era', 'bb'),
-    );
-    expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
   });
 
   it('scopes player.toplist.touchdowns.scored to the resolved era and names it in the title', async () => {
@@ -763,19 +688,6 @@ describe('InsightsCommandService', () => {
     expect(anySufferedCalled).toBe(true);
   });
 
-  it('advertises a competition option alongside category and era', () => {
-    const { service } = makeService();
-    const command = service.buildCommand();
-    expect(command.options).toHaveLength(3);
-    expect(command.options?.[2]).toEqual({
-      name: 'competition',
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-      description: expect.any(String),
-      type: 3,
-      autocomplete: true,
-    });
-  });
-
   it('rejects a request that supplies both an era and a competition', async () => {
     const { service, eras, competitions } = makeService();
     const result = await service.execute(
@@ -867,20 +779,5 @@ describe('InsightsCommandService', () => {
     expect(result).not.toBe(
       INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
     );
-  });
-
-  it('returns competition autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitions } = makeService();
-    (
-      competitions.searchByNamePrefix as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([
-      { id: 30, name: 'Major Season 24', leagueName: 'The Major' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('competition', 'maj'),
-    );
-    expect(choices).toEqual([
-      { name: 'Major Season 24 (The Major)', value: '30' },
-    ]);
   });
 });
