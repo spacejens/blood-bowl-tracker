@@ -53,18 +53,23 @@ export function findNewHistoryTables(
 export function buildTriggerSql(schemaName: string, tableName: string): string {
   const trackedTable = `"${schemaName}"."${tableName}"`;
   const historyRelation = `${schemaName}.${tableName}_history`;
-  // Trigger name is prefixed with `0_` so it sorts alphabetically ahead of
-  // `<table>_set_updated_at` and `<table>_versioning`; Postgres fires
-  // same-timing triggers in trigger-name order, so this runs first — before
-  // set_updated_at has mutated NEW.updated_at — making NEW-vs-OLD a true
-  // "did the data change" check. A leading digit means the name must be
-  // double-quoted. See docs/architecture.md "History tracking".
-  const rejectTrigger = `"0_${tableName}_reject_no_op_update"`;
+  // The versioning trigger's name is prefixed with `0_` so it sorts
+  // alphabetically ahead of `<table>_set_updated_at`; Postgres fires
+  // same-timing triggers in trigger-name order (the unprefixed names would
+  // otherwise put set_updated_at first, since 's' < 'v'). Firing versioning
+  // first lets its own built-in no-op guard (`IF NEW IS NOT DISTINCT FROM
+  // OLD THEN RETURN OLD`) see NEW before set_updated_at has mutated
+  // NEW.updated_at, so a genuine no-op update writes no history row.
+  // set_updated_at() is itself conditional (skips the updated_at bump when
+  // NEW already equals OLD), so by the time it runs on an unchanged row
+  // versioning has already collapsed NEW back to OLD and it correctly does
+  // nothing. Neither trigger ever returns NULL, so UPDATE ... RETURNING
+  // still returns the row for a no-op update. A leading digit means the
+  // name must be double-quoted. See docs/architecture.md "History tracking".
+  const versioningTrigger = `"0_${tableName}_versioning"`;
   return [
-    `DROP TRIGGER IF EXISTS ${rejectTrigger} ON ${trackedTable};`,
-    `CREATE TRIGGER ${rejectTrigger}\n  BEFORE UPDATE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE reject_no_op_update();`,
-    `DROP TRIGGER IF EXISTS ${tableName}_versioning ON ${trackedTable};`,
-    `CREATE TRIGGER ${tableName}_versioning\n  BEFORE INSERT OR UPDATE OR DELETE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE versioning(\n    'history_period', '${historyRelation}',\n    true, true, true, false, true, 'history_version'\n  );`,
+    `DROP TRIGGER IF EXISTS ${versioningTrigger} ON ${trackedTable};`,
+    `CREATE TRIGGER ${versioningTrigger}\n  BEFORE INSERT OR UPDATE OR DELETE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE versioning(\n    'history_period', '${historyRelation}',\n    true, true, true, false, true, 'history_version'\n  );`,
     `DROP TRIGGER IF EXISTS ${tableName}_set_updated_at ON ${trackedTable};`,
     `CREATE TRIGGER ${tableName}_set_updated_at\n  BEFORE UPDATE ON ${trackedTable}\n  FOR EACH ROW EXECUTE PROCEDURE set_updated_at();`,
   ].join('\n--> statement-breakpoint\n');

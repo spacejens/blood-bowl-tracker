@@ -114,8 +114,8 @@ its DDL automatically.
 Adding a new table therefore only requires calling `historyTrackedTable()`
 instead of `gameData.table()` (or another schema's `.table()`) — running
 `pnpm run db:generate` once produces a single migration with the table, its
-history companion, and all three of its triggers (a `reject_no_op_update()` guard, the temporal-tables `versioning()`
-trigger, and a `set_updated_at()` trigger) together. A completeness spec
+history companion, and both its triggers (the temporal-tables `versioning()`
+trigger and a `set_updated_at()` trigger) together. A completeness spec
 (`packages/db/src/schema/history-completeness.spec.ts`) fails CI if a table
 is ever added without going through `historyTrackedTable()`.
 
@@ -130,24 +130,31 @@ removed, the corresponding history-table `DROP COLUMN` is rewritten to
 old history rows are preserved. Only future migrations are affected;
 existing migrations are never rewritten.
 
-Each tracked table also carries a `"0_<table>_reject_no_op_update"` trigger
-running the generic `reject_no_op_update()` function
-(`packages/db/sql/reject_no_op_update_function.sql`). It is a `BEFORE UPDATE`
-trigger that returns `NULL` when `NEW IS NOT DISTINCT FROM OLD`, cancelling
-the row's update entirely so no subsequent trigger fires; otherwise it
-returns `NEW` and the update proceeds. Without it, an upsert of an unchanged
-row would still bump `updated_at` and write a new history row: Postgres fires
-same-timing triggers in alphabetical trigger-name order, so `set_updated_at`
-would mutate `NEW.updated_at` before `versioning()`'s own no-op guard
-(`IF NEW IS NOT DISTINCT FROM OLD THEN RETURN OLD`) could ever see an
-unchanged row. The `0_` name prefix sorts this trigger ahead of both
-`<table>_set_updated_at` and `<table>_versioning` regardless of table name,
-so it runs first — before anything has mutated `NEW` — making its
-`NEW`-vs-`OLD` comparison a true "did the data actually change" check. The
-leading digit is why the trigger name is double-quoted. The 29 tables that
-predate this trigger were retrofitted by the
-`20260717130000_add_reject_no_op_update_triggers` migration; new tables get
-it automatically via `db:generate`.
+Every tracked table's `<table>_versioning` trigger is actually named
+`"0_<table>_versioning"`. Postgres fires same-timing triggers on a table in
+alphabetical trigger-name order, and without the `0_` prefix
+`<table>_set_updated_at` would sort first (`s` < `v`), unconditionally
+bumping `NEW.updated_at` before `versioning()`'s own no-op guard
+(`IF NEW IS NOT DISTINCT FROM OLD THEN RETURN OLD`) ever got a chance to
+see an unchanged row — defeating that guard for every upsert of unchanged
+data, not just genuinely new writes. The `0_` prefix makes `versioning()`
+run first instead, so its no-op guard sees `NEW` before anything has
+touched it, and a genuine no-op update writes no history row. `versioning()`
+returns `OLD` (not `NULL`) in that case, so the row still counts as
+"updated" and `UPDATE ... RETURNING` still returns it — important because
+`packages/game-data`'s upsert methods rely on getting a row back from
+`RETURNING` on every upsert, including no-op ones.
+
+`set_updated_at()` (`packages/db/sql/set_updated_at_function.sql`, not
+vendored) is itself conditional for the same reason: it skips the
+`updated_at` bump when `NEW IS NOT DISTINCT FROM OLD`. By the time it runs
+on a no-op update, `versioning()` has already collapsed `NEW` back to `OLD`,
+so this check correctly does nothing — `updated_at` stays unchanged. Like
+`versioning()`, it always returns `NEW`, never `NULL`, preserving
+`RETURNING` semantics. The 29 tables whose `versioning()` trigger predates
+this reordering were retrofitted (via `ALTER TRIGGER ... RENAME TO`) by the
+`20260717130000_reorder_versioning_before_set_updated_at` migration; new
+tables get the reordered trigger names automatically via `db:generate`.
 
 The `versioning()` trigger function is vendored unmodified from
 [nearform/temporal_tables](https://github.com/nearform/temporal_tables) at

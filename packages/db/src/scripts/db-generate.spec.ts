@@ -15,24 +15,12 @@ import {
 } from './db-generate.js';
 
 describe('buildTriggerSql', () => {
-  it('builds DROP+CREATE statements for the reject_no_op_update, versioning, and set_updated_at triggers, guard first', () => {
+  it('builds DROP+CREATE statements for the versioning (renamed to fire first) and set_updated_at triggers', () => {
     const result = buildTriggerSql('game_data', 'coaches');
     expect(result).toContain(
-      'DROP TRIGGER IF EXISTS "0_coaches_reject_no_op_update" ON "game_data"."coaches";',
+      'DROP TRIGGER IF EXISTS "0_coaches_versioning" ON "game_data"."coaches";',
     );
-    expect(result).toContain('CREATE TRIGGER "0_coaches_reject_no_op_update"');
-    expect(result).toContain('EXECUTE PROCEDURE reject_no_op_update();');
-    // The guard trigger must be emitted ahead of the other two triggers.
-    expect(result.indexOf('0_coaches_reject_no_op_update')).toBeLessThan(
-      result.indexOf('coaches_versioning'),
-    );
-    expect(result.indexOf('0_coaches_reject_no_op_update')).toBeLessThan(
-      result.indexOf('coaches_set_updated_at'),
-    );
-    expect(result).toContain(
-      'DROP TRIGGER IF EXISTS coaches_versioning ON "game_data"."coaches";',
-    );
-    expect(result).toContain('CREATE TRIGGER coaches_versioning');
+    expect(result).toContain('CREATE TRIGGER "0_coaches_versioning"');
     expect(result).toContain("'history_period', 'game_data.coaches_history'");
     expect(result).toContain(
       "true, true, true, false, true, 'history_version'",
@@ -42,6 +30,12 @@ describe('buildTriggerSql', () => {
     );
     expect(result).toContain('CREATE TRIGGER coaches_set_updated_at');
     expect(result).toContain('EXECUTE PROCEDURE set_updated_at();');
+    // The renamed versioning trigger must be emitted ahead of set_updated_at,
+    // so its own no-op guard sees NEW before set_updated_at mutates updated_at.
+    expect(result.indexOf('"0_coaches_versioning"')).toBeLessThan(
+      result.indexOf('coaches_set_updated_at'),
+    );
+    expect(result).not.toContain('reject_no_op_update');
     expect(result).toContain('--> statement-breakpoint');
   });
 });
