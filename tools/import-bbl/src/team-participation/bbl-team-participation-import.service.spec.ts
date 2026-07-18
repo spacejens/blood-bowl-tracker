@@ -1,5 +1,6 @@
 import type {
   UpsertCompetition,
+  UpsertRace,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
 import type {
@@ -7,7 +8,6 @@ import type {
   MatchesImportService,
   RacesImportService,
   TeamsImportService,
-  UpsertRaceData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -91,15 +91,17 @@ const competition: UpsertCompetition = {
   externalIds: [{ externalSystemId: 1, externalId: '1' }],
 };
 
-const orcRace: UpsertRaceData = {
+const orcRace: UpsertRace = {
   name: 'Orc',
+  eras: [],
   externalIds: [{ externalSystemId: 1, externalId: '5' }],
 };
-const vampireRace: UpsertRaceData = {
+const vampireRace: UpsertRace = {
   name: 'Vampire',
+  eras: [],
   externalIds: [{ externalSystemId: 1, externalId: '7' }],
 };
-const racesByRaceId = new Map<number, UpsertRaceData>([
+const racesByRaceId = new Map<number, UpsertRace>([
   [5, orcRace],
   [7, vampireRace],
 ]);

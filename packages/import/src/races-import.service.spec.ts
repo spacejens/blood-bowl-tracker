@@ -15,6 +15,7 @@ describe('RacesImportService', () => {
 
   const data = {
     name: 'Orc',
+    eras: [],
     externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
   };
   const upsertResult = {

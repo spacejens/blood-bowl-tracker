@@ -179,6 +179,7 @@ describe('BblRacesImportService', () => {
     expect(upsertRace).toHaveBeenCalledWith(
       {
         name: 'Orc',
+        eras: [],
         externalIds: [
           { externalSystemId: 1, externalId: '16' },
           { externalSystemId: 2, externalId: 'Orc' },
@@ -434,6 +435,7 @@ describe('BblRacesImportService', () => {
 
     expect(racesByRaceId.get(100)).toEqual({
       name: 'Orc',
+      eras: [],
       externalIds: [
         { externalSystemId: 1, externalId: '16' },
         { externalSystemId: 2, externalId: 'Orc' },
@@ -441,6 +443,7 @@ describe('BblRacesImportService', () => {
     });
     expect(racesByRaceId.get(200)).toEqual({
       name: 'Elf',
+      eras: [],
       externalIds: [
         { externalSystemId: 1, externalId: '6' },
         { externalSystemId: 2, externalId: 'Elf' },
@@ -471,6 +474,7 @@ describe('BblRacesImportService', () => {
     expect(upsertRace).toHaveBeenCalledWith(
       {
         name: 'College of Shadow',
+        eras: [],
         externalIds: [
           { externalSystemId: 1, externalId: '48' },
           { externalSystemId: 2, externalId: 'College of Shadow' },

@@ -1,3 +1,4 @@
+import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
 import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
@@ -19,12 +20,6 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class RaceUpsertConflictError extends UpsertConflictError {}
 
-export interface UpsertRaceData {
-  name: string;
-  eras?: number[];
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
-
 export interface RaceWithEras extends Race {
   eras: number[];
 }
@@ -34,7 +29,7 @@ export class RacesService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async upsert(
-    data: UpsertRaceData,
+    data: UpsertRace,
   ): Promise<{ race: RaceWithEras; created: boolean }> {
     const { row: race, created } = await upsertByExternalIds<
       typeof races,
@@ -54,7 +49,7 @@ export class RacesService {
       buildExternalIdRow: (raceId, pair) => ({ raceId, ...pair }),
     });
 
-    const eras = await this.syncEras(race.id, data.eras ?? []);
+    const eras = await this.syncEras(race.id, data.eras);
     return { race: { ...race, eras }, created };
   }
 

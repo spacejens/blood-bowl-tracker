@@ -14,7 +14,6 @@ export { MatchesImportService } from './matches-import.service';
 export { PlayersImportService } from './players-import.service';
 export type { SyncPositionRaceErasData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
-export type { UpsertRaceData } from './races-import.service';
 export { RacesImportService } from './races-import.service';
 export { RulesSetsImportService } from './rules-sets-import.service';
 export { TeamsImportService } from './teams-import.service';

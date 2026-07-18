@@ -1,12 +1,9 @@
 import type {
   UpsertCompetition,
+  UpsertRace,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type {
-  ImportError,
-  ImportResult,
-  UpsertRaceData,
-} from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   makeImportError,
@@ -65,7 +62,7 @@ export class BblTeamParticipationImportService {
   async importTeamParticipation(
     competitionsByBblId: Map<string, UpsertCompetition>,
     teamsByCode: Map<string, UpsertTeam>,
-    racesByRaceId: Map<number, UpsertRaceData>,
+    racesByRaceId: Map<number, UpsertRace>,
     eraIdsByName: Map<string, number>,
     competitionIdsByBblId: Map<string, number>,
   ): Promise<{
