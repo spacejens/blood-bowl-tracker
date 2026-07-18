@@ -91,6 +91,27 @@ providers, which are typed, compiler-checked, and wired by the framework rather
 than hand-ordered by a caller, so the fragility the rule guards against does not
 apply. Do not refactor DI constructors into props objects to satisfy the rule.
 
+## Maximum file size
+
+TypeScript files stay under a line ceiling — enforced repo-wide by ESLint's
+built-in `max-lines` rule in `eslint.config.ts`. Source `*.ts` files may be at
+most **500 lines**; `*.spec.ts` test files at most **1000 lines**. Both counts
+exclude blank and comment lines (`skipBlankLines` + `skipComments`), so the
+limit reflects actual code, not whitespace or JSDoc. Spec files get a higher
+ceiling because unit tests are more verbose and less complex by nature (repeated
+setup/assertion patterns per case), and the tests for a piece of code are often
+longer than the code itself.
+
+**`apps/discord-bot/src/insights/fact-tree.ts` is exempt** — it is a declarative
+data structure (the fact-tree definition), not logic, so its size does not carry
+the complexity risk the rule guards against, and splitting it would fragment one
+coherent piece of data across files.
+
+When a file grows past its limit, split it rather than suppressing or raising the
+limit: extract one or more focused services/modules from a source file, or split
+a spec file into multiple files grouped by the functionality under test (sharing
+setup via a `*.test-helpers.ts` module, which is exempt from coverage).
+
 ## Adding a new workspace package
 
 1. Create the folder under `apps/`, `packages/`, or `tools/` with its own `package.json`.
