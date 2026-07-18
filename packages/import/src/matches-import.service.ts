@@ -1,17 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertMatchData {
-  competitionId: number;
-  playedAt: Date;
-  name: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-  teamEraIds?: number[];
-}
 
 @Injectable()
 export class MatchesImportService {
@@ -20,13 +13,13 @@ export class MatchesImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  private static errorMessage(data: UpsertMatchData) {
+  private static errorMessage(data: UpsertMatch) {
     const bblId = data.externalIds[0]?.externalId;
     return (err: unknown): string =>
       `Failed to import match "${bblId}": ${err instanceof Error ? err.message : String(err)}`;
   }
 
-  upsertMatch(data: UpsertMatchData, errors: ImportError[]): Promise<boolean> {
+  upsertMatch(data: UpsertMatch, errors: ImportError[]): Promise<boolean> {
     return this.importRunner.recordUpsert(
       () => this.client.matches.upsert(data),
       data,
@@ -41,7 +34,7 @@ export class MatchesImportService {
    * caller needs the match's DB id (e.g. to link match events to it).
    */
   upsertMatchResult(
-    data: UpsertMatchData,
+    data: UpsertMatch,
     errors: ImportError[],
   ): Promise<{ id: number } | undefined> {
     return this.importRunner.recordUpsertResult(

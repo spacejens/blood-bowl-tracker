@@ -1,14 +1,11 @@
 import type {
   ActionType,
   ConsequenceType,
+  UpsertCompetition,
+  UpsertMatchEvent,
+  UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type {
-  ImportError,
-  ImportResult,
-  UpsertCompetitionData,
-  UpsertMatchEventData,
-  UpsertTeamData,
-} from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   makeImportError,
   makeImportResult,
@@ -267,8 +264,8 @@ export class BblMatchEventsImportService {
    * external id does not depend on the player. Idempotent.
    */
   async importMatchEvents(
-    competitionsByBblId: Map<string, UpsertCompetitionData>,
-    teamsByCode: Map<string, UpsertTeamData>,
+    competitionsByBblId: Map<string, UpsertCompetition>,
+    teamsByCode: Map<string, UpsertTeam>,
     matchIdsByBblId: Map<string, number>,
     playerIdsByPid: Map<string, number>,
   ): Promise<{ result: ImportResult }> {
@@ -407,7 +404,7 @@ export class BblMatchEventsImportService {
       occurrenceCounters.set(counterKey, occurrenceIndex + 1);
       const externalId = `${sourceBblId}-${teamCode}-${category}-${occurrenceIndex}`;
 
-      const data: UpsertMatchEventData = {
+      const data: UpsertMatchEvent = {
         matchId,
         externalIds: [{ externalSystemId, externalId }],
       };
@@ -460,8 +457,8 @@ export class BblMatchEventsImportService {
    */
   private async resolveTeamEraId(
     code: string,
-    competition: UpsertCompetitionData,
-    teamsByCode: Map<string, UpsertTeamData>,
+    competition: UpsertCompetition,
+    teamsByCode: Map<string, UpsertTeam>,
     teamEraIdByCode: Map<string, number | undefined>,
     errors: ImportError[],
   ): Promise<number | undefined> {

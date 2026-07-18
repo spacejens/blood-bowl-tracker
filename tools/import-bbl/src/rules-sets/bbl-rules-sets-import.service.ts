@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertRulesSetData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   externalSystemBootstrapError,
   ExternalSystemsImportService,
@@ -68,7 +65,7 @@ export class BblRulesSetsImportService {
     }
 
     for (const name of names) {
-      const rulesSetData: UpsertRulesSetData = {
+      const rulesSetData: UpsertRulesSet = {
         name,
         externalIds: [
           { externalSystemId: bblSystemId, externalId: name },

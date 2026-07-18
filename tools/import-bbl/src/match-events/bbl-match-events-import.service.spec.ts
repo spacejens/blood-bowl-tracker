@@ -1,9 +1,11 @@
 import type {
+  UpsertCompetition,
+  UpsertMatchEvent,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
+import type {
   MatchEventsImportService,
   TeamsImportService,
-  UpsertCompetitionData,
-  UpsertMatchEventData,
-  UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -32,7 +34,7 @@ const HOME_TEAM_ERA_ID = 1000;
 const AWAY_TEAM_ERA_ID = 2000;
 const BBL_SYSTEM_ID = 1;
 
-const competition: UpsertCompetitionData = {
+const competition: UpsertCompetition = {
   name: 'Major Season 3',
   type: 'season',
   eraId: 200,
@@ -40,14 +42,14 @@ const competition: UpsertCompetitionData = {
   externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: '3' }],
 };
 
-const homeTeam: UpsertTeamData = {
+const homeTeam: UpsertTeam = {
   name: 'Home',
   raceId: 70,
   coachId: 9,
   eras: [],
   externalIds: [],
 };
-const awayTeam: UpsertTeamData = {
+const awayTeam: UpsertTeam = {
   name: 'Away',
   raceId: 71,
   coachId: 10,
@@ -88,18 +90,18 @@ async function runImport(
   playerIds: Record<string, number> = {},
   overrides: {
     matchIdsByBblId?: Map<string, number>;
-    teamsByCode?: Map<string, UpsertTeamData>;
+    teamsByCode?: Map<string, UpsertTeam>;
     upsertTeam?: ReturnType<typeof vi.fn>;
   } = {},
 ) {
-  const captured: UpsertMatchEventData[] = [];
-  const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+  const captured: UpsertMatchEvent[] = [];
+  const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
     captured.push(data);
     return Promise.resolve(true);
   });
   const upsertTeam =
     overrides.upsertTeam ??
-    vi.fn((data: UpsertTeamData) => {
+    vi.fn((data: UpsertTeam) => {
       const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;
       return Promise.resolve({ eras: [{ id, eraId: data.eras?.[0] }] });
     });
@@ -126,7 +128,7 @@ async function runImport(
   return { captured, result, upsertTeam, upsertMatchEvent };
 }
 
-function externalIds(captured: UpsertMatchEventData[]): string[] {
+function externalIds(captured: UpsertMatchEvent[]): string[] {
   return captured.map((c) => c.externalIds[0].externalId);
 }
 
@@ -380,7 +382,7 @@ describe('BblMatchEventsImportService', () => {
       ],
     };
 
-    const teamsByCode = new Map<string, UpsertTeamData>([
+    const teamsByCode = new Map<string, UpsertTeam>([
       ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
       ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
       ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
@@ -392,7 +394,7 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+    const upsertTeam = vi.fn((data: UpsertTeam) =>
       Promise.resolve({
         eras: [
           { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
@@ -400,8 +402,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });
@@ -508,7 +510,7 @@ describe('BblMatchEventsImportService', () => {
       ],
     };
 
-    const teamsByCode = new Map<string, UpsertTeamData>([
+    const teamsByCode = new Map<string, UpsertTeam>([
       ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
       ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
       ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
@@ -520,7 +522,7 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+    const upsertTeam = vi.fn((data: UpsertTeam) =>
       Promise.resolve({
         eras: [
           { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
@@ -528,8 +530,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });
@@ -639,7 +641,7 @@ describe('BblMatchEventsImportService', () => {
       ],
     };
 
-    const teamsByCode = new Map<string, UpsertTeamData>([
+    const teamsByCode = new Map<string, UpsertTeam>([
       ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
       ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
       ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
@@ -651,7 +653,7 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+    const upsertTeam = vi.fn((data: UpsertTeam) =>
       Promise.resolve({
         eras: [
           { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
@@ -659,8 +661,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });

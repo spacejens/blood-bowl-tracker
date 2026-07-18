@@ -19,6 +19,7 @@ describe('CompetitionsImportService', () => {
     name: 'Major Season 24',
     type: 'season' as const,
     eraId: 20,
+    teamEraIds: [],
     externalIds: [{ externalSystemId: 1, externalId: '73' }],
   };
 
@@ -116,6 +117,7 @@ describe('CompetitionsImportService.upsertCompetitionResult', () => {
     name: 'Major Season 24',
     type: 'season' as const,
     eraId: 20,
+    teamEraIds: [],
     externalIds: [{ externalSystemId: 1, externalId: '73' }],
   };
 

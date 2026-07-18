@@ -20,6 +20,7 @@ describe('MatchesImportService', () => {
     playedAt: new Date('2021-09-25'),
     name: 'Test Match',
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
+    teamEraIds: [],
   };
 
   it('returns true and calls the client with the given data on success', async () => {
@@ -109,6 +110,7 @@ describe('MatchesImportService.upsertMatchResult', () => {
     playedAt: new Date('2021-09-25'),
     name: 'Test Match',
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
+    teamEraIds: [],
   };
 
   it('resolves to the upserted match, including its DB id, on success', async () => {

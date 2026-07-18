@@ -22,12 +22,15 @@ apps/
 packages/
   db/                 — Drizzle schema + migrations; the only package that
                         imports directly from the database driver
-  game-data/          — DB-backed business logic for core game entities
-                        (coaches, external systems); depends on packages/db
-                        only, no network dependency; usable directly by any app
-  api-contract/       — oRPC contract defining coaches.upsert and
-                        externalSystems.upsert; imported by both api-server
-                        and api-client
+  game-data/          — DB-backed business logic for core game entities;
+                        depends on packages/db and on packages/api-contract
+                        for shared contract types (Upsert* shapes, ActionType,
+                        ConsequenceType); no network dependency; usable
+                        directly by any app
+  api-contract/       — oRPC contract plus the Zod schemas and inferred
+                        Upsert* types for all game entities; the single source
+                        of truth for those shapes, consumed by api-server,
+                        api-client, game-data, and import
   api-server/         — Thin NestJS transport layer: mounts a single oRPC
                         RPCHandler at /rpc, dispatching into packages/game-data;
                         hosted in-process by apps/discord-bot (there is no

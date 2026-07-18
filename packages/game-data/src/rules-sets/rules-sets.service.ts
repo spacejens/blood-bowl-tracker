@@ -1,3 +1,4 @@
+import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
 import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -8,17 +9,12 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class RulesSetUpsertConflictError extends UpsertConflictError {}
 
-export interface UpsertRulesSetData {
-  name: string;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
-
 @Injectable()
 export class RulesSetsService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   async upsert(
-    data: UpsertRulesSetData,
+    data: UpsertRulesSet,
   ): Promise<{ rulesSet: RulesSet; created: boolean }> {
     const { row: rulesSet, created } = await upsertByExternalIds<
       typeof rulesSets,

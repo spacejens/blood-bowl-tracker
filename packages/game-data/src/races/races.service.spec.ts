@@ -97,9 +97,10 @@ describe('RacesService', () => {
       expect(updateCalls).toHaveLength(0);
     });
 
-    it('defaults to no era links when eras is omitted', async () => {
+    it('defaults to no era links when eras is empty', async () => {
       const result = await service.upsert({
         name: 'Orc',
+        eras: [],
         externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
       });
       expect(result.race.eras).toEqual([]);

@@ -1,8 +1,8 @@
+import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type {
   ExternalSystemsImportService,
   PlayersImportService,
   TeamsImportService,
-  UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -48,14 +48,14 @@ function externalSystemsOk() {
   return vi.fn().mockResolvedValueOnce(1);
 }
 
-const team: UpsertTeamData = {
+const team: UpsertTeam = {
   name: 'Knights',
   raceId: 70, // DB race id
   coachId: 9,
   eras: [],
   externalIds: [],
 };
-const teamsByCode = new Map<string, UpsertTeamData>([['knu', team]]);
+const teamsByCode = new Map<string, UpsertTeam>([['knu', team]]);
 const racesByBblId = new Map<string, { id: number; name: string }>([
   ['7', { id: 70, name: 'Goblin Team' }],
 ]);
@@ -723,8 +723,8 @@ describe('BblPlayersImportService', () => {
   });
 
   it('skips and records an error when the team race has no BBL id mapping', async () => {
-    const unmappedRaceTeam: UpsertTeamData = { ...team, raceId: 999 };
-    const localTeamsByCode = new Map<string, UpsertTeamData>([
+    const unmappedRaceTeam: UpsertTeam = { ...team, raceId: 999 };
+    const localTeamsByCode = new Map<string, UpsertTeam>([
       ['knu', unmappedRaceTeam],
     ]);
     const { service, upsertPlayerResult } = makeService(

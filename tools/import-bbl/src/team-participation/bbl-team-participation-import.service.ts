@@ -1,10 +1,9 @@
 import type {
-  ImportError,
-  ImportResult,
-  UpsertCompetitionData,
-  UpsertRaceData,
-  UpsertTeamData,
-} from '@blood-bowl-tracker/import';
+  UpsertCompetition,
+  UpsertRace,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   makeImportError,
@@ -61,9 +60,9 @@ export class BblTeamParticipationImportService {
    * Idempotent.
    */
   async importTeamParticipation(
-    competitionsByBblId: Map<string, UpsertCompetitionData>,
-    teamsByCode: Map<string, UpsertTeamData>,
-    racesByRaceId: Map<number, UpsertRaceData>,
+    competitionsByBblId: Map<string, UpsertCompetition>,
+    teamsByCode: Map<string, UpsertTeam>,
+    racesByRaceId: Map<number, UpsertRace>,
     eraIdsByName: Map<string, number>,
     competitionIdsByBblId: Map<string, number>,
   ): Promise<{
@@ -185,7 +184,7 @@ export class BblTeamParticipationImportService {
    */
   private async syncMatchTeams(
     competitionBblId: string,
-    competition: UpsertCompetitionData,
+    competition: UpsertCompetition,
     matches: BblMatch[],
     matchTeamsByBblId: Map<string, BblMatchDetails>,
     teamEraIdByTeamId: Map<string, number>,
@@ -245,7 +244,7 @@ export class BblTeamParticipationImportService {
    * the competition.
    */
   private collectTeamIds(
-    competitionsByBblId: Map<string, UpsertCompetitionData>,
+    competitionsByBblId: Map<string, UpsertCompetition>,
     matchesByCompetitionId: Map<string, BblMatch[]>,
     matchTeamsByBblId: Map<string, BblMatchDetails>,
     errors: ImportError[],

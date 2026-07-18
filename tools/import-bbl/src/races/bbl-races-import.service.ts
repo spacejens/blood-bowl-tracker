@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertRaceData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   externalSystemBootstrapError,
   ExternalSystemsImportService,
@@ -47,13 +44,13 @@ export class BblRacesImportService {
     result: ImportResult;
     raceIdsByBblId: Map<string, number>;
     racesByBblId: Map<string, { id: number; name: string }>;
-    racesByRaceId: Map<number, UpsertRaceData>;
+    racesByRaceId: Map<number, UpsertRace>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const raceIdsByBblId = new Map<string, number>();
     const racesByBblId = new Map<string, { id: number; name: string }>();
-    const racesByRaceId = new Map<number, UpsertRaceData>();
+    const racesByRaceId = new Map<number, UpsertRace>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -153,7 +150,7 @@ export class BblRacesImportService {
     nameSystemId: number,
     raceIdsByBblId: Map<string, number>,
     racesByBblId: Map<string, { id: number; name: string }>,
-    racesByRaceId: Map<number, UpsertRaceData>,
+    racesByRaceId: Map<number, UpsertRace>,
     errors: ImportError[],
   ): Promise<boolean> {
     if (seen.has(parsedRace.id)) {
@@ -161,8 +158,9 @@ export class BblRacesImportService {
     }
     seen.add(parsedRace.id);
 
-    const data: UpsertRaceData = {
+    const data: UpsertRace = {
       name: parsedRace.name,
+      eras: [],
       externalIds: [
         { externalSystemId: bblSystemId, externalId: parsedRace.id },
         { externalSystemId: nameSystemId, externalId: parsedRace.name },
