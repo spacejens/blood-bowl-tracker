@@ -53,3 +53,18 @@ export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
   "Even the league secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
   "Even the referee's assistant won't accept your bribes.";
+
+// --- /deepdive command (slash-commands/deepdive-command.service.ts,
+//     deepdive/facts/era-deepdive.ts) ---
+export const DEEPDIVE_USAGE_MESSAGE =
+  'Tell the loremaster what to dig into (try the era option).';
+export const DEEPDIVE_ERA_NOT_FOUND_MESSAGE =
+  'The loremaster finds no such era anywhere in the annals.';
+export const DEEPDIVE_ERA_TIMEOUT_MESSAGE =
+  'The loremaster is still unrolling the great scroll of ages.';
+export const DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE =
+  'The rules lawyers are still cross-referencing which editions applied.';
+export const DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE =
+  'The tournament clerk is still sorting through the old fixture lists.';
+export const DEEPDIVE_NO_COMPETITIONS_MESSAGE =
+  'Not a single whistle has blown in this era yet.';
