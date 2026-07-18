@@ -122,6 +122,15 @@ interface EmittedEvent {
   consequencePid?: string | null;
 }
 
+interface EmitEventsOptions {
+  combined: CombinedOccurrences;
+  matchId: number;
+  externalSystemId: number;
+  teamEraIdByCode: Map<string, number>;
+  playerIdsByPid: Map<string, number>;
+  errors: ImportError[];
+}
+
 /**
  * Build the combined, team-coded occurrences of one match (or a merged pair,
  * when a partner's events are supplied). Each side occurrence is tagged with
@@ -344,14 +353,14 @@ export class BblMatchEventsImportService {
             continue;
           }
 
-          imported += await this.emitEvents(
+          imported += await this.emitEvents({
             combined,
             matchId,
             externalSystemId,
             teamEraIdByCode,
             playerIdsByPid,
             errors,
-          );
+          });
         } catch (error) {
           errors.push(
             makeImportError({
@@ -374,14 +383,15 @@ export class BblMatchEventsImportService {
    * each occurrence's own source match bblId. Returns the number of events whose
    * upsert reported success.
    */
-  private async emitEvents(
-    combined: CombinedOccurrences,
-    matchId: number,
-    externalSystemId: number,
-    teamEraIdByCode: Map<string, number>,
-    playerIdsByPid: Map<string, number>,
-    errors: ImportError[],
-  ): Promise<number> {
+  private async emitEvents(options: EmitEventsOptions): Promise<number> {
+    const {
+      combined,
+      matchId,
+      externalSystemId,
+      teamEraIdByCode,
+      playerIdsByPid,
+      errors,
+    } = options;
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
 
