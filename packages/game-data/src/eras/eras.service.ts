@@ -145,6 +145,30 @@ export class ErasService {
       .innerJoin(leagues, eq(leagues.id, eras.leagueId));
   }
 
+  async findByIdWithLeague(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        leagueName: string;
+        startDate: string;
+        endDate: string | null;
+      }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: eras.id,
+        name: eras.name,
+        leagueName: leagues.name,
+        startDate: eras.startDate,
+        endDate: eras.endDate,
+      })
+      .from(eras)
+      .innerJoin(leagues, eq(leagues.id, eras.leagueId))
+      .where(eq(eras.id, id));
+    return rows[0];
+  }
+
   countAll(): Promise<number> {
     return countRows(this.db, eras);
   }

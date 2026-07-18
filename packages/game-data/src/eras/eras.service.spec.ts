@@ -291,4 +291,40 @@ describe('ErasService', () => {
       );
     });
   });
+
+  describe('findByIdWithLeague', () => {
+    it('returns the era with its league name and dates', async () => {
+      const row = {
+        id: 7,
+        name: 'BB2020',
+        leagueName: 'Premier League',
+        startDate: '2021-09-01',
+        endDate: '2023-06-10',
+      };
+      const where = vi.fn().mockResolvedValue([row]);
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findByIdWithLeague(7)).resolves.toEqual(row);
+      expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe(7);
+      expect(extractJoinColumns(firstCallArg(innerJoin, 0, 1))).toEqual([
+        'leagues.id',
+        'eras.league_id',
+      ]);
+    });
+
+    it('returns undefined when no era matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      const service = new ErasService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findByIdWithLeague(999)).resolves.toBeUndefined();
+      expect(extractFilterValues(firstCallArg(where))).toBe(999);
+    });
+  });
 });
