@@ -1,8 +1,8 @@
+import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
 import type {
   MatchEventsImportService,
   TeamsImportService,
   UpsertCompetitionData,
-  UpsertMatchEventData,
   UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -92,8 +92,8 @@ async function runImport(
     upsertTeam?: ReturnType<typeof vi.fn>;
   } = {},
 ) {
-  const captured: UpsertMatchEventData[] = [];
-  const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+  const captured: UpsertMatchEvent[] = [];
+  const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
     captured.push(data);
     return Promise.resolve(true);
   });
@@ -126,7 +126,7 @@ async function runImport(
   return { captured, result, upsertTeam, upsertMatchEvent };
 }
 
-function externalIds(captured: UpsertMatchEventData[]): string[] {
+function externalIds(captured: UpsertMatchEvent[]): string[] {
   return captured.map((c) => c.externalIds[0].externalId);
 }
 
@@ -400,8 +400,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });
@@ -528,8 +528,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });
@@ -659,8 +659,8 @@ describe('BblMatchEventsImportService', () => {
       }),
     );
 
-    const captured: UpsertMatchEventData[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEventData) => {
+    const captured: UpsertMatchEvent[] = [];
+    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
       captured.push(data);
       return Promise.resolve(true);
     });

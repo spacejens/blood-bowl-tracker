@@ -1,12 +1,12 @@
 import type {
   ActionType,
   ConsequenceType,
+  UpsertMatchEvent,
 } from '@blood-bowl-tracker/api-contract';
 import type {
   ImportError,
   ImportResult,
   UpsertCompetitionData,
-  UpsertMatchEventData,
   UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import {
@@ -407,7 +407,7 @@ export class BblMatchEventsImportService {
       occurrenceCounters.set(counterKey, occurrenceIndex + 1);
       const externalId = `${sourceBblId}-${teamCode}-${category}-${occurrenceIndex}`;
 
-      const data: UpsertMatchEventData = {
+      const data: UpsertMatchEvent = {
         matchId,
         externalIds: [{ externalSystemId, externalId }],
       };

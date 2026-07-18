@@ -1,24 +1,10 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type {
-  ActionType,
-  ConsequenceType,
-} from '@blood-bowl-tracker/api-contract';
+import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
-
-export interface UpsertMatchEventData {
-  matchId: number;
-  actingTeamEraId?: number;
-  consequenceTeamEraId?: number;
-  actingPlayerId?: number;
-  consequencePlayerId?: number;
-  actionType?: ActionType;
-  consequenceType?: ConsequenceType;
-  externalIds: { externalSystemId: number; externalId: string }[];
-}
 
 @Injectable()
 export class MatchEventsImportService {
@@ -28,7 +14,7 @@ export class MatchEventsImportService {
   ) {}
 
   upsertMatchEvent(
-    data: UpsertMatchEventData,
+    data: UpsertMatchEvent,
     errors: ImportError[],
   ): Promise<boolean> {
     const externalId = data.externalIds[0]?.externalId;
