@@ -17,6 +17,7 @@ describe('TeamsImportService', () => {
     name: '40 grinders',
     raceId: 5,
     coachId: 9,
+    eras: [],
     externalIds: [{ externalSystemId: 1, externalId: '40g' }],
   };
 

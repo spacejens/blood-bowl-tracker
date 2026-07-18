@@ -1,3 +1,4 @@
+import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type {
   CompetitionsImportService,
   MatchesImportService,
@@ -5,7 +6,6 @@ import type {
   TeamsImportService,
   UpsertCompetitionData,
   UpsertRaceData,
-  UpsertTeamData,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -66,14 +66,14 @@ function makeMergeService(
   return new MatchMergeService(reader, mergeConfig);
 }
 
-const home: UpsertTeamData = {
+const home: UpsertTeam = {
   name: 'Sewerton Scavengers',
   raceId: 5,
   coachId: 9,
   eras: [],
   externalIds: [{ externalSystemId: 1, externalId: 'sew' }],
 };
-const away: UpsertTeamData = {
+const away: UpsertTeam = {
   name: 'Vorgash New Order',
   raceId: 7,
   coachId: 9,
@@ -140,7 +140,7 @@ describe('BblTeamParticipationImportService', () => {
   it('syncs team eras, competition teams, and race eras from match team ids', async () => {
     const upsertTeam = vi
       .fn()
-      .mockImplementation((data: UpsertTeamData) =>
+      .mockImplementation((data: UpsertTeam) =>
         Promise.resolve(
           data.name === 'Sewerton Scavengers'
             ? { id: 1, eras: [{ id: 1001, eraId: 200 }] }
@@ -205,7 +205,7 @@ describe('BblTeamParticipationImportService', () => {
       eraId: 999,
       externalIds: [{ externalSystemId: 1, externalId: '2' }],
     };
-    const upsertTeam = vi.fn().mockImplementation((data: UpsertTeamData) => {
+    const upsertTeam = vi.fn().mockImplementation((data: UpsertTeam) => {
       const eraId = data.eras?.[0] ?? 0;
       return Promise.resolve(
         data.name === 'Sewerton Scavengers'
@@ -364,7 +364,7 @@ describe('BblTeamParticipationImportService', () => {
   it('does not collect a team era id when a team upsert yields no result', async () => {
     const upsertTeam = vi
       .fn()
-      .mockImplementation((data: UpsertTeamData) =>
+      .mockImplementation((data: UpsertTeam) =>
         Promise.resolve(
           data.name === 'Sewerton Scavengers'
             ? { id: 1, eras: [{ id: 1001, eraId: 200 }] }
@@ -498,7 +498,7 @@ describe('BblTeamParticipationImportService', () => {
   it('upserts match teams with both resolved team eras', async () => {
     const upsertTeam = vi
       .fn()
-      .mockImplementation((data: UpsertTeamData) =>
+      .mockImplementation((data: UpsertTeam) =>
         Promise.resolve(
           data.name === 'Sewerton Scavengers'
             ? { id: 1, eras: [{ id: 1001, eraId: 200 }] }
@@ -618,28 +618,28 @@ describe('BblTeamParticipationImportService', () => {
     const matchA = { bblId: '1061', date: new Date(Date.UTC(2016, 8, 25)) };
     const matchB = { bblId: '1062', date: new Date(Date.UTC(2016, 8, 24)) };
 
-    const teamA1: UpsertTeamData = {
+    const teamA1: UpsertTeam = {
       name: 'A1',
       raceId: 1,
       coachId: 1,
       eras: [],
       externalIds: [{ externalSystemId: 1, externalId: 'a1' }],
     };
-    const teamA2: UpsertTeamData = {
+    const teamA2: UpsertTeam = {
       name: 'A2',
       raceId: 2,
       coachId: 1,
       eras: [],
       externalIds: [{ externalSystemId: 1, externalId: 'a2' }],
     };
-    const teamB1: UpsertTeamData = {
+    const teamB1: UpsertTeam = {
       name: 'B1',
       raceId: 3,
       coachId: 1,
       eras: [],
       externalIds: [{ externalSystemId: 1, externalId: 'b1' }],
     };
-    const teamB2: UpsertTeamData = {
+    const teamB2: UpsertTeam = {
       name: 'B2',
       raceId: 4,
       coachId: 1,
@@ -654,7 +654,7 @@ describe('BblTeamParticipationImportService', () => {
       b1: 13,
       b2: 14,
     };
-    const upsertTeam = vi.fn((data: UpsertTeamData) =>
+    const upsertTeam = vi.fn((data: UpsertTeam) =>
       Promise.resolve({
         eras: [
           {

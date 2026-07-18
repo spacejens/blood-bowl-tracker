@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertTeamData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   externalSystemBootstrapError,
   ExternalSystemsImportService,
@@ -45,7 +42,7 @@ export class BblPlayersImportService {
    * fully resolved are recorded as errors and skipped. Idempotent.
    */
   async importPlayers(
-    teamsByCode: Map<string, UpsertTeamData>,
+    teamsByCode: Map<string, UpsertTeam>,
     positionIdsByBblId: Map<string, number>,
     racesByBblId: Map<string, { id: number; name: string }>,
     eraIdsByName: Map<string, number>,

@@ -55,5 +55,5 @@ export {
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
 export { TeamsModule } from './teams/teams.module';
-export type { TeamWithEras, UpsertTeamData } from './teams/teams.service';
+export type { TeamWithEras } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';

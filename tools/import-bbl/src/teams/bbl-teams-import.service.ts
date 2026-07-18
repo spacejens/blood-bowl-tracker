@@ -1,8 +1,5 @@
-import type {
-  ImportError,
-  ImportResult,
-  UpsertTeamData,
-} from '@blood-bowl-tracker/import';
+import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   externalSystemBootstrapError,
   ExternalSystemsImportService,
@@ -51,14 +48,14 @@ export class BblTeamsImportService {
   ): Promise<{
     result: ImportResult;
     teamRaceIdsByCode: Map<string, number>;
-    teamsByName: Map<string, UpsertTeamData>;
-    teamsByCode: Map<string, UpsertTeamData>;
+    teamsByName: Map<string, UpsertTeam>;
+    teamsByCode: Map<string, UpsertTeam>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const teamRaceIdsByCode = new Map<string, number>();
-    const teamsByName = new Map<string, UpsertTeamData>();
-    const teamsByCode = new Map<string, UpsertTeamData>();
+    const teamsByName = new Map<string, UpsertTeam>();
+    const teamsByCode = new Map<string, UpsertTeam>();
 
     let bblSystemId: number;
     let nameSystemId: number;
@@ -117,7 +114,7 @@ export class BblTeamsImportService {
           continue;
         }
 
-        const teamData: UpsertTeamData = {
+        const teamData: UpsertTeam = {
           name: team.name,
           raceId,
           coachId,

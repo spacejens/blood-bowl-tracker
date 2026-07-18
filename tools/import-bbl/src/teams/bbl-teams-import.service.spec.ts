@@ -521,7 +521,7 @@ describe('BblTeamsImportService', () => {
     );
 
     expect(result.success).toBe(true);
-    // same UpsertTeamData object is indexed under both name and code
+    // same UpsertTeam object is indexed under both name and code
     const code = '40g';
     const name = '40 grinders';
     expect(teamsByCode.get(code)).toEqual(teamsByName.get(name));
