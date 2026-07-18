@@ -1,6 +1,6 @@
 ---
 name: deploy-local
-description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
+description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import or the tools/import-tp TP discovery script against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
 ---
 
 # deploy-local
@@ -17,12 +17,13 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform, via a multi-select question with exactly these three options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
+0. Ask the developer which action(s) to perform, via a multi-select question with exactly these four options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
+   - **Run the TP import** — run `tools/import-tp/`'s discovery script against the configured TP data (currently a dry run — see #192; no database writes yet).
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The developer may select any combination of the three options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The developer may select any combination of the four options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 
@@ -106,9 +107,45 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    ```
 4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
+### Run the TP import
+
+Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected. As of #192, `tools/import-tp/` has no entity-import logic yet — its `main.ts` is a discovery/dry-run that walks the configured TP data directories and prints a per-era competition/file-type summary, with no database writes. This section will start performing a real import once a later issue (#193 onward) adds that logic; until then "running the TP import" means running this discovery script.
+
+1. `tools/import-tp/import-tp-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout might. Unlike the BBL config/data pair, `develop-feature`'s Phase 1 sync does not yet cover `tools/import-tp` files, so this fallback sync always applies in a worktree, not just for worktrees `develop-feature` didn't create. If running from a worktree, sync both from the main checkout:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     if [ ! -f "$WORKTREE_ROOT/tools/import-tp/import-tp-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-tp/import-tp-config.json5" ]; then
+       cp "$MAIN_ROOT/tools/import-tp/import-tp-config.json5" "$WORKTREE_ROOT/tools/import-tp/import-tp-config.json5"
+     fi
+     if [ ! -e "$WORKTREE_ROOT/tools/import-tp/data" ] && [ -d "$MAIN_ROOT/tools/import-tp/data" ]; then
+       ln -s "$MAIN_ROOT/tools/import-tp/data" "$WORKTREE_ROOT/tools/import-tp/data"
+     fi
+   fi
+   ```
+   Never overwrite an `import-tp-config.json5` or `data` entry already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. `data/` holds the actual TP data download and can be very large, so it is symlinked, never copied — same pattern used for `tools/import-bbl/data`.
+2. Check `tools/import-tp/import-tp-config.json5` is usable:
+   ```bash
+   cat tools/import-tp/import-tp-config.json5 2>/dev/null
+   ```
+   If the file doesn't exist, or its `eras` array still has the `import-tp-config.example.json5` placeholder entry (`{ name: '<era name>', dataSubdir: '<era-slug>' }`), the tool will fail validation. In that case, list the actual era subdirectories present under `tools/import-tp/data/` (`ls tools/import-tp/data/`) and ask the developer to confirm the display name for each era slug found, per `docs/import-tp/index.md`. Then write the result into `import-tp-config.json5`:
+   ```bash
+   if [ ! -f tools/import-tp/import-tp-config.json5 ]; then
+     cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.json5
+   fi
+   ```
+   followed by setting the `eras` array in that file to the confirmed `{ name, dataSubdir }` entries.
+3. Build and run the discovery script — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/import-tp run build
+   ( cd tools/import-tp && node dist/main.js )
+   ```
+4. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints one summary line per era (e.g. `Fourth era: 3 competitions, 42 files (match: 12, rosters: 9, tournament: 15, ...)`) on stdout; or exits `1`, printing `Discovery failed: <error>` on stderr for an unexpected failure (e.g. a missing era directory, invalid config). Report the exit code and the captured output either way. No database writes occur either way, so there is nothing to roll back on failure.
+
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after both the "Deploy the stack" and "Run the BBL import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with the BBL import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with either import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash
