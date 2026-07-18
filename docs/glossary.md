@@ -30,6 +30,13 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 A period of play that begins with a kick-off and ends when a [touchdown](#touchdown) is scored or the current [half](#half) ends. Each [half](#half) may contain multiple drives.
 
+## Deepdive
+
+The `/deepdive` Discord command's detail view for a single recorded subject.
+Currently supports eras, showing an era's league, dates, rules sets, and its
+competitions in chronological order. See
+[the command spec](discord-bot/slash-commands/deepdive.md).
+
 ## Era
 
 A period of time during which a [league](#league) used one or more [rules sets](#rules-set), in sequence. A league may have multiple eras, and in some cases eras for different rules sets may overlap (e.g. when different groups within the league play under different rules simultaneously).
