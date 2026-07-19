@@ -55,37 +55,36 @@ Example, taken from `import-tp-config.example.json5`:
   externalSystemName: 'TP',
   dataDir: 'data',
   league: {
-    name: 'tLoEGBBL',
+    name: 'tLoEG',
     eras: [
       {
         identity: {
           name: 'Third era',
-          rulesSets: ['LRB6'],
+          rulesSets: ['BB2020'],
         },
         dates: {
-          startDate: '2013-01-01',
-          endDate: '2016-12-31',
+          startDate: '2023-06-28',
+          endDate: '2025-12-13',
         },
         dataSubdir: 'third-era',
       },
       {
         identity: {
           name: 'Second Dungeon Bowl era',
-          rulesSets: ['Dungeon Bowl 2021'],
+          rulesSets: ['DB2021'],
         },
         dates: {
-          startDate: '2021-01-01',
-          endDate: '2021-12-31',
+          startDate: '2022-12-29',
         },
         dataSubdir: 'second-dungeon-bowl-era',
       },
       {
         identity: {
           name: 'Fourth era',
-          rulesSets: ['BB2020'],
+          rulesSets: ['BB2025'],
         },
         dates: {
-          startDate: '2020-11-28',
+          startDate: '2026-01-17',
         },
         dataSubdir: 'fourth-era',
       },

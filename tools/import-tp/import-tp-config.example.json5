@@ -31,7 +31,7 @@
   league: {
     // Name of the league the TP data covers. Used as the league's external
     // ID under the TP and Name external systems.
-    name: 'tLoEGBBL',
+    name: 'tLoEG',
 
     // Eras the league played through, and which data subdirectory each
     // corresponds to. Subdirectory names are TP's own slugs and don't
@@ -42,34 +42,33 @@
         // chronological order.
         identity: {
           name: 'Third era',
-          rulesSets: ['LRB6'],
+          rulesSets: ['BB2020'],
         },
         // startDate (required, YYYY-MM-DD) and endDate (optional -- omit for
         // an era still ongoing).
         dates: {
-          startDate: '2013-01-01',
-          endDate: '2016-12-31',
+          startDate: '2023-06-28',
+          endDate: '2025-12-13',
         },
         dataSubdir: 'third-era',
       },
       {
         identity: {
           name: 'Second Dungeon Bowl era',
-          rulesSets: ['Dungeon Bowl 2021'],
+          rulesSets: ['DB2021'],
         },
         dates: {
-          startDate: '2021-01-01',
-          endDate: '2021-12-31',
+          startDate: '2022-12-29',
         },
         dataSubdir: 'second-dungeon-bowl-era',
       },
       {
         identity: {
           name: 'Fourth era',
-          rulesSets: ['BB2020'],
+          rulesSets: ['BB2025'],
         },
         dates: {
-          startDate: '2020-11-28',
+          startDate: '2026-01-17',
         },
         dataSubdir: 'fourth-era',
       },
