@@ -1,14 +1,10 @@
 # import-tp
 
-`tools/import-tp/` imports data from TP (thebiggerbowl / TabletopPlaying) into
-the tracker. The source data is a set of JSON API responses, laid out as one
-subdirectory per era, with a per-competition subdirectory inside each era
-(e.g. `data/fourth-era/tloegbbl-chaos-cup-8/`). Unlike BBL's HTML mirror, TP's
+`tools/import-tp/` imports data from TP into the tracker. The source data is
+a set of JSON API responses, laid out as one subdirectory per era, with a
+per-competition subdirectory inside each era (e.g.
+`data/fourth-era/tloegbbl-chaos-cup-8/`). Unlike BBL's HTML mirror, TP's
 files are JSON.
-
-At this stage the tool imports **the league, its rule sets, and its eras**.
-Competitions, matches, coaches, and the rest of the entity graph land in later
-sub-issues (#194-198), with reusable parsing logic in `packages/parse-tp`.
 
 ## Configuration
 
@@ -45,53 +41,8 @@ so the era list can be documented inline. Top-level keys:
       match the era's display name. Every `identity.name` and every
       `dataSubdir` must be unique across the array.
 
-Example, taken from `import-tp-config.example.json5`:
-
-```json5
-{
-  connection: {
-    apiBaseUrl: 'http://localhost:3000',
-  },
-  externalSystemName: 'TP',
-  dataDir: 'data',
-  league: {
-    name: 'tLoEG',
-    eras: [
-      {
-        identity: {
-          name: 'Third era',
-          rulesSets: ['BB2020'],
-        },
-        dates: {
-          startDate: '2023-06-28',
-          endDate: '2025-12-13',
-        },
-        dataSubdir: 'third-era',
-      },
-      {
-        identity: {
-          name: 'Second Dungeon Bowl era',
-          rulesSets: ['DB2021'],
-        },
-        dates: {
-          startDate: '2022-12-29',
-        },
-        dataSubdir: 'second-dungeon-bowl-era',
-      },
-      {
-        identity: {
-          name: 'Fourth era',
-          rulesSets: ['BB2025'],
-        },
-        dates: {
-          startDate: '2026-01-17',
-        },
-        dataSubdir: 'fourth-era',
-      },
-    ],
-  },
-}
-```
+See `import-tp-config.example.json5` for a worked example with real era
+names, rule sets, and dates.
 
 Rule-set names and era dates are config-supplied because TP's data carries
 only an opaque numeric rule-set code, not a name or a date range. The tool
