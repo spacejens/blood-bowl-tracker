@@ -6,6 +6,7 @@ import { ImportTpConfigModule } from './config/import-tp-config.module';
 import { ImportTpConfigService } from './config/import-tp-config.service';
 import { EraDataConfigModule } from './eras/era-data-config.module';
 import { LeaguesModule } from './leagues/leagues.module';
+import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
 
 @Module({})
@@ -23,6 +24,7 @@ export class AppModule {
         EraDataConfigModule,
         SourceModule,
         LeaguesModule,
+        RulesSetsModule,
       ],
     };
   }
