@@ -28,7 +28,8 @@ autocompleted by name (`era` suggestions are labelled `<era> (<league>)`):
 - **An era that matches nothing** — the bot replies with a not-found message.
 - **`coach:<coach>`** — the bot replies with an embed for that coach: the coach
   name as the title, then their career span (the first and last dates across
-  every match they have played), a blank line, and `Top teams:` followed by
+  every match they have played), a blank line, and `Top teams by matches
+  played:` followed by
   their top five teams by matches played, one line per team formatted
   `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff are all shown,
   up to ten teams — the same convention `/insights` toplists use, though at

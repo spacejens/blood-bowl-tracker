@@ -261,7 +261,7 @@ describe('DeepdiveCommandService', () => {
           description: [
             'Career: 2021-09-01 – 2023-06-10',
             '',
-            'Top teams:',
+            'Top teams by matches played:',
             '1. Reikland Reavers — 12',
           ].join('\n'),
         },

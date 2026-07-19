@@ -82,7 +82,7 @@ export async function resolveCoachDeepdive(
   const description = [
     `Career: ${span.start} – ${span.end}`,
     '',
-    'Top teams:',
+    'Top teams by matches played:',
     ...teamLines,
   ].join('\n');
 
