@@ -14,6 +14,9 @@ autocompleted by name (`era` suggestions are labelled `<era> (<league>)`):
   deepdive needs a target. This is framed as "specify a target", not a hard
   validation error, so the command can add targets later without changing this
   contract.
+- **More than one argument** (e.g. both `era` and `coach`) — the bot rejects
+  the call with an error message instead of guessing which target was
+  intended, since the arguments are mutually exclusive.
 - **`era:<era>`** — the bot replies with an embed for that era: the era name as
   the title, then its league, its start–end dates (an ongoing era shows
   `present`), its rules sets (comma-joined, or "None recorded"), and a

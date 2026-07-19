@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
 import {
@@ -268,17 +269,12 @@ describe('DeepdiveCommandService', () => {
     });
   });
 
-  it('prefers the era target when both era and coach are supplied', async () => {
+  it('rejects the call when both era and coach are supplied', async () => {
     const { service, eras, coaches } = makeService();
-    (eras.findByIdWithLeague as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'BB2020',
-      leagueName: 'Premier',
-      startDate: '2021-09-01',
-      endDate: null,
-    });
     const result = await service.execute(chatInput({ era: '7', coach: '3' }));
-    expect(result).toMatchObject({ embeds: [{ title: 'BB2020' }] });
+    expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.findById).not.toHaveBeenCalled();
   });

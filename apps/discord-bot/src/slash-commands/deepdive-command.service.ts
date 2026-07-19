@@ -19,6 +19,7 @@ import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
@@ -80,10 +81,13 @@ export class DeepdiveCommandService implements OnModuleInit {
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const eraOption = interaction.options.getString('era');
+    const coachOption = interaction.options.getString('coach');
+    if (eraOption !== null && coachOption !== null) {
+      return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
+    }
     if (eraOption !== null) {
       return this.resolveEra(eraOption);
     }
-    const coachOption = interaction.options.getString('coach');
     if (coachOption !== null) {
       return this.resolveCoach(coachOption);
     }
