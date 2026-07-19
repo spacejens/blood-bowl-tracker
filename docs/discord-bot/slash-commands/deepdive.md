@@ -27,11 +27,12 @@ autocompleted by name (`era` suggestions are labelled `<era> (<league>)`):
   name as the title, then their career span (the first and last dates across
   every match they have played), a blank line, and `Top teams:` followed by
   their top five teams by matches played, one line per team formatted
-  `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff are all shown
-  (with an "…and N more tied." note when the list is capped), the same
-  convention `/insights` toplists use. A coach who exists but has recorded no
-  matches shows a short "hasn't played yet" message instead of a career span
-  and team list.
+  `<rank>. <team> — <matches>`. Ties at the fifth-place cutoff are all shown,
+  up to ten teams — the same convention `/insights` toplists use, though at
+  most ten teams are fetched for a deepdive, so the toplists' "…and N more
+  tied." truncation note never actually appears here. A coach who exists but
+  has recorded no matches shows a short "hasn't played yet" message instead of
+  a career span and team list.
 - **A coach that matches nothing** — the bot replies with a not-found message.
 
 If the database does not respond in time, the command falls back to a themed
