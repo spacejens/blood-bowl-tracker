@@ -1,19 +1,22 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { Db, Team } from '@blood-bowl-tracker/db';
 import {
+  coaches,
   competitions,
   competitionTeams,
   DB,
   matches,
   matchTeams,
+  races,
   teamEras,
   teamExternalIds,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { countDistinct, desc, eq } from 'drizzle-orm';
+import { countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { countMatchEventsByTeam } from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
@@ -70,6 +73,37 @@ export class TeamsService {
 
     const eras = await this.syncEras(team.id, data.eras);
     return { team: { ...team, eras }, created };
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: teams.id, name: teams.name })
+      .from(teams)
+      .where(ilike(teams.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
+
+  async findById(
+    id: number,
+  ): Promise<
+    | { id: number; name: string; raceName: string; coachName: string }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        raceName: races.name,
+        coachName: coaches.name,
+      })
+      .from(teams)
+      .innerJoin(races, eq(races.id, teams.raceId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .where(eq(teams.id, id));
+    return rows[0];
   }
 
   async countMatchesPlayedByTeam(
