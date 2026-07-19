@@ -78,3 +78,7 @@ reply, so it always answers within Discord's response window.
 - [`/insights`](slash-commands/insights.md) — shares a random or chosen fact
   from a tree of categorized insights, with autocomplete to navigate the fact
   tree.
+- [`/deepdive`](slash-commands/deepdive.md) — a lookup/drill-down command;
+  currently shows a detail view for a single era (league, dates, rules sets,
+  and its competitions in chronological order), reachable both directly and via
+  the buttons on `/insights`' era list.

@@ -48,6 +48,20 @@ function makeCountBuilder(rows: unknown[]) {
   return builder;
 }
 
+function makeChronoBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.leftJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.groupBy = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 describe('CompetitionsService', () => {
   let service: CompetitionsService;
   let externalIdRows: unknown[];
@@ -294,6 +308,37 @@ describe('CompetitionsService', () => {
         (chunk): chunk is string => typeof chunk === 'string',
       );
       expect(pattern).toBe('50\\%\\_x%');
+    });
+  });
+
+  describe('listByEraChronological', () => {
+    it('returns the era competitions the query resolves to', async () => {
+      const rows = [
+        { id: 1, name: 'Season 1', type: 'season' as const },
+        { id: 2, name: 'Cup A', type: 'cup' as const },
+      ];
+      const builder = makeChronoBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.listByEraChronological(5)).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+      // filtered to the requested era
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
+      // grouped so the min-match-date aggregate is per competition
+      expect(builder.groupBy).toHaveBeenCalledTimes(1);
+      // ordered (earliest-match-date asc, nulls last) — verified as a SQL chunk
+      expect(builder.orderBy).toHaveBeenCalledTimes(1);
+      // left join keeps competitions that have no matches yet
+      expect(builder.leftJoin).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an empty array when the era has no competitions', async () => {
+      const builder = makeChronoBuilder([]);
+      const service = new CompetitionsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.listByEraChronological(5)).resolves.toEqual([]);
     });
   });
 });

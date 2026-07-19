@@ -139,9 +139,12 @@ so you can navigate the tree without memorizing it.
 - `eras.list` — a single embed listing every recorded era grouped by league,
   leagues ordered by their earliest era and eras ordered chronologically
   within each league. Each line reads `<era> (<league>): <start> – <end>`
-  (an ongoing era shows `present`), with a ` — Rules: ...` suffix when the era
-  has rules sets. Does not support the `era` filter option (it exists to list
-  all eras), so it is excluded from era-filtered runs.
+  (an ongoing era shows `present`). Each listed era also gets a button that
+  opens that era's [`/deepdive`](deepdive.md) detail view (which is where a
+  rules-set breakdown now lives, rather than inline on this list). Buttons are
+  capped at Discord's per-message limit of 25. Does not support the `era`
+  filter option (it exists to list all eras), so it is excluded from
+  era-filtered runs.
 
 The bot's startup message posts a random fact from this tree — the same
 behavior as invoking `/insights` with no argument.

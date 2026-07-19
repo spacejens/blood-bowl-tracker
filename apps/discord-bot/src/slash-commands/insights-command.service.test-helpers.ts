@@ -1,4 +1,3 @@
-import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import type {
   CoachesService,
   CompetitionsService,
@@ -19,6 +18,7 @@ import type {
 import { vi } from 'vitest';
 
 import { InsightsCommandService } from './insights-command.service';
+import type { SlashCommandRegistryService } from './slash-command-registry.service';
 
 /**
  * Test-only helpers for the `/insights` command service specs.
@@ -181,8 +181,8 @@ export function makeService() {
     countByCompetition: vi.fn().mockResolvedValue(0),
   } as unknown as RacesService;
   const externalSystems = zero() as unknown as ExternalSystemsService;
-  const discordClient = {
-    registerCommands: vi.fn().mockResolvedValue(undefined),
+  const registry = {
+    register: vi.fn(),
   };
   return {
     service: new InsightsCommandService(
@@ -197,7 +197,7 @@ export function makeService() {
       positions,
       races,
       externalSystems,
-      discordClient as unknown as DiscordClientService,
+      registry as unknown as SlashCommandRegistryService,
     ),
     coaches,
     teams,
@@ -205,7 +205,7 @@ export function makeService() {
     eras,
     races,
     competitions,
-    discordClient,
+    registry,
   };
 }
 

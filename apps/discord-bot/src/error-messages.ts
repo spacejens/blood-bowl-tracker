@@ -10,8 +10,6 @@
 // --- Eras list (insights/facts/eras-list.ts) ---
 export const ERAS_LIST_TIMEOUT_MESSAGE =
   'The historian is still leafing through the record books.';
-export const ERAS_RULES_SET_TIMEOUT_MESSAGE =
-  'The rules committee is still arguing over which edition applies.';
 export const ERAS_LIST_NO_DATA_MESSAGE = 'The commentators are clearly drunk.';
 
 // --- Stats summary (insights/facts/stats-summary.ts) ---
@@ -53,3 +51,18 @@ export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
   "Even the league secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
   "Even the referee's assistant won't accept your bribes.";
+
+// --- /deepdive command (slash-commands/deepdive-command.service.ts,
+//     deepdive/facts/era-deepdive.ts) ---
+export const DEEPDIVE_USAGE_MESSAGE =
+  'Tell the loremaster what to dig into (try one of the options).';
+export const DEEPDIVE_ERA_NOT_FOUND_MESSAGE =
+  'The team wizard has turned themselves into a frog.';
+export const DEEPDIVE_ERA_TIMEOUT_MESSAGE =
+  'The dwarfs are still reading the Book of Grudges.';
+export const DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE =
+  'The rules lawyers are still cross-referencing which editions applied.';
+export const DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE =
+  'The tournament clerk is still sorting through the old fixture lists.';
+export const DEEPDIVE_NO_COMPETITIONS_MESSAGE =
+  'Not a single whistle has blown in this era yet.';

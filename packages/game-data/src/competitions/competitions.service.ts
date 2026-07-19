@@ -7,9 +7,10 @@ import {
   DB,
   eras,
   leagues,
+  matches,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, eq, ilike } from 'drizzle-orm';
+import { and, count, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
@@ -120,6 +121,26 @@ export class CompetitionsService {
       .from(competitions)
       .where(eq(competitions.id, id));
     return rows[0];
+  }
+
+  listByEraChronological(
+    eraId: number,
+  ): Promise<{ id: number; name: string; type: 'season' | 'cup' }[]> {
+    // Left join keeps competitions that have no matches yet; grouping collapses
+    // the join back to one row per competition, and the min(playedAt) aggregate
+    // gives each competition's earliest match date. `nulls last` sorts
+    // never-played competitions after every dated one.
+    return this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        type: competitions.type,
+      })
+      .from(competitions)
+      .leftJoin(matches, eq(matches.competitionId, competitions.id))
+      .where(eq(competitions.eraId, eraId))
+      .groupBy(competitions.id)
+      .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
   }
 
   searchByNamePrefix(

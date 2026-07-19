@@ -26,6 +26,11 @@ A subtype of [competition](#competition) — a short competitive event typically
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
+## Deepdive
+
+The `/deepdive` Discord command's detail view for a single recorded subject.
+See [the command spec](discord-bot/slash-commands/deepdive.md).
+
 ## Drive
 
 A period of play that begins with a kick-off and ends when a [touchdown](#touchdown) is scored or the current [half](#half) ends. Each [half](#half) may contain multiple drives.
