@@ -35,14 +35,12 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     ]);
   });
 
-  it('registers only the insights command on bootstrap', async () => {
-    const { service, discordClient } = makeService();
-    await service.onApplicationBootstrap();
-    expect(discordClient.registerCommands).toHaveBeenCalledTimes(1);
-    const commands = discordClient.registerCommands.mock.calls[0][0] as {
-      name: string;
-    }[];
-    expect(commands.map((c) => c.name)).toEqual(['insights']);
+  it('registers the insights command with the registry on init', () => {
+    const { service, registry } = makeService();
+    service.onModuleInit();
+    expect(registry.register).toHaveBeenCalledTimes(1);
+    const command = registry.register.mock.calls[0][0] as { name: string };
+    expect(command.name).toBe('insights');
   });
 
   it('advertises an era option alongside category', () => {
