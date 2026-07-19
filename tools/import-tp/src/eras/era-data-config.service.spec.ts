@@ -63,6 +63,21 @@ describe('EraDataConfigService', () => {
     ).toThrow('TP_ERAS[0] must be an object');
   });
 
+  it('throws when identity is not an object', () => {
+    expect(() =>
+      makeService({
+        name: 'x',
+        eras: [
+          {
+            identity: 'x',
+            dates: { startDate: '2013-01-01' },
+            dataSubdir: 'third-era',
+          },
+        ],
+      }).getEras(),
+    ).toThrow('TP_ERAS[0].identity must be an object');
+  });
+
   it('throws when identity.name is empty', () => {
     expect(() =>
       makeService({
@@ -93,6 +108,21 @@ describe('EraDataConfigService', () => {
     ).toThrow(
       'TP_ERAS[0].identity.rulesSets must be a non-empty array of non-empty strings',
     );
+  });
+
+  it('throws when dates is not an object', () => {
+    expect(() =>
+      makeService({
+        name: 'x',
+        eras: [
+          {
+            identity: { name: 'Third era', rulesSets: ['LRB6'] },
+            dates: null,
+            dataSubdir: 'third-era',
+          },
+        ],
+      }).getEras(),
+    ).toThrow('TP_ERAS[0].dates must be an object');
   });
 
   it('throws when dates.startDate is missing or not an ISO date', () => {
