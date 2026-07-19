@@ -363,4 +363,83 @@ describe('CoachesService', () => {
       expect(limit).toHaveBeenCalledWith(25);
     });
   });
+
+  describe('getCareerSpan', () => {
+    function makeSpanBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns the min/max match dates for the coach', async () => {
+      const builder = makeSpanBuilder([
+        { start: '2021-09-01', end: '2023-06-10' },
+      ]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getCareerSpan(7)).resolves.toEqual({
+        start: '2021-09-01',
+        end: '2023-06-10',
+      });
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
+    });
+
+    it('returns undefined when the coach has played no matches', async () => {
+      const builder = makeSpanBuilder([{ start: null, end: null }]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getCareerSpan(7)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getTopTeamsByMatchesPlayed', () => {
+    function makeTopTeamsBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
+      builder.limit = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns teams ranked by match count, capped to the limit', async () => {
+      const rows = [
+        { name: 'Reikland Reavers', count: 12 },
+        { name: 'Gouged Eye', count: 5 },
+      ];
+      const builder = makeTopTeamsBuilder(rows);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getTopTeamsByMatchesPlayed(7, 10)).resolves.toEqual(
+        rows,
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
+      expect(builder.limit).toHaveBeenCalledWith(10);
+    });
+
+    it('includes a tie group at the cutoff (relies on a generous limit)', async () => {
+      // The service returns whatever the query yields; ranking/tie-cutoff is the
+      // resolver's job (Task 5). This asserts the limit is passed through so a
+      // tie at the 5th place can be detected downstream.
+      const rows = Array.from({ length: 8 }, (_, i) => ({
+        name: `Team ${i + 1}`,
+        count: i < 6 ? 5 : 1,
+      }));
+      const builder = makeTopTeamsBuilder(rows);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getTopTeamsByMatchesPlayed(7, 10)).resolves.toEqual(
+        rows,
+      );
+      expect(builder.limit).toHaveBeenCalledWith(10);
+    });
+  });
 });
