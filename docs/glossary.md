@@ -28,7 +28,8 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Deepdive
 
-The `/deepdive` Discord command's detail view for a single recorded subject.
+The `/deepdive` Discord command's detail view for a single recorded subject —
+currently an [era](#era) or a [coach](#coach) (career span and top teams).
 See [the command spec](discord-bot/slash-commands/deepdive.md).
 
 ## Drive
