@@ -102,7 +102,7 @@
         },
         dates: {
           startDate: '2021-09-01',
-          endDate: '2023-06-10',
+          endDate: '2023-06-15',
           autoAssignByDate: true,
         },
         players: {
