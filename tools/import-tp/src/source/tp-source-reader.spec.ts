@@ -45,7 +45,12 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'rosters_163386.json'), '{"id":163386}');
 
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     const files = await collect(reader.files());
 
@@ -67,7 +72,12 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'match_1.json'), '{}');
 
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     const [file] = await collect(reader.files());
 
@@ -80,7 +90,12 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'standings.json'), '{}');
 
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     const [file] = await collect(reader.files());
 
@@ -94,7 +109,12 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'notes.txt'), 'ignore me');
 
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     const files = await collect(reader.files());
 
@@ -111,7 +131,12 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'match_1.json'), '{}');
 
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     const files = await collect(reader.files());
 
@@ -121,7 +146,12 @@ describe('TpSourceReader', () => {
 
   it('throws a friendly error when an era directory is missing', async () => {
     const reader = makeReader(dir, [
-      { name: 'Fourth era', dataSubdir: 'fourth-era' },
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
     ]);
     await expect(collect(reader.files())).rejects.toThrow(
       /Era data directory not found.*Fourth era/,
