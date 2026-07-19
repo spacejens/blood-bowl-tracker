@@ -497,6 +497,78 @@ describe('TpCompetitionsImportService', () => {
     ).toBe(true);
   });
 
+  it('skips a competition when upsertCompetitionResult resolves undefined (upsert failure)', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    // Simulates the shared import runner reporting a failure via `errors`
+    // and resolving undefined instead of a competition.
+    const upsertCompetitionResult = vi.fn().mockResolvedValueOnce(undefined);
+    const service = makeService({
+      files: makeFiles([
+        tournamentFile('Fourth era', 'chaos-cup-8', {
+          id: 111,
+          name: 'Chaos Cup 8',
+        }),
+        matchFile({
+          era: 'Fourth era',
+          competition: 'chaos-cup-8',
+          scheduledDate: '2021-05-15T10:00:00Z',
+          matchId: 1,
+        }),
+      ]),
+      upsertExternalSystem,
+      upsertCompetitionResult,
+    });
+
+    const { result, competitionIdsByTpId } =
+      await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(0);
+    expect(competitionIdsByTpId.has(111)).toBe(false);
+    expect(upsertCompetitionResult).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a non-base tournament variant file, still importing using the base file', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
+    const service = makeService({
+      files: makeFiles([
+        tournamentFile('Fourth era', 'chaos-cup-8', {
+          id: 111,
+          name: 'Chaos Cup 8',
+        }),
+        {
+          era: 'Fourth era',
+          competition: 'chaos-cup-8',
+          type: 'tournament',
+          filename: 'tournament_chaos-cup-8_coach-stats.json',
+          content: { unrelated: 'variant content, should be ignored' },
+        },
+        matchFile({
+          era: 'Fourth era',
+          competition: 'chaos-cup-8',
+          scheduledDate: '2021-05-15T10:00:00Z',
+          matchId: 1,
+        }),
+      ]),
+      upsertExternalSystem,
+      upsertCompetitionResult,
+    });
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result.imported).toBe(1);
+    expect(result.success).toBe(true);
+    expect(
+      (upsertCompetitionResult.mock.calls[0][0] as UpsertCompetition).name,
+    ).toBe('Chaos Cup 8');
+  });
+
   it('re-runs idempotently, upserting the same competition with identical data', async () => {
     const makeRunService = () => {
       const upsertExternalSystem = vi
