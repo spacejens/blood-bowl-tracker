@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseTournament } from './tournament';
+import { TournamentParserService } from './tournament-parser.service';
 
-describe('parseTournament', () => {
+describe('TournamentParserService', () => {
+  const service = new TournamentParserService();
+
   it('extracts id, name and ruleSet from a valid tournament body', () => {
-    const result = parseTournament({
+    const result = service.parse({
       id: 12345,
       name: 'tLoEGBBL Chaos Cup 8',
       ruleSet: 25,
@@ -21,37 +23,37 @@ describe('parseTournament', () => {
   });
 
   it('throws naming the field when id is missing', () => {
-    expect(() => parseTournament({ name: 'X', ruleSet: 25 })).toThrow(/id/);
+    expect(() => service.parse({ name: 'X', ruleSet: 25 })).toThrow(/id/);
   });
 
   it('throws naming the field when id is not a number', () => {
-    expect(() =>
-      parseTournament({ id: 'nope', name: 'X', ruleSet: 25 }),
-    ).toThrow(/id/);
+    expect(() => service.parse({ id: 'nope', name: 'X', ruleSet: 25 })).toThrow(
+      /id/,
+    );
   });
 
   it('throws naming the field when name is missing', () => {
-    expect(() => parseTournament({ id: 1, ruleSet: 25 })).toThrow(/name/);
+    expect(() => service.parse({ id: 1, ruleSet: 25 })).toThrow(/name/);
   });
 
   it('throws naming the field when name is not a string', () => {
-    expect(() => parseTournament({ id: 1, name: 42, ruleSet: 25 })).toThrow(
+    expect(() => service.parse({ id: 1, name: 42, ruleSet: 25 })).toThrow(
       /name/,
     );
   });
 
   it('throws naming the field when ruleSet is missing', () => {
-    expect(() => parseTournament({ id: 1, name: 'X' })).toThrow(/ruleSet/);
+    expect(() => service.parse({ id: 1, name: 'X' })).toThrow(/ruleSet/);
   });
 
   it('throws naming the field when ruleSet is not a number', () => {
     expect(() =>
-      parseTournament({ id: 1, name: 'X', ruleSet: 'twenty' }),
+      service.parse({ id: 1, name: 'X', ruleSet: 'twenty' }),
     ).toThrow(/ruleSet/);
   });
 
   it('throws when the body is not an object', () => {
-    expect(() => parseTournament(null)).toThrow();
-    expect(() => parseTournament('not json')).toThrow();
+    expect(() => service.parse(null)).toThrow();
+    expect(() => service.parse('not json')).toThrow();
   });
 });

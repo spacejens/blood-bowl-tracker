@@ -2,6 +2,7 @@ import type {
   ErasImportService,
   ExternalSystemsImportService,
 } from '@blood-bowl-tracker/import';
+import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -33,6 +34,7 @@ function makeService({
     { files } as unknown as TpSourceReader,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new TournamentParserService(),
   );
 }
 

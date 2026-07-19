@@ -7,7 +7,7 @@ import {
   makeImportResult,
   upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
-import { parseTournament } from '@blood-bowl-tracker/parse-tp';
+import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -39,6 +39,7 @@ export class TpErasImportService {
     private readonly sourceReader: TpSourceReader,
     private readonly externalSystemsImport: ExternalSystemsImportService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly tournamentParser: TournamentParserService,
   ) {}
 
   /**
@@ -179,7 +180,7 @@ export class TpErasImportService {
         continue;
       }
       try {
-        const tournament = parseTournament(file.content);
+        const tournament = this.tournamentParser.parse(file.content);
         const codes = codesByEra.get(file.era) ?? new Set<number>();
         codes.add(tournament.ruleSet);
         codesByEra.set(file.era, codes);
