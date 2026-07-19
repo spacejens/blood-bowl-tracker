@@ -321,4 +321,46 @@ describe('CoachesService', () => {
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
+
+  describe('findById', () => {
+    it('returns the coach the query resolves to', async () => {
+      const where = vi.fn().mockResolvedValue([{ id: 7, name: 'Roze Madder' }]);
+      const from = vi.fn(() => ({ where }));
+      const service = new CoachesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(7)).resolves.toEqual({
+        id: 7,
+        name: 'Roze Madder',
+      });
+      expect(extractFilterValues(firstCallArg(where))).toBe(7);
+    });
+
+    it('returns undefined when no coach matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const from = vi.fn(() => ({ where }));
+      const service = new CoachesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+      expect(extractFilterValues(firstCallArg(where))).toBe(999);
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns id/name choices for a name prefix, capped to the limit', async () => {
+      const rows = [
+        { id: 1, name: 'Roze Madder' },
+        { id: 2, name: 'Rozzo' },
+      ];
+      const limit = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn(() => ({ limit }));
+      const from = vi.fn(() => ({ where }));
+      const service = new CoachesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.searchByNamePrefix('Ro', 25)).resolves.toEqual(rows);
+      expect(limit).toHaveBeenCalledWith(25);
+    });
+  });
 });
