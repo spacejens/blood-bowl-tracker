@@ -59,7 +59,7 @@ export const DEEPDIVE_USAGE_MESSAGE =
 export const DEEPDIVE_ERA_NOT_FOUND_MESSAGE =
   'The team wizard has turned themselves into a frog.';
 export const DEEPDIVE_ERA_TIMEOUT_MESSAGE =
-  'The loremaster is still unrolling the great scroll of ages.';
+  'The dwarfs are still reading the Book of Grudges.';
 export const DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE =
   'The rules lawyers are still cross-referencing which editions applied.';
 export const DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE =
