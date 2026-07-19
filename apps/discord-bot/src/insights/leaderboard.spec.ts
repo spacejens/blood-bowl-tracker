@@ -1,3 +1,4 @@
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -212,6 +213,77 @@ describe('formatLeaderboardEmbed', () => {
       ],
     });
   });
+
+  it('omits components entirely when no buildCustomId is supplied', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows: [{ name: 'a', count: 9, rank: 1 }],
+      noDataMessage: 'No data placeholder',
+    });
+    expect(result).not.toHaveProperty('components');
+  });
+
+  it('emits one Primary button per ranked row when buildCustomId is supplied', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows: [
+        { name: 'a', count: 9, rank: 1, coachId: 1 },
+        { name: 'b', count: 4, rank: 2, coachId: 2 },
+      ],
+      noDataMessage: 'No data placeholder',
+      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
+    });
+    expect(result.components).toEqual([
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            style: ButtonStyle.Primary,
+            label: 'a',
+            custom_id: 'deepdive:coach:1',
+          },
+          {
+            type: ComponentType.Button,
+            style: ButtonStyle.Primary,
+            label: 'b',
+            custom_id: 'deepdive:coach:2',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('chunks buttons into action rows of at most five', () => {
+    const rankedRows = Array.from({ length: 7 }, (_, i) => ({
+      name: `c${i}`,
+      count: 10 - i,
+      rank: i + 1,
+      coachId: i + 1,
+    }));
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows,
+      noDataMessage: 'No data placeholder',
+      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
+    });
+    const components = result.components as
+      { components: unknown[] }[] | undefined;
+    expect(components).toHaveLength(2);
+    expect(components?.[0].components).toHaveLength(5);
+    expect(components?.[1].components).toHaveLength(2);
+  });
+
+  it('adds no components for an empty result even with buildCustomId', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Coaches by matches',
+      rankedRows: [],
+      noDataMessage: 'Nobody yet.',
+      buildCustomId: (row: { name: string; count: number; rank: number }) =>
+        `deepdive:coach:${row.name}`,
+    });
+    expect(result).not.toHaveProperty('components');
+  });
 });
 
 describe('resolveToplist', () => {
@@ -238,5 +310,25 @@ describe('resolveToplist', () => {
         },
       ],
     });
+  });
+
+  it('threads buildCustomId through to per-row buttons', async () => {
+    const rows = [
+      { coachId: 1, name: 'a', count: 9 },
+      { coachId: 2, name: 'b', count: 4 },
+    ];
+    const result = (await resolveToplist({
+      title: 'Coaches by matches',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
+    })) as unknown as {
+      components: { components: { custom_id: string }[] }[];
+    };
+    const customIds = result.components.flatMap((r) =>
+      r.components.map((b) => b.custom_id),
+    );
+    expect(customIds).toEqual(['deepdive:coach:1', 'deepdive:coach:2']);
   });
 });

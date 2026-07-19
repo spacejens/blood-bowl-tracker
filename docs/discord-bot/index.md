@@ -80,5 +80,6 @@ reply, so it always answers within Discord's response window.
   tree.
 - [`/deepdive`](slash-commands/deepdive.md) — a lookup/drill-down command;
   currently shows a detail view for a single era (league, dates, rules sets,
-  and its competitions in chronological order), reachable both directly and via
-  the buttons on `/insights`' era list.
+  and its competitions in chronological order) or a single coach (career span
+  and top teams), reachable both directly and via the buttons on `/insights`'
+  era list and coach toplists.
