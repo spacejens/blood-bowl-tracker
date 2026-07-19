@@ -33,7 +33,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 ### Tools
 
 - **`tools/import-bbl`** — NestJS CLI application for importing data from BBL (Blood Bowl Legend) exports into the tracker via the api-client
-- **`tools/import-tp`** — NestJS CLI scaffold for importing TP (thebiggerbowl) data into the tracker; currently a discovery/dry-run that walks the data directories and prints per-era file counts (see [docs/import-tp/index.md](docs/import-tp/index.md))
+- **`tools/import-tp`** — NestJS CLI application for importing TP (thebiggerbowl) data into the tracker; at this stage imports the league, its rule sets, and its eras, with the rest of the entity graph landing in later sub-issues (see [docs/import-tp/index.md](docs/import-tp/index.md))
 - **`tools/db-diagram/db-diagram.sh`** — generates a [SchemaSpy](https://schemaspy.org/) ER diagram and browsable schema docs for the local docker-compose database into `docs/schemaspy-output/` (run via `pnpm run db:diagram`; requires the stack to be running — start it with `deploy-local` or `docker compose up -d --build`)
 - **`tools/eslint-rules`** — custom ESLint rules shared across the repo (currently `max-function-params`, imported directly by the root `eslint.config.ts`)
 
