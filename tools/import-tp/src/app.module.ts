@@ -1,8 +1,13 @@
+import { ApiClientModule } from '@blood-bowl-tracker/api-client';
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { ImportTpConfigModule } from './config/import-tp-config.module';
+import { ImportTpConfigService } from './config/import-tp-config.service';
 import { EraDataConfigModule } from './eras/era-data-config.module';
+import { ErasModule } from './eras/eras.module';
+import { LeaguesModule } from './leagues/leagues.module';
+import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
 
 @Module({})
@@ -13,8 +18,15 @@ export class AppModule {
       imports: [
         ConfigModule.forRoot({ isGlobal: true }),
         ImportTpConfigModule,
+        ApiClientModule.forRootAsync({
+          useFactory: (config: ImportTpConfigService) => config.getApiBaseUrl(),
+          inject: [ImportTpConfigService],
+        }),
         EraDataConfigModule,
         SourceModule,
+        LeaguesModule,
+        RulesSetsModule,
+        ErasModule,
       ],
     };
   }
