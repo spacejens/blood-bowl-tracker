@@ -1,4 +1,5 @@
 import type { InteractionReplyOptions } from 'discord.js';
+import { ButtonStyle, ComponentType } from 'discord.js';
 
 import { withDatabaseTimeout } from '../database-timeout';
 
@@ -9,7 +10,7 @@ import { withDatabaseTimeout } from '../database-timeout';
  * independent of rank/tie grouping; the remainder is summarized as
  * "…and NN more tied.".
  */
-const MAX_LEADERBOARD_ENTRIES = 10;
+export const MAX_LEADERBOARD_ENTRIES = 10;
 
 /**
  * The leaderboard always shows at least this many entries by position (not by
@@ -17,6 +18,11 @@ const MAX_LEADERBOARD_ENTRIES = 10;
  * the full tie group is shown, up to MAX_LEADERBOARD_ENTRIES.
  */
 const MAX_LEADERBOARD_TOP_ENTRIES = 5;
+
+/** Discord allows at most 5 buttons per action row and 5 rows per message. */
+const MAX_BUTTONS_PER_ROW = 5;
+const MAX_BUTTON_ROWS = 5;
+const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
 
 export interface RankedRows<T> {
   rows: (T & { rank: number })[];
@@ -60,6 +66,7 @@ export interface FormatLeaderboardEmbedOptions<T> {
   rankedRows: T[];
   noDataMessage: string;
   truncatedCount?: number;
+  buildCustomId?: (row: T) => string;
 }
 
 export function formatLeaderboardEmbed<
@@ -69,6 +76,7 @@ export function formatLeaderboardEmbed<
   rankedRows,
   noDataMessage,
   truncatedCount = 0,
+  buildCustomId,
 }: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
   if (rankedRows.length === 0) {
     return { embeds: [{ title, description: noDataMessage }] };
@@ -79,7 +87,27 @@ export function formatLeaderboardEmbed<
   if (truncatedCount > 0) {
     lines.push(`…and ${truncatedCount} more tied.`);
   }
-  return { embeds: [{ title, description: lines.join('\n') }] };
+  const embed = { embeds: [{ title, description: lines.join('\n') }] };
+  if (buildCustomId === undefined) {
+    return embed;
+  }
+  const buttons = rankedRows.slice(0, MAX_BUTTONS).map((row) => ({
+    type: ComponentType.Button as const,
+    style: ButtonStyle.Primary as const,
+    label: row.name,
+    custom_id: buildCustomId(row),
+  }));
+  const components: {
+    type: ComponentType.ActionRow;
+    components: typeof buttons;
+  }[] = [];
+  for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
+    components.push({
+      type: ComponentType.ActionRow as const,
+      components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
+    });
+  }
+  return { ...embed, components };
 }
 
 /**
@@ -93,6 +121,7 @@ export interface ResolveToplistOptions<T> {
   fetchRows: () => Promise<T[]>;
   timeoutMessage: string;
   noDataMessage: string;
+  buildCustomId?: (row: T) => string;
 }
 
 export async function resolveToplist<
@@ -102,6 +131,7 @@ export async function resolveToplist<
   fetchRows,
   timeoutMessage,
   noDataMessage,
+  buildCustomId,
 }: ResolveToplistOptions<T>): Promise<string | InteractionReplyOptions> {
   const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
   if (rows === null) {
@@ -117,5 +147,6 @@ export async function resolveToplist<
     rankedRows: ranked,
     noDataMessage,
     truncatedCount,
+    buildCustomId,
   });
 }
