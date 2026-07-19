@@ -64,7 +64,7 @@ camelCase, grouped into nested objects by concern:
       type.
     - `teams` (optional) — `teamCodeOverrides`, an optional array of team
       codes whose players are pinned to this era regardless of pid, for
-      side-competition eras (Stunty Leeg, Dungeonbowl) that share the
+      side-competition eras (Stunty Leeg, Dungeon Bowl) that share the
       concurrent regular era's pid range.
     - `matches` (optional) — `merges`, an optional JSON array of `[id, id]`
       BBL match-id pairs to merge into a single match, e.g.
