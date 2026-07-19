@@ -35,5 +35,10 @@ Pressing a button opens the same era deepdive shown by `/deepdive era:<era>` —
 the button and the command share a single resolver, so their output is always
 identical. See [`/insights`](insights.md).
 
+This is the intended pattern going forward: as `/deepdive` grows more lookup
+targets, most `/insights` views that list items of a supported target type are
+expected to gain a button per listed item, opening that item's deepdive the
+same way `eras.list` does today.
+
 See the implementation in `apps/discord-bot/src/slash-commands/deepdive-command.service.ts`
 and the resolver in `apps/discord-bot/src/deepdive/facts/era-deepdive.ts`.
