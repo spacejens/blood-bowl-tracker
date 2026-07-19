@@ -18,7 +18,7 @@ import { EraDataConfig, EraDataConfigService } from './era-data-config.service';
 /** Rule-set codes and parse failures seen while scanning tournament files. */
 interface RuleSetScan {
   codesByEra: Map<string, Set<number>>;
-  parseErrorByEra: Map<string, string>;
+  parseErrorByEra: Map<string, string[]>;
 }
 
 /**
@@ -93,7 +93,20 @@ export class TpErasImportService {
       return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }
 
-    const scan = await this.scanRuleSetCodes();
+    let scan: RuleSetScan;
+    try {
+      scan = await this.scanRuleSetCodes();
+    } catch (error) {
+      errors.push(
+        makeImportError({
+          item: { eras: eras.map((e) => e.name) },
+          message:
+            'Could not complete the rule-set-code consistency scan across ' +
+            `era tournament files: ${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+      scan = { codesByEra: new Map(), parseErrorByEra: new Map() };
+    }
 
     for (const era of eras) {
       const resolved = this.resolveRulesSetIds(era, rulesSetIdsByName);
@@ -160,7 +173,7 @@ export class TpErasImportService {
    */
   private async scanRuleSetCodes(): Promise<RuleSetScan> {
     const codesByEra = new Map<string, Set<number>>();
-    const parseErrorByEra = new Map<string, string>();
+    const parseErrorByEra = new Map<string, string[]>();
     for await (const file of this.sourceReader.files()) {
       if (file.type !== 'tournament' || !isBaseTournamentFile(file.filename)) {
         continue;
@@ -171,10 +184,11 @@ export class TpErasImportService {
         codes.add(tournament.ruleSet);
         codesByEra.set(file.era, codes);
       } catch (error) {
-        parseErrorByEra.set(
-          file.era,
+        const parseErrors = parseErrorByEra.get(file.era) ?? [];
+        parseErrors.push(
           `${file.filename}: ${error instanceof Error ? error.message : String(error)}`,
         );
+        parseErrorByEra.set(file.era, parseErrors);
       }
     }
     return { codesByEra, parseErrorByEra };
@@ -189,12 +203,12 @@ export class TpErasImportService {
     scan: RuleSetScan,
     errors: ImportError[],
   ): void {
-    const parseError = scan.parseErrorByEra.get(era.name);
-    if (parseError !== undefined) {
+    const parseErrors = scan.parseErrorByEra.get(era.name);
+    if (parseErrors !== undefined && parseErrors.length > 0) {
       errors.push(
         makeImportError({
           item: era,
-          message: `Era "${era.name}": a tournament file could not be parsed for the rule-set consistency check (${parseError}).`,
+          message: `Era "${era.name}": ${parseErrors.length} tournament file(s) could not be parsed for the rule-set consistency check (${parseErrors.join('; ')}).`,
         }),
       );
     }

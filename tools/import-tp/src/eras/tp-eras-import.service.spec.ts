@@ -45,6 +45,23 @@ function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
   };
 }
 
+/**
+ * Models TpSourceReader.files() throwing partway through iteration, e.g. when
+ * a later era's configured data directory does not exist on disk.
+ */
+function makeFilesThatThrow(
+  entries: TpSourceFile[],
+  error: Error,
+): () => AsyncIterable<TpSourceFile> {
+  return async function* () {
+    await Promise.resolve();
+    for (const entry of entries) {
+      yield entry;
+    }
+    throw error;
+  };
+}
+
 function tournamentFile(
   era: string,
   filename: string,
@@ -276,6 +293,90 @@ describe('TpErasImportService', () => {
     expect(result.errors.some((e) => e.message.includes('Third era'))).toBe(
       true,
     );
+  });
+
+  it('records one error but still upserts every era when the rule-set scan throws partway through', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 500, name: 'Third era' })
+      .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
+    const service = makeService({
+      getEras: () => eras,
+      files: makeFilesThatThrow(
+        [tournamentFile('Third era', 'tournament_third-cup.json', 20)],
+        new Error(
+          'Era data directory not found: /data/fourth-era (configured for era "Fourth era").',
+        ),
+      ),
+      upsertExternalSystem,
+      upsertEra,
+    });
+
+    const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
+
+    // Both eras are still upserted from config even though the shared scan
+    // aborted after the first era's files, since it errored on the second.
+    expect(upsertEra).toHaveBeenCalledTimes(2);
+    expect(eraIdsByName).toEqual(
+      new Map([
+        ['Third era', 500],
+        ['Fourth era', 600],
+      ]),
+    );
+    expect(result.imported).toBe(2);
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('rule-set') &&
+          e.message.includes('Era data directory not found'),
+      ),
+    ).toBe(true);
+  });
+
+  it('accumulates every parse failure for an era, not just the last one', async () => {
+    const upsertExternalSystem = vi
+      .fn()
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(2);
+    const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
+    const service = makeService({
+      getEras: () => [eras[0]],
+      files: makeFiles([
+        {
+          era: 'Third era',
+          competition: 'comp',
+          type: 'tournament',
+          filename: 'tournament_broken1.json',
+          content: { id: 1, name: 'T1' }, // missing ruleSet
+        },
+        {
+          era: 'Third era',
+          competition: 'comp',
+          type: 'tournament',
+          filename: 'tournament_broken2.json',
+          content: { id: 2, name: 'T2' }, // missing ruleSet
+        },
+      ]),
+      upsertExternalSystem,
+      upsertEra,
+    });
+
+    const { result } = await service.importEras(10, new Map([['LRB6', 100]]));
+
+    expect(result.imported).toBe(1);
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some(
+        (e) =>
+          e.message.includes('tournament_broken1.json') &&
+          e.message.includes('tournament_broken2.json'),
+      ),
+    ).toBe(true);
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
