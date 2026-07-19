@@ -29,9 +29,7 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 ## Deepdive
 
 The `/deepdive` Discord command's detail view for a single recorded subject.
-Currently supports eras, showing an era's league, dates, rules sets, and its
-competitions in chronological order. See
-[the command spec](discord-bot/slash-commands/deepdive.md).
+See [the command spec](discord-bot/slash-commands/deepdive.md).
 
 ## Drive
 
