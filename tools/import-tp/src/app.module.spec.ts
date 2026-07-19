@@ -7,6 +7,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
+import { TpErasImportService } from './eras/tp-eras-import.service';
+import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { TpSourceReader } from './source/tp-source-reader';
 
 describe('AppModule', () => {
@@ -36,5 +39,31 @@ describe('AppModule', () => {
       .compile();
 
     expect(moduleRef.get(TpSourceReader)).toBeInstanceOf(TpSourceReader);
+  });
+
+  it('registers the league, rule-sets and eras import services', async () => {
+    const configPath = join(dir, 'import-tp-config.json5');
+    writeFileSync(
+      configPath,
+      "{ connection: { apiBaseUrl: 'http://localhost:3000' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
+      'utf8',
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule.register()],
+    })
+      .overrideProvider(IMPORT_TP_CONFIG_PATH)
+      .useValue(configPath)
+      .compile();
+
+    expect(moduleRef.get(TpLeaguesImportService)).toBeInstanceOf(
+      TpLeaguesImportService,
+    );
+    expect(moduleRef.get(TpRulesSetsImportService)).toBeInstanceOf(
+      TpRulesSetsImportService,
+    );
+    expect(moduleRef.get(TpErasImportService)).toBeInstanceOf(
+      TpErasImportService,
+    );
   });
 });

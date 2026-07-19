@@ -1,35 +1,54 @@
 #!/usr/bin/env node
 
+import type { ImportResult } from '@blood-bowl-tracker/import';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
-import type { TpSourceFile } from './source/tp-source-reader';
-import { TpSourceReader } from './source/tp-source-reader';
-import { summarizeFiles } from './summarize-files';
+import { TpErasImportService } from './eras/tp-eras-import.service';
+import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 
-async function run(): Promise<string[]> {
+async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
     logger: false,
   });
   try {
-    const reader = app.get(TpSourceReader);
-    const files: TpSourceFile[] = [];
-    for await (const file of reader.files()) {
-      files.push(file);
-    }
-    return summarizeFiles(files);
+    // Bootstrap order: the league is foundational; rule sets and eras come
+    // from config and must exist before entities that reference them.
+    const leagueOutcome = await app.get(TpLeaguesImportService).importLeague();
+    const rulesSetsOutcome = await app
+      .get(TpRulesSetsImportService)
+      .importRulesSets();
+    const eraOutcome = await app
+      .get(TpErasImportService)
+      .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
+
+    const results = [
+      leagueOutcome.result,
+      rulesSetsOutcome.result,
+      eraOutcome.result,
+    ];
+    return {
+      success: results.every((r) => r.success),
+      imported: results.reduce((sum, r) => sum + r.imported, 0),
+      errors: results.flatMap((r) => r.errors),
+    };
   } finally {
     await app.close();
   }
 }
 
 run()
-  .then((lines) => {
-    for (const line of lines) {
-      console.log(line);
+  .then((result) => {
+    if (result.success) {
+      console.log(`Imported ${result.imported} record(s) successfully.`);
+    } else {
+      console.error(`Import completed with ${result.errors.length} errors:`);
+      result.errors.forEach((e) => console.error(`  - ${e.message}`));
+      process.exit(1);
     }
   })
   .catch((error: unknown) => {
-    console.error('Discovery failed:', error);
+    console.error('Import failed:', error);
     process.exit(1);
   });
