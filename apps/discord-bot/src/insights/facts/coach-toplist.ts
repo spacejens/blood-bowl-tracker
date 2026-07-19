@@ -5,7 +5,12 @@ import {
   COACH_TOPLIST_NO_DATA_MESSAGE,
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import { resolveToplist } from '../leaderboard';
+
+function coachButtonId(row: { coachId: number }): string {
+  return `${COACH_BUTTON_CUSTOM_ID_PREFIX}${row.coachId}`;
+}
 
 export async function resolveCoachMatchesPlayedToplist(
   coaches: CoachesService,
@@ -16,6 +21,7 @@ export async function resolveCoachMatchesPlayedToplist(
     fetchRows: () => coaches.countMatchesPlayedByCoach(eraId),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: coachButtonId,
   });
 }
 
@@ -28,6 +34,7 @@ export async function resolveCoachTeamsToplist(
     fetchRows: () => coaches.countTeamsByCoach(eraId),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: coachButtonId,
   });
 }
 
@@ -40,6 +47,7 @@ export async function resolveCoachCompetitionsPlayedToplist(
     fetchRows: () => coaches.countCompetitionsByCoach(eraId),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: coachButtonId,
   });
 }
 
@@ -51,5 +59,6 @@ export async function resolveCoachErasActiveToplist(
     fetchRows: () => coaches.countErasByCoach(),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: coachButtonId,
   });
 }
