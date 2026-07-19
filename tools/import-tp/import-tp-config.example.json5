@@ -29,9 +29,10 @@
   // (only an opaque numeric rule-set code is), so they are supplied here,
   // same as import-bbl-config.json5.
   league: {
-    // Name of the league the TP data covers. Used as the league's external
-    // ID under the TP and Name external systems.
-    name: 'tLoEG',
+    // Name of the league the TP data covers. The mirror covers a single league
+    // whose name is not in the data. Used as the league's external ID under the
+    // TP and Name external systems.
+    name: '<league name>',
 
     // Eras the league played through, and which data subdirectory each
     // corresponds to. Subdirectory names are TP's own slugs and don't
