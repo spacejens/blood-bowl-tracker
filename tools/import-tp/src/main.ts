@@ -4,6 +4,7 @@ import type { ImportResult } from '@blood-bowl-tracker/import';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -14,7 +15,8 @@ async function run(): Promise<ImportResult> {
   });
   try {
     // Bootstrap order: the league is foundational; rule sets and eras come
-    // from config and must exist before entities that reference them.
+    // from config and must exist before entities that reference them, then
+    // competitions, resolved from the era directories.
     const leagueOutcome = await app.get(TpLeaguesImportService).importLeague();
     const rulesSetsOutcome = await app
       .get(TpRulesSetsImportService)
@@ -23,10 +25,15 @@ async function run(): Promise<ImportResult> {
       .get(TpErasImportService)
       .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
 
+    const competitionOutcome = await app
+      .get(TpCompetitionsImportService)
+      .importCompetitions(eraOutcome.eraIdsByName);
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraOutcome.result,
+      competitionOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
