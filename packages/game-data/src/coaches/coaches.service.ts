@@ -16,18 +16,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
-
-/**
- * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default
- * escape character (`\`) so a user-supplied prefix is matched literally
- * rather than interpreted as a wildcard pattern. The backslash must be
- * escaped first so escaping `%`/`_` afterwards doesn't double-escape it.
- */
-function escapeLikePattern(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-}
 
 export class CoachUpsertConflictError extends UpsertConflictError {}
 
