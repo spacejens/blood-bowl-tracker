@@ -1,6 +1,6 @@
 ---
 name: deploy-local
-description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import or the tools/import-tp TP data import (league, rule sets, and eras) against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
+description: Use to build and start the blood-bowl-tracker stack locally via Docker Compose, and/or run the tools/import-bbl BBL data import or the tools/import-tp TP data import against a running instance, so a developer can see a change running end-to-end — invoked directly, or offered by develop-feature after a PR is created and by handle-pr-reviews after pushing fixes
 ---
 
 # deploy-local
@@ -20,7 +20,7 @@ Takes no arguments.
 0. Ask the developer which action(s) to perform, via a multi-select question with exactly these four options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
-   - **Run the TP import** — run `tools/import-tp/` to import the league, its rule sets, and its eras from the configured TP data.
+   - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
    The developer may select any combination of the four options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
@@ -105,11 +105,11 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    pnpm --filter @blood-bowl-tracker/import-bbl run build
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
-4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the TP import
 
-Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected. As of #193, `tools/import-tp/` performs a real import: its `main.ts` upserts the league, its rule sets, and its eras (in that order) through `packages/import`'s api-client-backed services, against the running api-server. Competitions, matches, coaches, and the rest of the entity graph land in later sub-issues (#194-198).
+Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected.
 
 1. `tools/import-tp/import-tp-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout might. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session) — same pattern as the BBL config/data sync above. If running from a worktree, sync both from the main checkout:
    ```bash
@@ -141,7 +141,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    pnpm --filter @blood-bowl-tracker/import-tp run build
    ( cd tools/import-tp && node dist/main.js )
    ```
-4. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes (league, rule sets, then eras), a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+4. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Generate a SchemaSpy diagram
 
