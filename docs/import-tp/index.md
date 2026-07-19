@@ -116,10 +116,20 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   league and its rule sets. Also cross-checks TP's numeric rule-set code for
   consistency within each era's data directory, using `parseTournament` from
   `packages/parse-tp`.
+- **TpCompetitionsImportService** — upserts each competition found under the
+  era directories. A competition is one `<era>/<competition>` subdirectory: its
+  base `tournament_<slug>.json` gives the name and TP id, its `match_*.json`
+  files give the dates whose span classifies it (span ≤ 3 days ⇒ cup, else
+  season), and its era is the directory's own era (looked up in the
+  `eraIdsByName` map from `TpErasImportService`, with no date-range matching —
+  unlike BBL). Uses `MatchParserService` and `TournamentParserService` from
+  `packages/parse-tp`. Competitions missing a base tournament file, with an
+  unparsable one, with no dated matches, or whose era has no known id are
+  skipped with a recorded error.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras — aggregating each step's `ImportResult` into one overall result,
-mirroring `tools/import-bbl/src/main.ts`.
+then eras, then competitions — aggregating each step's `ImportResult` into one
+overall result, mirroring `tools/import-bbl/src/main.ts`.
 
 ## Related documentation
 
