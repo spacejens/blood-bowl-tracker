@@ -102,7 +102,7 @@
         },
         dates: {
           startDate: '2021-09-01',
-          endDate: '2023-06-10',
+          endDate: '2023-06-15',
           autoAssignByDate: true,
         },
         players: {
@@ -179,7 +179,7 @@
       },
       {
         identity: {
-          name: 'First Dungeonbowl era',
+          name: 'First Dungeon Bowl era',
           rulesSets: ['DB2021'],
         },
         // Real match span 2022-02-12 .. 2022-08-22; endDate is one day past the
