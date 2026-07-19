@@ -140,3 +140,42 @@ export async function countMatchEventsByTeam(
     .groupBy(teams.id, teams.name)
     .orderBy(desc(count(matchEvents.id)));
 }
+
+/**
+ * Options for the team-scoped, type-unfiltered per-player counter.
+ */
+export interface CountAllMatchEventsForTeamOptions {
+  db: Db;
+  teamId: number;
+  limit: number;
+}
+
+/**
+ * Every match event a team's players took part in as the acting player,
+ * counted per player and ordered most-first, capped to `limit`. Unlike
+ * `countMatchEventsByPlayer` this applies no action/consequence-type filter —
+ * it totals events of every type together — and scopes to a single team via
+ * the acting side's team-era. Kept as a separate function (rather than an
+ * optional type filter on the shared `MatchEventSelector`) so that union's
+ * role/type-set safety stays intact for the existing scoped counters.
+ */
+export async function countAllMatchEventsByPlayerForTeam(
+  options: CountAllMatchEventsForTeamOptions,
+): Promise<{ playerId: number; name: string; count: number }[]> {
+  const { db, teamId, limit } = options;
+  return db
+    .select({
+      playerId: players.id,
+      name: players.name,
+      count: count(matchEvents.id),
+    })
+    .from(matchEvents)
+    .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+    .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .innerJoin(teams, eq(teams.id, teamEras.teamId))
+    .where(eq(teams.id, teamId))
+    .groupBy(players.id, players.name)
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
+}
