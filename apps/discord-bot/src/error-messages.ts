@@ -55,7 +55,7 @@ export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
 // --- /deepdive command (slash-commands/deepdive-command.service.ts,
 //     deepdive/facts/era-deepdive.ts) ---
 export const DEEPDIVE_USAGE_MESSAGE =
-  'Tell the loremaster what to dig into (try the era option).';
+  'Tell the loremaster what to dig into (try one of the options).';
 export const DEEPDIVE_ERA_NOT_FOUND_MESSAGE =
   'The loremaster finds no such era anywhere in the annals.';
 export const DEEPDIVE_ERA_TIMEOUT_MESSAGE =
