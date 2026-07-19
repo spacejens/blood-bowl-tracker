@@ -169,3 +169,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras — aggregating each step's `ImportResult` into one overall result,
 mirroring `tools/import-bbl/src/main.ts`.
+
+## Related documentation
+
+- [file-format.md](./file-format.md) — working notes on the source JSON format.
