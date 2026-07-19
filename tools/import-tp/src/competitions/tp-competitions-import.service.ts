@@ -1,0 +1,292 @@
+import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import {
+  CompetitionsImportService,
+  externalSystemBootstrapError,
+  ExternalSystemsImportService,
+  makeImportError,
+  makeImportResult,
+  upsertExternalSystems,
+} from '@blood-bowl-tracker/import';
+import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
+import {
+  MatchParserService,
+  TournamentParserService,
+} from '@blood-bowl-tracker/parse-tp';
+import { Injectable } from '@nestjs/common';
+
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
+import {
+  isBaseTournamentFile,
+  TpSourceReader,
+} from '../source/tp-source-reader';
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+// (max - min) match-date span <= 3 days => cup, else season. Mirrors BBL's
+// CUP_MAX_SPAN_DAYS in bbl-competitions-import.service.ts; validated against
+// all 12 TP reference competitions (see the design doc's Background section).
+const CUP_MAX_SPAN_DAYS = 3;
+
+/** One competition's files, accumulated during the single streaming pass. */
+interface CompetitionGroup {
+  era: string;
+  competition: string;
+  tournamentContent?: unknown;
+  matchDates: Date[];
+}
+
+interface ImportGroupOptions {
+  group: CompetitionGroup;
+  eraIdsByName: Map<string, number>;
+  systemIds: { tp: number; name: number };
+  errors: ImportError[];
+}
+
+interface AddMatchDateOptions {
+  group: CompetitionGroup;
+  filename: string;
+  content: unknown;
+  errors: ImportError[];
+}
+
+@Injectable()
+export class TpCompetitionsImportService {
+  constructor(
+    private readonly sourceReader: TpSourceReader,
+    private readonly tournamentParser: TournamentParserService,
+    private readonly matchParser: MatchParserService,
+    private readonly competitionsImport: CompetitionsImportService,
+    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemName: ExternalSystemNameConfigService,
+  ) {}
+
+  /**
+   * Import every competition found under the configured era directories. A
+   * competition is one `<era>/<competition>` subdirectory: its base
+   * `tournament_<slug>.json` gives its name and TP id; its `match_*.json`
+   * files give the dates whose span classifies it (span <= 3 days => cup, else
+   * season). Its era is the directory's own era, looked up in `eraIdsByName`
+   * (produced by TpErasImportService) — no date-range matching is needed,
+   * unlike BBL. Each competition is keyed by its numeric TP id (stringified)
+   * under the TP external system and by its exact name under Name.
+   * Competitions with no base tournament file, an unparsable one, no dated
+   * matches, or an era with no known id are skipped with a recorded error.
+   * Idempotent.
+   *
+   * Also returns `competitionIdsByTpId`, mapping each imported competition's TP
+   * id to its DB id — unused by this sub-issue, but the natural hook a future
+   * matches sub-issue needs to set each match's competitionId (mirroring BBL's
+   * competitionIdsByBblId).
+   */
+  async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
+    result: ImportResult;
+    competitionIdsByTpId: Map<number, number>;
+  }> {
+    let imported = 0;
+    const errors: ImportError[] = [];
+    const competitionIdsByTpId = new Map<number, number>();
+
+    let tpSystemId: number;
+    let nameSystemId: number;
+    const tpSystemName = this.externalSystemName.getTpSystemName();
+    try {
+      [tpSystemId, nameSystemId] = await upsertExternalSystems(
+        this.externalSystemsImport,
+        [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+      );
+    } catch (error) {
+      errors.push(
+        externalSystemBootstrapError(
+          [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+          error,
+        ),
+      );
+      return {
+        result: makeImportResult({ imported, errors }),
+        competitionIdsByTpId,
+      };
+    }
+
+    const groups = await this.collectGroups(errors);
+    for (const group of groups.values()) {
+      const upserted = await this.importGroup({
+        group,
+        eraIdsByName,
+        systemIds: { tp: tpSystemId, name: nameSystemId },
+        errors,
+      });
+      if (upserted !== undefined) {
+        competitionIdsByTpId.set(upserted.tpId, upserted.id);
+        imported += 1;
+      }
+    }
+
+    return {
+      result: makeImportResult({ imported, errors }),
+      competitionIdsByTpId,
+    };
+  }
+
+  /**
+   * Single streaming pass over every source file, grouped by
+   * `${era}::${competition}`. Base tournament files supply each group's
+   * tournamentContent; match files are parsed and their resolved dates pushed
+   * onto matchDates (a match parse failure is recorded but does not abort).
+   * A throw from files() (e.g. a missing era directory) is recorded and the
+   * groups collected so far are returned — mirroring how TpErasImportService's
+   * rule-set scan records its throw and continues.
+   */
+  private async collectGroups(
+    errors: ImportError[],
+  ): Promise<Map<string, CompetitionGroup>> {
+    const groups = new Map<string, CompetitionGroup>();
+    try {
+      for await (const file of this.sourceReader.files()) {
+        const key = `${file.era}::${file.competition}`;
+        const group = groups.get(key) ?? {
+          era: file.era,
+          competition: file.competition,
+          matchDates: [],
+        };
+        if (file.type === 'tournament' && isBaseTournamentFile(file.filename)) {
+          group.tournamentContent = file.content;
+        } else if (file.type === 'match') {
+          this.addMatchDate({
+            group,
+            filename: file.filename,
+            content: file.content,
+            errors,
+          });
+        }
+        groups.set(key, group);
+      }
+    } catch (error) {
+      errors.push(
+        makeImportError({
+          item: { scan: 'competition files' },
+          message:
+            'Could not complete the competition file scan: ' +
+            `${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+    }
+    return groups;
+  }
+
+  /** Parse one match file's date onto the group, recording a parse failure. */
+  private addMatchDate({
+    group,
+    filename,
+    content,
+    errors,
+  }: AddMatchDateOptions): void {
+    try {
+      const match = this.matchParser.parse(content);
+      group.matchDates.push(match.scheduledDate);
+    } catch (error) {
+      errors.push(
+        makeImportError({
+          item: { era: group.era, competition: group.competition, filename },
+          message:
+            `Could not parse match file "${filename}" in ` +
+            `"${group.era}/${group.competition}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Validate one group into an UpsertCompetition and upsert it, or record a
+   * skip error and return undefined. Returns the competition's TP id and DB id
+   * on success (for competitionIdsByTpId).
+   */
+  private async importGroup({
+    group,
+    eraIdsByName,
+    systemIds,
+    errors,
+  }: ImportGroupOptions): Promise<{ id: number; tpId: number } | undefined> {
+    const location = `${group.era}/${group.competition}`;
+
+    if (group.tournamentContent === undefined) {
+      errors.push(
+        makeImportError({
+          item: { era: group.era, competition: group.competition },
+          message:
+            `Skipping competition in "${location}": no base tournament file ` +
+            '(tournament_<slug>.json) was found.',
+        }),
+      );
+      return undefined;
+    }
+
+    let tournament: TpTournament;
+    try {
+      tournament = this.tournamentParser.parse(group.tournamentContent);
+    } catch (error) {
+      errors.push(
+        makeImportError({
+          item: { era: group.era, competition: group.competition },
+          message:
+            `Skipping competition in "${location}": ` +
+            `${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+      return undefined;
+    }
+
+    if (group.matchDates.length === 0) {
+      errors.push(
+        makeImportError({
+          item: tournament,
+          message:
+            `Skipping competition "${tournament.name}" in "${location}": ` +
+            'no dated matches found.',
+        }),
+      );
+      return undefined;
+    }
+
+    const eraId = eraIdsByName.get(group.era);
+    if (eraId === undefined) {
+      errors.push(
+        makeImportError({
+          item: tournament,
+          message:
+            `Skipping competition "${tournament.name}" in "${location}": its ` +
+            `era "${group.era}" has no known database id — the era may have ` +
+            'failed to import.',
+        }),
+      );
+      return undefined;
+    }
+
+    const competitionData: UpsertCompetition = {
+      name: tournament.name,
+      type: this.classifyType(group.matchDates),
+      eraId,
+      teamEraIds: [],
+      externalIds: [
+        { externalSystemId: systemIds.tp, externalId: String(tournament.id) },
+        { externalSystemId: systemIds.name, externalId: tournament.name },
+      ],
+    };
+    const upserted = await this.competitionsImport.upsertCompetitionResult(
+      competitionData,
+      errors,
+    );
+    if (upserted === undefined) {
+      return undefined;
+    }
+    return { id: upserted.id, tpId: tournament.id };
+  }
+
+  /** span <= 3 days => cup, else season (see CUP_MAX_SPAN_DAYS). */
+  private classifyType(matchDates: Date[]): 'season' | 'cup' {
+    const times = matchDates.map((d) => d.getTime());
+    const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
+    return spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
+  }
+}
