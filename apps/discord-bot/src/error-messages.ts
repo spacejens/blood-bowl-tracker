@@ -66,3 +66,15 @@ export const DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE =
   'The tournament clerk is still sorting through the old fixture lists.';
 export const DEEPDIVE_NO_COMPETITIONS_MESSAGE =
   'Not a single whistle has blown in this era yet.';
+export const DEEPDIVE_COACH_NOT_FOUND_MESSAGE =
+  'No such coach has ever signed a contract in these parts.';
+export const DEEPDIVE_COACH_TIMEOUT_MESSAGE =
+  'The coach is still lost somewhere in the locker-room corridors.';
+export const DEEPDIVE_COACH_NO_MATCHES_MESSAGE =
+  'This coach has yet to send a single team onto the pitch.';
+export const DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE =
+  "The archivist is still leafing through this coach's match ledger.";
+export const DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE =
+  "The equipment manager is still counting up this coach's roster of teams.";
+export const DEEPDIVE_MULTIPLE_TARGETS_MESSAGE =
+  'The referees are arguing amongst themselves about which one you meant — pick a single target.';

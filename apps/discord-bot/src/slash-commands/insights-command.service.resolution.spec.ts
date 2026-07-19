@@ -22,14 +22,17 @@ describe('InsightsCommandService — fact-path resolution', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by matches played — All time',
-          description: '1. Roze Madder — 9',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Coaches by matches played — All time',
+            description: '1. Roze Madder — 9',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('does not suffix a non-era-supporting fact (eras.list) when no era is given', async () => {

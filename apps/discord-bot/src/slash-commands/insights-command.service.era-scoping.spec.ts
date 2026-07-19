@@ -25,14 +25,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith(20);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Coaches by matches played — BB2020',
-          description: '1. Roze Madder — 9',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Coaches by matches played — BB2020',
+            description: '1. Roze Madder — 9',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('rejects an era on a non-era-supporting category (eras.list)', async () => {
@@ -115,9 +118,21 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       });
       const result = await ctx.service.execute(chatInput(factPath, '20'));
       expect(selectMock(ctx)).toHaveBeenCalledWith(...expectedCallArgs);
-      expect(result).toEqual({
-        embeds: [{ title: expectedTitle, description: expectedDescription }],
-      });
+      const factIsCoachToplist = factPath.startsWith('coach.toplist');
+      if (factIsCoachToplist) {
+        expect(result).toEqual(
+          expect.objectContaining({
+            embeds: [
+              { title: expectedTitle, description: expectedDescription },
+            ],
+            components: expect.any(Array) as unknown,
+          }),
+        );
+      } else {
+        expect(result).toEqual({
+          embeds: [{ title: expectedTitle, description: expectedDescription }],
+        });
+      }
     },
   );
 

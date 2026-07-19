@@ -13,11 +13,21 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+
+/**
+ * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default
+ * escape character (`\`) so a user-supplied prefix is matched literally
+ * rather than interpreted as a wildcard pattern. The backslash must be
+ * escaped first so escaping `%`/`_` afterwards doesn't double-escape it.
+ */
+function escapeLikePattern(value: string): string {
+  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
 
 export class CoachUpsertConflictError extends UpsertConflictError {}
 
@@ -45,6 +55,68 @@ export class CoachesService {
     });
 
     return { coach, created };
+  }
+
+  async findById(
+    id: number,
+  ): Promise<{ id: number; name: string } | undefined> {
+    const rows = await this.db
+      .select({ id: coaches.id, name: coaches.name })
+      .from(coaches)
+      .where(eq(coaches.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: coaches.id, name: coaches.name })
+      .from(coaches)
+      .where(ilike(coaches.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
+
+  async getCareerSpan(
+    coachId: number,
+  ): Promise<{ start: string; end: string } | undefined> {
+    // Aggregate over zero rows still returns one row with null start/end, so a
+    // null start marks a coach who has recorded no matches. Casting to ::date
+    // yields YYYY-MM-DD strings the resolver can render directly.
+    const [row] = await this.db
+      .select({
+        start: sql<string | null>`min(${matches.playedAt})::date`,
+        end: sql<string | null>`max(${matches.playedAt})::date`,
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.coachId, coachId));
+    if (row === undefined || row.start === null || row.end === null) {
+      return undefined;
+    }
+    return { start: row.start, end: row.end };
+  }
+
+  getTopTeamsByMatchesPlayed(
+    coachId: number,
+    limit: number,
+  ): Promise<{ name: string; count: number }[]> {
+    return this.db
+      .select({
+        name: teams.name,
+        count: countDistinct(matches.id),
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.coachId, coachId))
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(countDistinct(matches.id)))
+      .limit(limit);
   }
 
   async countMatchesPlayedByCoach(

@@ -41,6 +41,11 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.eras.active` — coaches ranked by number of distinct eras their
   teams have existed across. Does not support era filtering (scoping to a single
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
+
+Each coach listed by the four `coach.toplist.*` facts above also gets a
+button, in the same order as the list, that opens that coach's
+[`/deepdive`](deepdive.md) detail view.
+
 - `team.toplist.matches.played` — teams ranked by number of matches played.
 - `team.toplist.competitions.played` — teams ranked by number of distinct
   competitions entered. Supports era filtering.
