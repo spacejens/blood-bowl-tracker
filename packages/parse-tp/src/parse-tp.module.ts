@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 
-import { TournamentParserService } from './tournament/tournament-parser.service';
+import { TournamentParserService } from './tournament-parser.service';
 
 @Module({
   providers: [TournamentParserService],
