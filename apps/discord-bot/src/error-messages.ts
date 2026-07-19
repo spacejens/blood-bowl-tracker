@@ -57,7 +57,7 @@ export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
 export const DEEPDIVE_USAGE_MESSAGE =
   'Tell the loremaster what to dig into (try one of the options).';
 export const DEEPDIVE_ERA_NOT_FOUND_MESSAGE =
-  'The loremaster finds no such era anywhere in the annals.';
+  'The team wizard has turned themselves into a frog.';
 export const DEEPDIVE_ERA_TIMEOUT_MESSAGE =
   'The loremaster is still unrolling the great scroll of ages.';
 export const DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE =
