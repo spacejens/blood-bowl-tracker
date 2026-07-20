@@ -4,6 +4,7 @@ import type { ImportResult } from '@blood-bowl-tracker/import';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
+import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
@@ -29,11 +30,14 @@ async function run(): Promise<ImportResult> {
       .get(TpCompetitionsImportService)
       .importCompetitions(eraOutcome.eraIdsByName);
 
+    const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
+      coachOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),

@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
+import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { IMPORT_TP_CONFIG_PATH } from './config/import-tp-config.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
@@ -68,6 +69,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpCompetitionsImportService)).toBeInstanceOf(
       TpCompetitionsImportService,
+    );
+    expect(moduleRef.get(TpCoachesImportService)).toBeInstanceOf(
+      TpCoachesImportService,
     );
   });
 });
