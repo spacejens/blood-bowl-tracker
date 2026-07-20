@@ -1,10 +1,8 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -22,7 +20,7 @@ export class BblCoachesImportService {
     private readonly sourceReader: BblSourceReader,
     private readonly coachPageParser: CoachPageParser,
     private readonly coachesImport: CoachesImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -39,26 +37,19 @@ export class BblCoachesImportService {
     const errors: ImportError[] = [];
     const coachIdsByName = new Map<string, number>();
 
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
-    try {
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
-    } catch (error) {
-      errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
-      );
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return {
         result: makeImportResult({ imported, errors }),
         coachIdsByName,
       };
     }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     const seen = new Set<string>();
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
