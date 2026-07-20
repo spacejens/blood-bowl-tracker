@@ -1,6 +1,6 @@
 import type {
   ErasImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
@@ -16,7 +16,7 @@ import { TpErasImportService } from './tp-eras-import.service';
 interface MakeServiceOptions {
   getEras: () => EraDataConfig[];
   files: () => AsyncIterable<TpSourceFile>;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertEra: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
@@ -24,7 +24,7 @@ interface MakeServiceOptions {
 function makeService({
   getEras,
   files,
-  upsertExternalSystem,
+  bootstrap,
   upsertEra,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
@@ -32,7 +32,7 @@ function makeService({
     { getEras } as unknown as EraDataConfigService,
     { upsertEra } as unknown as ErasImportService,
     { files } as unknown as TpSourceReader,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
     new TournamentParserService(),
   );
@@ -101,10 +101,7 @@ const rulesSetIds = new Map<string, number>([
 
 describe('TpErasImportService', () => {
   it('upserts each era with resolved rule-set ids and dates', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
@@ -115,12 +112,13 @@ describe('TpErasImportService', () => {
         tournamentFile('Third era', 'tournament_third-cup.json', 20),
         tournamentFile('Fourth era', 'tournament_fourth-cup.json', 25),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
     const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
     expect(eraIdsByName).toEqual(
@@ -162,15 +160,12 @@ describe('TpErasImportService', () => {
   });
 
   it('records one error and imports nothing when the league id is missing', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn();
     const service = makeService({
       getEras: () => eras,
       files: makeFiles([]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -183,16 +178,13 @@ describe('TpErasImportService', () => {
   });
 
   it('skips an era whose rule set was not imported, recording an error', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const partialIds = new Map<string, number>([['LRB6', 100]]);
     const service = makeService({
       getEras: () => eras,
       files: makeFiles([]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -210,10 +202,7 @@ describe('TpErasImportService', () => {
   });
 
   it('passes silently when one era directory reports a single rule-set code', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const service = makeService({
       getEras: () => [eras[0]],
@@ -223,7 +212,7 @@ describe('TpErasImportService', () => {
         // A variant file (two underscores) must be ignored by the check.
         tournamentFile('Third era', 'tournament_a_coach-stats.json', 99),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -235,10 +224,7 @@ describe('TpErasImportService', () => {
   });
 
   it('records an error but still upserts when an era directory reports mismatched codes', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const service = makeService({
       getEras: () => [eras[0]],
@@ -246,7 +232,7 @@ describe('TpErasImportService', () => {
         tournamentFile('Third era', 'tournament_a.json', 20),
         tournamentFile('Third era', 'tournament_b.json', 21),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -268,10 +254,7 @@ describe('TpErasImportService', () => {
   });
 
   it('records a diagnostic error but still upserts when a tournament file fails to parse', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const service = makeService({
       getEras: () => [eras[0]],
@@ -284,7 +267,7 @@ describe('TpErasImportService', () => {
           content: { id: 1, name: 'T' }, // missing ruleSet
         },
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -298,10 +281,7 @@ describe('TpErasImportService', () => {
   });
 
   it('records one error but still upserts every era when the rule-set scan throws partway through', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
@@ -314,7 +294,7 @@ describe('TpErasImportService', () => {
           'Era data directory not found: /data/fourth-era (configured for era "Fourth era").',
         ),
       ),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -341,10 +321,7 @@ describe('TpErasImportService', () => {
   });
 
   it('accumulates every parse failure for an era, not just the last one', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const service = makeService({
       getEras: () => [eras[0]],
@@ -364,7 +341,7 @@ describe('TpErasImportService', () => {
           content: { id: 2, name: 'T2' }, // missing ruleSet
         },
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -381,15 +358,40 @@ describe('TpErasImportService', () => {
     ).toBe(true);
   });
 
+  it('records one error and imports nothing when the era config cannot be read', async () => {
+    const bootstrap = vi.fn();
+    const upsertEra = vi.fn();
+    const service = makeService({
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+      files: makeFiles([]),
+      bootstrap,
+      upsertEra,
+    });
+
+    const { result } = await service.importEras(10, rulesSetIds);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('TP_ERAS');
+    expect(bootstrap).not.toHaveBeenCalled();
+    expect(upsertEra).not.toHaveBeenCalled();
+  });
+
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['TP', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertEra = vi.fn();
     const service = makeService({
       getEras: () => eras,
       files: makeFiles([]),
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
