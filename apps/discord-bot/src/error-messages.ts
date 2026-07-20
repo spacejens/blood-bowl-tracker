@@ -78,3 +78,13 @@ export const DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE =
   "The equipment manager is still counting up this coach's roster of teams.";
 export const DEEPDIVE_MULTIPLE_TARGETS_MESSAGE =
   'The referees are arguing amongst themselves about which one you meant — pick a single target.';
+export const DEEPDIVE_TEAM_NOT_FOUND_MESSAGE =
+  'No such team has ever laced up a pair of boots around here.';
+export const DEEPDIVE_TEAM_TIMEOUT_MESSAGE =
+  'The team bus is stuck at the stadium gates.';
+export const DEEPDIVE_TEAM_NO_MATCHES_MESSAGE =
+  'This team has yet to set a single cleat on the pitch.';
+export const DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE =
+  'The team historian is still thumbing through the match-day programmes.';
+export const DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE =
+  'The roster manager is still tallying up who did what on the pitch.';
