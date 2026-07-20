@@ -1,13 +1,13 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports four targets — an era, a coach, a team, and a player — and is
+Today it supports five targets — an era, a coach, a team, a player, and a race — and is
 designed to grow further optional, mutually exclusive targets in future work.
 
 ## Arguments
 
-The command takes four optional string arguments, `era`, `coach`, `team`, and
-`player`, each autocompleted by name (`era` suggestions are labelled `<era>
+The command takes five optional string arguments, `era`, `coach`, `team`, `player`, and
+`race`, each autocompleted by name (`era` suggestions are labelled `<era>
 (<league>)`; `player` suggestions are labelled `<name> (<team>)` because player
 names are not unique across teams):
 
@@ -61,6 +61,17 @@ names are not unique across teams):
   are omitted; a player with nothing in any category shows a short
   nothing-memorable-yet-style message instead of an empty list.
 - **A player that matches nothing** — the bot replies with a not-found message.
+- **`race:<race>`** — the bot replies with an embed for that race: the race
+  name as the title, then `Eras: <eras>` (the eras this race has appeared in,
+  comma-joined by name, or "None recorded" if it is in none), a blank line, and
+  `Top teams by matches played:` followed by its top five teams by matches
+  played, one line per team formatted `<rank>. <team> — <matches>`. Ties at the
+  fifth-place cutoff are all shown, up to ten teams — the same convention
+  `/insights` toplists use, though at most ten teams are fetched, so the "…and N
+  more tied." note never actually appears here. The top-teams list is not
+  era-scoped. A race with no recorded team appearances shows a short "no teams
+  yet" message in place of the list.
+- **A race that matches nothing** — the bot replies with a not-found message.
 
 If the database does not respond in time, the command falls back to a themed
 timeout message instead of its normal reply, so it always answers within
@@ -77,9 +88,12 @@ identical. Likewise, each of the four coach toplists
 button per listed coach, opening the same `/deepdive coach:<coach>` view. See
 [`/insights`](insights.md).
 
-Each of the sixteen `team.toplist.*` facts (all the team toplists except
-`race.toplist.teams`, whose rows key by race) attaches one button per listed
-team, opening the same `/deepdive team:<team>` view.
+Each of the sixteen `team.toplist.*` facts attaches one button per listed team,
+opening the same `/deepdive team:<team>` view.
+
+Both race toplists (`race.toplist.teams`, `race.toplist.matches.played`) attach
+one button per listed race, opening the same `/deepdive race:<race>` view. With
+this, every `/insights` toplist has button coverage.
 
 Each of the thirteen `player.toplist.*` facts attaches one button per listed
 player, opening the same `/deepdive player:<player>` view. Note the button set
@@ -97,5 +111,6 @@ same way `eras.list`, the coach toplists, and the team toplists do today.
 See the implementation in `apps/discord-bot/src/slash-commands/deepdive-command.service.ts`
 and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.ts`,
 `apps/discord-bot/src/deepdive/facts/coach-deepdive.ts`,
-`apps/discord-bot/src/deepdive/facts/team-deepdive.ts`, and
-`apps/discord-bot/src/deepdive/facts/player-deepdive.ts`.
+`apps/discord-bot/src/deepdive/facts/team-deepdive.ts`,
+`apps/discord-bot/src/deepdive/facts/player-deepdive.ts`, and
+`apps/discord-bot/src/deepdive/facts/race-deepdive.ts`.
