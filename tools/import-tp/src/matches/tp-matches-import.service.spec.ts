@@ -1,0 +1,136 @@
+import type {
+  ExternalSystemsImportService,
+  MatchesImportService,
+} from '@blood-bowl-tracker/import';
+import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
+import { describe, expect, it, vi } from 'vitest';
+
+import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { TpMatchesImportService } from './tp-matches-import.service';
+
+interface MakeServiceOptions {
+  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  upsertMatchResult: ReturnType<typeof vi.fn>;
+  getTpSystemName?: () => string;
+}
+
+function makeService({
+  upsertExternalSystem,
+  upsertMatchResult,
+  getTpSystemName = () => 'TP',
+}: MakeServiceOptions) {
+  return new TpMatchesImportService(
+    { upsertMatchResult } as unknown as MatchesImportService,
+    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+  );
+}
+
+function tpMatch(id: number, name: string): TpMatch {
+  return { id, playedDate: new Date('2021-05-15T18:00:00Z'), name };
+}
+
+describe('TpMatchesImportService', () => {
+  it('upserts every match across competitions with its competitionId, name and TP external id', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
+    const service = makeService({
+      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      upsertMatchResult,
+    });
+
+    const { result } = await service.importMatches(
+      new Map([
+        [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
+        [20, [tpMatch(200, 'Day 1')]],
+      ]),
+    );
+
+    expect(result.imported).toBe(3);
+    expect(result.success).toBe(true);
+    expect(upsertMatchResult).toHaveBeenCalledTimes(3);
+    expect(upsertMatchResult).toHaveBeenNthCalledWith(
+      1,
+      {
+        competitionId: 10,
+        playedAt: new Date('2021-05-15T18:00:00Z'),
+        name: 'Round 1',
+        externalIds: [{ externalSystemId: 1, externalId: '100' }],
+        teamEraIds: [],
+      },
+      expect.any(Array),
+    );
+    expect(upsertMatchResult).toHaveBeenNthCalledWith(
+      3,
+      {
+        competitionId: 20,
+        playedAt: new Date('2021-05-15T18:00:00Z'),
+        name: 'Day 1',
+        externalIds: [{ externalSystemId: 1, externalId: '200' }],
+        teamEraIds: [],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('records a single match upsert failure without aborting the rest', async () => {
+    const upsertMatchResult = vi
+      .fn()
+      .mockImplementationOnce(
+        (_data, errors: { item: unknown; message: string }[]) => {
+          errors.push({ item: {}, message: 'match 100 failed to upsert' });
+          return Promise.resolve(undefined);
+        },
+      )
+      .mockResolvedValue({ id: 7 });
+    const service = makeService({
+      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      upsertMatchResult,
+    });
+
+    const { result } = await service.importMatches(
+      new Map([[10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]]]),
+    );
+
+    expect(result.imported).toBe(1);
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('match 100 failed to upsert'),
+      ),
+    ).toBe(true);
+    expect(upsertMatchResult).toHaveBeenCalledTimes(2);
+  });
+
+  it('imports nothing for a competition with an empty match list', async () => {
+    const upsertMatchResult = vi.fn();
+    const service = makeService({
+      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      upsertMatchResult,
+    });
+
+    const { result } = await service.importMatches(new Map([[10, []]]));
+
+    expect(result.imported).toBe(0);
+    expect(result.success).toBe(true);
+    expect(upsertMatchResult).not.toHaveBeenCalled();
+  });
+
+  it('imports nothing and records one error when external system bootstrap fails', async () => {
+    const upsertMatchResult = vi.fn();
+    const service = makeService({
+      upsertExternalSystem: vi
+        .fn()
+        .mockRejectedValue(new Error('network timeout')),
+      upsertMatchResult,
+    });
+
+    const { result } = await service.importMatches(
+      new Map([[10, [tpMatch(100, 'Round 1')]]]),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].item).toEqual({ externalSystems: ['TP'] });
+    expect(upsertMatchResult).not.toHaveBeenCalled();
+  });
+});
