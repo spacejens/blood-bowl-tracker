@@ -195,7 +195,7 @@ Run this section only if "Run the manual import (after other importers)" was sel
 
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with either import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", both "Run the manual import" sections, "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash
