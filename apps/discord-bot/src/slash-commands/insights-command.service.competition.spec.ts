@@ -57,14 +57,17 @@ describe('InsightsCommandService — competition scoping', () => {
       undefined,
       30,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by touchdowns scored — Major Season 24',
-          description: '1. 40 grinders — 15',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by touchdowns scored — Major Season 24',
+            description: '1. 40 grinders — 15',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {

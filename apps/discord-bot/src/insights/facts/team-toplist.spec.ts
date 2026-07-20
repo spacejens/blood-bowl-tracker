@@ -2,6 +2,7 @@ import type { TeamsService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import {
   resolveTeamCasualtiesCausedToplist,
   resolveTeamCasualtiesSufferedToplist,
@@ -20,10 +21,7 @@ import {
   resolveTeamTimesSentOffToplist,
   resolveTeamTouchdownsScoredToplist,
 } from './team-toplist';
-import {
-  expectLeaderboardEmbed,
-  expectTimeoutFallback,
-} from './toplist.test-helpers';
+import { expectTimeoutFallback } from './toplist.test-helpers';
 
 interface TeamCase {
   describeName: string;
@@ -239,12 +237,22 @@ describe.each(cases)(
     eraRows,
     competitionRows,
   }) => {
-    it('returns a leaderboard embed built from the query rows', async () => {
+    it('returns a leaderboard embed with one deepdive button per team row', async () => {
       const teams = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as TeamsService;
-      const result = await resolve(teams);
-      expectLeaderboardEmbed(result, expectedTitle, expectedDescription);
+      const result = (await resolve(teams)) as {
+        embeds: { title: string; description: string }[];
+        components: { components: { label: string; custom_id: string }[] }[];
+      };
+      expect(result.embeds).toEqual([
+        { title: expectedTitle, description: expectedDescription },
+      ]);
+      const buttons = result.components.flatMap((row) => row.components);
+      expect(buttons.map((b) => b.custom_id)).toEqual(
+        rows.map((r) => `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${r.teamId}`),
+      );
+      expect(buttons.map((b) => b.label)).toEqual(rows.map((r) => r.name));
     });
 
     if (eraRows) {

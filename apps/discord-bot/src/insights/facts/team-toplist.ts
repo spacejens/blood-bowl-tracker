@@ -5,9 +5,14 @@ import {
   TEAM_TOPLIST_NO_DATA_MESSAGE,
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import { resolveToplist } from '../leaderboard';
 import type { ScopedCountMethods } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
+
+function teamButtonId(row: { teamId: number }): string {
+  return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
+}
 
 /**
  * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
@@ -36,7 +41,11 @@ const _teamToplistMethods = [
 ] as const satisfies readonly ScopedCountMethods<TeamsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
-const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>({
+const resolvers = makeToplistResolvers<
+  TeamToplistMethod,
+  TeamsService,
+  { teamId: number; name: string; count: number }
+>({
   titles: {
     countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
     countCompletionsByTeam: 'Teams by completions',
@@ -54,6 +63,7 @@ const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>({
   },
   timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
   noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+  buildCustomId: teamButtonId,
 });
 
 export const resolveTeamTouchdownsScoredToplist =
@@ -94,6 +104,7 @@ export async function resolveTeamMatchesPlayedToplist(
     fetchRows: () => teams.countMatchesPlayedByTeam(eraId),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: teamButtonId,
   });
 }
 
@@ -106,6 +117,7 @@ export async function resolveTeamCompetitionsPlayedToplist(
     fetchRows: () => teams.countCompetitionsByTeam(eraId),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: teamButtonId,
   });
 }
 
@@ -117,5 +129,6 @@ export async function resolveTeamErasActiveToplist(
     fetchRows: () => teams.countErasByTeam(),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: teamButtonId,
   });
 }

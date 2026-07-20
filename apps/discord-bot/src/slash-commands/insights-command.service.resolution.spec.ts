@@ -127,14 +127,17 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(chatInput('team.toplist.deflections'));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countDeflectionsByTeam).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by deflections — All time',
-          description: '1. 40 grinders — 4',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by deflections — All time',
+            description: '1. 40 grinders — 4',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('resolves player.toplist.sent_off with no era, suffixed with "All time"', async () => {
@@ -159,13 +162,16 @@ describe('InsightsCommandService — fact-path resolution', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countDeathsSufferedByTeam).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by deaths suffered — All time',
-          description: '1. 40 grinders — 2',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by deaths suffered — All time',
+            description: '1. 40 grinders — 2',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 });
