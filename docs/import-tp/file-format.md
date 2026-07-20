@@ -31,7 +31,7 @@ code** — the code is the source of truth at that point.
   `tournament_<slug>_phases?type=COACH.json`. Since TP slugs use hyphens, never
   underscores, the base file is distinguished from its variants by a regex
   requiring no further `_` after the `tournament_` prefix
-  (`isBaseTournamentFile` in `tp-eras-import.service.ts`:
+  (`isBaseTournamentFile` in `tp-source-reader.ts`:
   `/^tournament_[^_]+\.json$/`).
 
 ## Entity identifiers
@@ -68,12 +68,25 @@ name), `country`/`locality`/`region`/`address`/`postalCode`, `creationDate`,
 `phases[]` entries carry the tournament's full Blood Bowl ruleset
 configuration (`pointsWin`/`pointsDraw`/`pointsDefeat`, `mvpCandidates`,
 `weatherAvailables`, `spirallingExpenses`, `expensiveMistakes`, and dozens
-more) — none of this is parsed yet; it's out of scope until a future
-sub-issue needs it (competition import and beyond).
+more) — none of this is parsed yet; competition import consumes only the
+`{ id, name, ruleSet }` already extracted, so it remains out of scope until a
+future sub-issue needs it.
 
-## `match_<id>.json` (not yet parsed)
+## `match_<id>.json` (play date parsed)
 
-Not yet handled — candidate for the matches sub-issue. Notable fields seen:
+`packages/parse-tp`'s `MatchParserService.parse()` now extracts only
+`{ id: number, playedDate: Date }` — mapping `matchId` to `id` and resolving
+`playedDate` with a three-step fallback: `scoreResume.startInstant` (a
+completed match's own recorded start time — the most direct "actually played"
+signal TP exposes — see below) when present and non-null, else `scheduledDate`
+(the agreed play date, and the best available signal for a match with no
+scoreResume yet), else `createdInstant` as a last resort. `createdInstant` is
+only a record-setup timestamp (when the match slot was created, e.g. at
+schedule generation) and can predate the actual play date by months — it is
+deliberately not an earlier fallback. TP competition import uses these dates to
+classify a competition as a cup or season by their span. The rest of the body
+is still unhandled — a candidate for the matches sub-issue. Notable remaining
+fields seen:
 `matchId`, `state`, `statePostMatch`, `createdInstant`, `ruleSet`,
 `weatherTable`, `round`, `order`, `turn { current, half, ... }`,
 `inscriptionLocal.roster { ... }` (see roster shape below, home side only —

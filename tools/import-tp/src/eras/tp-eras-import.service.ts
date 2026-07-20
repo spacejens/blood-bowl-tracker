@@ -12,23 +12,16 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
-import { TpSourceReader } from '../source/tp-source-reader';
+import {
+  isBaseTournamentFile,
+  TpSourceReader,
+} from '../source/tp-source-reader';
 import { EraDataConfig, EraDataConfigService } from './era-data-config.service';
 
 /** Rule-set codes and parse failures seen while scanning tournament files. */
 interface RuleSetScan {
   codesByEra: Map<string, Set<number>>;
   parseErrorByEra: Map<string, string[]>;
-}
-
-/**
- * True for a base tournament file `tournament_<slug>.json` (slugs use hyphens,
- * never underscores). Excludes the `_coach-stats`/`_team-stats`/
- * `_clasifications?type=COACH`/`_phases?type=COACH` variants, which carry two
- * or more underscores.
- */
-function isBaseTournamentFile(filename: string): boolean {
-  return /^tournament_[^_]+\.json$/.test(filename);
 }
 
 @Injectable()

@@ -8,7 +8,7 @@ import type { EraDataConfig } from '../eras/era-data-config.service';
 import type { EraDataConfigService } from '../eras/era-data-config.service';
 import type { SourceConfigService } from './source-config.service';
 import type { TpSourceFile } from './tp-source-reader';
-import { TpSourceReader } from './tp-source-reader';
+import { isBaseTournamentFile, TpSourceReader } from './tp-source-reader';
 
 function makeReader(dir: string, eras: EraDataConfig[]): TpSourceReader {
   return new TpSourceReader(
@@ -156,5 +156,23 @@ describe('TpSourceReader', () => {
     await expect(collect(reader.files())).rejects.toThrow(
       /Era data directory not found.*Fourth era/,
     );
+  });
+});
+
+describe('isBaseTournamentFile', () => {
+  it('accepts a base tournament file with a hyphenated slug', () => {
+    expect(isBaseTournamentFile('tournament_chaos-cup-8.json')).toBe(true);
+  });
+
+  it('rejects a tournament variant file carrying a second underscore', () => {
+    expect(
+      isBaseTournamentFile('tournament_chaos-cup-8_coach-stats.json'),
+    ).toBe(false);
+    expect(isBaseTournamentFile('tournament_a_team-stats.json')).toBe(false);
+  });
+
+  it('rejects non-tournament filenames', () => {
+    expect(isBaseTournamentFile('match_566088.json')).toBe(false);
+    expect(isBaseTournamentFile('rosters_1.json')).toBe(false);
   });
 });
