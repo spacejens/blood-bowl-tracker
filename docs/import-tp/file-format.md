@@ -76,8 +76,12 @@ future sub-issue needs it.
 
 `packages/parse-tp`'s `MatchParserService.parse()` now extracts only
 `{ id: number, scheduledDate: Date }` — mapping `matchId` to `id` and resolving
-the play date from `scheduledDate`, falling back to `createdInstant` when
-`scheduledDate` is null or absent. TP competition import uses these dates to
+the play date with a three-step fallback: `scheduledDate` when present and
+non-null, else `scoreResume.startInstant` (a completed match's actual start
+time — see below), else `createdInstant` as a last resort. `createdInstant` is
+only a record-setup timestamp (when the match slot was created, e.g. at
+schedule generation) and can predate the actual play date by months — it is
+deliberately not the first fallback. TP competition import uses these dates to
 classify a competition as a cup or season by their span. The rest of the body
 is still unhandled — a candidate for the matches sub-issue. Notable remaining
 fields seen:
