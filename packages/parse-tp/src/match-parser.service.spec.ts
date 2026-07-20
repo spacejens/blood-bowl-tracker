@@ -5,7 +5,8 @@ import { MatchParserService } from './match-parser.service';
 const service = new MatchParserService();
 
 /**
- * A minimal valid match body. `round` and `group.phase.roundName` are now
+ * A minimal valid match body. `round`, `group.phase.roundName`,
+ * `inscriptionLocal.roster.id` and `inscriptionVisitor.roster.id` are all
  * required, so every valid body includes them; override to model each case.
  */
 function matchBody(overrides: Record<string, unknown> = {}) {
@@ -14,12 +15,14 @@ function matchBody(overrides: Record<string, unknown> = {}) {
     round: 3,
     group: { phase: { roundName: 'ROUND' } },
     createdInstant: '2021-04-01T09:00:00Z',
+    inscriptionLocal: { roster: { id: 10 } },
+    inscriptionVisitor: { roster: { id: 20 } },
     ...overrides,
   };
 }
 
 describe('MatchParserService', () => {
-  it('maps matchId to id, prefers scoreResume.startInstant, and builds name from roundName + round', () => {
+  it('maps matchId to id, prefers scoreResume.startInstant, builds name, and parses home/away roster ids', () => {
     const result = service.parse(
       matchBody({
         matchId: 566088,
@@ -34,7 +37,20 @@ describe('MatchParserService', () => {
       id: 566088,
       playedDate: new Date('2021-05-15T18:00:03Z'),
       name: 'Round 3',
+      homeTeamTpId: 10,
+      awayTeamTpId: 20,
     });
+  });
+
+  it('parses distinct home and away roster ids from inscriptionLocal/inscriptionVisitor', () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: { roster: { id: 777 } },
+        inscriptionVisitor: { roster: { id: 888 } },
+      }),
+    );
+    expect(result.homeTeamTpId).toBe(777);
+    expect(result.awayTeamTpId).toBe(888);
   });
 
   it('title-cases an all-caps roundName ("ROUND" + 3 -> "Round 3")', () => {
@@ -96,6 +112,8 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: { roundName: 'ROUND' } },
         createdInstant: '2021-04-01T09:00:00Z',
+        inscriptionLocal: { roster: { id: 10 } },
+        inscriptionVisitor: { roster: { id: 20 } },
       }),
     ).toThrow(/matchId/);
   });
@@ -112,6 +130,8 @@ describe('MatchParserService', () => {
         matchId: 1,
         group: { phase: { roundName: 'ROUND' } },
         createdInstant: '2021-04-01T09:00:00Z',
+        inscriptionLocal: { roster: { id: 10 } },
+        inscriptionVisitor: { roster: { id: 20 } },
       }),
     ).toThrow(/round/);
   });
@@ -123,6 +143,8 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: {} },
         createdInstant: '2021-04-01T09:00:00Z',
+        inscriptionLocal: { roster: { id: 10 } },
+        inscriptionVisitor: { roster: { id: 20 } },
       }),
     ).toThrow(/roundName/);
   });
@@ -135,8 +157,28 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: { roundName: 'ROUND' } },
         scheduledDate: '2021-05-15T18:00:00Z',
+        inscriptionLocal: { roster: { id: 10 } },
+        inscriptionVisitor: { roster: { id: 20 } },
       }),
     ).toThrow(/createdInstant/);
+  });
+
+  it('throws naming the field when inscriptionLocal.roster.id is missing', () => {
+    expect(() =>
+      service.parse(matchBody({ inscriptionLocal: { roster: {} } })),
+    ).toThrow(/inscriptionLocal/);
+  });
+
+  it('throws naming the field when inscriptionVisitor.roster.id is missing', () => {
+    expect(() =>
+      service.parse(matchBody({ inscriptionVisitor: { roster: {} } })),
+    ).toThrow(/inscriptionVisitor/);
+  });
+
+  it('throws naming the field when inscriptionLocal.roster.id is not a number', () => {
+    expect(() =>
+      service.parse(matchBody({ inscriptionLocal: { roster: { id: 'x' } } })),
+    ).toThrow(/inscriptionLocal/);
   });
 
   it('throws when the resolved date is not a valid date string', () => {
