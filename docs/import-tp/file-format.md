@@ -101,17 +101,57 @@ every `match_*.json` under each era's directory for the earliest/latest
 `scheduledDate` (a one-off manual step during initial config setup, not
 something the import tool itself does).
 
-## `rosters_<id>.json` (not yet parsed)
+## `rosters_<id>.json` (races, positions and teams parsed)
 
-Not yet handled — candidate for a team/roster sub-issue. Top-level fields:
-`id`, `imageFile`, `assistantCoaches`, `cheerLeaders`, `fanFactor`, `ruleSet`,
-`necromancer`, `reRolls`, `shortTeamName`, `sponsors`, `teamColor`,
-`teamName`, `teamRace` (see the rule-set-suffix note above), `treasury`,
-`extraGoldQuantity`, `rosterMaster`, `teamSpecialRules`, `league`,
-`hasMatchesInProgress`, `hasMatchesPlayed`. The same shape (a subset of these
-fields) reappears nested as `roster` inside `match` and `inscriptions`
-bodies — not a coincidence, but the full shape hasn't been reconciled across
-all three contexts yet.
+`packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
+teamRaceCode, raceName, coachTpId, positions }`:
+
+- `id` — TP's roster id, used as a TP external id for teams.
+- `teamName` — the team's registered name, used as a Name external id for teams.
+- `teamRaceCode` — extracted from the `teamRace` field (which carries a
+  rule-set-looking suffix like `"Dwarf"` or `"Snotling_BB2025"`). This code
+  is looked up in the `raceIdsByTeamRaceCode` map from `TpRacesImportService`
+  to resolve which race row each team belongs to.
+- `raceName` — extracted from `rosterMaster.name`, the display name for the
+  race (e.g. `"Dwarf"`, `"Skaven"`, `"Snotling"`). Stable across every
+  rule-set-variant code of the same logical race.
+- `coachTpId` — extracted from `player.applicationUserId`, TP's stable coach
+  account id. Looked up in `coachIdsByTpId` from `TpCoachesImportService` to
+  resolve the team's coach.
+- `positions` — extracted from `rosterMaster.lineUpMasters[]`, each entry
+  becomes `{ tpPositionId: id, name: position }`. Positions are grouped by
+  `(unified race, position name)` across all roster files, so one
+  identically-named position across rule-set-variant codes of one logical race
+  merges onto a single row, collecting every distinct `tpPositionId` as TP
+  external ids (all in one upsert call). Positions carry no Name external id
+  (position names are not race-unique).
+
+**Races** (via `TpRacesImportService`) group by `raceName` (not code), so all
+rule-set-variant codes of one logical race merge onto one row, each code kept
+as a TP external id. Each upsert carries the display name as a Name external
+id and every era any contributing roster was seen under.
+
+**Positions** (via `TpPositionsImportService`) carry only TP external ids (one
+per `tpPositionId` variant). After each upsert, the observed race/era
+availability is recorded via `syncRaceEras`. All positions import with
+`isStarPlayer: false`; `starPlayersMasters` is not parsed (see below).
+
+**Teams** (via `TpTeamsImportService`) are keyed by roster `id` and `teamName`
+(one TP and one Name external id). Their race resolves via `raceIdsByTeamRaceCode`
+and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
+resolved is recorded as an error and skipped.
+
+**Still not handled** (future work): `rosterMaster.starPlayersMasters` (star
+players — parsed as an empty list since the dataset contains none; revisit
+once match-event data — issue #198 — surfaces a real star-player sample), and
+the other top-level fields (`imageFile`, `assistantCoaches`, `cheerLeaders`,
+`fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
+`teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
+`hasMatchesInProgress`, `hasMatchesPlayed`). Note that the same roster shape
+reappears nested as `roster` inside `match` and `inscriptions` bodies — not a
+coincidence, but the full shape hasn't been reconciled across all three
+contexts. Those nested copies lack `rosterMaster` and are not a source for this
+import.
 
 ## `inscriptions_<slug>_inscriptions.json` (coaches parsed)
 
