@@ -52,6 +52,10 @@ export class TpTeamsImportService {
    * are grouped by id so one seen under multiple eras unions its eras. `rosters`
    * is the already-collected roster list (via `RosterCollectionService`, run
    * once for all three imports); this service only groups and upserts.
+   * Also returns `teamErasByRosterId`, mapping each imported team's roster id to
+   * the resolved `{ id, eraId }[]` eras from its upsert response — consumed by
+   * TpTeamParticipationImportService to resolve a roster id + era id to a
+   * team_eras id.
    * `lookups` bundles the three cross-entity maps needed to resolve a team's
    * race, coach and eras (kept as one options object to stay within the
    * repo's 3-parameter limit). Idempotent.
@@ -59,10 +63,17 @@ export class TpTeamsImportService {
   async importTeams(
     rosters: RosterEntry[],
     lookups: ImportTeamsLookups,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{
+    result: ImportResult;
+    teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
+  }> {
     const { raceIdsByTeamRaceCode, coachIdsByTpId, eraIdsByName } = lookups;
     let imported = 0;
     const errors: ImportError[] = [];
+    const teamErasByRosterId = new Map<
+      number,
+      { id: number; eraId: number }[]
+    >();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -71,7 +82,10 @@ export class TpTeamsImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        teamErasByRosterId,
+      };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
@@ -130,10 +144,14 @@ export class TpTeamsImportService {
       };
       const upserted = await this.teamsImport.upsertTeam(data, errors);
       if (upserted) {
+        teamErasByRosterId.set(group.id, upserted.eras);
         imported += 1;
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return {
+      result: makeImportResult({ imported, errors }),
+      teamErasByRosterId,
+    };
   }
 }

@@ -320,4 +320,33 @@ describe('TpTeamsImportService', () => {
     expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
     expect(upsertTeam).not.toHaveBeenCalled();
   });
+
+  it('returns teamErasByRosterId with each team resolved eras keyed by roster id', async () => {
+    const upsertTeam = vi.fn().mockResolvedValue({
+      ...teamRecord(70),
+      eras: [{ id: 700, eraId: 100 }],
+    });
+    const service = makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertTeam,
+    });
+
+    const { teamErasByRosterId } = await service.importTeams(
+      [
+        rosterEntry('Fourth era', {
+          id: 5,
+          teamName: 'Da Boyz',
+          teamRace: 'Orc',
+          coachTpId: 'guid-c',
+        }),
+      ],
+      {
+        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
+        coachIdsByTpId: new Map([['guid-c', 900]]),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+      },
+    );
+
+    expect(teamErasByRosterId.get(5)).toEqual([{ id: 700, eraId: 100 }]);
+  });
 });
