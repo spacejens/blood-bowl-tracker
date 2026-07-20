@@ -1,11 +1,9 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
   PositionsImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -60,7 +58,7 @@ export class BblPositionsImportService {
     private readonly positionPageParser: PositionPageParser,
     private readonly playerPageParser: PlayerPageParser,
     private readonly positionsImport: PositionsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -124,28 +122,20 @@ export class BblPositionsImportService {
       }
     };
 
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
-    try {
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
-    } catch (error) {
-      errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-          'Failed to upsert external system: ',
-        ),
-      );
+    const bootstrap = await this.externalSystemBootstrap.bootstrap(
+      [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+      'Failed to upsert external system: ',
+    );
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return {
         result: makeImportResult({ imported, errors }),
         positionIdsByBblId,
         positionRaceCandidates,
       };
     }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     const raceInfoByDbId = new Map<number, { bblId: string; name: string }>();
     for (const [bblId, info] of racesByBblId) {

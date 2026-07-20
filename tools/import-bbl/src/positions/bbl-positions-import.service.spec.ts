@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -69,7 +69,7 @@ interface MakeServiceOptions {
 
 function makeService({
   reader,
-  upsertExternalSystem,
+  upsertExternalSystem: bootstrap,
   upsertPosition,
   parsers = makeParsers(),
 }: MakeServiceOptions) {
@@ -78,7 +78,7 @@ function makeService({
     parsers.positionParser,
     parsers.playerParser,
     { upsertPosition } as unknown as PositionsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
@@ -86,7 +86,7 @@ function makeService({
 }
 
 function externalSystemsOk() {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }
 
 const racesByBblId = new Map<string, { id: number; name: string }>([
@@ -103,6 +103,7 @@ const teamRaceIdsByCode = new Map<string, number>([
 describe('BblPositionsImportService', () => {
   it('upserts one row per listed race with composite external ids', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const upsertExternalSystem = externalSystemsOk();
     const service = makeService({
       reader: makeReader([
         ptPage({
@@ -115,7 +116,7 @@ describe('BblPositionsImportService', () => {
           ],
         }),
       ]),
-      upsertExternalSystem: externalSystemsOk(),
+      upsertExternalSystem,
       upsertPosition,
     });
 
@@ -124,6 +125,10 @@ describe('BblPositionsImportService', () => {
       teamRaceIdsByCode,
     );
 
+    expect(upsertExternalSystem).toHaveBeenCalledWith(
+      ['BBL', 'Name'],
+      'Failed to upsert external system: ',
+    );
     expect(result.imported).toBe(2);
     expect(upsertPosition).toHaveBeenCalledWith(
       {
@@ -615,9 +620,13 @@ describe('BblPositionsImportService', () => {
   });
 
   it('records one error and skips positions when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('internal error'));
+    const upsertExternalSystem = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'Failed to upsert external system: internal error',
+      },
+    });
     const upsertPosition = vi.fn();
     const service = makeService({
       reader: makeReader([
@@ -642,31 +651,6 @@ describe('BblPositionsImportService', () => {
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
     expect(upsertPosition).not.toHaveBeenCalled();
-  });
-
-  it('stringifies a non-Error thrown by the external system upsert', async () => {
-    const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
-    const upsertPosition = vi.fn();
-    const service = makeService({
-      reader: makeReader([
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '48', name: 'College of Shadow' }],
-        }),
-      ]),
-      upsertExternalSystem,
-      upsertPosition,
-    });
-
-    const { result } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
   });
 
   it('returns positionIdsByBblId keyed by `${typId}-${raceBblId}`', async () => {
