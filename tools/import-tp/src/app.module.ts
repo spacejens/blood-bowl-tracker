@@ -9,8 +9,11 @@ import { ImportTpConfigService } from './config/import-tp-config.service';
 import { EraDataConfigModule } from './eras/era-data-config.module';
 import { ErasModule } from './eras/eras.module';
 import { LeaguesModule } from './leagues/leagues.module';
+import { PositionsModule } from './positions/positions.module';
+import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
+import { TeamsModule } from './teams/teams.module';
 
 @Module({})
 export class AppModule {
@@ -31,6 +34,9 @@ export class AppModule {
         ErasModule,
         CompetitionsModule,
         CoachesModule,
+        RacesModule,
+        TeamsModule,
+        PositionsModule,
       ],
     };
   }
