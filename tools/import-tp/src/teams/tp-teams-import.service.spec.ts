@@ -216,6 +216,41 @@ describe('TpTeamsImportService', () => {
     ).toBe(true);
   });
 
+  it('records an error for a roster under an unknown era but still upserts the team', async () => {
+    const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
+    const service = makeService({
+      files: makeFiles([
+        rosterFile('Fourth era', {
+          id: 5,
+          teamName: 'Da Boyz',
+          teamRace: 'Orc',
+          coachTpId: 'guid-c',
+        }),
+        rosterFile('Ghost era', {
+          id: 5,
+          teamName: 'Da Boyz',
+          teamRace: 'Orc',
+          coachTpId: 'guid-c',
+        }),
+      ]),
+      upsertExternalSystem: twoSystemUpsertMock(),
+      upsertTeam,
+    });
+
+    const { result } = await service.importTeams(
+      new Map([['Orc', 50]]),
+      new Map([['guid-c', 900]]),
+      new Map([['Fourth era', 100]]),
+    );
+
+    expect(upsertTeam).toHaveBeenCalledTimes(1);
+    expect((upsertTeam.mock.calls[0][0] as UpsertTeam).eras).toEqual([100]);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('Ghost era'))).toBe(
+      true,
+    );
+  });
+
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertTeam = vi.fn();
     const service = makeService({
