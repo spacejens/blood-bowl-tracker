@@ -5,6 +5,8 @@ export {
   externalSystemBootstrapError,
   upsertExternalSystems,
 } from './external-system-bootstrap';
+export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';
+export { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
 export { ImportRunnerService } from './import-runner.service';
