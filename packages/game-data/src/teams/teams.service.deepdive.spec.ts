@@ -64,4 +64,81 @@ describe('TeamsService lookups', () => {
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(999);
     });
   });
+
+  describe('getCareerSpan', () => {
+    function makeSpanBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns the min/max match dates for the team', async () => {
+      const builder = makeSpanBuilder([
+        { start: '2021-09-01', end: '2023-06-10' },
+      ]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getCareerSpan(7)).resolves.toEqual({
+        start: '2021-09-01',
+        end: '2023-06-10',
+      });
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
+    });
+
+    it('returns undefined when the team has played no matches', async () => {
+      const builder = makeSpanBuilder([{ start: null, end: null }]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.getCareerSpan(7)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('getTopPlayersByMatchEventCount', () => {
+    function makeTopPlayersBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
+      builder.limit = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns players ranked by total match events, capped to the limit', async () => {
+      const rows = [
+        { playerId: 1, name: 'Griff', count: 20 },
+        { playerId: 2, name: 'Morg', count: 11 },
+      ];
+      const builder = makeTopPlayersBuilder(rows);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(
+        service.getTopPlayersByMatchEventCount(7, 10),
+      ).resolves.toEqual(rows);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
+      expect(builder.limit).toHaveBeenCalledWith(10);
+    });
+
+    it('sums events of different types into one total per player', async () => {
+      // The query GROUP BYs the player and COUNTs every matched row regardless
+      // of action type, so a player with touchdowns + casualties + fouls
+      // surfaces as a single summed count. The mock returns the already-summed
+      // shape the SQL would produce; this pins the pass-through and limit.
+      const rows = [{ playerId: 1, name: 'Griff', count: 37 }];
+      const builder = makeTopPlayersBuilder(rows);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(
+        service.getTopPlayersByMatchEventCount(7, 10),
+      ).resolves.toEqual(rows);
+      expect(builder.limit).toHaveBeenCalledWith(10);
+    });
+  });
 });

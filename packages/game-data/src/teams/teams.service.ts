@@ -13,11 +13,14 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { countDistinct, desc, eq, ilike } from 'drizzle-orm';
+import { countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
-import { countMatchEventsByTeam } from '../shared/match-event-counts';
+import {
+  countAllMatchEventsByPlayerForTeam,
+  countMatchEventsByTeam,
+} from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -104,6 +107,35 @@ export class TeamsService {
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .where(eq(teams.id, id));
     return rows[0];
+  }
+
+  async getCareerSpan(
+    teamId: number,
+  ): Promise<{ start: string; end: string } | undefined> {
+    // Aggregate over zero rows still returns one row with null start/end, so a
+    // null start marks a team that has recorded no matches. Casting to ::date
+    // yields YYYY-MM-DD strings the resolver can render directly.
+    const [row] = await this.db
+      .select({
+        start: sql<string | null>`min(${matches.playedAt})::date`,
+        end: sql<string | null>`max(${matches.playedAt})::date`,
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.id, teamId));
+    if (row === undefined || row.start === null || row.end === null) {
+      return undefined;
+    }
+    return { start: row.start, end: row.end };
+  }
+
+  getTopPlayersByMatchEventCount(
+    teamId: number,
+    limit: number,
+  ): Promise<{ name: string; count: number }[]> {
+    return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
   }
 
   async countMatchesPlayedByTeam(
