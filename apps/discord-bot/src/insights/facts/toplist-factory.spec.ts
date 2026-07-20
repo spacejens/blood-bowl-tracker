@@ -78,7 +78,7 @@ describe('makeToplistResolvers', () => {
       { teamId: 4, name: 'Griff', count: 3 },
       { teamId: 9, name: 'Morg', count: 1 },
     ]);
-    const reply = (await resolvers.gamma({ gamma })) as {
+    const reply = (await resolvers.gamma({ gamma })) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = reply.components.flatMap((row) => row.components);
