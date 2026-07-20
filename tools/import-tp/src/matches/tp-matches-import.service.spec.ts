@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
@@ -9,19 +9,19 @@ import type { ExternalSystemNameConfigService } from '../source/external-system-
 import { TpMatchesImportService } from './tp-matches-import.service';
 
 interface MakeServiceOptions {
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertMatchResult: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
-  upsertExternalSystem,
+  bootstrap,
   upsertMatchResult,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpMatchesImportService(
     { upsertMatchResult } as unknown as MatchesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -34,7 +34,7 @@ describe('TpMatchesImportService', () => {
   it('upserts every match across competitions with its competitionId, name and TP external id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
     const service = makeService({
-      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
@@ -83,7 +83,7 @@ describe('TpMatchesImportService', () => {
       )
       .mockResolvedValue({ id: 7 });
     const service = makeService({
-      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
@@ -104,7 +104,7 @@ describe('TpMatchesImportService', () => {
   it('imports nothing for a competition with an empty match list', async () => {
     const upsertMatchResult = vi.fn();
     const service = makeService({
-      upsertExternalSystem: vi.fn().mockResolvedValueOnce(1),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
@@ -118,9 +118,13 @@ describe('TpMatchesImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchResult = vi.fn();
     const service = makeService({
-      upsertExternalSystem: vi
-        .fn()
-        .mockRejectedValue(new Error('network timeout')),
+      bootstrap: vi.fn().mockResolvedValue({
+        ok: false,
+        error: {
+          item: { externalSystems: ['TP'] },
+          message: 'network timeout',
+        },
+      }),
       upsertMatchResult,
     });
 

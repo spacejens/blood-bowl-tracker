@@ -1,11 +1,9 @@
 import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportResult,
   MatchesImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -16,7 +14,7 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 export class TpMatchesImportService {
   constructor(
     private readonly matchesImport: MatchesImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -40,15 +38,14 @@ export class TpMatchesImportService {
     const errors: ImportError[] = [];
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
-    let tpSystemId: number;
-    try {
-      [tpSystemId] = await upsertExternalSystems(this.externalSystemsImport, [
-        tpSystemName,
-      ]);
-    } catch (error) {
-      errors.push(externalSystemBootstrapError([tpSystemName], error));
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      tpSystemName,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return { result: makeImportResult({ imported, errors }) };
     }
+    const [tpSystemId] = bootstrap.ids;
 
     for (const [competitionId, matches] of matchesByCompetitionId) {
       for (const match of matches) {

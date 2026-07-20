@@ -599,10 +599,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('exposes parsed matches with constructed names keyed by competition DB id', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFiles([
@@ -627,7 +624,7 @@ describe('TpCompetitionsImportService', () => {
           roundName: 'DAY',
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 

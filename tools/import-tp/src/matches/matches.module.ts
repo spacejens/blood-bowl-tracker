@@ -6,9 +6,9 @@ import { TpMatchesImportService } from './tp-matches-import.service';
 
 @Module({
   // SourceModule supplies ExternalSystemNameConfigService; ImportModule supplies
-  // MatchesImportService + ExternalSystemsImportService. No ParseTpModule — this
-  // service consumes the already-parsed matchesByCompetitionId map, doing no
-  // file I/O or parsing of its own.
+  // MatchesImportService + ExternalSystemBootstrapService. No ParseTpModule —
+  // this service consumes the already-parsed matchesByCompetitionId map, doing
+  // no file I/O or parsing of its own.
   imports: [ImportModule, SourceModule],
   providers: [TpMatchesImportService],
   exports: [TpMatchesImportService],
