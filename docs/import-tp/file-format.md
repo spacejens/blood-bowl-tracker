@@ -73,10 +73,13 @@ more) — none of this is parsed yet; competition import consumes only the
 `{ id, name, ruleSet }` already extracted, so it remains out of scope until a
 future sub-issue needs it.
 
-## `match_<id>.json` (play date parsed)
+## `match_<id>.json` (play date and name parsed)
 
-`packages/parse-tp`'s `MatchParserService.parse()` now extracts only
-`{ id: number, playedDate: Date }` — mapping `matchId` to `id` and resolving
+`packages/parse-tp`'s `MatchParserService.parse()` extracts
+`{ id: number, playedDate: Date, name: string }` — mapping `matchId` to `id`,
+building `name` from `group.phase.roundName` title-cased plus `round` (e.g.
+`"Round 3"`, `"Day 2"`; only `"ROUND"` and `"DAY"` roundNames appear in the
+dataset, but the field is treated as an arbitrary string), and resolving
 `playedDate` with a three-step fallback: `scoreResume.startInstant` (a
 completed match's own recorded start time — the most direct "actually played"
 signal TP exposes — see below) when present and non-null, else `scheduledDate`
@@ -85,14 +88,23 @@ scoreResume yet), else `createdInstant` as a last resort. `createdInstant` is
 only a record-setup timestamp (when the match slot was created, e.g. at
 schedule generation) and can predate the actual play date by months — it is
 deliberately not an earlier fallback. TP competition import uses these dates to
-classify a competition as a cup or season by their span. The rest of the body
-is still unhandled — a candidate for the matches sub-issue. Notable remaining
-fields seen:
+classify a competition as a cup or season by their span. `TpMatchesImportService`
+then imports each match as a `Match` row linked to its competition (via the
+directory scan, since a match file carries no tournament id — see below),
+carrying only a TP external id (the stringified `matchId`); match names are not
+unique, so they are never used as an external id. The parser also reads
+`inscriptionLocal.roster.id` / `inscriptionVisitor.roster.id` (the home/away
+team roster ids); `TpTeamParticipationImportService` resolves these to team-era
+ids and re-upserts each match with its `match_teams`, and derives each
+competition's `competition_teams` from which roster files appear under its
+directory. The rest of the body is still unhandled — match events are issue
+#198. Notable remaining fields seen:
 `matchId`, `state`, `statePostMatch`, `createdInstant`, `ruleSet`,
 `weatherTable`, `round`, `order`, `turn { current, half, ... }`,
-`inscriptionLocal.roster { ... }` (see roster shape below, home side only —
-need to confirm where the away side's roster is exposed once this file type
-is actually parsed), `scoreResume { startInstant, finishInstant }`,
+`inscriptionLocal.roster { id, ... }` / `inscriptionVisitor.roster { id, ... }`
+(the home/away teams — only each side's roster `id` is parsed, into
+`homeTeamTpId`/`awayTeamTpId`; the rest of these nested roster bodies is
+unhandled), `scoreResume { startInstant, finishInstant }`,
 `matchEvents[]`, and — importantly — `scheduledDate`/`endScheduledDate`.
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is
 the closest thing to "when the match was actually played" anywhere in TP's

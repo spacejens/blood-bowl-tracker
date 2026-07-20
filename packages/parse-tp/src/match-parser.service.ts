@@ -2,10 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /**
- * The subset of a TP `match_<id>.json` body this tool cares about. Other match
- * fields (state, round, turn, inscriptionLocal, matchEvents, rosters, etc.) are
- * intentionally ignored until a future matches sub-issue needs them — the same
- * "parse only what's needed" convention as TournamentParserService.
+ * The subset of a TP `match_<id>.json` body this tool cares about.
  *
  * `playedDate` is the resolved play date, preferring the closest available
  * signal for when the match was actually played: `scoreResume.startInstant`
@@ -22,14 +19,37 @@ import { z } from 'zod';
  * only one of its three candidate sources, not always the winner. It is
  * always a Date because the required `createdInstant` fallback guarantees
  * one.
+ *
+ * The home/away team roster ids come from `inscriptionLocal.roster.id` /
+ * `inscriptionVisitor.roster.id`. Other match fields (state, turn,
+ * matchEvents, the rest of the nested roster bodies, etc.) are intentionally
+ * ignored until a future sub-issue needs them — the same "parse only what's
+ * needed" convention as TournamentParserService.
  */
 export interface TpMatch {
   id: number;
   playedDate: Date;
+  /**
+   * The match's display name, built as `<title-cased roundName> <round>` —
+   * e.g. `"Round 3"` (season/league) or `"Day 2"` (dungeon bowl). Names are
+   * NOT unique across matches (per docs/game-concepts/matches/index.md) and
+   * must never be used as an external id.
+   */
+  name: string;
+  /** The home team's TP roster id (`inscriptionLocal.roster.id`). */
+  homeTeamTpId: number;
+  /** The away team's TP roster id (`inscriptionVisitor.roster.id`). */
+  awayTeamTpId: number;
 }
 
 const TpMatchSchema = z.object({
   matchId: z.number(),
+  round: z.number(),
+  group: z.object({
+    phase: z.object({
+      roundName: z.string(),
+    }),
+  }),
   scheduledDate: z.string().nullish(),
   createdInstant: z.string(),
   scoreResume: z
@@ -37,16 +57,30 @@ const TpMatchSchema = z.object({
       startInstant: z.string().nullish(),
     })
     .nullish(),
+  inscriptionLocal: z.object({
+    roster: z.object({
+      id: z.number(),
+    }),
+  }),
+  inscriptionVisitor: z.object({
+    roster: z.object({
+      id: z.number(),
+    }),
+  }),
 });
 
 @Injectable()
 export class MatchParserService {
   /**
-   * Validate and extract `{ id, playedDate }` from a parsed TP match JSON
-   * body. `matchId` maps to `id`; `playedDate` is `scoreResume.startInstant`
-   * when set, else `scheduledDate` when set, else `createdInstant`. Extra
-   * fields are allowed and dropped. Throws an Error whose message names the
-   * failing field on any shape mismatch, or when the resolved date string
+   * Validate and extract `{ id, playedDate, name, homeTeamTpId, awayTeamTpId }`
+   * from a parsed TP match JSON body. `matchId` maps to `id`; `playedDate` is
+   * `scoreResume.startInstant` when set, else `scheduledDate` when set, else
+   * `createdInstant`. `name` is `group.phase.roundName` title-cased plus a
+   * space and `round`.
+   * `homeTeamTpId`/`awayTeamTpId` are `inscriptionLocal.roster.id` /
+   * `inscriptionVisitor.roster.id`.
+   * Extra fields are allowed and dropped. Throws an Error whose message names
+   * the failing field on any shape mismatch, or when the resolved date string
    * cannot be parsed.
    */
   parse(content: unknown): TpMatch {
@@ -60,7 +94,16 @@ export class MatchParserService {
           .join('; ')}`,
       );
     }
-    const { matchId, scheduledDate, createdInstant, scoreResume } = result.data;
+    const {
+      matchId,
+      round,
+      group,
+      scheduledDate,
+      createdInstant,
+      scoreResume,
+      inscriptionLocal,
+      inscriptionVisitor,
+    } = result.data;
     const dateSource =
       scoreResume?.startInstant ?? scheduledDate ?? createdInstant;
     const date = new Date(dateSource);
@@ -69,6 +112,16 @@ export class MatchParserService {
         `Invalid TP match JSON: date "${dateSource}" is not a valid date.`,
       );
     }
-    return { id: matchId, playedDate: date };
+    const roundName = group.phase.roundName;
+    const name = `${roundName.charAt(0).toUpperCase()}${roundName
+      .slice(1)
+      .toLowerCase()} ${round}`;
+    return {
+      id: matchId,
+      playedDate: date,
+      name,
+      homeTeamTpId: inscriptionLocal.roster.id,
+      awayTeamTpId: inscriptionVisitor.roster.id,
+    };
   }
 }

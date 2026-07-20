@@ -126,6 +126,14 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `packages/parse-tp`. Competitions missing a base tournament file, with an
   unparsable one, with no dated matches, or whose era has no known id are
   skipped with a recorded error.
+- **TpMatchesImportService** — upserts each match as a `Match` row linked to its
+  competition. Match files carry no tournament id, so matches are linked via the
+  directory scan `TpCompetitionsImportService` already performs: it exposes a
+  `matchesByCompetitionId` map (keyed by DB competition id) that this service
+  consumes rather than scanning the source files itself. Each match carries a TP
+  external id (the stringified `matchId`) and no Name external id (match names
+  are not unique); team-era linkage and match events are out of scope (issue
+  #198).
 - **TpCoachesImportService** — upserts every coach registered to a competition,
   read from each competition's `inscriptions_<slug>_inscriptions.json` file via
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
@@ -148,13 +156,28 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   semantics). Carries TP external ids only (one per `tpPositionId`); after each
   upsert, records race/era availability via `syncRaceEras`. Star players are not
   parsed (`starPlayersMasters` is ignored).
+- **TpTeamParticipationImportService** — populates `match_teams` and
+  `competition_teams` for the already-imported matches and competitions. Runs
+  after teams import (it needs each team's resolved team-era ids) and consumes
+  only maps the earlier steps produced plus the shared `rosters` list — no new
+  file scanning. For each competition it resolves the roster ids of the roster
+  files under its own directory to team-era ids and re-upserts the competition
+  with those `teamEraIds` (writing `competition_teams`); it then re-upserts each
+  match with its `[home, away]` team-era ids, resolved from the roster ids the
+  parser reads out of each match file (writing `match_teams`). Both writes are
+  additive/idempotent; unlike BBL, TP needs no page scraping because it embeds
+  both teams' roster ids per match and a roster file's directory placement is
+  the competition-membership signal.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions, then coaches, then races, then teams, then
-positions — aggregating each step's `ImportResult` into one overall result,
-mirroring `tools/import-bbl/src/main.ts`. Races, teams, and positions run after
-coaches; they have no FK dependency on the earlier import steps (only on each
-other, in that order).
+then eras, then competitions, then matches (fed the competitions step's
+`matchesByCompetitionId`), then coaches, then races, then teams, then
+positions, and finally team participation — aggregating each step's
+`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
+Races, teams, and positions run after coaches; they have no FK dependency on the
+earlier import steps (only on each other, in that order). Team participation runs
+last because it needs the teams step's resolved team-era ids and the
+competitions step's maps.
 
 ## Related documentation
 

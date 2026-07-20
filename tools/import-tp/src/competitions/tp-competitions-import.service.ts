@@ -6,7 +6,7 @@ import {
   makeImportError,
   makeImportResult,
 } from '@blood-bowl-tracker/import';
-import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
+import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
   MatchParserService,
   TournamentParserService,
@@ -31,7 +31,7 @@ interface CompetitionGroup {
   era: string;
   competition: string;
   tournamentContent?: unknown;
-  matchDates: Date[];
+  matches: TpMatch[];
 }
 
 interface ImportGroupOptions {
@@ -41,7 +41,7 @@ interface ImportGroupOptions {
   errors: ImportError[];
 }
 
-interface AddMatchDateOptions {
+interface AddMatchOptions {
   group: CompetitionGroup;
   filename: string;
   content: unknown;
@@ -72,18 +72,36 @@ export class TpCompetitionsImportService {
    * matches, or an era with no known id are skipped with a recorded error.
    * Idempotent.
    *
-   * Also returns `competitionIdsByTpId`, mapping each imported competition's TP
-   * id to its DB id — unused by this sub-issue, but the natural hook a future
-   * matches sub-issue needs to set each match's competitionId (mirroring BBL's
-   * competitionIdsByBblId).
+   * Also returns `competitionIdsByTpId` (each imported competition's TP id to
+   * its DB id), `matchesByCompetitionId` (each imported competition's DB id to
+   * every TpMatch parsed for it during this scan) and `competitionsByTpId`
+   * (each imported competition's TP id to the exact UpsertCompetition object
+   * built for it, plus its era/competition directory strings). Match files
+   * carry no tournament id, so matchesByCompetitionId is the only association
+   * between a match and its competition; TpMatchesImportService consumes it to
+   * set each match's competitionId (mirroring BBL's competitionIdsByBblId).
+   * competitionsByTpId is consumed by TpTeamParticipationImportService to
+   * re-upsert each competition with its teamEraIds (competition_teams) — the
+   * UpsertCompetition is needed in full because UpsertCompetitionSchema has no
+   * partial update, and the directory strings match the competition's rosters.
    */
   async importCompetitions(eraIdsByName: Map<string, number>): Promise<{
     result: ImportResult;
     competitionIdsByTpId: Map<number, number>;
+    matchesByCompetitionId: Map<number, TpMatch[]>;
+    competitionsByTpId: Map<
+      number,
+      { upsert: UpsertCompetition; era: string; competition: string }
+    >;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const competitionIdsByTpId = new Map<number, number>();
+    const matchesByCompetitionId = new Map<number, TpMatch[]>();
+    const competitionsByTpId = new Map<
+      number,
+      { upsert: UpsertCompetition; era: string; competition: string }
+    >();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -95,6 +113,8 @@ export class TpCompetitionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         competitionIdsByTpId,
+        matchesByCompetitionId,
+        competitionsByTpId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -109,6 +129,19 @@ export class TpCompetitionsImportService {
       });
       if (upserted !== undefined) {
         competitionIdsByTpId.set(upserted.tpId, upserted.id);
+        competitionsByTpId.set(upserted.tpId, {
+          upsert: upserted.upsert,
+          era: group.era,
+          competition: group.competition,
+        });
+        // Accumulate rather than overwrite: two distinct TP tournament
+        // directories could in principle dedupe onto the same DB competition
+        // (e.g. a Name-external-id collision), and losing the earlier
+        // group's matches in that case would be a silent data-loss bug.
+        matchesByCompetitionId.set(upserted.id, [
+          ...(matchesByCompetitionId.get(upserted.id) ?? []),
+          ...group.matches,
+        ]);
         imported += 1;
       }
     }
@@ -116,6 +149,8 @@ export class TpCompetitionsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       competitionIdsByTpId,
+      matchesByCompetitionId,
+      competitionsByTpId,
     };
   }
 
@@ -138,12 +173,12 @@ export class TpCompetitionsImportService {
         const group = groups.get(key) ?? {
           era: file.era,
           competition: file.competition,
-          matchDates: [],
+          matches: [],
         };
         if (file.type === 'tournament' && isBaseTournamentFile(file.filename)) {
           group.tournamentContent = file.content;
         } else if (file.type === 'match') {
-          this.addMatchDate({
+          this.addMatch({
             group,
             filename: file.filename,
             content: file.content,
@@ -165,16 +200,16 @@ export class TpCompetitionsImportService {
     return groups;
   }
 
-  /** Parse one match file's date onto the group, recording a parse failure. */
-  private addMatchDate({
+  /** Parse one match file onto the group, recording a parse failure. */
+  private addMatch({
     group,
     filename,
     content,
     errors,
-  }: AddMatchDateOptions): void {
+  }: AddMatchOptions): void {
     try {
       const match = this.matchParser.parse(content);
-      group.matchDates.push(match.playedDate);
+      group.matches.push(match);
     } catch (error) {
       errors.push(
         makeImportError({
@@ -198,7 +233,9 @@ export class TpCompetitionsImportService {
     eraIdsByName,
     systemIds,
     errors,
-  }: ImportGroupOptions): Promise<{ id: number; tpId: number } | undefined> {
+  }: ImportGroupOptions): Promise<
+    { id: number; tpId: number; upsert: UpsertCompetition } | undefined
+  > {
     const location = `${group.era}/${group.competition}`;
 
     if (group.tournamentContent === undefined) {
@@ -228,7 +265,7 @@ export class TpCompetitionsImportService {
       return undefined;
     }
 
-    if (group.matchDates.length === 0) {
+    if (group.matches.length === 0) {
       errors.push(
         makeImportError({
           item: tournament,
@@ -256,7 +293,7 @@ export class TpCompetitionsImportService {
 
     const competitionData: UpsertCompetition = {
       name: tournament.name,
-      type: this.classifyType(group.matchDates),
+      type: this.classifyType(group.matches.map((m) => m.playedDate)),
       eraId,
       teamEraIds: [],
       externalIds: [
@@ -271,7 +308,7 @@ export class TpCompetitionsImportService {
     if (upserted === undefined) {
       return undefined;
     }
-    return { id: upserted.id, tpId: tournament.id };
+    return { id: upserted.id, tpId: tournament.id, upsert: competitionData };
   }
 
   /** span <= 3 days => cup, else season (see CUP_MAX_SPAN_DAYS). */
