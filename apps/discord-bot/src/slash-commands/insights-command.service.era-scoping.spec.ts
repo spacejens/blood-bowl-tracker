@@ -118,8 +118,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       });
       const result = await ctx.service.execute(chatInput(factPath, '20'));
       expect(selectMock(ctx)).toHaveBeenCalledWith(...expectedCallArgs);
-      const factIsCoachToplist = factPath.startsWith('coach.toplist');
-      if (factIsCoachToplist) {
+      const factHasDeepdiveButtons =
+        factPath.startsWith('coach.toplist') ||
+        factPath.startsWith('team.toplist');
+      if (factHasDeepdiveButtons) {
         expect(result).toEqual(
           expect.objectContaining({
             embeds: [
@@ -206,14 +208,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(20, undefined);
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by interceptions — BB2020',
-          description: '1. 40 grinders — 5',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by interceptions — BB2020',
+            description: '1. 40 grinders — 5',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('scopes player.toplist.casualties.caused to the resolved era and names it in the title', async () => {
@@ -254,14 +259,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       20,
       undefined,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by serious injuries inflicted — BB2020',
-          description: '1. 40 grinders — 7',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by serious injuries inflicted — BB2020',
+            description: '1. 40 grinders — 7',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('scopes player.toplist.casualties.suffered to the resolved era and names it in the title', async () => {
@@ -302,13 +310,16 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       20,
       undefined,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Teams by lasting injuries suffered — BB2020',
-          description: '1. 40 grinders — 4',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Teams by lasting injuries suffered — BB2020',
+            description: '1. 40 grinders — 4',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 });

@@ -1,20 +1,26 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { Db, Team } from '@blood-bowl-tracker/db';
 import {
+  coaches,
   competitions,
   competitionTeams,
   DB,
   matches,
   matchTeams,
+  races,
   teamEras,
   teamExternalIds,
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { countDistinct, desc, eq } from 'drizzle-orm';
+import { countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { countMatchEventsByTeam } from '../shared/match-event-counts';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
+import {
+  countAllMatchEventsByPlayerForTeam,
+  countMatchEventsByTeam,
+} from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -70,6 +76,66 @@ export class TeamsService {
 
     const eras = await this.syncEras(team.id, data.eras);
     return { team: { ...team, eras }, created };
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: teams.id, name: teams.name })
+      .from(teams)
+      .where(ilike(teams.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
+
+  async findById(
+    id: number,
+  ): Promise<
+    | { id: number; name: string; raceName: string; coachName: string }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        raceName: races.name,
+        coachName: coaches.name,
+      })
+      .from(teams)
+      .innerJoin(races, eq(races.id, teams.raceId))
+      .innerJoin(coaches, eq(coaches.id, teams.coachId))
+      .where(eq(teams.id, id));
+    return rows[0];
+  }
+
+  async getCareerSpan(
+    teamId: number,
+  ): Promise<{ start: string; end: string } | undefined> {
+    // Aggregate over zero rows still returns one row with null start/end, so a
+    // null start marks a team that has recorded no matches. Casting to ::date
+    // yields YYYY-MM-DD strings the resolver can render directly.
+    const [row] = await this.db
+      .select({
+        start: sql<string | null>`min(${matches.playedAt})::date`,
+        end: sql<string | null>`max(${matches.playedAt})::date`,
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.id, teamId));
+    if (row === undefined || row.start === null || row.end === null) {
+      return undefined;
+    }
+    return { start: row.start, end: row.end };
+  }
+
+  getTopPlayersByMatchEventCount(
+    teamId: number,
+    limit: number,
+  ): Promise<{ name: string; count: number }[]> {
+    return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
   }
 
   async countMatchesPlayedByTeam(

@@ -29,6 +29,17 @@ export type ToplistResolver<TService> = (
   competitionId?: number,
 ) => Promise<string | InteractionReplyOptions>;
 
+/** Options for {@link makeToplistResolvers}. */
+export interface MakeToplistResolversOptions<
+  TMethod extends string,
+  TRow extends CountedRow,
+> {
+  titles: Record<TMethod, string>;
+  timeoutMessage: string;
+  noDataMessage: string;
+  buildCustomId?: (row: TRow) => string;
+}
+
 /**
  * Builds the thin `/insights` toplist resolvers from a table of
  * method-name -> embed title. Each resolver is the same three lines — run the
@@ -39,13 +50,13 @@ export function makeToplistResolvers<
   TMethod extends string,
   TService extends Record<
     TMethod,
-    (eraId?: number, competitionId?: number) => Promise<CountedRow[]>
+    (eraId?: number, competitionId?: number) => Promise<TRow[]>
   >,
+  TRow extends CountedRow = CountedRow,
 >(
-  titles: Record<TMethod, string>,
-  timeoutMessage: string,
-  noDataMessage: string,
+  options: MakeToplistResolversOptions<TMethod, TRow>,
 ): Record<TMethod, ToplistResolver<TService>> {
+  const { titles, timeoutMessage, noDataMessage, buildCustomId } = options;
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
     resolvers[method] = (service, eraId, competitionId) => {
@@ -54,6 +65,7 @@ export function makeToplistResolvers<
         fetchRows: () => service[method](eraId, competitionId),
         timeoutMessage,
         noDataMessage,
+        buildCustomId,
       });
     };
   }

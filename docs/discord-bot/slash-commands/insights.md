@@ -93,6 +93,11 @@ button, in the same order as the list, that opens that coach's
 - `team.toplist.sent_off` — teams ranked by players sent off. Counts match
   events whose consequence is `sent_off`, credited to the team the sent-off
   player belongs to. Supports era filtering.
+
+Each team listed by the sixteen `team.toplist.*` facts above also gets a
+button, in the same order as the list, that opens that team's
+[`/deepdive`](deepdive.md) detail view.
+
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with
   more than one MVP in a single match has each award counted. Supports era
