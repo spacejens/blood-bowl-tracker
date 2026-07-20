@@ -5,11 +5,12 @@ import { MatchParserService } from './match-parser.service';
 describe('MatchParserService', () => {
   const service = new MatchParserService();
 
-  it('maps matchId to id and scheduledDate to a Date when present', () => {
+  it('maps matchId to id and prefers scoreResume.startInstant over scheduledDate when both are present', () => {
     const result = service.parse({
       matchId: 566088,
       scheduledDate: '2021-05-15T18:00:00Z',
       createdInstant: '2021-04-01T09:00:00Z',
+      scoreResume: { startInstant: '2021-05-15T18:00:03Z' },
       // Unrelated fields that must be ignored, not rejected:
       state: 3,
       round: 1,
@@ -17,33 +18,33 @@ describe('MatchParserService', () => {
     });
     expect(result).toEqual({
       id: 566088,
+      scheduledDate: new Date('2021-05-15T18:00:03Z'),
+    });
+  });
+
+  it('falls back to scheduledDate when scoreResume is absent entirely', () => {
+    const result = service.parse({
+      matchId: 42,
+      scheduledDate: '2021-05-15T18:00:00Z',
+      createdInstant: '2021-01-01T00:00:00Z',
+    });
+    expect(result).toEqual({
+      id: 42,
       scheduledDate: new Date('2021-05-15T18:00:00Z'),
     });
   });
 
-  it('falls back to scoreResume.startInstant when scheduledDate is null', () => {
+  it('falls back to scheduledDate when scoreResume.startInstant is null', () => {
     const result = service.parse({
       matchId: 42,
-      scheduledDate: null,
+      scheduledDate: '2021-05-15T18:00:00Z',
       createdInstant: '2021-01-01T00:00:00Z',
-      scoreResume: { startInstant: '2021-04-01T09:00:00Z' },
+      scoreResume: { startInstant: null },
     });
-    expect(result).toEqual({
-      id: 42,
-      scheduledDate: new Date('2021-04-01T09:00:00Z'),
-    });
+    expect(result.scheduledDate).toEqual(new Date('2021-05-15T18:00:00Z'));
   });
 
-  it('falls back to scoreResume.startInstant when scheduledDate is absent', () => {
-    const result = service.parse({
-      matchId: 42,
-      createdInstant: '2021-01-01T00:00:00Z',
-      scoreResume: { startInstant: '2021-04-01T09:00:00Z' },
-    });
-    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
-  });
-
-  it('falls back to createdInstant when scheduledDate and scoreResume.startInstant are both absent', () => {
+  it('falls back to createdInstant when scoreResume.startInstant and scheduledDate are both absent', () => {
     const result = service.parse({
       matchId: 42,
       createdInstant: '2021-04-01T09:00:00Z',
@@ -51,20 +52,20 @@ describe('MatchParserService', () => {
     expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
   });
 
-  it('falls back to createdInstant when scheduledDate is null and scoreResume is absent entirely', () => {
-    const result = service.parse({
-      matchId: 42,
-      scheduledDate: null,
-      createdInstant: '2021-04-01T09:00:00Z',
-    });
-    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
-  });
-
-  it('falls back to createdInstant when scheduledDate is absent and scoreResume.startInstant is null', () => {
+  it('falls back to createdInstant when scoreResume.startInstant is null and scheduledDate is absent', () => {
     const result = service.parse({
       matchId: 42,
       createdInstant: '2021-04-01T09:00:00Z',
       scoreResume: { startInstant: null },
+    });
+    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
+  });
+
+  it('falls back to createdInstant when scoreResume is absent entirely and scheduledDate is null', () => {
+    const result = service.parse({
+      matchId: 42,
+      scheduledDate: null,
+      createdInstant: '2021-04-01T09:00:00Z',
     });
     expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
   });

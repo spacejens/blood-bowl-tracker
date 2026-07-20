@@ -8,14 +8,17 @@ import { z } from 'zod';
  * "parse only what's needed" convention as TournamentParserService.
  *
  * `scheduledDate` is the resolved play date, preferring the closest available
- * signal for when the match was actually played: TP's own `scheduledDate`
- * field when present and non-null, else `scoreResume.startInstant` (a
- * completed match's actual start time, which tracks `scheduledDate` closely
- * when both exist — see docs/import-tp/file-format.md), else `createdInstant`
- * (always present in the data, but only a record-setup timestamp — it can
- * predate the actual play date by months, so it is a last-resort fallback,
- * not a proxy for "played"). It is always a Date because the required
- * `createdInstant` fallback guarantees one.
+ * signal for when the match was actually played: `scoreResume.startInstant`
+ * (a completed match's own recorded start time — the most direct "actually
+ * played" signal TP exposes) when present and non-null, else TP's own
+ * `scheduledDate` field (the agreed play date — typically tracks
+ * `scoreResume.startInstant` closely when both exist, and the best available
+ * signal for a match with no scoreResume yet — see
+ * docs/import-tp/file-format.md), else `createdInstant` (always present in
+ * the data, but only a record-setup timestamp — it can predate the actual
+ * play date by months, so it is a last-resort fallback, not a proxy for
+ * "played"). It is always a Date because the required `createdInstant`
+ * fallback guarantees one.
  */
 export interface TpMatch {
   id: number;
@@ -37,8 +40,8 @@ const TpMatchSchema = z.object({
 export class MatchParserService {
   /**
    * Validate and extract `{ id, scheduledDate }` from a parsed TP match JSON
-   * body. `matchId` maps to `id`; the play date is `scheduledDate` when set,
-   * else `scoreResume.startInstant` when set, else `createdInstant`. Extra
+   * body. `matchId` maps to `id`; the play date is `scoreResume.startInstant`
+   * when set, else `scheduledDate` when set, else `createdInstant`. Extra
    * fields are allowed and dropped. Throws an Error whose message names the
    * failing field on any shape mismatch, or when the resolved date string
    * cannot be parsed.
@@ -56,7 +59,7 @@ export class MatchParserService {
     }
     const { matchId, scheduledDate, createdInstant, scoreResume } = result.data;
     const dateSource =
-      scheduledDate ?? scoreResume?.startInstant ?? createdInstant;
+      scoreResume?.startInstant ?? scheduledDate ?? createdInstant;
     const date = new Date(dateSource);
     if (Number.isNaN(date.getTime())) {
       throw new Error(
