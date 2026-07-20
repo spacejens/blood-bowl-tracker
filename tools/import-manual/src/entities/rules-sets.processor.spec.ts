@@ -1,4 +1,7 @@
-import type { ImportError, RulesSetsImportService } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  RulesSetsImportService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
@@ -72,6 +75,8 @@ describe('RulesSetsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:crp' })).toBeUndefined();
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }),
+    ).toBeUndefined();
   });
 });
