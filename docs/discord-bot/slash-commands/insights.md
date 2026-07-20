@@ -96,8 +96,7 @@ button, in the same order as the list, that opens that coach's
 
 Each team listed by the sixteen `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
-[`/deepdive`](deepdive.md) detail view. (`race.toplist.teams` lists races
-rather than teams and so has no per-team button.)
+[`/deepdive`](deepdive.md) detail view.
 
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with
