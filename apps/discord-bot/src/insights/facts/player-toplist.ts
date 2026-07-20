@@ -4,16 +4,25 @@ import {
   PLAYER_TOPLIST_NO_DATA_MESSAGE,
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import type { ScopedCountMethods } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
 type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
 
+function playerButtonId(row: { playerId: number }): string {
+  return `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`;
+}
+
 /**
  * Every player toplist is the same resolver over a different count: the table
  * below (count method -> embed title) is the whole of what varies.
  */
-const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>({
+const resolvers = makeToplistResolvers<
+  PlayerToplistMethod,
+  PlayersService,
+  { playerId: number; name: string; count: number }
+>({
   titles: {
     countMvpAwardsByPlayer: 'Players by MVP awards',
     countTouchdownsScoredByPlayer: 'Players by touchdowns scored',
@@ -33,6 +42,7 @@ const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>({
   },
   timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
   noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
+  buildCustomId: playerButtonId,
 });
 
 export const resolvePlayerMvpsToplist = resolvers.countMvpAwardsByPlayer;
