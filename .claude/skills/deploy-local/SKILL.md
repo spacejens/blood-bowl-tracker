@@ -90,7 +90,7 @@ Run this section only if "Run the manual import (before other importers)" was se
      fi
    fi
    ```
-   Never overwrite an `import-manual-config.json5` or `data` entry already present in the worktree — only fill in what's missing. (Because the two data subdirectories are committed via `.gitkeep`, `tools/import-manual/data` usually already exists in a fresh checkout, so the symlink step is a no-op and the worktree uses its own local data directory.)
+   Never overwrite an `import-manual-config.json5` or `data` entry already present in the worktree — only fill in what's missing. (`tools/import-manual/data` is gitignored in its entirety, so a fresh worktree lacks it and the symlink fills it in from the main checkout — matching `tools/import-bbl/data` and `tools/import-tp/data`.)
 2. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
    cat tools/import-manual/import-manual-config.json5 2>/dev/null

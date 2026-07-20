@@ -121,12 +121,20 @@ are tracked separately as issue #174).
 
 ## Data layout
 
-The tool ships two committed, well-known subdirectories (kept present by a
-`.gitkeep`; their contents are gitignored):
+The tool works from two well-known subdirectories:
 
 ```
 tools/import-manual/data/before-other-importers/
 tools/import-manual/data/after-other-importers/
+```
+
+The whole `tools/import-manual/data` directory is gitignored (nothing under it
+is tracked), so create the subdirectories locally before authoring data files
+or running the tool:
+
+```bash
+mkdir -p tools/import-manual/data/before-other-importers \
+         tools/import-manual/data/after-other-importers
 ```
 
 Author your `.json5` files under whichever phase they belong to. You can also
