@@ -95,9 +95,11 @@ describe('RosterCollectionService', () => {
     expect(errors).toHaveLength(0);
     expect(rosters).toHaveLength(2);
     expect(rosters[0].era).toBe('Fourth era');
+    expect(rosters[0].competition).toBe('comp-a');
     expect(rosters[0].roster.id).toBe(1);
     expect(rosters[0].roster.raceName).toBe('Orc');
     expect(rosters[1].era).toBe('Fifth era');
+    expect(rosters[1].competition).toBe('comp-b');
     expect(rosters[1].roster.id).toBe(2);
     expect(rosters[1].roster.raceName).toBe('Dwarf');
   });

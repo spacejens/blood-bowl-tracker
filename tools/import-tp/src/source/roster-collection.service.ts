@@ -6,10 +6,16 @@ import { Injectable } from '@nestjs/common';
 
 import { TpSourceReader } from './tp-source-reader';
 
-/** One parsed roster file, tagged with the era directory it was found in. */
+/**
+ * One parsed roster file, tagged with the era and competition directories it
+ * was found in. The competition slug is the per-competition team-membership
+ * signal for TP team-participation import (a roster file only ever appears
+ * under the competition directories its team actually played in).
+ */
 export interface RosterEntry {
   roster: TpRoster;
   era: string;
+  competition: string;
 }
 
 @Injectable()
@@ -39,6 +45,7 @@ export class RosterCollectionService {
           rosters.push({
             roster: this.rosterParser.parse(file.content),
             era: file.era,
+            competition: file.competition,
           });
         } catch (error) {
           errors.push(
