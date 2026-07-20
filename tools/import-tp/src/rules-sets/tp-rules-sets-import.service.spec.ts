@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -13,21 +13,21 @@ import { TpRulesSetsImportService } from './tp-rules-sets-import.service';
 
 interface MakeServiceOptions {
   getEras: () => EraDataConfig[];
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertRulesSet: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
   getEras,
-  upsertExternalSystem,
+  bootstrap,
   upsertRulesSet,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpRulesSetsImportService(
     { getEras } as unknown as EraDataConfigService,
     { upsertRulesSet } as unknown as RulesSetsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -49,17 +49,14 @@ const eras: EraDataConfig[] = [
 
 describe('TpRulesSetsImportService', () => {
   it('upserts each distinct rules-set name and returns a name->id map', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
       .mockResolvedValueOnce({ id: 200, name: 'BB2020' });
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertRulesSet,
     });
 
@@ -67,6 +64,7 @@ describe('TpRulesSetsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     // Distinct across eras, first-seen order: LRB6 then BB2020.
     expect(upsertRulesSet).toHaveBeenCalledTimes(2);
     expect(upsertRulesSet).toHaveBeenNthCalledWith(
@@ -88,14 +86,14 @@ describe('TpRulesSetsImportService', () => {
     );
   });
 
-  it('records one error and imports nothing when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+  it('records one error and imports nothing when getEras() throws', async () => {
+    const bootstrap = vi.fn();
     const upsertRulesSet = vi.fn();
     const service = makeService({
-      getEras: () => eras,
-      upsertExternalSystem,
+      getEras: () => {
+        throw new Error('TP_ERAS is not set.');
+      },
+      bootstrap,
       upsertRulesSet,
     });
 
@@ -103,16 +101,40 @@ describe('TpRulesSetsImportService', () => {
 
     expect(result.success).toBe(false);
     expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('TP_ERAS is not set.');
+    expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(rulesSetIdsByName.size).toBe(0);
+    expect(bootstrap).not.toHaveBeenCalled();
+    expect(upsertRulesSet).not.toHaveBeenCalled();
+  });
+
+  it('records one error and imports nothing when an external system upsert fails', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['TP', 'Name'] },
+        message: 'network timeout',
+      },
+    });
+    const upsertRulesSet = vi.fn();
+    const service = makeService({
+      getEras: () => eras,
+      bootstrap,
+      upsertRulesSet,
+    });
+
+    const { result, rulesSetIdsByName } = await service.importRulesSets();
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toBe('network timeout');
     expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
     expect(rulesSetIdsByName.size).toBe(0);
     expect(upsertRulesSet).not.toHaveBeenCalled();
   });
 
   it('omits a rules set from the map when its upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRulesSet = vi
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
@@ -124,7 +146,7 @@ describe('TpRulesSetsImportService', () => {
       );
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertRulesSet,
     });
 
