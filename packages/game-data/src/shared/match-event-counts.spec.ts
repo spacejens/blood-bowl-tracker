@@ -5,6 +5,7 @@ import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByPlayer,
   countMatchEventsByTeam,
+  countMatchEventsForPlayer,
 } from './match-event-counts';
 import {
   extractAllFilterValues,
@@ -149,5 +150,41 @@ describe('countAllMatchEventsByPlayerForTeam', () => {
       countAllMatchEventsByPlayerForTeam({ db, teamId: 7, limit: 10 }),
     ).resolves.toEqual(rows);
     expect(builder.limit).toHaveBeenCalledWith(10);
+  });
+});
+
+describe('countMatchEventsForPlayer', () => {
+  it('returns the single count the query resolves to', async () => {
+    const builder = makeQueryBuilder([{ count: 7 }]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await expect(
+      countMatchEventsForPlayer({
+        db,
+        playerId: 1,
+        selector: { role: 'acting', types: ['touchdown'] },
+      }),
+    ).resolves.toBe(7);
+  });
+
+  it('filters by the acting player id alongside the type list', async () => {
+    const builder = makeQueryBuilder([{ count: 0 }]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsForPlayer({
+      db,
+      playerId: 42,
+      selector: { role: 'acting', types: ['mvp_award'] },
+    });
+    expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'players.id',
+      'match_events.acting_player_id',
+    ]);
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    // The where clause folds together the type-list inArray and the
+    // eq(players.id, playerId) filter, so both the type and the id appear.
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'mvp_award',
+      42,
+    ]);
   });
 });
