@@ -25,6 +25,16 @@ function extractType(filename: string): string {
   return underscore === -1 ? base : base.slice(0, underscore);
 }
 
+/**
+ * True for a base tournament file `tournament_<slug>.json` (slugs use hyphens,
+ * never underscores). Excludes the `_coach-stats`/`_team-stats`/
+ * `_clasifications?type=COACH`/`_phases?type=COACH` variants, which carry two
+ * or more underscores. Shared by the eras and competitions importers.
+ */
+export function isBaseTournamentFile(filename: string): boolean {
+  return /^tournament_[^_]+\.json$/.test(filename);
+}
+
 @Injectable()
 export class TpSourceReader {
   constructor(
