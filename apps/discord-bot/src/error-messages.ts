@@ -96,3 +96,13 @@ export const DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE =
   'The stat-keeper is still tallying up everything this player got up to.';
 export const DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE =
   "This player hasn't done anything worth writing home about yet.";
+export const DEEPDIVE_RACE_NOT_FOUND_MESSAGE =
+  'No such race has ever fielded a team in these parts.';
+export const DEEPDIVE_RACE_TIMEOUT_MESSAGE =
+  "The loremaster is still tracing this race's bloodline.";
+export const DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE =
+  'The archivist is still checking which eras this race turned up in.';
+export const DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE =
+  'The scout is still counting how many teams of this race took the field.';
+export const DEEPDIVE_RACE_NO_TEAMS_MESSAGE =
+  'No team of this race has taken the field yet.';
