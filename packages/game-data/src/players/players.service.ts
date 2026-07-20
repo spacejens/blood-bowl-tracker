@@ -11,9 +11,10 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq } from 'drizzle-orm';
+import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { countMatchEventsByPlayer } from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
@@ -64,6 +65,19 @@ export class PlayersService {
       .innerJoin(positions, eq(positions.id, players.positionId))
       .where(eq(players.id, id));
     return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; teamName: string }[]> {
+    return this.db
+      .select({ id: players.id, name: players.name, teamName: teams.name })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(ilike(players.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
   }
 
   async upsert(

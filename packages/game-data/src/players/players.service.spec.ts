@@ -193,6 +193,27 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('searchByNamePrefix', () => {
+    it('returns id, name, and team for name-prefix matches', async () => {
+      const rows = [
+        { id: 1, name: 'Griff Oberwald', teamName: 'Reikland Reavers' },
+      ];
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.limit = vi.fn().mockResolvedValue(rows);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.searchByNamePrefix('Gri', 25)).resolves.toEqual(
+        rows,
+      );
+      expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(builder.limit).toHaveBeenCalledWith(25);
+    });
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
