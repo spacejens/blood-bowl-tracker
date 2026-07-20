@@ -1,11 +1,9 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
@@ -31,7 +29,7 @@ export class TpCoachesImportService {
     private readonly sourceReader: TpSourceReader,
     private readonly inscriptionsParser: InscriptionsParserService,
     private readonly coachesImport: CoachesImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -64,17 +62,13 @@ export class TpCoachesImportService {
       NAME_EXTERNAL_SYSTEM_NAME,
       NAF_EXTERNAL_SYSTEM_NAME,
     ];
-    let systemIds: SystemIds;
-    try {
-      const [tp, name, naf] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        systemNames,
-      );
-      systemIds = { tp, name, naf };
-    } catch (error) {
-      errors.push(externalSystemBootstrapError(systemNames, error));
+    const bootstrap = await this.externalSystemBootstrap.bootstrap(systemNames);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return { result: makeImportResult({ imported, errors }), coachIdsByTpId };
     }
+    const [tp, name, naf] = bootstrap.ids;
+    const systemIds: SystemIds = { tp, name, naf };
 
     const coaches = await this.collectCoaches(errors);
     const seen = new Set<string>();

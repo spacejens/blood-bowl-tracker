@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   LeaguesImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,37 +10,34 @@ import { TpLeaguesImportService } from './tp-leagues-import.service';
 
 interface MakeServiceOptions {
   getLeagueName: () => string;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertLeague: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
   getLeagueName,
-  upsertExternalSystem,
+  bootstrap,
   upsertLeague,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpLeaguesImportService(
     { getLeagueName } as unknown as LeagueConfigService,
     { upsertLeague } as unknown as LeaguesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
 describe('TpLeaguesImportService', () => {
   it('upserts the league under the TP and Name external systems', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi
       .fn()
       .mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
     const service = makeService({
       getLeagueName: () => 'tLoEGBBL',
-      upsertExternalSystem,
+      bootstrap,
       upsertLeague,
     });
 
@@ -49,6 +46,7 @@ describe('TpLeaguesImportService', () => {
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(leagueId).toBe(10);
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(upsertLeague).toHaveBeenCalledWith(
       {
         name: 'tLoEGBBL',
@@ -62,16 +60,13 @@ describe('TpLeaguesImportService', () => {
   });
 
   it('records one error and no leagueId when the league name is unset', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi.fn();
     const service = makeService({
       getLeagueName: () => {
         throw new Error('league.name is not set in import-tp-config.json5');
       },
-      upsertExternalSystem,
+      bootstrap,
       upsertLeague,
     });
 
@@ -82,14 +77,18 @@ describe('TpLeaguesImportService', () => {
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 
-  it('records one error when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+  it('records one error when the external system bootstrap fails', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['TP', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertLeague = vi.fn();
     const service = makeService({
       getLeagueName: () => 'tLoEGBBL',
-      upsertExternalSystem,
+      bootstrap,
       upsertLeague,
     });
 
@@ -103,10 +102,7 @@ describe('TpLeaguesImportService', () => {
   });
 
   it('reports zero imported when the league upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi
       .fn()
       .mockImplementation((_data: unknown, errors: { message: string }[]) => {
@@ -115,7 +111,7 @@ describe('TpLeaguesImportService', () => {
       });
     const service = makeService({
       getLeagueName: () => 'tLoEGBBL',
-      upsertExternalSystem,
+      bootstrap,
       upsertLeague,
     });
 

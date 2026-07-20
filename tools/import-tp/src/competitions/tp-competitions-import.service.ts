@@ -2,11 +2,9 @@ import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -57,7 +55,7 @@ export class TpCompetitionsImportService {
     private readonly tournamentParser: TournamentParserService,
     private readonly matchParser: MatchParserService,
     private readonly competitionsImport: CompetitionsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -87,26 +85,19 @@ export class TpCompetitionsImportService {
     const errors: ImportError[] = [];
     const competitionIdsByTpId = new Map<number, number>();
 
-    let tpSystemId: number;
-    let nameSystemId: number;
     const tpSystemName = this.externalSystemName.getTpSystemName();
-    try {
-      [tpSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
-    } catch (error) {
-      errors.push(
-        externalSystemBootstrapError(
-          [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
-      );
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      tpSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return {
         result: makeImportResult({ imported, errors }),
         competitionIdsByTpId,
       };
     }
+    const [tpSystemId, nameSystemId] = bootstrap.ids;
 
     const groups = await this.collectGroups(errors);
     for (const group of groups.values()) {

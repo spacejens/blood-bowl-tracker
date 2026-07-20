@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   ImportError,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
@@ -107,7 +107,7 @@ function upsertRaceOk() {
 
 interface MakeServiceOptions {
   reader: BblSourceReader;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertRace: ReturnType<typeof vi.fn>;
   getBblSystemName?: () => string;
   listParser?: RaceListPageParser;
@@ -115,7 +115,7 @@ interface MakeServiceOptions {
 
 function makeService({
   reader,
-  upsertExternalSystem,
+  bootstrap,
   upsertRace,
   getBblSystemName = () => 'BBL',
   listParser = makeEmptyListParser(),
@@ -125,59 +125,47 @@ function makeService({
     makeParser(),
     listParser,
     { upsertRace } as unknown as RacesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
 describe('BblRacesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReader([page('Orc')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
     await service.importRaces();
 
-    expect(upsertExternalSystem).toHaveBeenCalledTimes(2);
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReader([page('Orc', '16')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'MyLeague',
     });
 
     await service.importRaces();
 
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'MyLeague');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
   });
 
   it('upserts each race with a numeric BBL external ID and a Name external ID', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReader([page('Orc', '16')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -198,10 +186,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('deduplicates a race (by id) appearing on multiple team pages', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReader([
@@ -209,7 +194,7 @@ describe('BblRacesImportService', () => {
         page('Orc', '16'),
         page('Elf', '6'),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -220,14 +205,11 @@ describe('BblRacesImportService', () => {
   });
 
   it('skips team pages that have no race', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReader([page(null), page('Elf')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -238,10 +220,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('records an error and continues when a race upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = vi
       .fn()
       .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
@@ -256,7 +235,7 @@ describe('BblRacesImportService', () => {
       });
     const service = makeService({
       reader: makeReader([page('Orc'), page('Elf')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -268,10 +247,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const parser = new RacePageParser();
     vi.spyOn(parser, 'extractRace')
@@ -286,7 +262,7 @@ describe('BblRacesImportService', () => {
       parser,
       makeEmptyListParser(),
       { upsertRace } as unknown as RacesImportService,
-      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      { bootstrap } as unknown as ExternalSystemBootstrapService,
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
@@ -304,10 +280,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('records a stringified error when a team page throws a non-Error value', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const parser = new RacePageParser();
     vi.spyOn(parser, 'extractRace').mockImplementationOnce(() => {
@@ -319,7 +292,7 @@ describe('BblRacesImportService', () => {
       parser,
       makeEmptyListParser(),
       { upsertRace } as unknown as RacesImportService,
-      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      { bootstrap } as unknown as ExternalSystemBootstrapService,
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
@@ -334,13 +307,17 @@ describe('BblRacesImportService', () => {
   });
 
   it('records one error and skips races when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertRace = vi.fn();
     const service = makeService({
       reader: makeReader([page('Orc')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -358,27 +335,8 @@ describe('BblRacesImportService', () => {
     expect(upsertRace).not.toHaveBeenCalled();
   });
 
-  it('stringifies a non-Error thrown by the external system upsert', async () => {
-    const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
-    const upsertRace = vi.fn();
-    const service = makeService({
-      reader: makeReader([page('Orc')]),
-      upsertExternalSystem,
-      upsertRace,
-    });
-
-    const { result } = await service.importRaces();
-
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
-    expect(upsertRace).not.toHaveBeenCalled();
-  });
-
   it('returns a map from each race BBL id to its local id', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
@@ -389,7 +347,7 @@ describe('BblRacesImportService', () => {
     );
     const service = makeService({
       reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -400,10 +358,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('returns a map from each race BBL id to its local id and name', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
@@ -414,7 +369,7 @@ describe('BblRacesImportService', () => {
     );
     const service = makeService({
       reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -425,10 +380,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('returns a map from each race local id to its upsert data', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
@@ -439,7 +391,7 @@ describe('BblRacesImportService', () => {
     );
     const service = makeService({
       reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
     });
 
@@ -464,17 +416,14 @@ describe('BblRacesImportService', () => {
   });
 
   it('imports a race found only on the tl page (no team page)', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([{ id: '48', name: 'College of Shadow' }])],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'BBL',
       listParser: makeListParser(),
@@ -497,17 +446,14 @@ describe('BblRacesImportService', () => {
   });
 
   it('does not re-import a race already found via a team page (first pass wins)', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([{ id: '16', name: 'Orc (tl heading)' }])],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'BBL',
       listParser: makeListParser(),
@@ -524,17 +470,14 @@ describe('BblRacesImportService', () => {
   });
 
   it('imports a race present only on old team pages and absent from tl', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const service = makeService({
       reader: makeReaderByType({
         tm: [page('Retired Race', '22')],
         tl: [listPage([])],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'BBL',
       listParser: makeListParser(),
@@ -550,10 +493,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('records an error and continues when a tl page fails to parse', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const listParser = new RaceListPageParser();
     vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
@@ -564,7 +504,7 @@ describe('BblRacesImportService', () => {
         tm: [page('Orc', '16')],
         tl: [listPage([])],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'BBL',
       listParser,
@@ -582,10 +522,7 @@ describe('BblRacesImportService', () => {
   });
 
   it('records a stringified error when a tl page throws a non-Error value', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
     const listParser = new RaceListPageParser();
     vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
@@ -597,7 +534,7 @@ describe('BblRacesImportService', () => {
         tm: [page('Orc', '16')],
         tl: [listPage([])],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertRace,
       getBblSystemName: () => 'BBL',
       listParser,

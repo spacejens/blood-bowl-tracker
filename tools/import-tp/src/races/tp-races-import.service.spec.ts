@@ -1,6 +1,6 @@
 import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,19 +10,19 @@ import type { RosterEntry } from '../source/roster-collection.service';
 import { TpRacesImportService } from './tp-races-import.service';
 
 interface MakeServiceOptions {
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertRace: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
-  upsertExternalSystem,
+  bootstrap,
   upsertRace,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpRacesImportService(
     { upsertRace } as unknown as RacesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -54,14 +54,15 @@ function raceRecord(id: number) {
 }
 
 function twoSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }
 
 describe('TpRacesImportService', () => {
   it('upserts a single-code race with its TP id, Name id and era', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
+    const bootstrap = twoSystemUpsertMock();
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap,
       upsertRace,
     });
 
@@ -76,6 +77,7 @@ describe('TpRacesImportService', () => {
       new Map([['Fourth era', 100]]),
     );
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(upsertRace).toHaveBeenCalledTimes(1);
@@ -96,7 +98,7 @@ describe('TpRacesImportService', () => {
   it('merges multiple codes for one race name into a single upsert call', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
 
@@ -135,7 +137,7 @@ describe('TpRacesImportService', () => {
   it('accumulates eras when one code appears under multiple eras', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
 
@@ -161,7 +163,7 @@ describe('TpRacesImportService', () => {
   it('records an error for a roster under an unknown era but still upserts the race', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
 
@@ -180,9 +182,13 @@ describe('TpRacesImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertRace = vi.fn();
     const service = makeService({
-      upsertExternalSystem: vi
-        .fn()
-        .mockRejectedValue(new Error('network timeout')),
+      bootstrap: vi.fn().mockResolvedValue({
+        ok: false,
+        error: {
+          item: { externalSystems: ['TP', 'Name'] },
+          message: 'network timeout',
+        },
+      }),
       upsertRace,
     });
 

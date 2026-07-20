@@ -1,7 +1,7 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type {
   CompetitionsImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import {
   MatchParserService,
@@ -15,14 +15,14 @@ import { TpCompetitionsImportService } from './tp-competitions-import.service';
 
 interface MakeServiceOptions {
   files: () => AsyncIterable<TpSourceFile>;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertCompetitionResult: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
   files,
-  upsertExternalSystem,
+  bootstrap,
   upsertCompetitionResult,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
@@ -31,7 +31,7 @@ function makeService({
     new TournamentParserService(),
     new MatchParserService(),
     { upsertCompetitionResult } as unknown as CompetitionsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -99,10 +99,7 @@ const eraIdsByName = new Map<string, number>([['Fourth era', 600]]);
 
 describe('TpCompetitionsImportService', () => {
   it('imports a cup (short span) and a season (long span) with correct type and eraId', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi
       .fn()
       .mockResolvedValueOnce({ id: 42 })
@@ -142,13 +139,14 @@ describe('TpCompetitionsImportService', () => {
           matchId: 4,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
     const { result, competitionIdsByTpId } =
       await service.importCompetitions(eraIdsByName);
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
     expect(competitionIdsByTpId).toEqual(
@@ -188,10 +186,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('treats a single-day span as a cup (boundary: span 0)', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFiles([
@@ -206,7 +201,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -219,10 +214,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('uses createdInstant when a match has a null scheduledDate', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFiles([
@@ -244,7 +236,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 2,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -258,10 +250,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('skips a competition with no dated matches, recording an error', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -270,7 +259,7 @@ describe('TpCompetitionsImportService', () => {
           name: 'Chaos Cup 8',
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -285,10 +274,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('skips a competition with no base tournament file, recording an error', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -299,7 +285,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -316,10 +302,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('skips a competition whose base tournament file fails to parse', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -337,7 +320,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -353,10 +336,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('skips a competition whose era has no known database id', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -371,7 +351,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -389,10 +369,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('records an error for an unparsable match file but still imports using the good ones', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFiles([
@@ -414,7 +391,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 2,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -428,9 +405,13 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('records one error and imports nothing when external system bootstrap fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['TP', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -445,7 +426,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -458,10 +439,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('records a diagnostic error but keeps competitions found before a scan failure', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFilesThatThrow(
@@ -481,7 +459,7 @@ describe('TpCompetitionsImportService', () => {
           'Era data directory not found: /data/fifth-era (configured for era "Fifth era").',
         ),
       ),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -498,10 +476,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('skips a competition when upsertCompetitionResult resolves undefined (upsert failure)', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     // Simulates the shared import runner reporting a failure via `errors`
     // and resolving undefined instead of a competition.
     const upsertCompetitionResult = vi.fn().mockResolvedValueOnce(undefined);
@@ -518,7 +493,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -531,10 +506,7 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('ignores a non-base tournament variant file, still importing using the base file', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       files: makeFiles([
@@ -556,7 +528,7 @@ describe('TpCompetitionsImportService', () => {
           matchId: 1,
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -571,10 +543,7 @@ describe('TpCompetitionsImportService', () => {
 
   it('re-runs idempotently, upserting the same competition with identical data', async () => {
     const makeRunService = () => {
-      const upsertExternalSystem = vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2);
+      const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
       const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
       const service = makeService({
         files: makeFiles([
@@ -589,7 +558,7 @@ describe('TpCompetitionsImportService', () => {
             matchId: 1,
           }),
         ]),
-        upsertExternalSystem,
+        bootstrap,
         upsertCompetitionResult,
       });
       return { service, upsertCompetitionResult };

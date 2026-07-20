@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { CoachesImportService } from './coaches-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
+import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
@@ -26,6 +27,7 @@ import { TeamsImportService } from './teams-import.service';
     PositionsImportService,
     RacesImportService,
     ExternalSystemsImportService,
+    ExternalSystemBootstrapService,
     RulesSetsImportService,
     ErasImportService,
     TeamsImportService,
@@ -41,6 +43,7 @@ import { TeamsImportService } from './teams-import.service';
     PositionsImportService,
     RacesImportService,
     ExternalSystemsImportService,
+    ExternalSystemBootstrapService,
     RulesSetsImportService,
     ErasImportService,
     TeamsImportService,

@@ -1,5 +1,5 @@
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -59,7 +59,7 @@ function makeParsers() {
 
 interface MakeServiceOptions {
   reader: BblSourceReader;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertPosition: ReturnType<typeof vi.fn>;
   parsers?: {
     positionParser: PositionPageParser;
@@ -69,7 +69,7 @@ interface MakeServiceOptions {
 
 function makeService({
   reader,
-  upsertExternalSystem,
+  bootstrap,
   upsertPosition,
   parsers = makeParsers(),
 }: MakeServiceOptions) {
@@ -78,7 +78,7 @@ function makeService({
     parsers.positionParser,
     parsers.playerParser,
     { upsertPosition } as unknown as PositionsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
@@ -86,7 +86,7 @@ function makeService({
 }
 
 function externalSystemsOk() {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }
 
 const racesByBblId = new Map<string, { id: number; name: string }>([
@@ -103,6 +103,7 @@ const teamRaceIdsByCode = new Map<string, number>([
 describe('BblPositionsImportService', () => {
   it('upserts one row per listed race with composite external ids', async () => {
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
+    const bootstrap = externalSystemsOk();
     const service = makeService({
       reader: makeReader([
         ptPage({
@@ -115,7 +116,7 @@ describe('BblPositionsImportService', () => {
           ],
         }),
       ]),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap,
       upsertPosition,
     });
 
@@ -124,6 +125,10 @@ describe('BblPositionsImportService', () => {
       teamRaceIdsByCode,
     );
 
+    expect(bootstrap).toHaveBeenCalledWith(
+      ['BBL', 'Name'],
+      'Failed to upsert external system: ',
+    );
     expect(result.imported).toBe(2);
     expect(upsertPosition).toHaveBeenCalledWith(
       {
@@ -178,7 +183,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -241,7 +246,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -308,7 +313,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -336,7 +341,7 @@ describe('BblPositionsImportService', () => {
           ],
         }),
       ]),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -379,7 +384,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -434,7 +439,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -474,7 +479,7 @@ describe('BblPositionsImportService', () => {
         ],
         [],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -504,7 +509,7 @@ describe('BblPositionsImportService', () => {
         ],
         [],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -541,7 +546,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -559,7 +564,7 @@ describe('BblPositionsImportService', () => {
     const upsertPosition = vi.fn().mockResolvedValue(true);
     const service = makeService({
       reader: makeReader([ptPage(null)]),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -596,7 +601,7 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '48', name: 'College of Shadow' }],
         }),
       ]),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
       parsers: { positionParser, playerParser },
     });
@@ -615,9 +620,13 @@ describe('BblPositionsImportService', () => {
   });
 
   it('records one error and skips positions when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('internal error'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'Failed to upsert external system: internal error',
+      },
+    });
     const upsertPosition = vi.fn();
     const service = makeService({
       reader: makeReader([
@@ -628,7 +637,7 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '48', name: 'College of Shadow' }],
         }),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertPosition,
     });
 
@@ -644,31 +653,6 @@ describe('BblPositionsImportService', () => {
     expect(upsertPosition).not.toHaveBeenCalled();
   });
 
-  it('stringifies a non-Error thrown by the external system upsert', async () => {
-    const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
-    const upsertPosition = vi.fn();
-    const service = makeService({
-      reader: makeReader([
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '48', name: 'College of Shadow' }],
-        }),
-      ]),
-      upsertExternalSystem,
-      upsertPosition,
-    });
-
-    const { result } = await service.importPositions(
-      racesByBblId,
-      teamRaceIdsByCode,
-    );
-
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
-  });
-
   it('returns positionIdsByBblId keyed by `${typId}-${raceBblId}`', async () => {
     // one pt page: position typId '10', listing race bblId '7' (in racesByBblId)
     const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
@@ -681,7 +665,7 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '7', name: 'Goblin Team' }],
         }),
       ]),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -715,7 +699,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 
@@ -760,7 +744,7 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      upsertExternalSystem: externalSystemsOk(),
+      bootstrap: externalSystemsOk(),
       upsertPosition,
     });
 

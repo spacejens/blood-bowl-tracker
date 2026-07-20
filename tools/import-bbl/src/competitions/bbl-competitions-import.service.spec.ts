@@ -1,6 +1,6 @@
 import type {
   CompetitionsImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -85,7 +85,7 @@ function makeService(opts: {
   reader: BblSourceReader;
   listParser: CompetitionListPageParser;
   matchListReader: BblMatchListReaderService;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertCompetitionResult: ReturnType<typeof vi.fn>;
   getEras?: () => EraConfig[];
 }) {
@@ -97,8 +97,8 @@ function makeService(opts: {
       upsertCompetitionResult: opts.upsertCompetitionResult,
     } as unknown as CompetitionsImportService,
     {
-      upsertExternalSystem: opts.upsertExternalSystem,
-    } as unknown as ExternalSystemsImportService,
+      bootstrap: opts.bootstrap,
+    } as unknown as ExternalSystemBootstrapService,
     {
       getEras: opts.getEras ?? (() => erasConfig),
     } as unknown as EraConfigService,
@@ -110,10 +110,7 @@ function makeService(opts: {
 
 describe('BblCompetitionsImportService', () => {
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       reader: makeReader({
@@ -126,13 +123,14 @@ describe('BblCompetitionsImportService', () => {
           new Date(Date.UTC(2011, 11, 18)),
         ],
       }),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
     const { result, competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
+    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
     expect(result.imported).toBe(1);
     expect(upsertCompetitionResult).toHaveBeenCalledWith(
       {
@@ -170,10 +168,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '5': [new Date(Date.UTC(2021, 9, 2)), new Date(Date.UTC(2021, 9, 4))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -194,10 +189,7 @@ describe('BblCompetitionsImportService', () => {
       }),
       listParser: makeListParser([{ bblId: '9', name: 'In Progress' }]),
       matchListReader: makeMatchListReader({}),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -221,10 +213,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '3': [new Date(Date.UTC(2000, 0, 1)), new Date(Date.UTC(2000, 5, 1))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -250,10 +239,7 @@ describe('BblCompetitionsImportService', () => {
           new Date(Date.UTC(2011, 11, 18)),
         ],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       // "Living rulebook" matches by date, but is absent from eraIdsByName,
       // simulating its rules set having failed to import earlier in the run.
@@ -283,10 +269,7 @@ describe('BblCompetitionsImportService', () => {
       }),
       listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
       matchListReader: makeMatchListReader({}),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       getEras: () => [
         {
@@ -328,10 +311,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -358,10 +338,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -371,16 +348,20 @@ describe('BblCompetitionsImportService', () => {
     expect(upsertCompetitionResult).toHaveBeenCalled();
   });
 
-  it('records one error and skips competitions when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+  it('records one error and imports nothing when external system bootstrap fails', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertCompetitionResult = vi.fn();
     const service = makeService({
       reader: makeReader({ se: [page('se', { s: '66' })] }),
       listParser: makeListParser([{ bblId: '1', name: 'Major Season 1' }]),
       matchListReader: makeMatchListReader({}),
-      upsertExternalSystem,
+      bootstrap,
       upsertCompetitionResult,
     });
 
@@ -388,10 +369,7 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.success).toBe(false);
     expect(result.errors).toHaveLength(1);
-    // Message is passed through unchanged (this caller adds no prefix): the
-    // assertion now fails if production stops surfacing the real error text.
     expect(result.errors[0].message).toBe('network timeout');
-    // And the error names the external systems the bootstrap tried to upsert.
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
@@ -410,10 +388,7 @@ describe('BblCompetitionsImportService', () => {
       }),
       listParser,
       matchListReader: makeMatchListReader({}),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 
@@ -432,10 +407,6 @@ describe('BblCompetitionsImportService', () => {
   });
 
   it('imports a zero-match competition via its era override as type season', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 74 });
     const service = makeService({
       reader: makeReader({
@@ -443,7 +414,7 @@ describe('BblCompetitionsImportService', () => {
       }),
       listParser: makeListParser([{ bblId: '74', name: 'Minor Season 25' }]),
       matchListReader: makeMatchListReader({}),
-      upsertExternalSystem,
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       getEras: () => [
         {
@@ -498,10 +469,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '74': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 0, 2))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       getEras: () => [
         {
@@ -544,10 +512,7 @@ describe('BblCompetitionsImportService', () => {
           new Date(Date.UTC(2016, 10, 25)),
         ],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       getEras: () => [
         {
@@ -592,10 +557,7 @@ describe('BblCompetitionsImportService', () => {
       matchListReader: makeMatchListReader({
         '30': [new Date(Date.UTC(2016, 2, 12))],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
       getEras: () => [
         {
@@ -681,10 +643,7 @@ describe('BblCompetitionsImportService', () => {
         '1': [new Date('2016-06-01'), new Date('2016-08-01')],
         '30': [new Date('2016-06-15')],
       }),
-      upsertExternalSystem: vi
-        .fn()
-        .mockResolvedValueOnce(1)
-        .mockResolvedValueOnce(2),
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
       upsertCompetitionResult,
     });
 

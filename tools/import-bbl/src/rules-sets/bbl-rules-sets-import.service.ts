@@ -1,11 +1,10 @@
 import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
+  makeImportError,
   makeImportResult,
   RulesSetsImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -18,7 +17,7 @@ export class BblRulesSetsImportService {
   constructor(
     private readonly eraConfig: EraConfigService,
     private readonly rulesSetsImport: RulesSetsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -37,32 +36,40 @@ export class BblRulesSetsImportService {
     const errors: ImportError[] = [];
     const rulesSetIdsByName = new Map<string, number>();
 
-    let names: string[];
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
+
+    let names: string[];
     try {
       names = [
         ...new Set(
           this.eraConfig.getEras().flatMap((e) => e.identity.rulesSets),
         ),
       ];
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
     } catch (error) {
       errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
+        makeImportError({
+          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
       return {
         result: makeImportResult({ imported, errors }),
         rulesSetIdsByName,
       };
     }
+
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return {
+        result: makeImportResult({ imported, errors }),
+        rulesSetIdsByName,
+      };
+    }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     for (const name of names) {
       const rulesSetData: UpsertRulesSet = {

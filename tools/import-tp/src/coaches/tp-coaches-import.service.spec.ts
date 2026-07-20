@@ -1,6 +1,6 @@
 import type {
   CoachesImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
@@ -11,14 +11,14 @@ import { TpCoachesImportService } from './tp-coaches-import.service';
 
 interface MakeServiceOptions {
   files: () => AsyncIterable<TpSourceFile>;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertCoach: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
   files,
-  upsertExternalSystem,
+  bootstrap,
   upsertCoach,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
@@ -26,7 +26,7 @@ function makeService({
     { files } as unknown as TpSourceReader,
     new InscriptionsParserService(),
     { upsertCoach } as unknown as CoachesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -81,16 +81,12 @@ function coachRecord(id: number) {
 
 /** Two systems is not enough — coaches use three (TP, Name, NAF). */
 function makeThreeSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi
-    .fn()
-    .mockResolvedValueOnce(1)
-    .mockResolvedValueOnce(2)
-    .mockResolvedValueOnce(3);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2, 3] });
 }
 
 describe('TpCoachesImportService', () => {
   it('upserts the TP, Name and NAF external systems in order', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -98,20 +94,17 @@ describe('TpCoachesImportService', () => {
           { id: 'a', userNameToShow: 'Alice', nafNumber: 1 },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
     await service.importCoaches();
 
-    expect(upsertExternalSystem).toHaveBeenCalledTimes(3);
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'TP');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(3, 'NAF');
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name', 'NAF']);
   });
 
   it('gives a coach with a nafNumber three external ids', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -119,7 +112,7 @@ describe('TpCoachesImportService', () => {
           { id: 'guid-a', userNameToShow: 'Alice ', nafNumber: 19767 },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -142,7 +135,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('gives a coach without a nafNumber only two external ids', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -150,7 +143,7 @@ describe('TpCoachesImportService', () => {
           { id: 'guid-b', userNameToShow: 'Bob' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -169,7 +162,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('dedupes a coach appearing across multiple competitions and eras', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -181,7 +174,7 @@ describe('TpCoachesImportService', () => {
           { id: 'other', userNameToShow: 'Bob' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -192,7 +185,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('records a parse error for one bad inscriptions file but imports the rest', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -207,7 +200,7 @@ describe('TpCoachesImportService', () => {
           { id: 'good', userNameToShow: 'Alice' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -223,7 +216,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('ignores non-inscriptions files', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFiles([
@@ -245,7 +238,7 @@ describe('TpCoachesImportService', () => {
           { id: 'good', userNameToShow: 'Alice' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -256,9 +249,13 @@ describe('TpCoachesImportService', () => {
   });
 
   it('records one error and imports nothing when external system bootstrap fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['TP', 'Name', 'NAF'] },
+        message: 'network timeout',
+      },
+    });
     const upsertCoach = vi.fn();
     const service = makeService({
       files: makeFiles([
@@ -266,7 +263,7 @@ describe('TpCoachesImportService', () => {
           { id: 'a', userNameToShow: 'Alice' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -281,7 +278,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('records a diagnostic error but keeps coaches found before a scan failure', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
     const service = makeService({
       files: makeFilesThatThrow(
@@ -294,7 +291,7 @@ describe('TpCoachesImportService', () => {
           'Era data directory not found: /data/fifth-era (configured for era "Fifth era").',
         ),
       ),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -310,7 +307,7 @@ describe('TpCoachesImportService', () => {
   });
 
   it('records an error and continues when a coach upsert fails', async () => {
-    const upsertExternalSystem = makeThreeSystemUpsertMock();
+    const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi
       .fn()
       .mockImplementationOnce(
@@ -327,7 +324,7 @@ describe('TpCoachesImportService', () => {
           { id: 'b', userNameToShow: 'Bob' },
         ]),
       ]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -341,7 +338,7 @@ describe('TpCoachesImportService', () => {
 
   it('re-runs idempotently, upserting the same coach with identical data', async () => {
     const makeRun = () => {
-      const upsertExternalSystem = makeThreeSystemUpsertMock();
+      const bootstrap = makeThreeSystemUpsertMock();
       const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
       const service = makeService({
         files: makeFiles([
@@ -349,7 +346,7 @@ describe('TpCoachesImportService', () => {
             { id: 'a', userNameToShow: 'Alice', nafNumber: 1 },
           ]),
         ]),
-        upsertExternalSystem,
+        bootstrap,
         upsertCoach,
       });
       return { service, upsertCoach };

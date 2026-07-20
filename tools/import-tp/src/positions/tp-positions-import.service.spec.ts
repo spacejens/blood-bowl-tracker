@@ -1,6 +1,6 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,21 +10,21 @@ import type { RosterEntry } from '../source/roster-collection.service';
 import { TpPositionsImportService } from './tp-positions-import.service';
 
 interface MakeServiceOptions {
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertPosition: ReturnType<typeof vi.fn>;
   syncRaceEras: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
-  upsertExternalSystem,
+  bootstrap,
   upsertPosition,
   syncRaceEras,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpPositionsImportService(
     { upsertPosition, syncRaceEras } as unknown as PositionsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -62,7 +62,7 @@ function positionRecord(id: number) {
 }
 
 function oneSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValueOnce(1);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1] });
 }
 
 describe('TpPositionsImportService', () => {
@@ -71,8 +71,9 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const bootstrap = oneSystemUpsertMock();
     const service = makeService({
-      upsertExternalSystem: oneSystemUpsertMock(),
+      bootstrap,
       upsertPosition,
       syncRaceEras,
     });
@@ -96,6 +97,7 @@ describe('TpPositionsImportService', () => {
       new Map([['Fourth era', 100]]),
     );
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP']);
     expect(result.imported).toBe(1);
     expect(upsertPosition).toHaveBeenCalledTimes(1);
     expect(upsertPosition).toHaveBeenCalledWith(
@@ -114,7 +116,7 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1, 2] });
     const service = makeService({
-      upsertExternalSystem: oneSystemUpsertMock(),
+      bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
@@ -169,7 +171,7 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
     const service = makeService({
-      upsertExternalSystem: oneSystemUpsertMock(),
+      bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
@@ -207,7 +209,7 @@ describe('TpPositionsImportService', () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
     const service = makeService({
-      upsertExternalSystem: oneSystemUpsertMock(),
+      bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
@@ -236,9 +238,13 @@ describe('TpPositionsImportService', () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
     const service = makeService({
-      upsertExternalSystem: vi
-        .fn()
-        .mockRejectedValue(new Error('network timeout')),
+      bootstrap: vi.fn().mockResolvedValue({
+        ok: false,
+        error: {
+          item: { externalSystems: ['TP'] },
+          message: 'network timeout',
+        },
+      }),
       upsertPosition,
       syncRaceEras,
     });
@@ -267,7 +273,7 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [] });
     const service = makeService({
-      upsertExternalSystem: oneSystemUpsertMock(),
+      bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });

@@ -1,6 +1,6 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,19 +10,19 @@ import type { RosterEntry } from '../source/roster-collection.service';
 import { TpTeamsImportService } from './tp-teams-import.service';
 
 interface MakeServiceOptions {
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertTeam: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
-  upsertExternalSystem,
+  bootstrap,
   upsertTeam,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpTeamsImportService(
     { upsertTeam } as unknown as TeamsImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -62,14 +62,15 @@ function teamRecord(id: number) {
 }
 
 function twoSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }
 
 describe('TpTeamsImportService', () => {
   it('upserts a team with resolved race, coach, eras and external ids', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
+    const bootstrap = twoSystemUpsertMock();
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap,
       upsertTeam,
     });
 
@@ -89,6 +90,7 @@ describe('TpTeamsImportService', () => {
       },
     );
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(upsertTeam).toHaveBeenCalledWith(
@@ -109,7 +111,7 @@ describe('TpTeamsImportService', () => {
   it('accumulates eras for one team seen under multiple eras', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
@@ -148,7 +150,7 @@ describe('TpTeamsImportService', () => {
   it('keeps the first-seen name/race/coach when a roster id recurs', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
@@ -192,7 +194,7 @@ describe('TpTeamsImportService', () => {
   it('skips and records an error when the race cannot be resolved', async () => {
     const upsertTeam = vi.fn();
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
@@ -222,7 +224,7 @@ describe('TpTeamsImportService', () => {
   it('skips and records an error when the coach cannot be resolved', async () => {
     const upsertTeam = vi.fn();
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
@@ -251,7 +253,7 @@ describe('TpTeamsImportService', () => {
   it('records an error for a roster under an unknown era but still upserts the team', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const service = makeService({
-      upsertExternalSystem: twoSystemUpsertMock(),
+      bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
@@ -288,9 +290,13 @@ describe('TpTeamsImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertTeam = vi.fn();
     const service = makeService({
-      upsertExternalSystem: vi
-        .fn()
-        .mockRejectedValue(new Error('network timeout')),
+      bootstrap: vi.fn().mockResolvedValue({
+        ok: false,
+        error: {
+          item: { externalSystems: ['TP', 'Name'] },
+          message: 'network timeout',
+        },
+      }),
       upsertTeam,
     });
 

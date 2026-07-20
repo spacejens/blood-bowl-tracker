@@ -1,10 +1,9 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   LeaguesImportService,
+  makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -17,7 +16,7 @@ export class BblLeaguesImportService {
   constructor(
     private readonly config: LeagueConfigService,
     private readonly leaguesImport: LeaguesImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -31,25 +30,30 @@ export class BblLeaguesImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    let name: string;
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
+
+    let name: string;
     try {
       name = this.config.getLeagueName();
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
     } catch (error) {
       errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
+        makeImportError({
+          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
       return { result: makeImportResult({ imported, errors }) };
     }
+
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return { result: makeImportResult({ imported, errors }) };
+    }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     const league = await this.leaguesImport.upsertLeague(
       {
