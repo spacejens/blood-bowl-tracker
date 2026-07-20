@@ -13,8 +13,8 @@ type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
  * Every player toplist is the same resolver over a different count: the table
  * below (count method -> embed title) is the whole of what varies.
  */
-const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>(
-  {
+const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>({
+  titles: {
     countMvpAwardsByPlayer: 'Players by MVP awards',
     countTouchdownsScoredByPlayer: 'Players by touchdowns scored',
     countCompletionsByPlayer: 'Players by completions',
@@ -31,9 +31,9 @@ const resolvers = makeToplistResolvers<PlayerToplistMethod, PlayersService>(
     countLastingInjuriesSufferedByPlayer:
       'Players by lasting injuries suffered',
   },
-  PLAYER_TOPLIST_TIMEOUT_MESSAGE,
-  PLAYER_TOPLIST_NO_DATA_MESSAGE,
-);
+  timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+  noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
+});
 
 export const resolvePlayerMvpsToplist = resolvers.countMvpAwardsByPlayer;
 export const resolvePlayerTouchdownsScoredToplist =

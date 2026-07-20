@@ -36,8 +36,8 @@ const _teamToplistMethods = [
 ] as const satisfies readonly ScopedCountMethods<TeamsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
-const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>(
-  {
+const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>({
+  titles: {
     countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
     countCompletionsByTeam: 'Teams by completions',
     countInterceptionsByTeam: 'Teams by interceptions',
@@ -52,9 +52,9 @@ const resolvers = makeToplistResolvers<TeamToplistMethod, TeamsService>(
     countLastingInjuriesSufferedByTeam: 'Teams by lasting injuries suffered',
     countDeathsSufferedByTeam: 'Teams by deaths suffered',
   },
-  TEAM_TOPLIST_TIMEOUT_MESSAGE,
-  TEAM_TOPLIST_NO_DATA_MESSAGE,
-);
+  timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+  noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+});
 
 export const resolveTeamTouchdownsScoredToplist =
   resolvers.countTouchdownsScoredByTeam;
