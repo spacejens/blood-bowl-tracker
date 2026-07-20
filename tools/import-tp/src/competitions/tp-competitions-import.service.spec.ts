@@ -78,6 +78,8 @@ interface MatchFileOptions {
   competition: string;
   scheduledDate: string | null;
   matchId?: number;
+  round?: number;
+  roundName?: string;
 }
 
 function matchFile({
@@ -85,13 +87,21 @@ function matchFile({
   competition,
   scheduledDate,
   matchId = 1,
+  round = 1,
+  roundName = 'ROUND',
 }: MatchFileOptions): TpSourceFile {
   return {
     era,
     competition,
     type: 'match',
     filename: `match_${matchId}.json`,
-    content: { matchId, scheduledDate, createdInstant: '2021-01-01T00:00:00Z' },
+    content: {
+      matchId,
+      scheduledDate,
+      createdInstant: '2021-01-01T00:00:00Z',
+      round,
+      group: { phase: { roundName } },
+    },
   };
 }
 
