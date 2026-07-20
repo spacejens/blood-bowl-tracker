@@ -8,7 +8,10 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpPositionsImportService } from './positions/tp-positions-import.service';
+import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
+import { TpTeamsImportService } from './teams/tp-teams-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -32,12 +35,34 @@ async function run(): Promise<ImportResult> {
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 
+    const raceOutcome = await app
+      .get(TpRacesImportService)
+      .importRaces(eraOutcome.eraIdsByName);
+
+    const teamOutcome = await app
+      .get(TpTeamsImportService)
+      .importTeams(
+        raceOutcome.raceIdsByTeamRaceCode,
+        coachOutcome.coachIdsByTpId,
+        eraOutcome.eraIdsByName,
+      );
+
+    const positionOutcome = await app
+      .get(TpPositionsImportService)
+      .importPositions(
+        raceOutcome.raceIdsByTeamRaceCode,
+        eraOutcome.eraIdsByName,
+      );
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
       coachOutcome.result,
+      raceOutcome.result,
+      teamOutcome.result,
+      positionOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
