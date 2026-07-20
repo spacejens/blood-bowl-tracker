@@ -7,7 +7,7 @@ import { z } from 'zod';
  * intentionally ignored until a future matches sub-issue needs them — the same
  * "parse only what's needed" convention as TournamentParserService.
  *
- * `scheduledDate` is the resolved play date, preferring the closest available
+ * `playedDate` is the resolved play date, preferring the closest available
  * signal for when the match was actually played: `scoreResume.startInstant`
  * (a completed match's own recorded start time — the most direct "actually
  * played" signal TP exposes) when present and non-null, else TP's own
@@ -17,12 +17,15 @@ import { z } from 'zod';
  * docs/import-tp/file-format.md), else `createdInstant` (always present in
  * the data, but only a record-setup timestamp — it can predate the actual
  * play date by months, so it is a last-resort fallback, not a proxy for
- * "played"). It is always a Date because the required `createdInstant`
- * fallback guarantees one.
+ * "played"). It is named `playedDate`, not `scheduledDate`, because that is
+ * what the fallback logic resolves to — TP's own `scheduledDate` field is
+ * only one of its three candidate sources, not always the winner. It is
+ * always a Date because the required `createdInstant` fallback guarantees
+ * one.
  */
 export interface TpMatch {
   id: number;
-  scheduledDate: Date;
+  playedDate: Date;
 }
 
 const TpMatchSchema = z.object({
@@ -39,8 +42,8 @@ const TpMatchSchema = z.object({
 @Injectable()
 export class MatchParserService {
   /**
-   * Validate and extract `{ id, scheduledDate }` from a parsed TP match JSON
-   * body. `matchId` maps to `id`; the play date is `scoreResume.startInstant`
+   * Validate and extract `{ id, playedDate }` from a parsed TP match JSON
+   * body. `matchId` maps to `id`; `playedDate` is `scoreResume.startInstant`
    * when set, else `scheduledDate` when set, else `createdInstant`. Extra
    * fields are allowed and dropped. Throws an Error whose message names the
    * failing field on any shape mismatch, or when the resolved date string
@@ -66,6 +69,6 @@ export class MatchParserService {
         `Invalid TP match JSON: date "${dateSource}" is not a valid date.`,
       );
     }
-    return { id: matchId, scheduledDate: date };
+    return { id: matchId, playedDate: date };
   }
 }

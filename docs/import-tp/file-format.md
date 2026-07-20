@@ -75,8 +75,8 @@ future sub-issue needs it.
 ## `match_<id>.json` (play date parsed)
 
 `packages/parse-tp`'s `MatchParserService.parse()` now extracts only
-`{ id: number, scheduledDate: Date }` — mapping `matchId` to `id` and resolving
-the play date with a three-step fallback: `scoreResume.startInstant` (a
+`{ id: number, playedDate: Date }` — mapping `matchId` to `id` and resolving
+`playedDate` with a three-step fallback: `scoreResume.startInstant` (a
 completed match's own recorded start time — the most direct "actually played"
 signal TP exposes — see below) when present and non-null, else `scheduledDate`
 (the agreed play date, and the best available signal for a match with no

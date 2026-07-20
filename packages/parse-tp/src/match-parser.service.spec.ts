@@ -18,7 +18,7 @@ describe('MatchParserService', () => {
     });
     expect(result).toEqual({
       id: 566088,
-      scheduledDate: new Date('2021-05-15T18:00:03Z'),
+      playedDate: new Date('2021-05-15T18:00:03Z'),
     });
   });
 
@@ -30,7 +30,7 @@ describe('MatchParserService', () => {
     });
     expect(result).toEqual({
       id: 42,
-      scheduledDate: new Date('2021-04-01T09:00:00Z'),
+      playedDate: new Date('2021-04-01T09:00:00Z'),
     });
   });
 
@@ -42,7 +42,7 @@ describe('MatchParserService', () => {
     });
     expect(result).toEqual({
       id: 42,
-      scheduledDate: new Date('2021-05-15T18:00:00Z'),
+      playedDate: new Date('2021-05-15T18:00:00Z'),
     });
   });
 
@@ -53,7 +53,7 @@ describe('MatchParserService', () => {
       createdInstant: '2021-01-01T00:00:00Z',
       scoreResume: { startInstant: null },
     });
-    expect(result.scheduledDate).toEqual(new Date('2021-05-15T18:00:00Z'));
+    expect(result.playedDate).toEqual(new Date('2021-05-15T18:00:00Z'));
   });
 
   it('falls back to createdInstant when scoreResume.startInstant and scheduledDate are both absent', () => {
@@ -61,7 +61,7 @@ describe('MatchParserService', () => {
       matchId: 42,
       createdInstant: '2021-04-01T09:00:00Z',
     });
-    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
+    expect(result.playedDate).toEqual(new Date('2021-04-01T09:00:00Z'));
   });
 
   it('falls back to createdInstant when scoreResume.startInstant is null and scheduledDate is absent', () => {
@@ -70,7 +70,7 @@ describe('MatchParserService', () => {
       createdInstant: '2021-04-01T09:00:00Z',
       scoreResume: { startInstant: null },
     });
-    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
+    expect(result.playedDate).toEqual(new Date('2021-04-01T09:00:00Z'));
   });
 
   it('falls back to createdInstant when scoreResume is absent entirely and scheduledDate is null', () => {
@@ -79,7 +79,7 @@ describe('MatchParserService', () => {
       scheduledDate: null,
       createdInstant: '2021-04-01T09:00:00Z',
     });
-    expect(result.scheduledDate).toEqual(new Date('2021-04-01T09:00:00Z'));
+    expect(result.playedDate).toEqual(new Date('2021-04-01T09:00:00Z'));
   });
 
   it('throws naming the field when matchId is missing', () => {

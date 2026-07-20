@@ -183,7 +183,7 @@ export class TpCompetitionsImportService {
   }: AddMatchDateOptions): void {
     try {
       const match = this.matchParser.parse(content);
-      group.matchDates.push(match.scheduledDate);
+      group.matchDates.push(match.playedDate);
     } catch (error) {
       errors.push(
         makeImportError({
