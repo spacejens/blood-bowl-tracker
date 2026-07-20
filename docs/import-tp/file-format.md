@@ -52,11 +52,12 @@ code** — the code is the source of truth at that point.
 - Roster bodies (both `rosters_<id>.json` and the `roster` object nested in
   `match`/`inscriptions` files — see below) include a `teamRace` field that
   embeds a rule-set-looking suffix, e.g. `"Snotling_BB2025"`,
-  `"Khemri_BB2025"`. Not yet parsed or relied on for anything — a candidate
-  for resolving a team's race once roster import lands, but note the
-  embedded suffix does NOT necessarily match this project's own rule-set
-  names (compare to the opaque `ruleSet` numeric code above, which is the
-  field actually used for cross-checking).
+  `"Khemri_BB2025"`. Parsed as `teamRaceCode` (see roster section below) and
+  used to resolve each team's/position's race via `raceIdsByTeamRaceCode`
+  during races/teams/positions import, but note the embedded suffix does NOT
+  necessarily match this project's own rule-set names (compare to the opaque
+  `ruleSet` numeric code above, which is the field actually used for
+  cross-checking).
 
 ## `tournament_<slug>.json` (base file — parsed)
 
@@ -142,8 +143,10 @@ and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
 resolved is recorded as an error and skipped.
 
 **Still not handled** (future work): `rosterMaster.starPlayersMasters` (star
-players — parsed as an empty list since the dataset contains none; revisit
-once match-event data — issue #198 — surfaces a real star-player sample), and
+players — the field isn't declared in `RosterSchema`, so it's dropped
+unconditionally by the parser regardless of dataset content, not merely
+because the reference dataset happens to have none; revisit once match-event
+data — issue #198 — surfaces a real star-player sample to parse against), and
 the other top-level fields (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
@@ -172,7 +175,8 @@ per coach:
 The rest of each entry is unhandled — `state`, `inscriptionDate`, `categoryId`,
 the other `player` fields (`nafUser`, `nafVerified`, `country`, `language`),
 `coachRank { ... }`, `roster { ... }` (see roster shape above), and
-`hasMatches`. `roster` is a candidate for #196's team import.
+`hasMatches`. `roster` here is a nested copy that lacks `rosterMaster` and,
+per the rosters section above, is not a source for team import.
 
 ## `awards_<slug>_awards.json` (not yet parsed)
 
