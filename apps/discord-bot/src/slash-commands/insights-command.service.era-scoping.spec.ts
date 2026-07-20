@@ -120,7 +120,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       expect(selectMock(ctx)).toHaveBeenCalledWith(...expectedCallArgs);
       const factHasDeepdiveButtons =
         factPath.startsWith('coach.toplist') ||
-        factPath.startsWith('team.toplist');
+        factPath.startsWith('team.toplist') ||
+        factPath.startsWith('player.toplist');
       if (factHasDeepdiveButtons) {
         expect(result).toEqual(
           expect.objectContaining({
@@ -187,14 +188,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       20,
       undefined,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by touchdowns scored — BB2020',
-          description: '1. Griff Oberwald — 9',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by touchdowns scored — BB2020',
+            description: '1. Griff Oberwald — 9',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('scopes team.toplist.interceptions to the resolved era and names it in the title', async () => {
@@ -235,14 +239,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       20,
       undefined,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by casualties inflicted — BB2020',
-          description: '1. Morg n Thorg — 11',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by casualties inflicted — BB2020',
+            description: '1. Morg n Thorg — 11',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('scopes team.toplist.injuries.serious.caused to the resolved era and names it in the title', async () => {
@@ -286,14 +293,17 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       20,
       undefined,
     );
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by casualties suffered — BB2020',
-          description: '1. Griff Oberwald — 12',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by casualties suffered — BB2020',
+            description: '1. Griff Oberwald — 12',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('scopes team.toplist.injuries.lasting.suffered to the resolved era and names it in the title', async () => {

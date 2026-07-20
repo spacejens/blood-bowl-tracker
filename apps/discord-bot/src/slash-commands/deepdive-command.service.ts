@@ -4,6 +4,7 @@ import {
   CoachesService,
   CompetitionsService,
   ErasService,
+  PlayersService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -17,11 +18,13 @@ import { ApplicationCommandOptionType } from 'discord.js';
 
 import { resolveCoachDeepdive } from '../deepdive/facts/coach-deepdive';
 import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
+import { resolvePlayerDeepdive } from '../deepdive/facts/player-deepdive';
 import { resolveTeamDeepdive } from '../deepdive/facts/team-deepdive';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
+  DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
@@ -38,6 +41,9 @@ export const COACH_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:coach:';
 /** Prefix for team deepdive button customIds: `deepdive:team:<id>`. */
 export const TEAM_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:team:';
 
+/** Prefix for player deepdive button customIds: `deepdive:player:<id>`. */
+export const PLAYER_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:player:';
+
 @Injectable()
 export class DeepdiveCommandService implements OnModuleInit {
   constructor(
@@ -45,6 +51,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     private readonly competitions: CompetitionsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
+    private readonly players: PlayersService,
     private readonly discordClient: DiscordClientService,
     private readonly registry: SlashCommandRegistryService,
   ) {}
@@ -62,6 +69,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       TEAM_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleTeamButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handlePlayerButton(interaction),
     );
   }
 
@@ -88,6 +99,12 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'player',
+          description: 'Show the detail view for a single player (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -100,7 +117,8 @@ export class DeepdiveCommandService implements OnModuleInit {
     const eraOption = interaction.options.getString('era');
     const coachOption = interaction.options.getString('coach');
     const teamOption = interaction.options.getString('team');
-    const supplied = [eraOption, coachOption, teamOption].filter(
+    const playerOption = interaction.options.getString('player');
+    const supplied = [eraOption, coachOption, teamOption, playerOption].filter(
       (value) => value !== null,
     );
     if (supplied.length > 1) {
@@ -114,6 +132,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (teamOption !== null) {
       return this.resolveTeam(teamOption);
+    }
+    if (playerOption !== null) {
+      return this.resolvePlayer(playerOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -143,6 +164,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       TEAM_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolveTeam(idPart);
+  }
+
+  async handlePlayerButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      PLAYER_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.resolvePlayer(idPart);
   }
 
   async autocomplete(
@@ -176,6 +206,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       );
       return teams.map((row) => ({
         name: `${row.name} (#${row.id})`,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'player') {
+      const players = await this.players.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return players.map((row) => ({
+        name: `${row.name} (${row.teamName})`,
         value: String(row.id),
       }));
     }
@@ -227,5 +267,20 @@ export class DeepdiveCommandService implements OnModuleInit {
       return Promise.resolve(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
     }
     return resolveTeamDeepdive(id, { teams: this.teams });
+  }
+
+  /**
+   * Parses a player id (from a slash option or a button customId) and renders
+   * the deepdive. Non-integer values are rejected up front with the not-found
+   * message, mirroring `resolveEra`/`resolveCoach`/`resolveTeam`.
+   */
+  private resolvePlayer(
+    value: string,
+  ): Promise<string | InteractionReplyOptions> {
+    const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
+    }
+    return resolvePlayerDeepdive(id, { players: this.players });
   }
 }

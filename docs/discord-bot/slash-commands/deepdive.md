@@ -1,15 +1,15 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports three targets — an era, a coach, and a team — and is
-designed to grow further optional, mutually exclusive targets (players, and so
-on) in future work.
+Today it supports four targets — an era, a coach, a team, and a player — and is
+designed to grow further optional, mutually exclusive targets in future work.
 
 ## Arguments
 
-The command takes three optional string arguments, `era`, `coach`, and `team`,
-each autocompleted by name (`era` suggestions are labelled `<era>
-(<league>)`):
+The command takes four optional string arguments, `era`, `coach`, `team`, and
+`player`, each autocompleted by name (`era` suggestions are labelled `<era>
+(<league>)`; `player` suggestions are labelled `<name> (<team>)` because player
+names are not unique across teams):
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -50,6 +50,17 @@ each autocompleted by name (`era` suggestions are labelled `<era>
   has recorded no matches shows a short "hasn't played yet" message in place of
   the career span and player list, but still shows its race and coach.
 - **A team that matches nothing** — the bot replies with a not-found message.
+- **`player:<player>`** — the bot replies with an embed for that player: the
+  player name as the title, then `Team: <team>`, `Race: <race>`, and
+  `Position: <position>` (every player always has all three), a blank line, and
+  one line per non-zero event category the player caused, formatted
+  `<label>: <count>`. The categories are the nine acting-role tallies: MVP
+  awards, touchdowns scored, completions, interceptions, deflections,
+  casualties inflicted, serious injuries inflicted, opponents killed, and fouls
+  committed — things the player did, never things done to them. Zero categories
+  are omitted; a player with nothing in any category shows a short
+  nothing-memorable-yet-style message instead of an empty list.
+- **A player that matches nothing** — the bot replies with a not-found message.
 
 If the database does not respond in time, the command falls back to a themed
 timeout message instead of its normal reply, so it always answers within
@@ -70,6 +81,14 @@ Each of the sixteen `team.toplist.*` facts (all the team toplists except
 `race.toplist.teams`, whose rows key by race) attaches one button per listed
 team, opening the same `/deepdive team:<team>` view.
 
+Each of the thirteen `player.toplist.*` facts attaches one button per listed
+player, opening the same `/deepdive player:<player>` view. Note the button set
+is broader than the deepdive's own category list: the consequence-only toplists
+(`player.toplist.casualties.suffered`, `player.toplist.injuries.serious.suffered`,
+`player.toplist.injuries.lasting.suffered`, `player.toplist.sent_off`) still get
+buttons, even though those "happened to the player" categories are never shown
+in the deepdive embed itself.
+
 This is the intended pattern going forward: as `/deepdive` grows more lookup
 targets, most `/insights` views that list items of a supported target type are
 expected to gain a button per listed item, opening that item's deepdive the
@@ -77,5 +96,6 @@ same way `eras.list`, the coach toplists, and the team toplists do today.
 
 See the implementation in `apps/discord-bot/src/slash-commands/deepdive-command.service.ts`
 and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.ts`,
-`apps/discord-bot/src/deepdive/facts/coach-deepdive.ts`, and
-`apps/discord-bot/src/deepdive/facts/team-deepdive.ts`.
+`apps/discord-bot/src/deepdive/facts/coach-deepdive.ts`,
+`apps/discord-bot/src/deepdive/facts/team-deepdive.ts`, and
+`apps/discord-bot/src/deepdive/facts/player-deepdive.ts`.
