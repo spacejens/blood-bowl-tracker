@@ -3,6 +3,13 @@ import { Injectable } from '@nestjs/common';
 import { ImportBblConfigService } from '../config/import-bbl-config.service';
 
 export interface EraConfig {
+  /**
+   * Name of the league this era belongs to, stamped by getEras() from the
+   * containing leagues[] entry. Used by the eras import to resolve the era's
+   * league id. Optional on the type because hand-built test fixtures may omit
+   * it; getEras() always sets it.
+   */
+  leagueName?: string;
   identity: {
     name: string;
     rulesSets: string[];
@@ -96,31 +103,65 @@ export class EraConfigService {
   constructor(private readonly config: ImportBblConfigService) {}
 
   /**
-   * The eras the BBL league played through, supplied via league.eras in
-   * import-bbl-config.json5 (not parsed from the source data). Each era is six
-   * nested groups: identity, dates, players (all required), and optional
-   * competitions, teams, matches. See EraConfig for field meanings.
+   * The eras the BBL leagues played through, supplied via leagues[].eras in
+   * import-bbl-config.json5 (not parsed from the source data). Each league
+   * entry's eras are flattened into one list and stamped with that league's
+   * leagueName. Each era is six nested groups: identity, dates, players (all
+   * required), and optional competitions, teams, matches. See EraConfig for
+   * field meanings.
    */
   getEras(): EraConfig[] {
-    const league = this.config.get<Record<string, unknown>>('league');
-    const raw = league?.eras;
-    if (raw === undefined) {
+    const leaguesRaw = this.config.get<unknown>('leagues');
+    if (leaguesRaw === undefined) {
       throw new Error(
-        'league.eras is not set in import-bbl-config.json5. Set it to an ' +
-          'array of the eras the BBL league played through, e.g. ' +
-          '[{ identity: { name: "Living rulebook", rulesSets: ["Living rulebook"] }, ' +
-          'dates: { startDate: "2011-09-09", endDate: "2021-09-01", autoAssignByDate: true }, ' +
-          'players: { firstPlayerId: 1, lastPlayerId: 5000, autoAssignByPlayerId: true } }].',
+        'leagues is not set in import-bbl-config.json5. Set it to a ' +
+          'non-empty array of leagues, each with a leagueName and an eras ' +
+          'array, e.g. [{ leagueName: "tLoEG", eras: [ ... ] }].',
+      );
+    }
+    if (!Array.isArray(leaguesRaw) || leaguesRaw.length === 0) {
+      throw new Error(
+        'leagues in import-bbl-config.json5 must be a non-empty array of leagues.',
       );
     }
 
-    if (!Array.isArray(raw) || raw.length === 0) {
-      throw new Error(
-        'league.eras in import-bbl-config.json5 must be a non-empty array of eras.',
-      );
-    }
+    const eras: EraConfig[] = [];
+    leaguesRaw.forEach((leagueEntry, leagueIndex) => {
+      if (typeof leagueEntry !== 'object' || leagueEntry === null) {
+        throw new Error(`leagues[${leagueIndex}] must be an object.`);
+      }
+      const { leagueName, eras: leagueEras } = leagueEntry as Record<
+        string,
+        unknown
+      >;
+      if (typeof leagueName !== 'string' || leagueName.trim() === '') {
+        throw new Error(
+          `leagues[${leagueIndex}].leagueName must be a non-empty string.`,
+        );
+      }
+      if (!Array.isArray(leagueEras) || leagueEras.length === 0) {
+        throw new Error(
+          `leagues[${leagueIndex}].eras must be a non-empty array of eras.`,
+        );
+      }
+      leagueEras.forEach((entry, eraIndex) => {
+        const parsed = this.parseEra(entry, eraIndex);
+        eras.push({ ...parsed, leagueName });
+      });
+    });
 
-    const eras = raw.map((entry, index) => this.parseEra(entry, index));
+    const eraNameSeen = new Map<string, string>();
+    for (const era of eras) {
+      const existing = eraNameSeen.get(era.identity.name);
+      if (existing !== undefined) {
+        throw new Error(
+          `BBL_ERAS: era name "${era.identity.name}" is used in more than one ` +
+            `league (leagues "${existing}" and "${era.leagueName}"). Era names ` +
+            `must be unique across all leagues.`,
+        );
+      }
+      eraNameSeen.set(era.identity.name, era.leagueName ?? '');
+    }
 
     const eraNameByOverriddenPid = new Map<number, string>();
     for (const era of eras) {
