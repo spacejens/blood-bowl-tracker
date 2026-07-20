@@ -13,6 +13,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -20,10 +21,6 @@ export class CompetitionUpsertConflictError extends UpsertConflictError {}
 
 export interface CompetitionWithTeamEras extends Competition {
   teamEraIds: number[];
-}
-
-function escapeLikePattern(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
 @Injectable()

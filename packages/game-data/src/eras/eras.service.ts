@@ -12,21 +12,11 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class EraUpsertConflictError extends UpsertConflictError {}
-
-/**
- * Escapes Postgres LIKE/ILIKE metacharacters (`%`, `_`) and the default
- * escape character (`\`) in a user-supplied string so it is matched
- * literally rather than interpreted as a wildcard pattern. The backslash
- * must be escaped first so that escaping `%`/`_` afterwards doesn't
- * double-escape the backslashes it just introduced.
- */
-function escapeLikePattern(value: string): string {
-  return value.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
-}
 
 export interface EraWithRulesSets extends Era {
   rulesSetIds: number[];
