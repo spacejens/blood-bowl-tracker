@@ -126,10 +126,20 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `packages/parse-tp`. Competitions missing a base tournament file, with an
   unparsable one, with no dated matches, or whose era has no known id are
   skipped with a recorded error.
+- **TpCoachesImportService** — upserts every coach registered to a competition,
+  read from each competition's `inscriptions_<slug>_inscriptions.json` file via
+  `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
+  globally by TP's stable `player.id` and keyed under three external systems:
+  TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
+  coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
+  later team-import sub-issue will use to resolve each team's coach; unused here.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions — aggregating each step's `ImportResult` into one
-overall result, mirroring `tools/import-bbl/src/main.ts`.
+then eras, then competitions, then coaches — aggregating each step's
+`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
+Coach import has no FK dependency on the earlier steps, so its position is
+documentation order (matching the parent issue's sub-issue list), not a
+functional requirement.
 
 ## Related documentation
 
