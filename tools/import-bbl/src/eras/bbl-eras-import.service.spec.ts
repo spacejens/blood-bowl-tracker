@@ -1,6 +1,6 @@
 import type {
   ErasImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -10,21 +10,21 @@ import type { EraConfig, EraConfigService } from './era-config.service';
 
 interface MakeServiceOptions {
   getEras: () => EraConfig[];
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertEra: ReturnType<typeof vi.fn>;
   getBblSystemName?: () => string;
 }
 
 function makeService({
   getEras,
-  upsertExternalSystem,
+  bootstrap,
   upsertEra,
   getBblSystemName = () => 'BBL',
 }: MakeServiceOptions) {
   return new BblErasImportService(
     { getEras } as unknown as EraConfigService,
     { upsertEra } as unknown as ErasImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
@@ -53,17 +53,14 @@ const rulesSetIds = new Map<string, number>([
 
 describe('BblErasImportService', () => {
   it('upserts each era referencing the league id and its rules set id', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Living rulebook' })
       .mockResolvedValueOnce({ id: 600, name: 'BB2020' });
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -71,6 +68,7 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
+    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
     expect(eraIdsByName).toEqual(
       new Map([
         ['Living rulebook', 500],
@@ -110,14 +108,11 @@ describe('BblErasImportService', () => {
   });
 
   it('records one error and imports nothing when the league id is missing', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn();
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -130,15 +125,12 @@ describe('BblErasImportService', () => {
   });
 
   it('skips an era whose rules set was not imported, recording an error', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'x' });
     const partialIds = new Map<string, number>([['Living rulebook', 100]]);
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -155,10 +147,7 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error when an era upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi
       .fn()
       .mockImplementation((_data: unknown, errors: { message: string }[]) => {
@@ -167,7 +156,7 @@ describe('BblErasImportService', () => {
       });
     const service = makeService({
       getEras: () => [eras[1]],
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -178,10 +167,7 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error and skips an era whose rules-set name does not resolve', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn();
     const multiRulesSetEras: EraConfig[] = [
       {
@@ -192,7 +178,7 @@ describe('BblErasImportService', () => {
     ];
     const service = makeService({
       getEras: () => multiRulesSetEras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -203,10 +189,7 @@ describe('BblErasImportService', () => {
   });
 
   it('resolves all rules-set names to ids and passes the array', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(2);
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'CRP era' });
     const multiRulesSetEras: EraConfig[] = [
       {
@@ -217,7 +200,7 @@ describe('BblErasImportService', () => {
     ];
     const service = makeService({
       getEras: () => multiRulesSetEras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -236,13 +219,13 @@ describe('BblErasImportService', () => {
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
-    const upsertExternalSystem = vi.fn();
+    const bootstrap = vi.fn();
     const upsertEra = vi.fn();
     const service = makeService({
       getEras: () => {
         throw new Error('BBL_ERAS is not set.');
       },
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
@@ -256,13 +239,17 @@ describe('BblErasImportService', () => {
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertEra = vi.fn();
     const service = makeService({
       getEras: () => eras,
-      upsertExternalSystem,
+      bootstrap,
       upsertEra,
     });
 
