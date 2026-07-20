@@ -66,4 +66,18 @@ describe('ImportManualConfigService', () => {
     const path = writeConfig('{ this is : not valid');
     expect(() => new ImportManualConfigService(path)).toThrow(path);
   });
+
+  it('throws when the config file cannot be read due to a non-ENOENT error', () => {
+    const path = join(dir, 'import-manual-config.json5');
+    writeFileSync(path, '{ connection: {} }', 'utf8');
+    // Change permissions to make file unreadable
+    try {
+      const fs = require('node:fs');
+      fs.chmodSync(path, 0o000);
+      expect(() => new ImportManualConfigService(path)).toThrow();
+    } finally {
+      // Restore permissions for cleanup
+      require('node:fs').chmodSync(path, 0o644);
+    }
+  });
 });

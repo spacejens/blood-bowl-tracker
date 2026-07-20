@@ -32,6 +32,12 @@ describe('ExternalSystemsProcessor', () => {
     });
     const data = emptyData();
     data.externalSystems = [{ name: 'Explicit' }];
+    data.rulesSets = [
+      { name: 'CRP', externalIds: [{ system: 'RulesSys', id: 'rs:crp' }] },
+    ];
+    data.leagues = [
+      { name: 'EN', externalIds: [{ system: 'LeagueSys', id: 'lg:en' }] },
+    ];
     data.coaches = [
       { name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] },
     ];
@@ -42,6 +48,13 @@ describe('ExternalSystemsProcessor', () => {
         rulesSets: [{ system: 'RS', id: 'name:crp' }],
         startDate: '2024-01-01',
         externalIds: [{ system: 'Name', id: 'name:e' }],
+      },
+    ];
+    data.races = [
+      {
+        name: 'Orc',
+        eras: [{ system: 'RaceEraSys', id: 'id:2' }],
+        externalIds: [{ system: 'Name', id: 'name:orc' }],
       },
     ];
     data.teams = [
@@ -57,7 +70,17 @@ describe('ExternalSystemsProcessor', () => {
     const systemIds = await makeProcessor(upsert).bootstrap(data);
 
     expect(new Set(seen)).toEqual(
-      new Set(['Explicit', 'Name', 'BBL', 'RS', 'RaceSys', 'CoachSys']),
+      new Set([
+        'Explicit',
+        'Name',
+        'RulesSys',
+        'LeagueSys',
+        'BBL',
+        'RS',
+        'RaceEraSys',
+        'RaceSys',
+        'CoachSys',
+      ]),
     );
     expect(systemIds.get('Name')).toBeDefined();
     expect(systemIds.get('Explicit')).toBeDefined();
