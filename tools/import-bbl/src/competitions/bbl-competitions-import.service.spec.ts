@@ -110,6 +110,7 @@ function makeService(opts: {
 
 describe('BblCompetitionsImportService', () => {
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
     const service = makeService({
       reader: makeReader({
@@ -122,13 +123,14 @@ describe('BblCompetitionsImportService', () => {
           new Date(Date.UTC(2011, 11, 18)),
         ],
       }),
-      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
+      bootstrap,
       upsertCompetitionResult,
     });
 
     const { result, competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
+    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
     expect(result.imported).toBe(1);
     expect(upsertCompetitionResult).toHaveBeenCalledWith(
       {
