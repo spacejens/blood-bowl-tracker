@@ -1,0 +1,21 @@
+// Configuration for tools/import-manual.
+//
+// Copy this file to `import-manual-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.json5
+//
+// `import-manual-config.json5` is git-ignored. See docs/import-manual/index.md
+// for configuration details and how to run the tool.
+//
+// Unlike import-tp/import-bbl, there is no `dataDir` key: the directory to
+// import is passed as the sole command-line argument, e.g.
+//   node dist/main.js data/before-other-importers
+{
+  // Runtime settings for reaching the api-server to import into. This group
+  // itself is required, mirroring import-tp-config.json5's convention.
+  connection: {
+    // Base URL of the running api-server. Defaults to http://localhost:3000
+    // if this field is omitted.
+    apiBaseUrl: 'http://localhost:3000',
+  },
+}
