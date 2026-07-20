@@ -40,6 +40,7 @@ function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
   const { teamRace, raceName, positions, id = 1 } = opts;
   return {
     era,
+    competition: 'comp',
     roster: {
       id,
       teamName: `Team ${id}`,

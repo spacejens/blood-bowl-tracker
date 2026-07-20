@@ -38,6 +38,7 @@ interface RosterOpts {
 function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
   return {
     era,
+    competition: 'comp',
     roster: {
       id: opts.id,
       teamName: opts.teamName ?? `Team ${opts.id}`,
