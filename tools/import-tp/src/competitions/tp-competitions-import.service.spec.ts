@@ -101,6 +101,8 @@ function matchFile({
       createdInstant: '2021-01-01T00:00:00Z',
       round,
       group: { phase: { roundName } },
+      inscriptionLocal: { roster: { id: 1 } },
+      inscriptionVisitor: { roster: { id: 2 } },
     },
   };
 }
@@ -637,5 +639,43 @@ describe('TpCompetitionsImportService', () => {
         ?.map((m) => m.name)
         .sort(),
     ).toEqual(['Day 2', 'Round 3']);
+  });
+
+  it('exposes competitionsByTpId with each competition upsert, era and competition directory', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
+    const service = makeService({
+      files: makeFiles([
+        tournamentFile('Fourth era', 'chaos-cup-8', {
+          id: 111,
+          name: 'Chaos Cup 8',
+        }),
+        matchFile({
+          era: 'Fourth era',
+          competition: 'chaos-cup-8',
+          scheduledDate: '2021-05-15T10:00:00Z',
+          matchId: 1,
+        }),
+      ]),
+      bootstrap,
+      upsertCompetitionResult,
+    });
+
+    const { competitionsByTpId } =
+      await service.importCompetitions(eraIdsByName);
+
+    const entry = competitionsByTpId.get(111);
+    expect(entry?.era).toBe('Fourth era');
+    expect(entry?.competition).toBe('chaos-cup-8');
+    expect(entry?.upsert).toEqual({
+      name: 'Chaos Cup 8',
+      type: 'cup',
+      eraId: 600,
+      teamEraIds: [],
+      externalIds: [
+        { externalSystemId: 1, externalId: '111' },
+        { externalSystemId: 2, externalId: 'Chaos Cup 8' },
+      ],
+    });
   });
 });
