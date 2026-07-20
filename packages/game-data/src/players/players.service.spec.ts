@@ -158,6 +158,41 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('findById', () => {
+    function makeJoinSelect(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn().mockResolvedValue(rows);
+      return builder;
+    }
+
+    it('returns the joined player detail row', async () => {
+      const row = {
+        id: 1,
+        name: 'Griff Oberwald',
+        teamName: 'Reikland Reavers',
+        raceName: 'Human',
+        positionName: 'Blitzer',
+      };
+      const builder = makeJoinSelect([row]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.findById(1)).resolves.toEqual(row);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(1);
+    });
+
+    it('returns undefined when no player matches', async () => {
+      const builder = makeJoinSelect([]);
+      const service = new PlayersService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);

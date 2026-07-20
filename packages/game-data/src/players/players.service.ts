@@ -5,7 +5,10 @@ import {
   DB,
   playerExternalIds,
   players,
+  positions,
+  races,
   teamEras,
+  teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { count, eq } from 'drizzle-orm';
@@ -35,6 +38,33 @@ export class PlayerUpsertConflictError extends UpsertConflictError {}
 @Injectable()
 export class PlayersService {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  async findById(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        teamName: string;
+        raceName: string;
+        positionName: string;
+      }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: players.id,
+        name: players.name,
+        teamName: teams.name,
+        raceName: races.name,
+        positionName: positions.name,
+      })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(races, eq(races.id, teams.raceId))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(eq(players.id, id));
+    return rows[0];
+  }
 
   async upsert(
     data: UpsertPlayer,
