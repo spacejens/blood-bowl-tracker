@@ -156,14 +156,28 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   semantics). Carries TP external ids only (one per `tpPositionId`); after each
   upsert, records race/era availability via `syncRaceEras`. Star players are not
   parsed (`starPlayersMasters` is ignored).
+- **TpTeamParticipationImportService** — populates `match_teams` and
+  `competition_teams` for the already-imported matches and competitions. Runs
+  after teams import (it needs each team's resolved team-era ids) and consumes
+  only maps the earlier steps produced plus the shared `rosters` list — no new
+  file scanning. For each competition it resolves the roster ids of the roster
+  files under its own directory to team-era ids and re-upserts the competition
+  with those `teamEraIds` (writing `competition_teams`); it then re-upserts each
+  match with its `[home, away]` team-era ids, resolved from the roster ids the
+  parser reads out of each match file (writing `match_teams`). Both writes are
+  additive/idempotent; unlike BBL, TP needs no page scraping because it embeds
+  both teams' roster ids per match and a roster file's directory placement is
+  the competition-membership signal.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
-positions — aggregating each step's `ImportResult` into one overall result,
-mirroring `tools/import-bbl/src/main.ts`. Races, teams, and positions run after
-coaches; they have no FK dependency on the earlier import steps (only on each
-other, in that order).
+positions, and finally team participation — aggregating each step's
+`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
+Races, teams, and positions run after coaches; they have no FK dependency on the
+earlier import steps (only on each other, in that order). Team participation runs
+last because it needs the teams step's resolved team-era ids and the
+competitions step's maps.
 
 ## Related documentation
 
