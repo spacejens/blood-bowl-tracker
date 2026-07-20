@@ -2,11 +2,9 @@ import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -43,7 +41,7 @@ export class BblCompetitionsImportService {
     private readonly competitionListPageParser: CompetitionListPageParser,
     private readonly matchListReader: BblMatchListReaderService,
     private readonly competitionsImport: CompetitionsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly eraConfig: EraConfigService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
@@ -73,22 +71,17 @@ export class BblCompetitionsImportService {
     const competitionsByBblId = new Map<string, UpsertCompetition>();
     const competitionIdsByBblId = new Map<string, number>();
 
-    let bblSystemId: number;
-    let nameSystemId: number;
-    let eras: EraConfig[];
     const bblSystemName = this.externalSystemName.getBblSystemName();
+
+    let eras: EraConfig[];
     try {
       eras = this.eraConfig.getEras();
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
     } catch (error) {
       errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
+        makeImportError({
+          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
       return {
         result: makeImportResult({ imported, errors }),
@@ -96,6 +89,20 @@ export class BblCompetitionsImportService {
         competitionIdsByBblId,
       };
     }
+
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return {
+        result: makeImportResult({ imported, errors }),
+        competitionsByBblId,
+        competitionIdsByBblId,
+      };
+    }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     const datesByCompetitionId = await this.collectMatchDates(errors);
     const competitions = await this.readCompetitionList(errors);
