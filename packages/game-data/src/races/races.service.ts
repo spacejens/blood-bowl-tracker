@@ -12,9 +12,10 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq } from 'drizzle-orm';
+import { and, count, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -27,6 +28,27 @@ export interface RaceWithEras extends Race {
 @Injectable()
 export class RacesService {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  async findById(
+    id: number,
+  ): Promise<{ id: number; name: string } | undefined> {
+    const rows = await this.db
+      .select({ id: races.id, name: races.name })
+      .from(races)
+      .where(eq(races.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: races.id, name: races.name })
+      .from(races)
+      .where(ilike(races.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
 
   async upsert(
     data: UpsertRace,

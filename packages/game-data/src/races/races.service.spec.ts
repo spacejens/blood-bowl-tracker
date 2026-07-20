@@ -250,4 +250,44 @@ describe('RacesService', () => {
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
     });
   });
+
+  describe('findById', () => {
+    it('returns the race row when it exists', async () => {
+      const rows = [{ id: 1, name: 'Orc' }];
+      const where = vi.fn().mockResolvedValue(rows);
+      const select = vi.fn(() => ({ from: () => ({ where }) }));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.findById(1)).resolves.toEqual({
+        id: 1,
+        name: 'Orc',
+      });
+    });
+
+    it('returns undefined when no race matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const select = vi.fn(() => ({ from: () => ({ where }) }));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns id/name rows matching the prefix and forwards the limit', async () => {
+      const rows = [{ id: 1, name: 'Orc' }];
+      const limit = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn(() => ({ limit }));
+      const select = vi.fn(() => ({ from: () => ({ where }) }));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.searchByNamePrefix('or', 25)).resolves.toEqual(rows);
+      expect(limit).toHaveBeenCalledWith(25);
+    });
+
+    it('returns an empty array when nothing matches the prefix', async () => {
+      const limit = vi.fn().mockResolvedValue([]);
+      const where = vi.fn(() => ({ limit }));
+      const select = vi.fn(() => ({ from: () => ({ where }) }));
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.searchByNamePrefix('zz', 25)).resolves.toEqual([]);
+    });
+  });
 });
