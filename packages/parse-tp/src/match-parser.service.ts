@@ -26,10 +26,23 @@ import { z } from 'zod';
 export interface TpMatch {
   id: number;
   playedDate: Date;
+  /**
+   * The match's display name, built as `<title-cased roundName> <round>` —
+   * e.g. `"Round 3"` (season/league) or `"Day 2"` (dungeon bowl). Names are
+   * NOT unique across matches (per docs/game-concepts/matches/index.md) and
+   * must never be used as an external id.
+   */
+  name: string;
 }
 
 const TpMatchSchema = z.object({
   matchId: z.number(),
+  round: z.number(),
+  group: z.object({
+    phase: z.object({
+      roundName: z.string(),
+    }),
+  }),
   scheduledDate: z.string().nullish(),
   createdInstant: z.string(),
   scoreResume: z
@@ -42,9 +55,10 @@ const TpMatchSchema = z.object({
 @Injectable()
 export class MatchParserService {
   /**
-   * Validate and extract `{ id, playedDate }` from a parsed TP match JSON
+   * Validate and extract `{ id, playedDate, name }` from a parsed TP match JSON
    * body. `matchId` maps to `id`; `playedDate` is `scoreResume.startInstant`
-   * when set, else `scheduledDate` when set, else `createdInstant`. Extra
+   * when set, else `scheduledDate` when set, else `createdInstant`. `name` is
+   * `group.phase.roundName` title-cased plus a space and `round`. Extra
    * fields are allowed and dropped. Throws an Error whose message names the
    * failing field on any shape mismatch, or when the resolved date string
    * cannot be parsed.
@@ -60,7 +74,14 @@ export class MatchParserService {
           .join('; ')}`,
       );
     }
-    const { matchId, scheduledDate, createdInstant, scoreResume } = result.data;
+    const {
+      matchId,
+      round,
+      group,
+      scheduledDate,
+      createdInstant,
+      scoreResume,
+    } = result.data;
     const dateSource =
       scoreResume?.startInstant ?? scheduledDate ?? createdInstant;
     const date = new Date(dateSource);
@@ -69,6 +90,10 @@ export class MatchParserService {
         `Invalid TP match JSON: date "${dateSource}" is not a valid date.`,
       );
     }
-    return { id: matchId, playedDate: date };
+    const roundName = group.phase.roundName;
+    const name = `${roundName.charAt(0).toUpperCase()}${roundName
+      .slice(1)
+      .toLowerCase()} ${round}`;
+    return { id: matchId, playedDate: date, name };
   }
 }
