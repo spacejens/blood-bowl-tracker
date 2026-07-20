@@ -133,13 +133,28 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   TP (canonical, by `player.id`), Name (by the coach's name), and NAF (by the
   coach's NAF number — only when present). Returns a `coachIdsByTpId` map that a
   later team-import sub-issue will use to resolve each team's coach; unused here.
+- **TpRacesImportService** — upserts each race from the roster files, grouped
+  by display name (`rosterMaster.name`) so rule-set-variant codes merge onto
+  one row. Each upsert carries every distinct code as a TP external id (all in
+  one call for merge semantics), the display name as a Name external id, and
+  every era any contributing roster was seen under. Returns `raceIdsByTeamRaceCode`
+  keyed by code for the positions/teams imports to resolve their races.
+- **TpTeamsImportService** — upserts each team (keyed by roster id + name),
+  resolving race via `raceIdsByTeamRaceCode` and coach via `coachIdsByTpId`;
+  skips any team whose race or coach cannot be resolved. Teams are grouped by
+  id so one seen under multiple eras unions its eras.
+- **TpPositionsImportService** — upserts each position grouped by `(race, name)`,
+  keyed by its `tpPositionId` variants (all in one upsert call for merge
+  semantics). Carries TP external ids only (one per `tpPositionId`); after each
+  upsert, records race/era availability via `syncRaceEras`. Star players are not
+  parsed (`starPlayersMasters` is ignored).
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions, then coaches — aggregating each step's
-`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
-Coach import has no FK dependency on the earlier steps, so its position is
-documentation order (matching the parent issue's sub-issue list), not a
-functional requirement.
+then eras, then competitions, then coaches, then races, then teams, then
+positions — aggregating each step's `ImportResult` into one overall result,
+mirroring `tools/import-bbl/src/main.ts`. Races, teams, and positions run after
+coaches; they have no FK dependency on the earlier import steps (only on each
+other, in that order).
 
 ## Related documentation
 
