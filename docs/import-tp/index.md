@@ -126,6 +126,14 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `packages/parse-tp`. Competitions missing a base tournament file, with an
   unparsable one, with no dated matches, or whose era has no known id are
   skipped with a recorded error.
+- **TpMatchesImportService** — upserts each match as a `Match` row linked to its
+  competition. Match files carry no tournament id, so matches are linked via the
+  directory scan `TpCompetitionsImportService` already performs: it exposes a
+  `matchesByCompetitionId` map (keyed by DB competition id) that this service
+  consumes rather than scanning the source files itself. Each match carries a TP
+  external id (the stringified `matchId`) and no Name external id (match names
+  are not unique); team-era linkage and match events are out of scope (issue
+  #198).
 - **TpCoachesImportService** — upserts every coach registered to a competition,
   read from each competition's `inscriptions_<slug>_inscriptions.json` file via
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
@@ -150,7 +158,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   parsed (`starPlayersMasters` is ignored).
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
-then eras, then competitions, then coaches, then races, then teams, then
+then eras, then competitions, then matches (fed the competitions step's
+`matchesByCompetitionId`), then coaches, then races, then teams, then
 positions — aggregating each step's `ImportResult` into one overall result,
 mirroring `tools/import-bbl/src/main.ts`. Races, teams, and positions run after
 coaches; they have no FK dependency on the earlier import steps (only on each
