@@ -14,6 +14,7 @@ import { TpPositionsImportService } from './positions/tp-positions-import.servic
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { RosterCollectionService } from './source/roster-collection.service';
+import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
 
 async function run(): Promise<ImportResult> {
@@ -77,6 +78,19 @@ async function run(): Promise<ImportResult> {
         eraOutcome.eraIdsByName,
       );
 
+    // Team participation (match_teams + competition_teams) runs last: it needs
+    // the teams step's resolved team-era ids, and consumes the competitions
+    // step's maps and the already-collected rosters — no new file scanning.
+    const teamParticipationOutcome = await app
+      .get(TpTeamParticipationImportService)
+      .importTeamParticipation({
+        competitionsByTpId: competitionOutcome.competitionsByTpId,
+        competitionIdsByTpId: competitionOutcome.competitionIdsByTpId,
+        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
+        teamErasByRosterId: teamOutcome.teamErasByRosterId,
+        rosters,
+      });
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
@@ -88,6 +102,7 @@ async function run(): Promise<ImportResult> {
       raceOutcome.result,
       teamOutcome.result,
       positionOutcome.result,
+      teamParticipationOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
