@@ -58,8 +58,8 @@ names are not unique across teams):
   awards, touchdowns scored, completions, interceptions, deflections,
   casualties inflicted, serious injuries inflicted, opponents killed, and fouls
   committed — things the player did, never things done to them. Zero categories
-  are omitted; a player with nothing in any category shows a short "hasn't done
-  anything memorable yet" message instead of an empty list.
+  are omitted; a player with nothing in any category shows a short
+  nothing-memorable-yet-style message instead of an empty list.
 - **A player that matches nothing** — the bot replies with a not-found message.
 
 If the database does not respond in time, the command falls back to a themed

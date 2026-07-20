@@ -4,6 +4,17 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  CASUALTY_CAUSED_TYPES,
+  COMPLETION_TYPES,
+  DEATH_CAUSED_TYPES,
+  DEFLECTION_TYPES,
+  FOUL_TYPES,
+  INTERCEPTION_TYPES,
+  MVP_AWARD_TYPES,
+  SERIOUS_INJURY_CAUSED_TYPES,
+  TOUCHDOWN_TYPES,
+} from '../shared/match-event-types';
+import {
   extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
@@ -252,6 +263,38 @@ describe('PlayersService', () => {
       await expect(service.getDeepdiveCategoryCounts(1)).resolves.toEqual(
         expectedLabels.map((label) => ({ label, count: 0 })),
       );
+    });
+
+    it('binds each category label to its own type-set selector, in order', async () => {
+      // Mirrors the fixed label -> *_TYPES mapping from the deepdive plan; a
+      // transposition of two entries here would leave the two tests above
+      // green (they only check labels and counts), so this test inspects the
+      // actual `inArray(matchEvents.actionType, ...)` values each call built.
+      const expectedTypeSets: readonly (readonly string[])[] = [
+        MVP_AWARD_TYPES,
+        TOUCHDOWN_TYPES,
+        COMPLETION_TYPES,
+        INTERCEPTION_TYPES,
+        DEFLECTION_TYPES,
+        CASUALTY_CAUSED_TYPES,
+        SERIOUS_INJURY_CAUSED_TYPES,
+        DEATH_CAUSED_TYPES,
+        FOUL_TYPES,
+      ];
+      const builders = expectedTypeSets.map(() => makeCountSelect(0));
+      const select = vi.fn();
+      for (const builder of builders) select.mockReturnValueOnce(builder);
+      const service = new PlayersService({ select } as unknown as Db);
+
+      await service.getDeepdiveCategoryCounts(1);
+
+      builders.forEach((builder, index) => {
+        const values = extractAllFilterValues(firstCallArg(builder.where));
+        // The where clause is `and(inArray(actionType, types), eq(players.id,
+        // playerId))`; the trailing value is the playerId param, so the
+        // type-set values are everything before it.
+        expect(values.slice(0, -1)).toEqual([...expectedTypeSets[index]]);
+      });
     });
   });
 
