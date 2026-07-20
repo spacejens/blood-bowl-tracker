@@ -1,4 +1,7 @@
-import type { ErasImportService, ImportError } from '@blood-bowl-tracker/import';
+import type {
+  ErasImportService,
+  ImportError,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
@@ -19,7 +22,10 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(data: ManualDataFile, idMap: ExternalIdMap): ProcessContext {
+function makeContext(
+  data: ManualDataFile,
+  idMap: ExternalIdMap,
+): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
@@ -31,7 +37,9 @@ function makeContext(data: ManualDataFile, idMap: ExternalIdMap): ProcessContext
 describe('ErasProcessor', () => {
   it('resolves league and rules-set refs, upserts, and records ids', async () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor({ upsertEra } as unknown as ErasImportService);
+    const processor = new ErasProcessor({
+      upsertEra,
+    } as unknown as ErasImportService);
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:my-league' }], 3);
     idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
@@ -61,12 +69,16 @@ describe('ErasProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' })).toBe(50);
+    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' })).toBe(
+      50,
+    );
   });
 
   it('passes endDate through when present', async () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor({ upsertEra } as unknown as ErasImportService);
+    const processor = new ErasProcessor({
+      upsertEra,
+    } as unknown as ErasImportService);
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:l' }], 3);
     idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
@@ -89,7 +101,9 @@ describe('ErasProcessor', () => {
 
   it('skips the era and records errors when a reference is unresolved', async () => {
     const upsertEra = vi.fn();
-    const processor = new ErasProcessor({ upsertEra } as unknown as ErasImportService);
+    const processor = new ErasProcessor({
+      upsertEra,
+    } as unknown as ErasImportService);
     const data = emptyData();
     data.eras = [
       {

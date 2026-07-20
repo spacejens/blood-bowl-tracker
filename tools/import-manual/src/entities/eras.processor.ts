@@ -2,7 +2,11 @@ import { ErasImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
-import { resolveRef, resolveRefs, toExternalIds } from '../references/resolve-refs';
+import {
+  resolveRef,
+  resolveRefs,
+  toExternalIds,
+} from '../references/resolve-refs';
 
 @Injectable()
 export class ErasProcessor {
