@@ -59,7 +59,12 @@ describe('ManualDataFileSchema', () => {
 
   it('defaults races.eras and positions.raceEras to empty arrays', () => {
     const parsed = ManualDataFileSchema.parse({
-      races: [{ name: 'Amazon', externalIds: [{ system: 'Name', id: 'name:amazon' }] }],
+      races: [
+        {
+          name: 'Amazon',
+          externalIds: [{ system: 'Name', id: 'name:amazon' }],
+        },
+      ],
       positions: [
         {
           name: 'Blitzer',
@@ -74,7 +79,9 @@ describe('ManualDataFileSchema', () => {
 
   it('rejects an entry with no external IDs', () => {
     expect(() =>
-      ManualDataFileSchema.parse({ coaches: [{ name: 'Bob', externalIds: [] }] }),
+      ManualDataFileSchema.parse({
+        coaches: [{ name: 'Bob', externalIds: [] }],
+      }),
     ).toThrow();
   });
 
@@ -103,9 +110,7 @@ describe('ManualDataFileSchema', () => {
   });
 
   it('rejects an unknown top-level section key', () => {
-    expect(() =>
-      ManualDataFileSchema.parse({ players: [] }),
-    ).toThrow();
+    expect(() => ManualDataFileSchema.parse({ players: [] })).toThrow();
   });
 
   it('rejects a team missing its race reference', () => {

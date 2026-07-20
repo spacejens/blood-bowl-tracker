@@ -40,8 +40,14 @@ describe('ManualDataReader', () => {
   });
 
   it('reads files in alphabetical order', async () => {
-    write('2.json5', `{ coaches: [{ name: 'Second', externalIds: [{ system: 'Name', id: 'name:2' }] }] }`);
-    write('1.json5', `{ coaches: [{ name: 'First', externalIds: [{ system: 'Name', id: 'name:1' }] }] }`);
+    write(
+      '2.json5',
+      `{ coaches: [{ name: 'Second', externalIds: [{ system: 'Name', id: 'name:2' }] }] }`,
+    );
+    write(
+      '1.json5',
+      `{ coaches: [{ name: 'First', externalIds: [{ system: 'Name', id: 'name:1' }] }] }`,
+    );
 
     const data = await reader.read(dir);
 
@@ -49,7 +55,10 @@ describe('ManualDataReader', () => {
   });
 
   it('ignores non-.json5 files and subdirectories (non-recursive)', async () => {
-    write('keep.json5', `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`);
+    write(
+      'keep.json5',
+      `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`,
+    );
     write('ignore.txt', 'not json5');
     write('ignore.json', `{ "coaches": [] }`);
 

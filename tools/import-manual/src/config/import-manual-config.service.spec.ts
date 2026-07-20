@@ -1,8 +1,22 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Mock node:fs, wrapping actual implementations to allow spying on readFileSync
+vi.mock('node:fs', async () => {
+  const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+  return {
+    chmodSync: actual.chmodSync,
+    mkdtempSync: actual.mkdtempSync,
+    rmSync: actual.rmSync,
+    writeFileSync: actual.writeFileSync,
+    readFileSync: vi.fn(actual.readFileSync),
+  };
+});
+
+import * as fsModule from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
 import { ImportManualConfigService } from './import-manual-config.service';
 
@@ -70,14 +84,19 @@ describe('ImportManualConfigService', () => {
   it('throws when the config file cannot be read due to a non-ENOENT error', () => {
     const path = join(dir, 'import-manual-config.json5');
     writeFileSync(path, '{ connection: {} }', 'utf8');
-    // Change permissions to make file unreadable
+
+    // Mock readFileSync to throw EACCES error (deterministic, works on all platforms/users)
+    const fsMocked = vi.mocked(fsModule);
+    fsMocked.readFileSync.mockImplementation(() => {
+      const error = new Error('Permission denied') as NodeJS.ErrnoException;
+      error.code = 'EACCES';
+      throw error;
+    });
+
     try {
-      const fs = require('node:fs');
-      fs.chmodSync(path, 0o000);
       expect(() => new ImportManualConfigService(path)).toThrow();
     } finally {
-      // Restore permissions for cleanup
-      require('node:fs').chmodSync(path, 0o644);
+      fsMocked.readFileSync.mockRestore();
     }
   });
 });
