@@ -1,6 +1,6 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type {
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   PlayersImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
@@ -45,7 +45,7 @@ function makeParser() {
 }
 
 function externalSystemsOk() {
-  return vi.fn().mockResolvedValueOnce(1);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1] });
 }
 
 const team: UpsertTeam = {
@@ -65,13 +65,13 @@ const eraIdsByName = new Map<string, number>([['LRB', 500]]);
 function makeService(
   reader: BblSourceReader,
   opts: {
-    upsertExternalSystem?: ReturnType<typeof vi.fn>;
+    bootstrap?: ReturnType<typeof vi.fn>;
     upsertTeam?: ReturnType<typeof vi.fn>;
     upsertPlayerResult?: ReturnType<typeof vi.fn>;
     eras?: EraConfig[];
   } = {},
 ) {
-  const upsertExternalSystem = opts.upsertExternalSystem ?? externalSystemsOk();
+  const bootstrap = opts.bootstrap ?? externalSystemsOk();
   const upsertTeam =
     opts.upsertTeam ??
     vi.fn().mockResolvedValue({ eras: [{ id: 5000, eraId: 500 }] });
@@ -94,7 +94,7 @@ function makeService(
     { upsertPlayerResult } as unknown as PlayersImportService,
     { upsertTeam } as unknown as TeamsImportService,
     { getEras: () => eras } as unknown as EraConfigService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
@@ -111,8 +111,10 @@ const goodPlayer: BblPlayer = {
 
 describe('BblPlayersImportService', () => {
   it('imports a resolvable player and maps its pid to the DB id', async () => {
+    const bootstrap = externalSystemsOk();
     const { service, upsertTeam, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
+      { bootstrap },
     );
 
     const { result, playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
@@ -125,6 +127,10 @@ describe('BblPlayersImportService', () => {
 
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
+    expect(bootstrap).toHaveBeenCalledWith(
+      ['BBL'],
+      'Failed to upsert external system: ',
+    );
     expect(playerIdsByPid.get('42')).toBe(900);
     expect(upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
@@ -576,9 +582,13 @@ describe('BblPlayersImportService', () => {
     const { service, upsertPlayerResult } = makeService(
       makeReader([plPage(goodPlayer)]),
       {
-        upsertExternalSystem: vi
-          .fn()
-          .mockRejectedValue(new Error('network timeout')),
+        bootstrap: vi.fn().mockResolvedValue({
+          ok: false,
+          error: {
+            item: { externalSystems: ['BBL'] },
+            message: 'Failed to upsert external system: network timeout',
+          },
+        }),
       },
     );
 
