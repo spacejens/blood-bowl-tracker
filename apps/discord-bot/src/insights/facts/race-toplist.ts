@@ -5,7 +5,12 @@ import {
   RACE_TOPLIST_NO_DATA_MESSAGE,
   RACE_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { RACE_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import { resolveToplist } from '../leaderboard';
+
+function raceButtonId(row: { raceId: number }): string {
+  return `${RACE_BUTTON_CUSTOM_ID_PREFIX}${row.raceId}`;
+}
 
 export async function resolveRaceTeamsToplist(
   races: RacesService,
@@ -16,6 +21,7 @@ export async function resolveRaceTeamsToplist(
     fetchRows: () => races.countTeamsByRace(eraId),
     timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: raceButtonId,
   });
 }
 
@@ -28,5 +34,6 @@ export async function resolveRaceMatchesPlayedToplist(
     fetchRows: () => races.countMatchesPlayedByRace(eraId),
     timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
+    buildCustomId: raceButtonId,
   });
 }

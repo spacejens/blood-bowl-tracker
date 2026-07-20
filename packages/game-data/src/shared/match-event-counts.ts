@@ -179,3 +179,57 @@ export async function countAllMatchEventsByPlayerForTeam(
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);
 }
+
+/** Options for the single-player, type-filtered event counter. */
+export interface CountMatchEventsForPlayerOptions {
+  db: Db;
+  playerId: number;
+  selector: MatchEventSelector;
+  eraId?: number;
+  competitionId?: number;
+}
+
+/**
+ * Match events matching the selector for one specific player, returned as a
+ * single total. Shares the join graph of `countMatchEventsByPlayer` but adds
+ * an `eq(players.id, playerId)` filter and returns a scalar rather than a
+ * per-player breakdown — the shape the player deepdive needs. Kept separate
+ * from `countMatchEventsByPlayer` for the same reason
+ * `countAllMatchEventsByPlayerForTeam` is: distinct result shape, not worth
+ * parameterizing over.
+ */
+export async function countMatchEventsForPlayer(
+  options: CountMatchEventsForPlayerOptions,
+): Promise<number> {
+  const { db, playerId, selector, eraId, competitionId } = options;
+  const [row] = await db
+    .select({ count: count(matchEvents.id) })
+    .from(matchEvents)
+    .innerJoin(
+      players,
+      eq(
+        players.id,
+        selector.role === 'acting'
+          ? matchEvents.actingPlayerId
+          : matchEvents.consequencePlayerId,
+      ),
+    )
+    .innerJoin(
+      matchTeams,
+      eq(
+        matchTeams.id,
+        selector.role === 'acting'
+          ? matchEvents.actingMatchTeamId
+          : matchEvents.consequenceMatchTeamId,
+      ),
+    )
+    .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .where(
+      and(
+        matchEventFilter(selector, eraId, competitionId),
+        eq(players.id, playerId),
+      ),
+    );
+  return row.count;
+}

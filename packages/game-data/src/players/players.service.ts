@@ -5,13 +5,21 @@ import {
   DB,
   playerExternalIds,
   players,
+  positions,
+  races,
   teamEras,
+  teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq } from 'drizzle-orm';
+import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { countMatchEventsByPlayer } from '../shared/match-event-counts';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
+import type { MatchEventSelector } from '../shared/match-event-counts';
+import {
+  countMatchEventsByPlayer,
+  countMatchEventsForPlayer,
+} from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -35,6 +43,102 @@ export class PlayerUpsertConflictError extends UpsertConflictError {}
 @Injectable()
 export class PlayersService {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  async findById(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        teamName: string;
+        raceName: string;
+        positionName: string;
+      }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: players.id,
+        name: players.name,
+        teamName: teams.name,
+        raceName: races.name,
+        positionName: positions.name,
+      })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .innerJoin(races, eq(races.id, teams.raceId))
+      .innerJoin(positions, eq(positions.id, players.positionId))
+      .where(eq(players.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; teamName: string }[]> {
+    return this.db
+      .select({ id: players.id, name: players.name, teamName: teams.name })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(ilike(players.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
+
+  async getDeepdiveCategoryCounts(
+    playerId: number,
+  ): Promise<{ label: string; count: number }[]> {
+    const categories: { label: string; selector: MatchEventSelector }[] = [
+      {
+        label: 'MVP awards',
+        selector: { role: 'acting', types: MVP_AWARD_TYPES },
+      },
+      {
+        label: 'Touchdowns scored',
+        selector: { role: 'acting', types: TOUCHDOWN_TYPES },
+      },
+      {
+        label: 'Completions',
+        selector: { role: 'acting', types: COMPLETION_TYPES },
+      },
+      {
+        label: 'Interceptions',
+        selector: { role: 'acting', types: INTERCEPTION_TYPES },
+      },
+      {
+        label: 'Deflections',
+        selector: { role: 'acting', types: DEFLECTION_TYPES },
+      },
+      {
+        label: 'Casualties inflicted',
+        selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
+      },
+      {
+        label: 'Serious injuries inflicted',
+        selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
+      },
+      {
+        label: 'Opponents killed',
+        selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
+      },
+      {
+        label: 'Fouls committed',
+        selector: { role: 'acting', types: FOUL_TYPES },
+      },
+    ];
+    const counts = await Promise.all(
+      categories.map((category) =>
+        countMatchEventsForPlayer({
+          db: this.db,
+          playerId,
+          selector: category.selector,
+        }),
+      ),
+    );
+    return categories.map((category, index) => ({
+      label: category.label,
+      count: counts[index],
+    }));
+  }
 
   async upsert(
     data: UpsertPlayer,

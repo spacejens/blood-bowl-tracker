@@ -59,14 +59,17 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(chatInput('player.toplist.mvps'));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countMvpAwardsByPlayer).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by MVP awards — All time',
-          description: '1. Griff Oberwald — 7',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by MVP awards — All time',
+            description: '1. Griff Oberwald — 7',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('passes the per-fact timeout message through unchanged when an era is given', async () => {
@@ -112,14 +115,17 @@ describe('InsightsCommandService — fact-path resolution', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countCompletionsByPlayer).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by completions — All time',
-          description: '1. Griff Oberwald — 6',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by completions — All time',
+            description: '1. Griff Oberwald — 6',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
@@ -145,14 +151,17 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(chatInput('player.toplist.sent_off'));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countTimesSentOffByPlayer).toHaveBeenCalled();
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Players by times sent off — All time',
-          description: '1. Morg n Thorg — 5',
-        },
-      ],
-    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Players by times sent off — All time',
+            description: '1. Morg n Thorg — 5',
+          },
+        ],
+        components: expect.any(Array) as unknown,
+      }),
+    );
   });
 
   it('resolves team.toplist.deaths.suffered with no era, suffixed with "All time"', async () => {
