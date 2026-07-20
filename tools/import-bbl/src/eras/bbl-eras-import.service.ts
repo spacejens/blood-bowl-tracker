@@ -1,11 +1,9 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -18,7 +16,7 @@ export class BblErasImportService {
   constructor(
     private readonly eraConfig: EraConfigService,
     private readonly erasImport: ErasImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -37,25 +35,30 @@ export class BblErasImportService {
     const errors: ImportError[] = [];
     const eraIdsByName = new Map<string, number>();
 
-    let eras: EraConfig[];
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
+
+    let eras: EraConfig[];
     try {
       eras = this.eraConfig.getEras();
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
     } catch (error) {
       errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
+        makeImportError({
+          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
       return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }
+
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+    }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     if (leagueId === undefined) {
       errors.push(

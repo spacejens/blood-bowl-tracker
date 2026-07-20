@@ -1,10 +1,8 @@
 export { CoachesImportService } from './coaches-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ErasImportService } from './eras-import.service';
-export {
-  externalSystemBootstrapError,
-  upsertExternalSystems,
-} from './external-system-bootstrap';
+export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';
+export { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
 export { ImportRunnerService } from './import-runner.service';

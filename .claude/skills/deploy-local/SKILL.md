@@ -17,13 +17,15 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform, via a multi-select question with exactly these four options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
+0. Ask the developer which action(s) to perform, via a multi-select question with exactly these six options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
+   - **Run the manual import (before other importers)** — run `tools/import-manual/` against `data/before-other-importers` to seed hand-authored data before the system-specific importers.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
+   - **Run the manual import (after other importers)** — run `tools/import-manual/` against `data/after-other-importers` to clean up names or attach external IDs after the system-specific importers.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The developer may select any combination of the four options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The developer may select any combination of the six options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 
@@ -70,6 +72,41 @@ Run this section only if "Deploy the stack" was selected above.
    - The Postgres connection string for manual inspection: `postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl` (matches `docker-compose.yml`'s host port mapping).
    - The teardown command: `docker compose down` (add `-v` to also remove the Postgres data volume).
    - That containers are left running for manual inspection — this skill does not tear them down itself.
+
+### Run the manual import (before other importers)
+
+Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
+
+1. `tools/import-manual/import-manual-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout might. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create. If running from a worktree, sync both from the main checkout:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     if [ ! -f "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" ]; then
+       cp "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5"
+     fi
+     if [ ! -e "$WORKTREE_ROOT/tools/import-manual/data" ] && [ -d "$MAIN_ROOT/tools/import-manual/data" ]; then
+       ln -s "$MAIN_ROOT/tools/import-manual/data" "$WORKTREE_ROOT/tools/import-manual/data"
+     fi
+   fi
+   ```
+   Never overwrite an `import-manual-config.json5` or `data` entry already present in the worktree — only fill in what's missing. (Because the two data subdirectories are committed via `.gitkeep`, `tools/import-manual/data` usually already exists in a fresh checkout, so the symlink step is a no-op and the worktree uses its own local data directory.)
+2. Check `tools/import-manual/import-manual-config.json5` is usable:
+   ```bash
+   cat tools/import-manual/import-manual-config.json5 2>/dev/null
+   ```
+   If the file doesn't exist, copy the template and confirm its `apiBaseUrl` is not the example placeholder before running:
+   ```bash
+   if [ ! -f tools/import-manual/import-manual-config.json5 ]; then
+     cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.json5
+   fi
+   ```
+3. Build and run the import against the "before" directory — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/import-manual run build
+   ( cd tools/import-manual && node dist/main.js data/before-other-importers )
+   ```
+4. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the BBL import
 
@@ -143,9 +180,22 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    ```
 4. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
+### Run the manual import (after other importers)
+
+Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
+
+1. Perform the same worktree config/data sync as the "before" subsection (identical commands — sync `tools/import-manual/import-manual-config.json5` and symlink `tools/import-manual/data` from the main checkout only when missing).
+2. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 2).
+3. Build and run the import against the "after" directory:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/import-manual run build
+   ( cd tools/import-manual && node dist/main.js data/after-other-importers )
+   ```
+4. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 4. No automatic rollback; never tear down containers regardless of outcome.
+
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with either import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", both "Run the manual import" sections, "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash

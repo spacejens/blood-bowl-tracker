@@ -1,11 +1,9 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -30,7 +28,7 @@ export class TpErasImportService {
     private readonly eraConfig: EraDataConfigService,
     private readonly erasImport: ErasImportService,
     private readonly sourceReader: TpSourceReader,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly tournamentParser: TournamentParserService,
   ) {}
@@ -55,25 +53,30 @@ export class TpErasImportService {
     const errors: ImportError[] = [];
     const eraIdsByName = new Map<string, number>();
 
-    let eras: EraDataConfig[];
-    let tpSystemId: number;
-    let nameSystemId: number;
     const tpSystemName = this.externalSystemName.getTpSystemName();
+
+    let eras: EraDataConfig[];
     try {
       eras = this.eraConfig.getEras();
-      [tpSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
     } catch (error) {
       errors.push(
-        externalSystemBootstrapError(
-          [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
+        makeImportError({
+          item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
       return { result: makeImportResult({ imported, errors }), eraIdsByName };
     }
+
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      tpSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
+      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+    }
+    const [tpSystemId, nameSystemId] = bootstrap.ids;
 
     if (leagueId === undefined) {
       errors.push(

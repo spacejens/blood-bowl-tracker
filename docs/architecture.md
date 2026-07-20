@@ -46,6 +46,10 @@ packages/
 tools/
   import-<source>/    — one NestJS CLI application per upstream data source; uses
                         packages/import to call a deployed api-server instance
+  import-manual/      — NestJS CLI application for hand-authored supplementary
+                        data (leagues, eras, rules sets, races, positions,
+                        coaches, teams, and extra external IDs); run before and
+                        after the system-specific importers; uses packages/import
 ```
 
 ## Data flow

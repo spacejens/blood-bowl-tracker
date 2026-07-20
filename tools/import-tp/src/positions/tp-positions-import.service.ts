@@ -1,12 +1,10 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
   PositionsImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -26,7 +24,7 @@ interface PositionGroup {
 export class TpPositionsImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -52,16 +50,15 @@ export class TpPositionsImportService {
     let imported = 0;
     const errors: ImportError[] = [];
 
-    let tpSystemId: number;
     const tpSystemName = this.externalSystemName.getTpSystemName();
-    try {
-      [tpSystemId] = await upsertExternalSystems(this.externalSystemsImport, [
-        tpSystemName,
-      ]);
-    } catch (error) {
-      errors.push(externalSystemBootstrapError([tpSystemName], error));
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      tpSystemName,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return { result: makeImportResult({ imported, errors }) };
     }
+    const [tpSystemId] = bootstrap.ids;
 
     const groups = new Map<string, PositionGroup>();
     for (const { roster, era } of rosters) {

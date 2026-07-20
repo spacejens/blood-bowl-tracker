@@ -56,3 +56,16 @@ falls back to fuzzy-matching a record's own display fields (e.g. a coach's
 `name` column). A record with no external IDs yet (for example, one entered
 manually rather than imported) will not be found by a later import until an
 external ID is explicitly attached to it.
+
+## Cross-entity references in manual data files
+
+`tools/import-manual/` lets a developer hand-author supplementary data. Because
+a hand-author never sees numeric database IDs, every field in a manual data
+file that points at another entity — an era's `league` and `rulesSets`, a race's
+or team's `eras`, a position's `raceEras`, a team's `race` and `coach` — is
+written as an external-id pair `{ system, id }` (the same `id:`/`name:` form
+described above), never a numeric ID. The importer resolves each pair against
+the records processed earlier in the same run, by any pair the target declared,
+and reports one error per unresolved reference. See
+[docs/import-manual/index.md](../import-manual/index.md) for the full data-file
+format.

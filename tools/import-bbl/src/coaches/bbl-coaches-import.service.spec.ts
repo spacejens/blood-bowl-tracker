@@ -1,6 +1,6 @@
 import type {
   CoachesImportService,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   ImportError,
 } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
@@ -49,14 +49,14 @@ function makeParser(): CoachPageParser {
 
 interface MakeServiceOptions {
   reader: BblSourceReader;
-  upsertExternalSystem: ReturnType<typeof vi.fn>;
+  bootstrap: ReturnType<typeof vi.fn>;
   upsertCoach: ReturnType<typeof vi.fn>;
   getBblSystemName?: () => string;
 }
 
 function makeService({
   reader,
-  upsertExternalSystem,
+  bootstrap,
   upsertCoach,
   getBblSystemName = () => 'BBL',
 }: MakeServiceOptions) {
@@ -64,50 +64,47 @@ function makeService({
     reader,
     makeParser(),
     { upsertCoach } as unknown as CoachesImportService,
-    { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+    { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
   );
 }
 
 describe('BblCoachesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService({
       reader: makeReader([page('Hugo E')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
     await service.importCoaches();
 
-    expect(upsertExternalSystem).toHaveBeenCalledTimes(2);
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService({
       reader: makeReader([page('Hugo E')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
       getBblSystemName: () => 'MyLeague',
     });
 
     await service.importCoaches();
 
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'MyLeague');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
   });
 
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService({
       reader: makeReader([page('Hugo E')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -127,11 +124,11 @@ describe('BblCoachesImportService', () => {
   });
 
   it('deduplicates a coach appearing on multiple team pages', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService({
       reader: makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -142,11 +139,11 @@ describe('BblCoachesImportService', () => {
   });
 
   it('skips team pages that have no coach', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const service = makeService({
       reader: makeReader([page(null), page('Tommy')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -157,7 +154,7 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records an error and continues when a coach upsert fails', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi
       .fn()
       .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
@@ -167,7 +164,7 @@ describe('BblCoachesImportService', () => {
       .mockResolvedValue(makeCoachRecord({ id: 6, name: 'Tommy' }));
     const service = makeService({
       reader: makeReader([page('Hugo E'), page('Tommy')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -179,7 +176,7 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach')
@@ -193,7 +190,7 @@ describe('BblCoachesImportService', () => {
       makeReader([page('Hugo E'), page('Tommy')]),
       parser,
       { upsertCoach } as unknown as CoachesImportService,
-      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      { bootstrap } as unknown as ExternalSystemBootstrapService,
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
@@ -211,7 +208,7 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records a stringified error when a team page throws a non-Error value', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
     const parser = new CoachPageParser();
     vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
@@ -222,7 +219,7 @@ describe('BblCoachesImportService', () => {
       makeReader([page('Hugo E')]),
       parser,
       { upsertCoach } as unknown as CoachesImportService,
-      { upsertExternalSystem } as unknown as ExternalSystemsImportService,
+      { bootstrap } as unknown as ExternalSystemBootstrapService,
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
@@ -237,13 +234,17 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records one error and skips coaches when an external system upsert fails', async () => {
-    const upsertExternalSystem = vi
-      .fn()
-      .mockRejectedValue(new Error('network timeout'));
+    const bootstrap = vi.fn().mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'network timeout',
+      },
+    });
     const upsertCoach = vi.fn();
     const service = makeService({
       reader: makeReader([page('Hugo E')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 
@@ -261,31 +262,15 @@ describe('BblCoachesImportService', () => {
     expect(upsertCoach).not.toHaveBeenCalled();
   });
 
-  it('stringifies a non-Error thrown by the external system upsert', async () => {
-    const upsertExternalSystem = vi.fn().mockRejectedValue('boom');
-    const upsertCoach = vi.fn();
-    const service = makeService({
-      reader: makeReader([page('Hugo E')]),
-      upsertExternalSystem,
-      upsertCoach,
-    });
-
-    const { result } = await service.importCoaches();
-
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('boom'))).toBe(true);
-    expect(upsertCoach).not.toHaveBeenCalled();
-  });
-
   it('returns a coachIdsByName map from coach name to upserted db id', async () => {
-    const upsertExternalSystem = makeTwoSystemUpsertMock();
+    const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi
       .fn()
       .mockResolvedValueOnce(makeCoachRecord())
       .mockResolvedValueOnce(makeCoachRecord({ id: 200, name: 'Roze Madder' }));
     const service = makeService({
       reader: makeReader([page('Hugo E'), page('Roze Madder')]),
-      upsertExternalSystem,
+      bootstrap,
       upsertCoach,
     });
 

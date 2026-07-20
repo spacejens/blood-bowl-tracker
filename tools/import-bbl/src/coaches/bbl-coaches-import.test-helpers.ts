@@ -29,10 +29,9 @@ export function makeCoachRecord(
 /**
  * Test-only helper. Do not import from production code.
  *
- * Builds the two-call external-system upsert mock used by the coach import
- * service: the first call (BBL/system) resolves to external system id 1,
- * the second (Name) resolves to id 2.
+ * Builds the bootstrap mock used by the coach import service: resolves with
+ * a successful bootstrap result containing external system ids 1 and 2.
  */
 export function makeTwoSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }

@@ -1,13 +1,11 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
   PlayersImportService,
   TeamsImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -34,7 +32,7 @@ export class BblPlayersImportService {
     private readonly playersImport: PlayersImportService,
     private readonly teamsImport: TeamsImportService,
     private readonly eraConfig: EraConfigService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -65,20 +63,13 @@ export class BblPlayersImportService {
     const positionsUsedByEra = new Set<string>();
     const racesActiveByEra = new Set<string>();
 
-    let bblSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
-    try {
-      [bblSystemId] = await upsertExternalSystems(this.externalSystemsImport, [
-        bblSystemName,
-      ]);
-    } catch (error) {
-      errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName],
-          error,
-          'Failed to upsert external system: ',
-        ),
-      );
+    const bootstrap = await this.externalSystemBootstrap.bootstrap(
+      [bblSystemName],
+      'Failed to upsert external system: ',
+    );
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return {
         result: makeImportResult({ imported, errors }),
         playerIdsByPid,
@@ -86,6 +77,7 @@ export class BblPlayersImportService {
         racesActiveByEra,
       };
     }
+    const [bblSystemId] = bootstrap.ids;
 
     const eras = this.eraConfig.getEras();
     const raceBblIdByDbId = new Map<number, string>();
