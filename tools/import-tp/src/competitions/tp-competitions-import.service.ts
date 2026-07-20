@@ -123,7 +123,14 @@ export class TpCompetitionsImportService {
       });
       if (upserted !== undefined) {
         competitionIdsByTpId.set(upserted.tpId, upserted.id);
-        matchesByCompetitionId.set(upserted.id, group.matches);
+        // Accumulate rather than overwrite: two distinct TP tournament
+        // directories could in principle dedupe onto the same DB competition
+        // (e.g. a Name-external-id collision), and losing the earlier
+        // group's matches in that case would be a silent data-loss bug.
+        matchesByCompetitionId.set(upserted.id, [
+          ...(matchesByCompetitionId.get(upserted.id) ?? []),
+          ...group.matches,
+        ]);
         imported += 1;
       }
     }

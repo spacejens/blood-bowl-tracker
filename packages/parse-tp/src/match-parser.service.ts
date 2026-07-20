@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 /**
  * The subset of a TP `match_<id>.json` body this tool cares about. Other match
- * fields (state, round, turn, inscriptionLocal, matchEvents, rosters, etc.) are
+ * fields (state, turn, inscriptionLocal, matchEvents, rosters, etc.) are
  * intentionally ignored until a future matches sub-issue needs them — the same
  * "parse only what's needed" convention as TournamentParserService.
  *
