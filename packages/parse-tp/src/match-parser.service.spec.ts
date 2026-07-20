@@ -22,6 +22,18 @@ describe('MatchParserService', () => {
     });
   });
 
+  it('prefers scoreResume.startInstant over createdInstant when scheduledDate is absent', () => {
+    const result = service.parse({
+      matchId: 42,
+      createdInstant: '2021-01-01T00:00:00Z',
+      scoreResume: { startInstant: '2021-04-01T09:00:00Z' },
+    });
+    expect(result).toEqual({
+      id: 42,
+      scheduledDate: new Date('2021-04-01T09:00:00Z'),
+    });
+  });
+
   it('falls back to scheduledDate when scoreResume is absent entirely', () => {
     const result = service.parse({
       matchId: 42,
