@@ -9,6 +9,7 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -34,6 +35,13 @@ async function run(): Promise<ImportResult> {
     const competitionOutcome = await app
       .get(TpCompetitionsImportService)
       .importCompetitions(eraOutcome.eraIdsByName);
+
+    // Matches link to their competition only via the directory scan competitions
+    // import already performed (match files carry no tournament id), so this
+    // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
+    const matchOutcome = await app
+      .get(TpMatchesImportService)
+      .importMatches(competitionOutcome.matchesByCompetitionId);
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 
@@ -74,6 +82,7 @@ async function run(): Promise<ImportResult> {
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
+      matchOutcome.result,
       coachOutcome.result,
       rosterCollectionResult,
       raceOutcome.result,
