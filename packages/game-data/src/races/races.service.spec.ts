@@ -290,4 +290,62 @@ describe('RacesService', () => {
       await expect(service.searchByNamePrefix('zz', 25)).resolves.toEqual([]);
     });
   });
+
+  describe('listEraNames', () => {
+    function makeChain(rows: unknown[]) {
+      const orderBy = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn(() => ({ orderBy }));
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      return { select: vi.fn(() => ({ from })), orderBy, where, innerJoin };
+    }
+
+    it('returns the era names the query resolves to', async () => {
+      const { select } = makeChain([{ name: 'BB2016' }, { name: 'BB2020' }]);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.listEraNames(1)).resolves.toEqual([
+        'BB2016',
+        'BB2020',
+      ]);
+    });
+
+    it('returns an empty array when the race is linked to no eras', async () => {
+      const { select } = makeChain([]);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.listEraNames(1)).resolves.toEqual([]);
+    });
+  });
+
+  describe('getTopTeamsByMatchesPlayed', () => {
+    function makeChain(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.groupBy = vi.fn(() => builder);
+      builder.orderBy = vi.fn(() => builder);
+      builder.limit = vi.fn(() => Promise.resolve(rows));
+      return builder;
+    }
+
+    it('returns the team/count rows and forwards the limit', async () => {
+      const rows = [{ name: 'Reikland Reavers', count: 12 }];
+      const builder = makeChain(rows);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.getTopTeamsByMatchesPlayed(1, 10)).resolves.toEqual(
+        rows,
+      );
+      expect(builder.limit).toHaveBeenCalledWith(10);
+    });
+
+    it('returns an empty array when the race has no matches', async () => {
+      const builder = makeChain([]);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.getTopTeamsByMatchesPlayed(1, 10)).resolves.toEqual(
+        [],
+      );
+    });
+  });
 });

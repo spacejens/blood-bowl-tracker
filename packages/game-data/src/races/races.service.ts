@@ -3,6 +3,8 @@ import type { Race } from '@blood-bowl-tracker/db';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   competitionTeams,
+  eras,
+  matches,
   matchTeams,
   raceEras,
   raceExternalIds,
@@ -47,6 +49,35 @@ export class RacesService {
       .select({ id: races.id, name: races.name })
       .from(races)
       .where(ilike(races.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
+  }
+
+  async listEraNames(raceId: number): Promise<string[]> {
+    const rows = await this.db
+      .select({ name: eras.name })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(eq(raceEras.raceId, raceId))
+      .orderBy(eras.name);
+    return rows.map((r) => r.name);
+  }
+
+  getTopTeamsByMatchesPlayed(
+    raceId: number,
+    limit: number,
+  ): Promise<{ name: string; count: number }[]> {
+    return this.db
+      .select({
+        name: teams.name,
+        count: countDistinct(matches.id),
+      })
+      .from(matches)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.raceId, raceId))
+      .groupBy(teams.id, teams.name)
+      .orderBy(desc(countDistinct(matches.id)))
       .limit(limit);
   }
 
