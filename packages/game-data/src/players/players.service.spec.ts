@@ -214,6 +214,47 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('getDeepdiveCategoryCounts', () => {
+    function makeCountSelect(n: number) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn().mockResolvedValue([{ count: n }]);
+      return builder;
+    }
+
+    const expectedLabels = [
+      'MVP awards',
+      'Touchdowns scored',
+      'Completions',
+      'Interceptions',
+      'Deflections',
+      'Casualties inflicted',
+      'Serious injuries inflicted',
+      'Opponents killed',
+      'Fouls committed',
+    ];
+
+    it('returns all nine categories in fixed order with their counts', async () => {
+      const counts = [2, 5, 3, 1, 4, 6, 0, 0, 7];
+      const select = vi.fn();
+      for (const n of counts) select.mockReturnValueOnce(makeCountSelect(n));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.getDeepdiveCategoryCounts(1)).resolves.toEqual(
+        expectedLabels.map((label, i) => ({ label, count: counts[i] })),
+      );
+      expect(select).toHaveBeenCalledTimes(9);
+    });
+
+    it('returns every category as zero for a player with no events', async () => {
+      const select = vi.fn(() => makeCountSelect(0));
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.getDeepdiveCategoryCounts(1)).resolves.toEqual(
+        expectedLabels.map((label) => ({ label, count: 0 })),
+      );
+    });
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);

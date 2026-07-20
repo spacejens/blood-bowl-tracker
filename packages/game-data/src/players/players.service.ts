@@ -15,7 +15,11 @@ import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
-import { countMatchEventsByPlayer } from '../shared/match-event-counts';
+import type { MatchEventSelector } from '../shared/match-event-counts';
+import {
+  countMatchEventsByPlayer,
+  countMatchEventsForPlayer,
+} from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
   CASUALTY_SUFFERED_TYPES,
@@ -78,6 +82,62 @@ export class PlayersService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(ilike(players.name, `${escapeLikePattern(prefix)}%`))
       .limit(limit);
+  }
+
+  async getDeepdiveCategoryCounts(
+    playerId: number,
+  ): Promise<{ label: string; count: number }[]> {
+    const categories: { label: string; selector: MatchEventSelector }[] = [
+      {
+        label: 'MVP awards',
+        selector: { role: 'acting', types: MVP_AWARD_TYPES },
+      },
+      {
+        label: 'Touchdowns scored',
+        selector: { role: 'acting', types: TOUCHDOWN_TYPES },
+      },
+      {
+        label: 'Completions',
+        selector: { role: 'acting', types: COMPLETION_TYPES },
+      },
+      {
+        label: 'Interceptions',
+        selector: { role: 'acting', types: INTERCEPTION_TYPES },
+      },
+      {
+        label: 'Deflections',
+        selector: { role: 'acting', types: DEFLECTION_TYPES },
+      },
+      {
+        label: 'Casualties inflicted',
+        selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
+      },
+      {
+        label: 'Serious injuries inflicted',
+        selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
+      },
+      {
+        label: 'Opponents killed',
+        selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
+      },
+      {
+        label: 'Fouls committed',
+        selector: { role: 'acting', types: FOUL_TYPES },
+      },
+    ];
+    const counts = await Promise.all(
+      categories.map((category) =>
+        countMatchEventsForPlayer({
+          db: this.db,
+          playerId,
+          selector: category.selector,
+        }),
+      ),
+    );
+    return categories.map((category, index) => ({
+      label: category.label,
+      count: counts[index],
+    }));
   }
 
   async upsert(
