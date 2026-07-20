@@ -2,6 +2,7 @@ import { ApiClientModule } from '@blood-bowl-tracker/api-client';
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { CoachesModule } from './coaches/coaches.module';
 import { CompetitionsModule } from './competitions/competitions.module';
 import { ImportTpConfigModule } from './config/import-tp-config.module';
 import { ImportTpConfigService } from './config/import-tp-config.service';
@@ -29,6 +30,7 @@ export class AppModule {
         RulesSetsModule,
         ErasModule,
         CompetitionsModule,
+        CoachesModule,
       ],
     };
   }
