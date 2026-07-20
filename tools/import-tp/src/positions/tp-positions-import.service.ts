@@ -8,15 +8,11 @@ import {
   PositionsImportService,
   upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
-import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import {
-  collectRosters,
-  unknownEraError,
-} from '../races/tp-races-import.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { TpSourceReader } from '../source/tp-source-reader';
+import type { RosterEntry } from '../source/roster-collection.service';
+import { unknownEraError } from '../source/roster-collection.service';
 
 /** One position, keyed by (raceId, name), accumulated across roster files. */
 interface PositionGroup {
@@ -29,8 +25,6 @@ interface PositionGroup {
 @Injectable()
 export class TpPositionsImportService {
   constructor(
-    private readonly sourceReader: TpSourceReader,
-    private readonly rosterParser: RosterParserService,
     private readonly positionsImport: PositionsImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
@@ -46,9 +40,12 @@ export class TpPositionsImportService {
    * `{ raceId, eraId }` availability is recorded via syncRaceEras. A roster whose
    * race cannot be resolved is recorded as an error and its positions skipped.
    * All positions import with `isStarPlayer: false`; `starPlayersMasters` is
-   * ignored. Idempotent.
+   * ignored. `rosters` is the already-collected roster list (via
+   * `RosterCollectionService`, run once for all three imports); this service
+   * only groups and upserts. Idempotent.
    */
   async importPositions(
+    rosters: RosterEntry[],
     raceIdsByTeamRaceCode: Map<string, number>,
     eraIdsByName: Map<string, number>,
   ): Promise<{ result: ImportResult }> {
@@ -65,12 +62,6 @@ export class TpPositionsImportService {
       errors.push(externalSystemBootstrapError([tpSystemName], error));
       return { result: makeImportResult({ imported, errors }) };
     }
-
-    const rosters = await collectRosters(
-      this.sourceReader,
-      this.rosterParser,
-      errors,
-    );
 
     const groups = new Map<string, PositionGroup>();
     for (const { roster, era } of rosters) {

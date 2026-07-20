@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import type { ImportResult } from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import { makeImportResult } from '@blood-bowl-tracker/import';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -11,6 +12,7 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
+import { RosterCollectionService } from './source/roster-collection.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
 
 async function run(): Promise<ImportResult> {
@@ -35,21 +37,34 @@ async function run(): Promise<ImportResult> {
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 
+    // Roster files (rosters_<id>.json) are scanned and parsed once here, then
+    // shared by races/teams/positions below, so a bad file is reported once
+    // instead of independently by each of the three imports.
+    const rosterErrors: ImportError[] = [];
+    const rosters = await app
+      .get(RosterCollectionService)
+      .collect(rosterErrors);
+    const rosterCollectionResult = makeImportResult({
+      imported: 0,
+      errors: rosterErrors,
+    });
+
     const raceOutcome = await app
       .get(TpRacesImportService)
-      .importRaces(eraOutcome.eraIdsByName);
+      .importRaces(rosters, eraOutcome.eraIdsByName);
 
     const teamOutcome = await app
       .get(TpTeamsImportService)
-      .importTeams(
-        raceOutcome.raceIdsByTeamRaceCode,
-        coachOutcome.coachIdsByTpId,
-        eraOutcome.eraIdsByName,
-      );
+      .importTeams(rosters, {
+        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
+        coachIdsByTpId: coachOutcome.coachIdsByTpId,
+        eraIdsByName: eraOutcome.eraIdsByName,
+      });
 
     const positionOutcome = await app
       .get(TpPositionsImportService)
       .importPositions(
+        rosters,
         raceOutcome.raceIdsByTeamRaceCode,
         eraOutcome.eraIdsByName,
       );
@@ -60,6 +75,7 @@ async function run(): Promise<ImportResult> {
       eraOutcome.result,
       competitionOutcome.result,
       coachOutcome.result,
+      rosterCollectionResult,
       raceOutcome.result,
       teamOutcome.result,
       positionOutcome.result,

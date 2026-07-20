@@ -3,42 +3,28 @@ import type {
   ExternalSystemsImportService,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
-import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TpSourceFile, TpSourceReader } from '../source/tp-source-reader';
+import type { RosterEntry } from '../source/roster-collection.service';
 import { TpRacesImportService } from './tp-races-import.service';
 
 interface MakeServiceOptions {
-  files: () => AsyncIterable<TpSourceFile>;
   upsertExternalSystem: ReturnType<typeof vi.fn>;
   upsertRace: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
 }
 
 function makeService({
-  files,
   upsertExternalSystem,
   upsertRace,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpRacesImportService(
-    { files } as unknown as TpSourceReader,
-    new RosterParserService(),
     { upsertRace } as unknown as RacesImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
-}
-
-function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
-  return async function* () {
-    await Promise.resolve();
-    for (const entry of entries) {
-      yield entry;
-    }
-  };
 }
 
 interface RosterOpts {
@@ -49,29 +35,16 @@ interface RosterOpts {
   coachTpId?: string;
 }
 
-function rosterFile(
-  era: string,
-  competition: string,
-  opts: RosterOpts,
-): TpSourceFile {
+function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
   return {
     era,
-    competition,
-    type: 'rosters',
-    filename: `rosters_${opts.id}.json`,
-    content: {
+    roster: {
       id: opts.id,
       teamName: `Team ${opts.id}`,
-      teamRace: opts.teamRace,
-      player: { applicationUserId: opts.coachTpId ?? 'coach-1' },
-      rosterMaster: {
-        name: opts.raceName,
-        starPlayersMasters: [],
-        lineUpMasters: (opts.positions ?? []).map((p) => ({
-          id: p.tpPositionId,
-          position: p.name,
-        })),
-      },
+      teamRaceCode: opts.teamRace,
+      raceName: opts.raceName,
+      coachTpId: opts.coachTpId ?? 'coach-1',
+      positions: opts.positions ?? [],
     },
   };
 }
@@ -88,18 +61,18 @@ describe('TpRacesImportService', () => {
   it('upserts a single-code race with its TP id, Name id and era', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', 'comp', {
-          id: 1,
-          teamRace: 'Dwarf_BB2025',
-          raceName: 'Dwarf',
-        }),
-      ]),
       upsertExternalSystem: twoSystemUpsertMock(),
       upsertRace,
     });
 
     const { result, raceIdsByTeamRaceCode } = await service.importRaces(
+      [
+        rosterEntry('Fourth era', {
+          id: 1,
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+        }),
+      ],
       new Map([['Fourth era', 100]]),
     );
 
@@ -123,23 +96,23 @@ describe('TpRacesImportService', () => {
   it('merges multiple codes for one race name into a single upsert call', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', 'comp-a', {
-          id: 1,
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-        }),
-        rosterFile('Fifth era', 'comp-b', {
-          id: 2,
-          teamRace: 'Dwarf_BB2025',
-          raceName: 'Dwarf',
-        }),
-      ]),
       upsertExternalSystem: twoSystemUpsertMock(),
       upsertRace,
     });
 
     const { raceIdsByTeamRaceCode } = await service.importRaces(
+      [
+        rosterEntry('Fourth era', {
+          id: 1,
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+        }),
+        rosterEntry('Fifth era', {
+          id: 2,
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+        }),
+      ],
       new Map([
         ['Fourth era', 100],
         ['Fifth era', 200],
@@ -162,23 +135,15 @@ describe('TpRacesImportService', () => {
   it('accumulates eras when one code appears under multiple eras', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', 'comp-a', {
-          id: 1,
-          teamRace: 'Orc',
-          raceName: 'Orc',
-        }),
-        rosterFile('Fifth era', 'comp-b', {
-          id: 2,
-          teamRace: 'Orc',
-          raceName: 'Orc',
-        }),
-      ]),
       upsertExternalSystem: twoSystemUpsertMock(),
       upsertRace,
     });
 
     await service.importRaces(
+      [
+        rosterEntry('Fourth era', { id: 1, teamRace: 'Orc', raceName: 'Orc' }),
+        rosterEntry('Fifth era', { id: 2, teamRace: 'Orc', raceName: 'Orc' }),
+      ],
       new Map([
         ['Fourth era', 100],
         ['Fifth era', 200],
@@ -193,53 +158,15 @@ describe('TpRacesImportService', () => {
     expect(data.eras).toEqual([100, 200]);
   });
 
-  it('records a parse error for one bad roster file but imports the rest', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const service = makeService({
-      files: makeFiles([
-        {
-          era: 'Fourth era',
-          competition: 'comp',
-          type: 'rosters',
-          filename: 'rosters_bad.json',
-          content: { id: 9, teamName: 'T', teamRace: 'Orc' }, // no rosterMaster
-        },
-        rosterFile('Fourth era', 'comp', {
-          id: 1,
-          teamRace: 'Orc',
-          raceName: 'Orc',
-        }),
-      ]),
-      upsertExternalSystem: twoSystemUpsertMock(),
-      upsertRace,
-    });
-
-    const { result } = await service.importRaces(
-      new Map([['Fourth era', 100]]),
-    );
-
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
-    expect(
-      result.errors.some((e) => e.message.includes('rosters_bad.json')),
-    ).toBe(true);
-  });
-
   it('records an error for a roster under an unknown era but still upserts the race', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Ghost era', 'comp', {
-          id: 1,
-          teamRace: 'Orc',
-          raceName: 'Orc',
-        }),
-      ]),
       upsertExternalSystem: twoSystemUpsertMock(),
       upsertRace,
     });
 
     const { result } = await service.importRaces(
+      [rosterEntry('Ghost era', { id: 1, teamRace: 'Orc', raceName: 'Orc' })],
       new Map([['Fourth era', 100]]),
     );
 
@@ -253,13 +180,6 @@ describe('TpRacesImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertRace = vi.fn();
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', 'comp', {
-          id: 1,
-          teamRace: 'Orc',
-          raceName: 'Orc',
-        }),
-      ]),
       upsertExternalSystem: vi
         .fn()
         .mockRejectedValue(new Error('network timeout')),
@@ -267,6 +187,7 @@ describe('TpRacesImportService', () => {
     });
 
     const { result } = await service.importRaces(
+      [rosterEntry('Fourth era', { id: 1, teamRace: 'Orc', raceName: 'Orc' })],
       new Map([['Fourth era', 100]]),
     );
 

@@ -3,15 +3,13 @@ import type {
   ExternalSystemsImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TpSourceFile, TpSourceReader } from '../source/tp-source-reader';
+import type { RosterEntry } from '../source/roster-collection.service';
 import { TpPositionsImportService } from './tp-positions-import.service';
 
 interface MakeServiceOptions {
-  files: () => AsyncIterable<TpSourceFile>;
   upsertExternalSystem: ReturnType<typeof vi.fn>;
   upsertPosition: ReturnType<typeof vi.fn>;
   syncRaceEras: ReturnType<typeof vi.fn>;
@@ -19,28 +17,16 @@ interface MakeServiceOptions {
 }
 
 function makeService({
-  files,
   upsertExternalSystem,
   upsertPosition,
   syncRaceEras,
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpPositionsImportService(
-    { files } as unknown as TpSourceReader,
-    new RosterParserService(),
     { upsertPosition, syncRaceEras } as unknown as PositionsImportService,
     { upsertExternalSystem } as unknown as ExternalSystemsImportService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
   );
-}
-
-function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
-  return async function* () {
-    await Promise.resolve();
-    for (const entry of entries) {
-      yield entry;
-    }
-  };
 }
 
 interface RosterOpts {
@@ -50,26 +36,17 @@ interface RosterOpts {
   id?: number;
 }
 
-function rosterFile(era: string, opts: RosterOpts): TpSourceFile {
+function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
   const { teamRace, raceName, positions, id = 1 } = opts;
   return {
     era,
-    competition: 'comp',
-    type: 'rosters',
-    filename: `rosters_${id}.json`,
-    content: {
+    roster: {
       id,
       teamName: `Team ${id}`,
-      teamRace,
-      player: { applicationUserId: 'coach-1' },
-      rosterMaster: {
-        name: raceName,
-        starPlayersMasters: [],
-        lineUpMasters: positions.map((p) => ({
-          id: p.tpPositionId,
-          position: p.name,
-        })),
-      },
+      teamRaceCode: teamRace,
+      raceName,
+      coachTpId: 'coach-1',
+      positions,
     },
   };
 }
@@ -95,26 +72,26 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 1,
-        }),
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 2,
-        }),
-      ]),
       upsertExternalSystem: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
 
     const { result } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 2,
+        }),
+      ],
       new Map([['Dwarf', 50]]),
       new Map([['Fourth era', 100]]),
     );
@@ -137,26 +114,26 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1, 2] });
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 281, name: 'Dwarf Runner' }],
-          id: 1,
-        }),
-        rosterFile('Fifth era', {
-          teamRace: 'Dwarf_BB2025',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 954, name: 'Dwarf Runner' }],
-          id: 2,
-        }),
-      ]),
       upsertExternalSystem: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
 
     await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 281, name: 'Dwarf Runner' }],
+          id: 1,
+        }),
+        rosterEntry('Fifth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 954, name: 'Dwarf Runner' }],
+          id: 2,
+        }),
+      ],
       new Map([
         ['Dwarf', 50],
         ['Dwarf_BB2025', 50],
@@ -192,26 +169,26 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 1,
-        }),
-        rosterFile('Fifth era', {
-          teamRace: 'Dwarf_BB2025',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 952, name: 'Dwarf Lineman' }],
-          id: 2,
-        }),
-      ]),
       upsertExternalSystem: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
 
     const { result } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+        rosterEntry('Fifth era', {
+          teamRace: 'Dwarf_BB2025',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 952, name: 'Dwarf Lineman' }],
+          id: 2,
+        }),
+      ],
       new Map([
         ['Dwarf', 50],
         ['Dwarf_BB2025', 50],
@@ -230,20 +207,20 @@ describe('TpPositionsImportService', () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 1,
-        }),
-      ]),
       upsertExternalSystem: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
 
     const { result } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+      ],
       new Map(),
       new Map([['Fourth era', 100]]),
     );
@@ -259,14 +236,6 @@ describe('TpPositionsImportService', () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Fourth era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 1,
-        }),
-      ]),
       upsertExternalSystem: vi
         .fn()
         .mockRejectedValue(new Error('network timeout')),
@@ -275,6 +244,14 @@ describe('TpPositionsImportService', () => {
     });
 
     const { result } = await service.importPositions(
+      [
+        rosterEntry('Fourth era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+      ],
       new Map([['Dwarf', 50]]),
       new Map([['Fourth era', 100]]),
     );
@@ -290,20 +267,20 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [] });
     const service = makeService({
-      files: makeFiles([
-        rosterFile('Unknown era', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
-          id: 1,
-        }),
-      ]),
       upsertExternalSystem: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
     });
 
     const { result } = await service.importPositions(
+      [
+        rosterEntry('Unknown era', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          id: 1,
+        }),
+      ],
       new Map([['Dwarf', 50]]),
       new Map([['Fourth era', 100]]),
     );

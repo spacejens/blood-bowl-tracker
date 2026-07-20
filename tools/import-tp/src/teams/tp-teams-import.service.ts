@@ -8,18 +8,20 @@ import {
   TeamsImportService,
   upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
-import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import {
-  collectRosters,
-  unknownEraError,
-} from '../races/tp-races-import.service';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
-import { TpSourceReader } from '../source/tp-source-reader';
+import type { RosterEntry } from '../source/roster-collection.service';
+import { unknownEraError } from '../source/roster-collection.service';
 
-/** One team (keyed by roster id), accumulated across its roster files. */
+/**
+ * One team (keyed by roster id), accumulated across its roster files.
+ * `teamName`/`teamRaceCode`/`coachTpId` are taken from the FIRST roster file
+ * seen for this id; if TP ever reuses a roster id across a rename or race
+ * change, only those first-seen values are kept -- only `eraIds` accumulates
+ * across later files.
+ */
 interface TeamGroup {
   id: number;
   teamName: string;
@@ -28,11 +30,16 @@ interface TeamGroup {
   eraIds: Set<number>;
 }
 
+/** Cross-entity lookups needed to resolve each team's race, coach and eras. */
+interface ImportTeamsLookups {
+  raceIdsByTeamRaceCode: Map<string, number>;
+  coachIdsByTpId: Map<string, number>;
+  eraIdsByName: Map<string, number>;
+}
+
 @Injectable()
 export class TpTeamsImportService {
   constructor(
-    private readonly sourceReader: TpSourceReader,
-    private readonly rosterParser: RosterParserService,
     private readonly teamsImport: TeamsImportService,
     private readonly externalSystemsImport: ExternalSystemsImportService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
@@ -44,14 +51,18 @@ export class TpTeamsImportService {
    * `raceIdsByTeamRaceCode` and its coach via `coachIdsByTpId`. A team whose race
    * or coach cannot be resolved is recorded as an error and skipped rather than
    * upserted with an invalid foreign key (mirrors BblTeamsImportService). Teams
-   * are grouped by id so one seen under multiple eras unions its eras.
-   * Idempotent.
+   * are grouped by id so one seen under multiple eras unions its eras. `rosters`
+   * is the already-collected roster list (via `RosterCollectionService`, run
+   * once for all three imports); this service only groups and upserts.
+   * `lookups` bundles the three cross-entity maps needed to resolve a team's
+   * race, coach and eras (kept as one options object to stay within the
+   * repo's 3-parameter limit). Idempotent.
    */
   async importTeams(
-    raceIdsByTeamRaceCode: Map<string, number>,
-    coachIdsByTpId: Map<string, number>,
-    eraIdsByName: Map<string, number>,
+    rosters: RosterEntry[],
+    lookups: ImportTeamsLookups,
   ): Promise<{ result: ImportResult }> {
+    const { raceIdsByTeamRaceCode, coachIdsByTpId, eraIdsByName } = lookups;
     let imported = 0;
     const errors: ImportError[] = [];
 
@@ -72,12 +83,6 @@ export class TpTeamsImportService {
       );
       return { result: makeImportResult({ imported, errors }) };
     }
-
-    const rosters = await collectRosters(
-      this.sourceReader,
-      this.rosterParser,
-      errors,
-    );
 
     const groups = new Map<number, TeamGroup>();
     for (const { roster, era } of rosters) {
