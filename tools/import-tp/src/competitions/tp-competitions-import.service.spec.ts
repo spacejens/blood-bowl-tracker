@@ -146,6 +146,7 @@ describe('TpCompetitionsImportService', () => {
     const { result, competitionIdsByTpId } =
       await service.importCompetitions(eraIdsByName);
 
+    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
     expect(competitionIdsByTpId).toEqual(
