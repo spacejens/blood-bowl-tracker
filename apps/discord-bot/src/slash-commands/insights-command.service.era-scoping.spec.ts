@@ -121,7 +121,8 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       const factHasDeepdiveButtons =
         factPath.startsWith('coach.toplist') ||
         factPath.startsWith('team.toplist') ||
-        factPath.startsWith('player.toplist');
+        factPath.startsWith('player.toplist') ||
+        factPath.startsWith('race.toplist');
       if (factHasDeepdiveButtons) {
         expect(result).toEqual(
           expect.objectContaining({
