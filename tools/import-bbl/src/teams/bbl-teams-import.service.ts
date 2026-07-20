@@ -1,12 +1,10 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  externalSystemBootstrapError,
-  ExternalSystemsImportService,
+  ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
   TeamsImportService,
-  upsertExternalSystems,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -28,7 +26,7 @@ export class BblTeamsImportService {
     private readonly racePageParser: RacePageParser,
     private readonly coachPageParser: CoachPageParser,
     private readonly teamsImport: TeamsImportService,
-    private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
   ) {}
 
@@ -57,21 +55,13 @@ export class BblTeamsImportService {
     const teamsByName = new Map<string, UpsertTeam>();
     const teamsByCode = new Map<string, UpsertTeam>();
 
-    let bblSystemId: number;
-    let nameSystemId: number;
     const bblSystemName = this.externalSystemName.getBblSystemName();
-    try {
-      [bblSystemId, nameSystemId] = await upsertExternalSystems(
-        this.externalSystemsImport,
-        [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-      );
-    } catch (error) {
-      errors.push(
-        externalSystemBootstrapError(
-          [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
-          error,
-        ),
-      );
+    const bootstrap = await this.externalSystemBootstrap.bootstrap([
+      bblSystemName,
+      NAME_EXTERNAL_SYSTEM_NAME,
+    ]);
+    if (!bootstrap.ok) {
+      errors.push(bootstrap.error);
       return {
         result: makeImportResult({ imported, errors }),
         teamRaceIdsByCode,
@@ -79,6 +69,7 @@ export class BblTeamsImportService {
         teamsByCode,
       };
     }
+    const [bblSystemId, nameSystemId] = bootstrap.ids;
 
     const seen = new Set<string>();
     for await (const page of this.sourceReader.pages(TEAM_PAGE_TYPE)) {
