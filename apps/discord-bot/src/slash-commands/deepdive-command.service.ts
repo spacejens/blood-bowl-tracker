@@ -5,6 +5,7 @@ import {
   CompetitionsService,
   ErasService,
   PlayersService,
+  RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -19,12 +20,14 @@ import { ApplicationCommandOptionType } from 'discord.js';
 import { resolveCoachDeepdive } from '../deepdive/facts/coach-deepdive';
 import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
 import { resolvePlayerDeepdive } from '../deepdive/facts/player-deepdive';
+import { resolveRaceDeepdive } from '../deepdive/facts/race-deepdive';
 import { resolveTeamDeepdive } from '../deepdive/facts/team-deepdive';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
@@ -44,6 +47,9 @@ export const TEAM_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:team:';
 /** Prefix for player deepdive button customIds: `deepdive:player:<id>`. */
 export const PLAYER_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:player:';
 
+/** Prefix for race deepdive button customIds: `deepdive:race:<id>`. */
+export const RACE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:race:';
+
 @Injectable()
 export class DeepdiveCommandService implements OnModuleInit {
   constructor(
@@ -52,6 +58,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
+    private readonly races: RacesService,
     private readonly discordClient: DiscordClientService,
     private readonly registry: SlashCommandRegistryService,
   ) {}
@@ -73,6 +80,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handlePlayerButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      RACE_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleRaceButton(interaction),
     );
   }
 
@@ -105,6 +116,12 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'race',
+          description: 'Show the detail view for a single race (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -118,9 +135,14 @@ export class DeepdiveCommandService implements OnModuleInit {
     const coachOption = interaction.options.getString('coach');
     const teamOption = interaction.options.getString('team');
     const playerOption = interaction.options.getString('player');
-    const supplied = [eraOption, coachOption, teamOption, playerOption].filter(
-      (value) => value !== null,
-    );
+    const raceOption = interaction.options.getString('race');
+    const supplied = [
+      eraOption,
+      coachOption,
+      teamOption,
+      playerOption,
+      raceOption,
+    ].filter((value) => value !== null);
     if (supplied.length > 1) {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
     }
@@ -135,6 +157,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (playerOption !== null) {
       return this.resolvePlayer(playerOption);
+    }
+    if (raceOption !== null) {
+      return this.resolveRace(raceOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -173,6 +198,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       PLAYER_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolvePlayer(idPart);
+  }
+
+  async handleRaceButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      RACE_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.resolveRace(idPart);
   }
 
   async autocomplete(
@@ -216,6 +250,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       );
       return players.map((row) => ({
         name: `${row.name} (${row.teamName})`,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'race') {
+      const races = await this.races.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return races.map((row) => ({
+        name: row.name,
         value: String(row.id),
       }));
     }
@@ -282,5 +326,20 @@ export class DeepdiveCommandService implements OnModuleInit {
       return Promise.resolve(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
     }
     return resolvePlayerDeepdive(id, { players: this.players });
+  }
+
+  /**
+   * Parses a race id (from a slash option or a button customId) and renders the
+   * deepdive. Non-integer values are rejected up front with the not-found
+   * message, mirroring `resolveEra`/`resolveCoach`/`resolveTeam`/`resolvePlayer`.
+   */
+  private resolveRace(
+    value: string,
+  ): Promise<string | InteractionReplyOptions> {
+    const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
+    }
+    return resolveRaceDeepdive(id, { races: this.races });
   }
 }
