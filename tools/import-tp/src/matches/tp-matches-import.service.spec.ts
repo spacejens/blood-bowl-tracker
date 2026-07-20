@@ -27,7 +27,13 @@ function makeService({
 }
 
 function tpMatch(id: number, name: string): TpMatch {
-  return { id, playedDate: new Date('2021-05-15T18:00:00Z'), name };
+  return {
+    id,
+    playedDate: new Date('2021-05-15T18:00:00Z'),
+    name,
+    homeTeamTpId: 1000 + id,
+    awayTeamTpId: 2000 + id,
+  };
 }
 
 describe('TpMatchesImportService', () => {
