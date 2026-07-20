@@ -139,6 +139,11 @@ button, in the same order as the list, that opens that team's
 - `player.toplist.sent_off` — players ranked by times sent off. Counts match
   events whose consequence is `sent_off`, credited to the sent-off player.
   Supports era filtering.
+
+Each player listed by the thirteen `player.toplist.*` facts above also gets a
+button, in the same order as the list, that opens that player's
+[`/deepdive`](deepdive.md) detail view.
+
 - `race.toplist.teams` — races ranked by number of teams that have chosen
   them. Supports era filtering (an era scopes the count to teams active in
   that era).
