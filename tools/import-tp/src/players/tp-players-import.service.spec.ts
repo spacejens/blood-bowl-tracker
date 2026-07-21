@@ -417,4 +417,97 @@ describe('TpPlayersImportService', () => {
     );
     expect(starPlayerIdsByRosterAndMaster.get('168446:1122')).toBe(900);
   });
+
+  it('imports an embedded star player from a standalone roster whose lineUpMasterId resolves via a star catalog id', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
+    const service = makeService({ upsertPlayerResult });
+
+    // A permanently-rostered star player: its lineUps entry references a star
+    // catalog id (5002), which positionIdsByTpPositionId now maps (Task 2).
+    const starRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Dwarf',
+          raceName: 'Dwarf',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          players: [
+            {
+              id: 3000001,
+              name: "Morg 'n' Thorg",
+              number: 16,
+              lineUpMasterId: 5002,
+              rosterId: 123,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters: starRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[5002, 700]]),
+    });
+
+    expect(result.imported).toBe(1);
+    expect(playerIdsByLineUpId.get(3000001)).toBe(950);
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      {
+        name: "Morg 'n' Thorg",
+        teamEraId: 5000,
+        positionId: 700,
+        externalIds: [{ externalSystemId: 1, externalId: '3000001' }],
+      },
+      expect.anything(),
+    );
+  });
+
+  it('imports an embedded star player present only in a match-embedded snapshot', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 951 });
+    const service = makeService({ upsertPlayerResult });
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([
+        [952, 200], // regular position from the shared `rosters` fixture
+        [5002, 700], // star catalog id
+      ]),
+      matchEmbeddedPlayersByRosterId: new Map([
+        [
+          123,
+          [
+            {
+              id: 3000002,
+              name: 'Akhorne the Squirrel',
+              number: 17,
+              lineUpMasterId: 5002,
+              rosterId: 123,
+            },
+          ],
+        ],
+      ]),
+    });
+
+    // Two players: the standalone roster's regular player plus the
+    // match-embedded star player.
+    expect(result.imported).toBe(2);
+    expect(playerIdsByLineUpId.get(3000002)).toBe(951);
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Akhorne the Squirrel',
+        positionId: 700,
+        externalIds: [{ externalSystemId: 1, externalId: '3000002' }],
+      }),
+      expect.anything(),
+    );
+  });
 });
