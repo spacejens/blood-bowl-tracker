@@ -2,6 +2,7 @@
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { makeImportResult } from '@blood-bowl-tracker/import';
+import type { TpInducedStarPlayer } from '@blood-bowl-tracker/parse-tp';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -80,19 +81,49 @@ async function run(): Promise<ImportResult> {
         eraOutcome.eraIdsByName,
       );
 
+    // Star players hired via an inducements_roll event aren't part of any
+    // roster's lineUps[], so they're gathered from the already-parsed match
+    // events (one scan, shared with Task 8's match-events step reusing the
+    // same matchesByCompetitionId) and grouped by the hiring roster id.
+    const inducedStarPlayersByRosterId = new Map<
+      number,
+      TpInducedStarPlayer[]
+    >();
+    for (const matches of competitionOutcome.matchesByCompetitionId.values()) {
+      for (const match of matches) {
+        for (const event of match.matchEvents) {
+          if (
+            event.type !== 'inducements_roll' ||
+            event.starPlayers.length === 0
+          ) {
+            continue;
+          }
+          inducedStarPlayersByRosterId.set(event.rosterId, [
+            ...(inducedStarPlayersByRosterId.get(event.rosterId) ?? []),
+            ...event.starPlayers,
+          ]);
+        }
+      }
+    }
+
     // Players run after positions and teams: each roster player resolves a
     // team era (via teamOutcome.teamErasByRosterId) and a position (via
     // positionIdsByTpPositionId), so both must exist first. playerIdsByLineUpId
-    // is kept in scope for the match-events step (Task 8).
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { result: playerResult, playerIdsByLineUpId } = await app
-      .get(TpPlayersImportService)
-      .importPlayers({
-        rosters,
-        teamErasByRosterId: teamOutcome.teamErasByRosterId,
-        eraIdsByName: eraOutcome.eraIdsByName,
-        positionIdsByTpPositionId,
-      });
+    // and starPlayerIdsByRosterAndMaster are kept in scope for the
+    // match-events step (Task 8).
+    const {
+      result: playerResult,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      playerIdsByLineUpId,
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      starPlayerIdsByRosterAndMaster,
+    } = await app.get(TpPlayersImportService).importPlayers({
+      rosters,
+      teamErasByRosterId: teamOutcome.teamErasByRosterId,
+      eraIdsByName: eraOutcome.eraIdsByName,
+      positionIdsByTpPositionId,
+      inducedStarPlayersByRosterId,
+    });
 
     // Team participation (match_teams + competition_teams) runs last: it needs
     // the teams step's resolved team-era ids, and consumes the competitions

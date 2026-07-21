@@ -4,7 +4,9 @@ import {
   makeImportError,
   makeImportResult,
   PlayersImportService,
+  PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import type { TpInducedStarPlayer } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -18,6 +20,13 @@ export interface ImportPlayersOptions {
   teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
   eraIdsByName: Map<string, number>;
   positionIdsByTpPositionId: Map<number, number>;
+  /**
+   * Star players hired via an `inducements_roll` match event, grouped by the
+   * hiring roster id (pre-scanned by `main.ts` from `matchesByCompetitionId`
+   * so this service stays the single owner of the player-resolution maps).
+   * Optional -- callers/tests that don't exercise star players can omit it.
+   */
+  inducedStarPlayersByRosterId?: Map<number, TpInducedStarPlayer[]>;
 }
 
 @Injectable()
@@ -26,6 +35,7 @@ export class TpPlayersImportService {
     private readonly playersImport: PlayersImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly positionsImport: PositionsImportService,
   ) {}
 
   /**
@@ -39,20 +49,34 @@ export class TpPlayersImportService {
    * BblPlayersImportService). Players get NO Name external id -- only the TP
    * lineUpId -- since player names are not guaranteed unique. Returns
    * `playerIdsByLineUpId`, consumed by the match-events step to resolve a
-   * `matchEvents[].lineUpId` to a player's DB id. Idempotent.
+   * `matchEvents[].lineUpId` to a player's DB id.
+   *
+   * Also imports every star player named in `inducedStarPlayersByRosterId`
+   * (hired via an `inducements_roll` event, not part of a roster's permanent
+   * `lineUps[]`): each named star player gets one reused `isStarPlayer: true`
+   * Position (bare-name external id, mirroring
+   * `BblPositionsImportService`'s star-player handling) and a Player scoped
+   * to the hiring roster's team-era. Returns
+   * `starPlayerIdsByRosterAndMaster`, keyed by `` `${rosterId}:${lineUpMasterId}` ``
+   * (star players are referenced in match events by `lineUpMasterId` within
+   * a roster, not by a `lineUps[].id`), consumed by the match-events step
+   * when a `lineUpId` doesn't resolve via `playerIdsByLineUpId`. Idempotent.
    */
   async importPlayers({
     rosters,
     teamErasByRosterId,
     eraIdsByName,
     positionIdsByTpPositionId,
+    inducedStarPlayersByRosterId,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
+    starPlayerIdsByRosterAndMaster: Map<string, number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByLineUpId = new Map<number, number>();
+    const starPlayerIdsByRosterAndMaster = new Map<string, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -63,6 +87,7 @@ export class TpPlayersImportService {
       return {
         result: makeImportResult({ imported, errors }),
         playerIdsByLineUpId,
+        starPlayerIdsByRosterAndMaster,
       };
     }
     const [tpSystemId] = bootstrap.ids;
@@ -118,9 +143,103 @@ export class TpPlayersImportService {
       }
     }
 
+    if (inducedStarPlayersByRosterId) {
+      const seenStarPlayerKeys = new Set<string>();
+      for (const [rosterId, starPlayers] of inducedStarPlayersByRosterId) {
+        const teamEra = TpPlayersImportService.resolveHiringTeamEra({
+          rosterId,
+          teamErasByRosterId,
+          rosters,
+          eraIdsByName,
+        });
+        if (teamEra === undefined) {
+          errors.push(
+            makeImportError({
+              item: { rosterId },
+              message: `Skipped ${starPlayers.length} hired star player(s) for roster ${rosterId}: could not resolve hiring team era`,
+            }),
+          );
+          continue;
+        }
+
+        for (const starPlayer of starPlayers) {
+          const key = `${rosterId}:${starPlayer.lineUpMasterId}`;
+          if (seenStarPlayerKeys.has(key)) {
+            continue;
+          }
+          seenStarPlayerKeys.add(key);
+
+          const position = await this.positionsImport.upsertPosition(
+            {
+              name: starPlayer.name,
+              isStarPlayer: true,
+              externalIds: [
+                { externalSystemId: tpSystemId, externalId: starPlayer.name },
+              ],
+            },
+            errors,
+          );
+          if (!position) {
+            continue;
+          }
+
+          const upserted = await this.playersImport.upsertPlayerResult(
+            {
+              name: starPlayer.name,
+              teamEraId: teamEra.id,
+              positionId: position.id,
+              externalIds: [
+                {
+                  externalSystemId: tpSystemId,
+                  externalId: `star-${rosterId}-${starPlayer.lineUpMasterId}`,
+                },
+              ],
+            },
+            errors,
+          );
+          if (upserted) {
+            imported += 1;
+            starPlayerIdsByRosterAndMaster.set(key, upserted.id);
+          }
+        }
+      }
+    }
+
     return {
       result: makeImportResult({ imported, errors }),
       playerIdsByLineUpId,
+      starPlayerIdsByRosterAndMaster,
     };
+  }
+
+  /**
+   * Resolve the team-era a hired star player's roster belongs to. Most
+   * rosters have exactly one team-era entry, so that's used directly; a
+   * roster id spanning multiple eras (per `TpTeamsImportService`'s grouping)
+   * is disambiguated via the roster's own era, looked up the same way the
+   * regular roster-player pass does. Returns `undefined` if unresolvable
+   * either way.
+   */
+  private static resolveHiringTeamEra({
+    rosterId,
+    teamErasByRosterId,
+    rosters,
+    eraIdsByName,
+  }: {
+    rosterId: number;
+    teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
+    rosters: RosterEntry[];
+    eraIdsByName: Map<string, number>;
+  }): { id: number; eraId: number } | undefined {
+    const teamEras = teamErasByRosterId.get(rosterId);
+    if (!teamEras || teamEras.length === 0) {
+      return undefined;
+    }
+    if (teamEras.length === 1) {
+      return teamEras[0];
+    }
+    const rosterEntry = rosters.find((r) => r.roster.id === rosterId);
+    const eraId = rosterEntry ? eraIdsByName.get(rosterEntry.era) : undefined;
+    return teamEras.find((te) => te.eraId === eraId);
   }
 }
