@@ -318,29 +318,30 @@ describe('TpPositionsImportService', () => {
       syncRaceEras,
     });
 
-    const { result, positionIdsByTpPositionId } = await service.importPositions(
-      [
-        rosterEntry('Dwarf', {
-          teamRace: 'Dwarf',
-          raceName: 'Dwarf',
-          positions: [],
-          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
-          id: 1,
-        }),
-        rosterEntry('Human', {
-          teamRace: 'Human',
-          raceName: 'Human',
-          positions: [],
-          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
-          id: 2,
-        }),
-      ],
-      new Map([
-        ['Dwarf', 50],
-        ['Human', 60],
-      ]),
-      new Map([['Dwarf', 100]]),
-    );
+    const { result, positionIdsByTpPositionId, starPositionIds } =
+      await service.importPositions(
+        [
+          rosterEntry('Dwarf', {
+            teamRace: 'Dwarf',
+            raceName: 'Dwarf',
+            positions: [],
+            starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+            id: 1,
+          }),
+          rosterEntry('Human', {
+            teamRace: 'Human',
+            raceName: 'Human',
+            positions: [],
+            starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+            id: 2,
+          }),
+        ],
+        new Map([
+          ['Dwarf', 50],
+          ['Human', 60],
+        ]),
+        new Map([['Dwarf', 100]]),
+      );
 
     expect(result.imported).toBe(1);
     expect(upsertPosition).toHaveBeenCalledWith(
@@ -353,6 +354,33 @@ describe('TpPositionsImportService', () => {
     );
     expect(positionIdsByTpPositionId.get(5002)).toBe(800);
     expect(syncRaceEras).not.toHaveBeenCalled();
+    expect(starPositionIds).toEqual(new Set([800]));
+  });
+
+  it('returns the DB ids of upserted star positions in starPositionIds', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
+    const syncRaceEras = vi.fn();
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const { starPositionIds } = await service.importPositions(
+      [
+        rosterEntry('Dwarf', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          id: 1,
+        }),
+      ],
+      new Map([['Dwarf', 50]]),
+      new Map([['Dwarf', 100]]),
+    );
+
+    expect(starPositionIds).toEqual(new Set([800]));
   });
 
   it('records a non-fatal error and does not overwrite when a star id collides with a regular position id', async () => {
