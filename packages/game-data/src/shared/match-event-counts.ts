@@ -8,9 +8,10 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { SQL } from 'drizzle-orm';
-import { and, count, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
 import type { ActionType, ConsequenceType } from './match-event-types';
+import { EXPENSIVE_MISTAKE_TYPES } from './match-event-types';
 
 /**
  * Which side of a match event the counted entity was on. This co-varies
@@ -232,4 +233,83 @@ export async function countMatchEventsForPlayer(
       ),
     );
   return row.count;
+}
+
+/**
+ * Money each team has lost to expensive mistakes, summed per team and ordered
+ * most-first. Shares countMatchEventsByTeam's consequence-side join graph and
+ * the expensive-mistake filter, but sums matchEvents.expensiveMistake
+ * (coalescing the per-group total to 0) instead of counting event rows. Kept
+ * separate from the count helper because the aggregate and result shape differ.
+ */
+export async function sumExpensiveMistakesByTeam(
+  db: Db,
+  eraId?: number,
+  competitionId?: number,
+): Promise<{ teamId: number; name: string; count: number }[]> {
+  const selector = {
+    role: 'consequence',
+    types: EXPENSIVE_MISTAKE_TYPES,
+  } as const;
+  const total = sql<number>`coalesce(sum(${matchEvents.expensiveMistake}), 0)::int`;
+  return db
+    .select({ teamId: teams.id, name: teams.name, count: total })
+    .from(matchEvents)
+    .innerJoin(
+      matchTeams,
+      eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+    )
+    .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .innerJoin(teams, eq(teams.id, teamEras.teamId))
+    .where(matchEventFilter(selector, eraId, competitionId))
+    .groupBy(teams.id, teams.name)
+    .orderBy(desc(total));
+}
+
+/**
+ * Individual expensive-mistake events, one row each (no grouping), each labelled
+ * with the losing team and the ISO date of the match, ordered biggest-loss
+ * first. Shares countMatchEventsByTeam's consequence-side join graph plus
+ * matches.playedAt; `count` carries the lost amount so each row already fits the
+ * leaderboard's ranking shape, and a team may legitimately appear on several
+ * rows.
+ *
+ * Fetches the full matching row set rather than applying a SQL `LIMIT` — fine
+ * at a hobby league's expected total historical event count, but worth
+ * revisiting if event volume grows much larger. A hard `LIMIT` isn't safe here
+ * because it could cut off part of a tie group that `topRanksWithTies` needs
+ * to see in full to rank correctly.
+ */
+export async function listBiggestExpensiveMistakes(
+  db: Db,
+  eraId?: number,
+  competitionId?: number,
+): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+  const selector = {
+    role: 'consequence',
+    types: EXPENSIVE_MISTAKE_TYPES,
+  } as const;
+  return db
+    .select({
+      teamId: teams.id,
+      name: teams.name,
+      count: sql<number>`${matchEvents.expensiveMistake}`,
+      date: sql<string>`${matches.playedAt}::date`,
+    })
+    .from(matchEvents)
+    .innerJoin(
+      matchTeams,
+      eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+    )
+    .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .innerJoin(teams, eq(teams.id, teamEras.teamId))
+    .where(
+      and(
+        matchEventFilter(selector, eraId, competitionId),
+        isNotNull(matchEvents.expensiveMistake),
+      ),
+    )
+    .orderBy(desc(matchEvents.expensiveMistake));
 }

@@ -714,5 +714,121 @@ describe('TeamsService', () => {
         30,
       ]);
     });
+
+    it('sumExpensiveMistakesByTeam returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 150000 },
+        { teamId: 2, name: 'Reikland Reavers', count: 40000 },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.sumExpensiveMistakesByTeam()).resolves.toEqual(rows);
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('sumExpensiveMistakesByTeam filters on the expensive_mistake consequence and era', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.sumExpensiveMistakesByTeam(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'expensive_mistake',
+        20,
+      ]);
+    });
+
+    it('sumExpensiveMistakesByTeam joins the consequence side and filters by competition', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.sumExpensiveMistakesByTeam(undefined, 30);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'expensive_mistake',
+        30,
+      ]);
+    });
+
+    it('sumExpensiveMistakesByTeam groups by team', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.sumExpensiveMistakesByTeam();
+      expect(builder.groupBy).toHaveBeenCalledTimes(1);
+    });
+
+    it('listBiggestExpensiveMistakes returns the rows the query resolves to', async () => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 90000, date: '2026-03-04' },
+        { teamId: 2, name: 'Gouged Eye', count: 60000, date: '2026-02-01' },
+      ];
+      const select = vi.fn(() => makeQueryBuilder(rows));
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.listBiggestExpensiveMistakes()).resolves.toEqual(
+        rows,
+      );
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('listBiggestExpensiveMistakes filters on the expensive_mistake consequence and era', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes(20);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'expensive_mistake',
+        20,
+      ]);
+    });
+
+    it('listBiggestExpensiveMistakes excludes rows with a null expensive-mistake amount', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(builder.where)).filter(
+          (column) => column === 'match_events.expensive_mistake',
+        ),
+      ).toHaveLength(1);
+    });
+
+    it('listBiggestExpensiveMistakes joins the consequence side and filters by competition', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes(undefined, 30);
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['match_teams.id', 'match_events.consequence_match_team_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'expensive_mistake',
+        30,
+      ]);
+    });
+
+    it('listBiggestExpensiveMistakes does not group (one row per event)', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes();
+      expect(builder.groupBy).not.toHaveBeenCalled();
+    });
   });
 });

@@ -10,7 +10,7 @@ import { resolveToplist } from '../leaderboard';
 import type { ScopedCountMethods } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
-function teamButtonId(row: { teamId: number }): string {
+export function teamButtonId(row: { teamId: number }): string {
   return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
 }
 

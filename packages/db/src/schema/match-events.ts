@@ -101,6 +101,7 @@ const matchEventsTable = historyTrackedTable({
      * different matches for different rosters.
      */
     secretObjective: integer('secret_objective'),
+    /** Gold pieces lost to the roll, not the Expensive Mistakes table tier rolled. */
     expensiveMistake: integer('expensive_mistake'),
   },
   extraConfig: (t) => ({
