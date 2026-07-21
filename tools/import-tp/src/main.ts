@@ -40,7 +40,8 @@ async function run(): Promise<ImportResult> {
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
-    const matchOutcome = await app
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)
       .importMatches(competitionOutcome.matchesByCompetitionId);
 
@@ -96,7 +97,7 @@ async function run(): Promise<ImportResult> {
       rulesSetsOutcome.result,
       eraOutcome.result,
       competitionOutcome.result,
-      matchOutcome.result,
+      matchResult,
       coachOutcome.result,
       rosterCollectionResult,
       raceOutcome.result,

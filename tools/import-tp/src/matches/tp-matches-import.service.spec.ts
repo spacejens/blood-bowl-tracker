@@ -8,6 +8,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMatchesImportService } from './tp-matches-import.service';
 
+const MATCH_DB_ID = 7;
+
 interface MakeServiceOptions {
   bootstrap: ReturnType<typeof vi.fn>;
   upsertMatchResult: ReturnType<typeof vi.fn>;
@@ -33,6 +35,7 @@ function tpMatch(id: number, name: string): TpMatch {
     name,
     homeTeamTpId: 1000 + id,
     awayTeamTpId: 2000 + id,
+    matchEvents: [],
   };
 }
 
@@ -142,5 +145,19 @@ describe('TpMatchesImportService', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].item).toEqual({ externalSystems: ['TP'] });
     expect(upsertMatchResult).not.toHaveBeenCalled();
+  });
+
+  it('returns a matchIdsByTpId map keyed by TP match id', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: MATCH_DB_ID });
+    const service = makeService({
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+      upsertMatchResult,
+    });
+
+    const { matchIdsByTpId } = await service.importMatches(
+      new Map([[500, [tpMatch(566088, 'Test Match')]]]),
+    );
+
+    expect(matchIdsByTpId.get(566088)).toBe(MATCH_DB_ID);
   });
 });

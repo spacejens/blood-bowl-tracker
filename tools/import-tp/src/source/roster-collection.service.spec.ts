@@ -227,6 +227,7 @@ describe('unknownEraError', () => {
       raceName: 'Orc',
       coachTpId: 'coach-1',
       positions: [],
+      players: [],
     });
 
     expect(error.item).toEqual({ era: 'Ghost era', roster: 42 });
