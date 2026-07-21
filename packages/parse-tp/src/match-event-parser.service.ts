@@ -56,6 +56,13 @@ export type TpMatchEvent =
       rosterId: number;
       totalCost: number;
       starPlayers: TpInducedStarPlayer[];
+      /**
+       * The portion of the inducements spend paid out of the team's
+       * treasury (as opposed to free stadium/petty-cash allowance).
+       * Present with a value of `0` in some events, a non-zero value in
+       * others, and entirely absent in many older events.
+       */
+      fromTreasury?: number;
     })
   | (TpMatchEventBase & {
       type: 'winnings_roll';
@@ -139,6 +146,7 @@ const inducementsRaw = z.object({
   extraData: z.object({
     totalCost: z.number(),
     starPlayers: z.array(starPlayerRaw),
+    fromTreasury: z.number().nullish(),
   }),
 });
 const winningsRaw = z.object({
@@ -262,6 +270,9 @@ const decoders = new Map<number, Decoder>([
         lineUpMasterId: sp.lineUpMasterId,
         number: sp.number,
       })),
+      ...(v.extraData.fromTreasury != null
+        ? { fromTreasury: v.extraData.fromTreasury }
+        : {}),
     })),
   ],
   [

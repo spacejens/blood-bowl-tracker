@@ -131,6 +131,40 @@ describe('parseMatchEvents', () => {
     });
   });
 
+  it('decodes an inducements roll (code 11) with a fromTreasury amount', () => {
+    const [event] = parseMatchEvents([
+      {
+        id: 22,
+        matchEventType: 11,
+        instant: '2026-01-17T09:07:04Z',
+        rosterId: 168304,
+        extraData: { totalCost: 80, starPlayers: [], fromTreasury: 50 },
+      },
+    ]);
+    expect(event).toEqual({
+      type: 'inducements_roll',
+      tpEventId: 22,
+      instant: '2026-01-17T09:07:04Z',
+      rosterId: 168304,
+      totalCost: 80,
+      starPlayers: [],
+      fromTreasury: 50,
+    });
+  });
+
+  it('decodes an inducements roll (code 11) without a fromTreasury amount (omits the optional field)', () => {
+    const [event] = parseMatchEvents([
+      {
+        id: 23,
+        matchEventType: 11,
+        instant: '2026-01-17T09:07:04Z',
+        rosterId: 168304,
+        extraData: { totalCost: 20, starPlayers: [] },
+      },
+    ]);
+    expect(event).not.toHaveProperty('fromTreasury');
+  });
+
   it('decodes a winnings roll (code 12)', () => {
     const [event] = parseMatchEvents([
       {
