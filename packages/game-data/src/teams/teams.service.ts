@@ -20,6 +20,7 @@ import { escapeLikePattern } from '../shared/escape-like-pattern';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByTeam,
+  sumExpensiveMistakesByTeam as querySumExpensiveMistakesByTeam,
 } from '../shared/match-event-counts';
 import {
   CASUALTY_CAUSED_TYPES,
@@ -346,6 +347,13 @@ export class TeamsService {
       eraId,
       competitionId,
     });
+  }
+
+  sumExpensiveMistakesByTeam(
+    eraId?: number,
+    competitionId?: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return querySumExpensiveMistakesByTeam(this.db, eraId, competitionId);
   }
 
   countAll(): Promise<number> {
