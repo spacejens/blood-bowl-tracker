@@ -51,6 +51,160 @@ describe('parseMatchEvents', () => {
     ]);
   });
 
+  it('decodes a completion (code 3)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150320,
+          matchEventType: 3,
+          instant: '2026-01-17T18:49:00Z',
+          lineUpId: 2442075,
+          rosterId: 164868,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'completion',
+        tpEventId: 7150320,
+        instant: '2026-01-17T18:49:00Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
+  it('decodes an interception (code 5)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150321,
+          matchEventType: 5,
+          instant: '2026-01-17T18:49:10Z',
+          lineUpId: 2442076,
+          rosterId: 167242,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'interception',
+        tpEventId: 7150321,
+        instant: '2026-01-17T18:49:10Z',
+        lineUpId: 2442076,
+        rosterId: 167242,
+      },
+    ]);
+  });
+
+  it('decodes a casualty caused (code 6)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150322,
+          matchEventType: 6,
+          instant: '2026-01-17T18:49:20Z',
+          lineUpId: 2442077,
+          rosterId: 164868,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'casualty_caused',
+        tpEventId: 7150322,
+        instant: '2026-01-17T18:49:20Z',
+        lineUpId: 2442077,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
+  it('decodes a deflection (code 25)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150323,
+          matchEventType: 25,
+          instant: '2026-01-17T18:49:30Z',
+          lineUpId: 2442078,
+          rosterId: 167242,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'deflection',
+        tpEventId: 7150323,
+        instant: '2026-01-17T18:49:30Z',
+        lineUpId: 2442078,
+        rosterId: 167242,
+      },
+    ]);
+  });
+
+  it('decodes a foul (code 31)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150324,
+          matchEventType: 31,
+          instant: '2026-01-17T18:49:40Z',
+          lineUpId: 2442079,
+          rosterId: 164868,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'foul',
+        tpEventId: 7150324,
+        instant: '2026-01-17T18:49:40Z',
+        lineUpId: 2442079,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
+  it('decodes a sent off (code 32)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150325,
+          matchEventType: 32,
+          instant: '2026-01-17T18:49:50Z',
+          lineUpId: 2442079,
+          rosterId: 164868,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'sent_off',
+        tpEventId: 7150325,
+        instant: '2026-01-17T18:49:50Z',
+        lineUpId: 2442079,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
+  it('decodes a successful landing (code 46)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150326,
+          matchEventType: 46,
+          instant: '2026-01-17T18:50:00Z',
+          lineUpId: 2442075,
+          rosterId: 164868,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'successful_landing',
+        tpEventId: 7150326,
+        instant: '2026-01-17T18:50:00Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
   it('decodes an injury (code 8) with its injuryType and acting team', () => {
     expect(
       parseMatchEvents([
@@ -376,7 +530,7 @@ describe('parseMatchEvents', () => {
       parseMatchEvents([
         { id: 3, matchEventType: 0, instant: 'x', extraData: {} },
         { id: 4, matchEventType: 1, instant: 'x' },
-        { id: 5, matchEventType: 6, instant: 'x', lineUpId: 1, rosterId: 2 },
+        { id: 5, matchEventType: 18, instant: 'x', lineUpId: 1, rosterId: 2 },
         { id: 6, matchEventType: 999, instant: 'x' },
         // Code 27 is a structural "player assigned" row, not a modeled event.
         {

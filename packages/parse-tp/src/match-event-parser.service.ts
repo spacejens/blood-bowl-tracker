@@ -47,6 +47,49 @@ export type TpMatchEvent =
       rosterId: number;
     })
   | (TpMatchEventBase & {
+      type: 'completion';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      type: 'interception';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      type: 'deflection';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      type: 'foul';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      type: 'sent_off';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      type: 'successful_landing';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
+      /**
+       * The action of causing a casualty (code 6) — distinct from `injury`
+       * (code 8), which reports the victim + severity. `rosterId` here is
+       * the ACTING team (the causer's own roster), following every other
+       * event type's convention that the identified `lineUpId` player
+       * belongs to `rosterId`. See `tp-match-events-correlation.ts` in
+       * tools/import-tp for how this is paired with its `injury` event.
+       */
+      type: 'casualty_caused';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
       type: 'injury';
       lineUpId: number;
       /** Victim team's roster id. */
@@ -238,9 +281,39 @@ function decode<T>(
 
 const decoders = new Map<number, Decoder>([
   [
+    3,
+    decode(touchdownRaw, 3, (v) => ({
+      type: 'completion',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
     4,
     decode(touchdownRaw, 4, (v) => ({
       type: 'touchdown',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
+    5,
+    decode(touchdownRaw, 5, (v) => ({
+      type: 'interception',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
+    6,
+    decode(touchdownRaw, 6, (v) => ({
+      type: 'casualty_caused',
       tpEventId: v.id,
       instant: v.instant,
       lineUpId: v.lineUpId,
@@ -356,6 +429,16 @@ const decoders = new Map<number, Decoder>([
     })),
   ],
   [
+    25,
+    decode(touchdownRaw, 25, (v) => ({
+      type: 'deflection',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
     26,
     decode(dedicatedFansRaw, 26, (v) => ({
       type: 'dedicated_fans_roll',
@@ -363,6 +446,26 @@ const decoders = new Map<number, Decoder>([
       instant: v.instant,
       dedicatedFansModifierLocal: v.extraData.dedicatedFansModifierLocal,
       dedicatedFansModifierVisitor: v.extraData.dedicatedFansModifierVisitor,
+    })),
+  ],
+  [
+    31,
+    decode(touchdownRaw, 31, (v) => ({
+      type: 'foul',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
+    32,
+    decode(touchdownRaw, 32, (v) => ({
+      type: 'sent_off',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
     })),
   ],
   [
@@ -375,15 +478,25 @@ const decoders = new Map<number, Decoder>([
       secretObjective: v.extraData.secretObjective,
     })),
   ],
+  [
+    46,
+    decode(touchdownRaw, 46, (v) => ({
+      type: 'successful_landing',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
 ]);
 
 const topLevelSchema = z.object({ matchEventType: z.number() });
 
 /**
  * Decode a raw TP `matchEvents[]` array into the modeled subset. Structural
- * markers and per-roll noise (codes such as 0, 1, 3, 5, 6, 18, 19, 25, 27,
- * 31, 32, 46 — including code 27, a "player assigned to line-up" structural
- * row, not a modeled roll) and any unrecognized code are silently dropped so
+ * markers and per-roll noise (codes such as 0, 1, 18, 19, 27 — including
+ * code 27, a "player assigned to line-up" structural row, not a modeled
+ * roll) and any unrecognized code are silently dropped so
  * new TP codes never crash the import. `None` injuries are still returned;
  * the import step decides whether to skip them, keeping this parser a pure
  * decode. Throws a descriptive `Error` only when a *known* code's payload
