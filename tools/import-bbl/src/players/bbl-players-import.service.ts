@@ -65,7 +65,7 @@ export class BblPlayersImportService {
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
-      [bblSystemName],
+      [{ name: bblSystemName, isBookkeeping: false }],
       'Failed to upsert external system: ',
     );
     if (!bootstrap.ok) {

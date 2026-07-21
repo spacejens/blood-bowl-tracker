@@ -125,7 +125,10 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams(raceIds, coachIds);
 
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts the configured BBL system name when set', async () => {
@@ -148,7 +151,10 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams(raceIds, coachIds);
 
-    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'MyLeague', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts a team with its resolved raceId/coachId and page-id + name external IDs', async () => {

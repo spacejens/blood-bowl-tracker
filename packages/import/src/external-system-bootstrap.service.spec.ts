@@ -10,19 +10,21 @@ function makeService(upsertExternalSystem: ReturnType<typeof vi.fn>) {
 }
 
 describe('ExternalSystemBootstrapService', () => {
-  it('upserts every name and returns ok with the ids in the same order', async () => {
+  it('upserts every entry and returns ok with the ids in the same order', async () => {
     const upsertExternalSystem = vi
       .fn()
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
     const service = makeService(upsertExternalSystem);
 
-    await expect(service.bootstrap(['BBL', 'Name'])).resolves.toEqual({
-      ok: true,
-      ids: [1, 2],
-    });
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL');
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name');
+    await expect(
+      service.bootstrap([
+        { name: 'BBL', isBookkeeping: false },
+        { name: 'Name', isBookkeeping: true },
+      ]),
+    ).resolves.toEqual({ ok: true, ids: [1, 2] });
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL', false);
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name', true);
   });
 
   it('returns a not-ok result recording the names and message on failure', async () => {
@@ -30,7 +32,12 @@ describe('ExternalSystemBootstrapService', () => {
       vi.fn().mockRejectedValue(new Error('api down')),
     );
 
-    await expect(service.bootstrap(['BBL', 'Name'])).resolves.toEqual({
+    await expect(
+      service.bootstrap([
+        { name: 'BBL', isBookkeeping: false },
+        { name: 'Name', isBookkeeping: true },
+      ]),
+    ).resolves.toEqual({
       ok: false,
       error: {
         item: { externalSystems: ['BBL', 'Name'] },
@@ -45,7 +52,10 @@ describe('ExternalSystemBootstrapService', () => {
     );
 
     await expect(
-      service.bootstrap(['BBL'], 'Failed to upsert external system: '),
+      service.bootstrap(
+        [{ name: 'BBL', isBookkeeping: false }],
+        'Failed to upsert external system: ',
+      ),
     ).resolves.toEqual({
       ok: false,
       error: {
@@ -58,7 +68,9 @@ describe('ExternalSystemBootstrapService', () => {
   it('stringifies a non-Error throw', async () => {
     const service = makeService(vi.fn().mockRejectedValue('weird'));
 
-    await expect(service.bootstrap(['BBL'])).resolves.toEqual({
+    await expect(
+      service.bootstrap([{ name: 'BBL', isBookkeeping: false }]),
+    ).resolves.toEqual({
       ok: false,
       error: { item: { externalSystems: ['BBL'] }, message: 'weird' },
     });

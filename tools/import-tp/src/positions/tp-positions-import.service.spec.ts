@@ -101,7 +101,9 @@ describe('TpPositionsImportService', () => {
       new Map([['Fourth era', 100]]),
     );
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+    ]);
     expect(result.imported).toBe(1);
     expect(upsertPosition).toHaveBeenCalledTimes(1);
     expect(upsertPosition).toHaveBeenCalledWith(

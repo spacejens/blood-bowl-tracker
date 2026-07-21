@@ -21,19 +21,24 @@ export class ExternalSystemBootstrapService {
    * the callers (players, positions) that prefix it.
    */
   async bootstrap(
-    names: readonly string[],
+    names: readonly { name: string; isBookkeeping: boolean }[],
     messagePrefix = '',
   ): Promise<ExternalSystemBootstrapResult> {
     const ids: number[] = [];
     try {
-      for (const name of names) {
-        ids.push(await this.externalSystemsImport.upsertExternalSystem(name));
+      for (const { name, isBookkeeping } of names) {
+        ids.push(
+          await this.externalSystemsImport.upsertExternalSystem(
+            name,
+            isBookkeeping,
+          ),
+        );
       }
     } catch (error) {
       return {
         ok: false,
         error: makeImportError({
-          item: { externalSystems: [...names] },
+          item: { externalSystems: names.map((entry) => entry.name) },
           message: `${messagePrefix}${error instanceof Error ? error.message : String(error)}`,
         }),
       };

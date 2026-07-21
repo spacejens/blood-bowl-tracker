@@ -19,3 +19,16 @@ Not every count exists for both grouping entities, and that is by design — not
 
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.
+
+## Expensive-mistake money queries
+
+Two `/insights` team toplists rank money rather than counting events, but reuse
+the same consequence-side join graph (`matchEvents → matchTeams → matches →
+teamEras → teams`, filtered to `consequenceType = 'expensive_mistake'`):
+
+- **Total lost per team** sums `matchEvents.expensiveMistake` grouped by team.
+- **Biggest individual events** returns one row per event (no grouping), each
+  labelled with the team and the match's `playedAt` date, ordered by amount.
+
+Both return the full matching row set (no `LIMIT`); the application layer ranks
+and truncates via `topRanksWithTies`, exactly as the count toplists do.

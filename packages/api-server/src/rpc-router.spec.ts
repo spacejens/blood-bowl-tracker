@@ -122,16 +122,25 @@ describe('buildRpcRouter', () => {
     (
       externalSystemsService.upsert as ReturnType<typeof vi.fn>
     ).mockResolvedValue({
-      system: { id: 1, name: 'BBL', createdAt: new Date('2026-01-01') },
+      system: {
+        id: 1,
+        name: 'BBL',
+        isBookkeeping: false,
+        createdAt: new Date('2026-01-01'),
+      },
       created: false,
     });
     const router = buildRpcRouter(services);
 
-    const result = await call(router.externalSystems.upsert, { name: 'BBL' });
+    const result = await call(router.externalSystems.upsert, {
+      name: 'BBL',
+      isBookkeeping: false,
+    });
 
     expect(result).toEqual({
       id: 1,
       name: 'BBL',
+      isBookkeeping: false,
       createdAt: new Date('2026-01-01'),
       created: false,
     });

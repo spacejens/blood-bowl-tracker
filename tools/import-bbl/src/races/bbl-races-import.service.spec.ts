@@ -142,7 +142,10 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
@@ -157,7 +160,10 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'MyLeague', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts each race with a numeric BBL external ID and a Name external ID', async () => {

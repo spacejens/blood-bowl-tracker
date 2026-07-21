@@ -1,6 +1,7 @@
 import type {
   CompetitionsService,
   ErasService,
+  ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +9,7 @@ import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_TIMEOUT_MESSAGE,
+  DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE,
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -26,7 +28,12 @@ function makeServices(options: {
   era?: EraHeader;
   rulesSetNames?: string[];
   competitions?: { id: number; name: string; type: 'season' | 'cup' }[];
-}): { eras: ErasService; competitions: CompetitionsService } {
+  externalSystemNames?: string[];
+}): {
+  eras: ErasService;
+  competitions: CompetitionsService;
+  externalSystems: ExternalSystemsService;
+} {
   const eras = {
     findByIdWithLeague: vi.fn().mockResolvedValue(options.era),
     getRulesSetNames: vi.fn().mockResolvedValue(options.rulesSetNames ?? []),
@@ -36,7 +43,12 @@ function makeServices(options: {
       .fn()
       .mockResolvedValue(options.competitions ?? []),
   } as unknown as CompetitionsService;
-  return { eras, competitions };
+  const externalSystems = {
+    listNamesByEra: vi
+      .fn()
+      .mockResolvedValue(options.externalSystemNames ?? []),
+  } as unknown as ExternalSystemsService;
+  return { eras, competitions, externalSystems };
 }
 
 describe('resolveEraDeepdive', () => {
@@ -58,6 +70,7 @@ describe('resolveEraDeepdive', () => {
         endDate: '2023-06-10',
       },
       rulesSetNames: ['BB2016', 'BB2020'],
+      externalSystemNames: ['BBL', 'NAF'],
       competitions: [
         { id: 10, name: 'Season 1', type: 'season' },
         { id: 11, name: 'Winter Cup', type: 'cup' },
@@ -72,6 +85,7 @@ describe('resolveEraDeepdive', () => {
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
             'Rules: BB2016, BB2020',
+            'External systems: BBL, NAF',
             '',
             'Season 1 (season)',
             'Winter Cup (cup)',
@@ -102,6 +116,7 @@ describe('resolveEraDeepdive', () => {
             'League: Premier',
             'Dates: 2021-09-01 – present',
             'Rules: None recorded',
+            'External systems: None recorded',
             '',
             'Season 1 (season)',
           ].join('\n'),
@@ -158,6 +173,7 @@ describe('resolveEraDeepdive', () => {
             'League: Premier',
             'Dates: 2021-09-01 – 2023-06-10',
             'Rules: None recorded',
+            'External systems: None recorded',
             '',
             DEEPDIVE_NO_COMPETITIONS_MESSAGE,
           ].join('\n'),
@@ -166,10 +182,31 @@ describe('resolveEraDeepdive', () => {
     });
   });
 
+  it('shows "None recorded" when the era has no non-bookkeeping systems', async () => {
+    const services = makeServices({
+      era: {
+        id: 1,
+        name: 'BB2020',
+        leagueName: 'Premier',
+        startDate: '2021-09-01',
+        endDate: null,
+      },
+      externalSystemNames: [],
+      competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
+    });
+    const result = await resolveEraDeepdive(1, services);
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('External systems: None recorded');
+  });
+
   it('falls back to the era timeout message when the era lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { eras: ErasService; competitions: CompetitionsService }) =>
-        resolveEraDeepdive(1, services),
+      (services: {
+        eras: ErasService;
+        competitions: CompetitionsService;
+        externalSystems: ExternalSystemsService;
+      }) => resolveEraDeepdive(1, services),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -178,6 +215,9 @@ describe('resolveEraDeepdive', () => {
         competitions: {
           listByEraChronological: vi.fn(),
         } as unknown as CompetitionsService,
+        externalSystems: {
+          listNamesByEra: vi.fn(),
+        } as unknown as ExternalSystemsService,
       }),
       DEEPDIVE_ERA_TIMEOUT_MESSAGE,
     );
@@ -185,8 +225,11 @@ describe('resolveEraDeepdive', () => {
 
   it('falls back to the rules-set timeout message when the rules lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { eras: ErasService; competitions: CompetitionsService }) =>
-        resolveEraDeepdive(1, services),
+      (services: {
+        eras: ErasService;
+        competitions: CompetitionsService;
+        externalSystems: ExternalSystemsService;
+      }) => resolveEraDeepdive(1, services),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockResolvedValue({
@@ -201,6 +244,9 @@ describe('resolveEraDeepdive', () => {
         competitions: {
           listByEraChronological: vi.fn(),
         } as unknown as CompetitionsService,
+        externalSystems: {
+          listNamesByEra: vi.fn(),
+        } as unknown as ExternalSystemsService,
       }),
       DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
     );
@@ -208,8 +254,11 @@ describe('resolveEraDeepdive', () => {
 
   it('falls back to the competitions timeout message when the competition lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { eras: ErasService; competitions: CompetitionsService }) =>
-        resolveEraDeepdive(1, services),
+      (services: {
+        eras: ErasService;
+        competitions: CompetitionsService;
+        externalSystems: ExternalSystemsService;
+      }) => resolveEraDeepdive(1, services),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockResolvedValue({
@@ -226,8 +275,40 @@ describe('resolveEraDeepdive', () => {
             .fn()
             .mockReturnValue(new Promise(() => {})),
         } as unknown as CompetitionsService,
+        externalSystems: {
+          listNamesByEra: vi.fn(),
+        } as unknown as ExternalSystemsService,
       }),
       DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the external-systems timeout message when that lookup times out', async () => {
+    await expectTimeoutFallback(
+      (services: {
+        eras: ErasService;
+        competitions: CompetitionsService;
+        externalSystems: ExternalSystemsService;
+      }) => resolveEraDeepdive(1, services),
+      () => ({
+        eras: {
+          findByIdWithLeague: vi.fn().mockResolvedValue({
+            id: 1,
+            name: 'BB2020',
+            leagueName: 'Premier',
+            startDate: '2021-09-01',
+            endDate: null,
+          }),
+          getRulesSetNames: vi.fn().mockResolvedValue([]),
+        } as unknown as ErasService,
+        competitions: {
+          listByEraChronological: vi.fn().mockResolvedValue([]),
+        } as unknown as CompetitionsService,
+        externalSystems: {
+          listNamesByEra: vi.fn().mockReturnValue(new Promise(() => {})),
+        } as unknown as ExternalSystemsService,
+      }),
+      DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE,
     );
   });
 });

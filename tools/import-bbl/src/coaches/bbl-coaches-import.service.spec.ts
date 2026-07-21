@@ -81,7 +81,10 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
@@ -96,7 +99,10 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'MyLeague', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {

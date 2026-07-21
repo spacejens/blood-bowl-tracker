@@ -11,9 +11,9 @@ export class ExternalSystemsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertExternalSystem(name: string): Promise<number> {
+  upsertExternalSystem(name: string, isBookkeeping: boolean): Promise<number> {
     return this.importRunner.upsertExternalSystem(
-      () => this.client.externalSystems.upsert({ name }),
+      () => this.client.externalSystems.upsert({ name, isBookkeeping }),
       name,
     );
   }

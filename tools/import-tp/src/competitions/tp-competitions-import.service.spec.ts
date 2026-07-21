@@ -159,7 +159,10 @@ describe('TpCompetitionsImportService', () => {
     const { result, competitionIdsByTpId, matchesByCompetitionId } =
       await service.importCompetitions(eraIdsByName);
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(result.imported).toBe(2);
     // matchesByCompetitionId is keyed by DB competition id (42, 43), each
     // holding every TpMatch parsed for that group.

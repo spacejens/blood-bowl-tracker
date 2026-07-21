@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { contract } from './contract';
 import { UpsertCoachSchema } from './schemas/coach';
 import {
+  ExternalSystemSchema,
+  UpsertExternalSystemSchema,
+} from './schemas/external-system';
+import {
   SyncPositionRaceErasSchema,
   UpsertPositionSchema,
 } from './schemas/position';
@@ -20,6 +24,29 @@ describe('contract', () => {
 
   it('defines externalSystems.upsert with no declared errors', () => {
     expect(errorCodesOf(contract.externalSystems.upsert)).toEqual([]);
+  });
+
+  it('UpsertExternalSystemSchema requires name and isBookkeeping', () => {
+    expect(
+      UpsertExternalSystemSchema.safeParse({
+        name: 'BBL',
+        isBookkeeping: false,
+      }).success,
+    ).toBe(true);
+    expect(UpsertExternalSystemSchema.safeParse({ name: 'BBL' }).success).toBe(
+      false,
+    );
+  });
+
+  it('ExternalSystemSchema includes isBookkeeping', () => {
+    expect(
+      ExternalSystemSchema.safeParse({
+        id: 1,
+        name: 'BBL',
+        isBookkeeping: false,
+        createdAt: new Date('2026-01-01'),
+      }).success,
+    ).toBe(true);
   });
 
   it('defines positions.upsert with a CONFLICT error', () => {

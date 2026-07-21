@@ -4,12 +4,13 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
+  NAME_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import {
   isBaseTournamentFile,
   TpSourceReader,
@@ -69,8 +70,8 @@ export class TpErasImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      tpSystemName,
-      NAME_EXTERNAL_SYSTEM_NAME,
+      { name: tpSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
