@@ -163,9 +163,9 @@ button, in the same order as the list, that opens that player's
   teams of that race. Counts one participation per participating team, so a
   match between two teams of the same race adds 2 to that race's total.
   Supports era filtering.
-- `eras.list` — a single embed listing every recorded era grouped by league,
-  leagues ordered by their earliest era and eras ordered chronologically
-  within each league. Each line reads `<era> (<league>): <start> – <end>`
+- `eras.list` — a single embed listing every recorded era in chronological
+  order by start date, regardless of league (ties broken by league, then era
+  name). Each line reads `<era> (<league>): <start> – <end>`
   (an ongoing era shows `present`). Each listed era also gets a button that
   opens that era's [`/deepdive`](deepdive.md) detail view (which is where a
   rules-set breakdown now lives, rather than inline on this list). Buttons are
