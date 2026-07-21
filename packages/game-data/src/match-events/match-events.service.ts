@@ -40,6 +40,15 @@ export class MatchEventsService {
       consequencePlayerId: data.consequencePlayerId ?? null,
       actionType: data.actionType ?? null,
       consequenceType: data.consequenceType ?? null,
+      weatherType: data.weatherType ?? null,
+      inducementsCost: data.inducementsCost ?? null,
+      winnings: data.winnings ?? null,
+      fanFactor: data.fanFactor ?? null,
+      journeymenCount: data.journeymenCount ?? null,
+      prayersToNuffle: data.prayersToNuffle ?? null,
+      dedicatedFans: data.dedicatedFans ?? null,
+      secretObjective: data.secretObjective ?? null,
+      expensiveMistake: data.expensiveMistake ?? null,
     };
 
     const { row: matchEvent, created } = await upsertByExternalIds<

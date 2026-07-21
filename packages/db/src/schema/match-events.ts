@@ -18,6 +18,14 @@ export const actionTypeEnum = gameData.enum('action_type', [
   'badly_hurt',
   'serious_injury',
   'death',
+  'weather_roll',
+  'inducements_roll',
+  'winnings_roll',
+  'fan_factor_roll',
+  'journeyman_signing',
+  'prayers_to_nuffle',
+  'dedicated_fans_roll',
+  'secret_objective',
 ]);
 
 export const consequenceTypeEnum = gameData.enum('consequence_type', [
@@ -33,6 +41,8 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
   'stat_reduction_pa',
   'death',
   'sent_off',
+  'expensive_mistake',
+  'concession',
 ]);
 
 const matchEventsTable = historyTrackedTable({
@@ -55,6 +65,15 @@ const matchEventsTable = historyTrackedTable({
     ),
     actionType: actionTypeEnum('action_type'),
     consequenceType: consequenceTypeEnum('consequence_type'),
+    weatherType: integer('weather_type'),
+    inducementsCost: integer('inducements_cost'),
+    winnings: integer('winnings'),
+    fanFactor: integer('fan_factor'),
+    journeymenCount: integer('journeymen_count'),
+    prayersToNuffle: integer('prayers_to_nuffle'),
+    dedicatedFans: integer('dedicated_fans'),
+    secretObjective: integer('secret_objective'),
+    expensiveMistake: integer('expensive_mistake'),
   },
   extraConfig: (t) => ({
     actionOrConsequence: check(

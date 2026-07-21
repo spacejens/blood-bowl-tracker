@@ -130,4 +130,23 @@ describe('MatchEventsService', () => {
       { matchEventId: 1, externalSystemId: 1, externalId: '1000-vor-td-0' },
     ]);
   });
+
+  it('persists an administrative weather_roll event with its weatherType payload', async () => {
+    const result = await service.upsert({
+      matchId: 10,
+      actionType: 'weather_roll',
+      weatherType: 104,
+      externalIds: [{ externalSystemId: 1, externalId: 'tp-weather-1' }],
+    });
+
+    expect(result.created).toBe(true);
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({
+      matchId: 10,
+      actionType: 'weather_roll',
+      weatherType: 104,
+      actingPlayerId: null,
+      consequencePlayerId: null,
+    });
+  });
 });

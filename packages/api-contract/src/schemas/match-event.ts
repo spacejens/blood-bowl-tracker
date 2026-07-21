@@ -13,6 +13,14 @@ export const ActionTypeSchema = z.enum([
   'badly_hurt',
   'serious_injury',
   'death',
+  'weather_roll',
+  'inducements_roll',
+  'winnings_roll',
+  'fan_factor_roll',
+  'journeyman_signing',
+  'prayers_to_nuffle',
+  'dedicated_fans_roll',
+  'secret_objective',
 ]);
 
 export const ConsequenceTypeSchema = z.enum([
@@ -28,6 +36,8 @@ export const ConsequenceTypeSchema = z.enum([
   'stat_reduction_pa',
   'death',
   'sent_off',
+  'expensive_mistake',
+  'concession',
 ]);
 
 export const MatchEventSchema = z.object({
@@ -51,6 +61,15 @@ export const UpsertMatchEventSchema = z
     consequencePlayerId: z.number().int().optional(),
     actionType: ActionTypeSchema.optional(),
     consequenceType: ConsequenceTypeSchema.optional(),
+    weatherType: z.number().int().optional(),
+    inducementsCost: z.number().int().optional(),
+    winnings: z.number().int().optional(),
+    fanFactor: z.number().int().optional(),
+    journeymenCount: z.number().int().optional(),
+    prayersToNuffle: z.number().int().optional(),
+    dedicatedFans: z.number().int().optional(),
+    secretObjective: z.number().int().optional(),
+    expensiveMistake: z.number().int().optional(),
     externalIds: z.array(ExternalIdSchema).min(1),
   })
   .refine(
