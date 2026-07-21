@@ -101,53 +101,121 @@ directory.
 
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
 `packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
-raw numeric `matchEventType` code. **Modeled codes**: `4` touchdown
-(`lineUpId`, scoring roster's `rosterId`); `7` mvp_award (`lineUpId` of the
-awarded player, their team's `rosterId` — occurs essentially exactly once per
-team per completed match); `8` injury (`lineUpId`, victim `rosterId`,
-optional `turnRosterId` — the acting team's roster id when present — and
-`injuryType`); the administrative rolls `10` weather, `11` inducements (incl.
-any hired star players, `extraData.starPlayers[]`), `12` winnings, `13` fan
-factor, `14` expensive mistake, `15` journeyman signing, `20` concession,
-`23` prayers to Nuffle, `26` dedicated fans, and `42` secret objective.
-**Skip-listed codes** — dropped unconditionally, along with any unrecognized
-code, so new/unmapped TP codes never crash the import: `0, 1, 3, 5, 6, 18,
-19, 25, 27, 31, 32, 46` — these are structural markers or per-roll noise with
-no useful modeled payload (e.g. code `27`, "player assigned to line-up", is a
+raw numeric `matchEventType` code. **Modeled codes**: `3` completion, `4`
+touchdown, `5` interception, `25` deflection, `31` foul, and `46` successful
+landing are all structurally identical single-actor action events
+(`lineUpId`, acting `rosterId`); `7` mvp_award is the same shape (`lineUpId`
+of the awarded player, their team's `rosterId` — occurs essentially exactly
+once per team per completed match); `32` sent off is the same raw shape again
+but consequence-side (the player sent off, not an actor earning credit); `6`
+casualty_caused (`lineUpId`, ACTING `rosterId`, optional `turnNumber` — see
+below) is the action of a player breaking armor; `8` injury (`lineUpId`,
+victim `rosterId`, optional `turnRosterId` — the acting team's roster id when
+present — optional `turnNumber`, and `injuryType`) is the roll reporting the
+victim and severity; the administrative rolls `10` weather, `11` inducements
+(incl. any hired star players, `extraData.starPlayers[]`), `12` winnings,
+`13` fan factor, `14` expensive mistake, `15` journeyman signing, `20`
+concession, `23` prayers to Nuffle, `26` dedicated fans, and `42` secret
+objective. **Skip-listed codes** — dropped unconditionally, along with any
+unrecognized code, so new/unmapped TP codes never crash the import: `0, 1,
+18, 19, 27` — these are structural markers or per-roll noise with no useful
+modeled payload (e.g. code `27`, "player assigned to line-up", is a
 structural row, not a modeled roll). A `None` `injuryType` is still returned
-by the parser (a real "no injury" roll outcome) but skipped by the import
-step, emitting no event.
+by the parser and is now a real, imported event (a genuine "Badly Hurt"
+result — see below).
 
 `tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
 into zero, one, or two `UpsertMatchEvent`s (see
 [index.md](./index.md#architecture)). Unlike BBL, which correlates
 separately scraped action/consequence occurrences, TP embeds the
-acting/victim player and team directly on the event, so no correlation step
-is needed. A touchdown becomes an `actionType: 'touchdown'` event scoped to
-the scorer; an mvp_award becomes an `actionType: 'mvp_award'` event scoped to
-the awarded player, resolved the same way. An injury's `injuryType` maps to
-a `consequence_type` via:
+acting/victim player and team directly on the event for every kind EXCEPT
+casualties — a legitimate, confirmed exception to the original "no
+correlation needed" design, since a code-6 (`casualty_caused`) and its code-8
+(`injury`) are logged as two independent events with no shared id (see
+below). A touchdown becomes an `actionType: 'touchdown'` event scoped to the
+scorer; completion, interception, deflection, foul, mvp_award, and successful
+landing are all resolved the same way, crediting the acting player and their
+team; sent off is consequence-side, crediting the sent-off player and their
+team. Sent off is deliberately NOT correlated with a preceding foul by the
+same player — in real data, only 58% of sent-offs pair with a nearby same-
+player foul within 30s; the rest have no nearby foul at all (Blood Bowl's
+other sent-off trigger, e.g. an automatic ejection after using a Secret
+Weapon player such as "Fungus the Loon", already seen in this dataset's
+hired-star-player fixtures) — so the two are modeled as fully independent,
+standalone events.
 
-| `injuryType`    | `consequence_type`  |
-| --------------- | -------------------- |
-| `MissNextGame`  | `miss_next_game`     |
-| `NigglingInjury`| `niggling_injury`    |
-| `Dead`          | `death`               |
-| `AV`            | `stat_reduction_av`   |
-| `ST`            | `stat_reduction_st`   |
-| `MA`            | `stat_reduction_ma`   |
-| `PA`            | `stat_reduction_pa`   |
-| `AG`            | `stat_reduction_ag`   |
+An injury's `injuryType` maps to a `consequence_type` via:
 
-When the injury's `turnRosterId` is present and differs from the victim's
-`rosterId` (an opponent caused it), the event also carries an `actionType` —
-`'death'` for a `Dead` injury, else `'casualty'` — crediting the acting
-team; a `turnRosterId` equal to the victim's roster (or absent) means the
-injury was self-inflicted (e.g. a failed dodge), so only the consequence
-side is emitted. This is the one case where a row carries both `actionType`
-and `consequenceType` at once — deliberate, to avoid a BBL-style two-row
-correlation step; the `match_events` CHECK constraint accommodates it (see
-below).
+| `injuryType`     | `consequence_type`  |
+| ---------------- | ------------------- |
+| `None`           | `badly_hurt`        |
+| `MissNextGame`   | `miss_next_game`    |
+| `NigglingInjury` | `niggling_injury`   |
+| `Dead`           | `death`             |
+| `AV`             | `stat_reduction_av` |
+| `ST`             | `stat_reduction_st` |
+| `MA`             | `stat_reduction_ma` |
+| `PA`             | `stat_reduction_pa` |
+| `AG`             | `stat_reduction_ag` |
+
+`None` used to be skipped entirely (treated as "no injury happened"); it is
+in fact a genuine Badly Hurt result and is now always imported.
+
+### Casualty/injury correlation (code 6 ↔ code 8)
+
+A code-6 `casualty_caused` event is the ACTION of a specific player breaking
+armor; a code-8 `injury` event is the roll reporting the VICTIM and severity.
+They are TP's one exception to "no correlation needed": the specific
+attacker can only be recovered by pairing the two events after the fact,
+implemented in `tools/import-tp/src/match-events/tp-match-events-correlation.ts`
+(mirroring where BBL's action/consequence correlation lives), computed once
+per match before its events are dispatched.
+
+Wall-clock proximity was considered and explicitly rejected as the pairing
+key: TP's event registration is asynchronous, so a code-8 can be logged (and
+timestamped) before its corresponding code-6, and an unrelated injury can
+also simply occur shortly after a casualty-causing action elsewhere in the
+match. Real data confirms `turnNumber` equality is a far more reliable,
+order-independent key: of code-6 events with at least one valid-direction
+candidate injury (`injury.turnRosterId === casualty.rosterId` and
+`injury.rosterId !== casualty.rosterId`), 86.4% (1329/1538) share the exact
+same `turnNumber` as that candidate. Pairing therefore requires
+`turnNumber` equality as a hard condition — never wall-clock ordering — with
+nearest-by-`instant` used only as a tiebreaker among same-turn candidates,
+and each code-8 consumed by at most one code-6. A code-6 with no
+same-`turnNumber` candidate stays unpaired rather than being force-matched
+across turns.
+
+A casualty erased by an apothecary (or similar effect) never gets a code-8
+counterpart at all — the code-6 action still fired (the player still gets
+credit), but there is genuinely no injury consequence to pair it with; it is
+imported as a standalone `actionType: 'casualty'` row (severity unknown, no
+injury to report it). An unpaired code-8 is likewise normal and expected
+(e.g. a player falling down on their own, or a random event not tied to any
+attacker) — not an error case.
+
+When a code-8 IS paired to a code-6, the resulting row carries both
+`actionType` and `consequenceType` at once: the consequence side as above,
+and the action side crediting the specific acting player and team, with
+severity bucketed the same way `tools/import-bbl` already buckets its own
+casualty severities:
+
+| `injuryType` bucket                                            | `actionType`     |
+| -------------------------------------------------------------- | ---------------- |
+| `None`                                                         | `badly_hurt`     |
+| `MissNextGame`, `NigglingInjury`, `AV`, `ST`, `MA`, `PA`, `AG` | `serious_injury` |
+| `Dead`                                                         | `death`          |
+
+When a code-8 is NOT paired but its `turnRosterId` differs from the victim's
+`rosterId` (opponent-caused per TP's turn-owner field, but the specific
+player couldn't be pinned down — e.g. a cross-turn logging quirk), the row
+falls back to team-only credit at the same severity bucket. A `turnRosterId`
+equal to the victim's roster (or absent), with no code-6 pairing, means the
+injury was self-inflicted (e.g. a failed dodge) or otherwise unattributable,
+so only the consequence side is emitted. This dual-role-on-one-row shape is
+the same deliberate choice as before (avoiding a BBL-style two-row
+correlation for most cases); the `match_events` CHECK constraint
+accommodates it (see below).
 
 Every administrative event sets exactly one typed payload column (e.g.
 `weatherType`, `inducementsCost`, `inducementsFromTreasury`, `winnings`,
@@ -175,11 +243,11 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   into a named enum).
 - **Dedicated fans** (`26`) is a consequence (the resulting fan-count
   change), not an action, so it's carried via `consequenceType:
-  'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
+'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
   side whose modifier is `0` (no change) is skipped entirely, so this event
   can now emit zero, one, or two records instead of always exactly two.
 
-`secretObjective`'s payload is TP's own opaque identifier code for *which*
+`secretObjective`'s payload is TP's own opaque identifier code for _which_
 secret-objective card was drawn — not a count of objectives completed. The
 same roster can have multiple `secret_objective` events in one match with
 different, non-sequential values, and the same value can recur across
@@ -230,7 +298,7 @@ teamRaceCode, raceName, coachTpId, positions, players }`:
   external ids (all in one upsert call). Positions carry no Name external id
   (position names are not race-unique).
 - `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
-  number, lineUpMasterId, rosterId }`. `id` is the per-instance line-up id
+number, lineUpMasterId, rosterId }`. `id` is the per-instance line-up id
   that `matchEvents[].lineUpId` (see below) references; `lineUpMasterId`
   links back to the position template in `rosterMaster.lineUpMasters[]` (the
   `positions` field above).
@@ -287,7 +355,7 @@ use `lineUpId`), so this map is currently unconsumed downstream — kept for a
 future event type that would need it.
 
 **Still not handled** (future work): `rosterMaster.starPlayersMasters` (the
-roster's full star-player *catalog*, as opposed to the star players actually
+roster's full star-player _catalog_, as opposed to the star players actually
 hired in a match — the field isn't declared in `RosterSchema`, so it's
 dropped unconditionally by the parser regardless of dataset content), and
 the other top-level fields (`imageFile`, `assistantCoaches`, `cheerLeaders`,
