@@ -20,13 +20,11 @@ export const ACTION_CATEGORY: Record<ActionType, string> = {
   badly_hurt: 'badly-hurt',
   serious_injury: 'serious',
   death: 'death',
-  weather_roll: 'weather',
-  inducements_roll: 'inducements',
-  winnings_roll: 'winnings',
-  fan_factor_roll: 'fan-factor',
-  journeyman_signing: 'journeyman',
+  inducements: 'inducements',
+  winnings: 'winnings',
+  fan_factor: 'fan-factor',
+  journeymen_signings: 'journeyman',
   prayers_to_nuffle: 'prayers',
-  dedicated_fans_roll: 'dedicated-fans',
   secret_objective: 'secret-objective',
 };
 
@@ -46,6 +44,7 @@ export const CONSEQUENCE_CATEGORY: Record<ConsequenceType, string> = {
   sent_off: 'sent-off',
   expensive_mistake: 'expensive-mistake',
   concession: 'concession',
+  dedicated_fans: 'dedicated-fans',
 };
 
 /**

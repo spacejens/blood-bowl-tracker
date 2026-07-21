@@ -217,12 +217,17 @@ function buildInjuryEvent(
  * Build the administrative TP match events (weather, inducements, winnings,
  * fan factor, journeyman signing, expensive mistake, dedicated fans, secret
  * objective, prayers to Nuffle, concession) for one event, per the mapping
- * table in the Task 9 plan. Single-team-scoped events resolve their team era
- * via `rosterId` under the match's era; "both-sides" events (winnings,
- * fan factor, dedicated fans) emit two `UpsertMatchEvent`s using the match's
- * already-resolved `homeTeamEraId`/`awayTeamEraId`, with external ids
- * suffixed `-home`/`-away`. Every other administrative event uses a plain
- * `tp-<tpEventId>` external id. Exactly one payload column is set per event.
+ * table in the Task 9 plan (as amended by the round-1 review brief). Weather
+ * has no actor or consequence recipient, so it's classified via `eventType`
+ * rather than `actionType`, and stays team-less/neutral. Single-team-scoped
+ * events resolve their team era via `rosterId` under the match's era;
+ * "both-sides" events (winnings, fan factor, dedicated fans) emit up to two
+ * `UpsertMatchEvent`s using the match's already-resolved
+ * `homeTeamEraId`/`awayTeamEraId`, with external ids suffixed
+ * `-home`/`-away` — dedicated fans is consequence-scoped (it's an outcome,
+ * not an action) and skips a side whose modifier is `0` (unchanged), so it
+ * can return zero, one, or two events. Every other administrative event uses
+ * a plain `tp-<tpEventId>` external id.
  */
 function buildAdminEvents(
   options: BuildEventDataOptions & { event: TpAdminMatchEvent },
@@ -244,7 +249,7 @@ function buildAdminEvents(
       return [
         {
           matchId,
-          actionType: 'weather_roll',
+          eventType: 'weather',
           weatherType: event.weatherType,
           externalIds: externalId(tpSystemId, event.tpEventId),
         },
@@ -253,17 +258,18 @@ function buildAdminEvents(
     case 'inducements_roll': {
       const data: UpsertMatchEvent = {
         matchId,
-        actionType: 'inducements_roll',
+        actionType: 'inducements',
         inducementsCost: event.totalCost,
         externalIds: externalId(tpSystemId, event.tpEventId),
       };
       setIfDefined(data, 'actingTeamEraId', actingTeamEraId(event.rosterId));
+      setIfDefined(data, 'inducementsFromTreasury', event.fromTreasury);
       return [data];
     }
     case 'journeyman_signing': {
       const data: UpsertMatchEvent = {
         matchId,
-        actionType: 'journeyman_signing',
+        actionType: 'journeymen_signings',
         journeymenCount: event.journeymenCount,
         externalIds: externalId(tpSystemId, event.tpEventId),
       };
@@ -297,14 +303,14 @@ function buildAdminEvents(
     case 'winnings_roll': {
       const home: UpsertMatchEvent = {
         matchId,
-        actionType: 'winnings_roll',
+        actionType: 'winnings',
         winnings: event.localWinnings,
         externalIds: externalId(tpSystemId, event.tpEventId, 'home'),
       };
       setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
       const away: UpsertMatchEvent = {
         matchId,
-        actionType: 'winnings_roll',
+        actionType: 'winnings',
         winnings: event.visitorWinnings,
         externalIds: externalId(tpSystemId, event.tpEventId, 'away'),
       };
@@ -314,14 +320,14 @@ function buildAdminEvents(
     case 'fan_factor_roll': {
       const home: UpsertMatchEvent = {
         matchId,
-        actionType: 'fan_factor_roll',
+        actionType: 'fan_factor',
         fanFactor: event.newFanFactorLocal,
         externalIds: externalId(tpSystemId, event.tpEventId, 'home'),
       };
       setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
       const away: UpsertMatchEvent = {
         matchId,
-        actionType: 'fan_factor_roll',
+        actionType: 'fan_factor',
         fanFactor: event.newFanFactorVisitor,
         externalIds: externalId(tpSystemId, event.tpEventId, 'away'),
       };
@@ -329,21 +335,28 @@ function buildAdminEvents(
       return [home, away];
     }
     case 'dedicated_fans_roll': {
-      const home: UpsertMatchEvent = {
-        matchId,
-        actionType: 'dedicated_fans_roll',
-        dedicatedFans: event.dedicatedFansModifierLocal,
-        externalIds: externalId(tpSystemId, event.tpEventId, 'home'),
-      };
-      setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
-      const away: UpsertMatchEvent = {
-        matchId,
-        actionType: 'dedicated_fans_roll',
-        dedicatedFans: event.dedicatedFansModifierVisitor,
-        externalIds: externalId(tpSystemId, event.tpEventId, 'away'),
-      };
-      setIfDefined(away, 'actingTeamEraId', awayTeamEraId);
-      return [home, away];
+      const events: UpsertMatchEvent[] = [];
+      if (event.dedicatedFansModifierLocal !== 0) {
+        const home: UpsertMatchEvent = {
+          matchId,
+          consequenceType: 'dedicated_fans',
+          dedicatedFans: event.dedicatedFansModifierLocal,
+          externalIds: externalId(tpSystemId, event.tpEventId, 'home'),
+        };
+        setIfDefined(home, 'consequenceTeamEraId', homeTeamEraId);
+        events.push(home);
+      }
+      if (event.dedicatedFansModifierVisitor !== 0) {
+        const away: UpsertMatchEvent = {
+          matchId,
+          consequenceType: 'dedicated_fans',
+          dedicatedFans: event.dedicatedFansModifierVisitor,
+          externalIds: externalId(tpSystemId, event.tpEventId, 'away'),
+        };
+        setIfDefined(away, 'consequenceTeamEraId', awayTeamEraId);
+        events.push(away);
+      }
+      return events;
     }
     case 'prayers_to_nuffle': {
       return [
