@@ -36,6 +36,8 @@ function tpMatch(id: number, name: string): TpMatch {
     homeTeamTpId: 1000 + id,
     awayTeamTpId: 2000 + id,
     matchEvents: [],
+    homeRosterPlayers: [],
+    awayRosterPlayers: [],
   };
 }
 

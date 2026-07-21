@@ -49,7 +49,7 @@ const LineUpMasterSchema = z.object({
   position: z.string(),
 });
 
-const LineUpSchema = z.object({
+export const LineUpSchema = z.object({
   id: z.number(),
   name: z.string(),
   number: z.number(),

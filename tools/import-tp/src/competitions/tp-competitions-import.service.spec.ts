@@ -101,8 +101,8 @@ function matchFile({
       createdInstant: '2021-01-01T00:00:00Z',
       round,
       group: { phase: { roundName } },
-      inscriptionLocal: { roster: { id: 1 } },
-      inscriptionVisitor: { roster: { id: 2 } },
+      inscriptionLocal: { roster: { id: 1, lineUps: [] } },
+      inscriptionVisitor: { roster: { id: 2, lineUps: [] } },
     },
   };
 }

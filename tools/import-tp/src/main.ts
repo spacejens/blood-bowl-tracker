@@ -2,7 +2,10 @@
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import { makeImportResult } from '@blood-bowl-tracker/import';
-import type { TpInducedStarPlayer } from '@blood-bowl-tracker/parse-tp';
+import type {
+  TpInducedStarPlayer,
+  TpRosterPlayer,
+} from '@blood-bowl-tracker/parse-tp';
 import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
@@ -111,19 +114,56 @@ async function run(): Promise<ImportResult> {
     // multiple eras resolves its team era unambiguously downstream, instead of
     // guessing). A competition whose eraId can't be resolved is skipped
     // defensively -- shouldn't happen in practice.
+    //
+    // This same pass also builds matchEmbeddedPlayersByRosterId: a standalone
+    // rosters_<id>.json file only reflects a roster's CURRENT composition as
+    // of when the local TP data mirror was downloaded, so a player who has
+    // since left/been replaced is silently absent from it even though
+    // historical matchEvents[] can still reference them. Each match's own
+    // homeRosterPlayers/awayRosterPlayers (parsed from
+    // inscriptionLocal/Visitor.roster.lineUps[]) embeds a per-match snapshot
+    // of that side's roster, so accumulating them across every match a
+    // roster played (deduped by player id) fills that gap without a third
+    // scan of matchesByCompetitionId.
     const inducedStarPlayerHireGroupsByKey = new Map<
       string,
       { rosterId: number; eraId: number; starPlayers: TpInducedStarPlayer[] }
     >();
+    const matchEmbeddedPlayersByRosterIdMut = new Map<
+      number,
+      Map<number, TpRosterPlayer>
+    >();
+    const accumulateMatchEmbeddedPlayers = (
+      rosterId: number,
+      players: TpRosterPlayer[],
+    ) => {
+      let byPlayerId = matchEmbeddedPlayersByRosterIdMut.get(rosterId);
+      if (!byPlayerId) {
+        byPlayerId = new Map<number, TpRosterPlayer>();
+        matchEmbeddedPlayersByRosterIdMut.set(rosterId, byPlayerId);
+      }
+      for (const player of players) {
+        byPlayerId.set(player.id, player);
+      }
+    };
     for (const [
       competitionId,
       matches,
     ] of competitionOutcome.matchesByCompetitionId.entries()) {
       const eraId = eraIdByCompetitionId.get(competitionId);
-      if (eraId === undefined) {
-        continue;
-      }
       for (const match of matches) {
+        accumulateMatchEmbeddedPlayers(
+          match.homeTeamTpId,
+          match.homeRosterPlayers,
+        );
+        accumulateMatchEmbeddedPlayers(
+          match.awayTeamTpId,
+          match.awayRosterPlayers,
+        );
+
+        if (eraId === undefined) {
+          continue;
+        }
         for (const event of match.matchEvents) {
           if (
             event.type !== 'inducements_roll' ||
@@ -148,12 +188,20 @@ async function run(): Promise<ImportResult> {
     const inducedStarPlayerHireGroups = Array.from(
       inducedStarPlayerHireGroupsByKey.values(),
     );
+    const matchEmbeddedPlayersByRosterId = new Map(
+      Array.from(matchEmbeddedPlayersByRosterIdMut.entries()).map(
+        ([rosterId, byPlayerId]) => [rosterId, Array.from(byPlayerId.values())],
+      ),
+    );
 
     // Players run after positions and teams: each roster player resolves a
     // team era (via teamOutcome.teamErasByRosterId) and a position (via
-    // positionIdsByTpPositionId), so both must exist first. playerIdsByLineUpId
-    // and starPlayerIdsByRosterAndMaster are kept in scope for the
-    // match-events step below.
+    // positionIdsByTpPositionId), so both must exist first. Roster player
+    // data is unioned with matchEmbeddedPlayersByRosterId (built above) so a
+    // player who has since left/been replaced on a roster -- absent from the
+    // standalone roster file -- is still imported and resolvable.
+    // playerIdsByLineUpId and starPlayerIdsByRosterAndMaster are kept in
+    // scope for the match-events step below.
     const {
       result: playerResult,
       playerIdsByLineUpId,
@@ -164,6 +212,7 @@ async function run(): Promise<ImportResult> {
       eraIdsByName: eraOutcome.eraIdsByName,
       positionIdsByTpPositionId,
       inducedStarPlayerHireGroups,
+      matchEmbeddedPlayersByRosterId,
     });
 
     // Team participation (match_teams + competition_teams) runs before match

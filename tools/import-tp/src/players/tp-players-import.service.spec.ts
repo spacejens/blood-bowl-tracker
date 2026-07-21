@@ -79,6 +79,77 @@ describe('TpPlayersImportService', () => {
     );
   });
 
+  it('imports a player present only in matchEmbeddedPlayersByRosterId (absent from roster.players), filling the departed-player gap', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
+    const service = makeService({ upsertPlayerResult });
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+      matchEmbeddedPlayersByRosterId: new Map([
+        [
+          123,
+          [
+            {
+              id: 9999999,
+              name: 'A Departed Player',
+              number: 7,
+              lineUpMasterId: 952,
+              rosterId: 123,
+            },
+          ],
+        ],
+      ]),
+    });
+
+    expect(result.imported).toBe(2);
+    expect(playerIdsByLineUpId.get(9999999)).toBe(901);
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'A Departed Player',
+        externalIds: [{ externalSystemId: 1, externalId: '9999999' }],
+      }),
+      expect.anything(),
+    );
+  });
+
+  it('prefers roster.players data over matchEmbeddedPlayersByRosterId for the same player id', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const service = makeService({ upsertPlayerResult });
+
+    await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+      matchEmbeddedPlayersByRosterId: new Map([
+        [
+          123,
+          [
+            {
+              // Same id as the roster.players entry (2412443) but a
+              // differing name, proving roster.players wins on conflict
+              // rather than just merging.
+              id: 2412443,
+              name: 'Stale Match-Embedded Name',
+              number: 4,
+              lineUpMasterId: 952,
+              rosterId: 123,
+            },
+          ],
+        ],
+      ]),
+    });
+
+    expect(upsertPlayerResult).toHaveBeenCalledTimes(1);
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'The Agitated Deviation' }),
+      expect.anything(),
+    );
+  });
+
   it('records an unknown-era error and skips a player whose roster era is not imported', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const service = makeService({ upsertPlayerResult });

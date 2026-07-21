@@ -32,6 +32,8 @@ function matchWithEvents(options: {
     homeTeamTpId: HOME_ROSTER_ID,
     awayTeamTpId: AWAY_ROSTER_ID,
     matchEvents: options.events,
+    homeRosterPlayers: [],
+    awayRosterPlayers: [],
   };
 }
 

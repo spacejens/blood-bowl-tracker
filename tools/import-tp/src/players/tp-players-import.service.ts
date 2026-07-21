@@ -6,7 +6,10 @@ import {
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import type { TpInducedStarPlayer } from '@blood-bowl-tracker/parse-tp';
+import type {
+  TpInducedStarPlayer,
+  TpRosterPlayer,
+} from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -40,6 +43,19 @@ export interface ImportPlayersOptions {
    * star players can omit it.
    */
   inducedStarPlayerHireGroups?: InducedStarPlayerHireGroup[];
+  /**
+   * Players seen in match-embedded roster snapshots
+   * (`TpMatch.homeRosterPlayers`/`awayRosterPlayers`), grouped by roster id
+   * (pre-scanned by `main.ts` from `matchesByCompetitionId`, so this service
+   * stays the single owner of the player-resolution maps). A standalone
+   * `rosters_<id>.json` file only reflects a roster's CURRENT composition as
+   * of when the local TP data mirror was downloaded, so a player who has
+   * since left/been replaced is silently absent from it even though
+   * historical `matchEvents[]` can still reference them — this map fills
+   * that gap. Optional -- callers/tests that don't exercise this path can
+   * omit it, matching the existing `inducedStarPlayerHireGroups?` pattern.
+   */
+  matchEmbeddedPlayersByRosterId?: Map<number, TpRosterPlayer[]>;
 }
 
 @Injectable()
@@ -64,6 +80,13 @@ export class TpPlayersImportService {
    * `playerIdsByLineUpId`, consumed by the match-events step to resolve a
    * `matchEvents[].lineUpId` to a player's DB id.
    *
+   * Each roster's player list is first merged with any entry in
+   * `matchEmbeddedPlayersByRosterId` for that roster id: the match-embedded
+   * snapshot fills in player ids absent from the standalone roster file (a
+   * departed player), while the standalone file's own data wins for any id
+   * it lists (presumed freshest). See `matchEmbeddedPlayersByRosterId`'s doc
+   * comment for why this union is needed.
+   *
    * Also imports every star player named in `inducedStarPlayerHireGroups`
    * (hired via an `inducements_roll` event, not part of a roster's permanent
    * `lineUps[]`): each named star player gets one reused `isStarPlayer: true`
@@ -84,6 +107,7 @@ export class TpPlayersImportService {
     eraIdsByName,
     positionIdsByTpPositionId,
     inducedStarPlayerHireGroups,
+    matchEmbeddedPlayersByRosterId,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
@@ -114,7 +138,22 @@ export class TpPlayersImportService {
         errors.push(unknownEraError(era, roster));
       }
 
+      // Merge the match-embedded roster snapshot into the standalone
+      // roster's players, keyed by player id: start from the
+      // match-embedded entries (a departed player, absent from
+      // roster.players, may only exist here), then overlay roster.players
+      // so the standalone file's data wins for any id it lists.
+      const mergedPlayers = new Map<number, (typeof roster.players)[number]>(
+        (matchEmbeddedPlayersByRosterId?.get(roster.id) ?? []).map((player) => [
+          player.id,
+          player,
+        ]),
+      );
       for (const player of roster.players) {
+        mergedPlayers.set(player.id, player);
+      }
+
+      for (const player of mergedPlayers.values()) {
         const teamEras = teamErasByRosterId.get(roster.id);
         const teamEra = teamEras?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {

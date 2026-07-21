@@ -164,11 +164,20 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   resolved is recorded as an error and skipped. Players carry only a TP
   external id (no Name external id — player names aren't unique). Returns
   `playerIdsByLineUpId`, consumed by match-event import to resolve a
-  `matchEvents[].lineUpId`. Also imports every star player hired via an
-  `inducements_roll` match event (gathered by `main.ts` from the
-  already-parsed match events, not from any roster field), each getting a
-  reused `isStarPlayer: true` Position and a Player scoped to the hiring
-  roster's team-era; returns `starPlayerIdsByRosterAndMaster`, keyed
+  `matchEvents[].lineUpId`. Also consumes `matchEmbeddedPlayersByRosterId`
+  from `main.ts`'s pre-scan of `matchesByCompetitionId` (each match's
+  `homeRosterPlayers`/`awayRosterPlayers` — a per-match roster snapshot
+  parsed by `MatchParserService`, grouped by roster id): for each roster it
+  merges these match-embedded players with `roster.players`, keyed by
+  player id, so a player who has since left/been replaced on the roster
+  (absent from the standalone `rosters_<id>.json` file) is still imported,
+  with `roster.players`' own data winning on conflict for a given id — see
+  [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)
+  for why. Also imports every star player hired via an `inducements_roll`
+  match event (gathered by `main.ts` from the already-parsed match events,
+  not from any roster field), each getting a reused `isStarPlayer: true`
+  Position and a Player scoped to the hiring roster's team-era; returns
+  `starPlayerIdsByRosterAndMaster`, keyed
   `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
   match-event type references a player by `lineUpMasterId` yet).
 - **TpTeamParticipationImportService** — populates `match_teams` and

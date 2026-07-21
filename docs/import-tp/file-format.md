@@ -151,11 +151,15 @@ suffixed variant), synthesized from `matchEvents[].id`.
 Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
 `createdInstant`, `ruleSet`, `weatherTable`, `round`, `order`,
 `turn { current, half, ... }`,
-`inscriptionLocal.roster { id, ... }` / `inscriptionVisitor.roster { id, ... }`
-(the home/away teams — only each side's roster `id` is parsed, into
-`homeTeamTpId`/`awayTeamTpId`; the rest of these nested roster bodies is
-unhandled), `scoreResume { startInstant, finishInstant }`, and — importantly
-— `scheduledDate`/`endScheduledDate`.
+`inscriptionLocal.roster { id, lineUps, ... }` /
+`inscriptionVisitor.roster { id, lineUps, ... }` (the home/away teams — each
+side's roster `id` is parsed into `homeTeamTpId`/`awayTeamTpId`, and its
+`lineUps[]` — a per-match snapshot of that side's roster, same shape as the
+standalone roster file's own `lineUps[]` — is parsed into
+`homeRosterPlayers`/`awayRosterPlayers`, see the players section below; the
+rest of these nested roster bodies remains unhandled), `scoreResume
+{ startInstant, finishInstant }`, and — importantly — `scheduledDate`/
+`endScheduledDate`.
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is
 the closest thing to "when the match was actually played" anywhere in TP's
 data; there is no tournament- or era-level date-boundary field, so the era
@@ -216,8 +220,25 @@ entry: each resolves a team era (roster id + era, via
 resolved is recorded as an error and skipped. Players carry only a TP
 external id (the `lineUps[].id`) — no Name external id, since player names
 aren't guaranteed unique. Returns `playerIdsByLineUpId`, consumed by
-match-event import to resolve a `matchEvents[].lineUpId` to a player. The
-service also imports **hired star players** — named via an `inducements_roll`
+match-event import to resolve a `matchEvents[].lineUpId` to a player.
+
+Player identity is sourced from BOTH `rosters_<id>.json`'s top-level
+`lineUps[]` (a roster's CURRENT composition, as of when the local TP data
+mirror was downloaded) AND each `match_<id>.json`'s
+`inscriptionLocal.roster.lineUps[]` / `inscriptionVisitor.roster.lineUps[]`
+(a per-match historical snapshot of that side's roster at match time, parsed
+into `MatchParserService`'s `homeRosterPlayers`/`awayRosterPlayers`). This is
+because a player who has since left/been replaced on a roster is silently
+absent from the standalone roster file, even though historical
+`matchEvents[]` (in this or another match) can still reference them by
+`lineUpId` — without the match-embedded snapshot, that player's identity
+(and thus the event's player attribution) is lost. `main.ts` pre-scans every
+match's `homeRosterPlayers`/`awayRosterPlayers`, grouping them by roster id
+into `matchEmbeddedPlayersByRosterId`, and `TpPlayersImportService` merges
+each roster's match-embedded players with `roster.players`, keyed by player
+id — the standalone file's data wins on conflict for a given id (presumed
+freshest), so the match-embedded snapshot only fills in ids the standalone
+file doesn't list. The service also imports **hired star players** — named via an `inducements_roll`
 match event's `extraData.starPlayers[]` (see the `match_<id>.json` section
 below), not via any field on the roster file itself. Each hired star player
 gets one reused `isStarPlayer: true` Position (a bare-name TP external id)

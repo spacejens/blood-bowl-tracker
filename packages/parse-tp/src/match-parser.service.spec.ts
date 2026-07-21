@@ -15,8 +15,8 @@ function matchBody(overrides: Record<string, unknown> = {}) {
     round: 3,
     group: { phase: { roundName: 'ROUND' } },
     createdInstant: '2021-04-01T09:00:00Z',
-    inscriptionLocal: { roster: { id: 10 } },
-    inscriptionVisitor: { roster: { id: 20 } },
+    inscriptionLocal: { roster: { id: 10, lineUps: [] } },
+    inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
     ...overrides,
   };
 }
@@ -40,7 +40,98 @@ describe('MatchParserService', () => {
       homeTeamTpId: 10,
       awayTeamTpId: 20,
       matchEvents: [],
+      homeRosterPlayers: [],
+      awayRosterPlayers: [],
     });
+  });
+
+  it('maps inscriptionLocal.roster.lineUps / inscriptionVisitor.roster.lineUps to homeRosterPlayers/awayRosterPlayers', () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 2412443,
+                name: 'The Agitated Deviation',
+                number: 1,
+                lineUpMasterId: 952,
+                rosterId: 10,
+              },
+            ],
+          },
+        },
+        inscriptionVisitor: {
+          roster: {
+            id: 20,
+            lineUps: [
+              {
+                id: 2412500,
+                name: 'A Departed Player',
+                number: 7,
+                lineUpMasterId: 953,
+                rosterId: 20,
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(result.homeRosterPlayers).toEqual([
+      {
+        id: 2412443,
+        name: 'The Agitated Deviation',
+        number: 1,
+        lineUpMasterId: 952,
+        rosterId: 10,
+      },
+    ]);
+    expect(result.awayRosterPlayers).toEqual([
+      {
+        id: 2412500,
+        name: 'A Departed Player',
+        number: 7,
+        lineUpMasterId: 953,
+        rosterId: 20,
+      },
+    ]);
+  });
+
+  it('returns empty homeRosterPlayers/awayRosterPlayers when lineUps is an empty array', () => {
+    const result = service.parse(matchBody());
+    expect(result.homeRosterPlayers).toEqual([]);
+    expect(result.awayRosterPlayers).toEqual([]);
+  });
+
+  it("defaults a match-embedded lineUp entry's rosterId to its side's roster id when the field is absent (real TP match files omit it, unlike the standalone roster file)", () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 47062,
+            lineUps: [
+              {
+                id: 727141,
+                name: 'Bangnewick',
+                number: 1,
+                lineUpMasterId: 325,
+                // rosterId intentionally omitted -- matches real TP data.
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(result.homeRosterPlayers).toEqual([
+      {
+        id: 727141,
+        name: 'Bangnewick',
+        number: 1,
+        lineUpMasterId: 325,
+        rosterId: 47062,
+      },
+    ]);
   });
 
   it('decodes a populated matchEvents array end-to-end', () => {
@@ -72,8 +163,8 @@ describe('MatchParserService', () => {
   it('parses distinct home and away roster ids from inscriptionLocal/inscriptionVisitor', () => {
     const result = service.parse(
       matchBody({
-        inscriptionLocal: { roster: { id: 777 } },
-        inscriptionVisitor: { roster: { id: 888 } },
+        inscriptionLocal: { roster: { id: 777, lineUps: [] } },
+        inscriptionVisitor: { roster: { id: 888, lineUps: [] } },
       }),
     );
     expect(result.homeTeamTpId).toBe(777);
@@ -139,8 +230,8 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: { roundName: 'ROUND' } },
         createdInstant: '2021-04-01T09:00:00Z',
-        inscriptionLocal: { roster: { id: 10 } },
-        inscriptionVisitor: { roster: { id: 20 } },
+        inscriptionLocal: { roster: { id: 10, lineUps: [] } },
+        inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
       }),
     ).toThrow(/matchId/);
   });
@@ -157,8 +248,8 @@ describe('MatchParserService', () => {
         matchId: 1,
         group: { phase: { roundName: 'ROUND' } },
         createdInstant: '2021-04-01T09:00:00Z',
-        inscriptionLocal: { roster: { id: 10 } },
-        inscriptionVisitor: { roster: { id: 20 } },
+        inscriptionLocal: { roster: { id: 10, lineUps: [] } },
+        inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
       }),
     ).toThrow(/round/);
   });
@@ -170,8 +261,8 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: {} },
         createdInstant: '2021-04-01T09:00:00Z',
-        inscriptionLocal: { roster: { id: 10 } },
-        inscriptionVisitor: { roster: { id: 20 } },
+        inscriptionLocal: { roster: { id: 10, lineUps: [] } },
+        inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
       }),
     ).toThrow(/roundName/);
   });
@@ -184,8 +275,8 @@ describe('MatchParserService', () => {
         round: 3,
         group: { phase: { roundName: 'ROUND' } },
         scheduledDate: '2021-05-15T18:00:00Z',
-        inscriptionLocal: { roster: { id: 10 } },
-        inscriptionVisitor: { roster: { id: 20 } },
+        inscriptionLocal: { roster: { id: 10, lineUps: [] } },
+        inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
       }),
     ).toThrow(/createdInstant/);
   });
