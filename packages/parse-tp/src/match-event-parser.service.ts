@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 /**
@@ -32,8 +33,8 @@ interface TpMatchEventBase {
 /**
  * The modeled subset of TP's raw `matchEvents[]` per-roll event log,
  * discriminated by `type` (a stable slug derived from the numeric
- * `matchEventType` code). See `parseMatchEvents` for the full decode table
- * and which codes are dropped.
+ * `matchEventType` code). See `MatchEventParserService.parse` for the full
+ * decode table and which codes are dropped.
  */
 export type TpMatchEvent =
   | (TpMatchEventBase & {
@@ -515,31 +516,34 @@ const decoders = new Map<number, Decoder>([
 
 const topLevelSchema = z.object({ matchEventType: z.number() });
 
-/**
- * Decode a raw TP `matchEvents[]` array into the modeled subset. Structural
- * markers and per-roll noise (codes such as 0, 1, 18, 19, 27 — including
- * code 27, a "player assigned to line-up" structural row, not a modeled
- * roll) and any unrecognized code are silently dropped so
- * new TP codes never crash the import. `None` injuries are still returned;
- * the import step decides whether to skip them, keeping this parser a pure
- * decode. Throws a descriptive `Error` only when a *known* code's payload
- * fails its schema.
- */
-export function parseMatchEvents(rawEvents: unknown): TpMatchEvent[] {
-  const array = z.array(z.unknown()).safeParse(rawEvents);
-  if (!array.success) {
-    throw new Error('Invalid TP match events: expected an array.');
-  }
-  const events: TpMatchEvent[] = [];
-  for (const raw of array.data) {
-    const head = topLevelSchema.safeParse(raw);
-    if (!head.success) {
-      continue; // no numeric matchEventType — not a decodable event
+@Injectable()
+export class MatchEventParserService {
+  /**
+   * Decode a raw TP `matchEvents[]` array into the modeled subset. Structural
+   * markers and per-roll noise (codes such as 0, 1, 18, 19, 27 — including
+   * code 27, a "player assigned to line-up" structural row, not a modeled
+   * roll) and any unrecognized code are silently dropped so
+   * new TP codes never crash the import. `None` injuries are still returned;
+   * the import step decides whether to skip them, keeping this parser a pure
+   * decode. Throws a descriptive `Error` only when a *known* code's payload
+   * fails its schema.
+   */
+  parse(rawEvents: unknown): TpMatchEvent[] {
+    const array = z.array(z.unknown()).safeParse(rawEvents);
+    if (!array.success) {
+      throw new Error('Invalid TP match events: expected an array.');
     }
-    const decoder = decoders.get(head.data.matchEventType);
-    if (decoder) {
-      events.push(decoder(raw));
+    const events: TpMatchEvent[] = [];
+    for (const raw of array.data) {
+      const head = topLevelSchema.safeParse(raw);
+      if (!head.success) {
+        continue; // no numeric matchEventType — not a decodable event
+      }
+      const decoder = decoders.get(head.data.matchEventType);
+      if (decoder) {
+        events.push(decoder(raw));
+      }
     }
+    return events;
   }
-  return events;
 }

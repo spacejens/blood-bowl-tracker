@@ -5,7 +5,7 @@ export type {
   TpInjuryType,
   TpMatchEvent,
 } from './match-event-parser.service';
-export { parseMatchEvents } from './match-event-parser.service';
+export { MatchEventParserService } from './match-event-parser.service';
 export type { TpMatch } from './match-parser.service';
 export { MatchParserService } from './match-parser.service';
 export { ParseTpModule } from './parse-tp.module';

@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseMatchEvents } from './match-event-parser.service';
+import { MatchEventParserService } from './match-event-parser.service';
 
-describe('parseMatchEvents', () => {
+const parser = new MatchEventParserService();
+
+describe('MatchEventParserService', () => {
   it('decodes a touchdown (code 4)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150327,
           matchEventType: 4,
@@ -28,7 +30,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes an MVP award (code 7)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150378,
           matchEventType: 7,
@@ -53,7 +55,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a completion (code 3)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150320,
           matchEventType: 3,
@@ -75,7 +77,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes an interception (code 5)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150321,
           matchEventType: 5,
@@ -97,7 +99,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a casualty caused (code 6)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150322,
           matchEventType: 6,
@@ -119,7 +121,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a deflection (code 25)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150323,
           matchEventType: 25,
@@ -141,7 +143,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a foul (code 31)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150324,
           matchEventType: 31,
@@ -163,7 +165,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a sent off (code 32)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150325,
           matchEventType: 32,
@@ -185,7 +187,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a successful landing (code 46)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7150326,
           matchEventType: 46,
@@ -207,7 +209,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes an injury (code 8) with its injuryType and acting team', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 7147568,
           matchEventType: 8,
@@ -239,7 +241,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an injury (code 8) with its turnNumber, when present', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 7150231,
         matchEventType: 8,
@@ -271,7 +273,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a casualty caused (code 6) with its turnNumber, when present', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 7150224,
         matchEventType: 6,
@@ -294,7 +296,7 @@ describe('parseMatchEvents', () => {
 
   it('decodes a weather roll (code 10)', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         {
           id: 1,
           matchEventType: 10,
@@ -313,7 +315,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an inducements roll (code 11) with induced star players', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 2,
         matchEventType: 11,
@@ -345,7 +347,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an inducements roll (code 11) with no star players', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 21,
         matchEventType: 11,
@@ -365,7 +367,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an inducements roll (code 11) with a fromTreasury amount', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 22,
         matchEventType: 11,
@@ -386,7 +388,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an inducements roll (code 11) without a fromTreasury amount (omits the optional field)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 23,
         matchEventType: 11,
@@ -399,7 +401,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a winnings roll (code 12)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 30,
         matchEventType: 12,
@@ -422,7 +424,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a fan factor roll (code 13)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 31,
         matchEventType: 13,
@@ -445,7 +447,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an expensive mistake (code 14)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 32,
         matchEventType: 14,
@@ -470,7 +472,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a journeyman signing (code 15)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 33,
         matchEventType: 15,
@@ -493,7 +495,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a concession (code 20)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 34,
         matchEventType: 20,
@@ -515,7 +517,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a prayers to Nuffle roll (code 23)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 35,
         matchEventType: 23,
@@ -538,7 +540,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a dedicated fans roll (code 26)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 36,
         matchEventType: 26,
@@ -561,7 +563,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes a secret objective (code 42)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 37,
         matchEventType: 42,
@@ -581,7 +583,7 @@ describe('parseMatchEvents', () => {
 
   it('drops skip-listed and unknown codes', () => {
     expect(
-      parseMatchEvents([
+      parser.parse([
         { id: 3, matchEventType: 0, instant: 'x', extraData: {} },
         { id: 4, matchEventType: 1, instant: 'x' },
         { id: 5, matchEventType: 18, instant: 'x', lineUpId: 1, rosterId: 2 },
@@ -604,7 +606,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('returns None injuries (the import step decides to skip them)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 7,
         matchEventType: 8,
@@ -628,7 +630,7 @@ describe('parseMatchEvents', () => {
   });
 
   it('decodes an injury without a turnRosterId (omits the optional field)', () => {
-    const [event] = parseMatchEvents([
+    const [event] = parser.parse([
       {
         id: 8,
         matchEventType: 8,
@@ -657,7 +659,7 @@ describe('parseMatchEvents', () => {
 
   it('throws a descriptive Error when a known code has an invalid payload', () => {
     expect(() =>
-      parseMatchEvents([
+      parser.parse([
         {
           id: 9,
           matchEventType: 4,
@@ -669,14 +671,14 @@ describe('parseMatchEvents', () => {
   });
 
   it('throws when the input is not an array', () => {
-    expect(() => parseMatchEvents({ not: 'an array' })).toThrow();
+    expect(() => parser.parse({ not: 'an array' })).toThrow();
   });
 
   it('returns an empty array for an empty input', () => {
-    expect(parseMatchEvents([])).toEqual([]);
+    expect(parser.parse([])).toEqual([]);
   });
 
   it('drops entries with no numeric matchEventType', () => {
-    expect(parseMatchEvents([{ id: 40, instant: 'x' }])).toEqual([]);
+    expect(parser.parse([{ id: 40, instant: 'x' }])).toEqual([]);
   });
 });

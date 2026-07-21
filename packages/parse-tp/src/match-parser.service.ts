@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
 import {
-  parseMatchEvents,
+  MatchEventParserService,
   type TpMatchEvent,
 } from './match-event-parser.service';
 import { LineUpSchema, type TpRosterPlayer } from './roster-parser.service';
@@ -42,7 +42,7 @@ const MatchLineUpSchema = LineUpSchema.partial({ rosterId: true });
  * of the nested roster bodies, etc.) are intentionally ignored until a
  * future sub-issue needs them — the same "parse only what's needed"
  * convention as TournamentParserService. `matchEvents` is the exception: it
- * is decoded via `parseMatchEvents`.
+ * is decoded via `MatchEventParserService.parse`.
  *
  * `inscriptionLocal.roster.lineUps[]` / `inscriptionVisitor.roster.lineUps[]`
  * are also parsed, into `homeRosterPlayers`/`awayRosterPlayers`: each embeds
@@ -122,6 +122,8 @@ const TpMatchSchema = z.object({
 
 @Injectable()
 export class MatchParserService {
+  constructor(private readonly matchEventParser: MatchEventParserService) {}
+
   /**
    * Validate and extract
    * `{ id, playedDate, name, homeTeamTpId, awayTeamTpId, matchEvents }` from a
@@ -131,7 +133,7 @@ export class MatchParserService {
    * space and `round`.
    * `homeTeamTpId`/`awayTeamTpId` are `inscriptionLocal.roster.id` /
    * `inscriptionVisitor.roster.id`. `matchEvents` is the raw `matchEvents[]`
-   * array decoded via `parseMatchEvents`. `homeRosterPlayers`/
+   * array decoded via `MatchEventParserService.parse`. `homeRosterPlayers`/
    * `awayRosterPlayers` map `inscriptionLocal.roster.lineUps[]` /
    * `inscriptionVisitor.roster.lineUps[]` field-for-field the same way
    * `RosterParserService.parse()` maps its own `lineUps[]` to `players`,
@@ -175,7 +177,7 @@ export class MatchParserService {
     const name = `${roundName.charAt(0).toUpperCase()}${roundName
       .slice(1)
       .toLowerCase()} ${round}`;
-    const matchEvents = parseMatchEvents(rawMatchEvents ?? []);
+    const matchEvents = this.matchEventParser.parse(rawMatchEvents ?? []);
     const toRosterPlayer = (
       entry: z.infer<typeof MatchLineUpSchema>,
       fallbackRosterId: number,

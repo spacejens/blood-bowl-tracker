@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { MatchEventParserService } from './match-event-parser.service';
 import { MatchParserService } from './match-parser.service';
 
-const service = new MatchParserService();
+const service = new MatchParserService(new MatchEventParserService());
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,
