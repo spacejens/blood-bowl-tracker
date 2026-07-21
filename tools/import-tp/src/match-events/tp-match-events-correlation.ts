@@ -53,6 +53,19 @@ type CasualtyEvent = Extract<TpMatchEvent, { type: 'casualty_caused' }>;
 type InjuryEvent = Extract<TpMatchEvent, { type: 'injury' }>;
 
 /**
+ * A candidate injury is only eligible for pairing when its `instant` is
+ * within 120 seconds of the casualty's. Real local data (of 1301 pairs
+ * produced by this algorithm with no cutoff) shows the delay distribution
+ * has no sharp cliff — a smooth long tail out to 1043s — but 120s captures
+ * 97.2% of pairs while excluding that tail. The delay does NOT distinguish
+ * genuinely ambiguous (multi-candidate) pairings from unambiguous
+ * (single-candidate) ones — both groups have nearly identical delay
+ * distributions — so this cutoff is purely about bounding implausibly long
+ * gaps, not about flagging suspicious multi-candidate pairings.
+ */
+const MAX_PAIRING_DELAY_MS = 120_000;
+
+/**
  * A code-8 is a valid pairing candidate for a code-6 when the injury
  * happened on the casualty-causer's own turn (`injury.turnRosterId` matches
  * the casualty's acting `rosterId`), the victim is on the opposing side
@@ -73,9 +86,11 @@ function isCandidate(casualty: CasualtyEvent, injury: InjuryEvent): boolean {
 /**
  * Pair every match's `casualty_caused` events with their `injury` event, in
  * `matchEvents` array order (each code-8 consumed by at most one code-6).
- * When a code-6 has multiple same-turn, correct-direction, still-unclaimed
- * candidates, the nearest by absolute `instant` difference is chosen as a
- * secondary tiebreaker — never as an ordering/direction filter.
+ * A candidate must be within `MAX_PAIRING_DELAY_MS` (120s) of the casualty's
+ * `instant` to be eligible at all; among still-eligible, same-turn,
+ * correct-direction, still-unclaimed candidates, the nearest by absolute
+ * `instant` difference is chosen as a secondary tiebreaker — never as an
+ * ordering/direction filter.
  */
 export function correlateCasualties(
   matchEvents: TpMatchEvent[],
@@ -101,16 +116,19 @@ export function correlateCasualties(
       if (!isCandidate(casualty, injury)) {
         continue;
       }
-      const rawDiffMs = Math.abs(
+      const diffMs = Math.abs(
         new Date(injury.instant).getTime() -
           new Date(casualty.instant).getTime(),
       );
-      // An unparseable `instant` yields NaN, which is never `<` anything —
-      // that would silently disqualify an otherwise-valid, turnNumber-
-      // matched candidate from ever being picked. Treat it as "worst
-      // possible" (Infinity) instead, so it still loses ties to a
-      // well-formed candidate but is never skipped outright.
-      const diffMs = Number.isNaN(rawDiffMs) ? Infinity : rawDiffMs;
+      // A candidate must be within the cutoff to be eligible at all. Phrased
+      // as an inclusion check (`<=`), not its negation, so an unparseable
+      // `instant` (diffs to NaN) is naturally excluded too: `NaN <=
+      // anything` is always false, so the `!(...)` branch below is taken —
+      // whereas the negated form `diffMs > MAX` would be false for NaN and
+      // would wrongly let it through.
+      if (!(diffMs <= MAX_PAIRING_DELAY_MS)) {
+        continue;
+      }
       if (best === undefined || diffMs < bestDiffMs) {
         best = injury;
         bestDiffMs = diffMs;

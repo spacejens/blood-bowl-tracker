@@ -223,10 +223,13 @@ describe('correlateCasualties', () => {
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
   });
 
-  it('still pairs a turnNumber-matched candidate even when instant is not a parseable timestamp', () => {
-    // A malformed/placeholder `instant` must not silently disqualify an
-    // otherwise-valid, turnNumber-matched candidate from ever being picked
-    // (an unparseable date diffs to NaN, which is never `<` anything).
+  it('does not pair when instant is not a parseable timestamp (cannot verify the cutoff)', () => {
+    // A malformed/placeholder `instant` diffs to NaN, which is never `<=`
+    // MAX_PAIRING_DELAY_MS — so an unmeasurable delta can no longer be
+    // assumed to be within the 120s cutoff window. This is a deliberate
+    // behavior change from the prior "always pair despite NaN" workaround:
+    // without a measurable time delta we can't confirm the pairing is
+    // actually within the window, so the casualty is left unpaired instead.
     const casualtyEvent = casualty({
       tpEventId: 1,
       instant: 'not-a-date',
@@ -245,7 +248,96 @@ describe('correlateCasualties', () => {
 
     const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
 
+    expect(pairing.casualtyByInjuryEventId.size).toBe(0);
+    expect(pairing.pairedCasualtyEventIds.size).toBe(0);
+  });
+
+  it('pairs a candidate exactly at the 120s cutoff boundary (diffMs === MAX_PAIRING_DELAY_MS)', () => {
+    const casualtyEvent = casualty({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:02:00Z', // exactly 120,000ms later
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+
     expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
+    expect(pairing.pairedCasualtyEventIds.has(1)).toBe(true);
+  });
+
+  it('does not pair a candidate 1ms beyond the 120s cutoff, even as the sole candidate, and falls through to unpaired', () => {
+    const casualtyEvent = casualty({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00.000Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:02:00.001Z', // 120,001ms later
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+
+    // Even though this was the ONLY raw candidate (turnNumber + direction
+    // match), it's beyond the cutoff, so the casualty stays unpaired —
+    // confirming the cutoff can disqualify a single-candidate case too.
+    expect(pairing.casualtyByInjuryEventId.size).toBe(0);
+    expect(pairing.pairedCasualtyEventIds.size).toBe(0);
+  });
+
+  it('picks the in-window candidate over an out-of-window one, even when the out-of-window one is iterated first', () => {
+    const casualtyEvent = casualty({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    // Out-of-window candidate (121s away), listed FIRST so a naive loop
+    // that doesn't filter before comparing "nearest so far" could
+    // accidentally let it become `best` before the in-window one is seen.
+    const injuryOutOfWindow = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:02:01Z', // 121s later, beyond cutoff
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryInWindow = injury({
+      tpEventId: 3,
+      instant: '2026-01-17T18:01:00Z', // 60s later, within cutoff
+      lineUpId: 21,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = correlateCasualties([
+      casualtyEvent,
+      injuryOutOfWindow,
+      injuryInWindow,
+    ]);
+
+    expect(pairing.casualtyByInjuryEventId.get(3)).toBe(casualtyEvent);
+    expect(pairing.casualtyByInjuryEventId.has(2)).toBe(false);
+    expect(pairing.casualtyByInjuryEventId.size).toBe(1);
   });
 
   it('ignores non-casualty/non-injury events mixed into the match', () => {

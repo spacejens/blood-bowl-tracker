@@ -186,6 +186,18 @@ and each code-8 consumed by at most one code-6. A code-6 with no
 same-`turnNumber` candidate stays unpaired rather than being force-matched
 across turns.
 
+A same-turn candidate is only eligible for pairing if its `instant` is
+within 120 seconds of the casualty's — a `MAX_PAIRING_DELAY_MS` cutoff.
+Running the pairing algorithm with no cutoff at all against the real local
+fixture corpus, the resulting delay distribution has no sharp cliff (a
+smooth long tail out to 1043s), and the delay does not distinguish
+genuinely ambiguous (multi-candidate) pairings from unambiguous
+(single-candidate) ones — both groups show nearly identical distributions.
+120s was chosen because it captures 97.2% of real pairs while bounding the
+long tail; a candidate whose `instant` can't be parsed (diffs to `NaN`) also
+fails this cutoff and is treated as ineligible, since an unmeasurable delta
+can't be confirmed to be within the window.
+
 A casualty erased by an apothecary (or similar effect) never gets a code-8
 counterpart at all — the code-6 action still fired (the player still gets
 credit), but there is genuinely no injury consequence to pair it with; it is
