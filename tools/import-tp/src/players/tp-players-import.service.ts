@@ -13,6 +13,18 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 import type { RosterEntry } from '../source/roster-collection.service';
 import { unknownEraError } from '../source/roster-collection.service';
 
+/**
+ * One hired-star-player group: the roster that hired them, the real era the
+ * hiring match's competition belongs to (so a roster id spanning multiple
+ * eras, per `TpTeamsImportService`'s era-union grouping, resolves its team
+ * era unambiguously instead of guessing), and the star players themselves.
+ */
+export interface InducedStarPlayerHireGroup {
+  rosterId: number;
+  eraId: number;
+  starPlayers: TpInducedStarPlayer[];
+}
+
 /** Options for {@link TpPlayersImportService.importPlayers}, bundled into one
  * object to stay within the repo's 3-parameter limit. */
 export interface ImportPlayersOptions {
@@ -21,12 +33,13 @@ export interface ImportPlayersOptions {
   eraIdsByName: Map<string, number>;
   positionIdsByTpPositionId: Map<number, number>;
   /**
-   * Star players hired via an `inducements_roll` match event, grouped by the
-   * hiring roster id (pre-scanned by `main.ts` from `matchesByCompetitionId`
-   * so this service stays the single owner of the player-resolution maps).
-   * Optional -- callers/tests that don't exercise star players can omit it.
+   * Star players hired via an `inducements_roll` match event, grouped by
+   * hiring roster id AND real era id (pre-scanned by `main.ts` from
+   * `matchesByCompetitionId` so this service stays the single owner of the
+   * player-resolution maps). Optional -- callers/tests that don't exercise
+   * star players can omit it.
    */
-  inducedStarPlayersByRosterId?: Map<number, TpInducedStarPlayer[]>;
+  inducedStarPlayerHireGroups?: InducedStarPlayerHireGroup[];
 }
 
 @Injectable()
@@ -51,12 +64,15 @@ export class TpPlayersImportService {
    * `playerIdsByLineUpId`, consumed by the match-events step to resolve a
    * `matchEvents[].lineUpId` to a player's DB id.
    *
-   * Also imports every star player named in `inducedStarPlayersByRosterId`
+   * Also imports every star player named in `inducedStarPlayerHireGroups`
    * (hired via an `inducements_roll` event, not part of a roster's permanent
    * `lineUps[]`): each named star player gets one reused `isStarPlayer: true`
    * Position (bare-name external id, mirroring
    * `BblPositionsImportService`'s star-player handling) and a Player scoped
-   * to the hiring roster's team-era. Returns
+   * to the hiring roster's team-era, resolved directly from the group's own
+   * `eraId` (the real era the hiring match's competition belongs to) --
+   * mirroring how `TpTeamParticipationImportService.resolveTeamEraId`
+   * resolves a roster id + era id to its team_eras id. Returns
    * `starPlayerIdsByRosterAndMaster`, keyed by `` `${rosterId}:${lineUpMasterId}` ``
    * (star players are referenced in match events by `lineUpMasterId` within
    * a roster, not by a `lineUps[].id`), consumed by the match-events step
@@ -67,7 +83,7 @@ export class TpPlayersImportService {
     teamErasByRosterId,
     eraIdsByName,
     positionIdsByTpPositionId,
-    inducedStarPlayersByRosterId,
+    inducedStarPlayerHireGroups,
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByLineUpId: Map<number, number>;
@@ -143,15 +159,16 @@ export class TpPlayersImportService {
       }
     }
 
-    if (inducedStarPlayersByRosterId) {
+    if (inducedStarPlayerHireGroups) {
       const seenStarPlayerKeys = new Set<string>();
-      for (const [rosterId, starPlayers] of inducedStarPlayersByRosterId) {
-        const teamEra = TpPlayersImportService.resolveHiringTeamEra({
-          rosterId,
-          teamErasByRosterId,
-          rosters,
-          eraIdsByName,
-        });
+      for (const {
+        rosterId,
+        eraId,
+        starPlayers,
+      } of inducedStarPlayerHireGroups) {
+        const teamEra = teamErasByRosterId
+          .get(rosterId)
+          ?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {
           errors.push(
             makeImportError({
@@ -210,36 +227,5 @@ export class TpPlayersImportService {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
     };
-  }
-
-  /**
-   * Resolve the team-era a hired star player's roster belongs to. Most
-   * rosters have exactly one team-era entry, so that's used directly; a
-   * roster id spanning multiple eras (per `TpTeamsImportService`'s grouping)
-   * is disambiguated via the roster's own era, looked up the same way the
-   * regular roster-player pass does. Returns `undefined` if unresolvable
-   * either way.
-   */
-  private static resolveHiringTeamEra({
-    rosterId,
-    teamErasByRosterId,
-    rosters,
-    eraIdsByName,
-  }: {
-    rosterId: number;
-    teamErasByRosterId: Map<number, { id: number; eraId: number }[]>;
-    rosters: RosterEntry[];
-    eraIdsByName: Map<string, number>;
-  }): { id: number; eraId: number } | undefined {
-    const teamEras = teamErasByRosterId.get(rosterId);
-    if (!teamEras || teamEras.length === 0) {
-      return undefined;
-    }
-    if (teamEras.length === 1) {
-      return teamEras[0];
-    }
-    const rosterEntry = rosters.find((r) => r.roster.id === rosterId);
-    const eraId = rosterEntry ? eraIdsByName.get(rosterEntry.era) : undefined;
-    return teamEras.find((te) => te.eraId === eraId);
   }
 }

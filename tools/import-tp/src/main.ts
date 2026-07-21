@@ -81,15 +81,48 @@ async function run(): Promise<ImportResult> {
         eraOutcome.eraIdsByName,
       );
 
+    // A roster id can appear under more than one era (TpTeamsImportService's
+    // era-union grouping), so resolving a hired star player's team era later
+    // needs the real eraId the inducements_roll event came from -- not a
+    // guess. The DB competition id (matchesByCompetitionId's key) maps to its
+    // real eraId via competitionIdsByTpId + competitionsByTpId's upsert.eraId,
+    // the same value TpTeamParticipationImportService already resolves
+    // roster ids against.
+    const eraIdByCompetitionId = new Map<number, number>();
+    for (const [
+      tpCompetitionId,
+      dbCompetitionId,
+    ] of competitionOutcome.competitionIdsByTpId) {
+      const competitionEntry =
+        competitionOutcome.competitionsByTpId.get(tpCompetitionId);
+      if (competitionEntry) {
+        eraIdByCompetitionId.set(
+          dbCompetitionId,
+          competitionEntry.upsert.eraId,
+        );
+      }
+    }
+
     // Star players hired via an inducements_roll event aren't part of any
     // roster's lineUps[], so they're gathered from the already-parsed match
     // events (one scan, shared with Task 8's match-events step reusing the
-    // same matchesByCompetitionId) and grouped by the hiring roster id.
-    const inducedStarPlayersByRosterId = new Map<
-      number,
-      TpInducedStarPlayer[]
+    // same matchesByCompetitionId) and grouped by the hiring roster id AND
+    // the real era the match's competition belongs to (so a roster id spanning
+    // multiple eras resolves its team era unambiguously downstream, instead of
+    // guessing). A competition whose eraId can't be resolved is skipped
+    // defensively -- shouldn't happen in practice.
+    const inducedStarPlayerHireGroupsByKey = new Map<
+      string,
+      { rosterId: number; eraId: number; starPlayers: TpInducedStarPlayer[] }
     >();
-    for (const matches of competitionOutcome.matchesByCompetitionId.values()) {
+    for (const [
+      competitionId,
+      matches,
+    ] of competitionOutcome.matchesByCompetitionId.entries()) {
+      const eraId = eraIdByCompetitionId.get(competitionId);
+      if (eraId === undefined) {
+        continue;
+      }
       for (const match of matches) {
         for (const event of match.matchEvents) {
           if (
@@ -98,13 +131,23 @@ async function run(): Promise<ImportResult> {
           ) {
             continue;
           }
-          inducedStarPlayersByRosterId.set(event.rosterId, [
-            ...(inducedStarPlayersByRosterId.get(event.rosterId) ?? []),
-            ...event.starPlayers,
-          ]);
+          const key = `${event.rosterId}:${eraId}`;
+          const existingGroup = inducedStarPlayerHireGroupsByKey.get(key);
+          if (existingGroup) {
+            existingGroup.starPlayers.push(...event.starPlayers);
+          } else {
+            inducedStarPlayerHireGroupsByKey.set(key, {
+              rosterId: event.rosterId,
+              eraId,
+              starPlayers: [...event.starPlayers],
+            });
+          }
         }
       }
     }
+    const inducedStarPlayerHireGroups = Array.from(
+      inducedStarPlayerHireGroupsByKey.values(),
+    );
 
     // Players run after positions and teams: each roster player resolves a
     // team era (via teamOutcome.teamErasByRosterId) and a position (via
@@ -122,7 +165,7 @@ async function run(): Promise<ImportResult> {
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
       eraIdsByName: eraOutcome.eraIdsByName,
       positionIdsByTpPositionId,
-      inducedStarPlayersByRosterId,
+      inducedStarPlayerHireGroups,
     });
 
     // Team participation (match_teams + competition_teams) runs last: it needs

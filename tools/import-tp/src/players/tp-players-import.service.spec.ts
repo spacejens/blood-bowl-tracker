@@ -161,12 +161,15 @@ describe('TpPlayersImportService', () => {
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
-      inducedStarPlayersByRosterId: new Map([
-        [
-          168446,
-          [{ name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 }],
-        ],
-      ]),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 500,
+          starPlayers: [
+            { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+          ],
+        },
+      ],
     });
 
     expect(upsertPosition).toHaveBeenCalledWith(
@@ -195,12 +198,15 @@ describe('TpPlayersImportService', () => {
         teamErasByRosterId: new Map(),
         eraIdsByName: new Map([['Third Era', 500]]),
         positionIdsByTpPositionId: new Map(),
-        inducedStarPlayersByRosterId: new Map([
-          [
-            168446,
-            [{ name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 }],
-          ],
-        ]),
+        inducedStarPlayerHireGroups: [
+          {
+            rosterId: 168446,
+            eraId: 500,
+            starPlayers: [
+              { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+            ],
+          },
+        ],
       });
 
     expect(starPlayerIdsByRosterAndMaster.size).toBe(0);
@@ -219,15 +225,16 @@ describe('TpPlayersImportService', () => {
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
-      inducedStarPlayersByRosterId: new Map([
-        [
-          168446,
-          [
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 500,
+          starPlayers: [
             { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
             { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
           ],
-        ],
-      ]),
+        },
+      ],
     });
 
     expect(upsertPosition).toHaveBeenCalledTimes(1);
@@ -245,34 +252,56 @@ describe('TpPlayersImportService', () => {
       teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
-      inducedStarPlayersByRosterId: new Map([
-        [
-          168446,
-          [{ name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 }],
-        ],
-      ]),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 500,
+          starPlayers: [
+            { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+          ],
+        },
+      ],
     });
 
     expect(starPlayerIdsByRosterAndMaster.size).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
-  it('disambiguates a hiring team-era spanning multiple eras via the roster file own era', async () => {
+  it('disambiguates a hiring team-era spanning multiple eras via the hire group real eraId', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
     const service = makeService({ upsertPlayerResult, upsertPosition });
 
+    // Two RosterEntry rows share rosterId 168446 across different eras, so
+    // teamErasByRosterId.get(168446) returns two genuinely ambiguous
+    // candidates. The first one (in rosters[] order) is deliberately the
+    // WRONG era for this hire: a guess-based `.find()` over rosters (the old
+    // behavior) would pick this first match -- Third Era, teamEraId 6000 --
+    // instead of the correct 6001, so this test fails under that old code.
     const multiEraRosters: RosterEntry[] = [
       ...rosters,
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 168446,
+          teamName: 'Team 168446 (Third Era)',
+          teamRaceCode: 'Human',
+          raceName: 'Human',
+          coachTpId: 'coach-2',
+          positions: [],
+          players: [],
+        },
+      },
       {
         era: 'Fourth Era',
         competition: 'comp',
         roster: {
           id: 168446,
-          teamName: 'Team 168446',
+          teamName: 'Team 168446 (Fourth Era)',
           teamRaceCode: 'Human',
           raceName: 'Human',
-          coachTpId: 'coach-2',
+          coachTpId: 'coach-3',
           positions: [],
           players: [],
         },
@@ -295,12 +324,17 @@ describe('TpPlayersImportService', () => {
         ['Fourth Era', 501],
       ]),
       positionIdsByTpPositionId: new Map(),
-      inducedStarPlayersByRosterId: new Map([
-        [
-          168446,
-          [{ name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 }],
-        ],
-      ]),
+      // The hiring match's competition resolved to eraId 501 (Fourth Era),
+      // which must select the 6001 team-era, not the first candidate (6000).
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 501,
+          starPlayers: [
+            { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+          ],
+        },
+      ],
     });
 
     expect(upsertPlayerResult).toHaveBeenCalledWith(
