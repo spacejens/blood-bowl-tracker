@@ -150,6 +150,8 @@ describe('schema', () => {
     expect(matchEvents.consequencePlayerId).toBeDefined();
     expect(matchEvents.actionType).toBeDefined();
     expect(matchEvents.consequenceType).toBeDefined();
+    expect(matchEvents.eventType).toBeDefined();
+    expect(matchEvents.inducementsFromTreasury).toBeDefined();
   });
 
   it('exports matchEventExternalIds table', () => {

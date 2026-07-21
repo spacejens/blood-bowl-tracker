@@ -63,6 +63,7 @@ function rosterFile(
       teamName: `Team ${opts.id}`,
       teamRace: opts.teamRace,
       player: { applicationUserId: 'coach-1' },
+      lineUps: [],
       rosterMaster: {
         name: opts.raceName,
         starPlayersMasters: [],
@@ -227,6 +228,7 @@ describe('unknownEraError', () => {
       raceName: 'Orc',
       coachTpId: 'coach-1',
       positions: [],
+      players: [],
     });
 
     expect(error.item).toEqual({ era: 'Ghost era', roster: 42 });

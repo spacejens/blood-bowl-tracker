@@ -97,15 +97,186 @@ unique, so they are never used as an external id. The parser also reads
 team roster ids); `TpTeamParticipationImportService` resolves these to team-era
 ids and re-upserts each match with its `match_teams`, and derives each
 competition's `competition_teams` from which roster files appear under its
-directory. The rest of the body is still unhandled — match events are issue
-#198. Notable remaining fields seen:
-`matchId`, `state`, `statePostMatch`, `createdInstant`, `ruleSet`,
-`weatherTable`, `round`, `order`, `turn { current, half, ... }`,
-`inscriptionLocal.roster { id, ... }` / `inscriptionVisitor.roster { id, ... }`
-(the home/away teams — only each side's roster `id` is parsed, into
-`homeTeamTpId`/`awayTeamTpId`; the rest of these nested roster bodies is
-unhandled), `scoreResume { startInstant, finishInstant }`,
-`matchEvents[]`, and — importantly — `scheduledDate`/`endScheduledDate`.
+directory.
+
+`matchEvents[]` — TP's per-roll event log for the match — is decoded by
+`packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
+raw numeric `matchEventType` code. **Modeled codes**: `3` completion, `4`
+touchdown, `5` interception, `25` deflection, `31` foul, and `46` successful
+landing are all structurally identical single-actor action events
+(`lineUpId`, acting `rosterId`); `7` mvp_award is the same shape (`lineUpId`
+of the awarded player, their team's `rosterId` — occurs essentially exactly
+once per team per completed match); `32` sent off is the same raw shape again
+but consequence-side (the player sent off, not an actor earning credit); `6`
+casualty_caused (`lineUpId`, ACTING `rosterId`, optional `turnNumber` — see
+below) is the action of a player breaking armor; `8` injury (`lineUpId`,
+victim `rosterId`, optional `turnRosterId` — the acting team's roster id when
+present — optional `turnNumber`, and `injuryType`) is the roll reporting the
+victim and severity; the administrative rolls `10` weather, `11` inducements
+(incl. any hired star players, `extraData.starPlayers[]`), `12` winnings,
+`13` fan factor, `14` expensive mistake, `15` journeyman signing, `20`
+concession, `23` prayers to Nuffle, `26` dedicated fans, and `42` secret
+objective. **Skip-listed codes** — dropped unconditionally, along with any
+unrecognized code, so new/unmapped TP codes never crash the import: `0, 1,
+18, 19, 27` — these are structural markers or per-roll noise with no useful
+modeled payload (e.g. code `27`, "player assigned to line-up", is a
+structural row, not a modeled roll). A `None` `injuryType` is still returned
+by the parser and is now a real, imported event (a genuine "Badly Hurt"
+result — see below).
+
+`tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
+into zero, one, or two `UpsertMatchEvent`s (see
+[index.md](./index.md#architecture)). Unlike BBL, which correlates
+separately scraped action/consequence occurrences, TP embeds the
+acting/victim player and team directly on the event for every kind EXCEPT
+casualties — a legitimate, confirmed exception to the original "no
+correlation needed" design, since a code-6 (`casualty_caused`) and its code-8
+(`injury`) are logged as two independent events with no shared id (see
+below). A touchdown becomes an `actionType: 'touchdown'` event scoped to the
+scorer; completion, interception, deflection, foul, mvp_award, and successful
+landing are all resolved the same way, crediting the acting player and their
+team; sent off is consequence-side, crediting the sent-off player and their
+team. Sent off is deliberately NOT correlated with a preceding foul by the
+same player — in real data, only 58% of sent-offs pair with a nearby same-
+player foul within 30s; the rest have no nearby foul at all (Blood Bowl's
+other sent-off trigger, e.g. an automatic ejection after using a Secret
+Weapon player such as "Fungus the Loon", already seen in this dataset's
+hired-star-player fixtures) — so the two are modeled as fully independent,
+standalone events.
+
+An injury's `injuryType` maps to a `consequence_type` via:
+
+| `injuryType`     | `consequence_type`  |
+| ---------------- | ------------------- |
+| `None`           | `badly_hurt`        |
+| `MissNextGame`   | `miss_next_game`    |
+| `NigglingInjury` | `niggling_injury`   |
+| `Dead`           | `death`             |
+| `AV`             | `stat_reduction_av` |
+| `ST`             | `stat_reduction_st` |
+| `MA`             | `stat_reduction_ma` |
+| `PA`             | `stat_reduction_pa` |
+| `AG`             | `stat_reduction_ag` |
+
+`None` used to be skipped entirely (treated as "no injury happened"); it is
+in fact a genuine Badly Hurt result and is now always imported.
+
+### Casualty/injury correlation (code 6 ↔ code 8)
+
+A code-6 `casualty_caused` event is the ACTION of a specific player breaking
+armor; a code-8 `injury` event is the roll reporting the VICTIM and severity.
+They are TP's one exception to "no correlation needed": the specific
+attacker can only be recovered by pairing the two events after the fact,
+implemented in `tools/import-tp/src/match-events/tp-match-events-correlation.ts`
+(mirroring where BBL's action/consequence correlation lives), computed once
+per match before its events are dispatched.
+
+Wall-clock proximity was considered and explicitly rejected as the pairing
+key: TP's event registration is asynchronous, so a code-8 can be logged (and
+timestamped) before its corresponding code-6, and an unrelated injury can
+also simply occur shortly after a casualty-causing action elsewhere in the
+match. Real data confirms `turnNumber` equality is a far more reliable,
+order-independent key: of code-6 events with at least one valid-direction
+candidate injury (`injury.turnRosterId === casualty.rosterId` and
+`injury.rosterId !== casualty.rosterId`), 86.4% (1329/1538) share the exact
+same `turnNumber` as that candidate. Pairing therefore requires
+`turnNumber` equality as a hard condition — never wall-clock ordering — with
+nearest-by-`instant` used only as a tiebreaker among same-turn candidates,
+and each code-8 consumed by at most one code-6. A code-6 with no
+same-`turnNumber` candidate stays unpaired rather than being force-matched
+across turns.
+
+A same-turn candidate is only eligible for pairing if its `instant` is
+within 120 seconds of the casualty's — a `MAX_PAIRING_DELAY_MS` cutoff.
+Running the pairing algorithm with no cutoff at all against the real local
+fixture corpus, the resulting delay distribution has no sharp cliff (a
+smooth long tail out to 1043s), and the delay does not distinguish
+genuinely ambiguous (multi-candidate) pairings from unambiguous
+(single-candidate) ones — both groups show nearly identical distributions.
+120s was chosen because it captures 97.2% of real pairs while bounding the
+long tail; a candidate whose `instant` can't be parsed (diffs to `NaN`) also
+fails this cutoff and is treated as ineligible, since an unmeasurable delta
+can't be confirmed to be within the window.
+
+A casualty erased by an apothecary (or similar effect) never gets a code-8
+counterpart at all — the code-6 action still fired (the player still gets
+credit), but there is genuinely no injury consequence to pair it with; it is
+imported as a standalone `actionType: 'casualty'` row (severity unknown, no
+injury to report it). An unpaired code-8 is likewise normal and expected
+(e.g. a player falling down on their own, or a random event not tied to any
+attacker) — not an error case.
+
+When a code-8 IS paired to a code-6, the resulting row carries both
+`actionType` and `consequenceType` at once: the consequence side as above,
+and the action side crediting the specific acting player and team, with
+severity bucketed the same way `tools/import-bbl` already buckets its own
+casualty severities:
+
+| `injuryType` bucket                                            | `actionType`     |
+| -------------------------------------------------------------- | ---------------- |
+| `None`                                                         | `badly_hurt`     |
+| `MissNextGame`, `NigglingInjury`, `AV`, `ST`, `MA`, `PA`, `AG` | `serious_injury` |
+| `Dead`                                                         | `death`          |
+
+When a code-8 is NOT paired but its `turnRosterId` differs from the victim's
+`rosterId` (opponent-caused per TP's turn-owner field, but the specific
+player couldn't be pinned down — e.g. a cross-turn logging quirk), the row
+falls back to team-only credit at the same severity bucket. A `turnRosterId`
+equal to the victim's roster (or absent), with no code-6 pairing, means the
+injury was self-inflicted (e.g. a failed dodge) or otherwise unattributable,
+so only the consequence side is emitted. This dual-role-on-one-row shape is
+the same deliberate choice as before (avoiding a BBL-style two-row
+correlation for most cases); the `match_events` CHECK constraint
+accommodates it (see below).
+
+Every administrative event sets exactly one typed payload column (e.g.
+`weatherType`, `inducementsCost`, `inducementsFromTreasury`, `winnings`,
+`fanFactor`, `journeymenCount`, `expensiveMistake`, `dedicatedFans`,
+`secretObjective`, `prayersToNuffle`); "both-sides" events (winnings, fan
+factor, dedicated fans) emit up to two records, one per team, with
+`-home`/`-away`-suffixed external ids. Every event's external id is
+`tp-<tpEventId>` (or its suffixed variant), synthesized from
+`matchEvents[].id`.
+
+Most administrative events map onto `actionType` (renamed from the roll
+mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
+`journeymen_signings`), but two are classified differently:
+
+- **Weather** (`10`) has no actor and no consequence recipient — it's a
+  neutral, match-level fact — so it's carried via a separate `eventType`
+  column (`'weather'`, currently its only value) instead of `actionType`.
+  `match_events`'s CHECK constraint requires `eventType` to be set alone
+  (with both `actionType`/`consequenceType` null) XOR at least one of
+  `actionType`/`consequenceType` to be set (with `eventType` null) — never a
+  mix of `eventType` and the other two. `weatherType` itself stays a plain,
+  un-decoded integer column: TP's ~20 observed distinct codes are almost
+  certainly a closed weather-table result set, but no authoritative
+  code-to-name mapping is confirmed yet (tracked as a follow-up to decode it
+  into a named enum).
+- **Dedicated fans** (`26`) is a consequence (the resulting fan-count
+  change), not an action, so it's carried via `consequenceType:
+'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
+  side whose modifier is `0` (no change) is skipped entirely, so this event
+  can now emit zero, one, or two records instead of always exactly two.
+
+`secretObjective`'s payload is TP's own opaque identifier code for _which_
+secret-objective card was drawn — not a count of objectives completed. The
+same roster can have multiple `secret_objective` events in one match with
+different, non-sequential values, and the same value can recur across
+different matches for different rosters.
+
+Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
+`createdInstant`, `ruleSet`, `weatherTable`, `round`, `order`,
+`turn { current, half, ... }`,
+`inscriptionLocal.roster { id, lineUps, ... }` /
+`inscriptionVisitor.roster { id, lineUps, ... }` (the home/away teams — each
+side's roster `id` is parsed into `homeTeamTpId`/`awayTeamTpId`, and its
+`lineUps[]` — a per-match snapshot of that side's roster, same shape as the
+standalone roster file's own `lineUps[]` — is parsed into
+`homeRosterPlayers`/`awayRosterPlayers`, see the players section below; the
+rest of these nested roster bodies remains unhandled), `scoreResume
+{ startInstant, finishInstant }`, and — importantly — `scheduledDate`/
+`endScheduledDate`.
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is
 the closest thing to "when the match was actually played" anywhere in TP's
 data; there is no tournament- or era-level date-boundary field, so the era
@@ -114,10 +285,10 @@ every `match_*.json` under each era's directory for the earliest/latest
 `scheduledDate` (a one-off manual step during initial config setup, not
 something the import tool itself does).
 
-## `rosters_<id>.json` (races, positions and teams parsed)
+## `rosters_<id>.json` (races, positions, teams and players parsed)
 
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
-teamRaceCode, raceName, coachTpId, positions }`:
+teamRaceCode, raceName, coachTpId, positions, players }`:
 
 - `id` — TP's roster id, used as a TP external id for teams.
 - `teamName` — the team's registered name, used as a Name external id for teams.
@@ -138,6 +309,11 @@ teamRaceCode, raceName, coachTpId, positions }`:
   merges onto a single row, collecting every distinct `tpPositionId` as TP
   external ids (all in one upsert call). Positions carry no Name external id
   (position names are not race-unique).
+- `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
+number, lineUpMasterId, rosterId }`. `id` is the per-instance line-up id
+  that `matchEvents[].lineUpId` (see below) references; `lineUpMasterId`
+  links back to the position template in `rosterMaster.lineUpMasters[]` (the
+  `positions` field above).
 
 **Races** (via `TpRacesImportService`) group by `raceName` (not code), so all
 rule-set-variant codes of one logical race merge onto one row, each code kept
@@ -154,11 +330,46 @@ availability is recorded via `syncRaceEras`. All positions import with
 and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
 resolved is recorded as an error and skipped.
 
-**Still not handled** (future work): `rosterMaster.starPlayersMasters` (star
-players — the field isn't declared in `RosterSchema`, so it's dropped
-unconditionally by the parser regardless of dataset content, not merely
-because the reference dataset happens to have none; revisit once match-event
-data — issue #198 — surfaces a real star-player sample to parse against), and
+**Players** (via `TpPlayersImportService`) import every roster's `players`
+entry: each resolves a team era (roster id + era, via
+`teamErasByRosterId`) and a position (`lineUpMasterId`, via
+`positionIdsByTpPositionId`); a player whose team era or position can't be
+resolved is recorded as an error and skipped. Players carry only a TP
+external id (the `lineUps[].id`) — no Name external id, since player names
+aren't guaranteed unique. Returns `playerIdsByLineUpId`, consumed by
+match-event import to resolve a `matchEvents[].lineUpId` to a player.
+
+Player identity is sourced from BOTH `rosters_<id>.json`'s top-level
+`lineUps[]` (a roster's CURRENT composition, as of when the local TP data
+mirror was downloaded) AND each `match_<id>.json`'s
+`inscriptionLocal.roster.lineUps[]` / `inscriptionVisitor.roster.lineUps[]`
+(a per-match historical snapshot of that side's roster at match time, parsed
+into `MatchParserService`'s `homeRosterPlayers`/`awayRosterPlayers`). This is
+because a player who has since left/been replaced on a roster is silently
+absent from the standalone roster file, even though historical
+`matchEvents[]` (in this or another match) can still reference them by
+`lineUpId` — without the match-embedded snapshot, that player's identity
+(and thus the event's player attribution) is lost. `main.ts` pre-scans every
+match's `homeRosterPlayers`/`awayRosterPlayers`, grouping them by roster id
+into `matchEmbeddedPlayersByRosterId`, and `TpPlayersImportService` merges
+each roster's match-embedded players with `roster.players`, keyed by player
+id — the standalone file's data wins on conflict for a given id (presumed
+freshest), so the match-embedded snapshot only fills in ids the standalone
+file doesn't list. The service also imports **hired star players** — named via an `inducements_roll`
+match event's `extraData.starPlayers[]` (see the `match_<id>.json` section
+below), not via any field on the roster file itself. Each hired star player
+gets one reused `isStarPlayer: true` Position (a bare-name TP external id)
+and a Player scoped to the hiring roster's team-era for the era the hiring
+match's competition belongs to. Returns `starPlayerIdsByRosterAndMaster`
+(keyed `` `${rosterId}:${lineUpMasterId}` ``); as of this writing no
+match-event type references a player by `lineUpMasterId` (touchdown/injury
+use `lineUpId`), so this map is currently unconsumed downstream — kept for a
+future event type that would need it.
+
+**Still not handled** (future work): `rosterMaster.starPlayersMasters` (the
+roster's full star-player _catalog_, as opposed to the star players actually
+hired in a match — the field isn't declared in `RosterSchema`, so it's
+dropped unconditionally by the parser regardless of dataset content), and
 the other top-level fields (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,

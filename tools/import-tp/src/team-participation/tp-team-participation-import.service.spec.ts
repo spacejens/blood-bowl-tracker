@@ -52,6 +52,7 @@ function roster(era: string, comp: string, id: number): RosterEntry {
       raceName: 'Orc',
       coachTpId: 'coach-1',
       positions: [],
+      players: [],
     },
   };
 }
@@ -63,6 +64,9 @@ function tpMatch(id: number, home: number, away: number): TpMatch {
     name: 'Round 1',
     homeTeamTpId: home,
     awayTeamTpId: away,
+    matchEvents: [],
+    homeRosterPlayers: [],
+    awayRosterPlayers: [],
   };
 }
 

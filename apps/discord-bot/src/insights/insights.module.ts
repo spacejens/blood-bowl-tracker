@@ -13,6 +13,9 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
+import { FACT_TREE } from './fact-tree.token';
+import { FactTreeFactoryService } from './fact-tree-factory.service';
+
 const GAME_DATA_MODULES = [
   CoachesModule,
   TeamsModule,
@@ -29,6 +32,14 @@ const GAME_DATA_MODULES = [
 
 @Module({
   imports: GAME_DATA_MODULES,
-  exports: [...GAME_DATA_MODULES],
+  providers: [
+    FactTreeFactoryService,
+    {
+      provide: FACT_TREE,
+      useFactory: (factory: FactTreeFactoryService) => factory.build(),
+      inject: [FactTreeFactoryService],
+    },
+  ],
+  exports: [...GAME_DATA_MODULES, FACT_TREE],
 })
 export class InsightsModule {}
