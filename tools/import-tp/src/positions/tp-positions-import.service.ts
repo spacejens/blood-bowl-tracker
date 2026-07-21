@@ -46,9 +46,13 @@ export class TpPositionsImportService {
     rosters: RosterEntry[],
     raceIdsByTeamRaceCode: Map<string, number>,
     eraIdsByName: Map<string, number>,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{
+    result: ImportResult;
+    positionIdsByTpPositionId: Map<number, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const positionIdsByTpPositionId = new Map<number, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -56,7 +60,10 @@ export class TpPositionsImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        positionIdsByTpPositionId,
+      };
     }
     const [tpSystemId] = bootstrap.ids;
 
@@ -109,6 +116,9 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
+      for (const tpPositionId of group.tpPositionIds) {
+        positionIdsByTpPositionId.set(tpPositionId, upserted.id);
+      }
       await this.positionsImport.syncRaceEras(
         {
           positionId: upserted.id,
@@ -121,6 +131,9 @@ export class TpPositionsImportService {
       );
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return {
+      result: makeImportResult({ imported, errors }),
+      positionIdsByTpPositionId,
+    };
   }
 }

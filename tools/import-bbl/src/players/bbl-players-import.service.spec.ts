@@ -291,6 +291,63 @@ describe('BblPlayersImportService', () => {
     );
   });
 
+  it('pins a player to a second-league era via its team-code override', async () => {
+    // goodPlayer has pid 42 and teamCode 'knu'. Its pid falls within the
+    // tLoEG era's pid range, but 'knu' is pinned to the GBBL era (a distinct
+    // league) via teamCodeOverrides, which must win over the pid-range match
+    // — proving overrides route correctly across league boundaries.
+    const overrideEraIds = new Map<string, number>([
+      ['LRB', 500],
+      ['GBBL 1', 700],
+    ]);
+    const { service, upsertTeam } = makeService(
+      makeReader([plPage(goodPlayer)]),
+      {
+        upsertTeam: vi
+          .fn()
+          .mockResolvedValue({ eras: [{ id: 7000, eraId: 700 }] }),
+        eras: [
+          {
+            leagueName: 'tLoEG',
+            identity: { name: 'LRB', rulesSets: ['LRB'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: {
+              firstPlayerId: 1,
+              lastPlayerId: 9999,
+              autoAssignByPlayerId: true,
+            },
+          },
+          {
+            leagueName: 'GBBL',
+            identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
+            dates: {
+              startDate: '2019-08-03',
+              endDate: '2019-11-13',
+              autoAssignByDate: false,
+            },
+            players: { autoAssignByPlayerId: false },
+            teams: { teamCodeOverrides: ['knu'] },
+          },
+        ],
+      },
+    );
+
+    const { result } = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName: overrideEraIds,
+    });
+
+    expect(result.imported).toBe(1);
+    // Pinned to the GBBL era's team era (eraId 700), not the tLoEG pid-range
+    // era (500).
+    expect(upsertTeam).toHaveBeenCalledWith(
+      { ...team, eras: [700] },
+      expect.any(Array),
+    );
+  });
+
   it('prefers teamCodeOverrides over playerIdOverrides when the two disagree', async () => {
     // goodPlayer has pid 42 and teamCode 'knu'. Pid 42 is pinned to "Pid Era"
     // via playerIdOverrides, but 'knu' is separately pinned to "Team Era" via

@@ -5,7 +5,15 @@ import { EraConfigService } from './era-config.service';
 
 function makeService(eras: unknown): EraConfigService {
   const config = {
-    get: (key: string) => (key === 'league' ? { eras } : undefined),
+    get: (key: string) =>
+      key === 'leagues' ? [{ leagueName: 'tLoEG', eras }] : undefined,
+  } as unknown as ImportBblConfigService;
+  return new EraConfigService(config);
+}
+
+function makeServiceForLeagues(leagues: unknown): EraConfigService {
+  const config = {
+    get: (key: string) => (key === 'leagues' ? leagues : undefined),
   } as unknown as ImportBblConfigService;
   return new EraConfigService(config);
 }
@@ -54,14 +62,96 @@ describe('EraConfigService', () => {
     expect(eras[1].players.firstPlayerId).toBe(5001);
   });
 
-  it('throws when eras is not set', () => {
-    expect(() => makeService(undefined).getEras()).toThrow(
-      'league.eras is not set in import-bbl-config.json5',
+  it('throws when leagues is not set', () => {
+    expect(() => makeServiceForLeagues(undefined).getEras()).toThrow(
+      'leagues is not set in import-bbl-config.json5',
     );
   });
 
-  it('throws when eras is not a non-empty array', () => {
-    expect(() => makeService([]).getEras()).toThrow('non-empty');
+  it('throws when leagues is not a non-empty array', () => {
+    expect(() => makeServiceForLeagues([]).getEras()).toThrow('non-empty');
+  });
+
+  it('stamps each era with the name of the league it came from', () => {
+    const leagues = [
+      {
+        leagueName: 'tLoEG',
+        eras: [
+          {
+            identity: { name: 'First era', rulesSets: ['BB2016'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          },
+        ],
+      },
+      {
+        leagueName: 'GBBL',
+        eras: [
+          {
+            identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
+            dates: {
+              startDate: '2019-08-03',
+              endDate: '2019-11-13',
+              autoAssignByDate: false,
+            },
+            players: { autoAssignByPlayerId: false },
+            competitions: { seasonCompetitionIdOverrides: ['55'] },
+            teams: { teamCodeOverrides: ['fes2'] },
+          },
+        ],
+      },
+    ];
+    const eras = makeServiceForLeagues(leagues).getEras();
+    expect(eras).toHaveLength(2);
+    expect(eras[0].identity.name).toBe('First era');
+    expect(eras[0].leagueName).toBe('tLoEG');
+    expect(eras[1].identity.name).toBe('GBBL 1');
+    expect(eras[1].leagueName).toBe('GBBL');
+  });
+
+  it('throws when a league entry has an empty leagueName', () => {
+    const leagues = [
+      {
+        leagueName: '',
+        eras: [
+          {
+            identity: { name: 'First era', rulesSets: ['BB2016'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          },
+        ],
+      },
+    ];
+    expect(() => makeServiceForLeagues(leagues).getEras()).toThrow(
+      'leagues[0].leagueName',
+    );
+  });
+
+  it('rejects the same era name used in more than one league', () => {
+    const leagues = [
+      {
+        leagueName: 'tLoEG',
+        eras: [
+          {
+            identity: { name: 'Shared', rulesSets: ['BB2016'] },
+            dates: { startDate: '2011-09-09', autoAssignByDate: true },
+            players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+          },
+        ],
+      },
+      {
+        leagueName: 'GBBL',
+        eras: [
+          {
+            identity: { name: 'Shared', rulesSets: ['BB2016'] },
+            dates: { startDate: '2019-08-03', autoAssignByDate: false },
+            players: { autoAssignByPlayerId: false },
+            teams: { teamCodeOverrides: ['fes2'] },
+          },
+        ],
+      },
+    ];
+    expect(() => makeServiceForLeagues(leagues).getEras()).toThrow(/Shared/);
   });
 
   it('throws when an entry has an empty name', () => {

@@ -21,14 +21,15 @@ export class BblErasImportService {
   ) {}
 
   /**
-   * Import the configured eras (BBL_ERAS), each referencing the league's id and
+   * Import the configured eras (BBL_ERAS), each referencing its league's id and
    * its rules set's id (both resolved earlier in the import run and passed in).
-   * Each era is keyed by its name under both the BBL and Name external systems.
-   * Eras whose league id or rules set id is unknown are skipped with a recorded
-   * error. Idempotent.
+   * The league id is resolved per-era from leagueIdsByName by the era's stamped
+   * leagueName. Each era is keyed by its name under both the BBL and Name
+   * external systems. Eras whose league id or rules set id is unknown are
+   * skipped with a recorded error. Idempotent.
    */
   async importEras(
-    leagueId: number | undefined,
+    leagueIdsByName: Map<string, number>,
     rulesSetIdsByName: Map<string, number>,
   ): Promise<{ result: ImportResult; eraIdsByName: Map<string, number> }> {
     let imported = 0;
@@ -60,19 +61,21 @@ export class BblErasImportService {
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
 
-    if (leagueId === undefined) {
-      errors.push(
-        makeImportError({
-          item: { eras: eras.map((e) => e.identity.name) },
-          message:
-            'Cannot import eras: the league was not imported successfully, so ' +
-            'its id is unknown.',
-        }),
-      );
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
-    }
-
     for (const era of eras) {
+      const leagueId =
+        era.leagueName === undefined
+          ? undefined
+          : leagueIdsByName.get(era.leagueName);
+      if (leagueId === undefined) {
+        errors.push(
+          makeImportError({
+            item: era,
+            message: `Cannot import era "${era.identity.name}": its league "${era.leagueName ?? '(unset)'}" was not imported successfully.`,
+          }),
+        );
+        continue;
+      }
+
       const rulesSetIds: number[] = [];
       let unresolved: string | undefined;
       for (const name of era.identity.rulesSets) {

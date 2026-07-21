@@ -47,4 +47,62 @@ describe('UpsertMatchEventSchema', () => {
       }),
     ).toThrow();
   });
+
+  it('accepts an event with both actionType and consequenceType set (opponent-caused injury)', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actingTeamEraId: 5,
+      consequenceTeamEraId: 6,
+      actionType: 'casualty',
+      consequenceType: 'death',
+    });
+    expect(parsed.actionType).toBe('casualty');
+    expect(parsed.consequenceType).toBe('death');
+  });
+
+  it('accepts an eventType-only event (weather)', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      eventType: 'weather',
+      weatherType: 104,
+    });
+    expect(parsed.eventType).toBe('weather');
+    expect(parsed.actionType).toBeUndefined();
+    expect(parsed.consequenceType).toBeUndefined();
+  });
+
+  it('rejects an event with both eventType and actionType set', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        eventType: 'weather',
+        actionType: 'touchdown',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects an event with both eventType and consequenceType set', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        eventType: 'weather',
+        consequenceType: 'sent_off',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects an unknown event type', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({ ...base, eventType: 'nonsense' }),
+    ).toThrow();
+  });
+
+  it('accepts inducementsFromTreasury on an inducements event', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actionType: 'inducements',
+      inducementsFromTreasury: 50,
+    });
+    expect(parsed.inducementsFromTreasury).toBe(50);
+  });
 });

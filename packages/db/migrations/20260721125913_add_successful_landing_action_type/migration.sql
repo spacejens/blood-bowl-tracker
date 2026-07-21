@@ -1,0 +1,1 @@
+ALTER TYPE "game_data"."action_type" ADD VALUE 'successful_landing';

@@ -10,6 +10,16 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
     teamName: 'The Dwarf Team',
     teamRace: 'Dwarf_BB2025',
     player: { applicationUserId: 'guid-coach-1' },
+    lineUps: [
+      {
+        id: 2412443,
+        name: 'The Agitated Deviation',
+        number: 1,
+        lineUpMasterId: 952,
+        rosterId: 123,
+        position: 'Dwarf Lineman',
+      },
+    ],
     rosterMaster: {
       name: 'Dwarf',
       starPlayersMasters: [],
@@ -34,6 +44,15 @@ describe('RosterParserService', () => {
         { tpPositionId: 952, name: 'Dwarf Lineman' },
         { tpPositionId: 953, name: 'Dwarf Runner' },
       ],
+      players: [
+        {
+          id: 2412443,
+          name: 'The Agitated Deviation',
+          number: 1,
+          lineUpMasterId: 952,
+          rosterId: 123,
+        },
+      ],
     });
   });
 
@@ -56,5 +75,22 @@ describe('RosterParserService', () => {
 
   it('throws for a non-object body', () => {
     expect(() => parser.parse(null)).toThrow(/Invalid TP roster JSON/);
+  });
+
+  it('parses each lineUps entry into a player instance', () => {
+    const roster = parser.parse(rosterBody());
+    expect(roster.players).toEqual([
+      {
+        id: 2412443,
+        name: 'The Agitated Deviation',
+        number: 1,
+        lineUpMasterId: 952,
+        rosterId: 123,
+      },
+    ]);
+  });
+
+  it('returns an empty players array when lineUps is empty', () => {
+    expect(parser.parse(rosterBody({ lineUps: [] })).players).toEqual([]);
   });
 });

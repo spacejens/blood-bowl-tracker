@@ -33,9 +33,10 @@ export class TpMatchesImportService {
    */
   async importMatches(
     matchesByCompetitionId: Map<number, TpMatch[]>,
-  ): Promise<{ result: ImportResult }> {
+  ): Promise<{ result: ImportResult; matchIdsByTpId: Map<number, number> }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const matchIdsByTpId = new Map<number, number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -43,7 +44,10 @@ export class TpMatchesImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        matchIdsByTpId,
+      };
     }
     const [tpSystemId] = bootstrap.ids;
 
@@ -64,10 +68,14 @@ export class TpMatchesImportService {
         );
         if (upserted) {
           imported += 1;
+          matchIdsByTpId.set(match.id, upserted.id);
         }
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return {
+      result: makeImportResult({ imported, errors }),
+      matchIdsByTpId,
+    };
   }
 }

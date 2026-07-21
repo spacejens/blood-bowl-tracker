@@ -48,6 +48,7 @@ function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
       raceName,
       coachTpId: 'coach-1',
       positions,
+      players: [],
     },
   };
 }
@@ -79,7 +80,7 @@ describe('TpPositionsImportService', () => {
       syncRaceEras,
     });
 
-    const { result } = await service.importPositions(
+    const { result, positionIdsByTpPositionId } = await service.importPositions(
       [
         rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
@@ -109,6 +110,7 @@ describe('TpPositionsImportService', () => {
       },
       expect.any(Array),
     );
+    expect(positionIdsByTpPositionId.get(280)).toBe(70);
   });
 
   it('merges the same position name across rule-set codes of one race into one row', async () => {
@@ -122,7 +124,7 @@ describe('TpPositionsImportService', () => {
       syncRaceEras,
     });
 
-    await service.importPositions(
+    const { positionIdsByTpPositionId } = await service.importPositions(
       [
         rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
@@ -148,6 +150,8 @@ describe('TpPositionsImportService', () => {
     );
 
     expect(upsertPosition).toHaveBeenCalledTimes(1);
+    expect(positionIdsByTpPositionId.get(281)).toBe(70);
+    expect(positionIdsByTpPositionId.get(954)).toBe(70);
     expect(
       (upsertPosition.mock.calls[0][0] as UpsertPosition).externalIds,
     ).toEqual([

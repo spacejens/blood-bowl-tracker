@@ -1,0 +1,1 @@
+ALTER TYPE "game_data"."consequence_type" ADD VALUE 'stat_reduction_pa' BEFORE 'death';
