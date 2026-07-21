@@ -26,12 +26,15 @@ camelCase, grouped into nested objects by concern:
   change to introduce.
   - `apiBaseUrl` — base URL of the running api-server to import into. Defaults
     to `http://localhost:3000` (a local docker-compose deployment) if unset.
-- `league` — everything that describes the league being imported.
-  - `leagueName` — the name of the league the BBL data covers. The BBL data
-    mirror covers a single league whose name is not present in the data, so it
-    is supplied here. Used as the league's external ID under both the `BBL`
-    and `Name` external systems.
-  - `eras` — a JSON array describing the eras the league played through. Each
+- `leagues` — an array of the leagues the BBL data covers. Each entry has a
+  `leagueName` and an `eras` array. The BBL data mirror covers a single league
+  whose name is not present in the data, so league names are supplied here. Each
+  league name is used as that league's external ID under both the `BBL` and
+  `Name` external systems. Rules sets and eras are not present in the source
+  data, so they are supplied here. **Nota bene: era names must be unique across
+  all leagues**, since they feed a single flat era map downstream.
+  - `leagueName` — the name of a league the BBL data covers.
+  - `eras` — a JSON array describing the eras a league played through. Each
     entry is grouped into six parts:
     - `identity` — `name` and `rulesSets` (a non-empty array of the rules set
       names the era spans, in chronological order — most eras list a single
@@ -194,17 +197,18 @@ Re-running is always safe and fills any gaps left by transient failures.
 
 ## Data types
 
-- **Leagues** — a single league from the `leagueName` config value (not
-  parsed from the data). Keyed by that name under the configured BBL external
-  system (`BBL` by default) and the `Name` external system. Imported before
-  coaches, as the foundational entity.
+- **Leagues** — one league per `leagues[]` entry, each from its `leagueName`
+  config value (not parsed from the data). Each league is keyed by that name
+  under the configured BBL external system (`BBL` by default) and the `Name`
+  external system. Imported before coaches, as the foundational entity.
 - **Rules sets** — the distinct names across all eras' `rulesSets` arrays in
   the `eras` config (not parsed from the data). Keyed by that name under
   the configured BBL external system and the `Name` external system. Imported
   after the league.
-- **Eras** — from the `eras` config (not parsed from the data). Each era
-  references its league and one or more rules sets (all imported first) and
-  carries a `startDate` and optional `endDate`. Keyed by the era name under the
+- **Eras** — from the `eras` config within each `leagues[]` entry (not parsed
+  from the data). Each era references its league (from its containing
+  `leagues[]` entry) and one or more rules sets (all imported first) and carries
+  a `startDate` and optional `endDate`. Keyed by the era name under the
   configured BBL external system and the `Name` external system. Imported
   after rules sets.
 - **Coaches** — from team pages (`p=tm`). Keyed by exact name under the

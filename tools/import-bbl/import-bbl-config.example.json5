@@ -25,19 +25,22 @@
   // league group because it describes where the source data lives on disk.
   dataDir: 'data/<subfolder>',
 
-  // Everything that describes the league being imported: its name and the eras
-  // it played through. Rules sets and eras are not present in the mirror, so
-  // they are supplied here.
-  league: {
-    // Name of the league the BBL data covers. The mirror covers a single league
-    // whose name is not in the data. Used as the league's external ID under the
-    // BBL and Name external systems.
-    leagueName: '<league name>',
+  // An array of the leagues the BBL data covers. Each entry has a leagueName
+  // and an eras array of the league's different eras. Rules sets and eras are
+  // not present in the mirror, so they are supplied here. dataDir,
+  // connection, and externalSystemName stay top-level/shared across all leagues
+  // because both leagues read from the same mirror.
+  leagues: [
+    {
+      // Name of the league the BBL data covers. The mirror covers a single league
+      // whose name is not in the data. Used as the league's external ID under the
+      // BBL and Name external systems.
+      leagueName: 'tLoEG',
 
-    // Eras the league played through. Each era is grouped into identity, dates,
-    // players, and the optional competitions/teams/matches groups -- see the
-    // comments on each field below, at its first appearance in this file.
-    eras: [
+      // Eras the league played through. Each era is grouped into identity, dates,
+      // players, and the optional competitions/teams/matches groups -- see the
+      // comments on each field below, at its first appearance in this file.
+      eras: [
       {
         // Era name and the rules set(s) it spans -- a non-empty array, in
         // chronological order (most eras list one; an era spanning a
@@ -200,6 +203,42 @@
           teamCodeOverrides: ['red4', 'twi', 'dok', 'äng', 'dan', 'lus2'],
         },
       },
-    ],
-  },
+      ],
+    },
+    {
+      leagueName: 'GBBL',
+      eras: [
+        {
+          // GBBL 1 is a self-contained 11-team exhibition tournament (BBL season
+          // id 55) played Aug-Nov 2019, modeled as its own single-era league. It
+          // shares the tLoEG mirror and the BB2016 ruleset that was current then.
+          identity: {
+            name: 'GBBL 1',
+            rulesSets: ['BB2016'],
+          },
+          // Real match span 2019-08-03 .. 2019-11-12; endDate is one day past the
+          // last match (exclusive-end convention). autoAssignByDate:false keeps
+          // this range from capturing unrelated competitions.
+          dates: {
+            startDate: '2019-08-03',
+            endDate: '2019-11-13',
+            autoAssignByDate: false,
+          },
+          // Assigned exhaustively via teamCodeOverrides below (an all-star event
+          // whose pids overlap tLoEG's ranges), so the pid-range scan is disabled.
+          players: {
+            autoAssignByPlayerId: false,
+          },
+          competitions: {
+            seasonCompetitionIdOverrides: ['55'],
+          },
+          teams: {
+            teamCodeOverrides: [
+              'fes2', 'ver', 'liz2', 'hel', 'läd', 'pro2', 'var', 'sma', 'knu', 'wew', 'dum',
+            ],
+          },
+        },
+      ],
+    },
+  ],
 }
