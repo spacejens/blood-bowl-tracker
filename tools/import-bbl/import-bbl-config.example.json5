@@ -25,181 +25,220 @@
   // league group because it describes where the source data lives on disk.
   dataDir: 'data/<subfolder>',
 
-  // Everything that describes the league being imported: its name and the eras
-  // it played through. Rules sets and eras are not present in the mirror, so
-  // they are supplied here.
-  league: {
-    // Name of the league the BBL data covers. The mirror covers a single league
-    // whose name is not in the data. Used as the league's external ID under the
-    // BBL and Name external systems.
-    leagueName: '<league name>',
+  // An array of the leagues the BBL data covers. Each entry has a leagueName
+  // and an eras array of the league's different eras. Rules sets and eras are
+  // not present in the mirror, so they are supplied here. dataDir,
+  // connection, and externalSystemName stay top-level/shared across all leagues
+  // because both leagues read from the same mirror.
+  leagues: [
+    {
+      // Name of the league the BBL data covers. The mirror covers a single league
+      // whose name is not in the data. Used as the league's external ID under the
+      // BBL and Name external systems.
+      leagueName: 'tLoEG',
 
-    // Eras the league played through. Each era is grouped into identity, dates,
-    // players, and the optional competitions/teams/matches groups -- see the
-    // comments on each field below, at its first appearance in this file.
-    eras: [
-      {
-        // Era name and the rules set(s) it spans -- a non-empty array, in
-        // chronological order (most eras list one; an era spanning a
-        // rules-set change lists several).
-        identity: {
-          name: 'First era',
-          rulesSets: ['CRP', 'CRP+', 'BB2016'],
+      // Eras the league played through. Each era is grouped into identity, dates,
+      // players, and the optional competitions/teams/matches groups -- see the
+      // comments on each field below, at its first appearance in this file.
+      eras: [
+        {
+          // Era name and the rules set(s) it spans -- a non-empty array, in
+          // chronological order (most eras list one; an era spanning a
+          // rules-set change lists several).
+          identity: {
+            name: 'First era',
+            rulesSets: ['CRP', 'CRP+', 'BB2016'],
+          },
+          dates: {
+            // startDate (required, YYYY-MM-DD) and endDate (optional -- omit for
+            // an era still ongoing) bound the era. Always imported into the era's
+            // DB record, regardless of autoAssignByDate below.
+            startDate: '2011-09-09',
+            endDate: '2021-09-01',
+            // Required boolean. true: a competition whose earliest match date
+            // falls in [startDate, endDate) is automatically assigned to this
+            // era. false: this era is never reached by that automatic scan --
+            // only through its competitions overrides below (see First Stunty
+            // Leeg era for an example).
+            autoAssignByDate: true,
+          },
+          players: {
+            // firstPlayerId is required when autoAssignByPlayerId is true
+            // (optional otherwise); lastPlayerId is always optional -- when
+            // omitted, the range is open-ended above firstPlayerId.
+            firstPlayerId: 1,
+            lastPlayerId: 4868,
+            // Required boolean. true: a player whose pid falls in
+            // [firstPlayerId, lastPlayerId] is automatically assigned to this
+            // era. false: this era is never reached by that automatic scan --
+            // only through teamCodeOverrides/playerIdOverrides.
+            autoAssignByPlayerId: true,
+            // Explicit pids assigned to this era regardless of the
+            // firstPlayerId/lastPlayerId range, checked before it -- BBL player
+            // ids are only roughly chronological, so a handful of players
+            // drafted right at an era changeover can land on the "wrong" side
+            // of a range split; overrides correct those known exceptions
+            // without widening the range.
+            playerIdOverrides: [4907, 4909, 4911, 4912, 4914, 4915, 4921, 4922, 4923],
+          },
+          // BBL cannot store a match with more than two teams, so the four-team
+          // "Bierhallentodball" finals in the Ogretoberfest cups were each
+          // registered as two two-team rows. Each pair is imported as one match
+          // (both external ids, all four teams, the union of both rows' events).
+          // Both ids of a pair must be in the same competition's match list. All
+          // six of this league's confirmed pairs fall inside First era.
+          matches: {
+            merges: [
+              ['1061', '1062'],
+              ['1311', '1312'],
+              ['1309', '1310'],
+              ['1520', '1521'],
+              ['1518', '1519'],
+              ['1759', '1760'],
+            ],
+          },
         },
-        dates: {
-          // startDate (required, YYYY-MM-DD) and endDate (optional -- omit for
-          // an era still ongoing) bound the era. Always imported into the era's
-          // DB record, regardless of autoAssignByDate below.
-          startDate: '2011-09-09',
-          endDate: '2021-09-01',
-          // Required boolean. true: a competition whose earliest match date
-          // falls in [startDate, endDate) is automatically assigned to this
-          // era. false: this era is never reached by that automatic scan --
-          // only through its competitions overrides below (see First Stunty
-          // Leeg era for an example).
-          autoAssignByDate: true,
-        },
-        players: {
-          // firstPlayerId is required when autoAssignByPlayerId is true
-          // (optional otherwise); lastPlayerId is always optional -- when
-          // omitted, the range is open-ended above firstPlayerId.
-          firstPlayerId: 1,
-          lastPlayerId: 4868,
-          // Required boolean. true: a player whose pid falls in
-          // [firstPlayerId, lastPlayerId] is automatically assigned to this
-          // era. false: this era is never reached by that automatic scan --
-          // only through teamCodeOverrides/playerIdOverrides.
-          autoAssignByPlayerId: true,
-          // Explicit pids assigned to this era regardless of the
-          // firstPlayerId/lastPlayerId range, checked before it -- BBL player
-          // ids are only roughly chronological, so a handful of players
-          // drafted right at an era changeover can land on the "wrong" side
-          // of a range split; overrides correct those known exceptions
-          // without widening the range.
-          playerIdOverrides: [4907, 4909, 4911, 4912, 4914, 4915, 4921, 4922, 4923],
-        },
-        // BBL cannot store a match with more than two teams, so the four-team
-        // "Bierhallentodball" finals in the Ogretoberfest cups were each
-        // registered as two two-team rows. Each pair is imported as one match
-        // (both external ids, all four teams, the union of both rows' events).
-        // Both ids of a pair must be in the same competition's match list. All
-        // six of this league's confirmed pairs fall inside First era.
-        matches: {
-          merges: [
-            ['1061', '1062'],
-            ['1311', '1312'],
-            ['1309', '1310'],
-            ['1520', '1521'],
-            ['1518', '1519'],
-            ['1759', '1760'],
+        {
+          identity: {
+            name: 'Second era',
+            rulesSets: ['BB2020'],
+          },
+          dates: {
+            startDate: '2021-09-01',
+            endDate: '2023-06-15',
+            autoAssignByDate: true,
+          },
+          players: {
+            firstPlayerId: 4869,
+            lastPlayerId: 6098,
+            autoAssignByPlayerId: true,
+            playerIdOverrides: [
+              4484, 4486, 4487, 4491, 4493, 4494, 4602, 4605, 4606, 4611, 4612, 4613,
+              4619, 4621, 4623, 4742, 4744, 4745, 4747, 4748, 4751, 4754, 4762, 4768,
+              4769, 4781, 4783, 4801, 4802, 4803, 4813, 4817, 4819, 4827, 4828, 4832,
+              4833, 4838, 4839, 4842, 4846, 4865,
+            ],
+          },
+          // Optional group -- omit entirely when an era has neither override
+          // list. seasonCompetitionIdOverrides/cupCompetitionIdOverrides are
+          // competition bblIds hard-assigned to this era and forced to type
+          // season/cup respectively, regardless of match dates -- for a
+          // competition with a genuinely empty match list, or whose date span
+          // would otherwise misclassify its type. Checked before the
+          // match-date scan, so unaffected by autoAssignByDate. A competition
+          // bblId may appear in only one of these lists across all eras.
+          competitions: {
+            seasonCompetitionIdOverrides: ['74'],
+          },
+          // Optional group -- omit entirely when an era has no position
+          // overrides. Each entry is keyed by positionId (BBL position typId)
+          // and raceId (BBL race bblId); the era itself is implied by which
+          // era block the entry is nested under, so there is no eraId field
+          // here. Used when the zero-players heuristic (a position with no
+          // players recorded in this era is assumed unavailable) mis-decides a
+          // position's availability -- e.g. a position that existed in this
+          // era's rules set but genuinely went unused, or one that was removed
+          // but happens to have leftover player records.
+          positions: [
+            { positionId: '12', raceId: '3', available: false },
           ],
         },
-      },
-      {
-        identity: {
-          name: 'Second era',
-          rulesSets: ['BB2020'],
+        {
+          identity: {
+            name: 'First Stunty Leeg era',
+            rulesSets: ['CRP', 'CRP+', 'BB2016'],
+          },
+          // Real match span 2016-03-12 .. 2016-11-25; endDate is one day past the
+          // last match (exclusive-end convention). autoAssignByDate:false keeps
+          // this range from capturing unrelated competitions.
+          dates: {
+            startDate: '2016-03-12',
+            endDate: '2016-11-26',
+            autoAssignByDate: false,
+          },
+          // firstPlayerId/lastPlayerId are omitted here -- they serve no
+          // purpose when autoAssignByPlayerId is false, since this era is only
+          // ever reached through teamCodeOverrides/playerIdOverrides below.
+          players: {
+            autoAssignByPlayerId: false,
+          },
+          competitions: {
+            cupCompetitionIdOverrides: ['30', '33'],
+          },
+          // Optional group -- omit entirely when an era has no team-code
+          // overrides. teamCodeOverrides pins the players of the listed team
+          // codes to this era regardless of pid, for a side-competition era
+          // (like this one) that shares its concurrent regular era's pid
+          // range. Checked before playerIdOverrides and the pid range, so
+          // unaffected by autoAssignByPlayerId. A team code may appear in only
+          // one era's teamCodeOverrides across all eras. Note: this list and
+          // the competitions overrides above are independent and must agree
+          // by hand -- teamCodeOverrides should list exactly the team codes
+          // that played in the overridden competitions (there is no
+          // cross-reference check between the two).
+          teams: {
+            teamCodeOverrides: ['rad', 'sl-', 'sl-2', 'his', 'oxt', 'ogh'],
+          },
         },
-        dates: {
-          startDate: '2021-09-01',
-          endDate: '2023-06-15',
-          autoAssignByDate: true,
+        {
+          identity: {
+            name: 'First Dungeon Bowl era',
+            rulesSets: ['DB2021'],
+          },
+          // Real match span 2022-02-12 .. 2022-08-22; endDate is one day past the
+          // last match. autoAssignByDate:false keeps this range from capturing
+          // unrelated competitions.
+          dates: {
+            startDate: '2022-02-12',
+            endDate: '2022-08-23',
+            autoAssignByDate: false,
+          },
+          players: {
+            autoAssignByPlayerId: false,
+          },
+          competitions: {
+            seasonCompetitionIdOverrides: ['69'],
+          },
+          teams: {
+            teamCodeOverrides: ['red4', 'twi', 'dok', 'äng', 'dan', 'lus2'],
+          },
         },
-        players: {
-          firstPlayerId: 4869,
-          lastPlayerId: 6098,
-          autoAssignByPlayerId: true,
-          playerIdOverrides: [
-            4484, 4486, 4487, 4491, 4493, 4494, 4602, 4605, 4606, 4611, 4612, 4613,
-            4619, 4621, 4623, 4742, 4744, 4745, 4747, 4748, 4751, 4754, 4762, 4768,
-            4769, 4781, 4783, 4801, 4802, 4803, 4813, 4817, 4819, 4827, 4828, 4832,
-            4833, 4838, 4839, 4842, 4846, 4865,
-          ],
+      ],
+    },
+    {
+      leagueName: 'GBBL',
+      eras: [
+        {
+          // GBBL 1 is a self-contained 11-team exhibition tournament (BBL season
+          // id 55) played Aug-Nov 2019, modeled as its own single-era league. It
+          // shares the tLoEG mirror and the BB2016 ruleset that was current then.
+          identity: {
+            name: 'GBBL 1',
+            rulesSets: ['BB2016'],
+          },
+          // Real match span 2019-08-03 .. 2019-11-12; endDate is one day past the
+          // last match (exclusive-end convention). autoAssignByDate:false keeps
+          // this range from capturing unrelated competitions.
+          dates: {
+            startDate: '2019-08-03',
+            endDate: '2019-11-13',
+            autoAssignByDate: false,
+          },
+          // Assigned exhaustively via teamCodeOverrides below (an all-star event
+          // whose pids overlap tLoEG's ranges), so the pid-range scan is disabled.
+          players: {
+            autoAssignByPlayerId: false,
+          },
+          competitions: {
+            seasonCompetitionIdOverrides: ['55'],
+          },
+          teams: {
+            teamCodeOverrides: [
+              'fes2', 'ver', 'liz2', 'hel', 'läd', 'pro2', 'var', 'sma', 'knu', 'wew', 'dum',
+            ],
+          },
         },
-        // Optional group -- omit entirely when an era has neither override
-        // list. seasonCompetitionIdOverrides/cupCompetitionIdOverrides are
-        // competition bblIds hard-assigned to this era and forced to type
-        // season/cup respectively, regardless of match dates -- for a
-        // competition with a genuinely empty match list, or whose date span
-        // would otherwise misclassify its type. Checked before the
-        // match-date scan, so unaffected by autoAssignByDate. A competition
-        // bblId may appear in only one of these lists across all eras.
-        competitions: {
-          seasonCompetitionIdOverrides: ['74'],
-        },
-        // Optional group -- omit entirely when an era has no position
-        // overrides. Each entry is keyed by positionId (BBL position typId)
-        // and raceId (BBL race bblId); the era itself is implied by which
-        // era block the entry is nested under, so there is no eraId field
-        // here. Used when the zero-players heuristic (a position with no
-        // players recorded in this era is assumed unavailable) mis-decides a
-        // position's availability -- e.g. a position that existed in this
-        // era's rules set but genuinely went unused, or one that was removed
-        // but happens to have leftover player records.
-        positions: [
-          { positionId: '12', raceId: '3', available: false },
-        ],
-      },
-      {
-        identity: {
-          name: 'First Stunty Leeg era',
-          rulesSets: ['CRP', 'CRP+', 'BB2016'],
-        },
-        // Real match span 2016-03-12 .. 2016-11-25; endDate is one day past the
-        // last match (exclusive-end convention). autoAssignByDate:false keeps
-        // this range from capturing unrelated competitions.
-        dates: {
-          startDate: '2016-03-12',
-          endDate: '2016-11-26',
-          autoAssignByDate: false,
-        },
-        // firstPlayerId/lastPlayerId are omitted here -- they serve no
-        // purpose when autoAssignByPlayerId is false, since this era is only
-        // ever reached through teamCodeOverrides/playerIdOverrides below.
-        players: {
-          autoAssignByPlayerId: false,
-        },
-        competitions: {
-          cupCompetitionIdOverrides: ['30', '33'],
-        },
-        // Optional group -- omit entirely when an era has no team-code
-        // overrides. teamCodeOverrides pins the players of the listed team
-        // codes to this era regardless of pid, for a side-competition era
-        // (like this one) that shares its concurrent regular era's pid
-        // range. Checked before playerIdOverrides and the pid range, so
-        // unaffected by autoAssignByPlayerId. A team code may appear in only
-        // one era's teamCodeOverrides across all eras. Note: this list and
-        // the competitions overrides above are independent and must agree
-        // by hand -- teamCodeOverrides should list exactly the team codes
-        // that played in the overridden competitions (there is no
-        // cross-reference check between the two).
-        teams: {
-          teamCodeOverrides: ['rad', 'sl-', 'sl-2', 'his', 'oxt', 'ogh'],
-        },
-      },
-      {
-        identity: {
-          name: 'First Dungeon Bowl era',
-          rulesSets: ['DB2021'],
-        },
-        // Real match span 2022-02-12 .. 2022-08-22; endDate is one day past the
-        // last match. autoAssignByDate:false keeps this range from capturing
-        // unrelated competitions.
-        dates: {
-          startDate: '2022-02-12',
-          endDate: '2022-08-23',
-          autoAssignByDate: false,
-        },
-        players: {
-          autoAssignByPlayerId: false,
-        },
-        competitions: {
-          seasonCompetitionIdOverrides: ['69'],
-        },
-        teams: {
-          teamCodeOverrides: ['red4', 'twi', 'dok', 'äng', 'dan', 'lus2'],
-        },
-      },
-    ],
-  },
+      ],
+    },
+  ],
 }

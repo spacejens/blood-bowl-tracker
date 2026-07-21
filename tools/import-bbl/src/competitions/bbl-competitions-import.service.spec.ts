@@ -655,4 +655,41 @@ describe('BblCompetitionsImportService', () => {
     expect(competitionsByBblId.get('30')?.eraId).toBe(200);
     expect(competitionsByBblId.get('30')?.type).toBe('cup');
   });
+
+  it('resolves a competition to an override era from a second league', async () => {
+    const erasWithGbbl: EraConfig[] = [
+      ...erasConfig,
+      {
+        leagueName: 'GBBL',
+        identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
+        dates: {
+          startDate: '2019-08-03',
+          endDate: '2019-11-13',
+          autoAssignByDate: false,
+        },
+        players: { autoAssignByPlayerId: false },
+        competitions: { seasonCompetitionIdOverrides: ['55'] },
+        teams: { teamCodeOverrides: ['fes2'] },
+      },
+    ];
+    const eraIds = new Map<string, number>([...eraIdsByName, ['GBBL 1', 900]]);
+
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 1 });
+    const service = makeService({
+      reader: makeReader({ se: [page('se', { s: '55' })] }),
+      listParser: makeListParser([{ bblId: '55', name: 'GBBL 1' }]),
+      matchListReader: makeMatchListReader({ '55': [new Date('2019-08-03')] }),
+      bootstrap,
+      upsertCompetitionResult,
+      getEras: () => erasWithGbbl,
+    });
+
+    await service.importCompetitions(eraIds);
+
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({ eraId: 900, type: 'season' }),
+      expect.anything(),
+    );
+  });
 });

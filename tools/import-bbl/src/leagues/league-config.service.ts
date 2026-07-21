@@ -7,21 +7,44 @@ export class LeagueConfigService {
   constructor(private readonly config: ImportBblConfigService) {}
 
   /**
-   * The name of the single league covered by the BBL data mirror. Supplied via
-   * the leagueName config key (the name is not parsed from the source data).
-   * Used as the league's external ID under both the BBL and Name external
-   * systems.
+   * The names of every league covered by the BBL data mirror, supplied via the
+   * leagues[] config array (names are not parsed from the source data). Each is
+   * used as that league's external ID under both the BBL and Name external
+   * systems. Order is preserved. League names must be unique.
    */
-  getLeagueName(): string {
-    const league = this.config.get<Record<string, unknown>>('league');
-    const name = league?.leagueName;
-    if (typeof name !== 'string' || name === '') {
+  getLeagueNames(): string[] {
+    const leagues = this.config.get<unknown>('leagues');
+    if (leagues === undefined) {
       throw new Error(
-        'league.leagueName is not set in import-bbl-config.json5. Set ' +
-          'league.leagueName to the name of the league the BBL data covers ' +
-          '(e.g. "tLoEG").',
+        'leagues is not set in import-bbl-config.json5. Set it to a ' +
+          'non-empty array of leagues, each with a leagueName (e.g. "tLoEG").',
       );
     }
-    return name;
+    if (!Array.isArray(leagues) || leagues.length === 0) {
+      throw new Error(
+        'leagues in import-bbl-config.json5 must be a non-empty array of leagues.',
+      );
+    }
+    const names: string[] = [];
+    const seen = new Set<string>();
+    leagues.forEach((entry, index) => {
+      if (typeof entry !== 'object' || entry === null) {
+        throw new Error(`leagues[${index}] must be an object.`);
+      }
+      const name = (entry as Record<string, unknown>).leagueName;
+      if (typeof name !== 'string' || name.trim() === '') {
+        throw new Error(
+          `leagues[${index}].leagueName must be a non-empty string.`,
+        );
+      }
+      if (seen.has(name)) {
+        throw new Error(
+          `leagues: league name "${name}" appears more than once.`,
+        );
+      }
+      seen.add(name);
+      names.push(name);
+    });
+    return names;
   }
 }

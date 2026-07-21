@@ -31,6 +31,7 @@ function makeService({
 
 const eras: EraConfig[] = [
   {
+    leagueName: 'tLoEG',
     identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
     dates: {
       startDate: '2011-09-09',
@@ -40,6 +41,7 @@ const eras: EraConfig[] = [
     players: { firstPlayerId: 1, autoAssignByPlayerId: true },
   },
   {
+    leagueName: 'tLoEG',
     identity: { name: 'BB2020', rulesSets: ['BB2020'] },
     dates: { startDate: '2021-09-01', autoAssignByDate: true },
     players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
@@ -50,6 +52,8 @@ const rulesSetIds = new Map<string, number>([
   ['Living rulebook', 100],
   ['BB2020', 200],
 ]);
+
+const leagueIds = new Map<string, number>([['tLoEG', 10]]);
 
 describe('BblErasImportService', () => {
   it('upserts each era referencing the league id and its rules set id', async () => {
@@ -64,7 +68,10 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
+    const { result, eraIdsByName } = await service.importEras(
+      leagueIds,
+      rulesSetIds,
+    );
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
@@ -107,21 +114,54 @@ describe('BblErasImportService', () => {
     );
   });
 
-  it('records one error and imports nothing when the league id is missing', async () => {
+  it("resolves each era's league id from the map by its stamped name", async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn();
+    const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'x' });
+    const service = makeService({ getEras: () => eras, bootstrap, upsertEra });
+
+    await service.importEras(leagueIds, rulesSetIds);
+
+    expect(upsertEra).toHaveBeenCalledWith(
+      expect.objectContaining({ leagueId: 10 }),
+      expect.anything(),
+    );
+  });
+
+  it('records an error and skips an era whose league was not imported', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertEra = vi.fn().mockResolvedValue({ id: 700, name: 'GBBL 1' });
+    const gbblEra: EraConfig[] = [
+      {
+        leagueName: 'GBBL',
+        identity: { name: 'GBBL 1', rulesSets: ['BB2016'] },
+        dates: {
+          startDate: '2019-08-03',
+          endDate: '2019-11-13',
+          autoAssignByDate: false,
+        },
+        players: { autoAssignByPlayerId: false },
+        teams: { teamCodeOverrides: ['fes2'] },
+      },
+    ];
     const service = makeService({
-      getEras: () => eras,
+      getEras: () => gbblEra,
       bootstrap,
       upsertEra,
     });
 
-    const { result } = await service.importEras(undefined, rulesSetIds);
+    // leagueIds only has tLoEG, not GBBL.
+    const { result } = await service.importEras(
+      leagueIds,
+      new Map([['BB2016', 300]]),
+    );
 
-    expect(result.success).toBe(false);
-    expect(result.imported).toBe(0);
-    expect(result.errors.some((e) => e.message.includes('league'))).toBe(true);
     expect(upsertEra).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(
+      result.errors.some(
+        (e) => e.message.includes('GBBL 1') && e.message.includes('league'),
+      ),
+    ).toBe(true);
   });
 
   it('skips an era whose rules set was not imported, recording an error', async () => {
@@ -134,7 +174,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, partialIds);
+    const { result } = await service.importEras(leagueIds, partialIds);
 
     expect(result.imported).toBe(1);
     expect(result.success).toBe(false);
@@ -160,7 +200,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(leagueIds, rulesSetIds);
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
@@ -171,6 +211,7 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn();
     const multiRulesSetEras: EraConfig[] = [
       {
+        leagueName: 'tLoEG',
         identity: { name: 'CRP era', rulesSets: ['CRP', 'MISSING'] },
         dates: { startDate: '2016-01-01', autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
@@ -182,7 +223,10 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, new Map([['CRP', 20]]));
+    const { result } = await service.importEras(
+      leagueIds,
+      new Map([['CRP', 20]]),
+    );
 
     expect(upsertEra).not.toHaveBeenCalled();
     expect(result.errors[0].message).toMatch(/MISSING/);
@@ -193,6 +237,7 @@ describe('BblErasImportService', () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'CRP era' });
     const multiRulesSetEras: EraConfig[] = [
       {
+        leagueName: 'tLoEG',
         identity: { name: 'CRP era', rulesSets: ['CRP', 'CRP+'] },
         dates: { startDate: '2016-01-01', autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
@@ -205,7 +250,7 @@ describe('BblErasImportService', () => {
     });
 
     await service.importEras(
-      10,
+      leagueIds,
       new Map([
         ['CRP', 20],
         ['CRP+', 21],
@@ -229,7 +274,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(leagueIds, rulesSetIds);
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
@@ -253,7 +298,7 @@ describe('BblErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, rulesSetIds);
+    const { result } = await service.importEras(leagueIds, rulesSetIds);
 
     expect(result.success).toBe(false);
     expect(result.errors).toHaveLength(1);
