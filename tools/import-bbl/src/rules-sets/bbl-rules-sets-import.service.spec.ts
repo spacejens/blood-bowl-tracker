@@ -78,7 +78,10 @@ describe('BblRulesSetsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(upsertRulesSet).toHaveBeenCalledTimes(2);
     expect(upsertRulesSet).toHaveBeenNthCalledWith(
       1,
@@ -188,7 +191,10 @@ describe('BblRulesSetsImportService', () => {
 
     const outcome = await service.importRulesSets();
 
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(upsertRulesSet).toHaveBeenCalledTimes(3);
     const upsertedNames = upsertRulesSet.mock.calls.map(
       (c) => (c[0] as { name: string }).name,

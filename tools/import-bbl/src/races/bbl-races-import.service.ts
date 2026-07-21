@@ -3,13 +3,13 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { pageParseError } from '../source/page-parse-error';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
@@ -63,8 +63,8 @@ export class BblRacesImportService {
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      bblSystemName,
-      NAME_EXTERNAL_SYSTEM_NAME,
+      { name: bblSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

@@ -75,7 +75,10 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(eraIdsByName).toEqual(
       new Map([
         ['Living rulebook', 500],
