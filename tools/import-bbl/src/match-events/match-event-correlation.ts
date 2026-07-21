@@ -26,6 +26,10 @@ export const ACTION_CATEGORY: Record<ActionType, string> = {
   journeymen_signings: 'journeyman',
   prayers_to_nuffle: 'prayers',
   secret_objective: 'secret-objective',
+  // TP-only (code 46, "successful landing") — BBL has no equivalent event to
+  // scrape, so this category slug is never actually used by import-bbl, but
+  // ACTION_CATEGORY must stay exhaustive over the shared ActionType enum.
+  successful_landing: 'landing',
 };
 
 /** The category slug used in an event's synthesized external id, per consequence. */
