@@ -20,6 +20,7 @@ import { escapeLikePattern } from '../shared/escape-like-pattern';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByTeam,
+  listBiggestExpensiveMistakes as queryListBiggestExpensiveMistakes,
   sumExpensiveMistakesByTeam as querySumExpensiveMistakesByTeam,
 } from '../shared/match-event-counts';
 import {
@@ -354,6 +355,13 @@ export class TeamsService {
     competitionId?: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return querySumExpensiveMistakesByTeam(this.db, eraId, competitionId);
+  }
+
+  listBiggestExpensiveMistakes(
+    eraId?: number,
+    competitionId?: number,
+  ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+    return queryListBiggestExpensiveMistakes(this.db, eraId, competitionId);
   }
 
   countAll(): Promise<number> {

@@ -266,3 +266,39 @@ export async function sumExpensiveMistakesByTeam(
     .groupBy(teams.id, teams.name)
     .orderBy(desc(total));
 }
+
+/**
+ * Individual expensive-mistake events, one row each (no grouping), each labelled
+ * with the losing team and the ISO date of the match, ordered biggest-loss
+ * first. Shares countMatchEventsByTeam's consequence-side join graph plus
+ * matches.playedAt; `count` carries the lost amount so each row already fits the
+ * leaderboard's ranking shape, and a team may legitimately appear on several
+ * rows.
+ */
+export async function listBiggestExpensiveMistakes(
+  db: Db,
+  eraId?: number,
+  competitionId?: number,
+): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+  const selector = {
+    role: 'consequence',
+    types: EXPENSIVE_MISTAKE_TYPES,
+  } as const;
+  return db
+    .select({
+      teamId: teams.id,
+      name: teams.name,
+      count: sql<number>`${matchEvents.expensiveMistake}`,
+      date: sql<string>`${matches.playedAt}::date`,
+    })
+    .from(matchEvents)
+    .innerJoin(
+      matchTeams,
+      eq(matchTeams.id, matchEvents.consequenceMatchTeamId),
+    )
+    .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .innerJoin(teams, eq(teams.id, teamEras.teamId))
+    .where(matchEventFilter(selector, eraId, competitionId))
+    .orderBy(desc(matchEvents.expensiveMistake));
+}
