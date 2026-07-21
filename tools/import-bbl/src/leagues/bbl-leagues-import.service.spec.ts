@@ -45,7 +45,10 @@ describe('BblLeaguesImportService', () => {
     await service.importLeagues();
 
     expect(bootstrap).toHaveBeenCalledTimes(1);
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('bootstraps the configured BBL system name', async () => {
@@ -60,7 +63,10 @@ describe('BblLeaguesImportService', () => {
 
     await service.importLeagues();
 
-    expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'MyLeague', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
   });
 
   it('upserts every configured league and returns their ids by name', async () => {

@@ -130,7 +130,10 @@ describe('BblCompetitionsImportService', () => {
     const { result, competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'BBL', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(result.imported).toBe(1);
     expect(upsertCompetitionResult).toHaveBeenCalledWith(
       {

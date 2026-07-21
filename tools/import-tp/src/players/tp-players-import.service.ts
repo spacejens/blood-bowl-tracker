@@ -130,7 +130,7 @@ export class TpPlayersImportService {
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      tpSystemName,
+      { name: tpSystemName, isBookkeeping: false },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

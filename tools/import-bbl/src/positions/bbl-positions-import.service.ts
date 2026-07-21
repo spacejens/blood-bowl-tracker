@@ -3,6 +3,7 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -10,7 +11,6 @@ import { Injectable } from '@nestjs/common';
 import { PlayerPageParser } from '../players/player-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { pageParseError } from '../source/page-parse-error';
 import { PositionPageParser } from './position-page-parser';
 
@@ -124,7 +124,7 @@ export class BblPositionsImportService {
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
-      [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME],
+      [{ name: bblSystemName, isBookkeeping: false }, NAME_EXTERNAL_SYSTEM],
       'Failed to upsert external system: ',
     );
     if (!bootstrap.ok) {

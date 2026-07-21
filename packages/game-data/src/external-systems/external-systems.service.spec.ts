@@ -33,6 +33,16 @@ function makeCountBuilder(rows: unknown[]) {
   return builder;
 }
 
+function makeListBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.selectDistinct = vi.fn(() => builder);
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.orderBy = vi.fn().mockResolvedValue(rows);
+  return builder;
+}
+
 describe('ExternalSystemsService', () => {
   let service: ExternalSystemsService;
   let mockDb: {
@@ -63,14 +73,14 @@ describe('ExternalSystemsService', () => {
 
   it('returns the existing system without inserting when name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([fakeSystem]));
-    const result = await service.upsert({ name: 'BBL' });
+    const result = await service.upsert({ name: 'BBL', isBookkeeping: false });
     expect(result).toEqual({ system: fakeSystem, created: false });
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
 
   it('creates a new system when no name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([]));
-    const result = await service.upsert({ name: 'NAF' });
+    const result = await service.upsert({ name: 'NAF', isBookkeeping: false });
     expect(result).toEqual({ system: fakeSystem, created: true });
     expect(mockDb.insert).toHaveBeenCalled();
   });
@@ -100,7 +110,7 @@ describe('ExternalSystemsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         5,
-        'Name',
+        false,
       ]);
     });
   });
@@ -119,8 +129,35 @@ describe('ExternalSystemsService', () => {
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         7,
-        'Name',
+        false,
       ]);
+    });
+  });
+
+  describe('listNamesByEra', () => {
+    it('returns distinct non-bookkeeping system names ordered by name', async () => {
+      const builder = makeListBuilder([{ name: 'BBL' }, { name: 'NAF' }]);
+      const selectDistinct = vi.fn(() => builder);
+      const service = new ExternalSystemsService({
+        selectDistinct,
+      } as unknown as Db);
+
+      await expect(service.listNamesByEra(5)).resolves.toEqual(['BBL', 'NAF']);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['external_systems.id', 'eras_external_ids.external_system_id'],
+      );
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        5,
+        false,
+      ]);
+    });
+
+    it('returns an empty array for an era with no non-bookkeeping systems', async () => {
+      const builder = makeListBuilder([]);
+      const service = new ExternalSystemsService({
+        selectDistinct: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.listNamesByEra(9)).resolves.toEqual([]);
     });
   });
 });

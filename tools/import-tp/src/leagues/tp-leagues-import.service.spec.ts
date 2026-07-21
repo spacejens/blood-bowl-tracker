@@ -46,7 +46,10 @@ describe('TpLeaguesImportService', () => {
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(leagueId).toBe(10);
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(upsertLeague).toHaveBeenCalledWith(
       {
         name: 'tLoEGBBL',

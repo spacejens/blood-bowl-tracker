@@ -7,17 +7,9 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, countDistinct, eq, ne } from 'drizzle-orm';
+import { and, asc, countDistinct, eq } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-
-/**
- * The synthetic name-based external system registered by tools/import-bbl
- * (see NAME_EXTERNAL_SYSTEM_NAME there). game-data must not depend on
- * tools/import-bbl, so the name is matched as a literal string here. There is
- * no schema-level marker distinguishing it from a real external system.
- */
-const NAME_EXTERNAL_SYSTEM_NAME = 'Name';
 
 @Injectable()
 export class ExternalSystemsService {
@@ -57,7 +49,7 @@ export class ExternalSystemsService {
       .where(
         and(
           eq(eraExternalIds.eraId, eraId),
-          ne(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
+          eq(externalSystems.isBookkeeping, false),
         ),
       );
     return row.count;
@@ -74,9 +66,27 @@ export class ExternalSystemsService {
       .where(
         and(
           eq(competitionExternalIds.competitionId, competitionId),
-          ne(externalSystems.name, NAME_EXTERNAL_SYSTEM_NAME),
+          eq(externalSystems.isBookkeeping, false),
         ),
       );
     return row.count;
+  }
+
+  async listNamesByEra(eraId: number): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ name: externalSystems.name })
+      .from(eraExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, eraExternalIds.externalSystemId),
+      )
+      .where(
+        and(
+          eq(eraExternalIds.eraId, eraId),
+          eq(externalSystems.isBookkeeping, false),
+        ),
+      )
+      .orderBy(asc(externalSystems.name));
+    return rows.map((row) => row.name);
   }
 }

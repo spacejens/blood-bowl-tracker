@@ -93,7 +93,10 @@ describe('TpTeamsImportService', () => {
       },
     );
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(upsertTeam).toHaveBeenCalledWith(

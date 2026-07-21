@@ -1,4 +1,7 @@
-import { ExternalSystemsImportService } from '@blood-bowl-tracker/import';
+import {
+  ExternalSystemsImportService,
+  NAME_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type {
@@ -67,7 +70,10 @@ export class ExternalSystemsProcessor {
     for (const name of collectSystemNames(data)) {
       systemIds.set(
         name,
-        await this.externalSystemsImport.upsertExternalSystem(name),
+        await this.externalSystemsImport.upsertExternalSystem(
+          name,
+          name === NAME_EXTERNAL_SYSTEM_NAME,
+        ),
       );
     }
     return systemIds;
