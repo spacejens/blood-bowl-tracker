@@ -284,6 +284,47 @@ describe('formatLeaderboardEmbed', () => {
     });
     expect(result).not.toHaveProperty('components');
   });
+
+  it('renders each line via a supplied formatRow', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Teams by money lost to expensive mistakes',
+      rankedRows: [
+        { name: 'a', count: 150000, rank: 1 },
+        { name: 'b', count: 40000, rank: 2 },
+      ],
+      noDataMessage: 'No data placeholder',
+      formatRow: (row) =>
+        `${row.rank}. ${row.name} — ${row.count.toLocaleString('en-US')} gp`,
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by money lost to expensive mistakes',
+          description: '1. a — 150,000 gp\n2. b — 40,000 gp',
+        },
+      ],
+    });
+  });
+
+  it('builds at most one button per distinct custom_id', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Biggest expensive mistakes',
+      rankedRows: [
+        { name: 'a', count: 90000, rank: 1, teamId: 1 },
+        { name: 'a', count: 60000, rank: 2, teamId: 1 },
+        { name: 'b', count: 50000, rank: 3, teamId: 2 },
+      ],
+      noDataMessage: 'No data placeholder',
+      buildCustomId: (row) => `deepdive:team:${row.teamId}`,
+    });
+    const buttons = (
+      result.components as unknown as { components: { custom_id: string }[] }[]
+    ).flatMap((r) => r.components);
+    expect(buttons.map((b) => b.custom_id)).toEqual([
+      'deepdive:team:1',
+      'deepdive:team:2',
+    ]);
+  });
 });
 
 describe('resolveToplist', () => {
@@ -330,5 +371,25 @@ describe('resolveToplist', () => {
       r.components.map((b) => b.custom_id),
     );
     expect(customIds).toEqual(['deepdive:coach:1', 'deepdive:coach:2']);
+  });
+
+  it('threads formatRow through to the embed lines', async () => {
+    const rows = [{ teamId: 1, name: 'a', count: 150000 }];
+    const result = await resolveToplist({
+      title: 'Teams by money lost to expensive mistakes',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+      formatRow: (row) =>
+        `${row.rank}. ${row.name} — ${row.count.toLocaleString('en-US')} gp`,
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by money lost to expensive mistakes',
+          description: '1. a — 150,000 gp',
+        },
+      ],
+    });
   });
 });
