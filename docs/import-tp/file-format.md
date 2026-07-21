@@ -140,13 +140,46 @@ When the injury's `turnRosterId` is present and differs from the victim's
 `'death'` for a `Dead` injury, else `'casualty'` — crediting the acting
 team; a `turnRosterId` equal to the victim's roster (or absent) means the
 injury was self-inflicted (e.g. a failed dodge), so only the consequence
-side is emitted. Every administrative event sets exactly one typed payload
-column (e.g. `weatherType`, `inducementsCost`, `winnings`, `fanFactor`,
-`journeymenCount`, `expensiveMistake`, `dedicatedFans`, `secretObjective`,
-`prayersToNuffle`); "both-sides" events (winnings, fan factor, dedicated
-fans) emit two records, one per team, with `-home`/`-away`-suffixed
-external ids. Every event's external id is `tp-<tpEventId>` (or its
-suffixed variant), synthesized from `matchEvents[].id`.
+side is emitted. This is the one case where a row carries both `actionType`
+and `consequenceType` at once — deliberate, to avoid a BBL-style two-row
+correlation step; the `match_events` CHECK constraint accommodates it (see
+below).
+
+Every administrative event sets exactly one typed payload column (e.g.
+`weatherType`, `inducementsCost`, `inducementsFromTreasury`, `winnings`,
+`fanFactor`, `journeymenCount`, `expensiveMistake`, `dedicatedFans`,
+`secretObjective`, `prayersToNuffle`); "both-sides" events (winnings, fan
+factor, dedicated fans) emit up to two records, one per team, with
+`-home`/`-away`-suffixed external ids. Every event's external id is
+`tp-<tpEventId>` (or its suffixed variant), synthesized from
+`matchEvents[].id`.
+
+Most administrative events map onto `actionType` (renamed from the roll
+mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
+`journeymen_signings`), but two are classified differently:
+
+- **Weather** (`10`) has no actor and no consequence recipient — it's a
+  neutral, match-level fact — so it's carried via a separate `eventType`
+  column (`'weather'`, currently its only value) instead of `actionType`.
+  `match_events`'s CHECK constraint requires `eventType` to be set alone
+  (with both `actionType`/`consequenceType` null) XOR at least one of
+  `actionType`/`consequenceType` to be set (with `eventType` null) — never a
+  mix of `eventType` and the other two. `weatherType` itself stays a plain,
+  un-decoded integer column: TP's ~20 observed distinct codes are almost
+  certainly a closed weather-table result set, but no authoritative
+  code-to-name mapping is confirmed yet (tracked as a follow-up to decode it
+  into a named enum).
+- **Dedicated fans** (`26`) is a consequence (the resulting fan-count
+  change), not an action, so it's carried via `consequenceType:
+  'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
+  side whose modifier is `0` (no change) is skipped entirely, so this event
+  can now emit zero, one, or two records instead of always exactly two.
+
+`secretObjective`'s payload is TP's own opaque identifier code for *which*
+secret-objective card was drawn — not a count of objectives completed. The
+same roster can have multiple `secret_objective` events in one match with
+different, non-sequential values, and the same value can recur across
+different matches for different rosters.
 
 Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
 `createdInstant`, `ruleSet`, `weatherTable`, `round`, `order`,
