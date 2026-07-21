@@ -152,11 +152,19 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   resolving race via `raceIdsByTeamRaceCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
   id so one seen under multiple eras unions its eras.
-- **TpPositionsImportService** — upserts each position grouped by `(race, name)`,
-  keyed by its `tpPositionId` variants (all in one upsert call for merge
-  semantics). Carries TP external ids only (one per `tpPositionId`); after each
-  upsert, records race/era availability via `syncRaceEras`. Star players are not
-  parsed (`starPlayersMasters` is ignored).
+- **TpPositionsImportService** — upserts each regular position grouped by
+  `(race, name)`, keyed by its `tpPositionId` variants (all in one upsert call
+  for merge semantics). Carries TP external ids only (one per `tpPositionId`);
+  after each upsert, records race/era availability via `syncRaceEras`. Star
+  players permanently embedded in a roster's line-up (`rosterMaster.
+  starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
+  grouped by name only — not race, since the same named star player is the
+  same entity regardless of team — then upserted with `isStarPlayer: true` and
+  a bare-name TP external id (matching the convention the hired-star-player
+  path below already uses, so both paths dedupe onto the same `Position` row).
+  Their ids merge into the same `positionIdsByTpPositionId` map the regular
+  positions use; a star catalog id that collides with an already-mapped id is
+  skipped with a non-fatal error instead of overwriting it.
 - **TpPlayersImportService** — imports every roster player instance from
   `lineUps[]`: each resolves a team era (roster id + era, via
   `teamErasByRosterId`) and a position (`lineUpMasterId`, via
