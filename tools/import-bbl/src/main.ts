@@ -25,13 +25,18 @@ async function run(): Promise<ImportResult> {
   try {
     // Bootstrap order: the league is foundational; rules sets and eras come
     // from config and must exist before entities that reference them.
-    const leagueOutcome = await app.get(BblLeaguesImportService).importLeague();
+    const leagueOutcome = await app
+      .get(BblLeaguesImportService)
+      .importLeagues();
     const rulesSetsOutcome = await app
       .get(BblRulesSetsImportService)
       .importRulesSets();
     const eraOutcome = await app
       .get(BblErasImportService)
-      .importEras(leagueOutcome.leagueId, rulesSetsOutcome.rulesSetIdsByName);
+      .importEras(
+        leagueOutcome.leagueIdsByName,
+        rulesSetsOutcome.rulesSetIdsByName,
+      );
     const competitionOutcome = await app
       .get(BblCompetitionsImportService)
       .importCompetitions(eraOutcome.eraIdsByName);

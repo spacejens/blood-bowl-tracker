@@ -21,20 +21,25 @@ export class BblLeaguesImportService {
   ) {}
 
   /**
-   * Import the single league the BBL data covers. The name comes from the
-   * leagueName config key (not parsed from the data) and is used as the league's
-   * external ID under two systems: BBL (canonical) and Name (cross-tool
-   * matching). Idempotent: re-running upserts the existing league.
+   * Import every league the BBL data covers. Names come from the leagues[]
+   * config (not parsed from the data); each is used as that league's external
+   * ID under two systems: BBL (canonical) and Name (cross-tool matching).
+   * Returns the imported leagues' ids keyed by name for the eras import to
+   * resolve each era's league. Idempotent: re-running upserts existing leagues.
    */
-  async importLeague(): Promise<{ result: ImportResult; leagueId?: number }> {
+  async importLeagues(): Promise<{
+    result: ImportResult;
+    leagueIdsByName: Map<string, number>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const leagueIdsByName = new Map<string, number>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
 
-    let name: string;
+    let names: string[];
     try {
-      name = this.config.getLeagueName();
+      names = this.config.getLeagueNames();
     } catch (error) {
       errors.push(
         makeImportError({
@@ -42,7 +47,10 @@ export class BblLeaguesImportService {
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        leagueIdsByName,
+      };
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -51,27 +59,30 @@ export class BblLeaguesImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return {
+        result: makeImportResult({ imported, errors }),
+        leagueIdsByName,
+      };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
 
-    const league = await this.leaguesImport.upsertLeague(
-      {
-        name,
-        externalIds: [
-          { externalSystemId: bblSystemId, externalId: name },
-          { externalSystemId: nameSystemId, externalId: name },
-        ],
-      },
-      errors,
-    );
-    if (league) {
-      imported += 1;
+    for (const name of names) {
+      const league = await this.leaguesImport.upsertLeague(
+        {
+          name,
+          externalIds: [
+            { externalSystemId: bblSystemId, externalId: name },
+            { externalSystemId: nameSystemId, externalId: name },
+          ],
+        },
+        errors,
+      );
+      if (league) {
+        leagueIdsByName.set(name, league.id);
+        imported += 1;
+      }
     }
 
-    return {
-      result: makeImportResult({ imported, errors }),
-      leagueId: league?.id,
-    };
+    return { result: makeImportResult({ imported, errors }), leagueIdsByName };
   }
 }

@@ -10,20 +10,20 @@ import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import type { LeagueConfigService } from './league-config.service';
 
 interface MakeServiceOptions {
-  getLeagueName: () => string;
+  getLeagueNames: () => string[];
   bootstrap: ReturnType<typeof vi.fn>;
   upsertLeague: ReturnType<typeof vi.fn>;
   getBblSystemName?: () => string;
 }
 
 function makeService({
-  getLeagueName,
+  getLeagueNames,
   bootstrap,
   upsertLeague,
   getBblSystemName = () => 'BBL',
 }: MakeServiceOptions) {
   return new BblLeaguesImportService(
-    { getLeagueName } as unknown as LeagueConfigService,
+    { getLeagueNames } as unknown as LeagueConfigService,
     { upsertLeague } as unknown as LeaguesImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
@@ -31,115 +31,126 @@ function makeService({
 }
 
 describe('BblLeaguesImportService', () => {
-  it('bootstraps the BBL and Name external systems', async () => {
+  it('bootstraps the BBL and Name external systems once', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertLeague = vi.fn().mockResolvedValue({
-      id: 42,
-      name: 'Test League',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    const upsertLeague = vi
+      .fn()
+      .mockResolvedValue({ id: 42, name: 'tLoEG', created: true });
     const service = makeService({
-      getLeagueName: () => 'Test League',
+      getLeagueNames: () => ['tLoEG'],
       bootstrap,
       upsertLeague,
     });
 
-    await service.importLeague();
+    await service.importLeagues();
 
+    expect(bootstrap).toHaveBeenCalledTimes(1);
     expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
   });
 
-  it('bootstraps the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
+  it('bootstraps the configured BBL system name', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertLeague = vi.fn().mockResolvedValue(true);
+    const upsertLeague = vi.fn().mockResolvedValue({ id: 1, name: 'x' });
     const service = makeService({
-      getLeagueName: () => 'Test League',
+      getLeagueNames: () => ['tLoEG'],
       bootstrap,
       upsertLeague,
       getBblSystemName: () => 'MyLeague',
     });
 
-    await service.importLeague();
+    await service.importLeagues();
 
     expect(bootstrap).toHaveBeenCalledWith(['MyLeague', 'Name']);
   });
 
-  it('upserts the league with its name as the BBL and Name external IDs', async () => {
+  it('upserts every configured league and returns their ids by name', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertLeague = vi.fn().mockResolvedValue({
-      id: 42,
-      name: 'Test League',
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
+    const upsertLeague = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 42, name: 'tLoEG' })
+      .mockResolvedValueOnce({ id: 43, name: 'GBBL' });
     const service = makeService({
-      getLeagueName: () => 'Test League',
+      getLeagueNames: () => ['tLoEG', 'GBBL'],
       bootstrap,
       upsertLeague,
     });
 
-    const result = await service.importLeague();
+    const { result, leagueIdsByName } = await service.importLeagues();
 
-    expect(result.result.imported).toBe(1);
-    expect(result.result.success).toBe(true);
-    expect(result.leagueId).toBe(42);
-    expect(bootstrap).toHaveBeenCalledWith(['BBL', 'Name']);
-    expect(upsertLeague).toHaveBeenCalledWith(
+    expect(result.imported).toBe(2);
+    expect(result.success).toBe(true);
+    expect(leagueIdsByName).toEqual(
+      new Map([
+        ['tLoEG', 42],
+        ['GBBL', 43],
+      ]),
+    );
+    expect(upsertLeague).toHaveBeenNthCalledWith(
+      1,
       {
-        name: 'Test League',
+        name: 'tLoEG',
         externalIds: [
-          { externalSystemId: 1, externalId: 'Test League' },
-          { externalSystemId: 2, externalId: 'Test League' },
+          { externalSystemId: 1, externalId: 'tLoEG' },
+          { externalSystemId: 2, externalId: 'tLoEG' },
+        ],
+      },
+      expect.any(Array),
+    );
+    expect(upsertLeague).toHaveBeenNthCalledWith(
+      2,
+      {
+        name: 'GBBL',
+        externalIds: [
+          { externalSystemId: 1, externalId: 'GBBL' },
+          { externalSystemId: 2, externalId: 'GBBL' },
         ],
       },
       expect.any(Array),
     );
   });
 
-  it('records an error and imports nothing when the league upsert fails', async () => {
+  it('records an error and omits a league whose upsert fails, keeping the others', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi
       .fn()
-      .mockImplementation((_data: unknown, errors: ImportError[]) => {
+      .mockResolvedValueOnce({ id: 42, name: 'tLoEG' })
+      .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'Failed to import league' });
         return Promise.resolve(undefined);
       });
     const service = makeService({
-      getLeagueName: () => 'Test League',
+      getLeagueNames: () => ['tLoEG', 'GBBL'],
       bootstrap,
       upsertLeague,
     });
 
-    const result = await service.importLeague();
+    const { result, leagueIdsByName } = await service.importLeagues();
 
-    expect(result.result.imported).toBe(0);
-    expect(result.result.success).toBe(false);
-    expect(result.result.errors).toHaveLength(1);
-    expect(result.leagueId).toBeUndefined();
+    expect(result.imported).toBe(1);
+    expect(result.success).toBe(false);
+    expect(leagueIdsByName.get('tLoEG')).toBe(42);
+    expect(leagueIdsByName.has('GBBL')).toBe(false);
   });
 
-  it('records one error and skips the league when BBL_LEAGUE_NAME is unset', async () => {
+  it('records one error and imports nothing when leagues config is invalid', async () => {
     const bootstrap = vi.fn();
     const upsertLeague = vi.fn();
     const service = makeService({
-      getLeagueName: () => {
-        throw new Error('BBL_LEAGUE_NAME is not set.');
+      getLeagueNames: () => {
+        throw new Error('leagues is not set in import-bbl-config.json5');
       },
       bootstrap,
       upsertLeague,
     });
 
-    const result = await service.importLeague();
+    const { result } = await service.importLeagues();
 
-    expect(result.result.success).toBe(false);
-    expect(
-      result.result.errors.some((e) => e.message.includes('BBL_LEAGUE_NAME')),
-    ).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.errors.some((e) => e.message.includes('leagues'))).toBe(true);
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 
-  it('records one error and skips the league when an external system upsert fails', async () => {
+  it('records one error and imports nothing when an external system upsert fails', async () => {
     const bootstrap = vi.fn().mockResolvedValue({
       ok: false,
       error: {
@@ -149,22 +160,17 @@ describe('BblLeaguesImportService', () => {
     });
     const upsertLeague = vi.fn();
     const service = makeService({
-      getLeagueName: () => 'Test League',
+      getLeagueNames: () => ['tLoEG'],
       bootstrap,
       upsertLeague,
     });
 
-    const result = await service.importLeague();
+    const { result } = await service.importLeagues();
 
-    expect(result.result.success).toBe(false);
-    expect(result.result.errors).toHaveLength(1);
-    // Message is passed through unchanged (this caller adds no prefix): the
-    // assertion now fails if production stops surfacing the real error text.
-    expect(result.result.errors[0].message).toBe('network timeout');
-    // And the error names the external systems the bootstrap tried to upsert.
-    expect(result.result.errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
-    });
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toBe('network timeout');
+    expect(result.errors[0].item).toEqual({ externalSystems: ['BBL', 'Name'] });
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 });
