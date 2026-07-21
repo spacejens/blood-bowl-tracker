@@ -1,7 +1,3 @@
-import type {
-  ConsequenceType,
-  UpsertMatchEvent,
-} from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -9,20 +5,12 @@ import {
   makeImportResult,
   MatchEventsImportService,
 } from '@blood-bowl-tracker/import';
-import type {
-  TpInjuryType,
-  TpMatch,
-  TpMatchEvent,
-} from '@blood-bowl-tracker/parse-tp';
+import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-
-/** One resolved team_eras row: its DB id and the era it belongs to. */
-interface TeamEra {
-  id: number;
-  eraId: number;
-}
+import type { TeamEra } from './tp-match-events-builders';
+import { buildEventData, resolveTeamEraId } from './tp-match-events-builders';
 
 /**
  * Options for {@link TpMatchEventsImportService.importMatchEvents}, bundled
@@ -54,43 +42,6 @@ export interface ImportMatchEventsOptions {
   starPlayerIdsByRosterAndMaster: Map<string, number>;
 }
 
-interface ResolveTeamEraOptions {
-  teamErasByRosterId: Map<number, TeamEra[]>;
-  rosterId: number;
-  eraId: number;
-}
-
-interface ResolvePlayerOptions {
-  lineUpId: number;
-  matchId: number;
-  playerIdsByLineUpId: Map<number, number>;
-  errors: ImportError[];
-}
-
-interface BuildEventDataOptions {
-  event: TpMatchEvent;
-  matchId: number;
-  eraId: number;
-  tpSystemId: number;
-  teamErasByRosterId: Map<number, TeamEra[]>;
-  playerIdsByLineUpId: Map<number, number>;
-  errors: ImportError[];
-}
-
-const INJURY_CONSEQUENCE_BY_TYPE: Record<
-  Exclude<TpInjuryType, 'None'>,
-  ConsequenceType
-> = {
-  MissNextGame: 'miss_next_game',
-  NigglingInjury: 'niggling_injury',
-  Dead: 'death',
-  AV: 'stat_reduction_av',
-  ST: 'stat_reduction_st',
-  MA: 'stat_reduction_ma',
-  PA: 'stat_reduction_pa',
-  AG: 'stat_reduction_ag',
-};
-
 @Injectable()
 export class TpMatchEventsImportService {
   constructor(
@@ -100,31 +51,43 @@ export class TpMatchEventsImportService {
   ) {}
 
   /**
-   * Import touchdown and injury/casualty match events from every already
-   * parsed TP match. Unlike BBL — which correlates separately scraped action
-   * and consequence occurrences — TP embeds the acting/victim player and
-   * team directly on each event, so no correlation step is needed.
+   * Import touchdown, injury/casualty, and administrative match events from
+   * every already parsed TP match. Unlike BBL — which correlates separately
+   * scraped action and consequence occurrences — TP embeds the acting/victim
+   * player and team directly on each event, so no correlation step is
+   * needed.
    *
    * Per competition (iterating `matchesByCompetitionId`, keyed by competition
    * DB id): resolve the competition's real `eraId` via
    * `eraIdByCompetitionId`; a competition whose era can't be resolved is
    * recorded as an error and skipped. Per match: resolve its DB id via
    * `matchIdsByTpId`; a match with no imported id is recorded as an error and
-   * skipped. Per event: `touchdown` and `injury` events are mapped to an
-   * `UpsertMatchEvent` and upserted (other event types are administrative and
-   * handled by a later step, not this one — they fall through to a no-op).
+   * skipped. Also resolve the match's home/away team eras (via
+   * `match.homeTeamTpId`/`awayTeamTpId` + the competition's era, same
+   * pattern as `TpTeamParticipationImportService.resolveTeamEraId`) for the
+   * "both-sides" administrative events (winnings, fan factor, dedicated
+   * fans) and concession, which need a specific side without an acting
+   * roster id on the event itself. Per event: `buildEventData` (see
+   * `tp-match-events-builders.ts`) maps the event to zero, one, or two
+   * `UpsertMatchEvent`s, each of which is upserted.
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
    * `actingPlayerId` the scorer (`lineUpId`). An injury with `injuryType:
    * 'None'` is skipped (TP reports "no injury" as its own roll); any other
-   * `injuryType` maps to a `consequence_type` (see
-   * `INJURY_CONSEQUENCE_BY_TYPE`) on the victim (`rosterId`/`lineUpId`). When
-   * the injury's `turnRosterId` is present and differs from the victim's
-   * roster (an opponent caused it), the event also carries
-   * `actingTeamEraId`/`actionType: 'casualty' | 'death'` crediting the
-   * causing team; a `turnRosterId` equal to the victim's roster (or absent)
-   * means the injury was self-inflicted, so only the consequence side is
-   * emitted. Every event's external id is `tp-<tpEventId>`.
+   * `injuryType` maps to a `consequence_type` on the victim
+   * (`rosterId`/`lineUpId`). When the injury's `turnRosterId` is present and
+   * differs from the victim's roster (an opponent caused it), the event also
+   * carries `actingTeamEraId`/`actionType: 'casualty' | 'death'` crediting
+   * the causing team; a `turnRosterId` equal to the victim's roster (or
+   * absent) means the injury was self-inflicted, so only the consequence
+   * side is emitted.
+   *
+   * Administrative events (weather, inducements, winnings, fan factor,
+   * journeyman signing, expensive mistake, dedicated fans, secret objective,
+   * prayers to Nuffle, concession) each set exactly one typed payload column
+   * and use the team scope from the Task 9 mapping table; "both-sides"
+   * events emit two records with `-home`/`-away` suffixed external ids.
+   * Every event's external id is `tp-<tpEventId>` (or its suffixed variant).
    *
    * A roster id that doesn't resolve to a team era under the match's era, or
    * a `lineUpId` with no imported player id, is recorded as a non-fatal error
@@ -178,168 +141,38 @@ export class TpMatchEventsImportService {
           continue;
         }
 
+        const homeTeamEraId = resolveTeamEraId({
+          teamErasByRosterId,
+          rosterId: match.homeTeamTpId,
+          eraId,
+        });
+        const awayTeamEraId = resolveTeamEraId({
+          teamErasByRosterId,
+          rosterId: match.awayTeamTpId,
+          eraId,
+        });
+
         for (const event of match.matchEvents) {
-          const data = this.buildEventData({
+          const dataList = buildEventData({
             event,
             matchId,
             eraId,
             tpSystemId,
             teamErasByRosterId,
             playerIdsByLineUpId,
+            homeTeamEraId,
+            awayTeamEraId,
             errors,
           });
-          if (!data) {
-            continue;
-          }
-          if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {
-            imported += 1;
+          for (const data of dataList) {
+            if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {
+              imported += 1;
+            }
           }
         }
       }
     }
 
     return { result: makeImportResult({ imported, errors }) };
-  }
-
-  /**
-   * Build the `UpsertMatchEvent` for one TP match event, or `undefined` when
-   * the event type is administrative (Task 9) or an injury reports
-   * `injuryType: 'None'`.
-   */
-  private buildEventData(
-    options: BuildEventDataOptions,
-  ): UpsertMatchEvent | undefined {
-    const {
-      event,
-      matchId,
-      eraId,
-      tpSystemId,
-      teamErasByRosterId,
-      playerIdsByLineUpId,
-      errors,
-    } = options;
-
-    switch (event.type) {
-      case 'touchdown': {
-        const data: UpsertMatchEvent = {
-          matchId,
-          actionType: 'touchdown',
-          externalIds: [
-            {
-              externalSystemId: tpSystemId,
-              externalId: `tp-${event.tpEventId}`,
-            },
-          ],
-        };
-        const actingTeamEraId = this.resolveTeamEraId({
-          teamErasByRosterId,
-          rosterId: event.rosterId,
-          eraId,
-        });
-        if (actingTeamEraId !== undefined) {
-          data.actingTeamEraId = actingTeamEraId;
-        }
-        const actingPlayerId = this.resolvePlayer({
-          lineUpId: event.lineUpId,
-          matchId,
-          playerIdsByLineUpId,
-          errors,
-        });
-        if (actingPlayerId !== undefined) {
-          data.actingPlayerId = actingPlayerId;
-        }
-        return data;
-      }
-      case 'injury': {
-        const consequenceType = this.injuryConsequence(event.injuryType);
-        if (consequenceType === undefined) {
-          return undefined;
-        }
-        const data: UpsertMatchEvent = {
-          matchId,
-          consequenceType,
-          externalIds: [
-            {
-              externalSystemId: tpSystemId,
-              externalId: `tp-${event.tpEventId}`,
-            },
-          ],
-        };
-        const consequenceTeamEraId = this.resolveTeamEraId({
-          teamErasByRosterId,
-          rosterId: event.rosterId,
-          eraId,
-        });
-        if (consequenceTeamEraId !== undefined) {
-          data.consequenceTeamEraId = consequenceTeamEraId;
-        }
-        const consequencePlayerId = this.resolvePlayer({
-          lineUpId: event.lineUpId,
-          matchId,
-          playerIdsByLineUpId,
-          errors,
-        });
-        if (consequencePlayerId !== undefined) {
-          data.consequencePlayerId = consequencePlayerId;
-        }
-        if (
-          event.turnRosterId !== undefined &&
-          event.turnRosterId !== event.rosterId
-        ) {
-          data.actionType = event.injuryType === 'Dead' ? 'death' : 'casualty';
-          const actingTeamEraId = this.resolveTeamEraId({
-            teamErasByRosterId,
-            rosterId: event.turnRosterId,
-            eraId,
-          });
-          if (actingTeamEraId !== undefined) {
-            data.actingTeamEraId = actingTeamEraId;
-          }
-        }
-        return data;
-      }
-      default:
-        return undefined;
-    }
-  }
-
-  /** Resolve a roster id + era id to its team_eras id, or undefined. */
-  private resolveTeamEraId(options: ResolveTeamEraOptions): number | undefined {
-    return options.teamErasByRosterId
-      .get(options.rosterId)
-      ?.find((teamEra) => teamEra.eraId === options.eraId)?.id;
-  }
-
-  /**
-   * Resolve a `lineUpId` to its imported player DB id. A `lineUpId` with no
-   * imported id yields `undefined` and records a non-fatal error so the event
-   * is still emitted with a null player, mirroring BBL's `resolvePlayerId`.
-   */
-  private resolvePlayer(options: ResolvePlayerOptions): number | undefined {
-    const { lineUpId, matchId, playerIdsByLineUpId, errors } = options;
-    const id = playerIdsByLineUpId.get(lineUpId);
-    if (id === undefined) {
-      errors.push(
-        makeImportError({
-          item: { match: matchId, lineUpId },
-          message: `Player lineUpId "${lineUpId}" in match "${matchId}" has no imported id; emitting the event with a null player.`,
-        }),
-      );
-      return undefined;
-    }
-    return id;
-  }
-
-  /**
-   * Map a TP `injuryType` to its `consequence_type`, or `undefined` for
-   * `'None'` (no injury occurred).
-   */
-  private injuryConsequence(
-    injuryType: TpInjuryType,
-  ): ConsequenceType | undefined {
-    if (injuryType === 'None') {
-      return undefined;
-    }
-    return INJURY_CONSEQUENCE_BY_TYPE[injuryType];
   }
 }

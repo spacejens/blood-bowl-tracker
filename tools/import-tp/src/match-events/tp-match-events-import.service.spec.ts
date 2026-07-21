@@ -325,7 +325,7 @@ describe('TpMatchEventsImportService', () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it('does nothing for a non-gameplay event type (administrative events are Task 9)', async () => {
+  it('emits a neutral weather_roll with the weatherType payload', async () => {
     const captured = await runImport({
       matches: [
         matchWithEvents({
@@ -333,14 +333,348 @@ describe('TpMatchEventsImportService', () => {
           events: [
             {
               type: 'weather_roll',
-              tpEventId: 6,
+              tpEventId: 10,
               instant: 'x',
-              weatherType: 1,
+              weatherType: 104,
             },
           ],
         }),
       ],
     });
-    expect(captured).toHaveLength(0);
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        matchId: MATCH_DB_ID,
+        actionType: 'weather_roll',
+        weatherType: 104,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-10' }],
+      }),
+    );
+    expect(captured[0].actingTeamEraId).toBeUndefined();
+  });
+
+  it('emits an acting inducements_roll with inducementsCost', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'inducements_roll',
+              tpEventId: 11,
+              instant: 'x',
+              rosterId: HOME_ROSTER_ID,
+              totalCost: 80,
+              starPlayers: [],
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        actionType: 'inducements_roll',
+        actingTeamEraId: HOME_TEAM_ERA_ID,
+        inducementsCost: 80,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-11' }],
+      }),
+    );
+  });
+
+  it('emits an acting journeyman_signing with journeymenCount', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'journeyman_signing',
+              tpEventId: 15,
+              instant: 'x',
+              rosterId: AWAY_ROSTER_ID,
+              journeymenCount: 2,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        actionType: 'journeyman_signing',
+        actingTeamEraId: AWAY_TEAM_ERA_ID,
+        journeymenCount: 2,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-15' }],
+      }),
+    );
+  });
+
+  it('emits an acting secret_objective with secretObjective', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'secret_objective',
+              tpEventId: 42,
+              instant: 'x',
+              rosterId: HOME_ROSTER_ID,
+              secretObjective: 3,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        actionType: 'secret_objective',
+        actingTeamEraId: HOME_TEAM_ERA_ID,
+        secretObjective: 3,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-42' }],
+      }),
+    );
+  });
+
+  it('emits an expensive_mistake consequence for the acting roster', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'expensive_mistake',
+              tpEventId: 14,
+              instant: 'x',
+              rosterId: AWAY_ROSTER_ID,
+              expensiveMistake: 5,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        consequenceType: 'expensive_mistake',
+        consequenceTeamEraId: AWAY_TEAM_ERA_ID,
+        expensiveMistake: 5,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-14' }],
+      }),
+    );
+  });
+
+  it('emits two winnings_roll events, one per side, with distinct external ids', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'winnings_roll',
+              tpEventId: 12,
+              instant: 'x',
+              localWinnings: 30000,
+              visitorWinnings: 10000,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
+      'tp-12-away',
+      'tp-12-home',
+    ]);
+    expect(
+      captured.find((c) => c.actingTeamEraId === HOME_TEAM_ERA_ID)?.winnings,
+    ).toBe(30000);
+    expect(
+      captured.find((c) => c.actingTeamEraId === AWAY_TEAM_ERA_ID)?.winnings,
+    ).toBe(10000);
+    expect(captured.every((c) => c.actionType === 'winnings_roll')).toBe(true);
+  });
+
+  it('emits two fan_factor_roll events, one per side', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'fan_factor_roll',
+              tpEventId: 13,
+              instant: 'x',
+              newFanFactorLocal: 7,
+              newFanFactorVisitor: 9,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
+      'tp-13-away',
+      'tp-13-home',
+    ]);
+    expect(
+      captured.find((c) => c.actingTeamEraId === HOME_TEAM_ERA_ID)?.fanFactor,
+    ).toBe(7);
+    expect(
+      captured.find((c) => c.actingTeamEraId === AWAY_TEAM_ERA_ID)?.fanFactor,
+    ).toBe(9);
+  });
+
+  it('emits two dedicated_fans_roll events, one per side', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'dedicated_fans_roll',
+              tpEventId: 26,
+              instant: 'x',
+              dedicatedFansModifierLocal: 1,
+              dedicatedFansModifierVisitor: -1,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
+      'tp-26-away',
+      'tp-26-home',
+    ]);
+    expect(
+      captured.find((c) => c.actingTeamEraId === HOME_TEAM_ERA_ID)
+        ?.dedicatedFans,
+    ).toBe(1);
+    expect(
+      captured.find((c) => c.actingTeamEraId === AWAY_TEAM_ERA_ID)
+        ?.dedicatedFans,
+    ).toBe(-1);
+  });
+
+  it('emits a neutral prayers_to_nuffle with the prayersToNuffle payload', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'prayers_to_nuffle',
+              tpEventId: 23,
+              instant: 'x',
+              prayersToNuffle: 4,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        actionType: 'prayers_to_nuffle',
+        prayersToNuffle: 4,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-23' }],
+      }),
+    );
+    expect(captured[0].actingTeamEraId).toBeUndefined();
+  });
+
+  it('emits a concession consequence for the conceding side (home)', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'concession',
+              tpEventId: 20,
+              instant: 'x',
+              concedeLocal: true,
+              concedeVisitor: false,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        consequenceType: 'concession',
+        consequenceTeamEraId: HOME_TEAM_ERA_ID,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-20' }],
+      }),
+    );
+  });
+
+  it('emits a concession consequence for the conceding side (away)', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'concession',
+              tpEventId: 21,
+              instant: 'x',
+              concedeLocal: false,
+              concedeVisitor: true,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        consequenceType: 'concession',
+        consequenceTeamEraId: AWAY_TEAM_ERA_ID,
+      }),
+    );
+  });
+
+  it('omits consequenceTeamEraId for a concession where neither side conceded', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'concession',
+              tpEventId: 22,
+              instant: 'x',
+              concedeLocal: false,
+              concedeVisitor: false,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({ consequenceType: 'concession' }),
+    );
+    expect(captured[0].consequenceTeamEraId).toBeUndefined();
+  });
+
+  it('omits actingTeamEraId for an inducements_roll with an unresolvable rosterId', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'inducements_roll',
+              tpEventId: 25,
+              instant: 'x',
+              rosterId: 999999,
+              totalCost: 40,
+              starPlayers: [],
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        actionType: 'inducements_roll',
+        inducementsCost: 40,
+      }),
+    );
+    expect(captured[0].actingTeamEraId).toBeUndefined();
   });
 });
