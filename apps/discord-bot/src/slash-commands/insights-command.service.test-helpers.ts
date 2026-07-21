@@ -105,7 +105,7 @@ export function makeService() {
         teamId: 1,
         name: '40 grinders',
         count: 150000,
-        date: new Date('2026-03-04'),
+        date: '2026-03-04',
       },
     ]),
     countAll: vi.fn().mockResolvedValue(0),

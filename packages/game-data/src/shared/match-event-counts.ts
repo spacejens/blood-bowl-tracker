@@ -8,7 +8,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import type { SQL } from 'drizzle-orm';
-import { and, count, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNotNull, sql } from 'drizzle-orm';
 
 import type { ActionType, ConsequenceType } from './match-event-types';
 import { EXPENSIVE_MISTAKE_TYPES } from './match-event-types';
@@ -299,6 +299,11 @@ export async function listBiggestExpensiveMistakes(
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
-    .where(matchEventFilter(selector, eraId, competitionId))
+    .where(
+      and(
+        matchEventFilter(selector, eraId, competitionId),
+        isNotNull(matchEvents.expensiveMistake),
+      ),
+    )
     .orderBy(desc(matchEvents.expensiveMistake));
 }

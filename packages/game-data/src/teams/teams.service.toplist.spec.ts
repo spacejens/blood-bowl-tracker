@@ -791,6 +791,20 @@ describe('TeamsService', () => {
       ]);
     });
 
+    it('listBiggestExpensiveMistakes excludes rows with a null expensive-mistake amount', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes();
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(
+        extractJoinColumns(firstCallArg(builder.where)).filter(
+          (column) => column === 'match_events.expensive_mistake',
+        ),
+      ).toHaveLength(1);
+    });
+
     it('listBiggestExpensiveMistakes joins the consequence side and filters by competition', async () => {
       const builder = makeQueryBuilder([]);
       const service = new TeamsService({
