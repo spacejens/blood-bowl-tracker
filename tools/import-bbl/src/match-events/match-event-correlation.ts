@@ -20,6 +20,14 @@ export const ACTION_CATEGORY: Record<ActionType, string> = {
   badly_hurt: 'badly-hurt',
   serious_injury: 'serious',
   death: 'death',
+  weather_roll: 'weather',
+  inducements_roll: 'inducements',
+  winnings_roll: 'winnings',
+  fan_factor_roll: 'fan-factor',
+  journeyman_signing: 'journeyman',
+  prayers_to_nuffle: 'prayers',
+  dedicated_fans_roll: 'dedicated-fans',
+  secret_objective: 'secret-objective',
 };
 
 /** The category slug used in an event's synthesized external id, per consequence. */
@@ -33,8 +41,11 @@ export const CONSEQUENCE_CATEGORY: Record<ConsequenceType, string> = {
   stat_reduction_st: 'stat-st',
   stat_reduction_ag: 'stat-ag',
   stat_reduction_av: 'stat-av',
+  stat_reduction_pa: 'stat-pa',
   death: 'death',
   sent_off: 'sent-off',
+  expensive_mistake: 'expensive-mistake',
+  concession: 'concession',
 };
 
 /**
