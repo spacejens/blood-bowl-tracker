@@ -132,8 +132,9 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `matchesByCompetitionId` map (keyed by DB competition id) that this service
   consumes rather than scanning the source files itself. Each match carries a TP
   external id (the stringified `matchId`) and no Name external id (match names
-  are not unique); team-era linkage and match events are out of scope (issue
-  #198).
+  are not unique); team-era linkage (`match_teams`) is handled by
+  `TpTeamParticipationImportService` and match events by
+  `TpMatchEventsImportService`, both below.
 - **TpCoachesImportService** — upserts every coach registered to a competition,
   read from each competition's `inscriptions_<slug>_inscriptions.json` file via
   `InscriptionsParserService` from `packages/parse-tp`. Coaches are deduped
@@ -156,6 +157,20 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   semantics). Carries TP external ids only (one per `tpPositionId`); after each
   upsert, records race/era availability via `syncRaceEras`. Star players are not
   parsed (`starPlayersMasters` is ignored).
+- **TpPlayersImportService** — imports every roster player instance from
+  `lineUps[]`: each resolves a team era (roster id + era, via
+  `teamErasByRosterId`) and a position (`lineUpMasterId`, via
+  `positionIdsByTpPositionId`); a player whose team era or position can't be
+  resolved is recorded as an error and skipped. Players carry only a TP
+  external id (no Name external id — player names aren't unique). Returns
+  `playerIdsByLineUpId`, consumed by match-event import to resolve a
+  `matchEvents[].lineUpId`. Also imports every star player hired via an
+  `inducements_roll` match event (gathered by `main.ts` from the
+  already-parsed match events, not from any roster field), each getting a
+  reused `isStarPlayer: true` Position and a Player scoped to the hiring
+  roster's team-era; returns `starPlayerIdsByRosterAndMaster`, keyed
+  `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
+  match-event type references a player by `lineUpMasterId` yet).
 - **TpTeamParticipationImportService** — populates `match_teams` and
   `competition_teams` for the already-imported matches and competitions. Runs
   after teams import (it needs each team's resolved team-era ids) and consumes
@@ -168,16 +183,33 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   additive/idempotent; unlike BBL, TP needs no page scraping because it embeds
   both teams' roster ids per match and a roster file's directory placement is
   the competition-membership signal.
+- **TpMatchEventsImportService** — imports touchdown, injury/casualty, and
+  administrative match events from every already-parsed TP match's
+  `matchEvents[]` (see
+  [file-format.md](./file-format.md#match_idjson-play-date-and-name-parsed)
+  for the full decode table). Unlike BBL, which correlates separately
+  scraped action/consequence occurrences, TP embeds the acting/victim player
+  and team directly on each event, so no correlation step is needed. Runs
+  last: it needs `match_teams` (populated by team participation, above), the
+  players step's `playerIdsByLineUpId`/`starPlayerIdsByRosterAndMaster`
+  maps, and `matchIdsByTpId` (from matches import) to resolve each event's
+  match. Idempotent; a roster id or `lineUpId` that can't be resolved is
+  recorded as a non-fatal error and the event is still emitted with that
+  field omitted.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
-positions, and finally team participation — aggregating each step's
+positions, then players (including hired star players), then team
+participation, and finally match events — aggregating each step's
 `ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
 Races, teams, and positions run after coaches; they have no FK dependency on the
-earlier import steps (only on each other, in that order). Team participation runs
-last because it needs the teams step's resolved team-era ids and the
-competitions step's maps.
+earlier import steps (only on each other, in that order). Players run after
+positions and teams (each player resolves a team era and a position). Team
+participation runs after players because it needs the teams step's resolved
+team-era ids and the competitions step's maps. Match events run last of all
+because they depend on `match_teams`, which team participation is what
+populates.
 
 ## Related documentation
 

@@ -97,15 +97,65 @@ unique, so they are never used as an external id. The parser also reads
 team roster ids); `TpTeamParticipationImportService` resolves these to team-era
 ids and re-upserts each match with its `match_teams`, and derives each
 competition's `competition_teams` from which roster files appear under its
-directory. The rest of the body is still unhandled — match events are issue
-#198. Notable remaining fields seen:
-`matchId`, `state`, `statePostMatch`, `createdInstant`, `ruleSet`,
-`weatherTable`, `round`, `order`, `turn { current, half, ... }`,
+directory.
+
+`matchEvents[]` — TP's per-roll event log for the match — is decoded by
+`packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
+raw numeric `matchEventType` code. **Modeled codes**: `4` touchdown
+(`lineUpId`, scoring roster's `rosterId`); `8` injury (`lineUpId`, victim
+`rosterId`, optional `turnRosterId` — the acting team's roster id when
+present — and `injuryType`); the administrative rolls `10` weather,
+`11` inducements (incl. any hired star players, `extraData.starPlayers[]`),
+`12` winnings, `13` fan factor, `14` expensive mistake, `15` journeyman
+signing, `20` concession, `23` prayers to Nuffle, `26` dedicated fans, and
+`42` secret objective. **Skip-listed codes** — dropped unconditionally,
+along with any unrecognized code, so new/unmapped TP codes never crash the
+import: `0, 1, 3, 5, 6, 7, 18, 19, 25, 27, 31, 32, 46` — these are structural
+markers or per-roll noise with no useful modeled payload (e.g. code `27`,
+"player assigned to line-up", is a structural row, not a modeled roll). A
+`None` `injuryType` is still returned by the parser (a real "no injury"
+roll outcome) but skipped by the import step, emitting no event.
+
+`tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
+into zero, one, or two `UpsertMatchEvent`s (see
+[index.md](./index.md#architecture)). Unlike BBL, which correlates
+separately scraped action/consequence occurrences, TP embeds the
+acting/victim player and team directly on the event, so no correlation step
+is needed. A touchdown becomes an `actionType: 'touchdown'` event scoped to
+the scorer. An injury's `injuryType` maps to a `consequence_type` via:
+
+| `injuryType`    | `consequence_type`  |
+| --------------- | -------------------- |
+| `MissNextGame`  | `miss_next_game`     |
+| `NigglingInjury`| `niggling_injury`    |
+| `Dead`          | `death`               |
+| `AV`            | `stat_reduction_av`   |
+| `ST`            | `stat_reduction_st`   |
+| `MA`            | `stat_reduction_ma`   |
+| `PA`            | `stat_reduction_pa`   |
+| `AG`            | `stat_reduction_ag`   |
+
+When the injury's `turnRosterId` is present and differs from the victim's
+`rosterId` (an opponent caused it), the event also carries an `actionType` —
+`'death'` for a `Dead` injury, else `'casualty'` — crediting the acting
+team; a `turnRosterId` equal to the victim's roster (or absent) means the
+injury was self-inflicted (e.g. a failed dodge), so only the consequence
+side is emitted. Every administrative event sets exactly one typed payload
+column (e.g. `weatherType`, `inducementsCost`, `winnings`, `fanFactor`,
+`journeymenCount`, `expensiveMistake`, `dedicatedFans`, `secretObjective`,
+`prayersToNuffle`); "both-sides" events (winnings, fan factor, dedicated
+fans) emit two records, one per team, with `-home`/`-away`-suffixed
+external ids. Every event's external id is `tp-<tpEventId>` (or its
+suffixed variant), synthesized from `matchEvents[].id`.
+
+Notable remaining fields seen: `matchId`, `state`, `statePostMatch`,
+`createdInstant`, `ruleSet`, `weatherTable`, `round`, `order`,
+`turn { current, half, ... }`,
 `inscriptionLocal.roster { id, ... }` / `inscriptionVisitor.roster { id, ... }`
 (the home/away teams — only each side's roster `id` is parsed, into
 `homeTeamTpId`/`awayTeamTpId`; the rest of these nested roster bodies is
-unhandled), `scoreResume { startInstant, finishInstant }`,
-`matchEvents[]`, and — importantly — `scheduledDate`/`endScheduledDate`.
+unhandled), `scoreResume { startInstant, finishInstant }`, and — importantly
+— `scheduledDate`/`endScheduledDate`.
 `scheduledDate` (and `scoreResume.startInstant`, which tracks it closely) is
 the closest thing to "when the match was actually played" anywhere in TP's
 data; there is no tournament- or era-level date-boundary field, so the era
@@ -114,10 +164,10 @@ every `match_*.json` under each era's directory for the earliest/latest
 `scheduledDate` (a one-off manual step during initial config setup, not
 something the import tool itself does).
 
-## `rosters_<id>.json` (races, positions and teams parsed)
+## `rosters_<id>.json` (races, positions, teams and players parsed)
 
 `packages/parse-tp`'s `RosterParserService.parse()` extracts `{ id, teamName,
-teamRaceCode, raceName, coachTpId, positions }`:
+teamRaceCode, raceName, coachTpId, positions, players }`:
 
 - `id` — TP's roster id, used as a TP external id for teams.
 - `teamName` — the team's registered name, used as a Name external id for teams.
@@ -138,6 +188,11 @@ teamRaceCode, raceName, coachTpId, positions }`:
   merges onto a single row, collecting every distinct `tpPositionId` as TP
   external ids (all in one upsert call). Positions carry no Name external id
   (position names are not race-unique).
+- `players` — extracted from `lineUps[]`, each entry becomes `{ id, name,
+  number, lineUpMasterId, rosterId }`. `id` is the per-instance line-up id
+  that `matchEvents[].lineUpId` (see below) references; `lineUpMasterId`
+  links back to the position template in `rosterMaster.lineUpMasters[]` (the
+  `positions` field above).
 
 **Races** (via `TpRacesImportService`) group by `raceName` (not code), so all
 rule-set-variant codes of one logical race merge onto one row, each code kept
@@ -154,11 +209,29 @@ availability is recorded via `syncRaceEras`. All positions import with
 and their coach via `coachIdsByTpId`; a team whose race or coach cannot be
 resolved is recorded as an error and skipped.
 
-**Still not handled** (future work): `rosterMaster.starPlayersMasters` (star
-players — the field isn't declared in `RosterSchema`, so it's dropped
-unconditionally by the parser regardless of dataset content, not merely
-because the reference dataset happens to have none; revisit once match-event
-data — issue #198 — surfaces a real star-player sample to parse against), and
+**Players** (via `TpPlayersImportService`) import every roster's `players`
+entry: each resolves a team era (roster id + era, via
+`teamErasByRosterId`) and a position (`lineUpMasterId`, via
+`positionIdsByTpPositionId`); a player whose team era or position can't be
+resolved is recorded as an error and skipped. Players carry only a TP
+external id (the `lineUps[].id`) — no Name external id, since player names
+aren't guaranteed unique. Returns `playerIdsByLineUpId`, consumed by
+match-event import to resolve a `matchEvents[].lineUpId` to a player. The
+service also imports **hired star players** — named via an `inducements_roll`
+match event's `extraData.starPlayers[]` (see the `match_<id>.json` section
+below), not via any field on the roster file itself. Each hired star player
+gets one reused `isStarPlayer: true` Position (a bare-name TP external id)
+and a Player scoped to the hiring roster's team-era for the era the hiring
+match's competition belongs to. Returns `starPlayerIdsByRosterAndMaster`
+(keyed `` `${rosterId}:${lineUpMasterId}` ``); as of this writing no
+match-event type references a player by `lineUpMasterId` (touchdown/injury
+use `lineUpId`), so this map is currently unconsumed downstream — kept for a
+future event type that would need it.
+
+**Still not handled** (future work): `rosterMaster.starPlayersMasters` (the
+roster's full star-player *catalog*, as opposed to the star players actually
+hired in a match — the field isn't declared in `RosterSchema`, so it's
+dropped unconditionally by the parser regardless of dataset content), and
 the other top-level fields (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
