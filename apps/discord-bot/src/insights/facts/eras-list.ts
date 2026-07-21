@@ -35,20 +35,14 @@ export async function resolveErasList(
     };
   }
 
-  const byLeague = new Map<string, EraEntry[]>();
-  for (const entry of rows) {
-    const list = byLeague.get(entry.leagueName) ?? [];
-    list.push(entry);
-    byLeague.set(entry.leagueName, list);
-  }
-  for (const list of byLeague.values()) {
-    list.sort((a, b) => a.startDate.localeCompare(b.startDate));
-  }
-  const leaguesOrdered = [...byLeague.values()].sort((a, b) =>
-    a[0].startDate.localeCompare(b[0].startDate),
-  );
-
-  const ordered: EraEntry[] = leaguesOrdered.flat();
+  const ordered: EraEntry[] = rows
+    .slice()
+    .sort(
+      (a, b) =>
+        a.startDate.localeCompare(b.startDate) ||
+        a.leagueName.localeCompare(b.leagueName) ||
+        a.name.localeCompare(b.name),
+    );
 
   const lines = ordered.map((era) => {
     const end = era.endDate ?? 'present';
