@@ -102,19 +102,21 @@ directory.
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
 `packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
 raw numeric `matchEventType` code. **Modeled codes**: `4` touchdown
-(`lineUpId`, scoring roster's `rosterId`); `8` injury (`lineUpId`, victim
-`rosterId`, optional `turnRosterId` — the acting team's roster id when
-present — and `injuryType`); the administrative rolls `10` weather,
-`11` inducements (incl. any hired star players, `extraData.starPlayers[]`),
-`12` winnings, `13` fan factor, `14` expensive mistake, `15` journeyman
-signing, `20` concession, `23` prayers to Nuffle, `26` dedicated fans, and
-`42` secret objective. **Skip-listed codes** — dropped unconditionally,
-along with any unrecognized code, so new/unmapped TP codes never crash the
-import: `0, 1, 3, 5, 6, 7, 18, 19, 25, 27, 31, 32, 46` — these are structural
-markers or per-roll noise with no useful modeled payload (e.g. code `27`,
-"player assigned to line-up", is a structural row, not a modeled roll). A
-`None` `injuryType` is still returned by the parser (a real "no injury"
-roll outcome) but skipped by the import step, emitting no event.
+(`lineUpId`, scoring roster's `rosterId`); `7` mvp_award (`lineUpId` of the
+awarded player, their team's `rosterId` — occurs essentially exactly once per
+team per completed match); `8` injury (`lineUpId`, victim `rosterId`,
+optional `turnRosterId` — the acting team's roster id when present — and
+`injuryType`); the administrative rolls `10` weather, `11` inducements (incl.
+any hired star players, `extraData.starPlayers[]`), `12` winnings, `13` fan
+factor, `14` expensive mistake, `15` journeyman signing, `20` concession,
+`23` prayers to Nuffle, `26` dedicated fans, and `42` secret objective.
+**Skip-listed codes** — dropped unconditionally, along with any unrecognized
+code, so new/unmapped TP codes never crash the import: `0, 1, 3, 5, 6, 18,
+19, 25, 27, 31, 32, 46` — these are structural markers or per-roll noise with
+no useful modeled payload (e.g. code `27`, "player assigned to line-up", is a
+structural row, not a modeled roll). A `None` `injuryType` is still returned
+by the parser (a real "no injury" roll outcome) but skipped by the import
+step, emitting no event.
 
 `tools/import-tp`'s `TpMatchEventsImportService` turns each decoded event
 into zero, one, or two `UpsertMatchEvent`s (see
@@ -122,7 +124,9 @@ into zero, one, or two `UpsertMatchEvent`s (see
 separately scraped action/consequence occurrences, TP embeds the
 acting/victim player and team directly on the event, so no correlation step
 is needed. A touchdown becomes an `actionType: 'touchdown'` event scoped to
-the scorer. An injury's `injuryType` maps to a `consequence_type` via:
+the scorer; an mvp_award becomes an `actionType: 'mvp_award'` event scoped to
+the awarded player, resolved the same way. An injury's `injuryType` maps to
+a `consequence_type` via:
 
 | `injuryType`    | `consequence_type`  |
 | --------------- | -------------------- |

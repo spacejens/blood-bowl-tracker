@@ -25,10 +25,10 @@ interface ResolvePlayerOptions {
   errors: ImportError[];
 }
 
-/** Every administrative (non touchdown/injury) TP match event kind. */
+/** Every administrative (non touchdown/injury/mvp_award) TP match event kind. */
 type TpAdminMatchEvent = Exclude<
   TpMatchEvent,
-  { type: 'touchdown' } | { type: 'injury' }
+  { type: 'touchdown' } | { type: 'injury' } | { type: 'mvp_award' }
 >;
 
 export interface BuildEventDataOptions {
@@ -144,6 +144,41 @@ function buildTouchdownEvent(
   const data: UpsertMatchEvent = {
     matchId,
     actionType: 'touchdown',
+    externalIds: externalId(tpSystemId, event.tpEventId),
+  };
+  const actingTeamEraId = resolveTeamEraId({
+    teamErasByRosterId,
+    rosterId: event.rosterId,
+    eraId,
+  });
+  setIfDefined(data, 'actingTeamEraId', actingTeamEraId);
+  const actingPlayerId = resolvePlayer({
+    lineUpId: event.lineUpId,
+    matchId,
+    playerIdsByLineUpId,
+    errors,
+  });
+  setIfDefined(data, 'actingPlayerId', actingPlayerId);
+  return [data];
+}
+
+function buildMvpAwardEvent(
+  options: BuildEventDataOptions & {
+    event: Extract<TpMatchEvent, { type: 'mvp_award' }>;
+  },
+): UpsertMatchEvent[] {
+  const {
+    event,
+    matchId,
+    eraId,
+    tpSystemId,
+    teamErasByRosterId,
+    playerIdsByLineUpId,
+    errors,
+  } = options;
+  const data: UpsertMatchEvent = {
+    matchId,
+    actionType: 'mvp_award',
     externalIds: externalId(tpSystemId, event.tpEventId),
   };
   const actingTeamEraId = resolveTeamEraId({
@@ -386,10 +421,10 @@ function buildAdminEvents(
 }
 
 /**
- * Build zero or more `UpsertMatchEvent`s for one TP match event. Touchdown
- * and injury events (an injury reporting `injuryType: 'None'` yields none)
- * are gameplay events; every other modeled TP event type is administrative
- * and delegates to {@link buildAdminEvents}.
+ * Build zero or more `UpsertMatchEvent`s for one TP match event. Touchdown,
+ * mvp_award, and injury events (an injury reporting `injuryType: 'None'`
+ * yields none) are gameplay events; every other modeled TP event type is
+ * administrative and delegates to {@link buildAdminEvents}.
  */
 export function buildEventData(
   options: BuildEventDataOptions,
@@ -398,6 +433,8 @@ export function buildEventData(
   switch (event.type) {
     case 'touchdown':
       return buildTouchdownEvent({ ...options, event });
+    case 'mvp_award':
+      return buildMvpAwardEvent({ ...options, event });
     case 'injury':
       return buildInjuryEvent({ ...options, event });
     default:

@@ -158,6 +158,34 @@ describe('TpMatchEventsImportService', () => {
     );
   });
 
+  it('emits an mvp_award event with the awarded player and their team-era', async () => {
+    const captured = await runImport({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'mvp_award',
+              tpEventId: 1,
+              instant: 'x',
+              lineUpId: 2442075,
+              rosterId: HOME_ROSTER_ID,
+            },
+          ],
+        }),
+      ],
+    });
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        matchId: MATCH_DB_ID,
+        actionType: 'mvp_award',
+        actingTeamEraId: HOME_TEAM_ERA_ID,
+        actingPlayerId: SCORER_PLAYER_ID,
+        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-1' }],
+      }),
+    );
+  });
+
   it('maps a Dead injury to a death consequence with the victim, and casualty action for the opponent', async () => {
     const captured = await runImport({
       matches: [

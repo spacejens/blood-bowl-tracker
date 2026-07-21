@@ -26,6 +26,31 @@ describe('parseMatchEvents', () => {
     ]);
   });
 
+  it('decodes an MVP award (code 7)', () => {
+    expect(
+      parseMatchEvents([
+        {
+          id: 7150378,
+          matchEventType: 7,
+          instant: '2026-01-17T18:54:42.4449189+00:00',
+          lineUpId: 2442076,
+          rosterId: 164868,
+          extraData: { autoRoll: false },
+          starPoints: 4,
+          edited: false,
+        },
+      ]),
+    ).toEqual([
+      {
+        type: 'mvp_award',
+        tpEventId: 7150378,
+        instant: '2026-01-17T18:54:42.4449189+00:00',
+        lineUpId: 2442076,
+        rosterId: 164868,
+      },
+    ]);
+  });
+
   it('decodes an injury (code 8) with its injuryType and acting team', () => {
     expect(
       parseMatchEvents([

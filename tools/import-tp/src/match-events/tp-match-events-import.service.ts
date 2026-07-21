@@ -51,11 +51,11 @@ export class TpMatchEventsImportService {
   ) {}
 
   /**
-   * Import touchdown, injury/casualty, and administrative match events from
-   * every already parsed TP match. Unlike BBL — which correlates separately
-   * scraped action and consequence occurrences — TP embeds the acting/victim
-   * player and team directly on each event, so no correlation step is
-   * needed.
+   * Import touchdown, mvp_award, injury/casualty, and administrative match
+   * events from every already parsed TP match. Unlike BBL — which correlates
+   * separately scraped action and consequence occurrences — TP embeds the
+   * acting/victim player and team directly on each event, so no correlation
+   * step is needed.
    *
    * Per competition (iterating `matchesByCompetitionId`, keyed by competition
    * DB id): resolve the competition's real `eraId` via
@@ -72,8 +72,10 @@ export class TpMatchEventsImportService {
    * `UpsertMatchEvent`s, each of which is upserted.
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
-   * `actingPlayerId` the scorer (`lineUpId`). An injury with `injuryType:
-   * 'None'` is skipped (TP reports "no injury" as its own roll); any other
+   * `actingPlayerId` the scorer (`lineUpId`); an mvp_award is resolved the
+   * same way, crediting the awarded player and their team. An injury with
+   * `injuryType: 'None'` is skipped (TP reports "no injury" as its own
+   * roll); any other
    * `injuryType` maps to a `consequence_type` on the victim
    * (`rosterId`/`lineUpId`). When the injury's `turnRosterId` is present and
    * differs from the victim's roster (an opponent caused it), the event also

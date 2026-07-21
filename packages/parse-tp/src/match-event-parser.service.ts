@@ -42,6 +42,11 @@ export type TpMatchEvent =
       rosterId: number;
     })
   | (TpMatchEventBase & {
+      type: 'mvp_award';
+      lineUpId: number;
+      rosterId: number;
+    })
+  | (TpMatchEventBase & {
       type: 'injury';
       lineUpId: number;
       /** Victim team's roster id. */
@@ -121,6 +126,12 @@ const starPlayerRaw = z.object({
 
 // One raw schema per modeled code. Extra fields are dropped by non-strict parse.
 const touchdownRaw = z.object({
+  id: z.number(),
+  instant: z.string(),
+  lineUpId: z.number(),
+  rosterId: z.number(),
+});
+const mvpAwardRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
@@ -230,6 +241,16 @@ const decoders = new Map<number, Decoder>([
     4,
     decode(touchdownRaw, 4, (v) => ({
       type: 'touchdown',
+      tpEventId: v.id,
+      instant: v.instant,
+      lineUpId: v.lineUpId,
+      rosterId: v.rosterId,
+    })),
+  ],
+  [
+    7,
+    decode(mvpAwardRaw, 7, (v) => ({
+      type: 'mvp_award',
       tpEventId: v.id,
       instant: v.instant,
       lineUpId: v.lineUpId,
@@ -360,7 +381,7 @@ const topLevelSchema = z.object({ matchEventType: z.number() });
 
 /**
  * Decode a raw TP `matchEvents[]` array into the modeled subset. Structural
- * markers and per-roll noise (codes such as 0, 1, 3, 5, 6, 7, 18, 19, 25, 27,
+ * markers and per-roll noise (codes such as 0, 1, 3, 5, 6, 18, 19, 25, 27,
  * 31, 32, 46 — including code 27, a "player assigned to line-up" structural
  * row, not a modeled roll) and any unrecognized code are silently dropped so
  * new TP codes never crash the import. `None` injuries are still returned;
