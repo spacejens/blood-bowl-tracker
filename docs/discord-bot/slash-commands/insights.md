@@ -93,10 +93,20 @@ button, in the same order as the list, that opens that coach's
 - `team.toplist.sent_off` — teams ranked by players sent off. Counts match
   events whose consequence is `sent_off`, credited to the team the sent-off
   player belongs to. Supports era filtering.
+- `team.toplist.expensiveMistakes.total` — teams ranked by the total money lost
+  to expensive mistakes across their history (summed `expensive_mistake`
+  consequence amounts, not event count). Amounts render with a thousands
+  separator and a `gp` suffix (e.g. `150,000 gp`). Supports era and competition
+  filtering.
+- `team.toplist.expensiveMistakes.biggest` — individual expensive-mistake events
+  ranked by amount, each row showing the losing team and the ISO `YYYY-MM-DD`
+  date of the match it occurred in. A team can appear more than once. Supports
+  era and competition filtering.
 
-Each team listed by the sixteen `team.toplist.*` facts above also gets a
+Each team listed by the eighteen `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
-[`/deepdive`](deepdive.md) detail view.
+[`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
+deduplicated so a team that appears on multiple rows gets a single button.
 
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with
