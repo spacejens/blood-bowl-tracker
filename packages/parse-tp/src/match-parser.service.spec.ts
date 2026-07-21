@@ -39,7 +39,34 @@ describe('MatchParserService', () => {
       name: 'Round 3',
       homeTeamTpId: 10,
       awayTeamTpId: 20,
+      matchEvents: [],
     });
+  });
+
+  it('decodes a populated matchEvents array end-to-end', () => {
+    const result = service.parse(
+      matchBody({
+        matchEvents: [
+          {
+            id: 7150327,
+            matchEventType: 4,
+            instant: '2026-01-17T18:50:14Z',
+            lineUpId: 2442075,
+            rosterId: 164868,
+            extraData: { scoreLocal: 1, scoreVisitor: 1 },
+          },
+        ],
+      }),
+    );
+    expect(result.matchEvents).toEqual([
+      {
+        type: 'touchdown',
+        tpEventId: 7150327,
+        instant: '2026-01-17T18:50:14Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+      },
+    ]);
   });
 
   it('parses distinct home and away roster ids from inscriptionLocal/inscriptionVisitor', () => {

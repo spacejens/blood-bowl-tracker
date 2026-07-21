@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import {
+  parseMatchEvents,
+  type TpMatchEvent,
+} from './match-event-parser.service';
+
 /**
  * The subset of a TP `match_<id>.json` body this tool cares about.
  *
@@ -21,10 +26,11 @@ import { z } from 'zod';
  * one.
  *
  * The home/away team roster ids come from `inscriptionLocal.roster.id` /
- * `inscriptionVisitor.roster.id`. Other match fields (state, turn,
- * matchEvents, the rest of the nested roster bodies, etc.) are intentionally
- * ignored until a future sub-issue needs them — the same "parse only what's
- * needed" convention as TournamentParserService.
+ * `inscriptionVisitor.roster.id`. Other match fields (state, turn, the rest
+ * of the nested roster bodies, etc.) are intentionally ignored until a
+ * future sub-issue needs them — the same "parse only what's needed"
+ * convention as TournamentParserService. `matchEvents` is the exception: it
+ * is decoded via `parseMatchEvents`.
  */
 export interface TpMatch {
   id: number;
@@ -40,6 +46,8 @@ export interface TpMatch {
   homeTeamTpId: number;
   /** The away team's TP roster id (`inscriptionVisitor.roster.id`). */
   awayTeamTpId: number;
+  /** The decoded, modeled subset of the match's raw `matchEvents[]` log. */
+  matchEvents: TpMatchEvent[];
 }
 
 const TpMatchSchema = z.object({
@@ -67,18 +75,21 @@ const TpMatchSchema = z.object({
       id: z.number(),
     }),
   }),
+  matchEvents: z.array(z.unknown()).nullish(),
 });
 
 @Injectable()
 export class MatchParserService {
   /**
-   * Validate and extract `{ id, playedDate, name, homeTeamTpId, awayTeamTpId }`
-   * from a parsed TP match JSON body. `matchId` maps to `id`; `playedDate` is
+   * Validate and extract
+   * `{ id, playedDate, name, homeTeamTpId, awayTeamTpId, matchEvents }` from a
+   * parsed TP match JSON body. `matchId` maps to `id`; `playedDate` is
    * `scoreResume.startInstant` when set, else `scheduledDate` when set, else
    * `createdInstant`. `name` is `group.phase.roundName` title-cased plus a
    * space and `round`.
    * `homeTeamTpId`/`awayTeamTpId` are `inscriptionLocal.roster.id` /
-   * `inscriptionVisitor.roster.id`.
+   * `inscriptionVisitor.roster.id`. `matchEvents` is the raw `matchEvents[]`
+   * array decoded via `parseMatchEvents`.
    * Extra fields are allowed and dropped. Throws an Error whose message names
    * the failing field on any shape mismatch, or when the resolved date string
    * cannot be parsed.
@@ -103,6 +114,7 @@ export class MatchParserService {
       scoreResume,
       inscriptionLocal,
       inscriptionVisitor,
+      matchEvents: rawMatchEvents,
     } = result.data;
     const dateSource =
       scoreResume?.startInstant ?? scheduledDate ?? createdInstant;
@@ -116,12 +128,14 @@ export class MatchParserService {
     const name = `${roundName.charAt(0).toUpperCase()}${roundName
       .slice(1)
       .toLowerCase()} ${round}`;
+    const matchEvents = parseMatchEvents(rawMatchEvents ?? []);
     return {
       id: matchId,
       playedDate: date,
       name,
       homeTeamTpId: inscriptionLocal.roster.id,
       awayTeamTpId: inscriptionVisitor.roster.id,
+      matchEvents,
     };
   }
 }
