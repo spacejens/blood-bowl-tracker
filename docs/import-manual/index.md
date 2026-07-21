@@ -119,6 +119,32 @@ are tracked separately as issue #174).
 }
 ```
 
+## Known before-other-importers dedup files
+
+A few `data/before-other-importers/*.json5` files exist specifically to unify
+records the BBL and TP importers would otherwise create as separate,
+duplicate rows because the two source systems name or key the same
+real-world entity differently:
+
+- `races-and-positions.json5` — BBL/TP race and regular position name
+  variants.
+- `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
+- `teams.json5` — team name variants.
+- `star-players.json5` — star player `Position` rows. BBL's star-player
+  upsert always attaches a `Name` external id equal to the star's bare name;
+  TP's star-player upserts (both the hired-via-inducement path and the
+  embedded-roster path — see [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed))
+  only attach a TP-system external id, never a `Name` one. Since `Position`
+  dedup is strictly by `(externalSystemId, externalId)` with no name
+  fallback, the same real star player imported from both systems ends up
+  with two separate rows unless pre-merged here. Only names verified to
+  match verbatim between BBL's `Name` id and TP's own id are listed — a
+  handful of TP star names have a close-but-not-identical BBL counterpart
+  (smart vs. straight quotes, a leading "The", a trailing epithet); these are
+  deliberately left unmerged rather than guessed at, for the same reason
+  `races-and-positions.json5` leaves ambiguous position renames unpaired: a
+  wrong guess would silently conflate two different star players' rows.
+
 ## Data layout
 
 The tool works from two well-known subdirectories:

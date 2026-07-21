@@ -467,7 +467,7 @@ describe('MatchEventParserService', () => {
       tpEventId: 32,
       instant: '2026-01-17T12:42:25Z',
       rosterId: 167599,
-      expensiveMistake: 2,
+      expensiveMistake: 20000,
     });
   });
 

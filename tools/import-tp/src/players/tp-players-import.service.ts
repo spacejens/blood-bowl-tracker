@@ -87,6 +87,16 @@ export class TpPlayersImportService {
    * it lists (presumed freshest). See `matchEmbeddedPlayersByRosterId`'s doc
    * comment for why this union is needed.
    *
+   * A player whose `lineUpMasterId` resolves neither via the regular nor the
+   * star catalog, but is flagged `isBigGuy: true` (e.g. a mercenary Big Guy
+   * hire like "Giant", which has no catalog entry in either
+   * `rosterMaster` array at all), falls back to `player.fallbackPositionName`
+   * instead of being skipped: a reused `isStarPlayer: true` Position, keyed
+   * by that inline name (bare-name TP external id), the same treatment a
+   * star player gets. A non-`isBigGuy` player whose position still can't be
+   * resolved is skipped as before -- the fallback is deliberately gated on
+   * `isBigGuy` so it never masks a genuine regular-position catalog gap.
+   *
    * Also imports every star player named in `inducedStarPlayerHireGroups`
    * (hired via an `inducements_roll` event, not part of a roster's permanent
    * `lineUps[]`): each named star player gets one reused `isStarPlayer: true`
@@ -131,6 +141,7 @@ export class TpPlayersImportService {
       };
     }
     const [tpSystemId] = bootstrap.ids;
+    const mercenaryPositionIdsByName = new Map<string, number>();
 
     for (const { roster, era } of rosters) {
       const eraId = eraIdsByName.get(era);
@@ -166,7 +177,15 @@ export class TpPlayersImportService {
           continue;
         }
 
-        const positionId = positionIdsByTpPositionId.get(player.lineUpMasterId);
+        let positionId = positionIdsByTpPositionId.get(player.lineUpMasterId);
+        if (positionId === undefined && player.isBigGuy) {
+          positionId = await this.resolveMercenaryPositionId({
+            player,
+            tpSystemId,
+            mercenaryPositionIdsByName,
+            errors,
+          });
+        }
         if (positionId === undefined) {
           errors.push(
             makeImportError({
@@ -266,5 +285,44 @@ export class TpPlayersImportService {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
     };
+  }
+
+  /**
+   * Resolve (reusing across calls via `mercenaryPositionIdsByName`) the
+   * `isStarPlayer: true` Position for a mercenary Big Guy player's inline
+   * `fallbackPositionName` -- see {@link importPlayers}'s doc comment for
+   * why this fallback exists and why it's gated on `isBigGuy`. Returns
+   * undefined (recording an `ImportError`) if the upsert itself fails.
+   */
+  private async resolveMercenaryPositionId(options: {
+    player: TpRosterPlayer;
+    tpSystemId: number;
+    mercenaryPositionIdsByName: Map<string, number>;
+    errors: ImportError[];
+  }): Promise<number | undefined> {
+    const { player, tpSystemId, mercenaryPositionIdsByName, errors } = options;
+    const cached = mercenaryPositionIdsByName.get(player.fallbackPositionName);
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const position = await this.positionsImport.upsertPosition(
+      {
+        name: player.fallbackPositionName,
+        isStarPlayer: true,
+        externalIds: [
+          {
+            externalSystemId: tpSystemId,
+            externalId: player.fallbackPositionName,
+          },
+        ],
+      },
+      errors,
+    );
+    if (!position) {
+      return undefined;
+    }
+    mercenaryPositionIdsByName.set(player.fallbackPositionName, position.id);
+    return position.id;
   }
 }

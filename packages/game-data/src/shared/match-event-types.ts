@@ -35,6 +35,10 @@ export const DEATH_CAUSED_TYPES: readonly ActionType[] = ['death'];
 
 // --- Consequence-role type sets (filtered on matchEvents.consequenceType) ---
 
+export const EXPENSIVE_MISTAKE_TYPES: readonly ConsequenceType[] = [
+  'expensive_mistake',
+];
+
 export const SENT_OFF_TYPES: readonly ConsequenceType[] = ['sent_off'];
 
 /** Every consequence that records a casualty of any severity or after-effect. */

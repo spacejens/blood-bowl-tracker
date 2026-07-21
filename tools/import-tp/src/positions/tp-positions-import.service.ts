@@ -20,6 +20,13 @@ interface PositionGroup {
   eraIds: Set<number>;
 }
 
+/** One star position, keyed by name only (star players are not race-scoped),
+ * accumulated across roster files. */
+interface StarPositionGroup {
+  name: string;
+  tpPositionIds: Set<number>;
+}
+
 @Injectable()
 export class TpPositionsImportService {
   constructor(
@@ -37,8 +44,13 @@ export class TpPositionsImportService {
    * only the TP external system is bootstrapped. After each upsert, the observed
    * `{ raceId, eraId }` availability is recorded via syncRaceEras. A roster whose
    * race cannot be resolved is recorded as an error and its positions skipped.
-   * All positions import with `isStarPlayer: false`; `starPlayersMasters` is
-   * ignored. `rosters` is the already-collected roster list (via
+   * Regular positions import with `isStarPlayer: false`. Star positions (from
+   * `roster.starPositions`) are grouped by name only, upserted with
+   * `isStarPlayer: true` and a bare-name external id (deduping onto the same row
+   * the inducement-hire path uses), and merged into the same
+   * `positionIdsByTpPositionId` map keyed by their TP catalog id; a catalog id
+   * colliding with an already-mapped id is skipped with a non-fatal error.
+   * `rosters` is the already-collected roster list (via
    * `RosterCollectionService`, run once for all three imports); this service
    * only groups and upserts. Idempotent.
    */
@@ -129,6 +141,50 @@ export class TpPositionsImportService {
         },
         errors,
       );
+    }
+
+    // Star positions: grouped by name only (not race — the same named star
+    // player is the same entity regardless of team/race), upserted with a
+    // bare-name external id so they dedupe onto the SAME Position row the
+    // inducement-hire path (#198) and the BBL importer create. No syncRaceEras
+    // (not race-scoped). Ids merge into the same positionIdsByTpPositionId map,
+    // keyed by the star catalog's own tpPositionId.
+    const starGroups = new Map<string, StarPositionGroup>();
+    for (const { roster } of rosters) {
+      for (const starPosition of roster.starPositions) {
+        let group = starGroups.get(starPosition.name);
+        if (!group) {
+          group = { name: starPosition.name, tpPositionIds: new Set() };
+          starGroups.set(starPosition.name, group);
+        }
+        group.tpPositionIds.add(starPosition.tpPositionId);
+      }
+    }
+
+    for (const group of starGroups.values()) {
+      const data: UpsertPosition = {
+        name: group.name,
+        isStarPlayer: true,
+        externalIds: [{ externalSystemId: tpSystemId, externalId: group.name }],
+      };
+      const upserted = await this.positionsImport.upsertPosition(data, errors);
+      if (!upserted) {
+        continue;
+      }
+      imported += 1;
+      for (const tpPositionId of group.tpPositionIds) {
+        const existing = positionIdsByTpPositionId.get(tpPositionId);
+        if (existing !== undefined) {
+          errors.push(
+            makeImportError({
+              item: { starPosition: group.name, tpPositionId },
+              message: `Skipping star position "${group.name}" TP id ${tpPositionId}: id already mapped to position ${existing} (catalog id collision).`,
+            }),
+          );
+          continue;
+        }
+        positionIdsByTpPositionId.set(tpPositionId, upserted.id);
+      }
     }
 
     return {

@@ -247,11 +247,16 @@ const journeymanSigningRaw = z.object({
   rosterId: z.number(),
   extraData: z.object({ journeymenCount: z.number() }),
 });
+/**
+ * TP's `extraData.expensiveMistake` is which tier of the Expensive Mistakes
+ * table was rolled (1 = no cost, 2 = a partial-treasury cost, 3 = half the
+ * treasury), not the money lost — `extraData.totalCost` carries that.
+ */
 const expensiveMistakeRaw = z.object({
   id: z.number(),
   instant: z.string(),
   rosterId: z.number(),
-  extraData: z.object({ expensiveMistake: z.number() }),
+  extraData: z.object({ totalCost: z.number() }),
 });
 const dedicatedFansRaw = z.object({
   id: z.number(),
@@ -420,7 +425,7 @@ const decoders = new Map<number, Decoder>([
       tpEventId: v.id,
       instant: v.instant,
       rosterId: v.rosterId,
-      expensiveMistake: v.extraData.expensiveMistake,
+      expensiveMistake: v.extraData.totalCost,
     })),
   ],
   [

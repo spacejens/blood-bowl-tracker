@@ -97,6 +97,17 @@ export function makeService() {
     countTimesSentOffByTeam: vi
       .fn()
       .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
+    sumExpensiveMistakesByTeam: vi
+      .fn()
+      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 150000 }]),
+    listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([
+      {
+        teamId: 1,
+        name: '40 grinders',
+        count: 150000,
+        date: '2026-03-04',
+      },
+    ]),
     countAll: vi.fn().mockResolvedValue(0),
     countByEra: vi.fn().mockResolvedValue(0),
     countByCompetition: vi.fn().mockResolvedValue(0),

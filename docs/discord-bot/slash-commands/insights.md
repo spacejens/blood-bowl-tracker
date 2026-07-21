@@ -54,49 +54,61 @@ button, in the same order as the list, that opens that coach's
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
 - `team.toplist.touchdowns.scored` — teams ranked by number of touchdowns
   scored. Counts raw `touchdown` match events credited to the team. Supports
-  era filtering.
+  era and competition filtering.
 - `team.toplist.completions` — teams ranked by number of passes completed.
-  Counts raw `completion` match events credited to the team. Supports era
-  filtering.
+  Counts raw `completion` match events credited to the team. Supports era and
+  competition filtering.
 - `team.toplist.interceptions` — teams ranked by number of interceptions made.
   Counts raw `interception` match events credited to the team. Supports era
-  filtering.
+  and competition filtering.
 - `team.toplist.deflections` — teams ranked by number of passes deflected.
-  Counts raw `deflection` match events credited to the team. Supports era
-  filtering.
+  Counts raw `deflection` match events credited to the team. Supports era and
+  competition filtering.
 - `team.toplist.casualties.caused` — teams ranked by casualties inflicted.
   Counts `casualty`, `badly_hurt`, `serious_injury`, and `death` match events
-  credited to the acting team. Supports era filtering.
+  credited to the acting team. Supports era and competition filtering.
 - `team.toplist.casualties.suffered` — teams ranked by casualties suffered.
   Counts match events whose consequence is `casualty`, `badly_hurt`, `death`,
   `serious_injury`, `niggling_injury`, `miss_next_game`, or any
-  `stat_reduction_*`, credited to the team the victim belongs to. Supports era
-  filtering.
+  `stat_reduction_*`, credited to the team the victim belongs to. Supports
+  era and competition filtering.
 - `team.toplist.injuries.serious.caused` — teams ranked by serious injuries
   inflicted. Counts `serious_injury` match events credited to the acting team.
-  Supports era filtering.
+  Supports era and competition filtering.
 - `team.toplist.injuries.serious.suffered` — teams ranked by serious injuries
   suffered. Counts `serious_injury`, `niggling_injury`, `miss_next_game`, and
   any `stat_reduction_*` consequence, credited to the team the victim belongs
-  to. Supports era filtering.
+  to. Supports era and competition filtering.
 - `team.toplist.injuries.lasting.suffered` — teams ranked by lasting injuries
   suffered. Counts `niggling_injury` and any `stat_reduction_*` consequence
   (the career-spanning outcomes), credited to the team the victim belongs to.
-  Supports era filtering.
+  Supports era and competition filtering.
 - `team.toplist.deaths.caused` — teams ranked by opponents killed. Counts
-  `death` match events credited to the acting team. Supports era filtering.
+  `death` match events credited to the acting team. Supports era and
+  competition filtering.
 - `team.toplist.deaths.suffered` — teams ranked by players killed. Counts match
   events whose consequence is `death`, credited to the team the dead player
-  belongs to. Supports era filtering.
+  belongs to. Supports era and competition filtering.
 - `team.toplist.fouls.committed` — teams ranked by fouls committed. Counts
-  `foul` match events credited to the acting team. Supports era filtering.
+  `foul` match events credited to the acting team. Supports era and
+  competition filtering.
 - `team.toplist.sent_off` — teams ranked by players sent off. Counts match
   events whose consequence is `sent_off`, credited to the team the sent-off
-  player belongs to. Supports era filtering.
+  player belongs to. Supports era and competition filtering.
+- `team.toplist.expensiveMistakes.total` — teams ranked by the total money lost
+  to expensive mistakes across their history (summed `expensive_mistake`
+  consequence amounts, not event count). Amounts render with a thousands
+  separator and a `gp` suffix (e.g. `150,000 gp`). Supports era and competition
+  filtering.
+- `team.toplist.expensiveMistakes.biggest` — individual expensive-mistake events
+  ranked by amount, each row showing the losing team and the ISO `YYYY-MM-DD`
+  date of the match it occurred in. A team can appear more than once. Supports
+  era and competition filtering.
 
-Each team listed by the sixteen `team.toplist.*` facts above also gets a
+Each team listed by the eighteen `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
-[`/deepdive`](deepdive.md) detail view.
+[`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
+deduplicated so a team that appears on multiple rows gets a single button.
 
 - `player.toplist.mvps` — players ranked by number of MVP awards won.
   Counts raw `mvp_award` match events per player, so a player credited with

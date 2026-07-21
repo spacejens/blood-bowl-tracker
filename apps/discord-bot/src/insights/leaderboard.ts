@@ -67,6 +67,7 @@ export interface FormatLeaderboardEmbedOptions<T> {
   noDataMessage: string;
   truncatedCount?: number;
   buildCustomId?: (row: T) => string;
+  formatRow?: (row: T) => string;
 }
 
 export function formatLeaderboardEmbed<
@@ -77,13 +78,12 @@ export function formatLeaderboardEmbed<
   noDataMessage,
   truncatedCount = 0,
   buildCustomId,
+  formatRow = (row) => `${row.rank}. ${row.name} — ${row.count}`,
 }: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
   if (rankedRows.length === 0) {
     return { embeds: [{ title, description: noDataMessage }] };
   }
-  const lines = rankedRows.map(
-    (row) => `${row.rank}. ${row.name} — ${row.count}`,
-  );
+  const lines = rankedRows.map(formatRow);
   if (truncatedCount > 0) {
     lines.push(`…and ${truncatedCount} more tied.`);
   }
@@ -91,12 +91,25 @@ export function formatLeaderboardEmbed<
   if (buildCustomId === undefined) {
     return embed;
   }
-  const buttons = rankedRows.slice(0, MAX_BUTTONS).map((row) => ({
-    type: ComponentType.Button as const,
-    style: ButtonStyle.Primary as const,
-    label: row.name,
-    custom_id: buildCustomId(row),
-  }));
+  // A row may repeat a team (e.g. the biggest-mistakes list), but Discord
+  // rejects duplicate button custom_ids — keep only the first occurrence.
+  const seen = new Set<string>();
+  const buttons = rankedRows
+    .filter((row) => {
+      const customId = buildCustomId(row);
+      if (seen.has(customId)) {
+        return false;
+      }
+      seen.add(customId);
+      return true;
+    })
+    .slice(0, MAX_BUTTONS)
+    .map((row) => ({
+      type: ComponentType.Button as const,
+      style: ButtonStyle.Primary as const,
+      label: row.name,
+      custom_id: buildCustomId(row),
+    }));
   const components: {
     type: ComponentType.ActionRow;
     components: typeof buttons;
@@ -122,6 +135,7 @@ export interface ResolveToplistOptions<T> {
   timeoutMessage: string;
   noDataMessage: string;
   buildCustomId?: (row: T) => string;
+  formatRow?: (row: T & { rank: number }) => string;
 }
 
 export async function resolveToplist<
@@ -132,6 +146,7 @@ export async function resolveToplist<
   timeoutMessage,
   noDataMessage,
   buildCustomId,
+  formatRow,
 }: ResolveToplistOptions<T>): Promise<string | InteractionReplyOptions> {
   const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
   if (rows === null) {
@@ -148,5 +163,6 @@ export async function resolveToplist<
     noDataMessage,
     truncatedCount,
     buildCustomId,
+    formatRow,
   });
 }
