@@ -17,7 +17,14 @@ export interface TpRosterPosition {
  * One player instance on a team's roster, from a `lineUps[]` entry. `id` is the
  * per-instance line-up id that `matchEvents[].lineUpId` references; `rosterId`
  * matches the roster's top-level `id`; `lineUpMasterId` links to the position
- * template in `rosterMaster.lineUpMasters[]`.
+ * template in `rosterMaster.lineUpMasters[]` (or `starPlayersMasters[]`).
+ * `fallbackPositionName` and `isBigGuy` are also carried inline on every
+ * `lineUps[]` entry -- unlike a regular or star position, a mercenary Big Guy
+ * hire (e.g. "Giant") has no catalog entry in either `rosterMaster` array at
+ * all, so `lineUpMasterId` never resolves for one. `TpPlayersImportService`
+ * falls back to `fallbackPositionName` (gated on `isBigGuy`) to still import
+ * such a player, reusing an `isStarPlayer: true` Position the same way a star
+ * player does.
  */
 export interface TpRosterPlayer {
   id: number;
@@ -25,6 +32,8 @@ export interface TpRosterPlayer {
   number: number;
   lineUpMasterId: number;
   rosterId: number;
+  fallbackPositionName: string;
+  isBigGuy: boolean;
 }
 
 /**
@@ -62,6 +71,8 @@ export const LineUpSchema = z.object({
   number: z.number(),
   lineUpMasterId: z.number(),
   rosterId: z.number(),
+  position: z.string(),
+  isBigGuy: z.boolean().optional(),
 });
 
 const RosterSchema = z.object({
@@ -119,6 +130,8 @@ export class RosterParserService {
         number: entry.number,
         lineUpMasterId: entry.lineUpMasterId,
         rosterId: entry.rosterId,
+        fallbackPositionName: entry.position,
+        isBigGuy: entry.isBigGuy ?? false,
       })),
     };
   }

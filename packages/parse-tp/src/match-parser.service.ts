@@ -187,6 +187,8 @@ export class MatchParserService {
       number: entry.number,
       lineUpMasterId: entry.lineUpMasterId,
       rosterId: entry.rosterId ?? fallbackRosterId,
+      fallbackPositionName: entry.position,
+      isBigGuy: entry.isBigGuy ?? false,
     });
     return {
       id: matchId,

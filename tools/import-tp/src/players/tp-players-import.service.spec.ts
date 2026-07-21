@@ -49,6 +49,8 @@ const rosters: RosterEntry[] = [
           number: 4,
           lineUpMasterId: 952,
           rosterId: 123,
+          fallbackPositionName: 'Dwarf Lineman',
+          isBigGuy: false,
         },
       ],
     },
@@ -99,6 +101,8 @@ describe('TpPlayersImportService', () => {
               number: 7,
               lineUpMasterId: 952,
               rosterId: 123,
+              fallbackPositionName: 'Dwarf Lineman',
+              isBigGuy: false,
             },
           ],
         ],
@@ -138,6 +142,8 @@ describe('TpPlayersImportService', () => {
               number: 4,
               lineUpMasterId: 952,
               rosterId: 123,
+              fallbackPositionName: 'Dwarf Lineman',
+              isBigGuy: false,
             },
           ],
         ],
@@ -443,6 +449,8 @@ describe('TpPlayersImportService', () => {
               number: 16,
               lineUpMasterId: 5002,
               rosterId: 123,
+              fallbackPositionName: "Morg 'n' Thorg",
+              isBigGuy: false,
             },
           ],
         },
@@ -491,6 +499,8 @@ describe('TpPlayersImportService', () => {
               number: 17,
               lineUpMasterId: 5002,
               rosterId: 123,
+              fallbackPositionName: 'Akhorne the Squirrel',
+              isBigGuy: false,
             },
           ],
         ],
@@ -509,5 +519,189 @@ describe('TpPlayersImportService', () => {
       }),
       expect.anything(),
     );
+  });
+
+  it('imports a mercenary Big Guy (isBigGuy: true, unresolvable lineUpMasterId) via its fallbackPositionName as an isStarPlayer position', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      // 440 is deliberately absent -- neither a regular nor a star catalog id.
+      positionIdsByTpPositionId: new Map(),
+    });
+
+    expect(result.imported).toBe(1);
+    expect(playerIdsByLineUpId.get(1399322)).toBe(960);
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: 'Giant Mercenary',
+        isStarPlayer: true,
+        externalIds: [{ externalSystemId: 1, externalId: 'Giant Mercenary' }],
+      },
+      expect.anything(),
+    );
+    expect(upsertPlayerResult).toHaveBeenCalledWith(
+      {
+        name: 'Giant',
+        teamEraId: 5000,
+        positionId: 800,
+        externalIds: [{ externalSystemId: 1, externalId: '1399322' }],
+      },
+      expect.anything(),
+    );
+  });
+
+  it('reuses one mercenary Position across multiple players sharing the same fallbackPositionName', async () => {
+    const upsertPlayerResult = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 960 })
+      .mockResolvedValueOnce({ id: 961 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+            },
+            {
+              id: 1970614,
+              name: 'Giant',
+              number: 27,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { result } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(),
+    });
+
+    expect(result.imported).toBe(2);
+    expect(upsertPosition).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a mercenary Big Guy without creating a player when the fallback position upsert fails', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
+    const upsertPosition = vi.fn().mockResolvedValue(undefined);
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    const mercenaryRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Norse',
+          raceName: 'Norse',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 1399322,
+              name: 'Giant',
+              number: 20,
+              lineUpMasterId: 440,
+              rosterId: 123,
+              fallbackPositionName: 'Giant Mercenary',
+              isBigGuy: true,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters: mercenaryRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(),
+    });
+
+    expect(playerIdsByLineUpId.size).toBe(0);
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
+  });
+
+  it('does not fall back to fallbackPositionName for a non-isBigGuy player, and still skips it with an error', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    const { result, playerIdsByLineUpId } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      // The shared `rosters` fixture's player has lineUpMasterId 952 and
+      // isBigGuy: false; omit it from the map so resolution fails.
+      positionIdsByTpPositionId: new Map(),
+    });
+
+    expect(playerIdsByLineUpId.size).toBe(0);
+    expect(
+      result.errors.some((e) =>
+        e.message.includes('could not resolve position'),
+      ),
+    ).toBe(true);
+    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 });

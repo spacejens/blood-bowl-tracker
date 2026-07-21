@@ -168,9 +168,14 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 - **TpPlayersImportService** — imports every roster player instance from
   `lineUps[]`: each resolves a team era (roster id + era, via
   `teamErasByRosterId`) and a position (`lineUpMasterId`, via
-  `positionIdsByTpPositionId`); a player whose team era or position can't be
-  resolved is recorded as an error and skipped. Players carry only a TP
-  external id (no Name external id — player names aren't unique). Returns
+  `positionIdsByTpPositionId`); if that fails but the player is a mercenary
+  Big Guy (`isBigGuy: true`, e.g. "Giant" — no catalog entry in either
+  `rosterMaster` array at all), it falls back to a reused `isStarPlayer: true`
+  Position keyed by the player's own inline `fallbackPositionName`, the same
+  treatment a star player gets. A player whose team era or position (even via
+  that fallback) can't be resolved is recorded as an error and skipped.
+  Players carry only a TP external id (no Name external id — player names
+  aren't unique). Returns
   `playerIdsByLineUpId`, consumed by match-event import to resolve a
   `matchEvents[].lineUpId`. Also consumes `matchEmbeddedPlayersByRosterId`
   from `main.ts`'s pre-scan of `matchesByCompetitionId` (each match's

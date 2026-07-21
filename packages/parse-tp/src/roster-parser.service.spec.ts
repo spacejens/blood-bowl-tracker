@@ -18,6 +18,7 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
         lineUpMasterId: 952,
         rosterId: 123,
         position: 'Dwarf Lineman',
+        isBigGuy: false,
       },
     ],
     rosterMaster: {
@@ -58,6 +59,8 @@ describe('RosterParserService', () => {
           number: 1,
           lineUpMasterId: 952,
           rosterId: 123,
+          fallbackPositionName: 'Dwarf Lineman',
+          isBigGuy: false,
         },
       ],
     });
@@ -109,8 +112,57 @@ describe('RosterParserService', () => {
         number: 1,
         lineUpMasterId: 952,
         rosterId: 123,
+        fallbackPositionName: 'Dwarf Lineman',
+        isBigGuy: false,
       },
     ]);
+  });
+
+  it('parses isBigGuy true and a fallback position name for a mercenary-style entry', () => {
+    const roster = parser.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 1399322,
+            name: 'Giant',
+            number: 20,
+            lineUpMasterId: 440,
+            rosterId: 123,
+            position: 'Giant Mercenary',
+            isBigGuy: true,
+          },
+        ],
+      }),
+    );
+    expect(roster.players).toEqual([
+      {
+        id: 1399322,
+        name: 'Giant',
+        number: 20,
+        lineUpMasterId: 440,
+        rosterId: 123,
+        fallbackPositionName: 'Giant Mercenary',
+        isBigGuy: true,
+      },
+    ]);
+  });
+
+  it('defaults isBigGuy to false when the field is absent', () => {
+    const roster = parser.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+          },
+        ],
+      }),
+    );
+    expect(roster.players[0]?.isBigGuy).toBe(false);
   });
 
   it('returns an empty players array when lineUps is empty', () => {
