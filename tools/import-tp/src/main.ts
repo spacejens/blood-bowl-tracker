@@ -10,6 +10,7 @@ import { TpCoachesImportService } from './coaches/tp-coaches-import.service';
 import { TpCompetitionsImportService } from './competitions/tp-competitions-import.service';
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
+import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
@@ -42,7 +43,6 @@ async function run(): Promise<ImportResult> {
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)
       .importMatches(competitionOutcome.matchesByCompetitionId);
@@ -153,12 +153,10 @@ async function run(): Promise<ImportResult> {
     // team era (via teamOutcome.teamErasByRosterId) and a position (via
     // positionIdsByTpPositionId), so both must exist first. playerIdsByLineUpId
     // and starPlayerIdsByRosterAndMaster are kept in scope for the
-    // match-events step (Task 8).
+    // match-events step below.
     const {
       result: playerResult,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       playerIdsByLineUpId,
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       starPlayerIdsByRosterAndMaster,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
@@ -168,9 +166,10 @@ async function run(): Promise<ImportResult> {
       inducedStarPlayerHireGroups,
     });
 
-    // Team participation (match_teams + competition_teams) runs last: it needs
-    // the teams step's resolved team-era ids, and consumes the competitions
-    // step's maps and the already-collected rosters — no new file scanning.
+    // Team participation (match_teams + competition_teams) runs before match
+    // events: match events resolve team-era ids the same way (roster id +
+    // era), and — more importantly — the server upsert match events uses
+    // resolves against match_teams, which this step is what populates.
     const teamParticipationOutcome = await app
       .get(TpTeamParticipationImportService)
       .importTeamParticipation({
@@ -179,6 +178,22 @@ async function run(): Promise<ImportResult> {
         matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
         teamErasByRosterId: teamOutcome.teamErasByRosterId,
         rosters,
+      });
+
+    // Match events (touchdowns and injuries/casualties) run last: they need
+    // match_teams (populated above), the players step's lineUpId/star-player
+    // maps, and reuse the same matchesByCompetitionId + eraIdByCompetitionId
+    // already built for the hired-star-player scan above (competition DB id
+    // -> its real eraId), rather than resolving the era a second time.
+    const matchEventsOutcome = await app
+      .get(TpMatchEventsImportService)
+      .importMatchEvents({
+        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
+        eraIdByCompetitionId,
+        matchIdsByTpId,
+        teamErasByRosterId: teamOutcome.teamErasByRosterId,
+        playerIdsByLineUpId,
+        starPlayerIdsByRosterAndMaster,
       });
 
     const results = [
@@ -194,6 +209,7 @@ async function run(): Promise<ImportResult> {
       positionResult,
       playerResult,
       teamParticipationOutcome.result,
+      matchEventsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
