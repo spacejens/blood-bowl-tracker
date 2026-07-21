@@ -238,6 +238,60 @@ describe('parseMatchEvents', () => {
     ]);
   });
 
+  it('decodes an injury (code 8) with its turnNumber, when present', () => {
+    const [event] = parseMatchEvents([
+      {
+        id: 7150231,
+        matchEventType: 8,
+        instant: '2026-01-17T18:44:30.335919+00:00',
+        lineUpId: 2442083,
+        rosterId: 164868,
+        turnRosterId: 168446,
+        turnNumber: 14,
+        injuryType: 'None',
+        extraData: {
+          roll1: 4,
+          roll2: 0,
+          injuryType: 'None',
+          nigglingInjuries: 0,
+          decay: false,
+        },
+      },
+    ]);
+    expect(event).toEqual({
+      type: 'injury',
+      tpEventId: 7150231,
+      instant: '2026-01-17T18:44:30.335919+00:00',
+      lineUpId: 2442083,
+      rosterId: 164868,
+      turnRosterId: 168446,
+      turnNumber: 14,
+      injuryType: 'None',
+    });
+  });
+
+  it('decodes a casualty caused (code 6) with its turnNumber, when present', () => {
+    const [event] = parseMatchEvents([
+      {
+        id: 7150224,
+        matchEventType: 6,
+        instant: '2026-01-17T18:44:15.5783948+00:00',
+        lineUpId: 2565349,
+        rosterId: 168446,
+        starPoints: 3,
+        turnNumber: 14,
+      },
+    ]);
+    expect(event).toEqual({
+      type: 'casualty_caused',
+      tpEventId: 7150224,
+      instant: '2026-01-17T18:44:15.5783948+00:00',
+      lineUpId: 2565349,
+      rosterId: 168446,
+      turnNumber: 14,
+    });
+  });
+
   it('decodes a weather roll (code 10)', () => {
     expect(
       parseMatchEvents([

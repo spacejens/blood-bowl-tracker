@@ -83,11 +83,19 @@ export type TpMatchEvent =
        * the ACTING team (the causer's own roster), following every other
        * event type's convention that the identified `lineUpId` player
        * belongs to `rosterId`. See `tp-match-events-correlation.ts` in
-       * tools/import-tp for how this is paired with its `injury` event.
+       * tools/import-tp for how this is paired with its `injury` event via
+       * `turnNumber`.
        */
       type: 'casualty_caused';
       lineUpId: number;
       rosterId: number;
+      /**
+       * The game turn this casualty-causing action happened on, when
+       * present (absent on some older events). The hard, order-independent
+       * pairing key used to correlate this event with its `injury` event —
+       * see `tp-match-events-correlation.ts`.
+       */
+      turnNumber?: number;
     })
   | (TpMatchEventBase & {
       type: 'injury';
@@ -96,6 +104,11 @@ export type TpMatchEvent =
       rosterId: number;
       /** Acting team's roster id (whose turn it was), when present. */
       turnRosterId?: number;
+      /**
+       * The game turn this injury roll happened on, when present (absent on
+       * some older events). See `casualty_caused.turnNumber`.
+       */
+      turnNumber?: number;
       injuryType: TpInjuryType;
     })
   | (TpMatchEventBase & { type: 'weather_roll'; weatherType: number })
@@ -186,7 +199,15 @@ const injuryRaw = z.object({
   lineUpId: z.number(),
   rosterId: z.number(),
   turnRosterId: z.number().nullish(),
+  turnNumber: z.number().nullish(),
   injuryType: injuryTypeSchema,
+});
+const casualtyCausedRaw = z.object({
+  id: z.number(),
+  instant: z.string(),
+  lineUpId: z.number(),
+  rosterId: z.number(),
+  turnNumber: z.number().nullish(),
 });
 const weatherRaw = z.object({
   id: z.number(),
@@ -312,12 +333,13 @@ const decoders = new Map<number, Decoder>([
   ],
   [
     6,
-    decode(touchdownRaw, 6, (v) => ({
+    decode(casualtyCausedRaw, 6, (v) => ({
       type: 'casualty_caused',
       tpEventId: v.id,
       instant: v.instant,
       lineUpId: v.lineUpId,
       rosterId: v.rosterId,
+      ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
     })),
   ],
   [
@@ -339,6 +361,7 @@ const decoders = new Map<number, Decoder>([
       lineUpId: v.lineUpId,
       rosterId: v.rosterId,
       ...(v.turnRosterId != null ? { turnRosterId: v.turnRosterId } : {}),
+      ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
       injuryType: v.injuryType,
     })),
   ],
