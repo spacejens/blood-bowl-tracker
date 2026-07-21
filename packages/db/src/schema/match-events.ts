@@ -24,6 +24,7 @@ export const actionTypeEnum = gameData.enum('action_type', [
   'journeymen_signings',
   'prayers_to_nuffle',
   'secret_objective',
+  'successful_landing',
 ]);
 
 export const consequenceTypeEnum = gameData.enum('consequence_type', [

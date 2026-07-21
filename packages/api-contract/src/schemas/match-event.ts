@@ -19,6 +19,7 @@ export const ActionTypeSchema = z.enum([
   'journeymen_signings',
   'prayers_to_nuffle',
   'secret_objective',
+  'successful_landing',
 ]);
 
 export const ConsequenceTypeSchema = z.enum([
