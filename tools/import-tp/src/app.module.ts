@@ -10,6 +10,7 @@ import { EraDataConfigModule } from './eras/era-data-config.module';
 import { ErasModule } from './eras/eras.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { MatchesModule } from './matches/matches.module';
+import { PlayersModule } from './players/players.module';
 import { PositionsModule } from './positions/positions.module';
 import { RacesModule } from './races/races.module';
 import { RulesSetsModule } from './rules-sets/rules-sets.module';
@@ -41,6 +42,7 @@ export class AppModule {
         TeamsModule,
         TeamParticipationModule,
         PositionsModule,
+        PlayersModule,
       ],
     };
   }

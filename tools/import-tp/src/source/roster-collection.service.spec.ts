@@ -63,6 +63,7 @@ function rosterFile(
       teamName: `Team ${opts.id}`,
       teamRace: opts.teamRace,
       player: { applicationUserId: 'coach-1' },
+      lineUps: [],
       rosterMaster: {
         name: opts.raceName,
         starPlayersMasters: [],

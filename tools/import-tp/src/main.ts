@@ -10,6 +10,7 @@ import { TpCompetitionsImportService } from './competitions/tp-competitions-impo
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
+import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -71,13 +72,27 @@ async function run(): Promise<ImportResult> {
         eraIdsByName: eraOutcome.eraIdsByName,
       });
 
-    const positionOutcome = await app
+    const { result: positionResult, positionIdsByTpPositionId } = await app
       .get(TpPositionsImportService)
       .importPositions(
         rosters,
         raceOutcome.raceIdsByTeamRaceCode,
         eraOutcome.eraIdsByName,
       );
+
+    // Players run after positions and teams: each roster player resolves a
+    // team era (via teamOutcome.teamErasByRosterId) and a position (via
+    // positionIdsByTpPositionId), so both must exist first. playerIdsByLineUpId
+    // is kept in scope for the match-events step (Task 8).
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { result: playerResult, playerIdsByLineUpId } = await app
+      .get(TpPlayersImportService)
+      .importPlayers({
+        rosters,
+        teamErasByRosterId: teamOutcome.teamErasByRosterId,
+        eraIdsByName: eraOutcome.eraIdsByName,
+        positionIdsByTpPositionId,
+      });
 
     // Team participation (match_teams + competition_teams) runs last: it needs
     // the teams step's resolved team-era ids, and consumes the competitions
@@ -102,7 +117,8 @@ async function run(): Promise<ImportResult> {
       rosterCollectionResult,
       raceOutcome.result,
       teamOutcome.result,
-      positionOutcome.result,
+      positionResult,
+      playerResult,
       teamParticipationOutcome.result,
     ];
     return {
