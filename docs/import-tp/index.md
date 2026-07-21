@@ -152,17 +152,30 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   resolving race via `raceIdsByTeamRaceCode` and coach via `coachIdsByTpId`;
   skips any team whose race or coach cannot be resolved. Teams are grouped by
   id so one seen under multiple eras unions its eras.
-- **TpPositionsImportService** — upserts each position grouped by `(race, name)`,
-  keyed by its `tpPositionId` variants (all in one upsert call for merge
-  semantics). Carries TP external ids only (one per `tpPositionId`); after each
-  upsert, records race/era availability via `syncRaceEras`. Star players are not
-  parsed (`starPlayersMasters` is ignored).
+- **TpPositionsImportService** — upserts each regular position grouped by
+  `(race, name)`, keyed by its `tpPositionId` variants (all in one upsert call
+  for merge semantics). Carries TP external ids only (one per `tpPositionId`);
+  after each upsert, records race/era availability via `syncRaceEras`. Star
+  players permanently embedded in a roster's line-up (`rosterMaster.
+  starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
+  grouped by name only — not race, since the same named star player is the
+  same entity regardless of team — then upserted with `isStarPlayer: true` and
+  a bare-name TP external id (matching the convention the hired-star-player
+  path below already uses, so both paths dedupe onto the same `Position` row).
+  Their ids merge into the same `positionIdsByTpPositionId` map the regular
+  positions use; a star catalog id that collides with an already-mapped id is
+  skipped with a non-fatal error instead of overwriting it.
 - **TpPlayersImportService** — imports every roster player instance from
   `lineUps[]`: each resolves a team era (roster id + era, via
   `teamErasByRosterId`) and a position (`lineUpMasterId`, via
-  `positionIdsByTpPositionId`); a player whose team era or position can't be
-  resolved is recorded as an error and skipped. Players carry only a TP
-  external id (no Name external id — player names aren't unique). Returns
+  `positionIdsByTpPositionId`); if that fails but the player is a mercenary
+  Big Guy (`isBigGuy: true`, e.g. "Giant" — no catalog entry in either
+  `rosterMaster` array at all), it falls back to a reused `isStarPlayer: true`
+  Position keyed by the player's own inline `fallbackPositionName`, the same
+  treatment a star player gets. A player whose team era or position (even via
+  that fallback) can't be resolved is recorded as an error and skipped.
+  Players carry only a TP external id (no Name external id — player names
+  aren't unique). Returns
   `playerIdsByLineUpId`, consumed by match-event import to resolve a
   `matchEvents[].lineUpId`. Also consumes `matchEmbeddedPlayersByRosterId`
   from `main.ts`'s pre-scan of `matchesByCompetitionId` (each match's

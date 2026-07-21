@@ -17,7 +17,14 @@ export interface TpRosterPosition {
  * One player instance on a team's roster, from a `lineUps[]` entry. `id` is the
  * per-instance line-up id that `matchEvents[].lineUpId` references; `rosterId`
  * matches the roster's top-level `id`; `lineUpMasterId` links to the position
- * template in `rosterMaster.lineUpMasters[]`.
+ * template in `rosterMaster.lineUpMasters[]` (or `starPlayersMasters[]`).
+ * `fallbackPositionName` and `isBigGuy` are also carried inline on every
+ * `lineUps[]` entry -- unlike a regular or star position, a mercenary Big Guy
+ * hire (e.g. "Giant") has no catalog entry in either `rosterMaster` array at
+ * all, so `lineUpMasterId` never resolves for one. `TpPlayersImportService`
+ * falls back to `fallbackPositionName` (gated on `isBigGuy`) to still import
+ * such a player, reusing an `isStarPlayer: true` Position the same way a star
+ * player does.
  */
 export interface TpRosterPlayer {
   id: number;
@@ -25,6 +32,8 @@ export interface TpRosterPlayer {
   number: number;
   lineUpMasterId: number;
   rosterId: number;
+  fallbackPositionName: string;
+  isBigGuy: boolean;
 }
 
 /**
@@ -32,7 +41,8 @@ export interface TpRosterPlayer {
  * `teamRace` code (may carry a rule-set suffix and is NOT one-per-logical-race);
  * `raceName` is `rosterMaster.name`, the display name stable across every code
  * variant of the same logical race. Only these fields are extracted -- stats,
- * skills, quantities, costs and `starPlayersMasters` are ignored.
+ * skills, quantities and costs are ignored; `rosterMaster.starPlayersMasters`
+ * (named star players permanently on the roster) is parsed into `starPositions`.
  */
 export interface TpRoster {
   id: number;
@@ -41,10 +51,16 @@ export interface TpRoster {
   raceName: string;
   coachTpId: string;
   positions: TpRosterPosition[];
+  starPositions: TpRosterPosition[];
   players: TpRosterPlayer[];
 }
 
 const LineUpMasterSchema = z.object({
+  id: z.number(),
+  position: z.string(),
+});
+
+const StarPlayerMasterSchema = z.object({
   id: z.number(),
   position: z.string(),
 });
@@ -55,6 +71,8 @@ export const LineUpSchema = z.object({
   number: z.number(),
   lineUpMasterId: z.number(),
   rosterId: z.number(),
+  position: z.string(),
+  isBigGuy: z.boolean().optional(),
 });
 
 const RosterSchema = z.object({
@@ -67,6 +85,7 @@ const RosterSchema = z.object({
   lineUps: z.array(LineUpSchema),
   rosterMaster: z.object({
     name: z.string(),
+    starPlayersMasters: z.array(StarPlayerMasterSchema),
     lineUpMasters: z.array(LineUpMasterSchema),
   }),
 });
@@ -75,9 +94,9 @@ const RosterSchema = z.object({
 export class RosterParserService {
   /**
    * Validate and flatten a parsed TP `rosters_<id>.json` body into a `TpRoster`.
-   * Extra fields (stats/skills/costs/`starPlayersMasters`) are allowed and
-   * dropped by zod's default non-strict parsing. Throws an Error whose message
-   * names the failing field on any shape mismatch.
+   * Extra fields (stats/skills/costs) are allowed and dropped by zod's default
+   * non-strict parsing. Throws an Error whose message names the failing field on
+   * any shape mismatch.
    */
   parse(content: unknown): TpRoster {
     const result = RosterSchema.safeParse(content);
@@ -101,12 +120,18 @@ export class RosterParserService {
         tpPositionId: entry.id,
         name: entry.position,
       })),
+      starPositions: data.rosterMaster.starPlayersMasters.map((entry) => ({
+        tpPositionId: entry.id,
+        name: entry.position,
+      })),
       players: data.lineUps.map((entry) => ({
         id: entry.id,
         name: entry.name,
         number: entry.number,
         lineUpMasterId: entry.lineUpMasterId,
         rosterId: entry.rosterId,
+        fallbackPositionName: entry.position,
+        isBigGuy: entry.isBigGuy ?? false,
       })),
     };
   }

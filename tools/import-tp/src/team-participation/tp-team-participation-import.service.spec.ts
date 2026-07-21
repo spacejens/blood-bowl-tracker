@@ -52,6 +52,7 @@ function roster(era: string, comp: string, id: number): RosterEntry {
       raceName: 'Orc',
       coachTpId: 'coach-1',
       positions: [],
+      starPositions: [],
       players: [],
     },
   };

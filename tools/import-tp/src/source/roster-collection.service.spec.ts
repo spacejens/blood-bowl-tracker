@@ -228,6 +228,7 @@ describe('unknownEraError', () => {
       raceName: 'Orc',
       coachTpId: 'coach-1',
       positions: [],
+      starPositions: [],
       players: [],
     });
 

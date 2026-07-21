@@ -33,11 +33,12 @@ interface RosterOpts {
   teamRace: string;
   raceName: string;
   positions: { tpPositionId: number; name: string }[];
+  starPositions?: { tpPositionId: number; name: string }[];
   id?: number;
 }
 
 function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
-  const { teamRace, raceName, positions, id = 1 } = opts;
+  const { teamRace, raceName, positions, starPositions = [], id = 1 } = opts;
   return {
     era,
     competition: 'comp',
@@ -48,6 +49,7 @@ function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
       raceName,
       coachTpId: 'coach-1',
       positions,
+      starPositions,
       players: [],
     },
   };
@@ -305,5 +307,86 @@ describe('TpPositionsImportService', () => {
       { positionId: 70, raceEras: [] },
       expect.any(Array),
     );
+  });
+
+  it('imports a star position grouped by name (not race) with a bare-name external id and no syncRaceEras', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
+    const syncRaceEras = vi.fn();
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const { result, positionIdsByTpPositionId } = await service.importPositions(
+      [
+        rosterEntry('Dwarf', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          id: 1,
+        }),
+        rosterEntry('Human', {
+          teamRace: 'Human',
+          raceName: 'Human',
+          positions: [],
+          starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
+          id: 2,
+        }),
+      ],
+      new Map([
+        ['Dwarf', 50],
+        ['Human', 60],
+      ]),
+      new Map([['Dwarf', 100]]),
+    );
+
+    expect(result.imported).toBe(1);
+    expect(upsertPosition).toHaveBeenCalledWith(
+      {
+        name: "Morg 'n' Thorg",
+        isStarPlayer: true,
+        externalIds: [{ externalSystemId: 1, externalId: "Morg 'n' Thorg" }],
+      },
+      expect.any(Array),
+    );
+    expect(positionIdsByTpPositionId.get(5002)).toBe(800);
+    expect(syncRaceEras).not.toHaveBeenCalled();
+  });
+
+  it('records a non-fatal error and does not overwrite when a star id collides with a regular position id', async () => {
+    const upsertPosition = vi
+      .fn()
+      .mockResolvedValueOnce(positionRecord(70)) // regular position upsert
+      .mockResolvedValueOnce(positionRecord(800)); // star position upsert
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const { result, positionIdsByTpPositionId } = await service.importPositions(
+      [
+        rosterEntry('Dwarf', {
+          teamRace: 'Dwarf',
+          raceName: 'Dwarf',
+          positions: [{ tpPositionId: 280, name: 'Dwarf Blocker Lineman' }],
+          starPositions: [{ tpPositionId: 280, name: 'Colliding Star' }],
+          id: 1,
+        }),
+      ],
+      new Map([['Dwarf', 50]]),
+      new Map([['Dwarf', 100]]),
+    );
+
+    // The regular position keeps id 280 -> 70; the star does NOT overwrite it.
+    expect(positionIdsByTpPositionId.get(280)).toBe(70);
+    expect(
+      result.errors.some((e) => e.message.toLowerCase().includes('collision')),
+    ).toBe(true);
   });
 });
