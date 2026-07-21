@@ -8,6 +8,7 @@ import {
   MATCH_DB_ID,
   matchWithEvents,
   runImport,
+  runImportRaw,
   SCORER_PLAYER_ID,
   TP_SYSTEM_ID,
   VICTIM_PLAYER_ID,
@@ -512,6 +513,40 @@ describe('TpMatchEventsImportService gameplay events', () => {
     });
     expect(captured).toContainEqual(
       expect.objectContaining({ consequenceType: 'badly_hurt' }),
+    );
+  });
+
+  it('resolves a touchdown by an embedded star player (imported lineUpId) to a non-null player with no null-player warning', async () => {
+    // lineUpId 2442075 stands in for a now-imported embedded star player:
+    // runImportRaw seeds playerIdsByLineUpId with 2442075 -> SCORER_PLAYER_ID,
+    // exactly as Task 3's player import would for a rostered star player.
+    const { captured, errors } = await runImportRaw({
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            {
+              type: 'touchdown',
+              tpEventId: 1,
+              instant: 'x',
+              lineUpId: 2442075,
+              rosterId: HOME_ROSTER_ID,
+            },
+          ],
+        }),
+      ],
+    });
+
+    expect(captured).toContainEqual(
+      expect.objectContaining({
+        matchId: MATCH_DB_ID,
+        actionType: 'touchdown',
+        actingTeamEraId: HOME_TEAM_ERA_ID,
+        actingPlayerId: SCORER_PLAYER_ID,
+      }),
+    );
+    expect(errors.some((e) => e.message.includes('no imported id'))).toBe(
+      false,
     );
   });
 });

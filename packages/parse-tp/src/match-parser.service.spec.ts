@@ -59,6 +59,8 @@ describe('MatchParserService', () => {
                 number: 1,
                 lineUpMasterId: 952,
                 rosterId: 10,
+                position: 'Dwarf Lineman',
+                isBigGuy: false,
               },
             ],
           },
@@ -73,6 +75,8 @@ describe('MatchParserService', () => {
                 number: 7,
                 lineUpMasterId: 953,
                 rosterId: 20,
+                position: 'Dwarf Runner',
+                isBigGuy: false,
               },
             ],
           },
@@ -86,6 +90,8 @@ describe('MatchParserService', () => {
         number: 1,
         lineUpMasterId: 952,
         rosterId: 10,
+        fallbackPositionName: 'Dwarf Lineman',
+        isBigGuy: false,
       },
     ]);
     expect(result.awayRosterPlayers).toEqual([
@@ -95,6 +101,42 @@ describe('MatchParserService', () => {
         number: 7,
         lineUpMasterId: 953,
         rosterId: 20,
+        fallbackPositionName: 'Dwarf Runner',
+        isBigGuy: false,
+      },
+    ]);
+  });
+
+  it('maps a match-embedded mercenary Big Guy entry (isBigGuy true, inline position name)', () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionVisitor: {
+          roster: {
+            id: 20,
+            lineUps: [
+              {
+                id: 1399322,
+                name: 'Giant',
+                number: 20,
+                lineUpMasterId: 440,
+                rosterId: 20,
+                position: 'Giant Mercenary',
+                isBigGuy: true,
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(result.awayRosterPlayers).toEqual([
+      {
+        id: 1399322,
+        name: 'Giant',
+        number: 20,
+        lineUpMasterId: 440,
+        rosterId: 20,
+        fallbackPositionName: 'Giant Mercenary',
+        isBigGuy: true,
       },
     ]);
   });
@@ -117,6 +159,7 @@ describe('MatchParserService', () => {
                 name: 'Bangnewick',
                 number: 1,
                 lineUpMasterId: 325,
+                position: 'Blitzer',
                 // rosterId intentionally omitted -- matches real TP data.
               },
             ],
@@ -131,6 +174,8 @@ describe('MatchParserService', () => {
         number: 1,
         lineUpMasterId: 325,
         rosterId: 47062,
+        fallbackPositionName: 'Blitzer',
+        isBigGuy: false,
       },
     ]);
   });
