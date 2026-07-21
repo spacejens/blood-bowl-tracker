@@ -131,10 +131,10 @@ describe('MatchEventsService', () => {
     ]);
   });
 
-  it('persists an administrative weather_roll event with its weatherType payload', async () => {
+  it('persists an administrative weather event via eventType with its weatherType payload', async () => {
     const result = await service.upsert({
       matchId: 10,
-      actionType: 'weather_roll',
+      eventType: 'weather',
       weatherType: 104,
       externalIds: [{ externalSystemId: 1, externalId: 'tp-weather-1' }],
     });
@@ -143,10 +143,27 @@ describe('MatchEventsService', () => {
     const call = insertCalls.find((c) => c.table === matchEvents);
     expect(call?.values).toMatchObject({
       matchId: 10,
-      actionType: 'weather_roll',
+      eventType: 'weather',
+      actionType: null,
       weatherType: 104,
       actingPlayerId: null,
       consequencePlayerId: null,
+    });
+  });
+
+  it('persists inducementsFromTreasury on an inducements event', async () => {
+    await service.upsert({
+      matchId: 10,
+      actionType: 'inducements',
+      inducementsFromTreasury: 50,
+      externalIds: [{ externalSystemId: 1, externalId: 'tp-inducements-1' }],
+    });
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({
+      matchId: 10,
+      actionType: 'inducements',
+      inducementsFromTreasury: 50,
     });
   });
 });
