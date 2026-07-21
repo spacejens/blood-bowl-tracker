@@ -4,6 +4,7 @@ import type {
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
 import {
+  MatchEventParserService,
   MatchParserService,
   TournamentParserService,
 } from '@blood-bowl-tracker/parse-tp';
@@ -29,7 +30,7 @@ function makeService({
   return new TpCompetitionsImportService(
     { files } as unknown as TpSourceReader,
     new TournamentParserService(),
-    new MatchParserService(),
+    new MatchParserService(new MatchEventParserService()),
     { upsertCompetitionResult } as unknown as CompetitionsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
@@ -101,8 +102,8 @@ function matchFile({
       createdInstant: '2021-01-01T00:00:00Z',
       round,
       group: { phase: { roundName } },
-      inscriptionLocal: { roster: { id: 1 } },
-      inscriptionVisitor: { roster: { id: 2 } },
+      inscriptionLocal: { roster: { id: 1, lineUps: [] } },
+      inscriptionVisitor: { roster: { id: 2, lineUps: [] } },
     },
   };
 }

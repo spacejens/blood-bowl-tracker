@@ -794,6 +794,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -816,6 +817,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -841,6 +843,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });
@@ -869,6 +872,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -888,6 +892,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -910,6 +915,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });
@@ -936,6 +942,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -953,6 +960,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -973,6 +981,7 @@ describe('PlayersService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });

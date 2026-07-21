@@ -14,6 +14,20 @@ export interface TpRosterPosition {
 }
 
 /**
+ * One player instance on a team's roster, from a `lineUps[]` entry. `id` is the
+ * per-instance line-up id that `matchEvents[].lineUpId` references; `rosterId`
+ * matches the roster's top-level `id`; `lineUpMasterId` links to the position
+ * template in `rosterMaster.lineUpMasters[]`.
+ */
+export interface TpRosterPlayer {
+  id: number;
+  name: string;
+  number: number;
+  lineUpMasterId: number;
+  rosterId: number;
+}
+
+/**
  * The parsed top-level `rosters_<id>.json` body. `teamRaceCode` is the raw
  * `teamRace` code (may carry a rule-set suffix and is NOT one-per-logical-race);
  * `raceName` is `rosterMaster.name`, the display name stable across every code
@@ -27,11 +41,20 @@ export interface TpRoster {
   raceName: string;
   coachTpId: string;
   positions: TpRosterPosition[];
+  players: TpRosterPlayer[];
 }
 
 const LineUpMasterSchema = z.object({
   id: z.number(),
   position: z.string(),
+});
+
+export const LineUpSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  number: z.number(),
+  lineUpMasterId: z.number(),
+  rosterId: z.number(),
 });
 
 const RosterSchema = z.object({
@@ -41,6 +64,7 @@ const RosterSchema = z.object({
   player: z.object({
     applicationUserId: z.string(),
   }),
+  lineUps: z.array(LineUpSchema),
   rosterMaster: z.object({
     name: z.string(),
     lineUpMasters: z.array(LineUpMasterSchema),
@@ -76,6 +100,13 @@ export class RosterParserService {
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
+      })),
+      players: data.lineUps.map((entry) => ({
+        id: entry.id,
+        name: entry.name,
+        number: entry.number,
+        lineUpMasterId: entry.lineUpMasterId,
+        rosterId: entry.rosterId,
       })),
     };
   }

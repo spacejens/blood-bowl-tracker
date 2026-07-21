@@ -20,6 +20,16 @@ export const ACTION_CATEGORY: Record<ActionType, string> = {
   badly_hurt: 'badly-hurt',
   serious_injury: 'serious',
   death: 'death',
+  inducements: 'inducements',
+  winnings: 'winnings',
+  fan_factor: 'fan-factor',
+  journeymen_signings: 'journeyman',
+  prayers_to_nuffle: 'prayers',
+  secret_objective: 'secret-objective',
+  // TP-only (code 46, "successful landing") — BBL has no equivalent event to
+  // scrape, so this category slug is never actually used by import-bbl, but
+  // ACTION_CATEGORY must stay exhaustive over the shared ActionType enum.
+  successful_landing: 'landing',
 };
 
 /** The category slug used in an event's synthesized external id, per consequence. */
@@ -33,8 +43,12 @@ export const CONSEQUENCE_CATEGORY: Record<ConsequenceType, string> = {
   stat_reduction_st: 'stat-st',
   stat_reduction_ag: 'stat-ag',
   stat_reduction_av: 'stat-av',
+  stat_reduction_pa: 'stat-pa',
   death: 'death',
   sent_off: 'sent-off',
+  expensive_mistake: 'expensive-mistake',
+  concession: 'concession',
+  dedicated_fans: 'dedicated-fans',
 };
 
 /**
