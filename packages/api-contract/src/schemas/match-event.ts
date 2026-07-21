@@ -25,6 +25,7 @@ export const ConsequenceTypeSchema = z.enum([
   'stat_reduction_st',
   'stat_reduction_ag',
   'stat_reduction_av',
+  'stat_reduction_pa',
   'death',
   'sent_off',
 ]);

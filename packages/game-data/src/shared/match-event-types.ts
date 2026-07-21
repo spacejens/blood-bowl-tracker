@@ -49,6 +49,7 @@ export const CASUALTY_SUFFERED_TYPES: readonly ConsequenceType[] = [
   'stat_reduction_st',
   'stat_reduction_ag',
   'stat_reduction_av',
+  'stat_reduction_pa',
 ];
 
 /** Casualties whose effect outlasts the match itself. */
@@ -60,6 +61,7 @@ export const SERIOUS_INJURY_SUFFERED_TYPES: readonly ConsequenceType[] = [
   'stat_reduction_st',
   'stat_reduction_ag',
   'stat_reduction_av',
+  'stat_reduction_pa',
 ];
 
 /** Casualties that permanently diminish the player. */
@@ -69,6 +71,7 @@ export const LASTING_INJURY_SUFFERED_TYPES: readonly ConsequenceType[] = [
   'stat_reduction_st',
   'stat_reduction_ag',
   'stat_reduction_av',
+  'stat_reduction_pa',
 ];
 
 export const DEATH_SUFFERED_TYPES: readonly ConsequenceType[] = ['death'];

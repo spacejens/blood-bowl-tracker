@@ -30,6 +30,7 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
   'stat_reduction_st',
   'stat_reduction_ag',
   'stat_reduction_av',
+  'stat_reduction_pa',
   'death',
   'sent_off',
 ]);

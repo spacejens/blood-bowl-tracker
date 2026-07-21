@@ -476,6 +476,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -498,6 +499,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -523,6 +525,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });
@@ -551,6 +554,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -570,6 +574,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -592,6 +597,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });
@@ -618,6 +624,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         20,
       ]);
     });
@@ -635,6 +642,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
       ]);
     });
 
@@ -655,6 +663,7 @@ describe('TeamsService', () => {
         'stat_reduction_st',
         'stat_reduction_ag',
         'stat_reduction_av',
+        'stat_reduction_pa',
         30,
       ]);
     });
