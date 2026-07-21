@@ -32,7 +32,8 @@ export interface TpRosterPlayer {
  * `teamRace` code (may carry a rule-set suffix and is NOT one-per-logical-race);
  * `raceName` is `rosterMaster.name`, the display name stable across every code
  * variant of the same logical race. Only these fields are extracted -- stats,
- * skills, quantities, costs and `starPlayersMasters` are ignored.
+ * skills, quantities and costs are ignored; `rosterMaster.starPlayersMasters`
+ * (named star players permanently on the roster) is parsed into `starPositions`.
  */
 export interface TpRoster {
   id: number;
@@ -41,10 +42,16 @@ export interface TpRoster {
   raceName: string;
   coachTpId: string;
   positions: TpRosterPosition[];
+  starPositions: TpRosterPosition[];
   players: TpRosterPlayer[];
 }
 
 const LineUpMasterSchema = z.object({
+  id: z.number(),
+  position: z.string(),
+});
+
+const StarPlayerMasterSchema = z.object({
   id: z.number(),
   position: z.string(),
 });
@@ -67,6 +74,7 @@ const RosterSchema = z.object({
   lineUps: z.array(LineUpSchema),
   rosterMaster: z.object({
     name: z.string(),
+    starPlayersMasters: z.array(StarPlayerMasterSchema),
     lineUpMasters: z.array(LineUpMasterSchema),
   }),
 });
@@ -75,9 +83,9 @@ const RosterSchema = z.object({
 export class RosterParserService {
   /**
    * Validate and flatten a parsed TP `rosters_<id>.json` body into a `TpRoster`.
-   * Extra fields (stats/skills/costs/`starPlayersMasters`) are allowed and
-   * dropped by zod's default non-strict parsing. Throws an Error whose message
-   * names the failing field on any shape mismatch.
+   * Extra fields (stats/skills/costs) are allowed and dropped by zod's default
+   * non-strict parsing. Throws an Error whose message names the failing field on
+   * any shape mismatch.
    */
   parse(content: unknown): TpRoster {
     const result = RosterSchema.safeParse(content);
@@ -98,6 +106,10 @@ export class RosterParserService {
       raceName: data.rosterMaster.name,
       coachTpId: data.player.applicationUserId,
       positions: data.rosterMaster.lineUpMasters.map((entry) => ({
+        tpPositionId: entry.id,
+        name: entry.position,
+      })),
+      starPositions: data.rosterMaster.starPlayersMasters.map((entry) => ({
         tpPositionId: entry.id,
         name: entry.position,
       })),

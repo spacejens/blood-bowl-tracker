@@ -22,7 +22,10 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
     ],
     rosterMaster: {
       name: 'Dwarf',
-      starPlayersMasters: [],
+      starPlayersMasters: [
+        { id: 5001, position: 'Grim Ironjaw' },
+        { id: 5002, position: "Morg 'n' Thorg" },
+      ],
       lineUpMasters: [
         { id: 952, position: 'Dwarf Lineman' },
         { id: 953, position: 'Dwarf Runner' },
@@ -44,6 +47,10 @@ describe('RosterParserService', () => {
         { tpPositionId: 952, name: 'Dwarf Lineman' },
         { tpPositionId: 953, name: 'Dwarf Runner' },
       ],
+      starPositions: [
+        { tpPositionId: 5001, name: 'Grim Ironjaw' },
+        { tpPositionId: 5002, name: "Morg 'n' Thorg" },
+      ],
       players: [
         {
           id: 2412443,
@@ -56,9 +63,25 @@ describe('RosterParserService', () => {
     });
   });
 
-  it('ignores the (always empty) starPlayersMasters array', () => {
+  it('parses each starPlayersMasters entry into a star position', () => {
     const roster = parser.parse(rosterBody());
-    expect(roster.positions).toHaveLength(2);
+    expect(roster.starPositions).toEqual([
+      { tpPositionId: 5001, name: 'Grim Ironjaw' },
+      { tpPositionId: 5002, name: "Morg 'n' Thorg" },
+    ]);
+  });
+
+  it('returns an empty starPositions array when starPlayersMasters is empty', () => {
+    const roster = parser.parse(
+      rosterBody({
+        rosterMaster: {
+          name: 'Dwarf',
+          starPlayersMasters: [],
+          lineUpMasters: [{ id: 952, position: 'Dwarf Lineman' }],
+        },
+      }),
+    );
+    expect(roster.starPositions).toEqual([]);
   });
 
   it('throws a descriptive error naming rosterMaster.name when it is missing', () => {

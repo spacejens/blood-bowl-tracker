@@ -46,6 +46,7 @@ function rosterEntry(era: string, opts: RosterOpts): RosterEntry {
       raceName: opts.raceName,
       coachTpId: opts.coachTpId ?? 'coach-1',
       positions: opts.positions ?? [],
+      starPositions: [],
       players: [],
     },
   };

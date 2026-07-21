@@ -41,6 +41,7 @@ const rosters: RosterEntry[] = [
       raceName: 'Dwarf',
       coachTpId: 'coach-1',
       positions: [{ tpPositionId: 952, name: 'Dwarf Lineman' }],
+      starPositions: [],
       players: [
         {
           id: 2412443,
@@ -361,6 +362,7 @@ describe('TpPlayersImportService', () => {
           raceName: 'Human',
           coachTpId: 'coach-2',
           positions: [],
+          starPositions: [],
           players: [],
         },
       },
@@ -374,6 +376,7 @@ describe('TpPlayersImportService', () => {
           raceName: 'Human',
           coachTpId: 'coach-3',
           positions: [],
+          starPositions: [],
           players: [],
         },
       },
