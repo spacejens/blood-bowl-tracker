@@ -64,6 +64,8 @@ export const DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE =
   'The rules lawyers are still cross-referencing which editions applied.';
 export const DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE =
   'The tournament clerk is still sorting through the old fixture lists.';
+export const DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE =
+  'The record-keepers are still arguing over which ledgers count.';
 export const DEEPDIVE_NO_COMPETITIONS_MESSAGE =
   'Not a single whistle has blown in this era yet.';
 export const DEEPDIVE_COACH_NOT_FOUND_MESSAGE =
