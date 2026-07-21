@@ -1,19 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
-  LeaguesService,
-  MatchesService,
-  MatchEventsService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import { Logger } from '@nestjs/common';
 import { isDefinedError, ORPCError } from '@orpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -26,13 +12,10 @@ vi.mock('@orpc/server/node', () => ({
   }),
 }));
 
-vi.mock('./rpc-router', () => ({
-  buildRpcRouter: vi.fn().mockReturnValue({}),
-}));
-
 import { RPCHandler } from '@orpc/server/node';
 
 import { RpcMiddleware } from './rpc.middleware';
+import type { buildRpcRouter } from './rpc-router';
 
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
@@ -64,20 +47,7 @@ describe('RpcMiddleware', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    middleware = new RpcMiddleware(
-      {} as CoachesService,
-      {} as ExternalSystemsService,
-      {} as LeaguesService,
-      {} as RacesService,
-      {} as RulesSetsService,
-      {} as ErasService,
-      {} as PositionsService,
-      {} as TeamsService,
-      {} as CompetitionsService,
-      {} as MatchesService,
-      {} as PlayersService,
-      {} as MatchEventsService,
-    );
+    middleware = new RpcMiddleware({} as ReturnType<typeof buildRpcRouter>);
   });
 
   it('delegates /rpc requests to the oRPC handler and does not call next() when matched', async () => {

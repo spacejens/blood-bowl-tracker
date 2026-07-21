@@ -1,25 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
-  LeaguesService,
-  MatchesService,
-  MatchEventsService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import type { NestMiddleware } from '@nestjs/common';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { isDefinedError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 
-import { buildRpcRouter } from './rpc-router';
+import type { buildRpcRouter } from './rpc-router';
+import { RPC_ROUTER } from './rpc-router.token';
 
 const RPC_PREFIX = '/rpc';
 
@@ -29,60 +16,31 @@ export class RpcMiddleware implements NestMiddleware {
 
   private readonly logger = new Logger(RpcMiddleware.name);
 
-  constructor(
-    coachesService: CoachesService,
-    externalSystemsService: ExternalSystemsService,
-    leaguesService: LeaguesService,
-    racesService: RacesService,
-    rulesSetsService: RulesSetsService,
-    erasService: ErasService,
-    positionsService: PositionsService,
-    teamsService: TeamsService,
-    competitionsService: CompetitionsService,
-    matchesService: MatchesService,
-    playersService: PlayersService,
-    matchEventsService: MatchEventsService,
-  ) {
-    this.handler = new RPCHandler(
-      buildRpcRouter({
-        coachesService,
-        externalSystemsService,
-        leaguesService,
-        racesService,
-        rulesSetsService,
-        erasService,
-        positionsService,
-        teamsService,
-        competitionsService,
-        matchesService,
-        playersService,
-        matchEventsService,
-      }),
-      {
-        interceptors: [
-          async (opts) => {
-            try {
-              return await opts.next();
-            } catch (err) {
-              const location = `${opts.request.method} ${opts.request.url.pathname}`;
-              if (isDefinedError(err)) {
-                // Defined errors (e.g. CONFLICT) are expected business
-                // outcomes, not bugs — warn with the message, no stack.
-                this.logger.warn(
-                  `Defined error handling RPC request ${location}: ${(err as Error).message}`,
-                );
-              } else {
-                this.logger.error(
-                  `Unhandled error handling RPC request ${location}`,
-                  err instanceof Error ? err.stack : String(err),
-                );
-              }
-              throw err;
+  constructor(@Inject(RPC_ROUTER) router: ReturnType<typeof buildRpcRouter>) {
+    this.handler = new RPCHandler(router, {
+      interceptors: [
+        async (opts) => {
+          try {
+            return await opts.next();
+          } catch (err) {
+            const location = `${opts.request.method} ${opts.request.url.pathname}`;
+            if (isDefinedError(err)) {
+              // Defined errors (e.g. CONFLICT) are expected business
+              // outcomes, not bugs — warn with the message, no stack.
+              this.logger.warn(
+                `Defined error handling RPC request ${location}: ${(err as Error).message}`,
+              );
+            } else {
+              this.logger.error(
+                `Unhandled error handling RPC request ${location}`,
+                err instanceof Error ? err.stack : String(err),
+              );
             }
-          },
-        ],
-      },
-    );
+            throw err;
+          }
+        },
+      ],
+    });
   }
 
   async use(
