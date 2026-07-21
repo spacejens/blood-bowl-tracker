@@ -160,7 +160,9 @@ export class EraConfigService {
             `must be unique across all leagues.`,
         );
       }
-      eraNameSeen.set(era.identity.name, era.leagueName ?? '');
+      // era.leagueName is always set here: every entry in `eras` was just
+      // constructed above from a validated, non-empty leagueName.
+      eraNameSeen.set(era.identity.name, era.leagueName as string);
     }
 
     const eraNameByOverriddenPid = new Map<number, string>();
