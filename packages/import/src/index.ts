@@ -17,6 +17,8 @@ export { RulesSetsImportService } from './rules-sets-import.service';
 export { TeamsImportService } from './teams-import.service';
 export * from './types';
 export {
+  NAF_EXTERNAL_SYSTEM,
+  NAF_EXTERNAL_SYSTEM_NAME,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
 } from './well-known-external-systems';

@@ -12,3 +12,17 @@ export const NAME_EXTERNAL_SYSTEM = {
   name: NAME_EXTERNAL_SYSTEM_NAME,
   isBookkeeping: true,
 } as const;
+
+/**
+ * Name of the fixed, non-configurable external system NAF-linked coaches are
+ * also registered under: NAF (matching by NAF number). A coach's NAF number
+ * is a stable, cross-league identifier — a genuine data source, not
+ * bookkeeping. Only import-tp uses this today, but it isn't TP-specific, so
+ * it lives here alongside the other well-known external systems.
+ */
+export const NAF_EXTERNAL_SYSTEM_NAME = 'NAF';
+
+export const NAF_EXTERNAL_SYSTEM = {
+  name: NAF_EXTERNAL_SYSTEM_NAME,
+  isBookkeeping: false,
+} as const;
