@@ -192,7 +192,25 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   Position and a Player scoped to the hiring roster's team-era; returns
   `starPlayerIdsByRosterAndMaster`, keyed
   `` `${rosterId}:${lineUpMasterId}` `` (currently unconsumed downstream — no
-  match-event type references a player by `lineUpMasterId` yet).
+  match-event type references a player by `lineUpMasterId` yet). Also returns
+  `starPositionUsages`: one `{ positionId, teamRaceCode, era }` entry per
+  imported star-position player, across all four star sources above (embedded
+  roster, match-embedded, mercenary Big Guy, inducements-hired) — consumed by
+  `TpPositionRaceErasImportService`, below, to populate `positions_race_eras`
+  for star positions.
+- **TpPositionRaceErasImportService** — populates `positions_race_eras` rows
+  for star positions, which get none from `TpPositionsImportService`'s
+  `syncRaceEras` calls (star positions are grouped by name only, not race, so
+  there's no `raceId` to sync against at that point). TP states no explicit
+  availability for star positions, so this step derives it from actual usage:
+  it resolves each `StarPositionUsage`'s raw `teamRaceCode`/`era` to numeric
+  `(raceId, eraId)` via the maps the races/eras imports already produced,
+  dedupes the pairs per position, and calls `syncRaceEras` once per star
+  position. A usage whose race or era can't be resolved is recorded as a
+  non-fatal error and skipped; the rest still process. Runs after players
+  import, since star usage (which team/race/era fielded or hired a given
+  star) is only known once players are imported. Idempotent, like the regular
+  position sync — `syncRaceEras` is upsert-only.
 - **TpTeamParticipationImportService** — populates `match_teams` and
   `competition_teams` for the already-imported matches and competitions. Runs
   after teams import (it needs each team's resolved team-era ids) and consumes
@@ -222,16 +240,18 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
-positions, then players (including hired star players), then team
-participation, and finally match events — aggregating each step's
-`ImportResult` into one overall result, mirroring `tools/import-bbl/src/main.ts`.
+positions, then players (including hired star players), then star position
+race/era availability, then team participation, and finally match events —
+aggregating each step's `ImportResult` into one overall result, mirroring
+`tools/import-bbl/src/main.ts`.
 Races, teams, and positions run after coaches; they have no FK dependency on the
 earlier import steps (only on each other, in that order). Players run after
-positions and teams (each player resolves a team era and a position). Team
-participation runs after players because it needs the teams step's resolved
-team-era ids and the competitions step's maps. Match events run last of all
-because they depend on `match_teams`, which team participation is what
-populates.
+positions and teams (each player resolves a team era and a position). Star
+position race/era availability runs immediately after players, since it needs
+the `starPositionUsages` that step emits. Team participation runs after that
+because it needs the teams step's resolved team-era ids and the competitions
+step's maps. Match events run last of all because they depend on
+`match_teams`, which team participation is what populates.
 
 ## Related documentation
 
