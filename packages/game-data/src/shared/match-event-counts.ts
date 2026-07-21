@@ -274,6 +274,12 @@ export async function sumExpensiveMistakesByTeam(
  * matches.playedAt; `count` carries the lost amount so each row already fits the
  * leaderboard's ranking shape, and a team may legitimately appear on several
  * rows.
+ *
+ * Fetches the full matching row set rather than applying a SQL `LIMIT` — fine
+ * at a hobby league's expected total historical event count, but worth
+ * revisiting if event volume grows much larger. A hard `LIMIT` isn't safe here
+ * because it could cut off part of a tie group that `topRanksWithTies` needs
+ * to see in full to rank correctly.
  */
 export async function listBiggestExpensiveMistakes(
   db: Db,
