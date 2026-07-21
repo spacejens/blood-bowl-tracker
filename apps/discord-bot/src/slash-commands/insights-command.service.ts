@@ -1,18 +1,9 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import {
-  CoachesService,
   CompetitionsService,
   ErasService,
-  ExternalSystemsService,
-  LeaguesService,
-  MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
 } from '@blood-bowl-tracker/game-data';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
@@ -28,7 +19,7 @@ import {
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
   INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
 } from '../error-messages';
-import { buildFactTree } from '../insights/fact-tree';
+import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree-utils';
 import {
   collectLeaves,
@@ -41,36 +32,12 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
 
 @Injectable()
 export class InsightsCommandService implements OnModuleInit {
-  private readonly factTree: FactNode;
-
   constructor(
-    private readonly coaches: CoachesService,
-    private readonly teams: TeamsService,
-    private readonly matches: MatchesService,
-    private readonly competitions: CompetitionsService,
-    private readonly leagues: LeaguesService,
-    private readonly rulesSets: RulesSetsService,
     private readonly eras: ErasService,
-    private readonly players: PlayersService,
-    private readonly positions: PositionsService,
-    private readonly races: RacesService,
-    private readonly externalSystems: ExternalSystemsService,
+    private readonly competitions: CompetitionsService,
+    @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
-  ) {
-    this.factTree = buildFactTree({
-      coaches: this.coaches,
-      teams: this.teams,
-      matches: this.matches,
-      competitions: this.competitions,
-      leagues: this.leagues,
-      rulesSets: this.rulesSets,
-      eras: this.eras,
-      players: this.players,
-      positions: this.positions,
-      races: this.races,
-      externalSystems: this.externalSystems,
-    });
-  }
+  ) {}
 
   onModuleInit(): void {
     this.registry.register(this.buildCommand());

@@ -17,6 +17,7 @@ import type {
 } from 'discord.js';
 import { vi } from 'vitest';
 
+import { buildFactTree } from '../insights/fact-tree';
 import { InsightsCommandService } from './insights-command.service';
 import type { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -184,19 +185,24 @@ export function makeService() {
   const registry = {
     register: vi.fn(),
   };
+  const factTree = buildFactTree({
+    coaches,
+    teams,
+    matches,
+    competitions,
+    leagues,
+    rulesSets,
+    eras,
+    players,
+    positions,
+    races,
+    externalSystems,
+  });
   return {
     service: new InsightsCommandService(
-      coaches,
-      teams,
-      matches,
-      competitions,
-      leagues,
-      rulesSets,
       eras,
-      players,
-      positions,
-      races,
-      externalSystems,
+      competitions,
+      factTree,
       registry as unknown as SlashCommandRegistryService,
     ),
     coaches,
