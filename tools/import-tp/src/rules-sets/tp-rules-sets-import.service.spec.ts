@@ -64,7 +64,10 @@ describe('TpRulesSetsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     // Distinct across eras, first-seen order: LRB6 then BB2020.
     expect(upsertRulesSet).toHaveBeenCalledTimes(2);
     expect(upsertRulesSet).toHaveBeenNthCalledWith(

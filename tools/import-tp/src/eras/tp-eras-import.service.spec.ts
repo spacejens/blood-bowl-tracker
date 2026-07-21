@@ -118,7 +118,10 @@ describe('TpErasImportService', () => {
 
     const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
     expect(eraIdsByName).toEqual(

@@ -4,12 +4,12 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { unknownEraError } from '../source/roster-collection.service';
 
@@ -77,8 +77,8 @@ export class TpTeamsImportService {
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      tpSystemName,
-      NAME_EXTERNAL_SYSTEM_NAME,
+      { name: tpSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

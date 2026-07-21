@@ -79,7 +79,10 @@ describe('TpRacesImportService', () => {
       new Map([['Fourth era', 100]]),
     );
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+    ]);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);
     expect(upsertRace).toHaveBeenCalledTimes(1);
