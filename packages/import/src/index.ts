@@ -16,3 +16,7 @@ export { RacesImportService } from './races-import.service';
 export { RulesSetsImportService } from './rules-sets-import.service';
 export { TeamsImportService } from './teams-import.service';
 export * from './types';
+export {
+  NAME_EXTERNAL_SYSTEM,
+  NAME_EXTERNAL_SYSTEM_NAME,
+} from './well-known-external-systems';

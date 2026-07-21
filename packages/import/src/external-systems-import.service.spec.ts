@@ -22,10 +22,13 @@ describe('ExternalSystemsImportService', () => {
       new ImportRunnerService(),
     );
 
-    const id = await service.upsertExternalSystem('BBL');
+    const id = await service.upsertExternalSystem('BBL', false);
 
     expect(id).toBe(1);
-    expect(upsertMock).toHaveBeenCalledWith({ name: 'BBL' });
+    expect(upsertMock).toHaveBeenCalledWith({
+      name: 'BBL',
+      isBookkeeping: false,
+    });
   });
 
   it('throws a descriptive error when the client call fails', async () => {
@@ -38,7 +41,7 @@ describe('ExternalSystemsImportService', () => {
       new ImportRunnerService(),
     );
 
-    await expect(service.upsertExternalSystem('BBL')).rejects.toThrow(
+    await expect(service.upsertExternalSystem('BBL', false)).rejects.toThrow(
       'Failed to upsert external system "BBL": internal error',
     );
   });
@@ -64,9 +67,12 @@ describe('ExternalSystemsImportService', () => {
 
     const service = moduleRef.get(ExternalSystemsImportService);
 
-    const id = await service.upsertExternalSystem('BBL');
+    const id = await service.upsertExternalSystem('BBL', false);
 
     expect(id).toBe(1);
-    expect(upsertMock).toHaveBeenCalledWith({ name: 'BBL' });
+    expect(upsertMock).toHaveBeenCalledWith({
+      name: 'BBL',
+      isBookkeeping: false,
+    });
   });
 });
