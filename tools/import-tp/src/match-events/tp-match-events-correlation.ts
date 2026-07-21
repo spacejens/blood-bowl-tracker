@@ -101,11 +101,17 @@ export function correlateCasualties(
       if (!isCandidate(casualty, injury)) {
         continue;
       }
-      const diffMs = Math.abs(
+      const rawDiffMs = Math.abs(
         new Date(injury.instant).getTime() -
           new Date(casualty.instant).getTime(),
       );
-      if (diffMs < bestDiffMs) {
+      // An unparseable `instant` yields NaN, which is never `<` anything —
+      // that would silently disqualify an otherwise-valid, turnNumber-
+      // matched candidate from ever being picked. Treat it as "worst
+      // possible" (Infinity) instead, so it still loses ties to a
+      // well-formed candidate but is never skipped outright.
+      const diffMs = Number.isNaN(rawDiffMs) ? Infinity : rawDiffMs;
+      if (best === undefined || diffMs < bestDiffMs) {
         best = injury;
         bestDiffMs = diffMs;
       }

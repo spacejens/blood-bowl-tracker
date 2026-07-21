@@ -223,6 +223,31 @@ describe('correlateCasualties', () => {
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
   });
 
+  it('still pairs a turnNumber-matched candidate even when instant is not a parseable timestamp', () => {
+    // A malformed/placeholder `instant` must not silently disqualify an
+    // otherwise-valid, turnNumber-matched candidate from ever being picked
+    // (an unparseable date diffs to NaN, which is never `<` anything).
+    const casualtyEvent = casualty({
+      tpEventId: 1,
+      instant: 'not-a-date',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: 'also-not-a-date',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+
+    expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
+  });
+
   it('ignores non-casualty/non-injury events mixed into the match', () => {
     const touchdown: TpMatchEvent = {
       type: 'touchdown',

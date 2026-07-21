@@ -11,6 +11,7 @@ import { Injectable } from '@nestjs/common';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TeamEra } from './tp-match-events-builders';
 import { buildEventData, resolveTeamEraId } from './tp-match-events-builders';
+import { correlateCasualties } from './tp-match-events-correlation';
 
 /**
  * Options for {@link TpMatchEventsImportService.importMatchEvents}, bundled
@@ -51,11 +52,17 @@ export class TpMatchEventsImportService {
   ) {}
 
   /**
-   * Import touchdown, mvp_award, injury/casualty, and administrative match
-   * events from every already parsed TP match. Unlike BBL — which correlates
-   * separately scraped action and consequence occurrences — TP embeds the
-   * acting/victim player and team directly on each event, so no correlation
-   * step is needed.
+   * Import touchdown, mvp_award, the other simple action events (completion,
+   * interception, deflection, foul, successful_landing), sent_off,
+   * injury/casualty, and administrative match events from every already
+   * parsed TP match. Unlike BBL — which correlates separately scraped action
+   * and consequence occurrences — TP embeds the acting/victim player and
+   * team directly on each event for every kind EXCEPT casualties: a code-6
+   * (`casualty_caused`, the action) and its code-8 (`injury`, the
+   * consequence) are logged as two independent events with no shared id, so
+   * they need their own correlation step (`correlateCasualties`, computed
+   * once per match — see `tp-match-events-correlation.ts` for why, and its
+   * turnNumber-based, order-independent pairing design).
    *
    * Per competition (iterating `matchesByCompetitionId`, keyed by competition
    * DB id): resolve the competition's real `eraId` via
@@ -67,22 +74,31 @@ export class TpMatchEventsImportService {
    * pattern as `TpTeamParticipationImportService.resolveTeamEraId`) for the
    * "both-sides" administrative events (winnings, fan factor, dedicated
    * fans) and concession, which need a specific side without an acting
-   * roster id on the event itself. Per event: `buildEventData` (see
-   * `tp-match-events-builders.ts`) maps the event to zero, one, or two
-   * `UpsertMatchEvent`s, each of which is upserted.
+   * roster id on the event itself, and compute `casualtyPairing` once for
+   * the match. Per event: `buildEventData` (see `tp-match-events-builders.ts`)
+   * maps the event to zero, one, or two `UpsertMatchEvent`s, each of which is
+   * upserted.
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
-   * `actingPlayerId` the scorer (`lineUpId`); an mvp_award is resolved the
-   * same way, crediting the awarded player and their team. An injury with
-   * `injuryType: 'None'` is skipped (TP reports "no injury" as its own
-   * roll); any other
-   * `injuryType` maps to a `consequence_type` on the victim
-   * (`rosterId`/`lineUpId`). When the injury's `turnRosterId` is present and
-   * differs from the victim's roster (an opponent caused it), the event also
-   * carries `actingTeamEraId`/`actionType: 'casualty' | 'death'` crediting
-   * the causing team; a `turnRosterId` equal to the victim's roster (or
-   * absent) means the injury was self-inflicted, so only the consequence
-   * side is emitted.
+   * `actingPlayerId` the scorer (`lineUpId`); mvp_award, completion,
+   * interception, deflection, foul, and successful_landing are all resolved
+   * the same way, crediting the acting player and their team. sent_off is
+   * consequence-side, crediting the sent-off player and their team.
+   *
+   * An injury always emits at least a `consequence_type` row on the victim
+   * (`rosterId`/`lineUpId`) — including `injuryType: 'None'`, a real Badly
+   * Hurt result (previously, incorrectly, skipped entirely). Its action side
+   * is credited from `casualtyPairing` when a specific code-6 was correlated
+   * to it (the specific acting player + team, severity-bucketed into
+   * `badly_hurt`/`serious_injury`/`death`); otherwise, when `turnRosterId`
+   * is present and differs from the victim's roster, team-only credit at the
+   * same severity bucket (an opponent-caused injury TP's pairing couldn't
+   * pin to a specific player); otherwise consequence-only (self-inflicted or
+   * unattributable — a player falling on their own, or a random event). A
+   * `casualty_caused` event that WAS paired into its injury's row is not
+   * also emitted standalone; an unpaired one (e.g. an apothecary erased the
+   * casualty, so no injury exists) emits a standalone `'casualty'`-action row
+   * crediting the specific acting player, with unknown severity.
    *
    * Administrative events (weather, inducements, winnings, fan factor,
    * journeyman signing, expensive mistake, dedicated fans, secret objective,
@@ -153,6 +169,7 @@ export class TpMatchEventsImportService {
           rosterId: match.awayTeamTpId,
           eraId,
         });
+        const casualtyPairing = correlateCasualties(match.matchEvents);
 
         for (const event of match.matchEvents) {
           const dataList = buildEventData({
@@ -165,6 +182,7 @@ export class TpMatchEventsImportService {
             homeTeamEraId,
             awayTeamEraId,
             errors,
+            casualtyPairing,
           });
           for (const data of dataList) {
             if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {

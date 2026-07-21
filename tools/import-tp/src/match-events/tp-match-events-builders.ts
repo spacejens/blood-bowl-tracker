@@ -1,10 +1,13 @@
 import type {
+  ActionType,
   ConsequenceType,
   UpsertMatchEvent,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { makeImportError } from '@blood-bowl-tracker/import';
 import type { TpInjuryType, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
+
+import type { CasualtyPairing } from './tp-match-events-correlation';
 
 /** One resolved team_eras row: its DB id and the era it belongs to. */
 export interface TeamEra {
@@ -25,10 +28,24 @@ interface ResolvePlayerOptions {
   errors: ImportError[];
 }
 
-/** Every administrative (non touchdown/injury/mvp_award) TP match event kind. */
+/**
+ * Every administrative TP match event kind — everything except the
+ * gameplay events (touchdown, injury, mvp_award, and the five other simple
+ * action kinds, plus casualty_caused and sent_off), which are all built by
+ * their own dedicated builders rather than {@link buildAdminEvents}.
+ */
 type TpAdminMatchEvent = Exclude<
   TpMatchEvent,
-  { type: 'touchdown' } | { type: 'injury' } | { type: 'mvp_award' }
+  | { type: 'touchdown' }
+  | { type: 'completion' }
+  | { type: 'interception' }
+  | { type: 'deflection' }
+  | { type: 'foul' }
+  | { type: 'mvp_award' }
+  | { type: 'successful_landing' }
+  | { type: 'sent_off' }
+  | { type: 'casualty_caused' }
+  | { type: 'injury' }
 >;
 
 export interface BuildEventDataOptions {
@@ -41,12 +58,16 @@ export interface BuildEventDataOptions {
   homeTeamEraId: number | undefined;
   awayTeamEraId: number | undefined;
   errors: ImportError[];
+  /** Casualty/injury pairing for this match — see {@link CasualtyPairing}. */
+  casualtyPairing: CasualtyPairing;
 }
 
-const INJURY_CONSEQUENCE_BY_TYPE: Record<
-  Exclude<TpInjuryType, 'None'>,
-  ConsequenceType
-> = {
+/**
+ * Map a TP `injuryType` to its `consequence_type`. Every value, including
+ * `'None'` (a Badly Hurt result), maps to a real consequence.
+ */
+const INJURY_CONSEQUENCE_BY_TYPE: Record<TpInjuryType, ConsequenceType> = {
+  None: 'badly_hurt',
   MissNextGame: 'miss_next_game',
   NigglingInjury: 'niggling_injury',
   Dead: 'death',
@@ -55,6 +76,25 @@ const INJURY_CONSEQUENCE_BY_TYPE: Record<
   MA: 'stat_reduction_ma',
   PA: 'stat_reduction_pa',
   AG: 'stat_reduction_ag',
+};
+
+/**
+ * Map a TP `injuryType` to the acting-side severity bucket credited to
+ * whoever caused it, adopting the same three-bucket convention
+ * `tools/import-bbl`'s `SEVERITY_GROUPS` already establishes for this repo:
+ * `badly_hurt` stays its own bucket, every lasting-injury/stat-reduction
+ * result buckets into `serious_injury`, and `Dead` buckets into `death`.
+ */
+const INJURY_ACTION_SEVERITY_BY_TYPE: Record<TpInjuryType, ActionType> = {
+  None: 'badly_hurt',
+  MissNextGame: 'serious_injury',
+  NigglingInjury: 'serious_injury',
+  Dead: 'death',
+  AV: 'serious_injury',
+  ST: 'serious_injury',
+  MA: 'serious_injury',
+  PA: 'serious_injury',
+  AG: 'serious_injury',
 };
 
 /** Resolve a roster id + era id to its team_eras id, or undefined. */
@@ -86,19 +126,6 @@ function resolvePlayer(options: ResolvePlayerOptions): number | undefined {
   return id;
 }
 
-/**
- * Map a TP `injuryType` to its `consequence_type`, or `undefined` for
- * `'None'` (no injury occurred).
- */
-function injuryConsequence(
-  injuryType: TpInjuryType,
-): ConsequenceType | undefined {
-  if (injuryType === 'None') {
-    return undefined;
-  }
-  return INJURY_CONSEQUENCE_BY_TYPE[injuryType];
-}
-
 function externalId(
   tpSystemId: number,
   tpEventId: number,
@@ -127,9 +154,79 @@ function setIfDefined<K extends keyof UpsertMatchEvent>(
   }
 }
 
-function buildTouchdownEvent(
+/**
+ * The seven TP event kinds that are structurally identical action events:
+ * one acting player, one acting team, no other payload. Touchdown and
+ * mvp_award were already modeled this way; completion, interception,
+ * deflection, foul, and successful_landing share the exact same shape.
+ */
+type TpSimpleActionEvent = Extract<
+  TpMatchEvent,
+  | { type: 'touchdown' }
+  | { type: 'completion' }
+  | { type: 'interception' }
+  | { type: 'deflection' }
+  | { type: 'foul' }
+  | { type: 'mvp_award' }
+  | { type: 'successful_landing' }
+>;
+
+/**
+ * Build a simple, single-actor action event (touchdown, completion,
+ * interception, deflection, foul, mvp_award, successful_landing) — the one
+ * shape shared by all seven, previously duplicated per-kind as
+ * `buildTouchdownEvent`/`buildMvpAwardEvent`.
+ */
+function buildSimpleActionEvent(
+  options: BuildEventDataOptions & { event: TpSimpleActionEvent },
+  actionType: ActionType,
+): UpsertMatchEvent[] {
+  const {
+    event,
+    matchId,
+    eraId,
+    tpSystemId,
+    teamErasByRosterId,
+    playerIdsByLineUpId,
+    errors,
+  } = options;
+  const data: UpsertMatchEvent = {
+    matchId,
+    actionType,
+    externalIds: externalId(tpSystemId, event.tpEventId),
+  };
+  setIfDefined(
+    data,
+    'actingTeamEraId',
+    resolveTeamEraId({
+      teamErasByRosterId,
+      rosterId: event.rosterId,
+      eraId,
+    }),
+  );
+  setIfDefined(
+    data,
+    'actingPlayerId',
+    resolvePlayer({
+      lineUpId: event.lineUpId,
+      matchId,
+      playerIdsByLineUpId,
+      errors,
+    }),
+  );
+  return [data];
+}
+
+/**
+ * Build a `sent_off` event — consequence-side (the player who got sent off),
+ * not action-side. Deliberately standalone: TP's `sent_off` (code 32) does
+ * not always follow a `foul` (code 31) by the same player (only 58% do
+ * within 30s in real data; the rest are e.g. Secret Weapon auto-ejections),
+ * so — per the confirmed design — the two are never correlated.
+ */
+function buildSentOffEvent(
   options: BuildEventDataOptions & {
-    event: Extract<TpMatchEvent, { type: 'touchdown' }>;
+    event: Extract<TpMatchEvent, { type: 'sent_off' }>;
   },
 ): UpsertMatchEvent[] {
   const {
@@ -143,28 +240,41 @@ function buildTouchdownEvent(
   } = options;
   const data: UpsertMatchEvent = {
     matchId,
-    actionType: 'touchdown',
+    consequenceType: 'sent_off',
     externalIds: externalId(tpSystemId, event.tpEventId),
   };
-  const actingTeamEraId = resolveTeamEraId({
-    teamErasByRosterId,
-    rosterId: event.rosterId,
-    eraId,
-  });
-  setIfDefined(data, 'actingTeamEraId', actingTeamEraId);
-  const actingPlayerId = resolvePlayer({
-    lineUpId: event.lineUpId,
-    matchId,
-    playerIdsByLineUpId,
-    errors,
-  });
-  setIfDefined(data, 'actingPlayerId', actingPlayerId);
+  setIfDefined(
+    data,
+    'consequenceTeamEraId',
+    resolveTeamEraId({
+      teamErasByRosterId,
+      rosterId: event.rosterId,
+      eraId,
+    }),
+  );
+  setIfDefined(
+    data,
+    'consequencePlayerId',
+    resolvePlayer({
+      lineUpId: event.lineUpId,
+      matchId,
+      playerIdsByLineUpId,
+      errors,
+    }),
+  );
   return [data];
 }
 
-function buildMvpAwardEvent(
+/**
+ * Build a standalone `casualty_caused` event, for a code-6 that was NOT
+ * paired with a code-8 injury (e.g. the casualty was erased by an
+ * apothecary, so no injury roll was ever registered). Still credits the
+ * specific acting player, using the generic `'casualty'` action type since
+ * severity is unknown with no paired injury to report it.
+ */
+function buildCasualtyCausedEvent(
   options: BuildEventDataOptions & {
-    event: Extract<TpMatchEvent, { type: 'mvp_award' }>;
+    event: Extract<TpMatchEvent, { type: 'casualty_caused' }>;
   },
 ): UpsertMatchEvent[] {
   const {
@@ -178,25 +288,47 @@ function buildMvpAwardEvent(
   } = options;
   const data: UpsertMatchEvent = {
     matchId,
-    actionType: 'mvp_award',
+    actionType: 'casualty',
     externalIds: externalId(tpSystemId, event.tpEventId),
   };
-  const actingTeamEraId = resolveTeamEraId({
-    teamErasByRosterId,
-    rosterId: event.rosterId,
-    eraId,
-  });
-  setIfDefined(data, 'actingTeamEraId', actingTeamEraId);
-  const actingPlayerId = resolvePlayer({
-    lineUpId: event.lineUpId,
-    matchId,
-    playerIdsByLineUpId,
-    errors,
-  });
-  setIfDefined(data, 'actingPlayerId', actingPlayerId);
+  setIfDefined(
+    data,
+    'actingTeamEraId',
+    resolveTeamEraId({
+      teamErasByRosterId,
+      rosterId: event.rosterId,
+      eraId,
+    }),
+  );
+  setIfDefined(
+    data,
+    'actingPlayerId',
+    resolvePlayer({
+      lineUpId: event.lineUpId,
+      matchId,
+      playerIdsByLineUpId,
+      errors,
+    }),
+  );
   return [data];
 }
 
+/**
+ * Build an `injury` (code 8) event. The consequence side (the victim +
+ * severity) is always emitted, including `injuryType: 'None'` (a real Badly
+ * Hurt result, not "nothing happened"). The action side is credited three
+ * ways, in priority order:
+ *
+ * 1. Paired via `casualtyPairing` (a specific code-6 event correlated by
+ *    turnNumber) — full credit: the specific acting player and their team,
+ *    with the severity bucketed via {@link INJURY_ACTION_SEVERITY_BY_TYPE}.
+ * 2. Not paired, but `turnRosterId` differs from the victim's roster —
+ *    opponent-caused per TP's turn-owner field, but the specific player
+ *    couldn't be pinned down (e.g. a cross-turn logging quirk); falls back
+ *    to team-only credit with the same severity bucketing.
+ * 3. Neither — self-inflicted or otherwise unattributable (a player falling
+ *    on their own, or a random event); consequence-only, exactly as before.
+ */
 function buildInjuryEvent(
   options: BuildEventDataOptions & {
     event: Extract<TpMatchEvent, { type: 'injury' }>;
@@ -210,41 +342,70 @@ function buildInjuryEvent(
     teamErasByRosterId,
     playerIdsByLineUpId,
     errors,
+    casualtyPairing,
   } = options;
-  const consequenceType = injuryConsequence(event.injuryType);
-  if (consequenceType === undefined) {
-    return [];
-  }
   const data: UpsertMatchEvent = {
     matchId,
-    consequenceType,
+    consequenceType: INJURY_CONSEQUENCE_BY_TYPE[event.injuryType],
     externalIds: externalId(tpSystemId, event.tpEventId),
   };
-  const consequenceTeamEraId = resolveTeamEraId({
-    teamErasByRosterId,
-    rosterId: event.rosterId,
-    eraId,
-  });
-  setIfDefined(data, 'consequenceTeamEraId', consequenceTeamEraId);
-  const consequencePlayerId = resolvePlayer({
-    lineUpId: event.lineUpId,
-    matchId,
-    playerIdsByLineUpId,
-    errors,
-  });
-  setIfDefined(data, 'consequencePlayerId', consequencePlayerId);
-  if (
+  setIfDefined(
+    data,
+    'consequenceTeamEraId',
+    resolveTeamEraId({ teamErasByRosterId, rosterId: event.rosterId, eraId }),
+  );
+  setIfDefined(
+    data,
+    'consequencePlayerId',
+    resolvePlayer({
+      lineUpId: event.lineUpId,
+      matchId,
+      playerIdsByLineUpId,
+      errors,
+    }),
+  );
+
+  const pairedCasualty = casualtyPairing.casualtyByInjuryEventId.get(
+    event.tpEventId,
+  );
+  if (pairedCasualty) {
+    data.actionType = INJURY_ACTION_SEVERITY_BY_TYPE[event.injuryType];
+    setIfDefined(
+      data,
+      'actingTeamEraId',
+      resolveTeamEraId({
+        teamErasByRosterId,
+        rosterId: pairedCasualty.rosterId,
+        eraId,
+      }),
+    );
+    setIfDefined(
+      data,
+      'actingPlayerId',
+      resolvePlayer({
+        lineUpId: pairedCasualty.lineUpId,
+        matchId,
+        playerIdsByLineUpId,
+        errors,
+      }),
+    );
+  } else if (
     event.turnRosterId !== undefined &&
     event.turnRosterId !== event.rosterId
   ) {
-    data.actionType = event.injuryType === 'Dead' ? 'death' : 'casualty';
-    const actingTeamEraId = resolveTeamEraId({
-      teamErasByRosterId,
-      rosterId: event.turnRosterId,
-      eraId,
-    });
-    setIfDefined(data, 'actingTeamEraId', actingTeamEraId);
+    data.actionType = INJURY_ACTION_SEVERITY_BY_TYPE[event.injuryType];
+    setIfDefined(
+      data,
+      'actingTeamEraId',
+      resolveTeamEraId({
+        teamErasByRosterId,
+        rosterId: event.turnRosterId,
+        eraId,
+      }),
+    );
   }
+  // else: self-inflicted or unattributable — consequence-only. Normal and
+  // expected (e.g. a player falling on their own, or a random event).
   return [data];
 }
 
@@ -422,21 +583,38 @@ function buildAdminEvents(
 
 /**
  * Build zero or more `UpsertMatchEvent`s for one TP match event. Touchdown,
- * mvp_award, and injury events (an injury reporting `injuryType: 'None'`
- * yields none) are gameplay events; every other modeled TP event type is
- * administrative and delegates to {@link buildAdminEvents}.
+ * completion, interception, deflection, foul, mvp_award, and
+ * successful_landing are all built as simple single-actor action events;
+ * sent_off is consequence-side; injury always yields at least a consequence
+ * row (including `injuryType: 'None'`, a real Badly Hurt result);
+ * casualty_caused yields nothing when it was paired with an injury event via
+ * `casualtyPairing` (it's emitted as part of that injury's row instead), or
+ * a standalone `'casualty'`-action row otherwise. Every other modeled TP
+ * event type is administrative and delegates to {@link buildAdminEvents}.
  */
 export function buildEventData(
   options: BuildEventDataOptions,
 ): UpsertMatchEvent[] {
-  const { event } = options;
+  const { event, casualtyPairing } = options;
   switch (event.type) {
     case 'touchdown':
-      return buildTouchdownEvent({ ...options, event });
+    case 'completion':
+    case 'interception':
+    case 'deflection':
+    case 'foul':
+    case 'successful_landing':
+      return buildSimpleActionEvent({ ...options, event }, event.type);
     case 'mvp_award':
-      return buildMvpAwardEvent({ ...options, event });
+      return buildSimpleActionEvent({ ...options, event }, 'mvp_award');
+    case 'sent_off':
+      return buildSentOffEvent({ ...options, event });
     case 'injury':
       return buildInjuryEvent({ ...options, event });
+    case 'casualty_caused':
+      if (casualtyPairing.pairedCasualtyEventIds.has(event.tpEventId)) {
+        return [];
+      }
+      return buildCasualtyCausedEvent({ ...options, event });
     default:
       return buildAdminEvents({ ...options, event });
   }
