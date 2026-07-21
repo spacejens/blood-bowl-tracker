@@ -7,6 +7,10 @@ import {
 } from './facts/coach-toplist';
 import { resolveErasList } from './facts/eras-list';
 import {
+  resolveTeamExpensiveMistakesBiggestToplist,
+  resolveTeamExpensiveMistakesTotalToplist,
+} from './facts/expensive-mistakes-toplist';
+import {
   resolvePlayerCasualtiesCausedToplist,
   resolvePlayerCasualtiesSufferedToplist,
   resolvePlayerCompletionsToplist,
@@ -228,6 +232,28 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsCompetition: true,
           resolve: (eraId, competitionId) =>
             resolveTeamTimesSentOffToplist(deps.teams, eraId, competitionId),
+        },
+        expensiveMistakes: {
+          total: {
+            supportsEra: true,
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamExpensiveMistakesTotalToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
+          },
+          biggest: {
+            supportsEra: true,
+            supportsCompetition: true,
+            resolve: (eraId, competitionId) =>
+              resolveTeamExpensiveMistakesBiggestToplist(
+                deps.teams,
+                eraId,
+                competitionId,
+              ),
+          },
         },
       },
     },

@@ -45,6 +45,8 @@ function deps() {
       countSeriousInjuriesSufferedByTeam: vi.fn().mockResolvedValue([]),
       countLastingInjuriesSufferedByTeam: vi.fn().mockResolvedValue([]),
       countDeathsSufferedByTeam: vi.fn().mockResolvedValue([]),
+      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
       countAll: vi.fn().mockResolvedValue(0),
     } as unknown as TeamsService,
     matches: {
@@ -89,8 +91,8 @@ function deps() {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly thirty-seven leaf facts', () => {
-    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(37);
+  it('exposes exactly thirty-nine leaf facts', () => {
+    expect(collectLeaves(buildFactTree(deps()))).toHaveLength(39);
   });
 
   it('wires coach.toplist.matches.played to the coach match-count query', async () => {
@@ -320,6 +322,28 @@ describe('buildFactTree', () => {
     expect(d.teams.countTimesSentOffByTeam).toHaveBeenCalled();
   });
 
+  it('wires team.toplist.expensiveMistakes.total to the team expensive-mistake sum query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.expensiveMistakes.total',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.sumExpensiveMistakesByTeam).toHaveBeenCalled();
+  });
+
+  it('wires team.toplist.expensiveMistakes.biggest to the biggest expensive-mistake list query', async () => {
+    const d = deps();
+    const leaf = resolvePath(
+      buildFactTree(d),
+      'team.toplist.expensiveMistakes.biggest',
+    );
+    await (leaf as FactLeaf).resolve();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(d.teams.listBiggestExpensiveMistakes).toHaveBeenCalled();
+  });
+
   it('wires player.toplist.casualties.caused to the player casualty-count query', async () => {
     const d = deps();
     const leaf = resolvePath(
@@ -471,6 +495,8 @@ describe('buildFactTree competition capabilities', () => {
         resolvePath(tree, 'team.toplist.deaths.suffered'),
         resolvePath(tree, 'team.toplist.fouls.committed'),
         resolvePath(tree, 'team.toplist.sent_off'),
+        resolvePath(tree, 'team.toplist.expensiveMistakes.total'),
+        resolvePath(tree, 'team.toplist.expensiveMistakes.biggest'),
         resolvePath(tree, 'player.toplist.mvps'),
         resolvePath(tree, 'player.toplist.touchdowns.scored'),
         resolvePath(tree, 'player.toplist.completions'),
@@ -487,7 +513,7 @@ describe('buildFactTree competition capabilities', () => {
         resolvePath(tree, 'stats'),
       ]),
     );
-    expect(supported).toHaveLength(27);
+    expect(supported).toHaveLength(29);
   });
 
   it('forwards competitionId to an in-scope team leaf', async () => {
