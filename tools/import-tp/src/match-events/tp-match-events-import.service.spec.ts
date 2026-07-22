@@ -160,7 +160,7 @@ describe('TpMatchEventsImportService', () => {
               type: 'weather_roll',
               tpEventId: 10,
               instant: 'x',
-              weatherType: 104,
+              weatherType: 'perfect_conditions',
             },
           ],
         }),
@@ -170,7 +170,7 @@ describe('TpMatchEventsImportService', () => {
       expect.objectContaining({
         matchId: MATCH_DB_ID,
         eventType: 'weather',
-        weatherType: 104,
+        weatherType: 'perfect_conditions',
         externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-10' }],
       }),
     );

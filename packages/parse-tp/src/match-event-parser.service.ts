@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import type { WeatherType } from './weather-type';
+import { decodeWeatherType } from './weather-type';
+
+export type { WeatherType } from './weather-type';
+
 /**
  * The set of injury outcomes TP's `matchEvents[].injuryType` field can carry
  * for a code-8 (injury) event.
@@ -112,7 +117,7 @@ export type TpMatchEvent =
       turnNumber?: number;
       injuryType: TpInjuryType;
     })
-  | (TpMatchEventBase & { type: 'weather_roll'; weatherType: number })
+  | (TpMatchEventBase & { type: 'weather_roll'; weatherType: WeatherType })
   | (TpMatchEventBase & {
       type: 'inducements_roll';
       rosterId: number;
@@ -377,7 +382,7 @@ const decoders = new Map<number, Decoder>([
       type: 'weather_roll',
       tpEventId: v.id,
       instant: v.instant,
-      weatherType: v.extraData.weatherType,
+      weatherType: decodeWeatherType(v.extraData.weatherType),
     })),
   ],
   [

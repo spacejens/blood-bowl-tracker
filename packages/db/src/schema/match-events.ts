@@ -53,6 +53,37 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
  */
 export const eventTypeEnum = gameData.enum('event_type', ['weather']);
 
+/**
+ * The named weather condition a `weather`-classified event decodes to, from
+ * an importer's raw source-specific weather code (decoded before import
+ * reaches this schema). `'unknown'` is a permanent catch-all for codes not
+ * yet mapped. Only set on `weather` events, the same way
+ * `actionType`/`consequenceType` are only set on their own kinds.
+ */
+export const weatherTypeEnum = gameData.enum('weather_type', [
+  'dungeon',
+  'sweltering_heat',
+  'very_sunny',
+  'nice',
+  'pouring_rain',
+  'blizzard',
+  'morning_dew',
+  'blossoming_flowers',
+  'misty_morning',
+  'high_winds',
+  'perfect_conditions',
+  'melting_astrogranite',
+  'blinding_rays',
+  'monsoon',
+  'leaf_strewn_pitch',
+  'autumnal_chill',
+  'strong_winds',
+  'cold_winds',
+  'freezing',
+  'heavy_snow',
+  'unknown',
+]);
+
 const matchEventsTable = historyTrackedTable({
   schema: gameData,
   name: 'match_events',
@@ -75,13 +106,11 @@ const matchEventsTable = historyTrackedTable({
     consequenceType: consequenceTypeEnum('consequence_type'),
     eventType: eventTypeEnum('event_type'),
     /**
-     * Opaque, un-decoded TP-internal weather-table code, observed to range
-     * over at least `0, 10, 20, 30, 40, 50, 100-113` in the local fixture
-     * corpus. Almost certainly a closed set of named weather-table results,
-     * but no authoritative code-to-name mapping is available yet — see
-     * follow-up issue for decoding this into a named enum.
+     * The decoded, named weather condition for a `weather`-classified event
+     * (nullable because it is only set on those events). Decoded upstream,
+     * before import reaches this schema; see `weatherTypeEnum`.
      */
-    weatherType: integer('weather_type'),
+    weatherType: weatherTypeEnum('weather_type'),
     inducementsCost: integer('inducements_cost'),
     /**
      * The portion of an inducements spend paid out of the team's treasury

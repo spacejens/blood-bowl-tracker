@@ -4,6 +4,7 @@ export type {
   TpInducedStarPlayer,
   TpInjuryType,
   TpMatchEvent,
+  WeatherType,
 } from './match-event-parser.service';
 export { MatchEventParserService } from './match-event-parser.service';
 export type { TpMatch } from './match-parser.service';

@@ -135,7 +135,7 @@ describe('MatchEventsService', () => {
     const result = await service.upsert({
       matchId: 10,
       eventType: 'weather',
-      weatherType: 104,
+      weatherType: 'perfect_conditions',
       externalIds: [{ externalSystemId: 1, externalId: 'tp-weather-1' }],
     });
 
@@ -145,7 +145,7 @@ describe('MatchEventsService', () => {
       matchId: 10,
       eventType: 'weather',
       actionType: null,
-      weatherType: 104,
+      weatherType: 'perfect_conditions',
       actingPlayerId: null,
       consequencePlayerId: null,
     });
