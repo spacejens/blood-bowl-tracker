@@ -30,7 +30,7 @@ describe('InsightsCommandService — random pick', () => {
   it('resolveRandomFact picks a random leaf across the whole tree', async () => {
     const { service, coaches } = makeService();
     vi.spyOn(Math, 'random').mockReturnValue(0);
-    await service.resolveRandomFact();
+    await service.resolveRandomFact({});
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalled();
   });
@@ -44,7 +44,7 @@ describe('InsightsCommandService — random pick', () => {
     // Force pickRandom to the last eligible leaf in the era-supporting pool
     // (stats is now era-supporting too, so it may legitimately be picked).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    const result = await service.execute(chatInput(null, '20'));
+    const result = await service.execute(chatInput(null, { era: '20' }));
     // No matter which era-supporting leaf is chosen, the reply is never the
     // rejection message reserved for non-era-supporting categories.
     expect(result).not.toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
@@ -78,7 +78,7 @@ describe('InsightsCommandService — random pick', () => {
     // Pin random to select the last eligible leaf; eras.active is filtered
     // out of the era-scoped pool, so countErasByTeam is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    await service.execute(chatInput(null, '20'));
+    await service.execute(chatInput(null, { era: '20' }));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countErasByTeam).not.toHaveBeenCalled();
   });
@@ -97,7 +97,7 @@ describe('InsightsCommandService — random pick', () => {
     for (let i = 0; i < sampleCount; i++) {
       const r = i / sampleCount;
       vi.spyOn(Math, 'random').mockReturnValue(r);
-      await service.execute(chatInput(null, '20'));
+      await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
       (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
@@ -122,7 +122,7 @@ describe('InsightsCommandService — random pick', () => {
     // Pin random to select the last eligible leaf; eras.active is filtered
     // out of the era-scoped pool, so countErasByCoach is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    await service.execute(chatInput(null, '20'));
+    await service.execute(chatInput(null, { era: '20' }));
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.countErasByCoach).not.toHaveBeenCalled();
   });
@@ -137,7 +137,7 @@ describe('InsightsCommandService — random pick', () => {
     // offense query must be reachable across the sweep.
     for (const r of [0, 0.2, 0.4, 0.6, 0.8, 0.999999]) {
       vi.spyOn(Math, 'random').mockReturnValue(r);
-      await service.execute(chatInput(null, '20'));
+      await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
       (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
@@ -175,7 +175,7 @@ describe('InsightsCommandService — random pick', () => {
     const sampleCount = 60;
     for (let i = 0; i < sampleCount; i++) {
       vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
-      await service.execute(chatInput(null, '20'));
+      await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
       (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
@@ -217,7 +217,7 @@ describe('InsightsCommandService — random pick', () => {
     const sampleCount = 60;
     for (let i = 0; i < sampleCount; i++) {
       vi.spyOn(Math, 'random').mockReturnValue(i / sampleCount);
-      await service.execute(chatInput(null, '20'));
+      await service.execute(chatInput(null, { era: '20' }));
       vi.restoreAllMocks();
       (eras.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 20,
