@@ -1,12 +1,11 @@
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 export interface FactLeaf {
   supportsEra: boolean;
   supportsCompetition: boolean;
-  resolve: (
-    eraId?: number,
-    competitionId?: number,
-  ) => Promise<string | InteractionReplyOptions>;
+  supportsLeague: boolean;
+  resolve: (scope: FactScope) => Promise<string | InteractionReplyOptions>;
 }
 export type FactNode = FactLeaf | { [segment: string]: FactNode };
 

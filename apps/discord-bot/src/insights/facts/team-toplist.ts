@@ -1,4 +1,4 @@
-import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope, TeamsService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import {
@@ -97,11 +97,11 @@ export const resolveTeamDeathsSufferedToplist =
  */
 export async function resolveTeamMatchesPlayedToplist(
   teams: TeamsService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by matches played',
-    fetchRows: (limit: number) => teams.countMatchesPlayedByTeam(eraId, limit),
+    fetchRows: (limit: number) => teams.countMatchesPlayedByTeam(scope, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: teamButtonId,
@@ -110,11 +110,11 @@ export async function resolveTeamMatchesPlayedToplist(
 
 export async function resolveTeamCompetitionsPlayedToplist(
   teams: TeamsService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by competitions played',
-    fetchRows: (limit: number) => teams.countCompetitionsByTeam(eraId, limit),
+    fetchRows: (limit: number) => teams.countCompetitionsByTeam(scope, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: teamButtonId,

@@ -3,6 +3,7 @@ import type {
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
+  FactScope,
   LeaguesService,
   MatchesService,
   PlayersService,
@@ -118,15 +119,14 @@ function statsSummaryEmbed(
 
 export async function resolveStatsSummary(
   deps: StatsSummaryDeps,
-  eraId?: number,
-  competitionId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
-  if (competitionId !== undefined) {
-    return resolveCompetitionStats(deps, competitionId);
+  if (scope.competitionId !== undefined) {
+    return resolveCompetitionStats(deps, scope.competitionId);
   }
-  return eraId === undefined
+  return scope.eraId === undefined
     ? resolveAllTimeStats(deps)
-    : resolveEraStats(deps, eraId);
+    : resolveEraStats(deps, scope.eraId);
 }
 
 async function resolveAllTimeStats(

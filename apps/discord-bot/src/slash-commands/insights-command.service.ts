@@ -171,7 +171,10 @@ export class InsightsCommandService implements OnModuleInit {
     competition?: { id: number; name: string },
   ): Promise<string | InteractionReplyOptions> {
     const picked = this.pickRandom(leaves);
-    const reply = await picked.resolve(era?.id, competition?.id);
+    const reply = await picked.resolve({
+      eraId: era?.id,
+      competitionId: competition?.id,
+    });
     return picked.supportsCompetition || picked.supportsEra
       ? this.applyTitleSuffix(
           reply,

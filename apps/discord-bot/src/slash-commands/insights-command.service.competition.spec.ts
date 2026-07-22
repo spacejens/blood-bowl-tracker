@@ -55,8 +55,7 @@ describe('InsightsCommandService — competition scoping', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
-      undefined,
-      30,
+      { eraId: undefined, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(

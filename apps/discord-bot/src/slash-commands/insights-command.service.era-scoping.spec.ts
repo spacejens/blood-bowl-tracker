@@ -25,7 +25,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('coach.toplist.matches.played', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith(20);
+    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith({
+      eraId: 20,
+      competitionId: undefined,
+    });
     expect(result).toEqual(
       expect.objectContaining({
         embeds: [
@@ -63,7 +66,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20, TOPLIST_FETCH_LIMIT],
+      expectedCallArgs: [
+        { eraId: 20, competitionId: undefined },
+        TOPLIST_FETCH_LIMIT,
+      ],
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },
@@ -72,7 +78,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.coaches.countCompetitionsByCoach as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20],
+      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
       expectedTitle: 'Coaches by competitions played — BB2020',
       expectedDescription: '1. Roze Madder — 5',
     },
@@ -81,7 +87,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20, undefined, TOPLIST_FETCH_LIMIT],
+      expectedCallArgs: [
+        { eraId: 20, competitionId: undefined },
+        TOPLIST_FETCH_LIMIT,
+      ],
       expectedTitle: 'Players by MVP awards — BB2020',
       expectedDescription: '1. Griff Oberwald — 7',
     },
@@ -90,7 +99,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countTeamsByRace as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20],
+      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
       expectedTitle: 'Races by teams — BB2020',
       expectedDescription: '1. Orc — 12',
     },
@@ -99,7 +108,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20],
+      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
       expectedTitle: 'Races by matches played — BB2020',
       expectedDescription: '1. Orc — 40',
     },
@@ -187,8 +196,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countTouchdownsScoredByPlayer).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -215,8 +223,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -243,8 +250,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countCasualtiesCausedByPlayer).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -271,8 +277,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -299,8 +304,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(players.countCasualtiesSufferedByPlayer).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -327,8 +331,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.countLastingInjuriesSufferedByTeam).toHaveBeenCalledWith(
-      20,
-      undefined,
+      { eraId: 20, competitionId: undefined },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(

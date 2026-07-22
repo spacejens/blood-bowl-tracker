@@ -1,3 +1,4 @@
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { resolveToplist } from '../leaderboard';
@@ -16,8 +17,7 @@ interface CountedRow {
  */
 export type ScopedCountMethods<TService> = {
   [K in keyof TService]: TService[K] extends (
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ) => Promise<CountedRow[]>
     ? K
@@ -26,8 +26,7 @@ export type ScopedCountMethods<TService> = {
 
 export type ToplistResolver<TService> = (
   service: TService,
-  eraId?: number,
-  competitionId?: number,
+  scope: FactScope,
 ) => Promise<string | InteractionReplyOptions>;
 
 /** Options for {@link makeToplistResolvers}. */
@@ -51,11 +50,7 @@ export function makeToplistResolvers<
   TMethod extends string,
   TService extends Record<
     TMethod,
-    (
-      eraId: number | undefined,
-      competitionId: number | undefined,
-      limit: number,
-    ) => Promise<TRow[]>
+    (scope: FactScope, limit: number) => Promise<TRow[]>
   >,
   TRow extends CountedRow = CountedRow,
 >(
@@ -64,10 +59,10 @@ export function makeToplistResolvers<
   const { titles, timeoutMessage, noDataMessage, buildCustomId } = options;
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
-    resolvers[method] = (service, eraId, competitionId) => {
+    resolvers[method] = (service, scope) => {
       return resolveToplist({
         title: titles[method],
-        fetchRows: (limit) => service[method](eraId, competitionId, limit),
+        fetchRows: (limit) => service[method](scope, limit),
         timeoutMessage,
         noDataMessage,
         buildCustomId,

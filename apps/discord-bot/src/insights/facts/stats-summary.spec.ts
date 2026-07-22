@@ -39,7 +39,7 @@ function makeDeps(
 
 describe('resolveStatsSummary', () => {
   it('renders one embed row per entity type in the specified order with thousands separators', async () => {
-    const result = await resolveStatsSummary(makeDeps());
+    const result = await resolveStatsSummary(makeDeps(), {});
     expect(result).toEqual({
       embeds: [
         {
@@ -65,7 +65,7 @@ describe('resolveStatsSummary', () => {
 
   it('falls back to the all-time timeout message when a count does not respond in time', async () => {
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps),
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, {}),
       () =>
         makeDeps({
           matches: {
@@ -107,7 +107,7 @@ function makeEraDeps(
 
 describe('resolveStatsSummary era-filtered', () => {
   it('renders the era-scoped lines, showing leagues/eras as 1 and replacing external systems and rules sets', async () => {
-    const result = await resolveStatsSummary(makeEraDeps(), 5);
+    const result = await resolveStatsSummary(makeEraDeps(), { eraId: 5 });
     expect(result).toEqual({
       embeds: [
         {
@@ -136,7 +136,7 @@ describe('resolveStatsSummary era-filtered', () => {
       makeEraDeps({
         eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
       }),
-      5,
+      { eraId: 5 },
     );
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
@@ -145,14 +145,14 @@ describe('resolveStatsSummary era-filtered', () => {
 
   it('scopes external systems by era (excluding the Name system via countByEra)', async () => {
     const deps = makeEraDeps();
-    await resolveStatsSummary(deps, 5);
+    await resolveStatsSummary(deps, { eraId: 5 });
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(deps.externalSystems.countByEra).toHaveBeenCalledWith(5);
   });
 
   it('falls back to the stunned message when an era count times out', async () => {
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, 5),
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, { eraId: 5 }),
       () =>
         makeEraDeps({
           matches: {
@@ -196,11 +196,9 @@ function makeCompetitionDeps(
 
 describe('resolveStatsSummary competition-filtered', () => {
   it('renders competition-scoped lines with leagues/eras/competitions as 1 and a season breakdown', async () => {
-    const result = await resolveStatsSummary(
-      makeCompetitionDeps(),
-      undefined,
-      7,
-    );
+    const result = await resolveStatsSummary(makeCompetitionDeps(), {
+      competitionId: 7,
+    });
     expect(result).toEqual({
       embeds: [
         {
@@ -236,8 +234,7 @@ describe('resolveStatsSummary competition-filtered', () => {
           }),
         },
       }),
-      undefined,
-      8,
+      { competitionId: 8 },
     );
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
@@ -246,7 +243,7 @@ describe('resolveStatsSummary competition-filtered', () => {
 
   it('reuses the era rules-set names keyed by the competition era', async () => {
     const deps = makeCompetitionDeps();
-    await resolveStatsSummary(deps, undefined, 7);
+    await resolveStatsSummary(deps, { competitionId: 7 });
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(deps.eras.getRulesSetNames).toHaveBeenCalledWith(5);
   });
@@ -256,15 +253,15 @@ describe('resolveStatsSummary competition-filtered', () => {
       makeCompetitionDeps({
         competitions: { findById: vi.fn().mockResolvedValue(undefined) },
       }),
-      undefined,
-      999,
+      { competitionId: 999 },
     );
     expect(result).toBe(STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('falls back to the stunned message when a competition count times out', async () => {
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, undefined, 7),
+      (deps: StatsSummaryDeps) =>
+        resolveStatsSummary(deps, { competitionId: 7 }),
       () =>
         makeCompetitionDeps({
           matches: {

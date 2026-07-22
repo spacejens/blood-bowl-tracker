@@ -1,4 +1,4 @@
-import type { RacesService } from '@blood-bowl-tracker/game-data';
+import type { FactScope, RacesService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import {
@@ -14,11 +14,11 @@ function raceButtonId(row: { raceId: number }): string {
 
 export async function resolveRaceTeamsToplist(
   races: RacesService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Races by teams',
-    fetchRows: () => races.countTeamsByRace(eraId),
+    fetchRows: () => races.countTeamsByRace(scope),
     timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: raceButtonId,
@@ -27,11 +27,11 @@ export async function resolveRaceTeamsToplist(
 
 export async function resolveRaceMatchesPlayedToplist(
   races: RacesService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Races by matches played',
-    fetchRows: () => races.countMatchesPlayedByRace(eraId),
+    fetchRows: () => races.countMatchesPlayedByRace(scope),
     timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: raceButtonId,
