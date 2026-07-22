@@ -3,6 +3,7 @@ import type {
   ExternalSystemBootstrapService,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -24,6 +25,7 @@ function makeService({
     { upsertRace } as unknown as RacesImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 
@@ -99,6 +101,27 @@ describe('TpRacesImportService', () => {
       expect.any(Array),
     );
     expect(raceIdsByTeamRaceCode.get('Dwarf_BB2025')).toBe(50);
+  });
+
+  it('returns raceNamesById mapping each upserted race DB id to its display name', async () => {
+    const upsertRace = vi.fn().mockResolvedValue(raceRecord(42));
+    const service = makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertRace,
+    });
+
+    const { raceNamesById } = await service.importRaces(
+      [
+        rosterEntry('Fourth era', {
+          id: 1,
+          teamRace: 'Necromantic_BB2025',
+          raceName: 'Necromantic Horror',
+        }),
+      ],
+      new Map([['Fourth era', 100]]),
+    );
+
+    expect(raceNamesById.get(42)).toBe('Necromantic Horror');
   });
 
   it('merges multiple codes for one race name into a single upsert call', async () => {

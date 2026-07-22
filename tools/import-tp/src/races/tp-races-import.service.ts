@@ -4,6 +4,7 @@ import {
   ExternalSystemBootstrapService,
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -25,6 +26,7 @@ export class TpRacesImportService {
     private readonly racesImport: RacesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -46,10 +48,12 @@ export class TpRacesImportService {
   ): Promise<{
     result: ImportResult;
     raceIdsByTeamRaceCode: Map<string, number>;
+    raceNamesById: Map<number, string>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const raceIdsByTeamRaceCode = new Map<string, number>();
+    const raceNamesById = new Map<number, string>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -61,6 +65,7 @@ export class TpRacesImportService {
       return {
         result: makeImportResult({ imported, errors }),
         raceIdsByTeamRaceCode,
+        raceNamesById,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -94,12 +99,16 @@ export class TpRacesImportService {
             externalSystemId: tpSystemId,
             externalId: code,
           })),
-          { externalSystemId: nameSystemId, externalId: group.raceName },
+          {
+            externalSystemId: nameSystemId,
+            externalId: this.nameExternalId.forRace(group.raceName),
+          },
         ],
       };
       const upserted = await this.racesImport.upsertRace(data, errors);
       if (upserted) {
         imported += 1;
+        raceNamesById.set(upserted.id, group.raceName);
         for (const code of group.codes) {
           raceIdsByTeamRaceCode.set(code, upserted.id);
         }
@@ -109,6 +118,7 @@ export class TpRacesImportService {
     return {
       result: makeImportResult({ imported, errors }),
       raceIdsByTeamRaceCode,
+      raceNamesById,
     };
   }
 }
