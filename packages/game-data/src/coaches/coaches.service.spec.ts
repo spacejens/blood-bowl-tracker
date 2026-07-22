@@ -25,6 +25,20 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
+function makeQueryBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.groupBy = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
+
 describe('CoachesService', () => {
   let service: CoachesService;
   let mockDb: {
@@ -157,20 +171,6 @@ describe('CoachesService', () => {
   });
 
   describe('toplist queries', () => {
-    function makeQueryBuilder(rows: unknown[]) {
-      const builder: Record<string, unknown> = {};
-      builder.from = vi.fn(() => builder);
-      builder.innerJoin = vi.fn(() => builder);
-      builder.where = vi.fn(() => builder);
-      builder.groupBy = vi.fn(() => builder);
-      builder.orderBy = vi.fn(() => builder);
-      builder.then = (
-        resolve: (v: unknown) => unknown,
-        reject: (e: unknown) => unknown,
-      ) => Promise.resolve(rows).then(resolve, reject);
-      return builder;
-    }
-
     it('countMatchesPlayedByCoach returns the rows the query resolves to', async () => {
       const rows = [
         { coachId: 1, name: 'Roze Madder', count: 9 },
@@ -178,7 +178,9 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach()).resolves.toEqual(rows);
+      await expect(service.countMatchesPlayedByCoach({})).resolves.toEqual(
+        rows,
+      );
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -186,7 +188,7 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countTeamsByCoach()).resolves.toEqual(rows);
+      await expect(service.countTeamsByCoach({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -195,9 +197,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach(20)).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countMatchesPlayedByCoach({ eraId: 20 }),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['match_teams.match_id', 'matches.id'],
@@ -210,7 +212,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countTeamsByCoach(20)).resolves.toEqual(rows);
+      await expect(service.countTeamsByCoach({ eraId: 20 })).resolves.toEqual(
+        rows,
+      );
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
@@ -225,7 +229,7 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByCoach()).resolves.toEqual(rows);
+      await expect(service.countCompetitionsByCoach({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -234,7 +238,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByCoach(20)).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByCoach({ eraId: 20 }),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['competition_teams.competition_id', 'competitions.id'],
@@ -255,6 +261,50 @@ describe('CoachesService', () => {
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['teams.id', 'team_eras.team_id'],
+      );
+    });
+  });
+
+  describe('league scoping', () => {
+    it('countMatchesPlayedByCoach filters by league via the eras join', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countMatchesPlayedByCoach({ leagueId: 9 });
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('countCompetitionsByCoach filters by league via the eras join', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCompetitionsByCoach({ leagueId: 9 });
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('countTeamsByCoach counts teams the coach ran in an era of the league', async () => {
+      const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
+      const builder = makeQueryBuilder(rows);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
+        rows,
+      );
+      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
+      expect(builder.innerJoin).toHaveBeenCalledTimes(3);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id', 'eras.league_id'],
       );
     });
   });

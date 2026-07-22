@@ -6,6 +6,7 @@ import {
   coachExternalIds,
   competitions,
   competitionTeams,
+  eras,
   matches,
   matchTeams,
   teamEras,
@@ -17,6 +18,7 @@ import { and, count, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
+import type { FactScope } from '../shared/fact-scope';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -111,7 +113,7 @@ export class CoachesService {
   }
 
   async countMatchesPlayedByCoach(
-    eraId?: number,
+    scope: FactScope,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -122,15 +124,25 @@ export class CoachesService {
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .where(
+        and(
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+        ),
+      )
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(matches.id)));
   }
 
   async countCompetitionsByCoach(
-    eraId?: number,
+    scope: FactScope,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -144,40 +156,54 @@ export class CoachesService {
         eq(competitionTeams.competitionId, competitions.id),
       )
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .where(
+        and(
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+        ),
+      )
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(competitions.id)));
   }
 
   async countTeamsByCoach(
-    eraId?: number,
+    scope: FactScope,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    if (eraId === undefined) {
-      return this.db
-        .select({
-          coachId: coaches.id,
-          name: coaches.name,
-          count: count(teams.id),
-        })
-        .from(coaches)
-        .innerJoin(teams, eq(teams.coachId, coaches.id))
-        .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(count(teams.id)));
-    }
-    return this.db
+    const base = this.db
       .select({
         coachId: coaches.id,
         name: coaches.name,
         count: count(teams.id),
       })
       .from(coaches)
-      .innerJoin(teams, eq(teams.coachId, coaches.id))
-      .innerJoin(
-        teamEras,
-        and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, eraId)),
-      )
+      .innerJoin(teams, eq(teams.coachId, coaches.id));
+    if (scope.eraId !== undefined) {
+      return base
+        .innerJoin(
+          teamEras,
+          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
+        )
+        .groupBy(coaches.id, coaches.name)
+        .orderBy(desc(count(teams.id)));
+    }
+    if (scope.leagueId !== undefined) {
+      return base
+        .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
+        .innerJoin(
+          eras,
+          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
+        )
+        .groupBy(coaches.id, coaches.name)
+        .orderBy(desc(count(teams.id)));
+    }
+    return base
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(count(teams.id)));
   }
