@@ -63,7 +63,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20],
+      expectedCallArgs: [20, TOPLIST_FETCH_LIMIT],
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },

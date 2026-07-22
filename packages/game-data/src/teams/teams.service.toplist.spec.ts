@@ -19,22 +19,27 @@ describe('TeamsService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByTeam()).resolves.toEqual(rows);
+      await expect(
+        service.countMatchesPlayedByTeam(undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
-    it('countMatchesPlayedByTeam filters by era when an eraId is given', async () => {
+    it('countMatchesPlayedByTeam applies the SQL limit and filters by era when an eraId is given', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByTeam(20)).resolves.toEqual(rows);
+      await expect(service.countMatchesPlayedByTeam(20, 21)).resolves.toEqual(
+        rows,
+      );
       // The era-filtered path must add a WHERE clause.
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['match_teams.match_id', 'matches.id'],
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countCompetitionsByTeam returns the rows the query resolves to', async () => {
@@ -44,22 +49,27 @@ describe('TeamsService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByTeam()).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByTeam(undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
-    it('countCompetitionsByTeam filters by era when an eraId is given', async () => {
+    it('countCompetitionsByTeam applies the SQL limit and filters by era when an eraId is given', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 2 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByTeam(20)).resolves.toEqual(rows);
+      await expect(service.countCompetitionsByTeam(20, 21)).resolves.toEqual(
+        rows,
+      );
       // The era-filtered path must add a WHERE clause.
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['competition_teams.competition_id', 'competitions.id'],
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countCompetitionsByTeam still calls where (with undefined) when no era is given', async () => {
@@ -67,7 +77,9 @@ describe('TeamsService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByTeam()).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByTeam(undefined, 21),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
     });
 
@@ -79,11 +91,12 @@ describe('TeamsService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countErasByTeam()).resolves.toEqual(rows);
+      await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['teams.id', 'team_eras.team_id'],
       );
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countErasByTeam takes no era filter and issues no where clause', async () => {
@@ -91,7 +104,7 @@ describe('TeamsService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.countErasByTeam()).resolves.toEqual(rows);
+      await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
       expect(builder.where).not.toHaveBeenCalled();
     });
 

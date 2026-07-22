@@ -141,7 +141,8 @@ export class TeamsService {
   }
 
   async countMatchesPlayedByTeam(
-    eraId?: number,
+    eraId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -155,11 +156,13 @@ export class TeamsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(matches.id)));
+      .orderBy(desc(countDistinct(matches.id)))
+      .limit(limit);
   }
 
   async countCompetitionsByTeam(
-    eraId?: number,
+    eraId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -176,12 +179,13 @@ export class TeamsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(competitions.id)));
+      .orderBy(desc(countDistinct(competitions.id)))
+      .limit(limit);
   }
 
-  async countErasByTeam(): Promise<
-    { teamId: number; name: string; count: number }[]
-  > {
+  async countErasByTeam(
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
         teamId: teams.id,
@@ -191,7 +195,8 @@ export class TeamsService {
       .from(teamEras)
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(teamEras.eraId)));
+      .orderBy(desc(countDistinct(teamEras.eraId)))
+      .limit(limit);
   }
 
   countTouchdownsScoredByTeam(

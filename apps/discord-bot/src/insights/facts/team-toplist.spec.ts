@@ -262,7 +262,9 @@ describe.each(cases)(
         const teams = { [method]: queryFn } as unknown as TeamsService;
         await resolve(teams, 20);
         expect(queryFn).toHaveBeenCalledWith(
-          ...(competitionRows ? [20, undefined, TOPLIST_FETCH_LIMIT] : [20]),
+          ...(competitionRows
+            ? [20, undefined, TOPLIST_FETCH_LIMIT]
+            : [20, TOPLIST_FETCH_LIMIT]),
         );
       });
     }
@@ -292,3 +294,12 @@ describe.each(cases)(
     });
   },
 );
+
+describe('resolveTeamErasActiveToplist', () => {
+  it('passes the fetch limit through to the query', async () => {
+    const queryFn = vi.fn().mockResolvedValue([]);
+    const teams = { countErasByTeam: queryFn } as unknown as TeamsService;
+    await resolveTeamErasActiveToplist(teams);
+    expect(queryFn).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
+  });
+});
