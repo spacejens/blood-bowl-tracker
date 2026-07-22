@@ -5,6 +5,7 @@ import {
   competitions,
   competitionTeams,
   DB,
+  eras,
   matches,
   matchTeams,
   races,
@@ -13,10 +14,11 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
+import type { FactScope } from '../shared/fact-scope';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByTeam,
@@ -141,7 +143,7 @@ export class TeamsService {
   }
 
   async countMatchesPlayedByTeam(
-    eraId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
@@ -153,15 +155,25 @@ export class TeamsService {
       .from(matches)
       .innerJoin(matchTeams, eq(matchTeams.matchId, matches.id))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .where(
+        and(
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+        ),
+      )
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(matches.id)))
       .limit(limit);
   }
 
   async countCompetitionsByTeam(
-    eraId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
@@ -176,8 +188,18 @@ export class TeamsService {
         eq(competitionTeams.competitionId, competitions.id),
       )
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .where(
+        and(
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+        ),
+      )
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(competitions.id)))
       .limit(limit);
@@ -200,209 +222,209 @@ export class TeamsService {
   }
 
   countTouchdownsScoredByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countCompletionsByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: COMPLETION_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countInterceptionsByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countDeflectionsByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEFLECTION_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countCasualtiesCausedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countSeriousInjuriesCausedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countDeathsCausedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countFoulsCommittedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countTimesSentOffByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countCasualtiesSufferedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countSeriousInjuriesSufferedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countLastingInjuriesSufferedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   countDeathsSufferedByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: DEATH_SUFFERED_TYPES },
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   sumExpensiveMistakesByTeam(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return querySumExpensiveMistakesByTeam({
       db: this.db,
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
 
   listBiggestExpensiveMistakes(
-    eraId: number | undefined,
-    competitionId: number | undefined,
+    scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
     return queryListBiggestExpensiveMistakes({
       db: this.db,
-      eraId,
-      competitionId,
+      eraId: scope.eraId,
+      competitionId: scope.competitionId,
+      leagueId: scope.leagueId,
       limit,
     });
   }
