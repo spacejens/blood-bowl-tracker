@@ -102,12 +102,12 @@ describe('resolveErasList', () => {
     });
   });
 
-  it('groups by league, orders leagues by earliest era, and orders eras within a league by start date', async () => {
+  it('lists all eras in flat chronological order across leagues, breaking ties by league then era name', async () => {
     const result = await resolveErasList(
       makeEras([
-        // deliberately out of order in the input
+        // deliberately scrambled input order
         {
-          id: 3,
+          id: 4,
           name: 'B Season 2',
           leagueName: 'B League',
           startDate: '2022-01-01',
@@ -120,19 +120,49 @@ describe('resolveErasList', () => {
           startDate: '2019-01-01',
           endDate: '2019-12-31',
         },
+        // same startDate as id 6, different league -> league tie-break (A < B)
         {
-          id: 2,
-          name: 'A Season 2',
+          id: 5,
+          name: 'Zeta',
           leagueName: 'A League',
-          startDate: '2020-01-01',
-          endDate: '2020-12-31',
+          startDate: '2023-01-01',
+          endDate: null,
         },
         {
-          id: 4,
-          name: 'B Season 1',
-          leagueName: 'B League',
+          id: 3,
+          name: 'A Season 2',
+          leagueName: 'A League',
           startDate: '2021-01-01',
           endDate: '2021-12-31',
+        },
+        // same startDate/league as id 8, different name -> name tie-break (Alpha < Beta)
+        {
+          id: 7,
+          name: 'Beta',
+          leagueName: 'C League',
+          startDate: '2024-01-01',
+          endDate: null,
+        },
+        {
+          id: 2,
+          name: 'B Season 1',
+          leagueName: 'B League',
+          startDate: '2020-06-01',
+          endDate: null,
+        },
+        {
+          id: 6,
+          name: 'Alpha',
+          leagueName: 'B League',
+          startDate: '2023-01-01',
+          endDate: null,
+        },
+        {
+          id: 8,
+          name: 'Alpha',
+          leagueName: 'C League',
+          startDate: '2024-01-01',
+          endDate: null,
         },
       ]),
     );
@@ -141,10 +171,17 @@ describe('resolveErasList', () => {
         {
           title: 'Eras',
           description: [
+            // interleaved across A and B leagues, purely by startDate
             'A Season 1 (A League): 2019-01-01 – 2019-12-31',
-            'A Season 2 (A League): 2020-01-01 – 2020-12-31',
-            'B Season 1 (B League): 2021-01-01 – 2021-12-31',
+            'B Season 1 (B League): 2020-06-01 – present',
+            'A Season 2 (A League): 2021-01-01 – 2021-12-31',
             'B Season 2 (B League): 2022-01-01 – present',
+            // equal startDate 2023-01-01: league tie-break A before B
+            'Zeta (A League): 2023-01-01 – present',
+            'Alpha (B League): 2023-01-01 – present',
+            // equal startDate 2024-01-01 and league C: name tie-break Alpha before Beta
+            'Alpha (C League): 2024-01-01 – present',
+            'Beta (C League): 2024-01-01 – present',
           ].join('\n'),
         },
       ],
@@ -161,20 +198,49 @@ describe('resolveErasList', () => {
             {
               type: ComponentType.Button,
               style: ButtonStyle.Primary,
-              label: 'A Season 2',
+              label: 'B Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}2`,
             },
             {
               type: ComponentType.Button,
               style: ButtonStyle.Primary,
-              label: 'B Season 1',
-              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}4`,
+              label: 'A Season 2',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}3`,
             },
             {
               type: ComponentType.Button,
               style: ButtonStyle.Primary,
               label: 'B Season 2',
-              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}3`,
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}4`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Zeta',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}5`,
+            },
+          ],
+        },
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Alpha',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}6`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Alpha',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}8`,
+            },
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Primary,
+              label: 'Beta',
+              custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}7`,
             },
           ],
         },
