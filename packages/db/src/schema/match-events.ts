@@ -84,6 +84,32 @@ export const weatherTypeEnum = gameData.enum('weather_type', [
   'unknown',
 ]);
 
+/**
+ * The named secret-objective card a `secret_objective`-classified event
+ * decodes to, from TP's raw opaque integer code (decoded before import
+ * reaches this schema). `'unknown'` is a permanent catch-all for codes not
+ * yet mapped. Only set on `secret_objective` events.
+ */
+export const secretObjectiveEnum = gameData.enum('secret_objective', [
+  'red_card',
+  'didnt_need_them_anyway',
+  'going_alone',
+  'fouling_frenzy',
+  'going_surfing',
+  'ganging_up',
+  'whoops',
+  'not_so_fast',
+  'timely_tackle',
+  'precision_passing',
+  'hit_em_hard',
+  'just_a_little_further',
+  'go_long',
+  'nuffle_favors_the_bold',
+  'all_according_to_plan',
+  'headtaker',
+  'unknown',
+]);
+
 const matchEventsTable = historyTrackedTable({
   schema: gameData,
   name: 'match_events',
@@ -129,7 +155,7 @@ const matchEventsTable = historyTrackedTable({
      * different, non-sequential values, and the same value can recur across
      * different matches for different rosters.
      */
-    secretObjective: integer('secret_objective'),
+    secretObjective: secretObjectiveEnum('secret_objective'),
     /** Gold pieces lost to the roll, not the Expensive Mistakes table tier rolled. */
     expensiveMistake: integer('expensive_mistake'),
   },
