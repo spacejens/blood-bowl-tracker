@@ -76,48 +76,44 @@ are tracked separately as issue #174).
 ### Worked example
 
 `data/before-other-importers/necromantic-2020.json5`:
-
 ```jsonc
 {
-  "leagues": [
+  leagues: [
+    { name: "My League", externalIds: [{ system: "Name", id: "name:my-league" }] },
+  ],
+  rulesSets: [
+    { name: "CRP", externalIds: [{ system: "Name", id: "name:crp" }] },
+  ],
+  eras: [
     {
-      "name": "My League",
-      "externalIds": [{ "system": "Name", "id": "name:my-league" }],
+      name: "Season 12",
+      league: { system: "Name", id: "name:my-league" },
+      rulesSets: [{ system: "Name", id: "name:crp" }],
+      startDate: "2024-01-01",
+      externalIds: [{ system: "Name", id: "name:season-12" }],
     },
   ],
-  "rulesSets": [
-    { "name": "CRP", "externalIds": [{ "system": "Name", "id": "name:crp" }] },
-  ],
-  "eras": [
+  races: [
     {
-      "name": "Season 12",
-      "league": { "system": "Name", "id": "name:my-league" },
-      "rulesSets": [{ "system": "Name", "id": "name:crp" }],
-      "startDate": "2024-01-01",
-      "externalIds": [{ "system": "Name", "id": "name:season-12" }],
-    },
-  ],
-  "races": [
-    {
-      "name": "Necromantic Horror",
-      "eras": [{ "system": "Name", "id": "name:season-12" }],
-      "externalIds": [
-        { "system": "BBL", "id": "id:47" },
-        { "system": "Name", "id": "name:necromantic-horror" },
+      name: "Necromantic Horror",
+      eras: [{ system: "Name", id: "name:season-12" }],
+      externalIds: [
+        { system: "BBL", id: "id:47" },
+        { system: "Name", id: "name:necromantic-horror" },
       ],
     },
   ],
-  "positions": [
+  positions: [
     {
-      "name": "Zombie",
-      "isStarPlayer": false,
-      "raceEras": [
+      name: "Zombie",
+      isStarPlayer: false,
+      raceEras: [
         {
-          "race": { "system": "Name", "id": "name:necromantic-horror" },
-          "era": { "system": "Name", "id": "name:season-12" },
+          race: { system: "Name", id: "name:necromantic-horror" },
+          era: { system: "Name", id: "name:season-12" },
         },
       ],
-      "externalIds": [{ "system": "Name", "id": "name:zombie" }],
+      externalIds: [{ system: "Name", id: "name:zombie" }],
     },
   ],
 }
