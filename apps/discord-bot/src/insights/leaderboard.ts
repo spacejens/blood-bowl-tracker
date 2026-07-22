@@ -19,6 +19,30 @@ export const MAX_LEADERBOARD_ENTRIES = 10;
  */
 const MAX_LEADERBOARD_TOP_ENTRIES = 5;
 
+/**
+ * Largest tie-group remainder rendered as an exact count; past this the
+ * remainder is shown as an approximate "lots more tied" instead.
+ */
+const MAX_EXACT_TIE_REMAINDER = 10;
+
+/**
+ * Rows requested from toplist queries: enough to show MAX_LEADERBOARD_ENTRIES
+ * ranked rows, report an exact tied remainder up to MAX_EXACT_TIE_REMAINDER,
+ * and fetch one extra sentinel row to detect when the true result set is larger
+ * than this window (in which case the remainder can no longer be counted
+ * exactly).
+ */
+export const TOPLIST_FETCH_LIMIT =
+  MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1;
+
+/**
+ * How large the "…and N more tied." remainder is. `exact` carries the counted
+ * number (0 means no remainder line); `approximate` means the fetch window was
+ * saturated so the true remainder is unknown and rendered as "lots more tied".
+ */
+export type TieRemainder =
+  { type: 'exact'; count: number } | { type: 'approximate' };
+
 /** Discord allows at most 5 buttons per action row and 5 rows per message. */
 const MAX_BUTTONS_PER_ROW = 5;
 const MAX_BUTTON_ROWS = 5;
@@ -65,7 +89,7 @@ export interface FormatLeaderboardEmbedOptions<T> {
   title: string;
   rankedRows: T[];
   noDataMessage: string;
-  truncatedCount?: number;
+  tieRemainder?: TieRemainder;
   buildCustomId?: (row: T) => string;
   formatRow?: (row: T) => string;
 }
@@ -76,7 +100,7 @@ export function formatLeaderboardEmbed<
   title,
   rankedRows,
   noDataMessage,
-  truncatedCount = 0,
+  tieRemainder = { type: 'exact', count: 0 },
   buildCustomId,
   formatRow = (row) => `${row.rank}. ${row.name} — ${row.count}`,
 }: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
@@ -84,8 +108,10 @@ export function formatLeaderboardEmbed<
     return { embeds: [{ title, description: noDataMessage }] };
   }
   const lines = rankedRows.map(formatRow);
-  if (truncatedCount > 0) {
-    lines.push(`…and ${truncatedCount} more tied.`);
+  if (tieRemainder.type === 'approximate') {
+    lines.push('…and lots more tied.');
+  } else if (tieRemainder.count > 0) {
+    lines.push(`…and ${tieRemainder.count} more tied.`);
   }
   const embed = { embeds: [{ title, description: lines.join('\n') }] };
   if (buildCustomId === undefined) {
@@ -131,7 +157,7 @@ export function formatLeaderboardEmbed<
  */
 export interface ResolveToplistOptions<T> {
   title: string;
-  fetchRows: () => Promise<T[]>;
+  fetchRows: (limit: number) => Promise<T[]>;
   timeoutMessage: string;
   noDataMessage: string;
   buildCustomId?: (row: T) => string;
@@ -148,20 +174,31 @@ export async function resolveToplist<
   buildCustomId,
   formatRow,
 }: ResolveToplistOptions<T>): Promise<string | InteractionReplyOptions> {
-  const rows = await withDatabaseTimeout<T[] | null>(fetchRows(), null);
+  const rows = await withDatabaseTimeout<T[] | null>(
+    fetchRows(TOPLIST_FETCH_LIMIT),
+    null,
+  );
   if (rows === null) {
     return timeoutMessage;
   }
+  // A full fetch means the true result set is at least one row larger than the
+  // window; drop that sentinel row and report the remainder as approximate,
+  // because we can no longer count it exactly.
+  const saturated = rows.length === TOPLIST_FETCH_LIMIT;
+  const consideredRows = saturated ? rows.slice(0, -1) : rows;
   const { rows: ranked, truncatedCount } = topRanksWithTies(
-    rows,
+    consideredRows,
     MAX_LEADERBOARD_TOP_ENTRIES,
     MAX_LEADERBOARD_ENTRIES,
   );
+  const tieRemainder: TieRemainder = saturated
+    ? { type: 'approximate' }
+    : { type: 'exact', count: truncatedCount };
   return formatLeaderboardEmbed({
     title,
     rankedRows: ranked,
     noDataMessage,
-    truncatedCount,
+    tieRemainder,
     buildCustomId,
     formatRow,
   });
