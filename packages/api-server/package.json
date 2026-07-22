@@ -4,7 +4,9 @@
   "private": true,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint \"{src,test}/**/*.ts\"",
@@ -20,13 +22,11 @@
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/game-data": "workspace:*",
     "@nestjs/common": "^11.1.28",
-    "@nestjs/core": "^11.1.28",
     "@orpc/server": "^1.14.8",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.28",
     "@swc/core": "^1.15.46",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",

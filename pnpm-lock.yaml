@@ -77,9 +77,6 @@ importers:
       discord.js:
         specifier: ^14.27.0
         version: 14.27.0
-      drizzle-orm:
-        specifier: rc
-        version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.4.3)
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -194,9 +191,6 @@ importers:
       '@nestjs/common':
         specifier: ^11.1.28
         version: 11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
-      '@nestjs/core':
-        specifier: ^11.1.28
-        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@orpc/server':
         specifier: ^1.14.8
         version: 1.14.8(ws@8.21.0)
@@ -207,9 +201,6 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
     devDependencies:
-      '@nestjs/testing':
-        specifier: ^11.1.28
-        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
       '@swc/core':
         specifier: ^1.15.46
         version: 1.15.46
@@ -392,9 +383,6 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
-      '@nestjs/testing':
-        specifier: ^11.1.28
-        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
       '@types/node':
         specifier: ^26.1.0
         version: 26.1.0
@@ -492,9 +480,6 @@ importers:
       '@blood-bowl-tracker/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
-      '@blood-bowl-tracker/api-contract':
-        specifier: workspace:*
-        version: link:../../packages/api-contract
       '@blood-bowl-tracker/import':
         specifier: workspace:*
         version: link:../../packages/import

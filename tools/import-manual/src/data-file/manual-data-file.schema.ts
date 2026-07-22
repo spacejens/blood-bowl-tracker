@@ -3,7 +3,7 @@ import { z } from 'zod';
 /** An external-id pair, both in an entry's own externalIds and in a
  * cross-reference to another entry. `system` is an external system name;
  * `id` follows the id:/name: namespacing convention. */
-export const ExternalRefSchema = z.object({
+const ExternalRefSchema = z.object({
   system: z.string().min(1),
   id: z.string().min(1),
 });
@@ -14,21 +14,21 @@ const IsoDate = z
 
 const externalIds = z.array(ExternalRefSchema).min(1);
 
-export const ExternalSystemEntrySchema = z.object({
+const ExternalSystemEntrySchema = z.object({
   name: z.string().min(1),
 });
 
-export const RulesSetEntrySchema = z.object({
-  name: z.string().min(1),
-  externalIds,
-});
-
-export const LeagueEntrySchema = z.object({
+const RulesSetEntrySchema = z.object({
   name: z.string().min(1),
   externalIds,
 });
 
-export const EraEntrySchema = z.object({
+const LeagueEntrySchema = z.object({
+  name: z.string().min(1),
+  externalIds,
+});
+
+const EraEntrySchema = z.object({
   name: z.string().min(1),
   league: ExternalRefSchema,
   rulesSets: z.array(ExternalRefSchema).min(1),
@@ -37,30 +37,30 @@ export const EraEntrySchema = z.object({
   externalIds,
 });
 
-export const RaceEntrySchema = z.object({
+const RaceEntrySchema = z.object({
   name: z.string().min(1),
   eras: z.array(ExternalRefSchema).default([]),
   externalIds,
 });
 
-export const RaceEraRefSchema = z.object({
+const RaceEraRefSchema = z.object({
   race: ExternalRefSchema,
   era: ExternalRefSchema,
 });
 
-export const PositionEntrySchema = z.object({
+const PositionEntrySchema = z.object({
   name: z.string().min(1),
   isStarPlayer: z.boolean(),
   raceEras: z.array(RaceEraRefSchema).default([]),
   externalIds,
 });
 
-export const CoachEntrySchema = z.object({
+const CoachEntrySchema = z.object({
   name: z.string().min(1),
   externalIds,
 });
 
-export const TeamEntrySchema = z.object({
+const TeamEntrySchema = z.object({
   name: z.string().min(1),
   race: ExternalRefSchema,
   coach: ExternalRefSchema,
@@ -82,13 +82,5 @@ export const ManualDataFileSchema = z
   .strict();
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
-export type ExternalSystemEntry = z.infer<typeof ExternalSystemEntrySchema>;
-export type RulesSetEntry = z.infer<typeof RulesSetEntrySchema>;
-export type LeagueEntry = z.infer<typeof LeagueEntrySchema>;
-export type EraEntry = z.infer<typeof EraEntrySchema>;
-export type RaceEntry = z.infer<typeof RaceEntrySchema>;
-export type RaceEraRef = z.infer<typeof RaceEraRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
-export type CoachEntry = z.infer<typeof CoachEntrySchema>;
-export type TeamEntry = z.infer<typeof TeamEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;

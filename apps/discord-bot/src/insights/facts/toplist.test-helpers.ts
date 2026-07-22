@@ -28,18 +28,3 @@ export async function expectTimeoutFallback<S>(
     vi.useRealTimers();
   }
 }
-
-/**
- * Test-only helper. Do not import from production code.
- *
- * Asserts a resolver produced the standard single-embed leaderboard result.
- */
-export function expectLeaderboardEmbed(
-  result: unknown,
-  expectedTitle: string,
-  expectedDescription: string,
-): void {
-  expect(result).toEqual({
-    embeds: [{ title: expectedTitle, description: expectedDescription }],
-  });
-}

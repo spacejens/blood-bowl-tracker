@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "main": "dist/main.js",
-  "bin": { "import-manual": "dist/main.js" },
+  "bin": {
+    "import-manual": "dist/main.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
@@ -20,7 +22,6 @@
     "json5": "^2.2.3",
     "zod": "^4.4.3",
     "@blood-bowl-tracker/api-client": "workspace:*",
-    "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",

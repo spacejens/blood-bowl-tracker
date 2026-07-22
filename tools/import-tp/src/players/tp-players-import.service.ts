@@ -22,7 +22,7 @@ import { unknownEraError } from '../source/roster-collection.service';
  * eras, per `TpTeamsImportService`'s era-union grouping, resolves its team
  * era unambiguously instead of guessing), and the star players themselves.
  */
-export interface InducedStarPlayerHireGroup {
+interface InducedStarPlayerHireGroup {
   rosterId: number;
   eraId: number;
   starPlayers: TpInducedStarPlayer[];
