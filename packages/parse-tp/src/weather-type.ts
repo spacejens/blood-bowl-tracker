@@ -26,7 +26,12 @@ export type WeatherType =
   | 'heavy_snow'
   | 'unknown';
 
-const weatherTypeByCode: Record<number, WeatherType> = {
+/**
+ * Exported for `match-event-parser.service.spec.ts`, so its weather-code
+ * decode tests are driven directly off this map (every known code gets a
+ * test case, with no risk of the two lists drifting apart).
+ */
+export const weatherTypeByCode: Record<number, WeatherType> = {
   0: 'dungeon',
   10: 'sweltering_heat',
   20: 'very_sunny',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { MatchEventParserService } from './match-event-parser.service';
+import { weatherTypeByCode } from './weather-type';
 
 const parser = new MatchEventParserService();
 
@@ -314,31 +315,28 @@ describe('MatchEventParserService', () => {
     ]);
   });
 
-  it.each([
-    [0, 'dungeon'],
-    [10, 'sweltering_heat'],
-    [30, 'nice'],
-    [50, 'blizzard'],
-    [100, 'morning_dew'],
-    [103, 'high_winds'],
-    [105, 'melting_astrogranite'],
-    [108, 'leaf_strewn_pitch'],
-    [113, 'heavy_snow'],
-  ])('decodes weather code %i to %s', (code, name) => {
-    const [event] = parser.parse([
-      {
-        id: 1,
-        matchEventType: 10,
+  it.each(Object.entries(weatherTypeByCode))(
+    'decodes weather code %s to %s',
+    (code, name) => {
+      const [event] = parser.parse([
+        {
+          id: 1,
+          matchEventType: 10,
+          instant: 'x',
+          extraData: { weatherType: Number(code) },
+        },
+      ]);
+      expect(event).toEqual({
+        type: 'weather_roll',
+        tpEventId: 1,
         instant: 'x',
-        extraData: { weatherType: code },
-      },
-    ]);
-    expect(event).toEqual({
-      type: 'weather_roll',
-      tpEventId: 1,
-      instant: 'x',
-      weatherType: name,
-    });
+        weatherType: name,
+      });
+    },
+  );
+
+  it('has a decode test for every known weather code (guards against silent shrinkage of the code map)', () => {
+    expect(Object.keys(weatherTypeByCode)).toHaveLength(20);
   });
 
   it('decodes an unrecognized weather code to unknown', () => {
