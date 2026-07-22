@@ -23,7 +23,7 @@ const MAX_LEADERBOARD_TOP_ENTRIES = 5;
  * Largest tie-group remainder rendered as an exact count; past this the
  * remainder is shown as an approximate "lots more tied" instead.
  */
-const MAX_EXACT_TIE_REMAINDER = 10;
+export const MAX_EXACT_TIE_REMAINDER = 10;
 
 /**
  * Rows requested from toplist queries: enough to show MAX_LEADERBOARD_ENTRIES

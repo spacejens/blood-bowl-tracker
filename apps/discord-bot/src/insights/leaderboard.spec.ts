@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   formatLeaderboardEmbed,
+  MAX_EXACT_TIE_REMAINDER,
+  MAX_LEADERBOARD_ENTRIES,
   resolveToplist,
   TOPLIST_FETCH_LIMIT,
   topRanksWithTies,
@@ -10,6 +12,9 @@ import {
 
 describe('TOPLIST_FETCH_LIMIT', () => {
   it('is MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1', () => {
+    expect(TOPLIST_FETCH_LIMIT).toBe(
+      MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1,
+    );
     // 10 shown + 10 exact-remainder headroom + 1 sentinel = 21
     expect(TOPLIST_FETCH_LIMIT).toBe(21);
   });
