@@ -20,7 +20,7 @@
     "@blood-bowl-tracker/api-client": "workspace:*",
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
-    "cheerio": "^1.0.0",
+    "cheerio": "^1.2.0",
     "json5": "^2.2.3",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
