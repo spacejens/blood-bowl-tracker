@@ -345,6 +345,7 @@ describe('PlayersService', () => {
       builder.where = vi.fn(() => builder);
       builder.groupBy = vi.fn(() => builder);
       builder.orderBy = vi.fn(() => builder);
+      builder.limit = vi.fn(() => builder);
       builder.then = (
         resolve: (v: unknown) => unknown,
         reject: (e: unknown) => unknown,
@@ -359,14 +360,18 @@ describe('PlayersService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countMvpAwardsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
     it('countMvpAwardsByPlayer returns an empty array when there are no rows', async () => {
       const select = vi.fn(() => makeQueryBuilder([]));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual([]);
+      await expect(
+        service.countMvpAwardsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual([]);
     });
 
     it('countMvpAwardsByPlayer preserves tie ordering from the query', async () => {
@@ -377,7 +382,9 @@ describe('PlayersService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countMvpAwardsByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countMvpAwardsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countMvpAwardsByPlayer adds an era filter when an eraId is given', async () => {
@@ -385,9 +392,12 @@ describe('PlayersService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countMvpAwardsByPlayer(20)).resolves.toEqual(rows);
+      await expect(
+        service.countMvpAwardsByPlayer(20, undefined, 21),
+      ).resolves.toEqual(rows);
       // The where() call is always present; the era clause is folded into it.
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'mvp_award',
         20,
@@ -399,7 +409,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countMvpAwardsByPlayer(undefined, 30);
+      await service.countMvpAwardsByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -415,9 +425,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 9 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countTouchdownsScoredByPlayer()).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTouchdownsScoredByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -426,8 +436,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countTouchdownsScoredByPlayer(20);
+      await service.countTouchdownsScoredByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'touchdown',
         20,
@@ -439,7 +450,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countTouchdownsScoredByPlayer(undefined, 30);
+      await service.countTouchdownsScoredByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -455,7 +466,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 6 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countCompletionsByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countCompletionsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countCompletionsByPlayer adds an era filter when an eraId is given', async () => {
@@ -463,8 +476,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCompletionsByPlayer(20);
+      await service.countCompletionsByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'completion',
         20,
@@ -476,7 +490,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCompletionsByPlayer(undefined, 30);
+      await service.countCompletionsByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -492,7 +506,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 4 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countInterceptionsByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countInterceptionsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countInterceptionsByPlayer adds an era filter when an eraId is given', async () => {
@@ -500,8 +516,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countInterceptionsByPlayer(20);
+      await service.countInterceptionsByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'interception',
         20,
@@ -513,7 +530,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countInterceptionsByPlayer(undefined, 30);
+      await service.countInterceptionsByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -529,7 +546,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countDeflectionsByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countDeflectionsByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countDeflectionsByPlayer adds an era filter when an eraId is given', async () => {
@@ -537,8 +556,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countDeflectionsByPlayer(20);
+      await service.countDeflectionsByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'deflection',
         20,
@@ -550,7 +570,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countDeflectionsByPlayer(undefined, 30);
+      await service.countDeflectionsByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -569,9 +589,9 @@ describe('PlayersService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countCasualtiesCausedByPlayer()).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countCasualtiesCausedByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -580,8 +600,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCasualtiesCausedByPlayer(20);
+      await service.countCasualtiesCausedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'casualty',
         'badly_hurt',
@@ -596,7 +617,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCasualtiesCausedByPlayer(undefined, 30);
+      await service.countCasualtiesCausedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -616,7 +637,7 @@ describe('PlayersService', () => {
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
       await expect(
-        service.countSeriousInjuriesCausedByPlayer(),
+        service.countSeriousInjuriesCausedByPlayer(undefined, undefined, 21),
       ).resolves.toEqual(rows);
     });
 
@@ -625,8 +646,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countSeriousInjuriesCausedByPlayer(20);
+      await service.countSeriousInjuriesCausedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'serious_injury',
         20,
@@ -638,7 +660,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countSeriousInjuriesCausedByPlayer(undefined, 30);
+      await service.countSeriousInjuriesCausedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -654,7 +676,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 2 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countDeathsCausedByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countDeathsCausedByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countDeathsCausedByPlayer adds an era filter when an eraId is given', async () => {
@@ -662,8 +686,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countDeathsCausedByPlayer(20);
+      await service.countDeathsCausedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'death',
         20,
@@ -675,7 +700,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countDeathsCausedByPlayer(undefined, 30);
+      await service.countDeathsCausedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -691,9 +716,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 6 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countFoulsCommittedByPlayer()).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countFoulsCommittedByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countFoulsCommittedByPlayer adds an era filter when an eraId is given', async () => {
@@ -701,8 +726,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countFoulsCommittedByPlayer(20);
+      await service.countFoulsCommittedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'foul',
         20,
@@ -714,7 +740,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countFoulsCommittedByPlayer(undefined, 30);
+      await service.countFoulsCommittedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.acting_player_id'],
@@ -730,7 +756,9 @@ describe('PlayersService', () => {
       const rows = [{ playerId: 1, name: 'Morg n Thorg', count: 5 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countTimesSentOffByPlayer()).resolves.toEqual(rows);
+      await expect(
+        service.countTimesSentOffByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
     });
 
     it('countTimesSentOffByPlayer adds an era filter when an eraId is given', async () => {
@@ -738,8 +766,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countTimesSentOffByPlayer(20);
+      await service.countTimesSentOffByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'sent_off',
         20,
@@ -751,7 +780,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countTimesSentOffByPlayer(undefined, 30);
+      await service.countTimesSentOffByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.consequence_player_id'],
@@ -770,9 +799,9 @@ describe('PlayersService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
-      await expect(service.countCasualtiesSufferedByPlayer()).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countCasualtiesSufferedByPlayer(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -781,8 +810,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCasualtiesSufferedByPlayer(20);
+      await service.countCasualtiesSufferedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'casualty',
         'badly_hurt',
@@ -804,7 +834,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCasualtiesSufferedByPlayer();
+      await service.countCasualtiesSufferedByPlayer(undefined, undefined, 21);
       const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'casualty',
@@ -826,7 +856,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countCasualtiesSufferedByPlayer(undefined, 30);
+      await service.countCasualtiesSufferedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.consequence_player_id'],
@@ -853,7 +883,7 @@ describe('PlayersService', () => {
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
       await expect(
-        service.countSeriousInjuriesSufferedByPlayer(),
+        service.countSeriousInjuriesSufferedByPlayer(undefined, undefined, 21),
       ).resolves.toEqual(rows);
     });
 
@@ -862,8 +892,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByPlayer(20);
+      await service.countSeriousInjuriesSufferedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'serious_injury',
         'niggling_injury',
@@ -882,7 +913,11 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByPlayer();
+      await service.countSeriousInjuriesSufferedByPlayer(
+        undefined,
+        undefined,
+        21,
+      );
       const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'serious_injury',
@@ -901,7 +936,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByPlayer(undefined, 30);
+      await service.countSeriousInjuriesSufferedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.consequence_player_id'],
@@ -925,7 +960,7 @@ describe('PlayersService', () => {
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new PlayersService({ select } as unknown as Db);
       await expect(
-        service.countLastingInjuriesSufferedByPlayer(),
+        service.countLastingInjuriesSufferedByPlayer(undefined, undefined, 21),
       ).resolves.toEqual(rows);
     });
 
@@ -934,8 +969,9 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countLastingInjuriesSufferedByPlayer(20);
+      await service.countLastingInjuriesSufferedByPlayer(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(builder.limit).toHaveBeenCalledWith(21);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'niggling_injury',
         'stat_reduction_ma',
@@ -952,7 +988,11 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countLastingInjuriesSufferedByPlayer();
+      await service.countLastingInjuriesSufferedByPlayer(
+        undefined,
+        undefined,
+        21,
+      );
       const condition = firstCallArg(builder.where);
       expect(extractFilterValues(condition)).toEqual([
         'niggling_injury',
@@ -969,7 +1009,7 @@ describe('PlayersService', () => {
       const service = new PlayersService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.countLastingInjuriesSufferedByPlayer(undefined, 30);
+      await service.countLastingInjuriesSufferedByPlayer(undefined, 30, 21);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['players.id', 'match_events.consequence_player_id'],

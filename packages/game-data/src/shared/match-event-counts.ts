@@ -55,6 +55,7 @@ export interface CountMatchEventsOptions {
   selector: MatchEventSelector;
   eraId?: number;
   competitionId?: number;
+  limit: number;
 }
 
 /**
@@ -64,7 +65,7 @@ export interface CountMatchEventsOptions {
 export async function countMatchEventsByPlayer(
   options: CountMatchEventsOptions,
 ): Promise<{ playerId: number; name: string; count: number }[]> {
-  const { db, selector, eraId, competitionId } = options;
+  const { db, selector, eraId, competitionId, limit } = options;
   return db
     .select({
       playerId: players.id,
@@ -94,7 +95,8 @@ export async function countMatchEventsByPlayer(
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(players.id, players.name)
-    .orderBy(desc(count(matchEvents.id)));
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
 }
 
 /**
@@ -107,7 +109,7 @@ export async function countMatchEventsByPlayer(
 export async function countMatchEventsByTeam(
   options: CountMatchEventsOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
-  const { db, selector, eraId, competitionId } = options;
+  const { db, selector, eraId, competitionId, limit } = options;
   return db
     .select({
       teamId: teams.id,
@@ -129,7 +131,8 @@ export async function countMatchEventsByTeam(
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(teams.id, teams.name)
-    .orderBy(desc(count(matchEvents.id)));
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
 }
 
 /**

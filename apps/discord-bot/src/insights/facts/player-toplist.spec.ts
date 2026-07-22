@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { PLAYER_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import {
   resolvePlayerCasualtiesCausedToplist,
   resolvePlayerCasualtiesSufferedToplist,
@@ -242,7 +243,7 @@ describe.each(cases)(
       const queryFn = vi.fn().mockResolvedValue(eraRows);
       const players = { [method]: queryFn } as unknown as PlayersService;
       await resolve(players, 20);
-      expect(queryFn).toHaveBeenCalledWith(20, undefined);
+      expect(queryFn).toHaveBeenCalledWith(20, undefined, TOPLIST_FETCH_LIMIT);
     });
 
     if (competitionRows) {
@@ -250,7 +251,11 @@ describe.each(cases)(
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const players = { [method]: queryFn } as unknown as PlayersService;
         await resolve(players, undefined, 30);
-        expect(queryFn).toHaveBeenCalledWith(undefined, 30);
+        expect(queryFn).toHaveBeenCalledWith(
+          undefined,
+          30,
+          TOPLIST_FETCH_LIMIT,
+        );
       });
     }
 

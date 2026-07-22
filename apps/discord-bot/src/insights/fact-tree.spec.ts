@@ -17,6 +17,7 @@ import { buildFactTree } from './fact-tree';
 import type { FactLeaf } from './fact-tree-utils';
 import { collectLeaves, resolvePath } from './fact-tree-utils';
 import type { StatsSummaryDeps } from './facts/stats-summary';
+import { TOPLIST_FETCH_LIMIT } from './leaderboard';
 
 function deps() {
   const zero = () => ({ countAll: vi.fn().mockResolvedValue(0) });
@@ -527,6 +528,7 @@ describe('buildFactTree competition capabilities', () => {
     expect(d.teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
       undefined,
       30,
+      TOPLIST_FETCH_LIMIT,
     );
   });
 
@@ -538,6 +540,7 @@ describe('buildFactTree competition capabilities', () => {
     expect(d.players.countMvpAwardsByPlayer).toHaveBeenCalledWith(
       undefined,
       30,
+      TOPLIST_FETCH_LIMIT,
     );
   });
 });

@@ -21,6 +21,7 @@ function makeQueryBuilder(rows: unknown[]): Record<string, unknown> {
   builder.where = vi.fn(() => builder);
   builder.groupBy = vi.fn(() => builder);
   builder.orderBy = vi.fn(() => builder);
+  builder.limit = vi.fn(() => builder);
   builder.then = (
     resolve: (v: unknown) => unknown,
     reject: (e: unknown) => unknown,
@@ -37,6 +38,7 @@ describe('countMatchEventsByPlayer', () => {
       countMatchEventsByPlayer({
         db,
         selector: { role: 'acting', types: ['touchdown'] },
+        limit: 21,
       }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
@@ -48,6 +50,7 @@ describe('countMatchEventsByPlayer', () => {
     await countMatchEventsByPlayer({
       db,
       selector: { role: 'acting', types: ['touchdown'] },
+      limit: 21,
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
@@ -60,12 +63,24 @@ describe('countMatchEventsByPlayer', () => {
     ]);
   });
 
+  it('applies the SQL limit to the query', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByPlayer({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      limit: 21,
+    });
+    expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
   it('joins four tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByPlayer({
       db,
       selector: { role: 'consequence', types: ['sent_off'] },
+      limit: 21,
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
@@ -88,6 +103,7 @@ describe('countMatchEventsByTeam', () => {
       countMatchEventsByTeam({
         db,
         selector: { role: 'acting', types: ['touchdown'] },
+        limit: 21,
       }),
     ).resolves.toEqual(rows);
     expect(select).toHaveBeenCalledTimes(1);
@@ -99,6 +115,7 @@ describe('countMatchEventsByTeam', () => {
     await countMatchEventsByTeam({
       db,
       selector: { role: 'consequence', types: ['death'] },
+      limit: 21,
     });
     expect(builder.innerJoin).toHaveBeenCalledTimes(4);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
@@ -109,6 +126,17 @@ describe('countMatchEventsByTeam', () => {
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'death',
     ]);
+  });
+
+  it('applies the SQL limit to the query', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByTeam({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      limit: 21,
+    });
+    expect(builder.limit).toHaveBeenCalledWith(21);
   });
 });
 
