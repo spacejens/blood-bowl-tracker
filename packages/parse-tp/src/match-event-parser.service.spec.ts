@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { MatchEventParserService } from './match-event-parser.service';
+import { secretObjectiveByCode } from './secret-objective';
 import { weatherTypeByCode } from './weather-type';
 
 const parser = new MatchEventParserService();
@@ -602,7 +603,7 @@ describe('MatchEventParserService', () => {
     });
   });
 
-  it('decodes a secret objective (code 42)', () => {
+  it('decodes a secret objective (code 42), mapping the raw code to a named value', () => {
     const [event] = parser.parse([
       {
         id: 37,
@@ -617,7 +618,49 @@ describe('MatchEventParserService', () => {
       tpEventId: 37,
       instant: '2024-07-09T16:09:45Z',
       rosterId: 60677,
-      secretObjective: 12,
+      secretObjective: 'just_a_little_further',
+    });
+  });
+
+  it.each(Object.entries(secretObjectiveByCode))(
+    'decodes secret-objective code %s to %s',
+    (code, name) => {
+      const [event] = parser.parse([
+        {
+          id: 1,
+          matchEventType: 42,
+          instant: 'x',
+          rosterId: 60677,
+          extraData: { secretObjective: Number(code) },
+        },
+      ]);
+      expect(event).toEqual({
+        type: 'secret_objective',
+        tpEventId: 1,
+        instant: 'x',
+        rosterId: 60677,
+        secretObjective: name,
+      });
+    },
+  );
+
+  it('has a decode test for every known secret-objective code (guards against silent shrinkage of the code map)', () => {
+    expect(Object.keys(secretObjectiveByCode)).toHaveLength(16);
+  });
+
+  it('decodes an unrecognized secret-objective code to unknown', () => {
+    const [event] = parser.parse([
+      {
+        id: 1,
+        matchEventType: 42,
+        instant: 'x',
+        rosterId: 60677,
+        extraData: { secretObjective: 999 },
+      },
+    ]);
+    expect(event).toMatchObject({
+      type: 'secret_objective',
+      secretObjective: 'unknown',
     });
   });
 

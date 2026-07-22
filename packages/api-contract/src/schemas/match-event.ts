@@ -76,6 +76,31 @@ export const WeatherTypeSchema = z.enum([
   'unknown',
 ]);
 
+/**
+ * The named secret-objective card a decoded `secret_objective` event carries.
+ * Mirrors the `game_data.secret_objective` enum; `'unknown'` is a permanent
+ * catch-all for codes not yet mapped.
+ */
+export const SecretObjectiveSchema = z.enum([
+  'red_card',
+  'didnt_need_them_anyway',
+  'going_alone',
+  'fouling_frenzy',
+  'going_surfing',
+  'ganging_up',
+  'whoops',
+  'not_so_fast',
+  'timely_tackle',
+  'precision_passing',
+  'hit_em_hard',
+  'just_a_little_further',
+  'go_long',
+  'nuffle_favors_the_bold',
+  'all_according_to_plan',
+  'headtaker',
+  'unknown',
+]);
+
 export const MatchEventSchema = z.object({
   id: z.number(),
   matchId: z.number(),
@@ -113,7 +138,7 @@ export const UpsertMatchEventSchema = z
      * different, non-sequential values, and the same value can recur
      * across different matches for different rosters.
      */
-    secretObjective: z.number().int().optional(),
+    secretObjective: SecretObjectiveSchema.optional(),
     expensiveMistake: z.number().int().optional(),
     externalIds: z.array(ExternalIdSchema).min(1),
   })
@@ -134,5 +159,6 @@ export type ActionType = z.infer<typeof ActionTypeSchema>;
 export type ConsequenceType = z.infer<typeof ConsequenceTypeSchema>;
 export type EventType = z.infer<typeof EventTypeSchema>;
 export type WeatherType = z.infer<typeof WeatherTypeSchema>;
+export type SecretObjective = z.infer<typeof SecretObjectiveSchema>;
 export type MatchEvent = z.infer<typeof MatchEventSchema>;
 export type UpsertMatchEvent = z.infer<typeof UpsertMatchEventSchema>;
