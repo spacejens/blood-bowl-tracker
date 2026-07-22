@@ -3,6 +3,10 @@ import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  extractFilterValues,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { LeaguesService, LeagueUpsertConflictError } from './leagues.service';
 
 const fakeLeague = {
@@ -145,6 +149,70 @@ describe('LeaguesService', () => {
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('findById', () => {
+    it('returns the matching league id and name', async () => {
+      const where = vi.fn().mockResolvedValue([{ id: 7, name: 'GBBL' }]);
+      const from = vi.fn(() => ({ where }));
+      const service = new LeaguesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(7)).resolves.toEqual({
+        id: 7,
+        name: 'GBBL',
+      });
+      expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe(7);
+    });
+
+    it('returns undefined when no league matches', async () => {
+      const where = vi.fn().mockResolvedValue([]);
+      const from = vi.fn(() => ({ where }));
+      const service = new LeaguesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.findById(999)).resolves.toBeUndefined();
+      expect(where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(where))).toBe(999);
+    });
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns leagues matching the prefix, limited', async () => {
+      const rows = [
+        { id: 1, name: 'GBBL' },
+        { id: 2, name: 'GBBL North' },
+      ];
+      const limit = vi.fn().mockResolvedValue(rows);
+      const where = vi.fn(() => ({ limit }));
+      const from = vi.fn(() => ({ where }));
+      const service = new LeaguesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+      await expect(service.searchByNamePrefix('GBBL', 25)).resolves.toEqual(
+        rows,
+      );
+      expect(limit).toHaveBeenCalledWith(25);
+    });
+
+    it('escapes LIKE metacharacters in the prefix before matching', async () => {
+      const limit = vi.fn().mockResolvedValue([]);
+      const where = vi.fn((_condition: { queryChunks: unknown[] }) => ({
+        limit,
+      }));
+      const from = vi.fn(() => ({ where }));
+      const service = new LeaguesService({
+        select: vi.fn(() => ({ from })),
+      } as unknown as Db);
+
+      await service.searchByNamePrefix('50%_\\off', 25);
+
+      expect(where).toHaveBeenCalledTimes(1);
+      const condition = where.mock.calls[0][0];
+      // The escaped pattern value is passed as a raw SQL parameter chunk.
+      expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
     });
   });
 });
