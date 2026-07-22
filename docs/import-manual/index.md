@@ -76,44 +76,48 @@ are tracked separately as issue #174).
 ### Worked example
 
 `data/before-other-importers/necromantic-2020.json5`:
+
 ```jsonc
 {
-  leagues: [
-    { name: "My League", externalIds: [{ system: "Name", id: "name:my-league" }] },
-  ],
-  rulesSets: [
-    { name: "CRP", externalIds: [{ system: "Name", id: "name:crp" }] },
-  ],
-  eras: [
+  "leagues": [
     {
-      name: "Season 12",
-      league: { system: "Name", id: "name:my-league" },
-      rulesSets: [{ system: "Name", id: "name:crp" }],
-      startDate: "2024-01-01",
-      externalIds: [{ system: "Name", id: "name:season-12" }],
+      "name": "My League",
+      "externalIds": [{ "system": "Name", "id": "name:my-league" }],
     },
   ],
-  races: [
+  "rulesSets": [
+    { "name": "CRP", "externalIds": [{ "system": "Name", "id": "name:crp" }] },
+  ],
+  "eras": [
     {
-      name: "Necromantic Horror",
-      eras: [{ system: "Name", id: "name:season-12" }],
-      externalIds: [
-        { system: "BBL", id: "id:47" },
-        { system: "Name", id: "name:necromantic-horror" },
+      "name": "Season 12",
+      "league": { "system": "Name", "id": "name:my-league" },
+      "rulesSets": [{ "system": "Name", "id": "name:crp" }],
+      "startDate": "2024-01-01",
+      "externalIds": [{ "system": "Name", "id": "name:season-12" }],
+    },
+  ],
+  "races": [
+    {
+      "name": "Necromantic Horror",
+      "eras": [{ "system": "Name", "id": "name:season-12" }],
+      "externalIds": [
+        { "system": "BBL", "id": "id:47" },
+        { "system": "Name", "id": "name:necromantic-horror" },
       ],
     },
   ],
-  positions: [
+  "positions": [
     {
-      name: "Zombie",
-      isStarPlayer: false,
-      raceEras: [
+      "name": "Zombie",
+      "isStarPlayer": false,
+      "raceEras": [
         {
-          race: { system: "Name", id: "name:necromantic-horror" },
-          era: { system: "Name", id: "name:season-12" },
+          "race": { "system": "Name", "id": "name:necromantic-horror" },
+          "era": { "system": "Name", "id": "name:season-12" },
         },
       ],
-      externalIds: [{ system: "Name", id: "name:zombie" }],
+      "externalIds": [{ "system": "Name", "id": "name:zombie" }],
     },
   ],
 }
@@ -130,17 +134,16 @@ real-world entity differently:
   variants.
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
 - `teams.json5` — team name variants.
-- `star-players.json5` — star player `Position` rows. BBL's star-player
-  upsert always attaches a `Name` external id equal to the star's bare name;
-  TP's star-player upserts (both the hired-via-inducement path and the
-  embedded-roster path — see [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed))
-  only attach a TP-system external id, never a `Name` one. Since `Position`
-  dedup is strictly by `(externalSystemId, externalId)` with no name
-  fallback, the same real star player imported from both systems ends up
-  with two separate rows unless pre-merged here. Only names verified to
-  match verbatim between BBL's `Name` id and TP's own id are listed — a
-  handful of TP star names have a close-but-not-identical BBL counterpart
-  (smart vs. straight quotes, a leading "The", a trailing epithet); these are
+- `star-players.json5` — star player `Position` rows. Both BBL and TP
+  importers now attach a `Name` external id equal to the star's bare name
+  across all three star-position code paths (the roster-catalog path, the
+  inducement-hire path, and the Big Guy mercenary fallback — see
+  [file-format.md](./file-format.md#rosters_idjson-races-positions-teams-and-players-parsed)).
+  Since star players whose names match verbatim between the two systems now
+  dedupe automatically via the shared `Name` external id, manual entries here
+  are no longer required for common cases. However, the file mechanism still
+  serves to resolve genuine spelling mismatches where BBL and TP disagree —
+  smart vs. straight quotes, a leading "The", trailing epithets — which are
   deliberately left unmerged rather than guessed at, for the same reason
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
