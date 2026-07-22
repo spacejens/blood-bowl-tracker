@@ -2,6 +2,7 @@ import type {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -105,6 +106,7 @@ function makeService(opts: {
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 
