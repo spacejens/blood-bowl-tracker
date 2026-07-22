@@ -274,6 +274,7 @@ describe('BblRacesImportService', () => {
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
+      new NameExternalIdService(),
     );
 
     const { result } = await service.importRaces();
@@ -304,6 +305,7 @@ describe('BblRacesImportService', () => {
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
+      new NameExternalIdService(),
     );
 
     const { result } = await service.importRaces();
