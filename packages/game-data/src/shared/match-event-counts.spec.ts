@@ -6,6 +6,8 @@ import {
   countMatchEventsByPlayer,
   countMatchEventsByTeam,
   countMatchEventsForPlayer,
+  listBiggestExpensiveMistakes,
+  sumExpensiveMistakesByTeam,
 } from './match-event-counts';
 import {
   extractAllFilterValues,
@@ -214,5 +216,43 @@ describe('countMatchEventsForPlayer', () => {
       'mvp_award',
       42,
     ]);
+  });
+});
+
+describe('sumExpensiveMistakesByTeam', () => {
+  it('applies the SQL limit to the query', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await sumExpensiveMistakesByTeam({ db, limit: 21 });
+    expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
+  it('returns the rows the query resolves to', async () => {
+    const rows = [{ teamId: 1, name: 'Reikland Reavers', count: 150000 }];
+    const builder = makeQueryBuilder(rows);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await expect(
+      sumExpensiveMistakesByTeam({ db, eraId: 5, competitionId: 6, limit: 21 }),
+    ).resolves.toEqual(rows);
+  });
+});
+
+describe('listBiggestExpensiveMistakes', () => {
+  it('applies the SQL limit to the query', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await listBiggestExpensiveMistakes({ db, limit: 21 });
+    expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
+  it('returns the labelled rows the query resolves to', async () => {
+    const rows = [
+      { teamId: 1, name: 'Reikland Reavers', count: 90000, date: '2026-01-02' },
+    ];
+    const builder = makeQueryBuilder(rows);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await expect(
+      listBiggestExpensiveMistakes({ db, limit: 21 }),
+    ).resolves.toEqual(rows);
   });
 });

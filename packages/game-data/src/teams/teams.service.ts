@@ -377,17 +377,29 @@ export class TeamsService {
   }
 
   sumExpensiveMistakesByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return querySumExpensiveMistakesByTeam(this.db, eraId, competitionId);
+    return querySumExpensiveMistakesByTeam({
+      db: this.db,
+      eraId,
+      competitionId,
+      limit,
+    });
   }
 
   listBiggestExpensiveMistakes(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
-    return queryListBiggestExpensiveMistakes(this.db, eraId, competitionId);
+    return queryListBiggestExpensiveMistakes({
+      db: this.db,
+      eraId,
+      competitionId,
+      limit,
+    });
   }
 
   countAll(): Promise<number> {

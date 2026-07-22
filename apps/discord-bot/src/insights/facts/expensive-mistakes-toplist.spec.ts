@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import {
   resolveTeamExpensiveMistakesBiggestToplist,
   resolveTeamExpensiveMistakesTotalToplist,
@@ -44,7 +45,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
       sumExpensiveMistakesByTeam: queryFn,
     } as unknown as TeamsService;
     await resolveTeamExpensiveMistakesTotalToplist(teams, 20, 30);
-    expect(queryFn).toHaveBeenCalledWith(20, 30);
+    expect(queryFn).toHaveBeenCalledWith(20, 30, TOPLIST_FETCH_LIMIT);
   });
 
   it('falls back to the timeout message when the query stalls', async () => {
@@ -99,7 +100,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
       listBiggestExpensiveMistakes: queryFn,
     } as unknown as TeamsService;
     await resolveTeamExpensiveMistakesBiggestToplist(teams, 20, 30);
-    expect(queryFn).toHaveBeenCalledWith(20, 30);
+    expect(queryFn).toHaveBeenCalledWith(20, 30, TOPLIST_FETCH_LIMIT);
   });
 
   it('falls back to the timeout message when the query stalls', async () => {

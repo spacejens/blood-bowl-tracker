@@ -757,8 +757,19 @@ describe('TeamsService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.sumExpensiveMistakesByTeam()).resolves.toEqual(rows);
+      await expect(
+        service.sumExpensiveMistakesByTeam(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('sumExpensiveMistakesByTeam applies the SQL limit to the query', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.sumExpensiveMistakesByTeam(undefined, undefined, 21);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('sumExpensiveMistakesByTeam filters on the expensive_mistake consequence and era', async () => {
@@ -766,7 +777,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam(20);
+      await service.sumExpensiveMistakesByTeam(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'expensive_mistake',
@@ -779,7 +790,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam(undefined, 30);
+      await service.sumExpensiveMistakesByTeam(undefined, 30, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -796,7 +807,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam();
+      await service.sumExpensiveMistakesByTeam(undefined, undefined, 21);
       expect(builder.groupBy).toHaveBeenCalledTimes(1);
     });
 
@@ -807,10 +818,19 @@ describe('TeamsService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new TeamsService({ select } as unknown as Db);
-      await expect(service.listBiggestExpensiveMistakes()).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.listBiggestExpensiveMistakes(undefined, undefined, 21),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('listBiggestExpensiveMistakes applies the SQL limit to the query', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new TeamsService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.listBiggestExpensiveMistakes(undefined, undefined, 21);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('listBiggestExpensiveMistakes filters on the expensive_mistake consequence and era', async () => {
@@ -818,7 +838,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.listBiggestExpensiveMistakes(20);
+      await service.listBiggestExpensiveMistakes(20, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'expensive_mistake',
@@ -831,7 +851,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.listBiggestExpensiveMistakes();
+      await service.listBiggestExpensiveMistakes(undefined, undefined, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(
         extractJoinColumns(firstCallArg(builder.where)).filter(
@@ -845,7 +865,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.listBiggestExpensiveMistakes(undefined, 30);
+      await service.listBiggestExpensiveMistakes(undefined, 30, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -862,7 +882,7 @@ describe('TeamsService', () => {
       const service = new TeamsService({
         select: vi.fn(() => builder),
       } as unknown as Db);
-      await service.listBiggestExpensiveMistakes();
+      await service.listBiggestExpensiveMistakes(undefined, undefined, 21);
       expect(builder.groupBy).not.toHaveBeenCalled();
     });
   });
