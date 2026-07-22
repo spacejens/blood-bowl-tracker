@@ -61,10 +61,12 @@ export class TpPositionsImportService {
   ): Promise<{
     result: ImportResult;
     positionIdsByTpPositionId: Map<number, number>;
+    starPositionIds: Set<number>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const positionIdsByTpPositionId = new Map<number, number>();
+    const starPositionIds = new Set<number>();
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -75,6 +77,7 @@ export class TpPositionsImportService {
       return {
         result: makeImportResult({ imported, errors }),
         positionIdsByTpPositionId,
+        starPositionIds,
       };
     }
     const [tpSystemId] = bootstrap.ids;
@@ -172,6 +175,7 @@ export class TpPositionsImportService {
         continue;
       }
       imported += 1;
+      starPositionIds.add(upserted.id);
       for (const tpPositionId of group.tpPositionIds) {
         const existing = positionIdsByTpPositionId.get(tpPositionId);
         if (existing !== undefined) {
@@ -190,6 +194,7 @@ export class TpPositionsImportService {
     return {
       result: makeImportResult({ imported, errors }),
       positionIdsByTpPositionId,
+      starPositionIds,
     };
   }
 }
