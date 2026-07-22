@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, raceEras, raceExternalIds, races } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -9,6 +10,35 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { RacesService, RaceUpsertConflictError } from './races.service';
+
+/**
+ * True when a captured aggregate expression is `countDistinct(...)` rather
+ * than plain `count(...)`. drizzle-orm renders `countDistinct` as
+ * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
+ * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
+ * Used to guard against double-counting when a join can legitimately produce
+ * more than one row per grouped entity (e.g. a team with `teamEras` rows in
+ * two eras of the same league).
+ */
+function isCountDistinct(expr: unknown): boolean {
+  if (!is(expr, SQL)) return false;
+  const first = expr.queryChunks[0];
+  return is(first, StringChunk) && first.value.join('').includes('distinct');
+}
+
+function makeQueryBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.groupBy = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
+}
 
 const fakeRace = {
   id: 1,
@@ -154,20 +184,6 @@ describe('RacesService', () => {
   });
 
   describe('toplist queries', () => {
-    function makeQueryBuilder(rows: unknown[]) {
-      const builder: Record<string, unknown> = {};
-      builder.from = vi.fn(() => builder);
-      builder.innerJoin = vi.fn(() => builder);
-      builder.where = vi.fn(() => builder);
-      builder.groupBy = vi.fn(() => builder);
-      builder.orderBy = vi.fn(() => builder);
-      builder.then = (
-        resolve: (v: unknown) => unknown,
-        reject: (e: unknown) => unknown,
-      ) => Promise.resolve(rows).then(resolve, reject);
-      return builder;
-    }
-
     it('countTeamsByRace returns the rows the query resolves to', async () => {
       const rows = [
         { raceId: 1, name: 'Orc', count: 12 },
@@ -175,14 +191,16 @@ describe('RacesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countTeamsByRace()).resolves.toEqual(rows);
+      await expect(service.countTeamsByRace({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+      const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
 
     it('countTeamsByRace returns an empty array when there is no data', async () => {
       const select = vi.fn(() => makeQueryBuilder([]));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countTeamsByRace()).resolves.toEqual([]);
+      await expect(service.countTeamsByRace({})).resolves.toEqual([]);
     });
 
     it('countTeamsByRace joins team_eras when an eraId is given', async () => {
@@ -190,7 +208,9 @@ describe('RacesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countTeamsByRace(20)).resolves.toEqual(rows);
+      await expect(service.countTeamsByRace({ eraId: 20 })).resolves.toEqual(
+        rows,
+      );
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -208,7 +228,7 @@ describe('RacesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByRace()).resolves.toEqual(rows);
+      await expect(service.countMatchesPlayedByRace({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -217,9 +237,58 @@ describe('RacesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByRace(20)).resolves.toEqual(rows);
+      await expect(
+        service.countMatchesPlayedByRace({ eraId: 20 }),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+    });
+  });
+
+  describe('league scoping', () => {
+    it('countMatchesPlayedByRace filters by league via the eras join', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new RacesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countMatchesPlayedByRace({ leagueId: 9 });
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('countTeamsByRace counts teams of the race active in an era of the league', async () => {
+      const rows = [{ raceId: 1, name: 'Orc', count: 2 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countTeamsByRace({ leagueId: 9 })).resolves.toEqual(
+        rows,
+      );
+      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
+      expect(builder.innerJoin).toHaveBeenCalledTimes(3);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id', 'eras.league_id'],
+      );
+    });
+
+    it('countTeamsByRace does not double-count a team with teamEras rows in two eras of the same league', async () => {
+      // The league scope joins teamEras unfiltered by era, then filters by
+      // eras.leagueId. A team with separate teamEras rows in two different
+      // eras of the *same* league (no unique constraint on teamId alone)
+      // would join to two rows and be counted twice unless the aggregate
+      // uses DISTINCT on teams.id.
+      const rows = [{ raceId: 1, name: 'Orc', count: 1 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new RacesService({ select } as unknown as Db);
+      await expect(service.countTeamsByRace({ leagueId: 9 })).resolves.toEqual(
+        rows,
+      );
+      const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
   });
 
