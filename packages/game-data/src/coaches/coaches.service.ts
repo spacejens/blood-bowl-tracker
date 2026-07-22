@@ -14,7 +14,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
@@ -180,7 +180,7 @@ export class CoachesService {
       .select({
         coachId: coaches.id,
         name: coaches.name,
-        count: count(teams.id),
+        count: countDistinct(teams.id),
       })
       .from(coaches)
       .innerJoin(teams, eq(teams.coachId, coaches.id));
@@ -191,7 +191,7 @@ export class CoachesService {
           and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
         )
         .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(count(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)));
     }
     if (scope.leagueId !== undefined) {
       return base
@@ -201,11 +201,11 @@ export class CoachesService {
           and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
         )
         .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(count(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)));
     }
     return base
       .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(count(teams.id)));
+      .orderBy(desc(countDistinct(teams.id)));
   }
 
   async countErasByCoach(): Promise<
