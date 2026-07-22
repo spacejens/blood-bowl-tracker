@@ -1,3 +1,4 @@
+import type { Dirent } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -51,7 +52,7 @@ export class TpSourceReader {
     const dataDir = this.sourceConfig.getDataDir();
     for (const era of this.eraConfig.getEras()) {
       const eraDir = join(dataDir, era.dataSubdir);
-      let competitions;
+      let competitions: Dirent[];
       try {
         competitions = await readdir(eraDir, { withFileTypes: true });
       } catch (error) {
