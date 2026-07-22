@@ -153,6 +153,7 @@ describe('schema', () => {
     expect(matchEvents.consequenceType).toBeDefined();
     expect(matchEvents.eventType).toBeDefined();
     expect(matchEvents.weatherType).toBeDefined();
+    expect(matchEvents.secretObjective).toBeDefined();
     expect(matchEvents.inducementsFromTreasury).toBeDefined();
   });
 
