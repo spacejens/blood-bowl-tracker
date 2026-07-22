@@ -47,6 +47,35 @@ export const ConsequenceTypeSchema = z.enum([
  */
 export const EventTypeSchema = z.enum(['weather']);
 
+/**
+ * The named weather condition a decoded `weather`-classified event carries.
+ * Mirrors the `game_data.weather_type` enum; `'unknown'` is a permanent
+ * catch-all for codes not yet mapped.
+ */
+export const WeatherTypeSchema = z.enum([
+  'dungeon',
+  'sweltering_heat',
+  'very_sunny',
+  'nice',
+  'pouring_rain',
+  'blizzard',
+  'morning_dew',
+  'blossoming_flowers',
+  'misty_morning',
+  'high_winds',
+  'perfect_conditions',
+  'melting_astrogranite',
+  'blinding_rays',
+  'monsoon',
+  'leaf_strewn_pitch',
+  'autumnal_chill',
+  'strong_winds',
+  'cold_winds',
+  'freezing',
+  'heavy_snow',
+  'unknown',
+]);
+
 export const MatchEventSchema = z.object({
   id: z.number(),
   matchId: z.number(),
@@ -69,7 +98,7 @@ export const UpsertMatchEventSchema = z
     actionType: ActionTypeSchema.optional(),
     consequenceType: ConsequenceTypeSchema.optional(),
     eventType: EventTypeSchema.optional(),
-    weatherType: z.number().int().optional(),
+    weatherType: WeatherTypeSchema.optional(),
     inducementsCost: z.number().int().optional(),
     inducementsFromTreasury: z.number().int().optional(),
     winnings: z.number().int().optional(),
@@ -104,5 +133,6 @@ export const UpsertMatchEventSchema = z
 export type ActionType = z.infer<typeof ActionTypeSchema>;
 export type ConsequenceType = z.infer<typeof ConsequenceTypeSchema>;
 export type EventType = z.infer<typeof EventTypeSchema>;
+export type WeatherType = z.infer<typeof WeatherTypeSchema>;
 export type MatchEvent = z.infer<typeof MatchEventSchema>;
 export type UpsertMatchEvent = z.infer<typeof UpsertMatchEventSchema>;

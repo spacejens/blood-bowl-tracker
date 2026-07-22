@@ -60,15 +60,26 @@ describe('UpsertMatchEventSchema', () => {
     expect(parsed.consequenceType).toBe('death');
   });
 
-  it('accepts an eventType-only event (weather)', () => {
+  it('accepts an eventType-only event (weather) with a decoded weatherType', () => {
     const parsed = UpsertMatchEventSchema.parse({
       ...base,
       eventType: 'weather',
-      weatherType: 104,
+      weatherType: 'perfect_conditions',
     });
     expect(parsed.eventType).toBe('weather');
+    expect(parsed.weatherType).toBe('perfect_conditions');
     expect(parsed.actionType).toBeUndefined();
     expect(parsed.consequenceType).toBeUndefined();
+  });
+
+  it('rejects a weatherType that is not a known enum value', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        eventType: 'weather',
+        weatherType: 'sunny_with_a_chance_of_orcs',
+      }),
+    ).toThrow();
   });
 
   it('rejects an event with both eventType and actionType set', () => {
