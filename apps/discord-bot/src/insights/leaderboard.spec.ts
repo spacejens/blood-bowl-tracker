@@ -1,11 +1,24 @@
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   formatLeaderboardEmbed,
+  MAX_EXACT_TIE_REMAINDER,
+  MAX_LEADERBOARD_ENTRIES,
   resolveToplist,
+  TOPLIST_FETCH_LIMIT,
   topRanksWithTies,
 } from './leaderboard';
+
+describe('TOPLIST_FETCH_LIMIT', () => {
+  it('is MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1', () => {
+    expect(TOPLIST_FETCH_LIMIT).toBe(
+      MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1,
+    );
+    // 10 shown + 10 exact-remainder headroom + 1 sentinel = 21
+    expect(TOPLIST_FETCH_LIMIT).toBe(21);
+  });
+});
 
 describe('topRanksWithTies', () => {
   it('assigns sequential ranks when there are no ties', () => {
@@ -202,7 +215,7 @@ describe('formatLeaderboardEmbed', () => {
         { name: 'b', count: 2, rank: 1 },
       ],
       noDataMessage: 'No data placeholder',
-      truncatedCount: 250,
+      tieRemainder: { type: 'exact', count: 250 },
     });
     expect(result).toEqual({
       embeds: [
@@ -211,6 +224,55 @@ describe('formatLeaderboardEmbed', () => {
           description: '1. a — 2\n1. b — 2\n…and 250 more tied.',
         },
       ],
+    });
+  });
+
+  it('renders an exact tie remainder as a numbered "more tied" line', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Teams by eras active',
+      rankedRows: [
+        { name: 'a', count: 2, rank: 1 },
+        { name: 'b', count: 2, rank: 1 },
+      ],
+      noDataMessage: 'No data placeholder',
+      tieRemainder: { type: 'exact', count: 7 },
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by eras active',
+          description: '1. a — 2\n1. b — 2\n…and 7 more tied.',
+        },
+      ],
+    });
+  });
+
+  it('renders an approximate tie remainder as "lots more tied"', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Teams by eras active',
+      rankedRows: [{ name: 'a', count: 2, rank: 1 }],
+      noDataMessage: 'No data placeholder',
+      tieRemainder: { type: 'approximate' },
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by eras active',
+          description: '1. a — 2\n…and lots more tied.',
+        },
+      ],
+    });
+  });
+
+  it('omits the remainder line for an exact count of zero', () => {
+    const result = formatLeaderboardEmbed({
+      title: 'Teams by eras active',
+      rankedRows: [{ name: 'a', count: 2, rank: 1 }],
+      noDataMessage: 'No data placeholder',
+      tieRemainder: { type: 'exact', count: 0 },
+    });
+    expect(result).toEqual({
+      embeds: [{ title: 'Teams by eras active', description: '1. a — 2' }],
     });
   });
 
@@ -391,5 +453,62 @@ describe('resolveToplist', () => {
         },
       ],
     });
+  });
+
+  it('reports an exact remainder when the fetch returns fewer than the limit', async () => {
+    // 12 rows all tied: below the 21-row window, so the remainder is exact.
+    const rows = Array.from({ length: 12 }, (_, i) => ({
+      name: `t${i}`,
+      count: 1,
+    }));
+    const result = await resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    });
+    const expectedLines = [
+      ...Array.from({ length: 10 }, (_, i) => `1. t${i} — 1`),
+      '…and 2 more tied.',
+    ];
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by eras active',
+          description: expectedLines.join('\n'),
+        },
+      ],
+    });
+  });
+
+  it('requests exactly TOPLIST_FETCH_LIMIT rows from fetchRows', async () => {
+    const fetchRows = vi.fn().mockResolvedValue([{ name: 'a', count: 1 }]);
+    await resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows,
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    });
+    expect(fetchRows).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
+  });
+
+  it('reports an approximate remainder and drops the sentinel when the fetch is saturated', async () => {
+    // Exactly TOPLIST_FETCH_LIMIT (21) rows: the last row is a sentinel proving
+    // the true set is larger, so the remainder is approximate and the sentinel is
+    // excluded from ranking (only 10 rows are rendered).
+    const rows = Array.from({ length: TOPLIST_FETCH_LIMIT }, (_, i) => ({
+      name: `t${i}`,
+      count: 1,
+    }));
+    const result = (await resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    })) as { embeds: { description: string }[] };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toHaveLength(11); // 10 rendered rows + 1 remainder line
+    expect(lines[10]).toBe('…and lots more tied.');
+    expect(lines).not.toContain(`1. t${TOPLIST_FETCH_LIMIT - 1} — 1`); // sentinel excluded
   });
 });

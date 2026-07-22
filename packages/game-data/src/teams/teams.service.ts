@@ -141,7 +141,8 @@ export class TeamsService {
   }
 
   async countMatchesPlayedByTeam(
-    eraId?: number,
+    eraId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -155,11 +156,13 @@ export class TeamsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(matches.id)));
+      .orderBy(desc(countDistinct(matches.id)))
+      .limit(limit);
   }
 
   async countCompetitionsByTeam(
-    eraId?: number,
+    eraId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -176,12 +179,13 @@ export class TeamsService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(competitions.id)));
+      .orderBy(desc(countDistinct(competitions.id)))
+      .limit(limit);
   }
 
-  async countErasByTeam(): Promise<
-    { teamId: number; name: string; count: number }[]
-  > {
+  async countErasByTeam(
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
     return this.db
       .select({
         teamId: teams.id,
@@ -191,177 +195,216 @@ export class TeamsService {
       .from(teamEras)
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .groupBy(teams.id, teams.name)
-      .orderBy(desc(countDistinct(teamEras.eraId)));
+      .orderBy(desc(countDistinct(teamEras.eraId)))
+      .limit(limit);
   }
 
   countTouchdownsScoredByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countCompletionsByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: COMPLETION_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countInterceptionsByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countDeflectionsByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEFLECTION_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countCasualtiesCausedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countSeriousInjuriesCausedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countDeathsCausedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countFoulsCommittedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countTimesSentOffByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countCasualtiesSufferedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countSeriousInjuriesSufferedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countLastingInjuriesSufferedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   countDeathsSufferedByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: DEATH_SUFFERED_TYPES },
       eraId,
       competitionId,
+      limit,
     });
   }
 
   sumExpensiveMistakesByTeam(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return querySumExpensiveMistakesByTeam(this.db, eraId, competitionId);
+    return querySumExpensiveMistakesByTeam({
+      db: this.db,
+      eraId,
+      competitionId,
+      limit,
+    });
   }
 
   listBiggestExpensiveMistakes(
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
-    return queryListBiggestExpensiveMistakes(this.db, eraId, competitionId);
+    return queryListBiggestExpensiveMistakes({
+      db: this.db,
+      eraId,
+      competitionId,
+      limit,
+    });
   }
 
   countAll(): Promise<number> {

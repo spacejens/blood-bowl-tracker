@@ -4,6 +4,7 @@ import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
 } from '../error-messages';
+import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard';
 import {
   chatInput,
   makeService,
@@ -62,7 +63,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.teams.countCompetitionsByTeam as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20],
+      expectedCallArgs: [20, TOPLIST_FETCH_LIMIT],
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },
@@ -80,7 +81,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.players.countMvpAwardsByPlayer as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [20, undefined],
+      expectedCallArgs: [20, undefined, TOPLIST_FETCH_LIMIT],
       expectedTitle: 'Players by MVP awards — BB2020',
       expectedDescription: '1. Griff Oberwald — 7',
     },
@@ -188,6 +189,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(players.countTouchdownsScoredByPlayer).toHaveBeenCalledWith(
       20,
       undefined,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -212,7 +214,11 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('team.toplist.interceptions', '20'),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(20, undefined);
+    expect(teams.countInterceptionsByTeam).toHaveBeenCalledWith(
+      20,
+      undefined,
+      TOPLIST_FETCH_LIMIT,
+    );
     expect(result).toEqual(
       expect.objectContaining({
         embeds: [
@@ -239,6 +245,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(players.countCasualtiesCausedByPlayer).toHaveBeenCalledWith(
       20,
       undefined,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -266,6 +273,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(teams.countSeriousInjuriesCausedByTeam).toHaveBeenCalledWith(
       20,
       undefined,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -293,6 +301,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(players.countCasualtiesSufferedByPlayer).toHaveBeenCalledWith(
       20,
       undefined,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({
@@ -320,6 +329,7 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     expect(teams.countLastingInjuriesSufferedByTeam).toHaveBeenCalledWith(
       20,
       undefined,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({

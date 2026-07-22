@@ -16,8 +16,9 @@ interface CountedRow {
  */
 export type ScopedCountMethods<TService> = {
   [K in keyof TService]: TService[K] extends (
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ) => Promise<CountedRow[]>
     ? K
     : never;
@@ -50,7 +51,11 @@ export function makeToplistResolvers<
   TMethod extends string,
   TService extends Record<
     TMethod,
-    (eraId?: number, competitionId?: number) => Promise<TRow[]>
+    (
+      eraId: number | undefined,
+      competitionId: number | undefined,
+      limit: number,
+    ) => Promise<TRow[]>
   >,
   TRow extends CountedRow = CountedRow,
 >(
@@ -62,7 +67,7 @@ export function makeToplistResolvers<
     resolvers[method] = (service, eraId, competitionId) => {
       return resolveToplist({
         title: titles[method],
-        fetchRows: () => service[method](eraId, competitionId),
+        fetchRows: (limit) => service[method](eraId, competitionId, limit),
         timeoutMessage,
         noDataMessage,
         buildCustomId,

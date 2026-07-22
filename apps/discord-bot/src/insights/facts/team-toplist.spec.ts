@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import {
   resolveTeamCasualtiesCausedToplist,
   resolveTeamCasualtiesSufferedToplist,
@@ -261,7 +262,9 @@ describe.each(cases)(
         const teams = { [method]: queryFn } as unknown as TeamsService;
         await resolve(teams, 20);
         expect(queryFn).toHaveBeenCalledWith(
-          ...(competitionRows ? [20, undefined] : [20]),
+          ...(competitionRows
+            ? [20, undefined, TOPLIST_FETCH_LIMIT]
+            : [20, TOPLIST_FETCH_LIMIT]),
         );
       });
     }
@@ -271,7 +274,11 @@ describe.each(cases)(
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
         await resolve(teams, undefined, 30);
-        expect(queryFn).toHaveBeenCalledWith(undefined, 30);
+        expect(queryFn).toHaveBeenCalledWith(
+          undefined,
+          30,
+          TOPLIST_FETCH_LIMIT,
+        );
       });
     }
 
@@ -287,3 +294,12 @@ describe.each(cases)(
     });
   },
 );
+
+describe('resolveTeamErasActiveToplist', () => {
+  it('passes the fetch limit through to the query', async () => {
+    const queryFn = vi.fn().mockResolvedValue([]);
+    const teams = { countErasByTeam: queryFn } as unknown as TeamsService;
+    await resolveTeamErasActiveToplist(teams);
+    expect(queryFn).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
+  });
+});

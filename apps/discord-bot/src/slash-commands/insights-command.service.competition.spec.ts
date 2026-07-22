@@ -5,6 +5,7 @@ import {
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE,
 } from '../error-messages';
+import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard';
 import {
   chatInput,
   makeService,
@@ -56,6 +57,7 @@ describe('InsightsCommandService — competition scoping', () => {
     expect(teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
       undefined,
       30,
+      TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
       expect.objectContaining({

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import { makeToplistResolvers } from './toplist-factory';
 
 /**
@@ -11,12 +12,14 @@ import { makeToplistResolvers } from './toplist-factory';
  */
 interface StubService {
   alpha: (
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ) => Promise<{ name: string; count: number }[]>;
   beta: (
-    eraId?: number,
-    competitionId?: number,
+    eraId: number | undefined,
+    competitionId: number | undefined,
+    limit: number,
   ) => Promise<{ name: string; count: number }[]>;
 }
 
@@ -38,7 +41,7 @@ describe('makeToplistResolvers', () => {
     });
     const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
     const reply = await resolvers.alpha({ alpha } as never, 7, 9);
-    expect(alpha).toHaveBeenCalledWith(7, 9);
+    expect(alpha).toHaveBeenCalledWith(7, 9, TOPLIST_FETCH_LIMIT);
     expect(reply).toEqual({
       embeds: [{ title: 'A title', description: '1. Griff — 3' }],
     });
@@ -60,8 +63,9 @@ describe('makeToplistResolvers', () => {
   it('threads buildCustomId through to one button per row', async () => {
     interface TeamStub {
       gamma: (
-        eraId?: number,
-        competitionId?: number,
+        eraId: number | undefined,
+        competitionId: number | undefined,
+        limit: number,
       ) => Promise<{ teamId: number; name: string; count: number }[]>;
     }
     const resolvers = makeToplistResolvers<

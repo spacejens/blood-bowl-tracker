@@ -101,7 +101,7 @@ export async function resolveTeamMatchesPlayedToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by matches played',
-    fetchRows: () => teams.countMatchesPlayedByTeam(eraId),
+    fetchRows: (limit: number) => teams.countMatchesPlayedByTeam(eraId, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: teamButtonId,
@@ -114,7 +114,7 @@ export async function resolveTeamCompetitionsPlayedToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by competitions played',
-    fetchRows: () => teams.countCompetitionsByTeam(eraId),
+    fetchRows: (limit: number) => teams.countCompetitionsByTeam(eraId, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: teamButtonId,
@@ -126,7 +126,7 @@ export async function resolveTeamErasActiveToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by eras active',
-    fetchRows: () => teams.countErasByTeam(),
+    fetchRows: (limit: number) => teams.countErasByTeam(limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: teamButtonId,
