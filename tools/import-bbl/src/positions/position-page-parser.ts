@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { BblPage } from '../source/bbl-page';
 
 /** One race a position can play for: its numeric BBL id and display name. */
-export interface BblPositionRace {
+interface BblPositionRace {
   bblId: string;
   name: string;
 }

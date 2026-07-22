@@ -9,13 +9,13 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 export type BblEventSide = 'home' | 'away';
 
-export interface BblActionOccurrence {
+interface BblActionOccurrence {
   actionType: ActionType;
   side: BblEventSide;
   pid: string | null;
 }
 
-export interface BblConsequenceOccurrence {
+interface BblConsequenceOccurrence {
   consequenceType: ConsequenceType;
   side: BblEventSide;
   pid: string | null;

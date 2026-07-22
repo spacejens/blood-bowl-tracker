@@ -20,21 +20,21 @@
     "@blood-bowl-tracker/api-client": "workspace:*",
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/import": "workspace:*",
-    "cheerio": "^1.0.0",
+    "cheerio": "^1.2.0",
     "json5": "^2.2.3",
-    "@nestjs/common": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.27",
+    "@nestjs/core": "^11.1.28",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.27",
-    "@swc/core": "^1.15.43",
+    "@nestjs/testing": "^11.1.28",
+    "@swc/core": "^1.15.46",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.9",
-    "vite": "^8.1.3",
+    "vite": "^8.1.5",
     "vitest": "^4.1.10"
   }
 }

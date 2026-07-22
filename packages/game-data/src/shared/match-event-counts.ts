@@ -14,16 +14,6 @@ import type { ActionType, ConsequenceType } from './match-event-types';
 import { EXPENSIVE_MISTAKE_TYPES } from './match-event-types';
 
 /**
- * Which side of a match event the counted entity was on. This co-varies
- * perfectly with the join columns — an acting-role count joins through
- * `actingPlayerId`/`actingMatchTeamId` and filters `actionType`; a
- * consequence-role count joins through `consequencePlayerId`/
- * `consequenceMatchTeamId` and filters `consequenceType` — so it is a single
- * axis rather than two.
- */
-export type MatchEventRole = 'acting' | 'consequence';
-
-/**
  * A role paired with the type set that role's filter operates over. Modelled
  * as a discriminated union (rather than independent `role` and `types`
  * parameters) so that a role/type-set mismatch — e.g. `role: 'acting'` with
@@ -40,7 +30,7 @@ export type MatchEventSelector =
  * `undefined` for either scope means "no filter", matching the public
  * `count*` signatures.
  */
-export function matchEventFilter(
+function matchEventFilter(
   selector: MatchEventSelector,
   eraId?: number,
   competitionId?: number,

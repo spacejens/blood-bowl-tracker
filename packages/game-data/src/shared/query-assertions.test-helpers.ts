@@ -16,7 +16,7 @@ import {
  */
 
 /** Recover the literal value drizzle stored inside a `Param`. */
-export function paramValue(param: Param): string | number {
+function paramValue(param: Param): string | number {
   return (param as unknown as { value: string | number }).value;
 }
 
