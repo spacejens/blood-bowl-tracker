@@ -599,7 +599,7 @@ describe('TpPlayersImportService', () => {
       {
         name: 'Giant Mercenary',
         isStarPlayer: true,
-        externalIds: [{ externalSystemId: 1, externalId: 'Giant Mercenary' }],
+        externalIds: [{ externalSystemId: 2, externalId: 'Giant Mercenary' }],
       },
       expect.anything(),
     );
