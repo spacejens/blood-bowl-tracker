@@ -49,8 +49,8 @@ export const EventTypeSchema = z.enum(['weather']);
 
 /**
  * The named weather condition a decoded `weather`-classified event carries.
- * Mirrors parse-tp's `WeatherType` and the `game_data.weather_type` enum;
- * `'unknown'` is a permanent catch-all for TP codes not yet mapped.
+ * Mirrors the `game_data.weather_type` enum; `'unknown'` is a permanent
+ * catch-all for codes not yet mapped.
  */
 export const WeatherTypeSchema = z.enum([
   'dungeon',

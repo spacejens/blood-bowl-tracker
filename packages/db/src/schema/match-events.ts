@@ -54,10 +54,11 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
 export const eventTypeEnum = gameData.enum('event_type', ['weather']);
 
 /**
- * The named weather condition a `weather`-classified event decodes to (from
- * TP's raw integer code, decoded in parse-tp). `'unknown'` is a permanent
- * catch-all for TP codes not yet mapped. Only set on `weather` events, the
- * same way `actionType`/`consequenceType` are only set on their own kinds.
+ * The named weather condition a `weather`-classified event decodes to, from
+ * an importer's raw source-specific weather code (decoded before import
+ * reaches this schema). `'unknown'` is a permanent catch-all for codes not
+ * yet mapped. Only set on `weather` events, the same way
+ * `actionType`/`consequenceType` are only set on their own kinds.
  */
 export const weatherTypeEnum = gameData.enum('weather_type', [
   'dungeon',
@@ -106,8 +107,8 @@ const matchEventsTable = historyTrackedTable({
     eventType: eventTypeEnum('event_type'),
     /**
      * The decoded, named weather condition for a `weather`-classified event
-     * (nullable because it is only set on those events). Decoded from TP's
-     * raw integer code in parse-tp; see `weatherTypeEnum`.
+     * (nullable because it is only set on those events). Decoded upstream,
+     * before import reaches this schema; see `weatherTypeEnum`.
      */
     weatherType: weatherTypeEnum('weather_type'),
     inducementsCost: integer('inducements_cost'),
