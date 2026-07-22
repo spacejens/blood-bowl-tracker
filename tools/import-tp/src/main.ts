@@ -16,6 +16,7 @@ import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
+import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
@@ -76,7 +77,11 @@ async function run(): Promise<ImportResult> {
         eraIdsByName: eraOutcome.eraIdsByName,
       });
 
-    const { result: positionResult, positionIdsByTpPositionId } = await app
+    const {
+      result: positionResult,
+      positionIdsByTpPositionId,
+      starPositionIds,
+    } = await app
       .get(TpPositionsImportService)
       .importPositions(
         rosters,
@@ -206,6 +211,7 @@ async function run(): Promise<ImportResult> {
       result: playerResult,
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
+      starPositionUsages,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
@@ -213,7 +219,23 @@ async function run(): Promise<ImportResult> {
       positionIdsByTpPositionId,
       inducedStarPlayerHireGroups,
       matchEmbeddedPlayersByRosterId,
+      starPositionIds,
     });
+
+    // Star positions get zero positions_race_eras rows from the regular
+    // position sync (they're grouped by name, not race), so this post-players
+    // step derives their (race, era) availability from actual usage -- the
+    // starPositionUsages the players step just emitted. Regular positions are
+    // already handled by TpPositionsImportService. Runs after players because
+    // star usage (which team/race+era fielded each star) is only known once
+    // players are imported. Idempotent (syncRaceEras is upsert-only).
+    const positionRaceErasOutcome = await app
+      .get(TpPositionRaceErasImportService)
+      .syncStarPositionRaceEras({
+        starPositionUsages,
+        raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
+        eraIdsByName: eraOutcome.eraIdsByName,
+      });
 
     // Team participation (match_teams + competition_teams) runs before match
     // events: match events resolve team-era ids the same way (roster id +
@@ -257,6 +279,7 @@ async function run(): Promise<ImportResult> {
       teamOutcome.result,
       positionResult,
       playerResult,
+      positionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       matchEventsOutcome.result,
     ];

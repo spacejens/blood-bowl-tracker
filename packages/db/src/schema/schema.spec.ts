@@ -68,6 +68,7 @@ describe('schema', () => {
   it('exports externalSystems table', () => {
     expect(externalSystems.id).toBeDefined();
     expect(externalSystems.name).toBeDefined();
+    expect(externalSystems.isBookkeeping).toBeDefined();
   });
 
   it('exports coachExternalIds join table', () => {

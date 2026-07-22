@@ -100,7 +100,11 @@ describe('TpCoachesImportService', () => {
 
     await service.importCoaches();
 
-    expect(bootstrap).toHaveBeenCalledWith(['TP', 'Name', 'NAF']);
+    expect(bootstrap).toHaveBeenCalledWith([
+      { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
+      { name: 'NAF', isBookkeeping: false },
+    ]);
   });
 
   it('gives a coach with a nafNumber three external ids', async () => {

@@ -4,11 +4,12 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
+  NAME_EXTERNAL_SYSTEM_NAME,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NAME_EXTERNAL_SYSTEM_NAME } from '../source/external-system-names';
 import { EraConfig, EraConfigService } from './era-config.service';
 
 @Injectable()
@@ -52,8 +53,8 @@ export class BblErasImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      bblSystemName,
-      NAME_EXTERNAL_SYSTEM_NAME,
+      { name: bblSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);

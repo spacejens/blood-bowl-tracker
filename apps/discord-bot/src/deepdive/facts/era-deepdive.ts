@@ -1,6 +1,7 @@
 import type {
   CompetitionsService,
   ErasService,
+  ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
@@ -9,6 +10,7 @@ import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_TIMEOUT_MESSAGE,
+  DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE,
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -36,9 +38,13 @@ type Competition = {
  */
 export async function resolveEraDeepdive(
   eraId: number,
-  services: { eras: ErasService; competitions: CompetitionsService },
+  services: {
+    eras: ErasService;
+    competitions: CompetitionsService;
+    externalSystems: ExternalSystemsService;
+  },
 ): Promise<string | InteractionReplyOptions> {
-  const { eras, competitions } = services;
+  const { eras, competitions, externalSystems } = services;
 
   const era: EraHeader | undefined | null = await withDatabaseTimeout(
     eras.findByIdWithLeague(eraId),
@@ -67,9 +73,21 @@ export async function resolveEraDeepdive(
     return DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE;
   }
 
+  const externalSystemNames: string[] | null = await withDatabaseTimeout(
+    externalSystems.listNamesByEra(eraId),
+    null,
+  );
+  if (externalSystemNames === null) {
+    return DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE;
+  }
+
   const end = era.endDate ?? 'present';
   const rules =
     rulesSetNames.length > 0 ? rulesSetNames.join(', ') : 'None recorded';
+  const externalSystemsLine =
+    externalSystemNames.length > 0
+      ? externalSystemNames.join(', ')
+      : 'None recorded';
   const competitionLines =
     comps.length > 0
       ? comps.map((comp) => `${comp.name} (${comp.type})`)
@@ -79,6 +97,7 @@ export async function resolveEraDeepdive(
     `League: ${era.leagueName}`,
     `Dates: ${era.startDate} – ${end}`,
     `Rules: ${rules}`,
+    `External systems: ${externalSystemsLine}`,
     '',
     ...competitionLines,
   ].join('\n');

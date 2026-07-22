@@ -1,0 +1,2 @@
+ALTER TABLE "game_data"."external_systems" ADD COLUMN "is_bookkeeping" boolean NOT NULL;--> statement-breakpoint
+ALTER TABLE "game_data"."external_systems_history" ADD COLUMN "is_bookkeeping" boolean NOT NULL;

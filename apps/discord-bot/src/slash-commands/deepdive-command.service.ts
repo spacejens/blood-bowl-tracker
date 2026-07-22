@@ -4,6 +4,7 @@ import {
   CoachesService,
   CompetitionsService,
   ErasService,
+  ExternalSystemsService,
   PlayersService,
   RacesService,
   TeamsService,
@@ -55,6 +56,7 @@ export class DeepdiveCommandService implements OnModuleInit {
   constructor(
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
+    private readonly externalSystems: ExternalSystemsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
@@ -280,6 +282,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     return resolveEraDeepdive(id, {
       eras: this.eras,
       competitions: this.competitions,
+      externalSystems: this.externalSystems,
     });
   }
 

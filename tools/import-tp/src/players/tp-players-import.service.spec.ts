@@ -704,4 +704,136 @@ describe('TpPlayersImportService', () => {
     expect(upsertPosition).not.toHaveBeenCalled();
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
+
+  it('emits no starPositionUsages for a regular (non-star) roster player', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const service = makeService({ upsertPlayerResult });
+
+    const { starPositionUsages } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+      // no starPositionIds -> position 200 is not a star position
+    });
+
+    expect(starPositionUsages).toEqual([]);
+  });
+
+  it('emits a starPositionUsage for an embedded roster player whose position is a star position', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const service = makeService({ upsertPlayerResult });
+    const embeddedStarRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Dwarf',
+          raceName: 'Dwarf',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 42,
+              name: "Morg 'n' Thorg",
+              number: 1,
+              lineUpMasterId: 5002,
+              rosterId: 123,
+              fallbackPositionName: 'x',
+              isBigGuy: false,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { starPositionUsages } = await service.importPlayers({
+      rosters: embeddedStarRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[5002, 800]]),
+      starPositionIds: new Set([800]),
+    });
+
+    expect(starPositionUsages).toEqual([
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits a starPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 902 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 820 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const mercRosters: RosterEntry[] = [
+      {
+        era: 'Third Era',
+        competition: 'comp',
+        roster: {
+          id: 123,
+          teamName: 'Team 123',
+          teamRaceCode: 'Dwarf',
+          raceName: 'Dwarf',
+          coachTpId: 'coach-1',
+          positions: [],
+          starPositions: [],
+          players: [
+            {
+              id: 55,
+              name: 'Giant',
+              number: 1,
+              lineUpMasterId: 9999,
+              rosterId: 123,
+              fallbackPositionName: 'Giant',
+              isBigGuy: true,
+            },
+          ],
+        },
+      },
+    ];
+
+    const { starPositionUsages } = await service.importPlayers({
+      rosters: mercRosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(), // 9999 unresolved -> mercenary fallback
+    });
+
+    expect(starPositionUsages).toEqual([
+      { positionId: 820, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ]);
+  });
+
+  it('emits a starPositionUsage for an inducements-hired star player', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 810 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    const { starPositionUsages } = await service.importPlayers({
+      rosters, // roster 123 -> teamRaceCode 'Dwarf', era 'Third Era'
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 123,
+          eraId: 500,
+          starPlayers: [
+            { name: 'Griff Oberwald', lineUpMasterId: 7001, number: 1 },
+          ],
+        },
+      ],
+    });
+
+    // The regular roster player (position 200) is NOT a star, so only the
+    // induced star player contributes a usage.
+    expect(starPositionUsages).toContainEqual({
+      positionId: 810,
+      teamRaceCode: 'Dwarf',
+      era: 'Third Era',
+    });
+    expect(starPositionUsages).toHaveLength(1);
+  });
 });

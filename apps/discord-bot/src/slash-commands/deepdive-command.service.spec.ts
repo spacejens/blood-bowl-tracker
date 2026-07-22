@@ -3,6 +3,7 @@ import type {
   CoachesService,
   CompetitionsService,
   ErasService,
+  ExternalSystemsService,
   PlayersService,
   RacesService,
   TeamsService,
@@ -42,6 +43,9 @@ function makeService() {
   const competitions = {
     listByEraChronological: vi.fn().mockResolvedValue([]),
   } as unknown as CompetitionsService;
+  const externalSystems = {
+    listNamesByEra: vi.fn().mockResolvedValue([]),
+  } as unknown as ExternalSystemsService;
   const coaches = {
     findById: vi.fn().mockResolvedValue(undefined),
     getCareerSpan: vi.fn().mockResolvedValue(undefined),
@@ -74,6 +78,7 @@ function makeService() {
   const service = new DeepdiveCommandService(
     eras,
     competitions,
+    externalSystems,
     coaches,
     teams,
     players,
@@ -85,6 +90,7 @@ function makeService() {
     service,
     eras,
     competitions,
+    externalSystems,
     coaches,
     teams,
     players,
@@ -222,6 +228,7 @@ describe('DeepdiveCommandService', () => {
             'League: Premier',
             'Dates: 2021-09-01 – present',
             'Rules: BB2020',
+            'External systems: None recorded',
             '',
             'Season 1 (season)',
           ].join('\n'),
