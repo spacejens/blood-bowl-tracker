@@ -294,7 +294,7 @@ describe('MatchEventParserService', () => {
     });
   });
 
-  it('decodes a weather roll (code 10)', () => {
+  it('decodes a weather roll (code 10), mapping the raw code to a named value', () => {
     expect(
       parser.parse([
         {
@@ -309,9 +309,51 @@ describe('MatchEventParserService', () => {
         type: 'weather_roll',
         tpEventId: 1,
         instant: '2026-01-17T17:56:05Z',
-        weatherType: 104,
+        weatherType: 'perfect_conditions',
       },
     ]);
+  });
+
+  it.each([
+    [0, 'dungeon'],
+    [10, 'sweltering_heat'],
+    [30, 'nice'],
+    [50, 'blizzard'],
+    [100, 'morning_dew'],
+    [103, 'high_winds'],
+    [105, 'melting_astrogranite'],
+    [108, 'leaf_strewn_pitch'],
+    [113, 'heavy_snow'],
+  ])('decodes weather code %i to %s', (code, name) => {
+    const [event] = parser.parse([
+      {
+        id: 1,
+        matchEventType: 10,
+        instant: 'x',
+        extraData: { weatherType: code },
+      },
+    ]);
+    expect(event).toEqual({
+      type: 'weather_roll',
+      tpEventId: 1,
+      instant: 'x',
+      weatherType: name,
+    });
+  });
+
+  it('decodes an unrecognized weather code to unknown', () => {
+    const [event] = parser.parse([
+      {
+        id: 1,
+        matchEventType: 10,
+        instant: 'x',
+        extraData: { weatherType: 999 },
+      },
+    ]);
+    expect(event).toMatchObject({
+      type: 'weather_roll',
+      weatherType: 'unknown',
+    });
   });
 
   it('decodes an inducements roll (code 11) with induced star players', () => {
