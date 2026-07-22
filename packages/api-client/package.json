@@ -17,14 +17,14 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/api-contract": "workspace:*",
-    "@nestjs/common": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
     "@orpc/client": "^1.14.7",
     "@orpc/contract": "^1.14.7",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.27",
+    "@nestjs/testing": "^11.1.28",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",

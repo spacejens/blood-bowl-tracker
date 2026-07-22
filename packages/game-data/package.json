@@ -19,12 +19,12 @@
   "dependencies": {
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@blood-bowl-tracker/db": "workspace:*",
-    "@nestjs/common": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
     "drizzle-orm": "rc",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.27",
+    "@nestjs/testing": "^11.1.28",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",

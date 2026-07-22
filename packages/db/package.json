@@ -20,7 +20,7 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.27",
+    "@nestjs/common": "^11.1.28",
     "drizzle-orm": "rc",
     "postgres": "^3.4.9",
     "reflect-metadata": "^0.2.2"
