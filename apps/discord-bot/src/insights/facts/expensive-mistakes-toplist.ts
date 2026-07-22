@@ -26,7 +26,8 @@ export async function resolveTeamExpensiveMistakesTotalToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by money lost to expensive mistakes',
-    fetchRows: () => teams.sumExpensiveMistakesByTeam(eraId, competitionId),
+    fetchRows: (limit) =>
+      teams.sumExpensiveMistakesByTeam(eraId, competitionId, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: (row) => teamButtonId(row),
@@ -41,7 +42,8 @@ export async function resolveTeamExpensiveMistakesBiggestToplist(
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Biggest expensive mistakes',
-    fetchRows: () => teams.listBiggestExpensiveMistakes(eraId, competitionId),
+    fetchRows: (limit) =>
+      teams.listBiggestExpensiveMistakes(eraId, competitionId, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: (row) => teamButtonId(row),

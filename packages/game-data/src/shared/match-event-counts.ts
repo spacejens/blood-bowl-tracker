@@ -55,6 +55,7 @@ export interface CountMatchEventsOptions {
   selector: MatchEventSelector;
   eraId?: number;
   competitionId?: number;
+  limit: number;
 }
 
 /**
@@ -64,7 +65,7 @@ export interface CountMatchEventsOptions {
 export async function countMatchEventsByPlayer(
   options: CountMatchEventsOptions,
 ): Promise<{ playerId: number; name: string; count: number }[]> {
-  const { db, selector, eraId, competitionId } = options;
+  const { db, selector, eraId, competitionId, limit } = options;
   return db
     .select({
       playerId: players.id,
@@ -94,7 +95,8 @@ export async function countMatchEventsByPlayer(
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(players.id, players.name)
-    .orderBy(desc(count(matchEvents.id)));
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
 }
 
 /**
@@ -107,7 +109,7 @@ export async function countMatchEventsByPlayer(
 export async function countMatchEventsByTeam(
   options: CountMatchEventsOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
-  const { db, selector, eraId, competitionId } = options;
+  const { db, selector, eraId, competitionId, limit } = options;
   return db
     .select({
       teamId: teams.id,
@@ -129,7 +131,8 @@ export async function countMatchEventsByTeam(
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(teams.id, teams.name)
-    .orderBy(desc(count(matchEvents.id)));
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
 }
 
 /**
@@ -226,6 +229,17 @@ export async function countMatchEventsForPlayer(
 }
 
 /**
+ * Options shared by the two expensive-mistake queries: the database handle,
+ * the optional era/competition scope, and the required SQL row cap.
+ */
+export interface ExpensiveMistakesOptions {
+  db: Db;
+  eraId?: number;
+  competitionId?: number;
+  limit: number;
+}
+
+/**
  * Money each team has lost to expensive mistakes, summed per team and ordered
  * most-first. Shares countMatchEventsByTeam's consequence-side join graph and
  * the expensive-mistake filter, but sums matchEvents.expensiveMistake
@@ -233,10 +247,9 @@ export async function countMatchEventsForPlayer(
  * separate from the count helper because the aggregate and result shape differ.
  */
 export async function sumExpensiveMistakesByTeam(
-  db: Db,
-  eraId?: number,
-  competitionId?: number,
+  options: ExpensiveMistakesOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
+  const { db, eraId, competitionId, limit } = options;
   const selector = {
     role: 'consequence',
     types: EXPENSIVE_MISTAKE_TYPES,
@@ -254,7 +267,8 @@ export async function sumExpensiveMistakesByTeam(
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .where(matchEventFilter(selector, eraId, competitionId))
     .groupBy(teams.id, teams.name)
-    .orderBy(desc(total));
+    .orderBy(desc(total))
+    .limit(limit);
 }
 
 /**
@@ -265,17 +279,14 @@ export async function sumExpensiveMistakesByTeam(
  * leaderboard's ranking shape, and a team may legitimately appear on several
  * rows.
  *
- * Fetches the full matching row set rather than applying a SQL `LIMIT` — fine
- * at a hobby league's expected total historical event count, but worth
- * revisiting if event volume grows much larger. A hard `LIMIT` isn't safe here
- * because it could cut off part of a tie group that `topRanksWithTies` needs
- * to see in full to rank correctly.
+ * Bounded by the caller-supplied `limit` — the render layer passes a generous
+ * fetch limit (see `TOPLIST_FETCH_LIMIT`) so that `topRanksWithTies` still has
+ * enough rows to see a full tie group at the cutoff.
  */
 export async function listBiggestExpensiveMistakes(
-  db: Db,
-  eraId?: number,
-  competitionId?: number,
+  options: ExpensiveMistakesOptions,
 ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+  const { db, eraId, competitionId, limit } = options;
   const selector = {
     role: 'consequence',
     types: EXPENSIVE_MISTAKE_TYPES,
@@ -301,5 +312,6 @@ export async function listBiggestExpensiveMistakes(
         isNotNull(matchEvents.expensiveMistake),
       ),
     )
-    .orderBy(desc(matchEvents.expensiveMistake));
+    .orderBy(desc(matchEvents.expensiveMistake))
+    .limit(limit);
 }
