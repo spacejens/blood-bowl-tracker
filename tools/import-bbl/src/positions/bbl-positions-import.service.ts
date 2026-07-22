@@ -4,6 +4,7 @@ import {
   makeImportError,
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -34,6 +35,7 @@ interface RaceExternalIdsOptions {
   typId: string;
   race: { bblId: string; name: string };
   positionName: string;
+  nameExternalId: NameExternalIdService;
 }
 
 /**
@@ -41,12 +43,19 @@ interface RaceExternalIdsOptions {
  * external ids for one (position, race) pairing.
  */
 function raceExternalIds(options: RaceExternalIdsOptions): ExternalIdPair[] {
-  const { bblSystemId, nameSystemId, typId, race, positionName } = options;
+  const {
+    bblSystemId,
+    nameSystemId,
+    typId,
+    race,
+    positionName,
+    nameExternalId,
+  } = options;
   return [
     { externalSystemId: bblSystemId, externalId: `${typId}-${race.bblId}` },
     {
       externalSystemId: nameSystemId,
-      externalId: `${race.name}: ${positionName}`,
+      externalId: nameExternalId.forPosition(race.name, positionName),
     },
   ];
 }
@@ -60,6 +69,7 @@ export class BblPositionsImportService {
     private readonly positionsImport: PositionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -209,6 +219,7 @@ export class BblPositionsImportService {
                 typId: position.typId,
                 race,
                 positionName: position.name,
+                nameExternalId: this.nameExternalId,
               }),
             },
             errors,
@@ -243,7 +254,10 @@ export class BblPositionsImportService {
 
         if (position.isStarPlayer) {
           const externalIds: ExternalIdPair[] = [
-            { externalSystemId: nameSystemId, externalId: position.name },
+            {
+              externalSystemId: nameSystemId,
+              externalId: this.nameExternalId.forStarPosition(position.name),
+            },
             ...resolved.flatMap((race) =>
               raceExternalIds({
                 bblSystemId,
@@ -251,6 +265,7 @@ export class BblPositionsImportService {
                 typId: position.typId,
                 race,
                 positionName: position.name,
+                nameExternalId: this.nameExternalId,
               }),
             ),
           ];
@@ -288,6 +303,7 @@ export class BblPositionsImportService {
                   typId: position.typId,
                   race,
                   positionName: position.name,
+                  nameExternalId: this.nameExternalId,
                 }),
               },
               errors,
