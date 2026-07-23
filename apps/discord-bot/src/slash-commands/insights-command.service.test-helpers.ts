@@ -18,6 +18,7 @@ import type {
 import { vi } from 'vitest';
 
 import { buildFactTree } from '../insights/fact-tree';
+import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { InsightsCommandService } from './insights-command.service';
 import type { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -220,6 +221,7 @@ export function makeService() {
       competitions,
       factTree,
       registry as unknown as SlashCommandRegistryService,
+      new FactTreeUtilsService(),
     ),
     coaches,
     teams,

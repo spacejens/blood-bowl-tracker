@@ -14,7 +14,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { buildFactTree } from './fact-tree';
-import type { FactNode } from './fact-tree-utils';
+import type { FactNode } from './fact-tree.types';
 
 /**
  * Wraps the pure `buildFactTree()` in a Nest provider so the assembled fact

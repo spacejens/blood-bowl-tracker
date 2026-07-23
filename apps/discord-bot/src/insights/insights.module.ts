@@ -16,6 +16,7 @@ import { Module } from '@nestjs/common';
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
+import { FactTreeUtilsService } from './fact-tree-utils.service';
 import { LeaderboardService } from './leaderboard.service';
 
 const GAME_DATA_MODULES = [
@@ -38,6 +39,7 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     LeaderboardService,
     FactTreeFactoryService,
+    FactTreeUtilsService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -48,6 +50,7 @@ const GAME_DATA_MODULES = [
     ...GAME_DATA_MODULES,
     DatabaseTimeoutService,
     LeaderboardService,
+    FactTreeUtilsService,
     FACT_TREE,
   ],
 })

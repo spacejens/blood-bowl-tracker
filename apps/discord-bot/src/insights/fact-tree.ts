@@ -1,4 +1,4 @@
-import type { FactNode } from './fact-tree-utils';
+import type { FactNode } from './fact-tree.types';
 import {
   resolveCoachCompetitionsPlayedToplist,
   resolveCoachErasActiveToplist,

@@ -14,7 +14,9 @@ import type {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FactTreeFactoryService } from './fact-tree-factory.service';
-import { collectLeaves, resolvePath } from './fact-tree-utils';
+import { FactTreeUtilsService } from './fact-tree-utils.service';
+
+const factTreeUtils = new FactTreeUtilsService();
 
 function makeFactory() {
   const zero = () => ({
@@ -82,12 +84,15 @@ describe('FactTreeFactoryService', () => {
     const { factory } = makeFactory();
     const tree = factory.build();
     // buildFactTree currently produces 39 leaves (see fact-tree.spec.ts).
-    expect(collectLeaves(tree)).toHaveLength(39);
+    expect(factTreeUtils.collectLeaves(tree)).toHaveLength(39);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
     const { factory, coaches } = makeFactory();
-    const leaf = resolvePath(factory.build(), 'coach.toplist.matches.played');
+    const leaf = factTreeUtils.resolvePath(
+      factory.build(),
+      'coach.toplist.matches.played',
+    );
     expect(leaf).toBeDefined();
     // resolvePath returns a FactNode; narrow to a leaf and resolve it.
     await (
