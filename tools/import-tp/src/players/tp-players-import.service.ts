@@ -215,6 +215,7 @@ export class TpPlayersImportService {
         if (positionId === undefined && player.isBigGuy) {
           positionId = await this.resolveMercenaryPositionId({
             player,
+            tpSystemId,
             nameSystemId,
             mercenaryPositionIdsByName,
             errors,
@@ -291,6 +292,7 @@ export class TpPlayersImportService {
               name: starPlayer.name,
               isStarPlayer: true,
               externalIds: [
+                { externalSystemId: tpSystemId, externalId: starPlayer.name },
                 {
                   externalSystemId: nameSystemId,
                   externalId: this.nameExternalId.forStarPosition(
@@ -353,12 +355,18 @@ export class TpPlayersImportService {
    */
   private async resolveMercenaryPositionId(options: {
     player: TpRosterPlayer;
+    tpSystemId: number;
     nameSystemId: number;
     mercenaryPositionIdsByName: Map<string, number>;
     errors: ImportError[];
   }): Promise<number | undefined> {
-    const { player, nameSystemId, mercenaryPositionIdsByName, errors } =
-      options;
+    const {
+      player,
+      tpSystemId,
+      nameSystemId,
+      mercenaryPositionIdsByName,
+      errors,
+    } = options;
     const cached = mercenaryPositionIdsByName.get(player.fallbackPositionName);
     if (cached !== undefined) {
       return cached;
@@ -369,6 +377,10 @@ export class TpPlayersImportService {
         name: player.fallbackPositionName,
         isStarPlayer: true,
         externalIds: [
+          {
+            externalSystemId: tpSystemId,
+            externalId: player.fallbackPositionName,
+          },
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forStarPosition(

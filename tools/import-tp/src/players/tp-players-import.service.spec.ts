@@ -373,6 +373,7 @@ describe('TpPlayersImportService', () => {
       .map((c) => c[0] as UpsertPosition)
       .find((d) => d.isStarPlayer && d.name === 'Griff Oberwald');
     expect(starPositionUpsert?.externalIds).toEqual([
+      { externalSystemId: 1, externalId: 'Griff Oberwald' },
       { externalSystemId: 2, externalId: 'Griff Oberwald' },
     ]);
   });
@@ -599,7 +600,10 @@ describe('TpPlayersImportService', () => {
       {
         name: 'Giant Mercenary',
         isStarPlayer: true,
-        externalIds: [{ externalSystemId: 2, externalId: 'Giant Mercenary' }],
+        externalIds: [
+          { externalSystemId: 1, externalId: 'Giant Mercenary' },
+          { externalSystemId: 2, externalId: 'Giant Mercenary' },
+        ],
       },
       expect.anything(),
     );

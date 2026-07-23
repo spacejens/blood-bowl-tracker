@@ -59,9 +59,11 @@ export class TpPositionsImportService {
    * syncRaceEras. A roster whose race cannot be resolved is recorded as an
    * error and its positions skipped. Regular positions import with
    * `isStarPlayer: false`. Star positions (from `roster.starPositions`) are
-   * grouped by name only, upserted with `isStarPlayer: true` and a Name-system
-   * bare-name external id (deduping onto the same row the inducement-hire path
-   * and the BBL importer's star positions use), and merged into the same
+   * grouped by name only, upserted with `isStarPlayer: true` and BOTH a
+   * TP-system bare-name external id (`group.name`, preserving TP's own
+   * catalog-independent star id) AND a Name-system bare-name external id
+   * (deduping onto the same row the inducement-hire path and the BBL
+   * importer's star positions use), and merged into the same
    * `positionIdsByTpPositionId` map keyed by their TP catalog id; a catalog id
    * colliding with an already-mapped id is skipped with a non-fatal error.
    * `rosters` is the already-collected roster list (via
@@ -177,9 +179,11 @@ export class TpPositionsImportService {
     }
 
     // Star positions: grouped by name only (not race — the same named star
-    // player is the same entity regardless of team/race), upserted with a
-    // bare-name external id so they dedupe onto the SAME Position row the
-    // inducement-hire path (#198) and the BBL importer create. No syncRaceEras
+    // player is the same entity regardless of team/race), upserted with two
+    // bare-name external ids: a TP-system one (preserving TP's own
+    // catalog-independent star id) and a Name-system one so they dedupe onto
+    // the SAME Position row the inducement-hire path (#198) and the BBL
+    // importer create. No syncRaceEras
     // (not race-scoped). Ids merge into the same positionIdsByTpPositionId map,
     // keyed by the star catalog's own tpPositionId.
     const starGroups = new Map<string, StarPositionGroup>();
@@ -199,6 +203,7 @@ export class TpPositionsImportService {
         name: group.name,
         isStarPlayer: true,
         externalIds: [
+          { externalSystemId: tpSystemId, externalId: group.name },
           {
             externalSystemId: nameSystemId,
             externalId: this.nameExternalId.forStarPosition(group.name),
