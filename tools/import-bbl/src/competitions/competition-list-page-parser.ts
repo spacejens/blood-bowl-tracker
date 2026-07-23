@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 
 /** A competition's id/name read off the master dropdown on an se/sr page. */
 export interface BblCompetition {
@@ -32,7 +33,7 @@ export class CompetitionListPageParser {
         return;
       }
       const bblId = match[1];
-      const name = $(element).text().trim();
+      const name = normalizeExtractedText($(element).text());
       if (!name || seen.has(bblId)) {
         return;
       }

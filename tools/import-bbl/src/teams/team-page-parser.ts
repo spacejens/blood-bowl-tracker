@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 
 /**
  * A team extracted from BBL source data. `id` is the team's alphanumeric BBL
@@ -25,7 +26,7 @@ export class TeamPageParser {
       return null;
     }
     const $ = page.load();
-    const name = $('h1').first().text().trim();
+    const name = normalizeExtractedText($('h1').first().text());
     if (!name) {
       return null;
     }

@@ -24,6 +24,15 @@ describe('RaceListPageParser', () => {
     ]);
   });
 
+  it('normalizes an internal non-breaking space in the race name', () => {
+    const page = listPage(
+      '<a name="48"></a><b>College&nbsp;of&nbsp;Shadow</b>',
+    );
+    expect(parser.extractRaces(page)).toEqual([
+      { id: '48', name: 'College of Shadow' },
+    ]);
+  });
+
   it('ignores roster <b> rows that follow the race-name <b>', () => {
     const page = listPage(
       '<a name="48"></a><b>College of Shadow</b>' +

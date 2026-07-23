@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 
 /**
  * A race extracted from BBL source data. `id` is the race's numeric BBL
@@ -26,11 +27,12 @@ export class RacePageParser {
     let race: BblRace | null = null;
 
     $('td').each((_index, element) => {
-      if ($(element).text().trim() === 'Race:') {
+      if (normalizeExtractedText($(element).text()) === 'Race:') {
         const cell = $(element).next('td');
-        // trim() strips the leading `&nbsp;` (U+00A0) and surrounding
-        // whitespace; the name itself is preserved exactly.
-        const name = cell.text().trim();
+        // normalizeExtractedText strips the leading `&nbsp;` (U+00A0) and
+        // surrounding whitespace and collapses any internal whitespace (a
+        // non-breaking space between words) to a single ASCII space.
+        const name = normalizeExtractedText(cell.text());
         const href = cell.find('a').attr('href') ?? '';
         const idMatch = /#(\d+)/.exec(href);
         if (name && idMatch) {

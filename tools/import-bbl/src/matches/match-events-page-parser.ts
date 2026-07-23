@@ -5,6 +5,7 @@ import type {
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 export type BblEventSide = 'home' | 'away';
@@ -92,7 +93,7 @@ export class MatchEventsPageParser {
       if (cells.length !== 3) {
         return;
       }
-      const label = $(cells[1]).text().trim();
+      const label = normalizeExtractedText($(cells[1]).text());
       if (!label) {
         return;
       }
@@ -101,7 +102,11 @@ export class MatchEventsPageParser {
 
       for (const side of ['home', 'away'] as const) {
         const cell = side === 'home' ? homeCell : awayCell;
-        if (cell.text().toLowerCase().includes('journeyman')) {
+        if (
+          normalizeExtractedText(cell.text())
+            .toLowerCase()
+            .includes('journeyman')
+        ) {
           journeymenFloor[side] = true;
         }
       }
@@ -208,14 +213,9 @@ export class MatchEventsPageParser {
       return pids;
     }
     // No links: a non-empty, non-spacer text node means one anonymous victim.
-    const text = cell
-      .clone()
-      .find('img')
-      .remove()
-      .end()
-      .text()
-      .replace(/\u00A0/g, ' ')
-      .trim();
+    const text = normalizeExtractedText(
+      cell.clone().find('img').remove().end().text(),
+    );
     return text.length > 0 ? [null] : [];
   }
 
@@ -236,14 +236,9 @@ export class MatchEventsPageParser {
       if (fragment.find('a').length > 0) {
         continue;
       }
-      const text = fragment
-        .find('img')
-        .remove()
-        .end()
-        .text()
-        .replace(/\u00A0/g, ' ')
-        .trim()
-        .toLowerCase();
+      const text = normalizeExtractedText(
+        fragment.find('img').remove().end().text(),
+      ).toLowerCase();
       if (text === 'journeyman') {
         count += 1;
       }
