@@ -1,4 +1,4 @@
-import type { RacesService } from '@blood-bowl-tracker/game-data';
+import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 

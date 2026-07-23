@@ -1,4 +1,5 @@
-import type { FactScope, PlayersService } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { PlayersService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';

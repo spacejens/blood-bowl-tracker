@@ -1,9 +1,9 @@
-import type {
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import {
   CoachesService,
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
-  FactScope,
   LeaguesService,
   MatchesService,
   PlayersService,

@@ -1,4 +1,5 @@
-import type { ErasService, FactScope } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { ErasService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 import { ButtonStyle, ComponentType } from 'discord.js';
