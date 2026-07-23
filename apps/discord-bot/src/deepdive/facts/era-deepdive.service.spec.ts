@@ -5,6 +5,7 @@ import type {
 } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
@@ -14,7 +15,8 @@ import {
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { resolveEraDeepdive } from './era-deepdive';
+import { LeaderboardService } from '../../insights/leaderboard.service';
+import { EraDeepdiveService } from './era-deepdive.service';
 
 type EraHeader = {
   id: number;
@@ -23,6 +25,20 @@ type EraHeader = {
   startDate: string;
   endDate: string | null;
 };
+
+function makeService(
+  eras: ErasService,
+  competitions: CompetitionsService,
+  externalSystems: ExternalSystemsService,
+): EraDeepdiveService {
+  return new EraDeepdiveService(
+    eras,
+    competitions,
+    externalSystems,
+    new DatabaseTimeoutService(),
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
 
 function makeServices(options: {
   era?: EraHeader;
@@ -51,17 +67,18 @@ function makeServices(options: {
   return { eras, competitions, externalSystems };
 }
 
-describe('resolveEraDeepdive', () => {
+describe('EraDeepdiveService', () => {
   it('returns the not-found message when the era does not exist', async () => {
-    const result = await resolveEraDeepdive(
-      999,
-      makeServices({ era: undefined }),
-    );
+    const { eras, competitions, externalSystems } = makeServices({
+      era: undefined,
+    });
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
 
   it('renders league, dates, rules, and the competition list', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -76,7 +93,8 @@ describe('resolveEraDeepdive', () => {
         { id: 11, name: 'Winter Cup', type: 'cup' },
       ],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
         {
@@ -96,7 +114,7 @@ describe('resolveEraDeepdive', () => {
   });
 
   it('shows "present" for an ongoing era and "None recorded" when it has no rules sets', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -107,7 +125,8 @@ describe('resolveEraDeepdive', () => {
       rulesSetNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
         {
@@ -126,7 +145,7 @@ describe('resolveEraDeepdive', () => {
   });
 
   it('renders competitions in the order the service returns (played first, unplayed last)', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -134,15 +153,14 @@ describe('resolveEraDeepdive', () => {
         startDate: '2021-09-01',
         endDate: null,
       },
-      // The service is responsible for the nulls-last SQL ordering; the
-      // resolver must render exactly that order without re-sorting.
       competitions: [
         { id: 10, name: 'Early Season', type: 'season' },
         { id: 11, name: 'Later Cup', type: 'cup' },
         { id: 12, name: 'Unplayed Cup', type: 'cup' },
       ],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     const lines = description.split('\n');
@@ -154,7 +172,7 @@ describe('resolveEraDeepdive', () => {
   });
 
   it('shows the no-competitions message when the era has none', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -164,7 +182,8 @@ describe('resolveEraDeepdive', () => {
       },
       competitions: [],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
         {
@@ -183,7 +202,7 @@ describe('resolveEraDeepdive', () => {
   });
 
   it('shows "None recorded" when the era has no non-bookkeeping systems', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -194,14 +213,15 @@ describe('resolveEraDeepdive', () => {
       externalSystemNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('External systems: None recorded');
   });
 
   it('renders a Primary button per competition, keyed by competition id', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -214,7 +234,8 @@ describe('resolveEraDeepdive', () => {
         { id: 11, name: 'Spike Cup', type: 'cup' },
       ],
     });
-    const result = (await resolveEraDeepdive(1, services)) as unknown as {
+    const service = makeService(eras, competitions, externalSystems);
+    const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = result.components.flatMap((row) => row.components);
@@ -235,7 +256,7 @@ describe('resolveEraDeepdive', () => {
   });
 
   it('omits components when the era has no competitions', async () => {
-    const services = makeServices({
+    const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
         name: 'BB2020',
@@ -245,7 +266,8 @@ describe('resolveEraDeepdive', () => {
       },
       competitions: [],
     });
-    const result = await resolveEraDeepdive(1, services);
+    const service = makeService(eras, competitions, externalSystems);
+    const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
   });
 
@@ -255,7 +277,12 @@ describe('resolveEraDeepdive', () => {
         eras: ErasService;
         competitions: CompetitionsService;
         externalSystems: ExternalSystemsService;
-      }) => resolveEraDeepdive(1, services),
+      }) =>
+        makeService(
+          services.eras,
+          services.competitions,
+          services.externalSystems,
+        ).resolve(1),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -278,7 +305,12 @@ describe('resolveEraDeepdive', () => {
         eras: ErasService;
         competitions: CompetitionsService;
         externalSystems: ExternalSystemsService;
-      }) => resolveEraDeepdive(1, services),
+      }) =>
+        makeService(
+          services.eras,
+          services.competitions,
+          services.externalSystems,
+        ).resolve(1),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockResolvedValue({
@@ -307,7 +339,12 @@ describe('resolveEraDeepdive', () => {
         eras: ErasService;
         competitions: CompetitionsService;
         externalSystems: ExternalSystemsService;
-      }) => resolveEraDeepdive(1, services),
+      }) =>
+        makeService(
+          services.eras,
+          services.competitions,
+          services.externalSystems,
+        ).resolve(1),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockResolvedValue({
@@ -338,7 +375,12 @@ describe('resolveEraDeepdive', () => {
         eras: ErasService;
         competitions: CompetitionsService;
         externalSystems: ExternalSystemsService;
-      }) => resolveEraDeepdive(1, services),
+      }) =>
+        makeService(
+          services.eras,
+          services.competitions,
+          services.externalSystems,
+        ).resolve(1),
       () => ({
         eras: {
           findByIdWithLeague: vi.fn().mockResolvedValue({

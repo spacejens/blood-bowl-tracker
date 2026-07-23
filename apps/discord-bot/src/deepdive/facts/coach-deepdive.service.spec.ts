@@ -1,6 +1,7 @@
 import type { CoachesService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -9,13 +10,14 @@ import {
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { resolveCoachDeepdive } from './coach-deepdive';
+import { LeaderboardService } from '../../insights/leaderboard.service';
+import { CoachDeepdiveService } from './coach-deepdive.service';
 
-function makeServices(options: {
+function makeService(options: {
   coach?: { id: number; name: string };
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
-}): { coaches: CoachesService } {
+}): CoachDeepdiveService {
   const coaches = {
     findById: vi.fn().mockResolvedValue(options.coach),
     getCareerSpan: vi.fn().mockResolvedValue(options.span),
@@ -23,20 +25,22 @@ function makeServices(options: {
       .fn()
       .mockResolvedValue(options.topTeams ?? []),
   } as unknown as CoachesService;
-  return { coaches };
+  return new CoachDeepdiveService(
+    coaches,
+    new DatabaseTimeoutService(),
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
 }
 
-describe('resolveCoachDeepdive', () => {
+describe('CoachDeepdiveService', () => {
   it('returns the not-found message when the coach does not exist', async () => {
-    const result = await resolveCoachDeepdive(
-      999,
-      makeServices({ coach: undefined }),
-    );
+    const service = makeService({ coach: undefined });
+    const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
   });
 
   it('renders the career span and top-teams list', async () => {
-    const services = makeServices({
+    const service = makeService({
       coach: { id: 1, name: 'Roze Madder' },
       span: { start: '2021-09-01', end: '2023-06-10' },
       topTeams: [
@@ -44,7 +48,7 @@ describe('resolveCoachDeepdive', () => {
         { id: 22, name: 'Gouged Eye', count: 5 },
       ],
     });
-    const result = await resolveCoachDeepdive(1, services);
+    const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
         {
@@ -81,7 +85,7 @@ describe('resolveCoachDeepdive', () => {
   });
 
   it('renders a Primary button per listed team, keyed by team id', async () => {
-    const services = makeServices({
+    const service = makeService({
       coach: { id: 1, name: 'Roze Madder' },
       span: { start: '2021-09-01', end: '2023-06-10' },
       topTeams: [
@@ -89,7 +93,7 @@ describe('resolveCoachDeepdive', () => {
         { id: 22, name: 'Gouged Eye', count: 5 },
       ],
     });
-    const result = (await resolveCoachDeepdive(1, services)) as unknown as {
+    const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = result.components.flatMap((row) => row.components);
@@ -105,11 +109,11 @@ describe('resolveCoachDeepdive', () => {
   });
 
   it('omits components when the coach has no matches', async () => {
-    const services = makeServices({
+    const service = makeService({
       coach: { id: 1, name: 'Roze Madder' },
       span: undefined,
     });
-    const result = await resolveCoachDeepdive(1, services);
+    const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
   });
 
@@ -126,12 +130,12 @@ describe('resolveCoachDeepdive', () => {
       { id: 9, name: 'I', count: 9 },
       { id: 10, name: 'J', count: 9 },
     ];
-    const services = makeServices({
+    const service = makeService({
       coach: { id: 1, name: 'Roze Madder' },
       span: { start: '2021-09-01', end: '2023-06-10' },
       topTeams,
     });
-    const result = (await resolveCoachDeepdive(1, services)) as {
+    const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
@@ -143,11 +147,17 @@ describe('resolveCoachDeepdive', () => {
   });
 
   it('shows the no-matches message and skips the top-teams section', async () => {
-    const services = makeServices({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: undefined,
-    });
-    const result = await resolveCoachDeepdive(1, services);
+    const coaches = {
+      findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
+      getCareerSpan: vi.fn().mockResolvedValue(undefined),
+      getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
+    } as unknown as CoachesService;
+    const service = new CoachDeepdiveService(
+      coaches,
+      new DatabaseTimeoutService(),
+      new LeaderboardService(new DatabaseTimeoutService()),
+    );
+    const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
         {
@@ -158,45 +168,55 @@ describe('resolveCoachDeepdive', () => {
     });
     // Top-teams lookup must not run for a coach with no matches.
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(services.coaches.getTopTeamsByMatchesPlayed).not.toHaveBeenCalled();
+    expect(coaches.getTopTeamsByMatchesPlayed).not.toHaveBeenCalled();
   });
 
   it('falls back to the coach timeout message when the coach lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { coaches: CoachesService }) =>
-        resolveCoachDeepdive(1, services),
-      () => ({
-        coaches: {
+      (coaches: CoachesService) =>
+        new CoachDeepdiveService(
+          coaches,
+          new DatabaseTimeoutService(),
+          new LeaderboardService(new DatabaseTimeoutService()),
+        ).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockReturnValue(new Promise(() => {})),
           getCareerSpan: vi.fn(),
           getTopTeamsByMatchesPlayed: vi.fn(),
-        } as unknown as CoachesService,
-      }),
+        }) as unknown as CoachesService,
       DEEPDIVE_COACH_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the career timeout message when the span lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { coaches: CoachesService }) =>
-        resolveCoachDeepdive(1, services),
-      () => ({
-        coaches: {
+      (coaches: CoachesService) =>
+        new CoachDeepdiveService(
+          coaches,
+          new DatabaseTimeoutService(),
+          new LeaderboardService(new DatabaseTimeoutService()),
+        ).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
           getCareerSpan: vi.fn().mockReturnValue(new Promise(() => {})),
           getTopTeamsByMatchesPlayed: vi.fn(),
-        } as unknown as CoachesService,
-      }),
+        }) as unknown as CoachesService,
       DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { coaches: CoachesService }) =>
-        resolveCoachDeepdive(1, services),
-      () => ({
-        coaches: {
+      (coaches: CoachesService) =>
+        new CoachDeepdiveService(
+          coaches,
+          new DatabaseTimeoutService(),
+          new LeaderboardService(new DatabaseTimeoutService()),
+        ).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
           getCareerSpan: vi
             .fn()
@@ -204,8 +224,7 @@ describe('resolveCoachDeepdive', () => {
           getTopTeamsByMatchesPlayed: vi
             .fn()
             .mockReturnValue(new Promise(() => {})),
-        } as unknown as CoachesService,
-      }),
+        }) as unknown as CoachesService,
       DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
     );
   });

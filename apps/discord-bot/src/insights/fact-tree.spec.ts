@@ -17,7 +17,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { buildFactTree } from './fact-tree';
 import type { FactLeaf, StatsSummaryDeps } from './fact-tree.types';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
-import { TOPLIST_FETCH_LIMIT } from './leaderboard';
+import { TOPLIST_FETCH_LIMIT } from './leaderboard.service';
 
 const factTreeUtils = new FactTreeUtilsService();
 

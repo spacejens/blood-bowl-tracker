@@ -4,7 +4,6 @@ import {
   CoachesService,
   CompetitionsService,
   ErasService,
-  ExternalSystemsService,
   PlayersService,
   RacesService,
   TeamsService,
@@ -18,12 +17,12 @@ import type {
 } from 'discord.js';
 import { ApplicationCommandOptionType } from 'discord.js';
 
-import { resolveCoachDeepdive } from '../deepdive/facts/coach-deepdive';
-import { resolveCompetitionDeepdive } from '../deepdive/facts/competition-deepdive';
-import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
-import { resolvePlayerDeepdive } from '../deepdive/facts/player-deepdive';
-import { resolveRaceDeepdive } from '../deepdive/facts/race-deepdive';
-import { resolveTeamDeepdive } from '../deepdive/facts/team-deepdive';
+import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
+import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
+import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
+import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
+import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -61,13 +60,18 @@ export class DeepdiveCommandService implements OnModuleInit {
   constructor(
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
-    private readonly externalSystems: ExternalSystemsService,
     private readonly coaches: CoachesService,
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
     private readonly races: RacesService,
     private readonly discordClient: DiscordClientService,
     private readonly registry: SlashCommandRegistryService,
+    private readonly eraDeepdive: EraDeepdiveService,
+    private readonly coachDeepdive: CoachDeepdiveService,
+    private readonly teamDeepdive: TeamDeepdiveService,
+    private readonly playerDeepdive: PlayerDeepdiveService,
+    private readonly raceDeepdive: RaceDeepdiveService,
+    private readonly competitionDeepdive: CompetitionDeepdiveService,
   ) {}
 
   onModuleInit(): void {
@@ -319,11 +323,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     }
-    return resolveEraDeepdive(id, {
-      eras: this.eras,
-      competitions: this.competitions,
-      externalSystems: this.externalSystems,
-    });
+    return this.eraDeepdive.resolve(id);
   }
 
   /**
@@ -338,7 +338,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
     }
-    return resolveCoachDeepdive(id, { coaches: this.coaches });
+    return this.coachDeepdive.resolve(id);
   }
 
   /**
@@ -353,7 +353,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
     }
-    return resolveTeamDeepdive(id, { teams: this.teams });
+    return this.teamDeepdive.resolve(id);
   }
 
   /**
@@ -368,7 +368,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
     }
-    return resolvePlayerDeepdive(id, { players: this.players });
+    return this.playerDeepdive.resolve(id);
   }
 
   /**
@@ -383,7 +383,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     }
-    return resolveRaceDeepdive(id, { races: this.races });
+    return this.raceDeepdive.resolve(id);
   }
 
   /**
@@ -398,6 +398,6 @@ export class DeepdiveCommandService implements OnModuleInit {
     if (!Number.isInteger(id)) {
       return Promise.resolve(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
     }
-    return resolveCompetitionDeepdive(id, { competitions: this.competitions });
+    return this.competitionDeepdive.resolve(id);
   }
 }

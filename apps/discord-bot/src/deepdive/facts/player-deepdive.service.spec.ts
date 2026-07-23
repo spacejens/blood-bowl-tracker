@@ -1,6 +1,7 @@
 import type { PlayersService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
@@ -8,7 +9,8 @@ import {
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { resolvePlayerDeepdive } from './player-deepdive';
+import { LeaderboardService } from '../../insights/leaderboard.service';
+import { PlayerDeepdiveService } from './player-deepdive.service';
 
 const griff = {
   id: 1,
@@ -20,7 +22,15 @@ const griff = {
   positionName: 'Blitzer',
 };
 
-function makeServices(options: {
+function makeService(players: PlayersService): PlayerDeepdiveService {
+  return new PlayerDeepdiveService(
+    players,
+    new DatabaseTimeoutService(),
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
+
+function makePlayers(options: {
   player?: {
     id: number;
     name: string;
@@ -31,39 +41,38 @@ function makeServices(options: {
     positionName: string;
   };
   counts?: { label: string; count: number }[];
-}): { players: PlayersService } {
-  const players = {
+}): PlayersService {
+  return {
     findById: vi.fn().mockResolvedValue(options.player),
     getDeepdiveCategoryCounts: vi.fn().mockResolvedValue(options.counts ?? []),
   } as unknown as PlayersService;
-  return { players };
 }
 
-describe('resolvePlayerDeepdive', () => {
+describe('PlayerDeepdiveService', () => {
   it('returns the not-found message when the player does not exist', async () => {
-    const result = await resolvePlayerDeepdive(
-      999,
-      makeServices({ player: undefined }),
-    );
+    const service = makeService(makePlayers({ player: undefined }));
+    const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
   });
 
   it('renders the header and only the non-zero categories', async () => {
-    const services = makeServices({
-      player: griff,
-      counts: [
-        { label: 'MVP awards', count: 2 },
-        { label: 'Touchdowns scored', count: 5 },
-        { label: 'Completions', count: 0 },
-        { label: 'Interceptions', count: 0 },
-        { label: 'Deflections', count: 0 },
-        { label: 'Casualties inflicted', count: 3 },
-        { label: 'Serious injuries inflicted', count: 0 },
-        { label: 'Opponents killed', count: 0 },
-        { label: 'Fouls committed', count: 1 },
-      ],
-    });
-    const result = await resolvePlayerDeepdive(1, services);
+    const service = makeService(
+      makePlayers({
+        player: griff,
+        counts: [
+          { label: 'MVP awards', count: 2 },
+          { label: 'Touchdowns scored', count: 5 },
+          { label: 'Completions', count: 0 },
+          { label: 'Interceptions', count: 0 },
+          { label: 'Deflections', count: 0 },
+          { label: 'Casualties inflicted', count: 3 },
+          { label: 'Serious injuries inflicted', count: 0 },
+          { label: 'Opponents killed', count: 0 },
+          { label: 'Fouls committed', count: 1 },
+        ],
+      }),
+    );
+    const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
         {
@@ -84,14 +93,16 @@ describe('resolvePlayerDeepdive', () => {
   });
 
   it('shows the no-events placeholder when every category is zero', async () => {
-    const services = makeServices({
-      player: griff,
-      counts: [
-        { label: 'MVP awards', count: 0 },
-        { label: 'Touchdowns scored', count: 0 },
-      ],
-    });
-    const result = await resolvePlayerDeepdive(1, services);
+    const service = makeService(
+      makePlayers({
+        player: griff,
+        counts: [
+          { label: 'MVP awards', count: 0 },
+          { label: 'Touchdowns scored', count: 0 },
+        ],
+      }),
+    );
+    const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
         {
@@ -109,19 +120,21 @@ describe('resolvePlayerDeepdive', () => {
   });
 
   it('renders a team button and a race button from the header', async () => {
-    const services = makeServices({
-      player: {
-        id: 1,
-        name: 'Griff Oberwald',
-        teamName: 'Reikland Reavers',
-        teamId: 11,
-        raceName: 'Human',
-        raceId: 4,
-        positionName: 'Blitzer',
-      },
-      counts: [{ label: 'Touchdowns', count: 3 }],
-    });
-    const result = (await resolvePlayerDeepdive(1, services)) as unknown as {
+    const service = makeService(
+      makePlayers({
+        player: {
+          id: 1,
+          name: 'Griff Oberwald',
+          teamName: 'Reikland Reavers',
+          teamId: 11,
+          raceName: 'Human',
+          raceId: 4,
+          positionName: 'Blitzer',
+        },
+        counts: [{ label: 'Touchdowns', count: 3 }],
+      }),
+    );
+    const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = result.components.flatMap((row) => row.components);
@@ -138,30 +151,26 @@ describe('resolvePlayerDeepdive', () => {
 
   it('falls back to the player timeout message when the lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { players: PlayersService }) =>
-        resolvePlayerDeepdive(1, services),
-      () => ({
-        players: {
+      (players: PlayersService) => makeService(players).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockReturnValue(new Promise(() => {})),
           getDeepdiveCategoryCounts: vi.fn(),
-        } as unknown as PlayersService,
-      }),
+        }) as unknown as PlayersService,
       DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the counts timeout message when the counts lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { players: PlayersService }) =>
-        resolvePlayerDeepdive(1, services),
-      () => ({
-        players: {
+      (players: PlayersService) => makeService(players).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockResolvedValue(griff),
           getDeepdiveCategoryCounts: vi
             .fn()
             .mockReturnValue(new Promise(() => {})),
-        } as unknown as PlayersService,
-      }),
+        }) as unknown as PlayersService,
       DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
     );
   });

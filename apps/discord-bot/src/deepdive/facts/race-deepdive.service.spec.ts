@@ -1,6 +1,7 @@
 import type { RacesService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
@@ -9,45 +10,53 @@ import {
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { resolveRaceDeepdive } from './race-deepdive';
+import { LeaderboardService } from '../../insights/leaderboard.service';
+import { RaceDeepdiveService } from './race-deepdive.service';
 
-function makeServices(options: {
+function makeService(races: RacesService): RaceDeepdiveService {
+  return new RaceDeepdiveService(
+    races,
+    new DatabaseTimeoutService(),
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
+
+function makeRaces(options: {
   race?: { id: number; name: string };
   eras?: { id: number; name: string }[];
   topTeams?: { id: number; name: string; count: number }[];
-}): { races: RacesService } {
-  const races = {
+}): RacesService {
+  return {
     findById: vi.fn().mockResolvedValue(options.race),
     listEras: vi.fn().mockResolvedValue(options.eras ?? []),
     getTopTeamsByMatchesPlayed: vi
       .fn()
       .mockResolvedValue(options.topTeams ?? []),
   } as unknown as RacesService;
-  return { races };
 }
 
-describe('resolveRaceDeepdive', () => {
+describe('RaceDeepdiveService', () => {
   it('returns the not-found message when the race does not exist', async () => {
-    const result = await resolveRaceDeepdive(
-      999,
-      makeServices({ race: undefined }),
-    );
+    const service = makeService(makeRaces({ race: undefined }));
+    const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
   });
 
   it('renders the eras list and top-teams list', async () => {
-    const services = makeServices({
-      race: { id: 1, name: 'Orc' },
-      eras: [
-        { id: 3, name: 'BB2016' },
-        { id: 4, name: 'BB2020' },
-      ],
-      topTeams: [
-        { id: 9, name: 'Gouged Eye', count: 40 },
-        { id: 10, name: 'Da Deff Skwad', count: 12 },
-      ],
-    });
-    const result = await resolveRaceDeepdive(1, services);
+    const service = makeService(
+      makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [
+          { id: 3, name: 'BB2016' },
+          { id: 4, name: 'BB2020' },
+        ],
+        topTeams: [
+          { id: 9, name: 'Gouged Eye', count: 40 },
+          { id: 10, name: 'Da Deff Skwad', count: 12 },
+        ],
+      }),
+    );
+    const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
         {
@@ -65,18 +74,8 @@ describe('resolveRaceDeepdive', () => {
         {
           type: 1,
           components: [
-            {
-              type: 2,
-              style: 1,
-              label: 'BB2016',
-              custom_id: 'deepdive:era:3',
-            },
-            {
-              type: 2,
-              style: 1,
-              label: 'BB2020',
-              custom_id: 'deepdive:era:4',
-            },
+            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
+            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
             {
               type: 2,
               style: 1,
@@ -96,12 +95,14 @@ describe('resolveRaceDeepdive', () => {
   });
 
   it('shows "None recorded" when the race is linked to no eras', async () => {
-    const services = makeServices({
-      race: { id: 1, name: 'Orc' },
-      eras: [],
-      topTeams: [{ id: 9, name: 'Gouged Eye', count: 40 }],
-    });
-    const result = (await resolveRaceDeepdive(1, services)) as {
+    const service = makeService(
+      makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [],
+        topTeams: [{ id: 9, name: 'Gouged Eye', count: 40 }],
+      }),
+    );
+    const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     expect(result.embeds[0].description.split('\n')[0]).toBe(
@@ -110,12 +111,14 @@ describe('resolveRaceDeepdive', () => {
   });
 
   it('shows the no-teams placeholder when the race has no top teams', async () => {
-    const services = makeServices({
-      race: { id: 1, name: 'Orc' },
-      eras: [{ id: 4, name: 'BB2020' }],
-      topTeams: [],
-    });
-    const result = await resolveRaceDeepdive(1, services);
+    const service = makeService(
+      makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        topTeams: [],
+      }),
+    );
+    const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
         {
@@ -132,12 +135,7 @@ describe('resolveRaceDeepdive', () => {
         {
           type: 1,
           components: [
-            {
-              type: 2,
-              style: 1,
-              label: 'BB2020',
-              custom_id: 'deepdive:era:4',
-            },
+            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
           ],
         },
       ],
@@ -157,32 +155,34 @@ describe('resolveRaceDeepdive', () => {
       { id: 9, name: 'I', count: 9 },
       { id: 10, name: 'J', count: 9 },
     ];
-    const services = makeServices({
-      race: { id: 1, name: 'Orc' },
-      eras: [{ id: 4, name: 'BB2020' }],
-      topTeams,
-    });
-    const result = (await resolveRaceDeepdive(1, services)) as {
+    const service = makeService(
+      makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        topTeams,
+      }),
+    );
+    const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    // All ten fetched rows tie at rank 1; the resolver caps rendered entries at
-    // MAX_LEADERBOARD_ENTRIES (10), so all ten show and no remainder is noted.
     expect(lines).toContain('1. A — 9');
     expect(lines).toContain('1. J — 9');
     expect(lines.every((l) => !l.startsWith('…and'))).toBe(true);
   });
 
   it('builds era buttons then team buttons in one combined pool', async () => {
-    const services = makeServices({
-      race: { id: 7, name: 'Orc' },
-      eras: [
-        { id: 3, name: 'BB2016' },
-        { id: 4, name: 'BB2020' },
-      ],
-      topTeams: [{ id: 9, name: 'Gouged Eye', count: 40 }],
-    });
-    const result = (await resolveRaceDeepdive(7, services)) as unknown as {
+    const service = makeService(
+      makeRaces({
+        race: { id: 7, name: 'Orc' },
+        eras: [
+          { id: 3, name: 'BB2016' },
+          { id: 4, name: 'BB2020' },
+        ],
+        topTeams: [{ id: 9, name: 'Gouged Eye', count: 40 }],
+      }),
+    );
+    const result = (await service.resolve(7)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = result.components.flatMap((row) => row.components);
@@ -199,55 +199,50 @@ describe('resolveRaceDeepdive', () => {
   });
 
   it('omits components when the race has no eras and no teams', async () => {
-    const services = makeServices({
-      race: { id: 7, name: 'Orc' },
-      eras: [],
-      topTeams: [],
-    });
-    const result = await resolveRaceDeepdive(7, services);
+    const service = makeService(
+      makeRaces({ race: { id: 7, name: 'Orc' }, eras: [], topTeams: [] }),
+    );
+    const result = await service.resolve(7);
     expect(result).not.toHaveProperty('components');
   });
 
   it('falls back to the race timeout message when the race lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { races: RacesService }) => resolveRaceDeepdive(1, services),
-      () => ({
-        races: {
+      (races: RacesService) => makeService(races).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockReturnValue(new Promise(() => {})),
           listEras: vi.fn(),
           getTopTeamsByMatchesPlayed: vi.fn(),
-        } as unknown as RacesService,
-      }),
+        }) as unknown as RacesService,
       DEEPDIVE_RACE_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the eras timeout message when the era-names lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { races: RacesService }) => resolveRaceDeepdive(1, services),
-      () => ({
-        races: {
+      (races: RacesService) => makeService(races).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockResolvedValue({ id: 1, name: 'Orc' }),
           listEras: vi.fn().mockReturnValue(new Promise(() => {})),
           getTopTeamsByMatchesPlayed: vi.fn(),
-        } as unknown as RacesService,
-      }),
+        }) as unknown as RacesService,
       DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { races: RacesService }) => resolveRaceDeepdive(1, services),
-      () => ({
-        races: {
+      (races: RacesService) => makeService(races).resolve(1),
+      () =>
+        ({
           findById: vi.fn().mockResolvedValue({ id: 1, name: 'Orc' }),
           listEras: vi.fn().mockResolvedValue([{ id: 4, name: 'BB2020' }]),
           getTopTeamsByMatchesPlayed: vi
             .fn()
             .mockReturnValue(new Promise(() => {})),
-        } as unknown as RacesService,
-      }),
+        }) as unknown as RacesService,
       DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
     );
   });

@@ -1,6 +1,7 @@
 import type { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -8,9 +9,20 @@ import {
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { resolveCompetitionDeepdive } from './competition-deepdive';
+import { LeaderboardService } from '../../insights/leaderboard.service';
+import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-function makeServices(options: {
+function makeService(
+  competitions: CompetitionsService,
+): CompetitionDeepdiveService {
+  return new CompetitionDeepdiveService(
+    competitions,
+    new DatabaseTimeoutService(),
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
+
+function makeCompetitions(options: {
   competition?: {
     id: number;
     name: string;
@@ -19,41 +31,37 @@ function makeServices(options: {
     eraName: string;
   };
   teams?: { id: number; name: string }[];
-}): { competitions: CompetitionsService } {
-  const competitions = {
+}): CompetitionsService {
+  return {
     findByIdWithEra: vi.fn().mockResolvedValue(options.competition),
     listTeams: vi.fn().mockResolvedValue(options.teams ?? []),
   } as unknown as CompetitionsService;
-  return { competitions };
 }
 
-describe('resolveCompetitionDeepdive', () => {
+describe('CompetitionDeepdiveService', () => {
   it('returns the not-found message when the competition does not exist', async () => {
-    const result = await resolveCompetitionDeepdive(
-      999,
-      makeServices({ competition: undefined }),
-    );
+    const service = makeService(makeCompetitions({ competition: undefined }));
+    const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('renders the type, era line, and participating-teams list with buttons', async () => {
-    const services = makeServices({
-      competition: {
-        id: 1,
-        name: 'Major Season 24',
-        type: 'season',
-        eraId: 20,
-        eraName: 'BB2020',
-      },
-      teams: [
-        { id: 5, name: 'Gouged Eye' },
-        { id: 9, name: 'Reikland Reavers' },
-      ],
-    });
-    const result = (await resolveCompetitionDeepdive(
-      1,
-      services,
-    )) as unknown as {
+    const service = makeService(
+      makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Major Season 24',
+          type: 'season',
+          eraId: 20,
+          eraName: 'BB2020',
+        },
+        teams: [
+          { id: 5, name: 'Gouged Eye' },
+          { id: 9, name: 'Reikland Reavers' },
+        ],
+      }),
+    );
+    const result = (await service.resolve(1)) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { label: string; custom_id: string }[] }[];
     };
@@ -82,20 +90,19 @@ describe('resolveCompetitionDeepdive', () => {
   });
 
   it('shows the no-teams message but still renders the era button', async () => {
-    const services = makeServices({
-      competition: {
-        id: 1,
-        name: 'Major Season 24',
-        type: 'cup',
-        eraId: 20,
-        eraName: 'BB2020',
-      },
-      teams: [],
-    });
-    const result = (await resolveCompetitionDeepdive(
-      1,
-      services,
-    )) as unknown as {
+    const service = makeService(
+      makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Major Season 24',
+          type: 'cup',
+          eraId: 20,
+          eraName: 'BB2020',
+        },
+        teams: [],
+      }),
+    );
+    const result = (await service.resolve(1)) as unknown as {
       embeds: { description: string }[];
       components: { components: { custom_id: string }[] }[];
     };
@@ -110,24 +117,23 @@ describe('resolveCompetitionDeepdive', () => {
 
   it('falls back to the competition timeout message when the header lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { competitions: CompetitionsService }) =>
-        resolveCompetitionDeepdive(1, services),
-      () => ({
-        competitions: {
+      (competitions: CompetitionsService) =>
+        makeService(competitions).resolve(1),
+      () =>
+        ({
           findByIdWithEra: vi.fn().mockReturnValue(new Promise(() => {})),
           listTeams: vi.fn(),
-        } as unknown as CompetitionsService,
-      }),
+        }) as unknown as CompetitionsService,
       DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: { competitions: CompetitionsService }) =>
-        resolveCompetitionDeepdive(1, services),
-      () => ({
-        competitions: {
+      (competitions: CompetitionsService) =>
+        makeService(competitions).resolve(1),
+      () =>
+        ({
           findByIdWithEra: vi.fn().mockResolvedValue({
             id: 1,
             name: 'Major Season 24',
@@ -136,8 +142,7 @@ describe('resolveCompetitionDeepdive', () => {
             eraName: 'BB2020',
           }),
           listTeams: vi.fn().mockReturnValue(new Promise(() => {})),
-        } as unknown as CompetitionsService,
-      }),
+        }) as unknown as CompetitionsService,
       DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
     );
   });
