@@ -3,12 +3,13 @@ import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
-import { resolveErasList } from './eras-list';
+import { ErasListService } from './eras-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
 type EraRow = {
@@ -19,33 +20,31 @@ type EraRow = {
   endDate: string | null;
 };
 
-function makeEras(rows: EraRow[]): ErasService {
-  return {
+function makeService(rows: EraRow[]): ErasListService {
+  const eras = {
     listErasWithLeague: vi.fn().mockResolvedValue(rows),
   } as unknown as ErasService;
+  return new ErasListService(eras, new DatabaseTimeoutService());
 }
 
-describe('resolveErasList', () => {
+describe('ErasListService.resolve', () => {
   it('returns the empty-state embed when there are no eras', async () => {
-    const result = await resolveErasList(makeEras([]), FACT_SCOPE_ALL_TIME);
+    const result = await makeService([]).resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
     });
   });
 
   it('renders a single era with a deepdive button and no inline rules', async () => {
-    const result = await resolveErasList(
-      makeEras([
-        {
-          id: 1,
-          name: 'Season 1',
-          leagueName: 'Premier',
-          startDate: '2020-01-01',
-          endDate: '2020-12-31',
-        },
-      ]),
-      FACT_SCOPE_ALL_TIME,
-    );
+    const result = await makeService([
+      {
+        id: 1,
+        name: 'Season 1',
+        leagueName: 'Premier',
+        startDate: '2020-01-01',
+        endDate: '2020-12-31',
+      },
+    ]).resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -70,18 +69,15 @@ describe('resolveErasList', () => {
   });
 
   it('renders an ongoing era with no end date as "present" and still attaches a deepdive button', async () => {
-    const result = await resolveErasList(
-      makeEras([
-        {
-          id: 1,
-          name: 'Season 1',
-          leagueName: 'Premier',
-          startDate: '2020-01-01',
-          endDate: null,
-        },
-      ]),
-      FACT_SCOPE_ALL_TIME,
-    );
+    const result = await makeService([
+      {
+        id: 1,
+        name: 'Season 1',
+        leagueName: 'Premier',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
+    ]).resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -106,70 +102,67 @@ describe('resolveErasList', () => {
   });
 
   it('lists all eras in flat chronological order across leagues, breaking ties by league then era name', async () => {
-    const result = await resolveErasList(
-      makeEras([
-        // deliberately scrambled input order
-        {
-          id: 4,
-          name: 'B Season 2',
-          leagueName: 'B League',
-          startDate: '2022-01-01',
-          endDate: null,
-        },
-        {
-          id: 1,
-          name: 'A Season 1',
-          leagueName: 'A League',
-          startDate: '2019-01-01',
-          endDate: '2019-12-31',
-        },
-        // same startDate as id 6, different league -> league tie-break (A < B)
-        {
-          id: 5,
-          name: 'Zeta',
-          leagueName: 'A League',
-          startDate: '2023-01-01',
-          endDate: null,
-        },
-        {
-          id: 3,
-          name: 'A Season 2',
-          leagueName: 'A League',
-          startDate: '2021-01-01',
-          endDate: '2021-12-31',
-        },
-        // same startDate/league as id 8, different name -> name tie-break (Alpha < Beta)
-        {
-          id: 7,
-          name: 'Beta',
-          leagueName: 'C League',
-          startDate: '2024-01-01',
-          endDate: null,
-        },
-        {
-          id: 2,
-          name: 'B Season 1',
-          leagueName: 'B League',
-          startDate: '2020-06-01',
-          endDate: null,
-        },
-        {
-          id: 6,
-          name: 'Alpha',
-          leagueName: 'B League',
-          startDate: '2023-01-01',
-          endDate: null,
-        },
-        {
-          id: 8,
-          name: 'Alpha',
-          leagueName: 'C League',
-          startDate: '2024-01-01',
-          endDate: null,
-        },
-      ]),
-      FACT_SCOPE_ALL_TIME,
-    );
+    const result = await makeService([
+      // deliberately scrambled input order
+      {
+        id: 4,
+        name: 'B Season 2',
+        leagueName: 'B League',
+        startDate: '2022-01-01',
+        endDate: null,
+      },
+      {
+        id: 1,
+        name: 'A Season 1',
+        leagueName: 'A League',
+        startDate: '2019-01-01',
+        endDate: '2019-12-31',
+      },
+      // same startDate as id 6, different league -> league tie-break (A < B)
+      {
+        id: 5,
+        name: 'Zeta',
+        leagueName: 'A League',
+        startDate: '2023-01-01',
+        endDate: null,
+      },
+      {
+        id: 3,
+        name: 'A Season 2',
+        leagueName: 'A League',
+        startDate: '2021-01-01',
+        endDate: '2021-12-31',
+      },
+      // same startDate/league as id 8, different name -> name tie-break (Alpha < Beta)
+      {
+        id: 7,
+        name: 'Beta',
+        leagueName: 'C League',
+        startDate: '2024-01-01',
+        endDate: null,
+      },
+      {
+        id: 2,
+        name: 'B Season 1',
+        leagueName: 'B League',
+        startDate: '2020-06-01',
+        endDate: null,
+      },
+      {
+        id: 6,
+        name: 'Alpha',
+        leagueName: 'B League',
+        startDate: '2023-01-01',
+        endDate: null,
+      },
+      {
+        id: 8,
+        name: 'Alpha',
+        leagueName: 'C League',
+        startDate: '2024-01-01',
+        endDate: null,
+      },
+    ]).resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -254,7 +247,10 @@ describe('resolveErasList', () => {
 
   it('falls back to the stunned message when the era query times out', async () => {
     await expectTimeoutFallback(
-      (eras: ErasService) => resolveErasList(eras, FACT_SCOPE_ALL_TIME),
+      (eras: ErasService) =>
+        new ErasListService(eras, new DatabaseTimeoutService()).resolve(
+          FACT_SCOPE_ALL_TIME,
+        ),
       () =>
         ({
           listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -271,8 +267,7 @@ describe('resolveErasList', () => {
       startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
       endDate: null,
     }));
-    const result = (await resolveErasList(
-      makeEras(rows),
+    const result = (await makeService(rows).resolve(
       FACT_SCOPE_ALL_TIME,
     )) as unknown as {
       embeds: unknown[];
@@ -289,8 +284,9 @@ describe('resolveErasList', () => {
   it('passes the league scope through to the query', async () => {
     const listErasWithLeague = vi.fn().mockResolvedValue([]);
     const eras = { listErasWithLeague } as unknown as ErasService;
+    const service = new ErasListService(eras, new DatabaseTimeoutService());
     const scope: FactScope = { leagueId: 7 };
-    await resolveErasList(eras, scope);
+    await service.resolve(scope);
     expect(listErasWithLeague).toHaveBeenCalledWith(scope);
   });
 });

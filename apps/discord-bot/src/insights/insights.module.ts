@@ -17,6 +17,10 @@ import { DatabaseTimeoutService } from '../database-timeout.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
+import { CoachToplistService } from './facts/coach-toplist.service';
+import { ErasListService } from './facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { RaceToplistService } from './facts/race-toplist.service';
 import { LeaderboardService } from './leaderboard.service';
 
 const GAME_DATA_MODULES = [
@@ -40,6 +44,10 @@ const GAME_DATA_MODULES = [
     LeaderboardService,
     FactTreeFactoryService,
     FactTreeUtilsService,
+    CoachToplistService,
+    RaceToplistService,
+    ExpensiveMistakesToplistService,
+    ErasListService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -51,6 +59,10 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     LeaderboardService,
     FactTreeUtilsService,
+    CoachToplistService,
+    RaceToplistService,
+    ExpensiveMistakesToplistService,
+    ErasListService,
     FACT_TREE,
   ],
 })

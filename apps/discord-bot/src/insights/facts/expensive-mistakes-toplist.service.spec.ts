@@ -2,16 +2,22 @@ import type { TeamsService } from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
-import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
-import {
-  resolveTeamExpensiveMistakesBiggestToplist,
-  resolveTeamExpensiveMistakesTotalToplist,
-} from './expensive-mistakes-toplist';
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard.service';
+import { LeaderboardService } from '../leaderboard.service';
+import { ExpensiveMistakesToplistService } from './expensive-mistakes-toplist.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
-describe('resolveTeamExpensiveMistakesTotalToplist', () => {
+function makeService(teams: TeamsService): ExpensiveMistakesToplistService {
+  return new ExpensiveMistakesToplistService(
+    teams,
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
+
+describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   it('renders gp-suffixed totals with one deepdive button per team', async () => {
     const rows = [
       { teamId: 1, name: '40 grinders', count: 150000 },
@@ -20,10 +26,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
     const teams = {
       sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue(rows),
     } as unknown as TeamsService;
-    const result = (await resolveTeamExpensiveMistakesTotalToplist(
-      teams,
-      {},
-    )) as unknown as {
+    const result = (await makeService(teams).resolveTotal({})) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { label: string; custom_id: string }[] }[];
     };
@@ -46,7 +49,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
     const teams = {
       sumExpensiveMistakesByTeam: queryFn,
     } as unknown as TeamsService;
-    await resolveTeamExpensiveMistakesTotalToplist(teams, {
+    await makeService(teams).resolveTotal({
       eraId: 20,
       competitionId: 30,
     });
@@ -59,7 +62,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
       (teams: TeamsService) =>
-        resolveTeamExpensiveMistakesTotalToplist(teams, FACT_SCOPE_ALL_TIME),
+        makeService(teams).resolveTotal(FACT_SCOPE_ALL_TIME),
       () =>
         ({
           sumExpensiveMistakesByTeam: vi
@@ -71,7 +74,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
   });
 });
 
-describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
+describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   it('renders gp-suffixed amounts with dates and dedupes repeated teams', async () => {
     const rows = [
       { teamId: 1, name: '40 grinders', count: 90000, date: '2026-03-04' },
@@ -81,10 +84,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
     const teams = {
       listBiggestExpensiveMistakes: vi.fn().mockResolvedValue(rows),
     } as unknown as TeamsService;
-    const result = (await resolveTeamExpensiveMistakesBiggestToplist(
-      teams,
-      {},
-    )) as unknown as {
+    const result = (await makeService(teams).resolveBiggest({})) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { custom_id: string }[] }[];
     };
@@ -109,7 +109,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
     const teams = {
       listBiggestExpensiveMistakes: queryFn,
     } as unknown as TeamsService;
-    await resolveTeamExpensiveMistakesBiggestToplist(teams, {
+    await makeService(teams).resolveBiggest({
       eraId: 20,
       competitionId: 30,
     });
@@ -122,7 +122,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
       (teams: TeamsService) =>
-        resolveTeamExpensiveMistakesBiggestToplist(teams, FACT_SCOPE_ALL_TIME),
+        makeService(teams).resolveBiggest(FACT_SCOPE_ALL_TIME),
       () =>
         ({
           listBiggestExpensiveMistakes: vi

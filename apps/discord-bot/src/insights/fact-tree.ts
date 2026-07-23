@@ -1,15 +1,8 @@
+import { DatabaseTimeoutService } from '../database-timeout.service';
 import type { FactNode } from './fact-tree.types';
-import {
-  resolveCoachCompetitionsPlayedToplist,
-  resolveCoachErasActiveToplist,
-  resolveCoachMatchesPlayedToplist,
-  resolveCoachTeamsToplist,
-} from './facts/coach-toplist';
-import { resolveErasList } from './facts/eras-list';
-import {
-  resolveTeamExpensiveMistakesBiggestToplist,
-  resolveTeamExpensiveMistakesTotalToplist,
-} from './facts/expensive-mistakes-toplist';
+import { CoachToplistService } from './facts/coach-toplist.service';
+import { ErasListService } from './facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import {
   resolvePlayerCasualtiesCausedToplist,
   resolvePlayerCasualtiesSufferedToplist,
@@ -25,10 +18,7 @@ import {
   resolvePlayerTimesSentOffToplist,
   resolvePlayerTouchdownsScoredToplist,
 } from './facts/player-toplist';
-import {
-  resolveRaceMatchesPlayedToplist,
-  resolveRaceTeamsToplist,
-} from './facts/race-toplist';
+import { RaceToplistService } from './facts/race-toplist.service';
 import type { StatsSummaryDeps } from './facts/stats-summary';
 import { resolveStatsSummary } from './facts/stats-summary';
 import {
@@ -49,8 +39,25 @@ import {
   resolveTeamTimesSentOffToplist,
   resolveTeamTouchdownsScoredToplist,
 } from './facts/team-toplist';
+import { LeaderboardService } from './leaderboard.service';
 
+/**
+ * buildFactTree is a pure function invoked once by FactTreeFactoryService, so
+ * the toplist services converted so far (coach/race/expensive-mistakes/eras)
+ * are instantiated directly here rather than injected — the remaining
+ * loose-function fact resolvers (team/player) aren't NestJS providers yet, so
+ * this factory doesn't have a DI container to pull from until later tasks
+ * finish the conversion.
+ */
 export function buildFactTree(deps: StatsSummaryDeps): FactNode {
+  const leaderboard = new LeaderboardService(new DatabaseTimeoutService());
+  const coachToplist = new CoachToplistService(deps.coaches, leaderboard);
+  const raceToplist = new RaceToplistService(deps.races, leaderboard);
+  const expensiveMistakesToplist = new ExpensiveMistakesToplistService(
+    deps.teams,
+    leaderboard,
+  );
+  const erasList = new ErasListService(deps.eras, new DatabaseTimeoutService());
   return {
     coach: {
       toplist: {
@@ -59,23 +66,21 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) =>
-              resolveCoachMatchesPlayedToplist(deps.coaches, scope),
+            resolve: (scope) => coachToplist.resolveMatchesPlayed(scope),
           },
         },
         teams: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: false,
-          resolve: (scope) => resolveCoachTeamsToplist(deps.coaches, scope),
+          resolve: (scope) => coachToplist.resolveTeams(scope),
         },
         competitions: {
           played: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) =>
-              resolveCoachCompetitionsPlayedToplist(deps.coaches, scope),
+            resolve: (scope) => coachToplist.resolveCompetitionsPlayed(scope),
           },
         },
         eras: {
@@ -83,7 +88,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: false,
             supportsEra: false,
             supportsCompetition: false,
-            resolve: () => resolveCoachErasActiveToplist(deps.coaches),
+            resolve: () => coachToplist.resolveErasActive(),
           },
         },
       },
@@ -223,15 +228,13 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) =>
-              resolveTeamExpensiveMistakesTotalToplist(deps.teams, scope),
+            resolve: (scope) => expensiveMistakesToplist.resolveTotal(scope),
           },
           biggest: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) =>
-              resolveTeamExpensiveMistakesBiggestToplist(deps.teams, scope),
+            resolve: (scope) => expensiveMistakesToplist.resolveBiggest(scope),
           },
         },
       },
@@ -356,15 +359,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: false,
-          resolve: (scope) => resolveRaceTeamsToplist(deps.races, scope),
+          resolve: (scope) => raceToplist.resolveTeams(scope),
         },
         matches: {
           played: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) =>
-              resolveRaceMatchesPlayedToplist(deps.races, scope),
+            resolve: (scope) => raceToplist.resolveMatchesPlayed(scope),
           },
         },
       },
@@ -374,7 +376,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         supportsLeague: true,
         supportsEra: false,
         supportsCompetition: false,
-        resolve: (scope) => resolveErasList(deps.eras, scope),
+        resolve: (scope) => erasList.resolve(scope),
       },
     },
     stats: {

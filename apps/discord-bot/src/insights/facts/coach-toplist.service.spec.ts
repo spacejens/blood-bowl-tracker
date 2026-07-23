@@ -2,20 +2,24 @@ import type { CoachesService } from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { COACH_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
-import {
-  resolveCoachCompetitionsPlayedToplist,
-  resolveCoachErasActiveToplist,
-  resolveCoachMatchesPlayedToplist,
-  resolveCoachTeamsToplist,
-} from './coach-toplist';
+import { LeaderboardService } from '../leaderboard.service';
+import { CoachToplistService } from './coach-toplist.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
+
+function makeService(coaches: CoachesService): CoachToplistService {
+  return new CoachToplistService(
+    coaches,
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
 
 interface ToplistCase {
   describeName: string;
   method: keyof CoachesService;
-  resolve: (coaches: CoachesService) => Promise<unknown>;
+  resolve: (service: CoachToplistService) => Promise<unknown>;
   rows: { coachId: number; name: string; count: number }[];
   expectedTitle: string;
   expectedDescription: string;
@@ -23,10 +27,9 @@ interface ToplistCase {
 
 const cases: ToplistCase[] = [
   {
-    describeName: 'resolveCoachMatchesPlayedToplist',
+    describeName: 'resolveMatchesPlayed',
     method: 'countMatchesPlayedByCoach',
-    resolve: (coaches) =>
-      resolveCoachMatchesPlayedToplist(coaches, FACT_SCOPE_ALL_TIME),
+    resolve: (service) => service.resolveMatchesPlayed(FACT_SCOPE_ALL_TIME),
     rows: [
       { coachId: 1, name: 'Roze Madder', count: 9 },
       { coachId: 2, name: 'Grashnak', count: 9 },
@@ -37,19 +40,18 @@ const cases: ToplistCase[] = [
       '1. Roze Madder — 9\n1. Grashnak — 9\n2. Skabsquik — 4',
   },
   {
-    describeName: 'resolveCoachTeamsToplist',
+    describeName: 'resolveTeams',
     method: 'countTeamsByCoach',
-    resolve: (coaches) =>
-      resolveCoachTeamsToplist(coaches, FACT_SCOPE_ALL_TIME),
+    resolve: (service) => service.resolveTeams(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
     expectedTitle: 'Coaches by teams coached',
     expectedDescription: '1. Roze Madder — 3',
   },
   {
-    describeName: 'resolveCoachCompetitionsPlayedToplist',
+    describeName: 'resolveCompetitionsPlayed',
     method: 'countCompetitionsByCoach',
-    resolve: (coaches) =>
-      resolveCoachCompetitionsPlayedToplist(coaches, FACT_SCOPE_ALL_TIME),
+    resolve: (service) =>
+      service.resolveCompetitionsPlayed(FACT_SCOPE_ALL_TIME),
     rows: [
       { coachId: 1, name: 'Roze Madder', count: 5 },
       { coachId: 2, name: 'Grashnak', count: 2 },
@@ -58,9 +60,9 @@ const cases: ToplistCase[] = [
     expectedDescription: '1. Roze Madder — 5\n2. Grashnak — 2',
   },
   {
-    describeName: 'resolveCoachErasActiveToplist',
+    describeName: 'resolveErasActive',
     method: 'countErasByCoach',
-    resolve: (coaches) => resolveCoachErasActiveToplist(coaches),
+    resolve: (service) => service.resolveErasActive(),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
     expectedTitle: 'Coaches by eras active',
     expectedDescription: '1. Roze Madder — 3',
@@ -68,13 +70,13 @@ const cases: ToplistCase[] = [
 ];
 
 describe.each(cases)(
-  '$describeName',
+  'CoachToplistService.$describeName',
   ({ method, resolve, rows, expectedTitle, expectedDescription }) => {
     it('returns a leaderboard embed with one deepdive button per coach row', async () => {
       const coaches = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as CoachesService;
-      const result = (await resolve(coaches)) as {
+      const result = (await resolve(makeService(coaches))) as {
         embeds: { title: string; description: string }[];
         components: { components: { label: string; custom_id: string }[] }[];
       };
@@ -90,7 +92,7 @@ describe.each(cases)(
 
     it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
-        (coaches: CoachesService) => resolve(coaches),
+        (coaches: CoachesService) => resolve(makeService(coaches)),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -101,7 +103,7 @@ describe.each(cases)(
   },
 );
 
-describe('resolveCoachCompetitionsPlayedToplist', () => {
+describe('CoachToplistService.resolveCompetitionsPlayed', () => {
   it('passes the era id through to the query', async () => {
     const countCompetitionsByCoach = vi
       .fn()
@@ -109,7 +111,8 @@ describe('resolveCoachCompetitionsPlayedToplist', () => {
     const coaches = {
       countCompetitionsByCoach,
     } as unknown as CoachesService;
-    await resolveCoachCompetitionsPlayedToplist(coaches, { eraId: 20 });
+    const service = makeService(coaches);
+    await service.resolveCompetitionsPlayed({ eraId: 20 });
     expect(countCompetitionsByCoach).toHaveBeenCalledWith({ eraId: 20 });
   });
 });
