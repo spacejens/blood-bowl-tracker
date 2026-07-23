@@ -21,6 +21,18 @@ describe('RacePageParser', () => {
     expect(parser.extractRace(page)).toEqual({ id: '16', name: 'Orc Team' });
   });
 
+  it('normalizes an internal non-breaking space in the race name', () => {
+    const page = teamPage(
+      '<table><tr><td>Race:</td>' +
+        '<td>&nbsp;<b><a href="default.asp?p=tl#3">Chaos&nbsp;Dwarf&nbsp;Team</a></b></td>' +
+        '</tr></table>',
+    );
+    expect(parser.extractRace(page)).toEqual({
+      id: '3',
+      name: 'Chaos Dwarf Team',
+    });
+  });
+
   it('preserves the exact race name including casing and spacing', () => {
     const page = teamPage(
       '<table><tr><td>Race:</td>' +

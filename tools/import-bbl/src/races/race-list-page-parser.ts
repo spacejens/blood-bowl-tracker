@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 import type { BblRace } from './race-page-parser';
 
 @Injectable()
@@ -29,7 +30,7 @@ export class RaceListPageParser {
       }
       // element is a <b>: the first one after a numeric anchor is the race name.
       if (pendingId !== null) {
-        const raceName = $(element).text().trim();
+        const raceName = normalizeExtractedText($(element).text());
         if (raceName) {
           races.push({ id: pendingId, name: raceName });
         }
