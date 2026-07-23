@@ -1,4 +1,5 @@
-import type { ErasService } from '@blood-bowl-tracker/game-data';
+import type { ErasService, FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -26,7 +27,7 @@ function makeEras(rows: EraRow[]): ErasService {
 
 describe('resolveErasList', () => {
   it('returns the empty-state embed when there are no eras', async () => {
-    const result = await resolveErasList(makeEras([]));
+    const result = await resolveErasList(makeEras([]), FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
     });
@@ -43,6 +44,7 @@ describe('resolveErasList', () => {
           endDate: '2020-12-31',
         },
       ]),
+      FACT_SCOPE_ALL_TIME,
     );
     expect(result).toEqual({
       embeds: [
@@ -78,6 +80,7 @@ describe('resolveErasList', () => {
           endDate: null,
         },
       ]),
+      FACT_SCOPE_ALL_TIME,
     );
     expect(result).toEqual({
       embeds: [
@@ -165,6 +168,7 @@ describe('resolveErasList', () => {
           endDate: null,
         },
       ]),
+      FACT_SCOPE_ALL_TIME,
     );
     expect(result).toEqual({
       embeds: [
@@ -250,7 +254,7 @@ describe('resolveErasList', () => {
 
   it('falls back to the stunned message when the era query times out', async () => {
     await expectTimeoutFallback(
-      (eras: ErasService) => resolveErasList(eras),
+      (eras: ErasService) => resolveErasList(eras, FACT_SCOPE_ALL_TIME),
       () =>
         ({
           listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -267,7 +271,10 @@ describe('resolveErasList', () => {
       startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
       endDate: null,
     }));
-    const result = (await resolveErasList(makeEras(rows))) as unknown as {
+    const result = (await resolveErasList(
+      makeEras(rows),
+      FACT_SCOPE_ALL_TIME,
+    )) as unknown as {
       embeds: unknown[];
       components: { components: unknown[] }[];
     };
@@ -277,5 +284,13 @@ describe('resolveErasList', () => {
     );
     expect(result.components).toHaveLength(5); // 5 rows
     expect(totalButtons).toBe(25); // 5 per row
+  });
+
+  it('passes the league scope through to the query', async () => {
+    const listErasWithLeague = vi.fn().mockResolvedValue([]);
+    const eras = { listErasWithLeague } as unknown as ErasService;
+    const scope: FactScope = { leagueId: 7 };
+    await resolveErasList(eras, scope);
+    expect(listErasWithLeague).toHaveBeenCalledWith(scope);
   });
 });

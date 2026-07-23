@@ -86,7 +86,7 @@ export class TpPositionsImportService {
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, isBookkeeping: false },
+      { name: tpSystemName, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {

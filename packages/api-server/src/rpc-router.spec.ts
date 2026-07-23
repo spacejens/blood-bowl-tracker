@@ -125,7 +125,7 @@ describe('buildRpcRouter', () => {
       system: {
         id: 1,
         name: 'BBL',
-        isBookkeeping: false,
+        category: 'imported_data_source',
         createdAt: new Date('2026-01-01'),
       },
       created: false,
@@ -134,13 +134,13 @@ describe('buildRpcRouter', () => {
 
     const result = await call(router.externalSystems.upsert, {
       name: 'BBL',
-      isBookkeeping: false,
+      category: 'imported_data_source',
     });
 
     expect(result).toEqual({
       id: 1,
       name: 'BBL',
-      isBookkeeping: false,
+      category: 'imported_data_source',
       createdAt: new Date('2026-01-01'),
       created: false,
     });

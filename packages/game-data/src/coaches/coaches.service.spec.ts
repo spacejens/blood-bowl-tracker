@@ -530,18 +530,22 @@ describe('CoachesService', () => {
 
     it('returns teams ranked by match count, capped to the limit', async () => {
       const rows = [
-        { name: 'Reikland Reavers', count: 12 },
-        { name: 'Gouged Eye', count: 5 },
+        { id: 11, name: 'Reikland Reavers', count: 12 },
+        { id: 22, name: 'Gouged Eye', count: 5 },
       ];
       const builder = makeTopTeamsBuilder(rows);
+      const select = vi.fn(() => builder);
       const service = new CoachesService({
-        select: vi.fn(() => builder),
+        select,
       } as unknown as Db);
       await expect(service.getTopTeamsByMatchesPlayed(7, 10)).resolves.toEqual(
         rows,
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
       expect(builder.limit).toHaveBeenCalledWith(10);
+      const selectArg = (service['db'].select as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as Record<string, unknown>;
+      expect(Object.keys(selectArg)).toContain('id');
     });
 
     it('includes a tie group at the cutoff (relies on a generous limit)', async () => {
@@ -549,6 +553,7 @@ describe('CoachesService', () => {
       // resolver's job (Task 5). This asserts the limit is passed through so a
       // tie at the 5th place can be detected downstream.
       const rows = Array.from({ length: 8 }, (_, i) => ({
+        id: i + 1,
         name: `Team ${i + 1}`,
         count: i < 6 ? 5 : 1,
       }));

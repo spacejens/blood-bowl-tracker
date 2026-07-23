@@ -96,9 +96,10 @@ export class CoachesService {
   getTopTeamsByMatchesPlayed(
     coachId: number,
     limit: number,
-  ): Promise<{ name: string; count: number }[]> {
+  ): Promise<{ id: number; name: string; count: number }[]> {
     return this.db
       .select({
+        id: teams.id,
         name: teams.name,
         count: countDistinct(matches.id),
       })

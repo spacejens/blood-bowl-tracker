@@ -477,11 +477,18 @@ describe('buildFactTree leaf capabilities', () => {
 });
 
 describe('buildFactTree league capabilities', () => {
-  it('every leaf supports league exactly when it supports era', () => {
+  it('every leaf supports league exactly when it supports era (except eras.list)', () => {
     const tree = buildFactTree({} as StatsSummaryDeps);
     const leaves = collectLeaves(tree);
+    const erasList = resolvePath(tree, 'eras.list');
     for (const leaf of leaves) {
-      expect(leaf.supportsLeague).toBe(leaf.supportsEra);
+      if (leaf === erasList) {
+        // eras.list supports league but not era
+        expect(leaf.supportsLeague).toBe(true);
+        expect(leaf.supportsEra).toBe(false);
+      } else {
+        expect(leaf.supportsLeague).toBe(leaf.supportsEra);
+      }
     }
   });
 });

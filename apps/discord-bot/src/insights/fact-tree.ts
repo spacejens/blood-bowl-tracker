@@ -371,10 +371,10 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
     },
     eras: {
       list: {
-        supportsLeague: false,
+        supportsLeague: true,
         supportsEra: false,
         supportsCompetition: false,
-        resolve: () => resolveErasList(deps.eras),
+        resolve: (scope) => resolveErasList(deps.eras, scope),
       },
     },
     stats: {
