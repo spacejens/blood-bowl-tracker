@@ -234,7 +234,7 @@ describe('DeepdiveCommandService', () => {
       competitions.listByEraChronological as ReturnType<typeof vi.fn>
     ).mockResolvedValue([{ id: 10, name: 'Season 1', type: 'season' }]);
     const result = await service.execute(chatInput({ era: '7' }));
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'BB2020',

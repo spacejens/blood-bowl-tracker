@@ -77,7 +77,7 @@ describe('resolveEraDeepdive', () => {
       ],
     });
     const result = await resolveEraDeepdive(1, services);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'BB2020',
@@ -108,7 +108,7 @@ describe('resolveEraDeepdive', () => {
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
     const result = await resolveEraDeepdive(1, services);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'BB2020',
@@ -198,6 +198,55 @@ describe('resolveEraDeepdive', () => {
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('External systems: None recorded');
+  });
+
+  it('renders a Primary button per competition, keyed by competition id', async () => {
+    const services = makeServices({
+      era: {
+        id: 1,
+        name: 'BB2020',
+        leagueName: 'Premier',
+        startDate: '2021-09-01',
+        endDate: null,
+      },
+      competitions: [
+        { id: 10, name: 'Season 1', type: 'season' },
+        { id: 11, name: 'Spike Cup', type: 'cup' },
+      ],
+    });
+    const result = (await resolveEraDeepdive(1, services)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons).toEqual([
+      {
+        type: 2,
+        style: 1,
+        label: 'Season 1',
+        custom_id: 'deepdive:competition:10',
+      },
+      {
+        type: 2,
+        style: 1,
+        label: 'Spike Cup',
+        custom_id: 'deepdive:competition:11',
+      },
+    ]);
+  });
+
+  it('omits components when the era has no competitions', async () => {
+    const services = makeServices({
+      era: {
+        id: 1,
+        name: 'BB2020',
+        leagueName: 'Premier',
+        startDate: '2021-09-01',
+        endDate: null,
+      },
+      competitions: [],
+    });
+    const result = await resolveEraDeepdive(1, services);
+    expect(result).not.toHaveProperty('components');
   });
 
   it('falls back to the era timeout message when the era lookup times out', async () => {
