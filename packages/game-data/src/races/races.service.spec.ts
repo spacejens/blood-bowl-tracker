@@ -467,6 +467,26 @@ describe('RacesService', () => {
       );
       await expect(service.listEras(1)).resolves.toEqual([]);
     });
+
+    it('orders eras chronologically by start date, then name', async () => {
+      const { select, orderBy } = makeChain([
+        { id: 4, name: 'BB2020' },
+        { id: 3, name: 'BB2016' },
+      ]);
+      const service = new RacesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
+
+      await service.listEras(1);
+
+      expect(extractJoinColumns(firstCallArg(orderBy, 0, 0))).toEqual([
+        'eras.start_date',
+      ]);
+      expect(extractJoinColumns(firstCallArg(orderBy, 0, 1))).toEqual([
+        'eras.name',
+      ]);
+    });
   });
 
   describe('getTopTeamsByMatchesPlayed', () => {
