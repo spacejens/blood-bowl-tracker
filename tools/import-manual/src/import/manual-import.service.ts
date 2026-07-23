@@ -1,5 +1,5 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import { makeImportResult } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
@@ -26,6 +26,7 @@ export class ManualImportService {
     private readonly positions: PositionsProcessor,
     private readonly coaches: CoachesProcessor,
     private readonly teams: TeamsProcessor,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -57,6 +58,6 @@ export class ManualImportService {
     imported += await this.coaches.process(ctx);
     imported += await this.teams.process(ctx);
 
-    return makeImportResult({ imported, errors });
+    return this.importResults.result({ imported, errors });
   }
 }

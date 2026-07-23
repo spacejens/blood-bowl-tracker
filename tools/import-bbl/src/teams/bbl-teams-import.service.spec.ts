@@ -3,21 +3,28 @@ import type {
   ImportError,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { BblTeamsImportService } from './bbl-teams-import.service';
-import { TeamPageParser } from './team-page-parser';
-
 /**
  * A fake team page carrying the team id/name, the race's BBL id, and the coach
  * name in params for the stub parsers.
  */
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
+import { BblTeamsImportService } from './bbl-teams-import.service';
+import { TeamPageParser } from './team-page-parser';
+
+const normalizeText = new NormalizeExtractedTextService();
+
 function page(opts: {
   teamId?: string;
   teamName?: string;
@@ -51,7 +58,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 }
 
 function makeTeamParser(): TeamPageParser {
-  const parser = new TeamPageParser();
+  const parser = new TeamPageParser(normalizeText);
   vi.spyOn(parser, 'extractTeam').mockImplementation((p) =>
     p.params.t ? { id: p.params.t, name: p.params.teamName } : null,
   );
@@ -59,7 +66,7 @@ function makeTeamParser(): TeamPageParser {
 }
 
 function makeRaceParser(): RacePageParser {
-  const parser = new RacePageParser();
+  const parser = new RacePageParser(normalizeText);
   vi.spyOn(parser, 'extractRace').mockImplementation((p) =>
     p.params.raceBblId ? { id: p.params.raceBblId, name: 'RaceName' } : null,
   );
@@ -67,7 +74,7 @@ function makeRaceParser(): RacePageParser {
 }
 
 function makeCoachParser(): CoachPageParser {
-  const parser = new CoachPageParser();
+  const parser = new CoachPageParser(normalizeText);
   vi.spyOn(parser, 'extractCoach').mockImplementation((p) =>
     p.params.coachName ? { name: p.params.coachName } : null,
   );
@@ -102,6 +109,8 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 
@@ -353,7 +362,7 @@ describe('BblTeamsImportService', () => {
   it('records an error and continues when a page fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const teamParser = new TeamPageParser();
+    const teamParser = new TeamPageParser(normalizeText);
     vi.spyOn(teamParser, 'extractTeam').mockImplementation(() => {
       throw new Error('bad page');
     });
@@ -377,7 +386,7 @@ describe('BblTeamsImportService', () => {
   it('records a stringified error when a page throws a non-Error value', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertTeam = vi.fn().mockResolvedValue(true);
-    const teamParser = new TeamPageParser();
+    const teamParser = new TeamPageParser(normalizeText);
     vi.spyOn(teamParser, 'extractTeam').mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';

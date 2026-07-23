@@ -2,7 +2,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
   ExternalSystemBootstrapService,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
@@ -10,7 +10,7 @@ import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { CoachPageParser } from './coach-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
@@ -24,6 +24,8 @@ export class BblCoachesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -47,7 +49,7 @@ export class BblCoachesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         coachIdsByName,
       };
     }
@@ -80,13 +82,13 @@ export class BblCoachesImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'team', error));
+        errors.push(this.pageParseError.build(page.params, 'team', error));
         continue;
       }
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       coachIdsByName,
     };
   }

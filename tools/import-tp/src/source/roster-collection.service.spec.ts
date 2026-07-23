@@ -1,11 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it } from 'vitest';
 
-import {
-  RosterCollectionService,
-  unknownEraError,
-} from './roster-collection.service';
+import { RosterCollectionService } from './roster-collection.service';
 import type { TpSourceFile, TpSourceReader } from './tp-source-reader';
 
 function makeService(
@@ -15,6 +13,7 @@ function makeService(
   return new RosterCollectionService(
     { files } as unknown as TpSourceReader,
     rosterParser,
+    new ImportResultService(),
   );
 }
 
@@ -221,7 +220,8 @@ describe('RosterCollectionService', () => {
 
 describe('unknownEraError', () => {
   it('builds an ImportError naming the era and roster id', () => {
-    const error = unknownEraError('Ghost era', {
+    const service = makeService(makeFiles([]));
+    const error = service.unknownEraError('Ghost era', {
       id: 42,
       teamName: 'T',
       teamRaceCode: 'Orc',

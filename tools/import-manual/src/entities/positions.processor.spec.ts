@@ -2,12 +2,18 @@ import type {
   ImportError,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { PositionsProcessor } from './positions.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -38,7 +44,10 @@ function makeProcessor(mocks: {
   upsertPosition: ReturnType<typeof vi.fn>;
   syncRaceEras: ReturnType<typeof vi.fn>;
 }) {
-  return new PositionsProcessor(mocks as unknown as PositionsImportService);
+  return new PositionsProcessor(
+    mocks as unknown as PositionsImportService,
+    makeRefResolver(),
+  );
 }
 
 describe('PositionsProcessor', () => {

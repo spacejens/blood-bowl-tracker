@@ -4,14 +4,16 @@ import { join } from 'node:path';
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { BblPage } from './bbl-page';
+import { BblPageService } from './bbl-page.service';
+import type { BblPage } from './bbl-page.types';
 import { BblSourceReader } from './bbl-source-reader';
 import type { SourceConfigService } from './source-config.service';
 
 function makeReader(dir: string): BblSourceReader {
-  return new BblSourceReader({
-    getDataDir: () => dir,
-  } as unknown as SourceConfigService);
+  return new BblSourceReader(
+    { getDataDir: () => dir } as unknown as SourceConfigService,
+    new BblPageService(),
+  );
 }
 
 async function collect(iterable: AsyncIterable<BblPage>): Promise<BblPage[]> {

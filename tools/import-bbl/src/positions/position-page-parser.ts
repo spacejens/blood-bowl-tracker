@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 /** One race a position can play for: its numeric BBL id and display name. */
 interface BblPositionRace {
@@ -25,6 +25,8 @@ export interface BblPosition {
 
 @Injectable()
 export class PositionPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract the position from a `p=pt` page. The name is the `<h1>` text; the
    * races are the "Can play for:" links, each `default.asp?p=tl#<raceId>` with
@@ -37,7 +39,7 @@ export class PositionPageParser {
   extractPosition(page: BblPage): BblPosition | null {
     const typId = page.params.typID ?? '';
     const $ = page.load();
-    const name = normalizeExtractedText($('h1').first().text());
+    const name = this.normalizeText.normalize($('h1').first().text());
     if (!name || !typId) {
       return null;
     }
@@ -51,7 +53,7 @@ export class PositionPageParser {
         return;
       }
       const bblId = idMatch[1];
-      const raceName = normalizeExtractedText($(element).text());
+      const raceName = this.normalizeText.normalize($(element).text());
       if (!raceName || seen.has(bblId)) {
         return;
       }
@@ -61,7 +63,9 @@ export class PositionPageParser {
 
     let isStarPlayer = false;
     $('td').each((_index, element) => {
-      if (normalizeExtractedText($(element).text()) === 'None (star player)') {
+      if (
+        this.normalizeText.normalize($(element).text()) === 'None (star player)'
+      ) {
         isStarPlayer = true;
         return false;
       }

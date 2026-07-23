@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 /** A coach extracted from BBL source data. Identified solely by name. */
 export interface BblCoach {
@@ -10,6 +10,8 @@ export interface BblCoach {
 
 @Injectable()
 export class CoachPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract the coach from a team page (`p=tm`). The coach name is the text of
    * the `<td>` following the `<td>` whose text is `Coach:`. Returns null when
@@ -20,11 +22,13 @@ export class CoachPageParser {
     let name: string | null = null;
 
     $('td').each((_index, element) => {
-      if (normalizeExtractedText($(element).text()) === 'Coach:') {
-        // normalizeExtractedText strips the leading `&nbsp;` (U+00A0) and
+      if (this.normalizeText.normalize($(element).text()) === 'Coach:') {
+        // normalize() strips the leading `&nbsp;` (U+00A0) and
         // surrounding whitespace and collapses any internal whitespace to a
         // single ASCII space.
-        const value = normalizeExtractedText($(element).next('td').text());
+        const value = this.normalizeText.normalize(
+          $(element).next('td').text(),
+        );
         if (value) {
           name = value;
           return false;

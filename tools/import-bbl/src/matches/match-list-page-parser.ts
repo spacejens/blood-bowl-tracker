@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 
 const MONTHS: Record<string, number> = {
   January: 0,

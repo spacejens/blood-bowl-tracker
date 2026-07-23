@@ -2,12 +2,18 @@ import type {
   ImportError,
   LeaguesImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { LeaguesProcessor } from './leagues.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -34,9 +40,12 @@ function makeContext(data: ManualDataFile): ProcessContext {
 describe('LeaguesProcessor', () => {
   it('upserts each league, records its external ids, and counts it', async () => {
     const upsertLeague = vi.fn().mockResolvedValue({ id: 3 });
-    const processor = new LeaguesProcessor({
-      upsertLeague,
-    } as unknown as LeaguesImportService);
+    const processor = new LeaguesProcessor(
+      {
+        upsertLeague,
+      } as unknown as LeaguesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.leagues = [
       {
@@ -61,9 +70,12 @@ describe('LeaguesProcessor', () => {
 
   it('does not record ids or count when the upsert fails', async () => {
     const upsertLeague = vi.fn().mockResolvedValue(undefined);
-    const processor = new LeaguesProcessor({
-      upsertLeague,
-    } as unknown as LeaguesImportService);
+    const processor = new LeaguesProcessor(
+      {
+        upsertLeague,
+      } as unknown as LeaguesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.leagues = [
       {

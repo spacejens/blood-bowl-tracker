@@ -1,3 +1,4 @@
+import { ImportModule } from '@blood-bowl-tracker/import';
 import { ParseTpModule } from '@blood-bowl-tracker/parse-tp';
 import { Module } from '@nestjs/common';
 
@@ -8,7 +9,7 @@ import { SourceConfigService } from './source-config.service';
 import { TpSourceReader } from './tp-source-reader';
 
 @Module({
-  imports: [EraDataConfigModule, ParseTpModule],
+  imports: [EraDataConfigModule, ParseTpModule, ImportModule],
   providers: [
     SourceConfigService,
     ExternalSystemNameConfigService,

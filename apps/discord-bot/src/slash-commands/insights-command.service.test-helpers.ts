@@ -17,7 +17,17 @@ import type {
 } from 'discord.js';
 import { vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../database-timeout.service';
 import { buildFactTree } from '../insights/fact-tree';
+import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import { CoachToplistService } from '../insights/facts/coach-toplist.service';
+import { ErasListService } from '../insights/facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mistakes-toplist.service';
+import { PlayerToplistService } from '../insights/facts/player-toplist.service';
+import { RaceToplistService } from '../insights/facts/race-toplist.service';
+import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
+import { TeamToplistService } from '../insights/facts/team-toplist.service';
+import { LeaderboardService } from '../insights/leaderboard.service';
 import { InsightsCommandService } from './insights-command.service';
 import type { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -200,18 +210,29 @@ export function makeService() {
   const registry = {
     register: vi.fn(),
   };
+  const databaseTimeout = new DatabaseTimeoutService();
+  const leaderboard = new LeaderboardService(databaseTimeout);
   const factTree = buildFactTree({
-    coaches,
-    teams,
-    matches,
-    competitions,
-    leagues,
-    rulesSets,
-    eras,
-    players,
-    positions,
-    races,
-    externalSystems,
+    coachToplist: new CoachToplistService(coaches, leaderboard),
+    teamToplist: new TeamToplistService(teams, leaderboard),
+    playerToplist: new PlayerToplistService(players, leaderboard),
+    raceToplist: new RaceToplistService(races, leaderboard),
+    expensiveMistakes: new ExpensiveMistakesToplistService(teams, leaderboard),
+    erasList: new ErasListService(eras, databaseTimeout),
+    statsSummary: new StatsSummaryFactsService(
+      leagues,
+      externalSystems,
+      rulesSets,
+      races,
+      positions,
+      coaches,
+      eras,
+      competitions,
+      teams,
+      players,
+      matches,
+      databaseTimeout,
+    ),
   });
   return {
     service: new InsightsCommandService(
@@ -220,6 +241,7 @@ export function makeService() {
       competitions,
       factTree,
       registry as unknown as SlashCommandRegistryService,
+      new FactTreeUtilsService(),
     ),
     coaches,
     teams,

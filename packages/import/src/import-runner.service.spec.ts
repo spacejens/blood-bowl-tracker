@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
 describe('ImportRunnerService', () => {
   describe('upsertExternalSystem', () => {
     it('returns the external system id on success', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       const id = await service.upsertExternalSystem(
         () => Promise.resolve({ id: 7 }),
         'BBL',
@@ -15,7 +16,7 @@ describe('ImportRunnerService', () => {
     });
 
     it('throws a descriptive error when the upsert call fails', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       await expect(
         service.upsertExternalSystem(
           () => Promise.reject(new Error('internal error')),
@@ -27,7 +28,7 @@ describe('ImportRunnerService', () => {
     });
 
     it('throws a descriptive error when the upsert call rejects with a non-Error value', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       await expect(
         // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors -- verifying non-Error rejection handling
         service.upsertExternalSystem(() => Promise.reject('boom'), 'BBL'),
@@ -37,7 +38,7 @@ describe('ImportRunnerService', () => {
 
   describe('recordUpsert', () => {
     it('returns true and records no error on success', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       const errors: ImportError[] = [];
       const result = await service.recordUpsert({
         upsert: () => Promise.resolve({ id: 1 }),
@@ -50,7 +51,7 @@ describe('ImportRunnerService', () => {
     });
 
     it('returns false and records an error built from the thrown error on failure', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       const errors: ImportError[] = [];
       const item = { id: 2, name: 'Gruk' };
       const result = await service.recordUpsert({
@@ -68,7 +69,7 @@ describe('ImportRunnerService', () => {
 
   describe('recordUpsertResult', () => {
     it('returns the resolved value and records no error on success', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       const errors: ImportError[] = [];
       const result = await service.recordUpsertResult({
         upsert: () => Promise.resolve({ id: 5, name: 'BB2020' }),
@@ -81,7 +82,7 @@ describe('ImportRunnerService', () => {
     });
 
     it('returns undefined and records an error built from the thrown error on failure', async () => {
-      const service = new ImportRunnerService();
+      const service = new ImportRunnerService(new ImportResultService());
       const errors: ImportError[] = [];
       const item = { name: 'BB2020' };
       const result = await service.recordUpsertResult({

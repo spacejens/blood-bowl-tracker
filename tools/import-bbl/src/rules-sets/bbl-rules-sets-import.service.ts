@@ -2,8 +2,7 @@ import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -22,6 +21,7 @@ export class BblRulesSetsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -50,13 +50,13 @@ export class BblRulesSetsImportService {
       ];
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         rulesSetIdsByName,
       };
     }
@@ -68,7 +68,7 @@ export class BblRulesSetsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         rulesSetIdsByName,
       };
     }
@@ -96,7 +96,7 @@ export class BblRulesSetsImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       rulesSetIdsByName,
     };
   }

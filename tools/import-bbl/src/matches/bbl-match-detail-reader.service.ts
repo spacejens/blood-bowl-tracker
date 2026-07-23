@@ -1,9 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
@@ -16,6 +16,8 @@ export class BblMatchDetailReaderService {
   constructor(
     private readonly sourceReader: BblSourceReader,
     private readonly matchTeamsPageParser: MatchTeamsPageParser,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -38,7 +40,7 @@ export class BblMatchDetailReaderService {
         const teams = this.matchTeamsPageParser.extractMatchTeams(page);
         if (!teams) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { page: page.params },
               message: `Failed to parse match detail page ${JSON.stringify(page.params)}: could not extract team ids or name.`,
             }),
@@ -47,7 +49,9 @@ export class BblMatchDetailReaderService {
         }
         matchTeamsByBblId.set(teams.bblId, teams);
       } catch (error) {
-        errors.push(pageParseError(page.params, 'match detail', error));
+        errors.push(
+          this.pageParseError.build(page.params, 'match detail', error),
+        );
       }
     }
     this.cache = matchTeamsByBblId;

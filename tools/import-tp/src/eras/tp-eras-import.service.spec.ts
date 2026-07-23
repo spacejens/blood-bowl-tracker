@@ -2,7 +2,10 @@ import type {
   ErasImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -32,11 +35,16 @@ function makeService({
   return new TpErasImportService(
     { getEras } as unknown as EraDataConfigService,
     { upsertEra } as unknown as ErasImportService,
-    { files } as unknown as TpSourceReader,
+    {
+      files,
+      isBaseTournamentFile: (filename: string) =>
+        /^tournament_[^_]+\.json$/.test(filename),
+    } as unknown as TpSourceReader,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
     new TournamentParserService(),
     new NameExternalIdService(),
+    new ImportResultService(),
   );
 }
 

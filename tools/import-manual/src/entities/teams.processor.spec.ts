@@ -2,12 +2,18 @@ import type {
   ImportError,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { TeamsProcessor } from './teams.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -45,9 +51,12 @@ function seededMap(): ExternalIdMap {
 describe('TeamsProcessor', () => {
   it('resolves race, coach, and era refs, upserts, and records ids', async () => {
     const upsertTeam = vi.fn().mockResolvedValue({ id: 99 });
-    const processor = new TeamsProcessor({
-      upsertTeam,
-    } as unknown as TeamsImportService);
+    const processor = new TeamsProcessor(
+      {
+        upsertTeam,
+      } as unknown as TeamsImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.teams = [
       {
@@ -82,9 +91,12 @@ describe('TeamsProcessor', () => {
 
   it('upserts a team with no eras', async () => {
     const upsertTeam = vi.fn().mockResolvedValue({ id: 100 });
-    const processor = new TeamsProcessor({
-      upsertTeam,
-    } as unknown as TeamsImportService);
+    const processor = new TeamsProcessor(
+      {
+        upsertTeam,
+      } as unknown as TeamsImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.teams = [
       {
@@ -104,9 +116,12 @@ describe('TeamsProcessor', () => {
 
   it('skips the team and records errors when references are unresolved', async () => {
     const upsertTeam = vi.fn();
-    const processor = new TeamsProcessor({
-      upsertTeam,
-    } as unknown as TeamsImportService);
+    const processor = new TeamsProcessor(
+      {
+        upsertTeam,
+      } as unknown as TeamsImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.teams = [
       {

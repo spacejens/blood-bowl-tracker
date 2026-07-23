@@ -1,11 +1,17 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventsPageParser } from '../matches/match-events-page-parser';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const pageParseError = new PageParseErrorService(new ImportResultService());
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -29,7 +35,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 }
 
 function makeParser(eventsById: Record<string, BblMatchEvents | null>) {
-  const parser = new MatchEventsPageParser();
+  const parser = new MatchEventsPageParser(normalizeText);
   vi.spyOn(parser, 'extractMatchEvents').mockImplementation(
     (p) => eventsById[p.params.m] ?? null,
   );
@@ -49,6 +55,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       makeParser({ '100': eventsOne }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -64,6 +71,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       reader,
       makeParser({ '100': eventsOne }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -77,6 +85,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' }), page({ m: '101' })]),
       makeParser({ '100': eventsOne, '101': null }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -88,13 +97,14 @@ describe('BblMatchEventsReaderService', () => {
   });
 
   it('records an error and continues when a page throws', async () => {
-    const parser = new MatchEventsPageParser();
+    const parser = new MatchEventsPageParser(normalizeText);
     vi.spyOn(parser, 'extractMatchEvents').mockImplementation(() => {
       throw new Error('bad m page');
     });
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -105,7 +115,7 @@ describe('BblMatchEventsReaderService', () => {
   });
 
   it('handles non-Error throws with String coercion in catch block', async () => {
-    const parser = new MatchEventsPageParser();
+    const parser = new MatchEventsPageParser(normalizeText);
     vi.spyOn(parser, 'extractMatchEvents').mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'boom';
@@ -113,6 +123,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 

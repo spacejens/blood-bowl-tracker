@@ -1,0 +1,177 @@
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { Injectable } from '@nestjs/common';
+import type { InteractionReplyOptions } from 'discord.js';
+
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import {
+  TEAM_TOPLIST_NO_DATA_MESSAGE,
+  TEAM_TOPLIST_TIMEOUT_MESSAGE,
+} from '../../error-messages';
+import { LeaderboardService } from '../leaderboard.service';
+import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
+import { makeToplistResolvers } from './toplist-factory';
+
+/**
+ * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
+ * take fewer parameters than the (eraId?, competitionId?) shape the factory
+ * binds to, but a function accepting fewer optional parameters is still
+ * assignable to one expecting more, so `ScopedCountMethods<TeamsService>`
+ * would otherwise include them too. Naming the 13 uniform methods explicitly
+ * keeps those three out and still gets checked against `ScopedCountMethods`
+ * via `satisfies` below, so a genuinely mismatched entry still fails to
+ * compile.
+ */
+const _teamToplistMethods = [
+  'countTouchdownsScoredByTeam',
+  'countCompletionsByTeam',
+  'countInterceptionsByTeam',
+  'countDeflectionsByTeam',
+  'countCasualtiesCausedByTeam',
+  'countSeriousInjuriesCausedByTeam',
+  'countDeathsCausedByTeam',
+  'countFoulsCommittedByTeam',
+  'countTimesSentOffByTeam',
+  'countCasualtiesSufferedByTeam',
+  'countSeriousInjuriesSufferedByTeam',
+  'countLastingInjuriesSufferedByTeam',
+  'countDeathsSufferedByTeam',
+] as const satisfies readonly ScopedCountMethods<TeamsService>[];
+type TeamToplistMethod = (typeof _teamToplistMethods)[number];
+
+@Injectable()
+export class TeamToplistService {
+  private readonly resolvers: Record<
+    TeamToplistMethod,
+    ToplistResolver<TeamsService>
+  >;
+
+  constructor(
+    private readonly teams: TeamsService,
+    private readonly leaderboard: LeaderboardService,
+  ) {
+    this.resolvers = makeToplistResolvers<
+      TeamToplistMethod,
+      TeamsService,
+      { teamId: number; name: string; count: number }
+    >({
+      titles: {
+        countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
+        countCompletionsByTeam: 'Teams by completions',
+        countInterceptionsByTeam: 'Teams by interceptions',
+        countDeflectionsByTeam: 'Teams by deflections',
+        countCasualtiesCausedByTeam: 'Teams by casualties inflicted',
+        countSeriousInjuriesCausedByTeam: 'Teams by serious injuries inflicted',
+        countDeathsCausedByTeam: 'Teams by opponents killed',
+        countFoulsCommittedByTeam: 'Teams by fouls committed',
+        countTimesSentOffByTeam: 'Teams by times sent off',
+        countCasualtiesSufferedByTeam: 'Teams by casualties suffered',
+        countSeriousInjuriesSufferedByTeam:
+          'Teams by serious injuries suffered',
+        countLastingInjuriesSufferedByTeam:
+          'Teams by lasting injuries suffered',
+        countDeathsSufferedByTeam: 'Teams by deaths suffered',
+      },
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      buildCustomId: (row) => this.teamButtonId(row),
+      leaderboard: this.leaderboard,
+    });
+  }
+
+  teamButtonId(row: { teamId: number }): string {
+    return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
+  }
+
+  resolveTouchdownsScored(scope: FactScope) {
+    return this.resolvers.countTouchdownsScoredByTeam(this.teams, scope);
+  }
+
+  resolveCompletions(scope: FactScope) {
+    return this.resolvers.countCompletionsByTeam(this.teams, scope);
+  }
+
+  resolveInterceptions(scope: FactScope) {
+    return this.resolvers.countInterceptionsByTeam(this.teams, scope);
+  }
+
+  resolveDeflections(scope: FactScope) {
+    return this.resolvers.countDeflectionsByTeam(this.teams, scope);
+  }
+
+  resolveCasualtiesCaused(scope: FactScope) {
+    return this.resolvers.countCasualtiesCausedByTeam(this.teams, scope);
+  }
+
+  resolveSeriousInjuriesCaused(scope: FactScope) {
+    return this.resolvers.countSeriousInjuriesCausedByTeam(this.teams, scope);
+  }
+
+  resolveDeathsCaused(scope: FactScope) {
+    return this.resolvers.countDeathsCausedByTeam(this.teams, scope);
+  }
+
+  resolveFoulsCommitted(scope: FactScope) {
+    return this.resolvers.countFoulsCommittedByTeam(this.teams, scope);
+  }
+
+  resolveTimesSentOff(scope: FactScope) {
+    return this.resolvers.countTimesSentOffByTeam(this.teams, scope);
+  }
+
+  resolveCasualtiesSuffered(scope: FactScope) {
+    return this.resolvers.countCasualtiesSufferedByTeam(this.teams, scope);
+  }
+
+  resolveSeriousInjuriesSuffered(scope: FactScope) {
+    return this.resolvers.countSeriousInjuriesSufferedByTeam(this.teams, scope);
+  }
+
+  resolveLastingInjuriesSuffered(scope: FactScope) {
+    return this.resolvers.countLastingInjuriesSufferedByTeam(this.teams, scope);
+  }
+
+  resolveDeathsSuffered(scope: FactScope) {
+    return this.resolvers.countDeathsSufferedByTeam(this.teams, scope);
+  }
+
+  /**
+   * The three toplists below take a narrower scope than the table above
+   * allows (matches played and competitions played are era-scoped only; eras
+   * active is unscoped), so they stay hand-written rather than widening their
+   * public signatures to accept a competitionId they would ignore.
+   */
+  resolveMatchesPlayed(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist({
+      title: 'Teams by matches played',
+      fetchRows: (limit) => this.teams.countMatchesPlayedByTeam(scope, limit),
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      buildCustomId: (row) => this.teamButtonId(row),
+    });
+  }
+
+  resolveCompetitionsPlayed(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist({
+      title: 'Teams by competitions played',
+      fetchRows: (limit) => this.teams.countCompetitionsByTeam(scope, limit),
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      buildCustomId: (row) => this.teamButtonId(row),
+    });
+  }
+
+  resolveErasActive(): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: (limit) => this.teams.countErasByTeam(limit),
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      buildCustomId: (row) => this.teamButtonId(row),
+    });
+  }
+}

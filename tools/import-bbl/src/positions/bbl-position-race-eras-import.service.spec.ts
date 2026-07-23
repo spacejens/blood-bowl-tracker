@@ -1,4 +1,5 @@
 import type { PositionsImportService } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -46,6 +47,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig([]),
+      new ImportResultService(),
     );
 
     const { result } = await service.syncPositionRaceEras({
@@ -85,6 +87,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig([]),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -116,6 +119,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig([]),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -147,6 +151,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig([]),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -178,6 +183,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig([]),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -214,6 +220,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig(eras),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -250,6 +257,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig(eras),
+      new ImportResultService(),
     );
 
     await service.syncPositionRaceEras({
@@ -284,6 +292,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig(eras),
+      new ImportResultService(),
     );
 
     const { result } = await service.syncPositionRaceEras({
@@ -318,6 +327,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig(eras),
+      new ImportResultService(),
     );
 
     const { result } = await service.syncPositionRaceEras({
@@ -351,6 +361,7 @@ describe('BblPositionRaceErasImportService', () => {
     const service = new BblPositionRaceErasImportService(
       makePositionsImport(syncRaceErasMock),
       makeEraConfig(eras),
+      new ImportResultService(),
     );
 
     const { result } = await service.syncPositionRaceEras({

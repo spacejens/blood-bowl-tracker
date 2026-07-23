@@ -2,9 +2,13 @@ import type {
   ExternalSystemBootstrapService,
   MatchEventsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
+import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
 import {
   AWAY_ROSTER_ID,
@@ -41,6 +45,11 @@ describe('TpMatchEventsImportService', () => {
       {
         getTpSystemName: () => 'TP',
       } as unknown as ExternalSystemNameConfigService,
+      new TpMatchEventsBuilderService(
+        new TpMatchEventKindBuildersService(new ImportResultService()),
+      ),
+      new TpMatchEventsCorrelationService(),
+      new ImportResultService(),
     );
 
     const { result } = await service.importMatchEvents({

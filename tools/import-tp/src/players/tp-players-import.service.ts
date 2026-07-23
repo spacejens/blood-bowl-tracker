@@ -1,8 +1,7 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   PlayersImportService,
@@ -16,7 +15,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /**
  * One hired-star-player group: the roster that hired them, the real era the
@@ -84,6 +83,8 @@ export class TpPlayersImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly positionsImport: PositionsImportService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -167,7 +168,7 @@ export class TpPlayersImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
         starPositionUsages,
@@ -179,7 +180,7 @@ export class TpPlayersImportService {
     for (const { roster, era } of rosters) {
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
 
       // Merge the match-embedded roster snapshot into the standalone
@@ -202,7 +203,7 @@ export class TpPlayersImportService {
         const teamEra = teamEras?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { player: player.id, rosterId: roster.id, era },
               message: `Skipped player "${player.name}" (${player.id}): could not resolve team era for roster ${roster.id} in era "${era}"`,
             }),
@@ -224,7 +225,7 @@ export class TpPlayersImportService {
         }
         if (positionId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: {
                 player: player.id,
                 lineUpMasterId: player.lineUpMasterId,
@@ -272,7 +273,7 @@ export class TpPlayersImportService {
           ?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { rosterId },
               message: `Skipped ${starPlayers.length} hired star player(s) for roster ${rosterId}: could not resolve hiring team era`,
             }),
@@ -339,7 +340,7 @@ export class TpPlayersImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       starPositionUsages,

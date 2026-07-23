@@ -6,8 +6,7 @@ import type {
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   MatchesImportService,
   RacesImportService,
   TeamsImportService,
@@ -59,6 +58,7 @@ export class BblTeamParticipationImportService {
     private readonly matchesImport: MatchesImportService,
     private readonly matchMerge: MatchMergeService,
     private readonly competitionStandingsReader: BblCompetitionStandingsReaderService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -140,7 +140,7 @@ export class BblTeamParticipationImportService {
         const team = teamsByCode.get(id);
         if (!team) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { competition: competition.name, team: id },
               message: `Skipping match participation in competition "${competition.name}": could not resolve team id "${id}" to an imported team.`,
             }),
@@ -199,7 +199,10 @@ export class BblTeamParticipationImportService {
       await this.racesImport.upsertRace({ ...race, eras: [...eraIds] }, errors);
     }
 
-    return { result: makeImportResult({ imported, errors }), eraIdsByRaceId };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      eraIdsByRaceId,
+    };
   }
 
   /**
@@ -225,7 +228,7 @@ export class BblTeamParticipationImportService {
     const competitionId = competitionIdsByBblId.get(competitionBblId);
     if (competitionId === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { competition: competition.name },
           message: `Skipping match teams for competition "${competition.name}": it has no imported competition id.`,
         }),
@@ -244,7 +247,7 @@ export class BblTeamParticipationImportService {
       const awayTeamEraId = teamEraIdByTeamId.get(teams.awayTeamId);
       if (homeTeamEraId === undefined || awayTeamEraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { competition: competition.name, match: match.bblId },
             message: `Skipping match teams for match "${match.bblId}" in competition "${competition.name}": could not resolve both team eras.`,
           }),
@@ -288,7 +291,7 @@ export class BblTeamParticipationImportService {
         const teams = matchTeamsByBblId.get(match.bblId);
         if (!teams) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { competition: competitionName, match: match.bblId },
               message: `Skipping match participation in competition "${competitionName}": could not find match details for match "${match.bblId}".`,
             }),

@@ -1,9 +1,8 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
+  ImportResultService,
   LeaguesImportService,
-  makeImportError,
-  makeImportResult,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -21,6 +20,7 @@ export class TpLeaguesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -40,12 +40,12 @@ export class TpLeaguesImportService {
       name = this.config.getLeagueName();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }) };
+      return { result: this.importResults.result({ imported, errors }) };
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -54,7 +54,7 @@ export class TpLeaguesImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return { result: this.importResults.result({ imported, errors }) };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
@@ -76,7 +76,7 @@ export class TpLeaguesImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       leagueId: league?.id,
     };
   }

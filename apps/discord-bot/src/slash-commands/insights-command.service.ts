@@ -24,12 +24,8 @@ import {
   INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
 } from '../error-messages';
 import { FACT_TREE } from '../insights/fact-tree.token';
-import type { FactLeaf, FactNode } from '../insights/fact-tree-utils';
-import {
-  collectLeaves,
-  nextSegmentCompletions,
-  resolvePath,
-} from '../insights/fact-tree-utils';
+import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
+import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
@@ -49,6 +45,7 @@ export class InsightsCommandService implements OnModuleInit {
     private readonly competitions: CompetitionsService,
     @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
+    private readonly factTreeUtils: FactTreeUtilsService,
   ) {}
 
   onModuleInit(): void {
@@ -138,12 +135,12 @@ export class InsightsCommandService implements OnModuleInit {
       return this.resolveRandomFact(resolved);
     }
 
-    const node = resolvePath(this.factTree, category);
+    const node = this.factTreeUtils.resolvePath(this.factTree, category);
     if (node === undefined) {
       return INSIGHTS_UNMATCHED_CATEGORY_MESSAGE;
     }
 
-    let leaves = collectLeaves(node);
+    let leaves = this.factTreeUtils.collectLeaves(node);
     if (resolved.league) {
       leaves = leaves.filter((leaf) => leaf.supportsLeague);
       if (leaves.length === 0) {
@@ -169,7 +166,7 @@ export class InsightsCommandService implements OnModuleInit {
   async resolveRandomFact(
     resolved: ResolvedScope = {},
   ): Promise<string | InteractionReplyOptions> {
-    let leaves = collectLeaves(this.factTree);
+    let leaves = this.factTreeUtils.collectLeaves(this.factTree);
     if (resolved.league) {
       leaves = leaves.filter((leaf) => leaf.supportsLeague);
     }
@@ -277,7 +274,8 @@ export class InsightsCommandService implements OnModuleInit {
       );
       return this.toScopeChoices(competitions);
     }
-    return nextSegmentCompletions(this.factTree, focused.value)
+    return this.factTreeUtils
+      .nextSegmentCompletions(this.factTree, focused.value)
       .slice(0, MAX_AUTOCOMPLETE_CHOICES)
       .map((path) => ({ name: path, value: path }));
   }

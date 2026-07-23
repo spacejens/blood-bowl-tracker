@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
+import { ImportResultService } from './import-result.service';
 import type { ImportError } from './types';
-import { makeImportError } from './types';
 
 export interface RecordUpsertOptions {
   upsert: () => Promise<unknown>;
@@ -19,6 +19,8 @@ export interface RecordUpsertResultOptions<T> {
 
 @Injectable()
 export class ImportRunnerService {
+  constructor(private readonly importResults: ImportResultService) {}
+
   async upsertExternalSystem(
     upsert: () => Promise<{ id: number }>,
     name: string,
@@ -44,7 +46,9 @@ export class ImportRunnerService {
       await upsert();
       return true;
     } catch (err) {
-      errors.push(makeImportError({ item, message: buildErrorMessage(err) }));
+      errors.push(
+        this.importResults.error({ item, message: buildErrorMessage(err) }),
+      );
       return false;
     }
   }
@@ -58,7 +62,9 @@ export class ImportRunnerService {
     try {
       return await upsert();
     } catch (err) {
-      errors.push(makeImportError({ item, message: buildErrorMessage(err) }));
+      errors.push(
+        this.importResults.error({ item, message: buildErrorMessage(err) }),
+      );
       return undefined;
     }
   }

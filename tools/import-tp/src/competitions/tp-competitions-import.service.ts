@@ -3,8 +3,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
@@ -16,10 +15,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import {
-  isBaseTournamentFile,
-  TpSourceReader,
-} from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (max - min) match-date span <= 3 days => cup, else season. Mirrors BBL's
@@ -59,6 +55,7 @@ export class TpCompetitionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -113,7 +110,7 @@ export class TpCompetitionsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         competitionIdsByTpId,
         matchesByCompetitionId,
         competitionsByTpId,
@@ -149,7 +146,7 @@ export class TpCompetitionsImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       competitionIdsByTpId,
       matchesByCompetitionId,
       competitionsByTpId,
@@ -177,7 +174,10 @@ export class TpCompetitionsImportService {
           competition: file.competition,
           matches: [],
         };
-        if (file.type === 'tournament' && isBaseTournamentFile(file.filename)) {
+        if (
+          file.type === 'tournament' &&
+          this.sourceReader.isBaseTournamentFile(file.filename)
+        ) {
           group.tournamentContent = file.content;
         } else if (file.type === 'match') {
           this.addMatch({
@@ -191,7 +191,7 @@ export class TpCompetitionsImportService {
       }
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { scan: 'competition files' },
           message:
             'Could not complete the competition file scan: ' +
@@ -214,7 +214,7 @@ export class TpCompetitionsImportService {
       group.matches.push(match);
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { era: group.era, competition: group.competition, filename },
           message:
             `Could not parse match file "${filename}" in ` +
@@ -242,7 +242,7 @@ export class TpCompetitionsImportService {
 
     if (group.tournamentContent === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { era: group.era, competition: group.competition },
           message:
             `Skipping competition in "${location}": no base tournament file ` +
@@ -257,7 +257,7 @@ export class TpCompetitionsImportService {
       tournament = this.tournamentParser.parse(group.tournamentContent);
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { era: group.era, competition: group.competition },
           message:
             `Skipping competition in "${location}": ` +
@@ -269,7 +269,7 @@ export class TpCompetitionsImportService {
 
     if (group.matches.length === 0) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: tournament,
           message:
             `Skipping competition "${tournament.name}" in "${location}": ` +
@@ -282,7 +282,7 @@ export class TpCompetitionsImportService {
     const eraId = eraIdsByName.get(group.era);
     if (eraId === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: tournament,
           message:
             `Skipping competition "${tournament.name}" in "${location}": its ` +

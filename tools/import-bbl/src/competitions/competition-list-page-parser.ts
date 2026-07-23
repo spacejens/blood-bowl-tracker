@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 /** A competition's id/name read off the master dropdown on an se/sr page. */
 export interface BblCompetition {
@@ -14,6 +14,8 @@ const SE_OPTION = /[?&]p=se&s=(\d+)/;
 
 @Injectable()
 export class CompetitionListPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract every competition from the master dropdown embedded on any se/sr
    * page: `<option value="default.asp?p=se&s=<id>"><name></option>`. The same
@@ -33,7 +35,7 @@ export class CompetitionListPageParser {
         return;
       }
       const bblId = match[1];
-      const name = normalizeExtractedText($(element).text());
+      const name = this.normalizeText.normalize($(element).text());
       if (!name || seen.has(bblId)) {
         return;
       }

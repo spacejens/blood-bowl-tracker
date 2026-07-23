@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 /**
  * A player read off a `p=pl` page. `pid` is the player's page id (from
@@ -18,6 +18,8 @@ export interface BblPlayer {
 
 @Injectable()
 export class PlayerPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract player data from a player page. Reads `pid` from the page params,
    * `name` from the `<h1>` element, and `typId`/`teamCode` from position/team
@@ -31,7 +33,7 @@ export class PlayerPageParser {
   extractPlayer(page: BblPage): BblPlayer | null {
     const $ = page.load();
     const pid = page.params.pid;
-    const name = normalizeExtractedText($('h1').first().text());
+    const name = this.normalizeText.normalize($('h1').first().text());
     let typId: string | undefined;
     let teamCode: string | undefined;
 

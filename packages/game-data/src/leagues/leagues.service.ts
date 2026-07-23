@@ -7,7 +7,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { escapeLikePattern } from '../shared/escape-like-pattern';
+import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -15,7 +15,10 @@ export class LeagueUpsertConflictError extends UpsertConflictError {}
 
 @Injectable()
 export class LeaguesService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService,
+  ) {}
 
   async upsert(
     data: UpsertLeague,
@@ -58,7 +61,7 @@ export class LeaguesService {
     return this.db
       .select({ id: leagues.id, name: leagues.name })
       .from(leagues)
-      .where(ilike(leagues.name, `${escapeLikePattern(prefix)}%`))
+      .where(ilike(leagues.name, `${this.likePattern.escape(prefix)}%`))
       .limit(limit);
   }
 

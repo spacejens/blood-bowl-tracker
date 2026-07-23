@@ -5,8 +5,8 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { isDefinedError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 
-import type { buildRpcRouter } from './rpc-router';
 import { RPC_ROUTER } from './rpc-router.token';
+import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
 const RPC_PREFIX = '/rpc';
 
@@ -16,7 +16,10 @@ export class RpcMiddleware implements NestMiddleware {
 
   private readonly logger = new Logger(RpcMiddleware.name);
 
-  constructor(@Inject(RPC_ROUTER) router: ReturnType<typeof buildRpcRouter>) {
+  constructor(
+    @Inject(RPC_ROUTER)
+    router: ReturnType<RpcRouterFactoryService['build']>,
+  ) {
     this.handler = new RPCHandler(router, {
       interceptors: [
         async (opts) => {

@@ -17,8 +17,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { escapeLikePattern } from '../shared/escape-like-pattern';
 import type { FactScope } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByTeam,
@@ -51,7 +51,10 @@ export interface TeamWithEras extends Team {
 
 @Injectable()
 export class TeamsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService,
+  ) {}
 
   async upsert(
     data: UpsertTeam,
@@ -89,7 +92,7 @@ export class TeamsService {
     return this.db
       .select({ id: teams.id, name: teams.name })
       .from(teams)
-      .where(ilike(teams.name, `${escapeLikePattern(prefix)}%`))
+      .where(ilike(teams.name, `${this.likePattern.escape(prefix)}%`))
       .limit(limit);
   }
 

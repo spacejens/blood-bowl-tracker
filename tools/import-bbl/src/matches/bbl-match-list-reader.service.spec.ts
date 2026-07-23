@@ -1,11 +1,15 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import type { BblMatch } from './match-list-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
+
+const pageParseError = new PageParseErrorService(new ImportResultService());
 
 function page(type: string, params: Record<string, string>): BblPage {
   return {
@@ -51,6 +55,7 @@ describe('BblMatchListReaderService', () => {
         page('ma', { so: 't', t: 'abc' }),
       ]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -68,6 +73,7 @@ describe('BblMatchListReaderService', () => {
     const service = new BblMatchListReaderService(
       reader,
       makeMatchParser({ '1': [matchOne] }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -85,6 +91,7 @@ describe('BblMatchListReaderService', () => {
     const service = new BblMatchListReaderService(
       makeReader([page('ma', { so: 's', s: '1' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -105,6 +112,7 @@ describe('BblMatchListReaderService', () => {
     const service = new BblMatchListReaderService(
       makeReader([page('ma', { so: 's', s: '1' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 

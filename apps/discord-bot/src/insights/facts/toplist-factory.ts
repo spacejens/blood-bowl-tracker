@@ -1,7 +1,7 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
-import { resolveToplist } from '../leaderboard';
+import { LeaderboardService } from '../leaderboard.service';
 
 /** A row shape every scoped toplist count returns. */
 interface CountedRow {
@@ -38,6 +38,7 @@ export interface MakeToplistResolversOptions<
   timeoutMessage: string;
   noDataMessage: string;
   buildCustomId?: (row: TRow) => string;
+  leaderboard: LeaderboardService;
 }
 
 /**
@@ -56,11 +57,12 @@ export function makeToplistResolvers<
 >(
   options: MakeToplistResolversOptions<TMethod, TRow>,
 ): Record<TMethod, ToplistResolver<TService>> {
-  const { titles, timeoutMessage, noDataMessage, buildCustomId } = options;
+  const { titles, timeoutMessage, noDataMessage, buildCustomId, leaderboard } =
+    options;
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
     resolvers[method] = (service, scope) => {
-      return resolveToplist({
+      return leaderboard.resolveToplist({
         title: titles[method],
         fetchRows: (limit) => service[method](scope, limit),
         timeoutMessage,

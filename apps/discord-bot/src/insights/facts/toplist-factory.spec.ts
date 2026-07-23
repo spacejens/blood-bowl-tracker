@@ -2,8 +2,14 @@ import type { FactScope } from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
-import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
+import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  LeaderboardService,
+  TOPLIST_FETCH_LIMIT,
+} from '../leaderboard.service';
 import { makeToplistResolvers } from './toplist-factory';
+
+const leaderboard = () => new LeaderboardService(new DatabaseTimeoutService());
 
 /**
  * A stand-in service shape for exercising the factory in isolation. The
@@ -29,6 +35,7 @@ describe('makeToplistResolvers', () => {
       titles: { alpha: 'A title', beta: 'B title' },
       timeoutMessage: 'timed out',
       noDataMessage: 'no data',
+      leaderboard: leaderboard(),
     });
     expect(Object.keys(resolvers).sort()).toEqual(['alpha', 'beta']);
   });
@@ -38,6 +45,7 @@ describe('makeToplistResolvers', () => {
       titles: { alpha: 'A title' },
       timeoutMessage: 'timed out',
       noDataMessage: 'no data',
+      leaderboard: leaderboard(),
     });
     const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
     const reply = await resolvers.alpha({ alpha } as never, {
@@ -58,6 +66,7 @@ describe('makeToplistResolvers', () => {
       titles: { alpha: 'A title' },
       timeoutMessage: 'timed out',
       noDataMessage: 'no data',
+      leaderboard: leaderboard(),
     });
     const alpha = vi.fn().mockResolvedValue([]);
     const reply = await resolvers.alpha(
@@ -85,6 +94,7 @@ describe('makeToplistResolvers', () => {
       timeoutMessage: 'timed out',
       noDataMessage: 'no data',
       buildCustomId: (row) => `deepdive:team:${row.teamId}`,
+      leaderboard: leaderboard(),
     });
     const gamma = vi.fn().mockResolvedValue([
       { teamId: 4, name: 'Griff', count: 3 },

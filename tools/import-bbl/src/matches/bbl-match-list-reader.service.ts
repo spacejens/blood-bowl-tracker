@@ -2,7 +2,7 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import type { BblMatch } from './match-list-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
 
@@ -16,6 +16,7 @@ export class BblMatchListReaderService {
   constructor(
     private readonly sourceReader: BblSourceReader,
     private readonly matchListPageParser: MatchListPageParser,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -48,7 +49,9 @@ export class BblMatchListReaderService {
           this.matchListPageParser.extractMatches(page),
         );
       } catch (error) {
-        errors.push(pageParseError(page.params, 'match list', error));
+        errors.push(
+          this.pageParseError.build(page.params, 'match list', error),
+        );
       }
     }
     this.cache = matchesByCompetitionId;

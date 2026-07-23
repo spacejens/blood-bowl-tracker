@@ -3,6 +3,7 @@ import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { RacesImportService } from './races-import.service';
 import type { ImportError } from './types';
@@ -10,7 +11,10 @@ import type { ImportError } from './types';
 describe('RacesImportService', () => {
   function makeService(upsertMock: ReturnType<typeof vi.fn>) {
     const client = { races: { upsert: upsertMock } } as unknown as ApiClient;
-    return new RacesImportService(client, new ImportRunnerService());
+    return new RacesImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {
@@ -93,6 +97,7 @@ describe('RacesImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         RacesImportService,
+        ImportResultService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],

@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ExternalSystemsImportService } from './external-systems-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 
 describe('ExternalSystemsImportService', () => {
@@ -19,7 +20,7 @@ describe('ExternalSystemsImportService', () => {
     } as unknown as ApiClient;
     const service = new ExternalSystemsImportService(
       client,
-      new ImportRunnerService(),
+      new ImportRunnerService(new ImportResultService()),
     );
 
     const id = await service.upsertExternalSystem(
@@ -41,7 +42,7 @@ describe('ExternalSystemsImportService', () => {
     } as unknown as ApiClient;
     const service = new ExternalSystemsImportService(
       client,
-      new ImportRunnerService(),
+      new ImportRunnerService(new ImportResultService()),
     );
 
     await expect(
@@ -63,6 +64,7 @@ describe('ExternalSystemsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         ExternalSystemsImportService,
+        ImportResultService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],

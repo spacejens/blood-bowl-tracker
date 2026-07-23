@@ -2,8 +2,7 @@ import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   TeamsImportService,
@@ -12,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /**
  * One team (keyed by roster id), accumulated across its roster files.
@@ -43,6 +42,8 @@ export class TpTeamsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -85,7 +86,7 @@ export class TpTeamsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         teamErasByRosterId,
       };
     }
@@ -106,7 +107,7 @@ export class TpTeamsImportService {
       }
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       } else {
         group.eraIds.add(eraId);
       }
@@ -116,7 +117,7 @@ export class TpTeamsImportService {
       const raceId = raceIdsByTeamRaceCode.get(group.teamRaceCode);
       if (raceId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { team: group.id, teamRaceCode: group.teamRaceCode },
             message: `Failed to import team "${group.teamName}": could not resolve race for code "${group.teamRaceCode}"`,
           }),
@@ -126,7 +127,7 @@ export class TpTeamsImportService {
       const coachId = coachIdsByTpId.get(group.coachTpId);
       if (coachId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { team: group.id, coachTpId: group.coachTpId },
             message: `Failed to import team "${group.teamName}": could not resolve coach "${group.coachTpId}"`,
           }),
@@ -155,7 +156,7 @@ export class TpTeamsImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       teamErasByRosterId,
     };
   }

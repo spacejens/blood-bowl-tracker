@@ -5,6 +5,7 @@ import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -57,6 +58,7 @@ function makeQueryBuilder(rows: unknown[]) {
 }
 
 describe('CoachesService', () => {
+  const likePattern = new LikePatternService();
   let service: CoachesService;
   let mockDb: {
     select: () => { from: ReturnType<typeof vi.fn> };
@@ -87,7 +89,11 @@ describe('CoachesService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [CoachesService, { provide: DB, useValue: mockDb }],
+      providers: [
+        CoachesService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(CoachesService);
@@ -194,7 +200,10 @@ describe('CoachesService', () => {
         { coachId: 2, name: 'Grashnak', count: 4 },
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME),
       ).resolves.toEqual(rows);
@@ -204,7 +213,10 @@ describe('CoachesService', () => {
     it('countTeamsByCoach returns the rows the query resolves to', async () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countTeamsByCoach(FACT_SCOPE_ALL_TIME),
       ).resolves.toEqual(rows);
@@ -217,7 +229,10 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countMatchesPlayedByCoach({ eraId: 20 }),
       ).resolves.toEqual(rows);
@@ -232,7 +247,10 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countTeamsByCoach({ eraId: 20 })).resolves.toEqual(
         rows,
       );
@@ -251,7 +269,10 @@ describe('CoachesService', () => {
         { coachId: 2, name: 'Grashnak', count: 2 },
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME),
       ).resolves.toEqual(rows);
@@ -262,7 +283,10 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompetitionsByCoach({ eraId: 20 }),
       ).resolves.toEqual(rows);
@@ -281,7 +305,10 @@ describe('CoachesService', () => {
       ];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countErasByCoach()).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -293,9 +320,12 @@ describe('CoachesService', () => {
   describe('league scoping', () => {
     it('countMatchesPlayedByCoach filters by league via the eras join', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new CoachesService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countMatchesPlayedByCoach({ leagueId: 9 });
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
@@ -306,9 +336,12 @@ describe('CoachesService', () => {
 
     it('countCompetitionsByCoach filters by league via the eras join', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new CoachesService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countCompetitionsByCoach({ leagueId: 9 });
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
@@ -321,7 +354,10 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
         rows,
       );
@@ -341,7 +377,10 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
         rows,
       );
@@ -353,9 +392,12 @@ describe('CoachesService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new CoachesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -377,7 +419,10 @@ describe('CoachesService', () => {
     it('returns the distinct coach count for the era', async () => {
       const builder = makeCountBuilder([{ count: 6 }]);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByEra(5)).resolves.toBe(6);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -403,7 +448,10 @@ describe('CoachesService', () => {
     it('returns the distinct coach count for the league', async () => {
       const builder = makeCountBuilder([{ count: 15 }]);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByLeague(9)).resolves.toBe(15);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -432,7 +480,10 @@ describe('CoachesService', () => {
     it('returns the distinct coach count for the competition', async () => {
       const builder = makeCountBuilder([{ count: 4 }]);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({ select } as unknown as Db);
+      const service = new CoachesService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByCompetition(7)).resolves.toBe(4);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -446,9 +497,12 @@ describe('CoachesService', () => {
     it('returns the coach the query resolves to', async () => {
       const where = vi.fn().mockResolvedValue([{ id: 7, name: 'Roze Madder' }]);
       const from = vi.fn(() => ({ where }));
-      const service = new CoachesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'Roze Madder',
@@ -459,9 +513,12 @@ describe('CoachesService', () => {
     it('returns undefined when no coach matches', async () => {
       const where = vi.fn().mockResolvedValue([]);
       const from = vi.fn(() => ({ where }));
-      const service = new CoachesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(extractFilterValues(firstCallArg(where))).toBe(999);
     });
@@ -476,9 +533,12 @@ describe('CoachesService', () => {
       const limit = vi.fn().mockResolvedValue(rows);
       const where = vi.fn(() => ({ limit }));
       const from = vi.fn(() => ({ where }));
-      const service = new CoachesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.searchByNamePrefix('Ro', 25)).resolves.toEqual(rows);
       expect(limit).toHaveBeenCalledWith(25);
     });
@@ -497,9 +557,12 @@ describe('CoachesService', () => {
       const builder = makeSpanBuilder([
         { start: '2021-09-01', end: '2023-06-10' },
       ]);
-      const service = new CoachesService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getCareerSpan(7)).resolves.toEqual({
         start: '2021-09-01',
         end: '2023-06-10',
@@ -509,9 +572,12 @@ describe('CoachesService', () => {
 
     it('returns undefined when the coach has played no matches', async () => {
       const builder = makeSpanBuilder([{ start: null, end: null }]);
-      const service = new CoachesService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getCareerSpan(7)).resolves.toBeUndefined();
     });
   });
@@ -535,9 +601,12 @@ describe('CoachesService', () => {
       ];
       const builder = makeTopTeamsBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CoachesService({
-        select,
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select,
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getTopTeamsByMatchesPlayed(7, 10)).resolves.toEqual(
         rows,
       );
@@ -558,9 +627,12 @@ describe('CoachesService', () => {
         count: i < 6 ? 5 : 1,
       }));
       const builder = makeTopTeamsBuilder(rows);
-      const service = new CoachesService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CoachesService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getTopTeamsByMatchesPlayed(7, 10)).resolves.toEqual(
         rows,
       );

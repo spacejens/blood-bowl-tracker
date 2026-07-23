@@ -3,11 +3,17 @@ import type {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
+import {
+  MatchEventDecodersService,
   MatchEventParserService,
   MatchParserService,
+  SecretObjectiveService,
   TournamentParserService,
+  WeatherTypeService,
 } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -29,13 +35,25 @@ function makeService({
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpCompetitionsImportService(
-    { files } as unknown as TpSourceReader,
+    {
+      files,
+      isBaseTournamentFile: (filename: string) =>
+        /^tournament_[^_]+\.json$/.test(filename),
+    } as unknown as TpSourceReader,
     new TournamentParserService(),
-    new MatchParserService(new MatchEventParserService()),
+    new MatchParserService(
+      new MatchEventParserService(
+        new MatchEventDecodersService(
+          new SecretObjectiveService(),
+          new WeatherTypeService(),
+        ),
+      ),
+    ),
     { upsertCompetitionResult } as unknown as CompetitionsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
   );
 }
 

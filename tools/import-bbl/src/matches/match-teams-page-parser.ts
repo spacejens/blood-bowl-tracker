@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 // e.g. `default.asp?p=tm&t=vor` off a match page's team link. Team codes can
 // contain non-ASCII letters (e.g. "gås", "äng"), so match everything up to the
@@ -18,6 +18,8 @@ export interface BblMatchDetails {
 
 @Injectable()
 export class MatchTeamsPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract the home/away team ids and the display name from a match detail
    * page (`p=m&m=<id>`). `bblId` is the page's own `m` param. The two teams are
@@ -60,7 +62,7 @@ export class MatchTeamsPageParser {
       return null;
     }
     const compText = header.find('a[href*="p=ma"]').first().text();
-    const name = normalizeExtractedText(
+    const name = this.normalizeText.normalize(
       header
         .text()
         .slice(compText.length)

@@ -3,6 +3,7 @@ import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   firstCallArg,
@@ -25,6 +26,7 @@ function makeFromBuilder(rows: unknown[]) {
 }
 
 describe('LeaguesService', () => {
+  const likePattern = new LikePatternService();
   let service: LeaguesService;
   let mockDb: {
     select: () => { from: ReturnType<typeof vi.fn> };
@@ -55,7 +57,11 @@ describe('LeaguesService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [LeaguesService, { provide: DB, useValue: mockDb }],
+      providers: [
+        LeaguesService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(LeaguesService);
@@ -144,9 +150,12 @@ describe('LeaguesService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new LeaguesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new LeaguesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -156,9 +165,12 @@ describe('LeaguesService', () => {
     it('returns the matching league id and name', async () => {
       const where = vi.fn().mockResolvedValue([{ id: 7, name: 'GBBL' }]);
       const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new LeaguesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'GBBL',
@@ -170,9 +182,12 @@ describe('LeaguesService', () => {
     it('returns undefined when no league matches', async () => {
       const where = vi.fn().mockResolvedValue([]);
       const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new LeaguesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(where))).toBe(999);
@@ -188,9 +203,12 @@ describe('LeaguesService', () => {
       const limit = vi.fn().mockResolvedValue(rows);
       const where = vi.fn(() => ({ limit }));
       const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new LeaguesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.searchByNamePrefix('GBBL', 25)).resolves.toEqual(
         rows,
       );
@@ -203,9 +221,12 @@ describe('LeaguesService', () => {
         limit,
       }));
       const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new LeaguesService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
 
       await service.searchByNamePrefix('50%_\\off', 25);
 

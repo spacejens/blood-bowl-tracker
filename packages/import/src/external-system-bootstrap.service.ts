@@ -2,8 +2,8 @@ import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemsImportService } from './external-systems-import.service';
+import { ImportResultService } from './import-result.service';
 import type { ImportError } from './types';
-import { makeImportError } from './types';
 
 export type ExternalSystemBootstrapResult =
   { ok: true; ids: number[] } | { ok: false; error: ImportError };
@@ -12,6 +12,7 @@ export type ExternalSystemBootstrapResult =
 export class ExternalSystemBootstrapService {
   constructor(
     private readonly externalSystemsImport: ExternalSystemsImportService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -35,7 +36,7 @@ export class ExternalSystemBootstrapService {
     } catch (error) {
       return {
         ok: false,
-        error: makeImportError({
+        error: this.importResults.error({
           item: { externalSystems: names.map((entry) => entry.name) },
           message: `${messagePrefix}${error instanceof Error ? error.message : String(error)}`,
         }),

@@ -15,6 +15,13 @@ import type {
 } from 'discord.js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../database-timeout.service';
+import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
+import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
+import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
+import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
+import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
+import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -25,6 +32,7 @@ import {
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
+import { LeaderboardService } from '../insights/leaderboard.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -80,16 +88,29 @@ function makeService() {
   const registry = {
     register: vi.fn(),
   };
+  const databaseTimeout = new DatabaseTimeoutService();
+  const leaderboard = new LeaderboardService(databaseTimeout);
   const service = new DeepdiveCommandService(
     eras,
     competitions,
-    externalSystems,
     coaches,
     teams,
     players,
     races,
     discordClient as unknown as DiscordClientService,
     registry as unknown as SlashCommandRegistryService,
+    new EraDeepdiveService(
+      eras,
+      competitions,
+      externalSystems,
+      databaseTimeout,
+      leaderboard,
+    ),
+    new CoachDeepdiveService(coaches, databaseTimeout, leaderboard),
+    new TeamDeepdiveService(teams, databaseTimeout, leaderboard),
+    new PlayerDeepdiveService(players, databaseTimeout, leaderboard),
+    new RaceDeepdiveService(races, databaseTimeout, leaderboard),
+    new CompetitionDeepdiveService(competitions, databaseTimeout, leaderboard),
   );
   return {
     service,

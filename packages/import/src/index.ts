@@ -5,6 +5,7 @@ export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.
 export { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 export { ExternalSystemsImportService } from './external-systems-import.service';
 export { ImportModule } from './import.module';
+export { ImportResultService } from './import-result.service';
 export { ImportRunnerService } from './import-runner.service';
 export { LeaguesImportService } from './leagues-import.service';
 export { MatchEventsImportService } from './match-events-import.service';

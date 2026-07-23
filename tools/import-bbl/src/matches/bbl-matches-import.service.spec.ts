@@ -1,5 +1,6 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { MatchesImportService } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
@@ -14,7 +15,11 @@ import type {
 import type { BblMatchDetails } from './match-teams-page-parser';
 
 function makeReader(matchesById: Record<string, BblMatch[]>) {
-  const reader = new BblMatchListReaderService({} as never, {} as never);
+  const reader = new BblMatchListReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
     new Map(Object.entries(matchesById)),
   );
@@ -43,7 +48,7 @@ function makeMergeService(
   merges: MatchMergePair[],
 ): MatchMergeService {
   const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig);
+  return new MatchMergeService(reader, mergeConfig, new ImportResultService());
 }
 
 const match: BblMatch = {
@@ -68,6 +73,7 @@ describe('BblMatchesImportService', () => {
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
       makeDetailReader({ '89': detail('89', 'Match 3') }),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -97,6 +103,7 @@ describe('BblMatchesImportService', () => {
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
       makeDetailReader({}),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -119,6 +126,7 @@ describe('BblMatchesImportService', () => {
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
       makeDetailReader({ '89': detail('89', 'Match 3') }),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -149,6 +157,7 @@ describe('BblMatchesImportService', () => {
         { firstMatchId: '1061', secondMatchId: '1062' },
       ]),
       makeDetailReader({ '1061': detail('1061', 'Bierhallentodball') }),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -205,6 +214,7 @@ describe('BblMatchesImportService', () => {
         '1061': detail('1061', 'Match A'),
         '1062': detail('1062', 'Match B'),
       }),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -245,6 +255,7 @@ describe('BblMatchesImportService', () => {
       { upsertMatchResult } as unknown as MatchesImportService,
       makeMergeService(reader, []),
       makeDetailReader({}),
+      new ImportResultService(),
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(

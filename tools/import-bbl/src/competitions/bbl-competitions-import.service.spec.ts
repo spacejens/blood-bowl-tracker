@@ -2,15 +2,19 @@ import type {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
 import type { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatch } from '../matches/match-list-page-parser';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionsImportService } from './bbl-competitions-import.service';
 import { CompetitionListPageParser } from './competition-list-page-parser';
 
@@ -37,6 +41,10 @@ const eraIdsByName = new Map<string, number>([
 ]);
 
 /** A fake page carrying only params; its load() must never be called (parsers are spied). */
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+
 function page(type: string, params: Record<string, string>): BblPage {
   return {
     type,
@@ -61,7 +69,7 @@ function makeReader(pagesByType: Record<string, BblPage[]>): BblSourceReader {
 
 /** A competition-list parser that returns the given list from any se/sr page. */
 function makeListParser(list: { bblId: string; name: string }[]) {
-  const parser = new CompetitionListPageParser();
+  const parser = new CompetitionListPageParser(normalizeText);
   vi.spyOn(parser, 'extractCompetitions').mockReturnValue(list);
   return parser;
 }
@@ -107,6 +115,8 @@ function makeService(opts: {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 
@@ -330,7 +340,7 @@ describe('BblCompetitionsImportService', () => {
     // Mirrors the real BBL mirror's bare `default.asp?p=se` index page, which
     // has no `s` param and lacks the master `<option>` dropdown entirely, so
     // extractCompetitions correctly (but unhelpfully) returns [] for it.
-    const listParser = new CompetitionListPageParser();
+    const listParser = new CompetitionListPageParser(normalizeText);
     vi.spyOn(listParser, 'extractCompetitions').mockImplementation((p) =>
       p.params.s === undefined ? [] : [{ bblId: '1', name: 'Major Season 1' }],
     );
@@ -382,7 +392,7 @@ describe('BblCompetitionsImportService', () => {
   });
 
   it('records an error and reports zero imports when the master list page fails to parse', async () => {
-    const listParser = new CompetitionListPageParser();
+    const listParser = new CompetitionListPageParser(normalizeText);
     vi.spyOn(listParser, 'extractCompetitions').mockImplementation(() => {
       throw new Error('bad se page');
     });

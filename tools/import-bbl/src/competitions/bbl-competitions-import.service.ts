@@ -3,8 +3,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -15,7 +14,7 @@ import { EraConfig, EraConfigService } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import {
   BblCompetition,
   CompetitionListPageParser,
@@ -47,6 +46,8 @@ export class BblCompetitionsImportService {
     private readonly eraConfig: EraConfigService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -81,13 +82,13 @@ export class BblCompetitionsImportService {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
         competitionIdsByBblId,
       };
@@ -100,7 +101,7 @@ export class BblCompetitionsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
         competitionIdsByBblId,
       };
@@ -111,7 +112,7 @@ export class BblCompetitionsImportService {
     const competitions = await this.readCompetitionList(errors);
     if (competitions === null) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: {
             pageTypes: [PLAYED_LIST_PAGE_TYPE, STANDINGS_LIST_PAGE_TYPE],
           },
@@ -121,7 +122,7 @@ export class BblCompetitionsImportService {
         }),
       );
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         competitionsByBblId,
         competitionIdsByBblId,
       };
@@ -164,7 +165,7 @@ export class BblCompetitionsImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       competitionsByBblId,
       competitionIdsByBblId,
     };
@@ -208,7 +209,11 @@ export class BblCompetitionsImportService {
           return this.competitionListPageParser.extractCompetitions(page);
         } catch (error) {
           errors.push(
-            pageParseError(page.params, 'master competition list', error),
+            this.pageParseError.build(
+              page.params,
+              'master competition list',
+              error,
+            ),
           );
           return null;
         }
@@ -251,7 +256,7 @@ export class BblCompetitionsImportService {
       const eraId = eraIdsByName.get(overrideEra.identity.name);
       if (eraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: competition,
             message: `Skipping competition "${competition.name}" (id ${competition.bblId}): its configured era override "${overrideEra.identity.name}" has no known database id (its rules set may have failed to import).`,
           }),
@@ -263,7 +268,7 @@ export class BblCompetitionsImportService {
 
     if (dates.length === 0) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: competition,
           message: `Skipping competition "${competition.name}" (id ${competition.bblId}): no dated matches found.`,
         }),
@@ -282,7 +287,7 @@ export class BblCompetitionsImportService {
         eraName === undefined
           ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`
           : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
-      errors.push(makeImportError({ item: competition, message }));
+      errors.push(this.importResults.error({ item: competition, message }));
       return undefined;
     }
 

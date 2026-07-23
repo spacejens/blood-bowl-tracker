@@ -1,5 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
@@ -36,6 +36,7 @@ export class MatchMergeService {
   constructor(
     private readonly matchListReader: BblMatchListReaderService,
     private readonly mergeConfig: MatchMergeConfigService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   async resolve(errors: ImportError[]): Promise<MatchMergeResolution> {
@@ -66,7 +67,7 @@ export class MatchMergeService {
       const lb = locationByBblId.get(secondMatchId);
       if (!la || !lb || la.competitionId !== lb.competitionId) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { matches: [firstMatchId, secondMatchId] },
             message: `Skipping match merge for pair [${firstMatchId}, ${secondMatchId}]: both match ids must appear in the same competition's match list, but they do not. Importing them as independent matches.`,
           }),

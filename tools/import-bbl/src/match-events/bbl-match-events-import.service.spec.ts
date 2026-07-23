@@ -7,6 +7,7 @@ import type {
   MatchEventsImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
@@ -18,17 +19,24 @@ import type {
 } from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+import { MatchEventCorrelationService } from './match-event-correlation.service';
+
+const importResults = new ImportResultService();
 
 function makeMergeService(
   matchesById: Record<string, { bblId: string; date: Date }[]>,
   merges: MatchMergePair[] = [],
 ): MatchMergeService {
-  const reader = new BblMatchListReaderService({} as never, {} as never);
+  const reader = new BblMatchListReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
     new Map(Object.entries(matchesById)),
   );
   const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig);
+  return new MatchMergeService(reader, mergeConfig, importResults);
 }
 
 const MATCH_BBL_ID = '89';
@@ -76,7 +84,11 @@ function makeEvents(
 }
 
 function makeMatchListReader() {
-  const reader = new BblMatchListReaderService({} as never, {} as never);
+  const reader = new BblMatchListReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
     new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
   );
@@ -84,7 +96,11 @@ function makeMatchListReader() {
 }
 
 function makeEventsReader(events: BblMatchEvents) {
-  const reader = new BblMatchEventsReaderService({} as never, {} as never);
+  const reader = new BblMatchEventsReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchEventsByBblId').mockResolvedValue(
     new Map([[events.bblId, events]]),
   );
@@ -118,6 +134,8 @@ async function runImport(
     { upsertTeam } as unknown as TeamsImportService,
     { upsertMatchEvent } as unknown as MatchEventsImportService,
     makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
+    new MatchEventCorrelationService(),
+    importResults,
   );
 
   const { result } = await service.importMatchEvents({
@@ -419,6 +437,7 @@ describe('BblMatchEventsImportService', () => {
     const matchListReader = new BblMatchListReaderService(
       {} as never,
       {} as never,
+      {} as never,
     );
     vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
       new Map([
@@ -433,6 +452,7 @@ describe('BblMatchEventsImportService', () => {
     );
 
     const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -457,6 +477,8 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
+      importResults,
     );
 
     const { result } = await service.importMatchEvents({
@@ -547,6 +569,7 @@ describe('BblMatchEventsImportService', () => {
     const matchListReader = new BblMatchListReaderService(
       {} as never,
       {} as never,
+      {} as never,
     );
     vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
       new Map([
@@ -561,6 +584,7 @@ describe('BblMatchEventsImportService', () => {
     );
 
     const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -584,6 +608,8 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
+      importResults,
     );
 
     const { result } = await service.importMatchEvents({
@@ -678,6 +704,7 @@ describe('BblMatchEventsImportService', () => {
     const matchListReader = new BblMatchListReaderService(
       {} as never,
       {} as never,
+      {} as never,
     );
     vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
       new Map([
@@ -692,6 +719,7 @@ describe('BblMatchEventsImportService', () => {
     );
 
     const eventsReader = new BblMatchEventsReaderService(
+      {} as never,
       {} as never,
       {} as never,
     );
@@ -716,6 +744,8 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
+      importResults,
     );
 
     await service.importMatchEvents({

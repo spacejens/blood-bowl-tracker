@@ -1,8 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { makeImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 
 // e.g. `onclick="gototeam('äng')"`. Team codes can contain non-ASCII letters,
 // so capture everything up to the closing quote rather than an ASCII class.
@@ -10,6 +10,8 @@ const GOTOTEAM = /gototeam\('([^']+)'\)/;
 
 @Injectable()
 export class CompetitionStandingsPageParser {
+  constructor(private readonly importResults: ImportResultService) {}
+
   /**
    * Extract the registered team codes from a competition standings page
    * (`p=se&s=<id>`). Every registered team — including one with a 0-0 record
@@ -28,7 +30,7 @@ export class CompetitionStandingsPageParser {
       const match = GOTOTEAM.exec(onclick);
       if (!match) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { page: page.params },
             message: `Skipping standings row on page ${JSON.stringify(page.params)}: no gototeam(...) team code found.`,
           }),

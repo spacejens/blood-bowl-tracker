@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { MatchEventsPageParser } from './match-events-page-parser';
 
 function matchPage(id: string, html: string): BblPage {
   return { type: 'm', params: { m: id }, load: () => load(html) };
 }
 
-const parser = new MatchEventsPageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new MatchEventsPageParser(normalizeText);
 
 function journeymenPage(rows: string, id = '1000'): BblPage {
   const html =

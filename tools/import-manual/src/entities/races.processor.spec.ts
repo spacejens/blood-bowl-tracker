@@ -2,12 +2,18 @@ import type {
   ImportError,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RacesProcessor } from './races.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -40,9 +46,12 @@ function makeContext(
 describe('RacesProcessor', () => {
   it('resolves era refs, upserts, and records ids', async () => {
     const upsertRace = vi.fn().mockResolvedValue({ id: 40 });
-    const processor = new RacesProcessor({
-      upsertRace,
-    } as unknown as RacesImportService);
+    const processor = new RacesProcessor(
+      {
+        upsertRace,
+      } as unknown as RacesImportService,
+      makeRefResolver(),
+    );
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
     const data = emptyData();
@@ -77,9 +86,12 @@ describe('RacesProcessor', () => {
 
   it('upserts a race with no eras (empty list)', async () => {
     const upsertRace = vi.fn().mockResolvedValue({ id: 41 });
-    const processor = new RacesProcessor({
-      upsertRace,
-    } as unknown as RacesImportService);
+    const processor = new RacesProcessor(
+      {
+        upsertRace,
+      } as unknown as RacesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.races = [
       {
@@ -99,9 +111,12 @@ describe('RacesProcessor', () => {
 
   it('skips the race and records an error when an era ref is unresolved', async () => {
     const upsertRace = vi.fn();
-    const processor = new RacesProcessor({
-      upsertRace,
-    } as unknown as RacesImportService);
+    const processor = new RacesProcessor(
+      {
+        upsertRace,
+      } as unknown as RacesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.races = [
       {
@@ -121,9 +136,12 @@ describe('RacesProcessor', () => {
 
   it('does not record ids when upsert returns null', async () => {
     const upsertRace = vi.fn().mockResolvedValue(null);
-    const processor = new RacesProcessor({
-      upsertRace,
-    } as unknown as RacesImportService);
+    const processor = new RacesProcessor(
+      {
+        upsertRace,
+      } as unknown as RacesImportService,
+      makeRefResolver(),
+    );
     const idMap = new ExternalIdMap();
     const data = emptyData();
     data.races = [

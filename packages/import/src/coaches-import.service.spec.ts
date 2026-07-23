@@ -4,13 +4,17 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CoachesImportService } from './coaches-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
 describe('CoachesImportService', () => {
   function makeService(upsertMock: ReturnType<typeof vi.fn>) {
     const client = { coaches: { upsert: upsertMock } } as unknown as ApiClient;
-    return new CoachesImportService(client, new ImportRunnerService());
+    return new CoachesImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {
@@ -75,6 +79,7 @@ describe('CoachesImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         CoachesImportService,
+        ImportResultService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],

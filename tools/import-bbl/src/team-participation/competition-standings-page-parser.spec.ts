@@ -1,8 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { CompetitionStandingsPageParser } from './competition-standings-page-parser';
 
 function standingsPage(html: string): BblPage {
@@ -23,7 +24,7 @@ function row(code: string): string {
   );
 }
 
-const parser = new CompetitionStandingsPageParser();
+const parser = new CompetitionStandingsPageParser(new ImportResultService());
 
 describe('CompetitionStandingsPageParser', () => {
   it('extracts each registered team code from the standings rows', () => {

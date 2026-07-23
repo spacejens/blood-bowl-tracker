@@ -4,7 +4,7 @@ import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
 } from '../error-messages';
-import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard';
+import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard.service';
 import {
   chatInput,
   makeService,

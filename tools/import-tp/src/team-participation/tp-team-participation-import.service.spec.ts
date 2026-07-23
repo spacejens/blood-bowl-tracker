@@ -3,6 +3,7 @@ import type {
   CompetitionsImportService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -20,6 +21,7 @@ function makeService(opts: {
     {
       upsertMatch: opts.upsertMatch ?? vi.fn().mockResolvedValue(true),
     } as unknown as MatchesImportService,
+    new ImportResultService(),
   );
 }
 

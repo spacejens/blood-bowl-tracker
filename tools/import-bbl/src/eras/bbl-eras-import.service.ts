@@ -2,8 +2,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -21,6 +20,7 @@ export class BblErasImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -46,12 +46,15 @@ export class BblErasImportService {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -60,7 +63,10 @@ export class BblErasImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
     }
     const [bblSystemId, nameSystemId] = bootstrap.ids;
 
@@ -71,7 +77,7 @@ export class BblErasImportService {
           : leagueIdsByName.get(era.leagueName);
       if (leagueId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: era,
             message: `Cannot import era "${era.identity.name}": its league "${era.leagueName ?? '(unset)'}" was not imported successfully.`,
           }),
@@ -91,7 +97,7 @@ export class BblErasImportService {
       }
       if (unresolved !== undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: era,
             message: `Cannot import era "${era.identity.name}": its rules set "${unresolved}" was not imported successfully.`,
           }),
@@ -122,6 +128,9 @@ export class BblErasImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), eraIdsByName };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      eraIdsByName,
+    };
   }
 }

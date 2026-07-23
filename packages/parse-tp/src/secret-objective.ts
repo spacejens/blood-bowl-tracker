@@ -46,7 +46,3 @@ export const secretObjectiveByCode: Record<number, SecretObjective> = {
   15: 'all_according_to_plan',
   16: 'headtaker',
 };
-
-export function decodeSecretObjective(code: number): SecretObjective {
-  return secretObjectiveByCode[code] ?? 'unknown';
-}

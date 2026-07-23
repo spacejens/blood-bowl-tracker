@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import type { BblRace } from './race-page-parser';
 
 @Injectable()
 export class RaceListPageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract every race from the single master race-list page (`p=tl`). Each
    * race is introduced by an anchor whose `name` is the race's numeric BBL id
@@ -30,7 +32,7 @@ export class RaceListPageParser {
       }
       // element is a <b>: the first one after a numeric anchor is the race name.
       if (pendingId !== null) {
-        const raceName = normalizeExtractedText($(element).text());
+        const raceName = this.normalizeText.normalize($(element).text());
         if (raceName) {
           races.push({ id: pendingId, name: raceName });
         }

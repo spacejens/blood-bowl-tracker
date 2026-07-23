@@ -53,7 +53,3 @@ export const weatherTypeByCode: Record<number, WeatherType> = {
   112: 'freezing',
   113: 'heavy_snow',
 };
-
-export function decodeWeatherType(code: number): WeatherType {
-  return weatherTypeByCode[code] ?? 'unknown';
-}

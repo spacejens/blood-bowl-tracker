@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CompetitionsImportService } from './competitions-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
@@ -12,7 +13,10 @@ describe('CompetitionsImportService', () => {
     const client = {
       competitions: { upsert: upsertMock },
     } as unknown as ApiClient;
-    return new CompetitionsImportService(client, new ImportRunnerService());
+    return new CompetitionsImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {
@@ -90,6 +94,7 @@ describe('CompetitionsImportService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionsImportService,
+        ImportResultService,
         ImportRunnerService,
         { provide: API_CLIENT, useValue: client },
       ],
@@ -110,7 +115,10 @@ describe('CompetitionsImportService.upsertCompetitionResult', () => {
     const client = {
       competitions: { upsert: upsertMock },
     } as unknown as ApiClient;
-    return new CompetitionsImportService(client, new ImportRunnerService());
+    return new CompetitionsImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {

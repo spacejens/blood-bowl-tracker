@@ -2,7 +2,7 @@ import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportResult,
+  ImportResultService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
@@ -16,6 +16,7 @@ export class TpMatchesImportService {
     private readonly matchesImport: MatchesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -45,7 +46,7 @@ export class TpMatchesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         matchIdsByTpId,
       };
     }
@@ -74,7 +75,7 @@ export class TpMatchesImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       matchIdsByTpId,
     };
   }

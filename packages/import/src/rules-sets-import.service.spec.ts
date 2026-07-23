@@ -1,6 +1,7 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
 import type { ImportError } from './types';
@@ -10,7 +11,10 @@ describe('RulesSetsImportService', () => {
     const client = {
       rulesSets: { upsert: upsertMock },
     } as unknown as ApiClient;
-    return new RulesSetsImportService(client, new ImportRunnerService());
+    return new RulesSetsImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   it('returns the upserted rules set and calls the client with the given data', async () => {

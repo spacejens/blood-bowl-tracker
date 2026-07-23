@@ -1,8 +1,7 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   PositionsImportService,
@@ -12,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 import { PlayerPageParser } from '../players/player-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { PositionPageParser } from './position-page-parser';
 
 const POSITION_PAGE_TYPE = 'pt';
@@ -70,6 +69,8 @@ export class BblPositionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -143,7 +144,7 @@ export class BblPositionsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         positionIdsByBblId,
         positionRaceCandidates,
       };
@@ -167,7 +168,7 @@ export class BblPositionsImportService {
         const dbId = teamRaceIdsByCode.get(code);
         if (dbId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { typId, teamCode: code },
               message: `Could not resolve a race for team code "${code}" (position typId ${typId}): team code not in teamRaceIdsByCode`,
             }),
@@ -180,7 +181,7 @@ export class BblPositionsImportService {
         const info = raceInfoByDbId.get(dbId);
         if (!info) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { typId, raceDbId: dbId },
               message: `Could not resolve a race for db id ${dbId} (position typId ${typId}): race info missing from racesByBblId`,
             }),
@@ -205,7 +206,7 @@ export class BblPositionsImportService {
           const dbId = racesByBblId.get(race.bblId)?.id;
           if (dbId === undefined) {
             errors.push(
-              makeImportError({
+              this.importResults.error({
                 item: { typId: position.typId, race: race.name },
                 message: `Skipped position "${position.name}" for race "${race.name}" (${race.bblId}): race not imported`,
               }),
@@ -243,7 +244,7 @@ export class BblPositionsImportService {
 
         if (position.races.length === 0 && resolved.length === 0) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { typId: position.typId, name: position.name },
               message: `Skipped position "${position.name}" (${position.typId}): no race listed and none resolvable from player history`,
             }),
@@ -322,13 +323,13 @@ export class BblPositionsImportService {
           }
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'position', error));
+        errors.push(this.pageParseError.build(page.params, 'position', error));
         continue;
       }
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       positionIdsByBblId,
       positionRaceCandidates,
     };

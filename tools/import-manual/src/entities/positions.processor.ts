@@ -4,11 +4,14 @@ import { Injectable } from '@nestjs/common';
 
 import type { PositionEntry } from '../data-file/manual-data-file.schema';
 import type { ProcessContext } from '../references/process-context';
-import { resolveRef, toExternalIds } from '../references/resolve-refs';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 
 @Injectable()
 export class PositionsProcessor {
-  constructor(private readonly positionsImport: PositionsImportService) {}
+  constructor(
+    private readonly positionsImport: PositionsImportService,
+    private readonly refResolver: ReferenceResolverService,
+  ) {}
 
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
@@ -17,7 +20,10 @@ export class PositionsProcessor {
         {
           name: entry.name,
           isStarPlayer: entry.isStarPlayer,
-          externalIds: toExternalIds(entry.externalIds, ctx.systemIds),
+          externalIds: this.refResolver.toExternalIds(
+            entry.externalIds,
+            ctx.systemIds,
+          ),
         },
         ctx.errors,
       );
@@ -53,14 +59,14 @@ export class PositionsProcessor {
     const raceEras: SyncPositionRaceErasData['raceEras'] = [];
     let ok = true;
     for (const pair of entry.raceEras) {
-      const raceId = resolveRef({
+      const raceId = this.refResolver.resolveRef({
         ref: pair.race,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
-      const eraId = resolveRef({
+      const eraId = this.refResolver.resolveRef({
         ref: pair.era,
         idMap: ctx.idMap,
         errors: ctx.errors,

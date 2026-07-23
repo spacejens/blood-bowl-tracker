@@ -2,7 +2,7 @@ import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   RacesImportService,
@@ -11,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /** One logical race, accumulated across every roster file that names it. */
 interface RaceGroup {
@@ -27,6 +27,8 @@ export class TpRacesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -63,7 +65,7 @@ export class TpRacesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         raceIdsByTeamRaceCode,
         raceNamesById,
       };
@@ -84,7 +86,7 @@ export class TpRacesImportService {
       group.codes.add(roster.teamRaceCode);
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       } else {
         group.eraIds.add(eraId);
       }
@@ -116,7 +118,7 @@ export class TpRacesImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       raceIdsByTeamRaceCode,
       raceNamesById,
     };

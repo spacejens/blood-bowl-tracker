@@ -1,20 +1,14 @@
-import {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
-  LeaguesService,
-  MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 import { buildFactTree } from './fact-tree';
-import type { FactNode } from './fact-tree-utils';
+import type { FactNode } from './fact-tree.types';
+import { CoachToplistService } from './facts/coach-toplist.service';
+import { ErasListService } from './facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { PlayerToplistService } from './facts/player-toplist.service';
+import { RaceToplistService } from './facts/race-toplist.service';
+import { StatsSummaryFactsService } from './facts/stats-summary.service';
+import { TeamToplistService } from './facts/team-toplist.service';
 
 /**
  * Wraps the pure `buildFactTree()` in a Nest provider so the assembled fact
@@ -25,32 +19,24 @@ import type { FactNode } from './fact-tree-utils';
 @Injectable()
 export class FactTreeFactoryService {
   constructor(
-    private readonly coaches: CoachesService,
-    private readonly teams: TeamsService,
-    private readonly matches: MatchesService,
-    private readonly competitions: CompetitionsService,
-    private readonly leagues: LeaguesService,
-    private readonly rulesSets: RulesSetsService,
-    private readonly eras: ErasService,
-    private readonly players: PlayersService,
-    private readonly positions: PositionsService,
-    private readonly races: RacesService,
-    private readonly externalSystems: ExternalSystemsService,
+    private readonly coachToplist: CoachToplistService,
+    private readonly teamToplist: TeamToplistService,
+    private readonly playerToplist: PlayerToplistService,
+    private readonly raceToplist: RaceToplistService,
+    private readonly expensiveMistakes: ExpensiveMistakesToplistService,
+    private readonly erasList: ErasListService,
+    private readonly statsSummary: StatsSummaryFactsService,
   ) {}
 
   build(): FactNode {
     return buildFactTree({
-      coaches: this.coaches,
-      teams: this.teams,
-      matches: this.matches,
-      competitions: this.competitions,
-      leagues: this.leagues,
-      rulesSets: this.rulesSets,
-      eras: this.eras,
-      players: this.players,
-      positions: this.positions,
-      races: this.races,
-      externalSystems: this.externalSystems,
+      coachToplist: this.coachToplist,
+      teamToplist: this.teamToplist,
+      playerToplist: this.playerToplist,
+      raceToplist: this.raceToplist,
+      expensiveMistakes: this.expensiveMistakes,
+      erasList: this.erasList,
+      statsSummary: this.statsSummary,
     });
   }
 }

@@ -5,7 +5,7 @@ import {
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
-import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard';
+import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard.service';
 import {
   chatInput,
   makeService,

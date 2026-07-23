@@ -1,7 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -16,7 +15,10 @@ export interface SyncStarPositionRaceErasOptions {
 
 @Injectable()
 export class TpPositionRaceErasImportService {
-  constructor(private readonly positionsImport: PositionsImportService) {}
+  constructor(
+    private readonly positionsImport: PositionsImportService,
+    private readonly importResults: ImportResultService,
+  ) {}
 
   /**
    * Post-players step (issue #234): populate `positions_race_eras` for TP
@@ -54,7 +56,7 @@ export class TpPositionRaceErasImportService {
       const eraId = eraIdsByName.get(usage.era);
       if (raceId === undefined || eraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: {
               positionId: usage.positionId,
               teamRaceCode: usage.teamRaceCode,
@@ -89,6 +91,6 @@ export class TpPositionRaceErasImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 }

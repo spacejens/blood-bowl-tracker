@@ -2,13 +2,17 @@ import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ErasImportService } from './eras-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
 describe('ErasImportService', () => {
   function makeService(upsertMock: ReturnType<typeof vi.fn>) {
     const client = { eras: { upsert: upsertMock } } as unknown as ApiClient;
-    return new ErasImportService(client, new ImportRunnerService());
+    return new ErasImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {
