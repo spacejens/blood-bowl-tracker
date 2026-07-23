@@ -10,12 +10,18 @@ import {
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
+  buildEntityButtons,
   MAX_LEADERBOARD_ENTRIES,
   topRanksWithTies,
 } from '../../insights/leaderboard';
+import {
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 
 type Race = { id: number; name: string };
-type TopTeam = { name: string; count: number };
+type Era = { id: number; name: string };
+type TopTeam = { id: number; name: string; count: number };
 
 /** Position at which the top-teams list opens a tie group (5th place). */
 const TOP_TEAMS_TOP_ENTRIES = 5;
@@ -45,11 +51,11 @@ export async function resolveRaceDeepdive(
     return DEEPDIVE_RACE_NOT_FOUND_MESSAGE;
   }
 
-  const eraNames: string[] | null = await withDatabaseTimeout(
-    races.listEraNames(raceId),
+  const eraRows: Era[] | null = await withDatabaseTimeout(
+    races.listEras(raceId),
     null,
   );
-  if (eraNames === null) {
+  if (eraRows === null) {
     return DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE;
   }
 
@@ -61,7 +67,10 @@ export async function resolveRaceDeepdive(
     return DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE;
   }
 
-  const eras = eraNames.length > 0 ? eraNames.join(', ') : 'None recorded';
+  const eras =
+    eraRows.length > 0
+      ? eraRows.map((era) => era.name).join(', ')
+      : 'None recorded';
 
   const { rows: ranked, truncatedCount } = topRanksWithTies(
     topTeams,
@@ -82,5 +91,25 @@ export async function resolveRaceDeepdive(
     ...teamLines,
   ].join('\n');
 
-  return { embeds: [{ title: race.name, description }] };
+  type ButtonEntry = { customId: string; label: string };
+  const buttonEntries: ButtonEntry[] = [
+    ...eraRows.map((era) => ({
+      customId: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${era.id}`,
+      label: era.name,
+    })),
+    ...ranked.map((team) => ({
+      customId: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${team.id}`,
+      label: team.name,
+    })),
+  ];
+  const components = buildEntityButtons(
+    buttonEntries,
+    (entry) => entry.customId,
+    (entry) => entry.label,
+  );
+
+  return {
+    embeds: [{ title: race.name, description }],
+    ...(components.length > 0 ? { components } : {}),
+  };
 }

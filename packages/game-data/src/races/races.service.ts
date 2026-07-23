@@ -53,22 +53,22 @@ export class RacesService {
       .limit(limit);
   }
 
-  async listEraNames(raceId: number): Promise<string[]> {
-    const rows = await this.db
-      .select({ name: eras.name })
+  async listEras(raceId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: eras.id, name: eras.name })
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
       .orderBy(eras.name);
-    return rows.map((r) => r.name);
   }
 
   getTopTeamsByMatchesPlayed(
     raceId: number,
     limit: number,
-  ): Promise<{ name: string; count: number }[]> {
+  ): Promise<{ id: number; name: string; count: number }[]> {
     return this.db
       .select({
+        id: teams.id,
         name: teams.name,
         count: countDistinct(matches.id),
       })

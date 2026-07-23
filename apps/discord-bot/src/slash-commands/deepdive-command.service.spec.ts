@@ -65,7 +65,7 @@ function makeService() {
   } as unknown as PlayersService;
   const races = {
     findById: vi.fn().mockResolvedValue(undefined),
-    listEraNames: vi.fn().mockResolvedValue([]),
+    listEras: vi.fn().mockResolvedValue([]),
     getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
     searchByNamePrefix: vi.fn().mockResolvedValue([]),
   } as unknown as RacesService;
@@ -594,12 +594,12 @@ describe('DeepdiveCommandService', () => {
       id: 7,
       name: 'Orc',
     });
-    (races.listEraNames as ReturnType<typeof vi.fn>).mockResolvedValue([
-      'BB2020',
+    (races.listEras as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 4, name: 'BB2020' },
     ]);
     (
       races.getTopTeamsByMatchesPlayed as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ name: 'Gouged Eye', count: 40 }]);
+    ).mockResolvedValue([{ id: 9, name: 'Gouged Eye', count: 40 }]);
     const result = await service.execute(chatInput({ race: '7' }));
     expect(result).toEqual({
       embeds: [
@@ -611,6 +611,25 @@ describe('DeepdiveCommandService', () => {
             'Top teams by matches played:',
             '1. Gouged Eye — 40',
           ].join('\n'),
+        },
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2020',
+              custom_id: 'deepdive:era:4',
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'Gouged Eye',
+              custom_id: 'deepdive:team:9',
+            },
+          ],
         },
       ],
     });
