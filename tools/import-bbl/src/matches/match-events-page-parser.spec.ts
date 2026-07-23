@@ -117,4 +117,32 @@ describe('MatchEventsPageParser', () => {
     const page = matchPage('1000', '<div>no team table</div>');
     expect(parser.extractMatchEvents(page)).toBeNull();
   });
+
+  it('maps a -1 PA Sustained-Injuries row to a stat_reduction_pa consequence', () => {
+    const html =
+      '<div align="center"><b>' +
+      '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
+      '<table class="tblist">' +
+      '<tr class="trborder">' +
+      '<td width="180"><a href="default.asp?p=tm&t=hom"><b>Home Team</b></a></td>' +
+      '<td>gate: <b>1000</b></td>' +
+      '<td width="180"><a href="default.asp?p=tm&t=awy"><b>Away Team</b></a></td>' +
+      '</tr>' +
+      '<tr class="trborder">' +
+      '<td class="td10"><img src="gfx/trans.gif"></td>' +
+      '<td style="background-image:url(\'gfx/bgdarktrans5.png\')">-1 PA</td>' +
+      '<td class="td10"><img src="gfx/trans.gif"><br>' +
+      '<a href="default.asp?p=pl&pid=2200">Passer</a></td>' +
+      '</tr>' +
+      '</table>';
+    const result = parser.extractMatchEvents(matchPage('1000', html))!;
+    const pa = result.consequences.find(
+      (c) => c.consequenceType === 'stat_reduction_pa',
+    );
+    expect(pa).toEqual({
+      consequenceType: 'stat_reduction_pa',
+      side: 'away',
+      pid: '2200',
+    });
+  });
 });

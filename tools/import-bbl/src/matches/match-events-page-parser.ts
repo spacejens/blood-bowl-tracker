@@ -54,6 +54,7 @@ const CONSEQUENCE_LABELS: { test: RegExp; consequenceType: ConsequenceType }[] =
     { test: /^-1 ST$/i, consequenceType: 'stat_reduction_st' },
     { test: /^-1 AG$/i, consequenceType: 'stat_reduction_ag' },
     { test: /^-1 AV$/i, consequenceType: 'stat_reduction_av' },
+    { test: /^-1 PA$/i, consequenceType: 'stat_reduction_pa' },
     { test: /^Death$/i, consequenceType: 'death' },
   ];
 
