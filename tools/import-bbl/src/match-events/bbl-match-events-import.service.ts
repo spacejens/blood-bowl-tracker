@@ -18,13 +18,12 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchMergeService } from '../matches/match-merge.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
-import type { CombinedOccurrences } from './match-event-correlation';
+import type { CombinedOccurrences } from './match-event-correlation.service';
 import {
   ACTION_CATEGORY,
-  combineOccurrences,
   CONSEQUENCE_CATEGORY,
-  correlateEvents,
-} from './match-event-correlation';
+  MatchEventCorrelationService,
+} from './match-event-correlation.service';
 
 interface EmitEventsOptions {
   combined: CombinedOccurrences;
@@ -65,6 +64,7 @@ export class BblMatchEventsImportService {
     private readonly teamsImport: TeamsImportService,
     private readonly matchEventsImport: MatchEventsImportService,
     private readonly matchMerge: MatchMergeService,
+    private readonly matchEventCorrelation: MatchEventCorrelationService,
   ) {}
 
   /**
@@ -73,7 +73,7 @@ export class BblMatchEventsImportService {
    * match's raw occurrences (from the shared events reader), resolves its
    * team codes (two for a normal match, four for a merged pair) to their
    * team-era ids under the competition's era, correlates casualty actions
-   * with Sustained-Injury consequences (see {@link correlateEvents}),
+   * with Sustained-Injury consequences (see {@link MatchEventCorrelationService.correlateEvents}),
    * synthesizes a stable external id per event
    * (`<matchBblId>-<teamCode>-<category>-<occurrenceIndex>` under the BBL
    * external system), resolves each player pid to its DB id, and upserts the
@@ -136,7 +136,9 @@ export class BblMatchEventsImportService {
           if (sources.length === 0) {
             continue;
           }
-          const combined = combineOccurrences(...sources);
+          const combined = this.matchEventCorrelation.combineOccurrences(
+            ...sources,
+          );
 
           const teamEraIdByCode = new Map<string, number>();
           let unresolvedTeam = false;
@@ -206,7 +208,7 @@ export class BblMatchEventsImportService {
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
 
-    for (const event of correlateEvents(combined)) {
+    for (const event of this.matchEventCorrelation.correlateEvents(combined)) {
       const hasAction = event.actionType !== undefined;
       // Every emitted event has at least one side, so teamCode/sourceBblId are
       // always defined here (action side when present, else consequence side).

@@ -18,6 +18,7 @@ import type {
 } from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+import { MatchEventCorrelationService } from './match-event-correlation.service';
 
 function makeMergeService(
   matchesById: Record<string, { bblId: string; date: Date }[]>,
@@ -118,6 +119,7 @@ async function runImport(
     { upsertTeam } as unknown as TeamsImportService,
     { upsertMatchEvent } as unknown as MatchEventsImportService,
     makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
+    new MatchEventCorrelationService(),
   );
 
   const { result } = await service.importMatchEvents({
@@ -457,6 +459,7 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
     );
 
     const { result } = await service.importMatchEvents({
@@ -584,6 +587,7 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
     );
 
     const { result } = await service.importMatchEvents({
@@ -716,6 +720,7 @@ describe('BblMatchEventsImportService', () => {
         },
         [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
       ),
+      new MatchEventCorrelationService(),
     );
 
     await service.importMatchEvents({
