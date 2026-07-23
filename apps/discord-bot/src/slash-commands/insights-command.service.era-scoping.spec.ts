@@ -25,10 +25,13 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('coach.toplist.matches.played', { era: '20' }),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith({
-      eraId: 20,
-      competitionId: undefined,
-    });
+    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith(
+      {
+        eraId: 20,
+        competitionId: undefined,
+      },
+      TOPLIST_FETCH_LIMIT,
+    );
     expect(result).toEqual(
       expect.objectContaining({
         embeds: [
@@ -78,7 +81,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.coaches.countCompetitionsByCoach as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
+      expectedCallArgs: [
+        { eraId: 20, competitionId: undefined },
+        TOPLIST_FETCH_LIMIT,
+      ],
       expectedTitle: 'Coaches by competitions played — BB2020',
       expectedDescription: '1. Roze Madder — 5',
     },
@@ -99,7 +105,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countTeamsByRace as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
+      expectedCallArgs: [
+        { eraId: 20, competitionId: undefined },
+        TOPLIST_FETCH_LIMIT,
+      ],
       expectedTitle: 'Races by teams — BB2020',
       expectedDescription: '1. Orc — 12',
     },
@@ -108,7 +117,10 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       selectMock: (ctx) =>
         // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
         ctx.races.countMatchesPlayedByRace as ReturnType<typeof vi.fn>,
-      expectedCallArgs: [{ eraId: 20, competitionId: undefined }],
+      expectedCallArgs: [
+        { eraId: 20, competitionId: undefined },
+        TOPLIST_FETCH_LIMIT,
+      ],
       expectedTitle: 'Races by matches played — BB2020',
       expectedDescription: '1. Orc — 40',
     },
