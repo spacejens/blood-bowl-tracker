@@ -5,6 +5,7 @@ import {
   makeImportError,
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -28,6 +29,7 @@ export class BblTeamsImportService {
     private readonly teamsImport: TeamsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -112,7 +114,10 @@ export class BblTeamsImportService {
           eras: [],
           externalIds: [
             { externalSystemId: bblSystemId, externalId: team.id },
-            { externalSystemId: nameSystemId, externalId: team.name },
+            {
+              externalSystemId: nameSystemId,
+              externalId: this.nameExternalId.forTeam(team.name),
+            },
           ],
         };
         const upserted = await this.teamsImport.upsertTeam(teamData, errors);

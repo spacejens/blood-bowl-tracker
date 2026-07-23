@@ -4,6 +4,8 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -27,12 +29,19 @@ interface StarPositionGroup {
   tpPositionIds: Set<number>;
 }
 
+interface ImportPositionsOptions {
+  raceIdsByTeamRaceCode: Map<string, number>;
+  eraIdsByName: Map<string, number>;
+  raceNamesById: Map<number, string>;
+}
+
 @Injectable()
 export class TpPositionsImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -40,14 +49,21 @@ export class TpPositionsImportService {
    * `(unified raceId, position name)`: identically-named positions across the
    * rule-set-variant codes of one logical race collapse to one row, collecting
    * every distinct `tpPositionId` as a TP external id (all in one upsert call).
-   * Positions carry NO Name external id (position names are not race-unique), so
-   * only the TP external system is bootstrapped. After each upsert, the observed
-   * `{ raceId, eraId }` availability is recorded via syncRaceEras. A roster whose
-   * race cannot be resolved is recorded as an error and its positions skipped.
-   * Regular positions import with `isStarPlayer: false`. Star positions (from
-   * `roster.starPositions`) are grouped by name only, upserted with
-   * `isStarPlayer: true` and a bare-name external id (deduping onto the same row
-   * the inducement-hire path uses), and merged into the same
+   * Regular positions also carry a `Name` external id in
+   * `` `${raceName}: ${positionName}` `` format, resolved via `raceNamesById`
+   * (position names are not globally unique, so they are scoped by race name);
+   * if a group's raceId is missing from `raceNamesById` this is recorded as a
+   * non-fatal error and the position falls back to its TP-only external ids.
+   * Both the TP and Name external systems are bootstrapped up front. After each
+   * upsert, the observed `{ raceId, eraId }` availability is recorded via
+   * syncRaceEras. A roster whose race cannot be resolved is recorded as an
+   * error and its positions skipped. Regular positions import with
+   * `isStarPlayer: false`. Star positions (from `roster.starPositions`) are
+   * grouped by name only, upserted with `isStarPlayer: true` and BOTH a
+   * TP-system bare-name external id (`group.name`, preserving TP's own
+   * catalog-independent star id) AND a Name-system bare-name external id
+   * (deduping onto the same row the inducement-hire path and the BBL
+   * importer's star positions use), and merged into the same
    * `positionIdsByTpPositionId` map keyed by their TP catalog id; a catalog id
    * colliding with an already-mapped id is skipped with a non-fatal error.
    * `rosters` is the already-collected roster list (via
@@ -56,13 +72,13 @@ export class TpPositionsImportService {
    */
   async importPositions(
     rosters: RosterEntry[],
-    raceIdsByTeamRaceCode: Map<string, number>,
-    eraIdsByName: Map<string, number>,
+    options: ImportPositionsOptions,
   ): Promise<{
     result: ImportResult;
     positionIdsByTpPositionId: Map<number, number>;
     starPositionIds: Set<number>;
   }> {
+    const { raceIdsByTeamRaceCode, eraIdsByName, raceNamesById } = options;
     let imported = 0;
     const errors: ImportError[] = [];
     const positionIdsByTpPositionId = new Map<number, number>();
@@ -71,6 +87,7 @@ export class TpPositionsImportService {
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: tpSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -80,7 +97,7 @@ export class TpPositionsImportService {
         starPositionIds,
       };
     }
-    const [tpSystemId] = bootstrap.ids;
+    const [tpSystemId, nameSystemId] = bootstrap.ids;
 
     const groups = new Map<string, PositionGroup>();
     for (const { roster, era } of rosters) {
@@ -118,13 +135,28 @@ export class TpPositionsImportService {
     }
 
     for (const group of groups.values()) {
+      const externalIds = [...group.tpPositionIds].map((tpPositionId) => ({
+        externalSystemId: tpSystemId,
+        externalId: String(tpPositionId),
+      }));
+      const raceName = raceNamesById.get(group.raceId);
+      if (raceName === undefined) {
+        errors.push(
+          makeImportError({
+            item: { raceId: group.raceId, position: group.name },
+            message: `Could not resolve a race name for race id ${group.raceId} (position "${group.name}"): missing from raceNamesById; skipping its Name external id`,
+          }),
+        );
+      } else {
+        externalIds.push({
+          externalSystemId: nameSystemId,
+          externalId: this.nameExternalId.forPosition(raceName, group.name),
+        });
+      }
       const data: UpsertPosition = {
         name: group.name,
         isStarPlayer: false,
-        externalIds: [...group.tpPositionIds].map((tpPositionId) => ({
-          externalSystemId: tpSystemId,
-          externalId: String(tpPositionId),
-        })),
+        externalIds,
       };
       const upserted = await this.positionsImport.upsertPosition(data, errors);
       if (!upserted) {
@@ -147,9 +179,11 @@ export class TpPositionsImportService {
     }
 
     // Star positions: grouped by name only (not race — the same named star
-    // player is the same entity regardless of team/race), upserted with a
-    // bare-name external id so they dedupe onto the SAME Position row the
-    // inducement-hire path (#198) and the BBL importer create. No syncRaceEras
+    // player is the same entity regardless of team/race), upserted with two
+    // bare-name external ids: a TP-system one (preserving TP's own
+    // catalog-independent star id) and a Name-system one so they dedupe onto
+    // the SAME Position row the inducement-hire path (#198) and the BBL
+    // importer create. No syncRaceEras
     // (not race-scoped). Ids merge into the same positionIdsByTpPositionId map,
     // keyed by the star catalog's own tpPositionId.
     const starGroups = new Map<string, StarPositionGroup>();
@@ -168,7 +202,13 @@ export class TpPositionsImportService {
       const data: UpsertPosition = {
         name: group.name,
         isStarPlayer: true,
-        externalIds: [{ externalSystemId: tpSystemId, externalId: group.name }],
+        externalIds: [
+          { externalSystemId: tpSystemId, externalId: group.name },
+          {
+            externalSystemId: nameSystemId,
+            externalId: this.nameExternalId.forStarPosition(group.name),
+          },
+        ],
       };
       const upserted = await this.positionsImport.upsertPosition(data, errors);
       if (!upserted) {

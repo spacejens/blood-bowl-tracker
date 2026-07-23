@@ -81,13 +81,11 @@ async function run(): Promise<ImportResult> {
       result: positionResult,
       positionIdsByTpPositionId,
       starPositionIds,
-    } = await app
-      .get(TpPositionsImportService)
-      .importPositions(
-        rosters,
-        raceOutcome.raceIdsByTeamRaceCode,
-        eraOutcome.eraIdsByName,
-      );
+    } = await app.get(TpPositionsImportService).importPositions(rosters, {
+      raceIdsByTeamRaceCode: raceOutcome.raceIdsByTeamRaceCode,
+      eraIdsByName: eraOutcome.eraIdsByName,
+      raceNamesById: raceOutcome.raceNamesById,
+    });
 
     // A roster id can appear under more than one era (TpTeamsImportService's
     // era-union grouping), so resolving a hired star player's team era later

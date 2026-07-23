@@ -6,6 +6,7 @@ import {
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
+  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -32,6 +33,7 @@ export class TpErasImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly tournamentParser: TournamentParserService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -124,7 +126,10 @@ export class TpErasImportService {
           endDate: era.endDate,
           externalIds: [
             { externalSystemId: tpSystemId, externalId: era.name },
-            { externalSystemId: nameSystemId, externalId: era.name },
+            {
+              externalSystemId: nameSystemId,
+              externalId: this.nameExternalId.forEra(era.name),
+            },
           ],
         },
         errors,

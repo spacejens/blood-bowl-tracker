@@ -6,6 +6,7 @@ import {
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
+  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -19,6 +20,7 @@ export class BblLeaguesImportService {
     private readonly leaguesImport: LeaguesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -73,7 +75,10 @@ export class BblLeaguesImportService {
           name,
           externalIds: [
             { externalSystemId: bblSystemId, externalId: name },
-            { externalSystemId: nameSystemId, externalId: name },
+            {
+              externalSystemId: nameSystemId,
+              externalId: this.nameExternalId.forLeague(name),
+            },
           ],
         },
         errors,

@@ -2,6 +2,7 @@ import type {
   ExternalSystemBootstrapService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPlayer } from '../players/player-page-parser';
@@ -82,6 +83,7 @@ function makeService({
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 

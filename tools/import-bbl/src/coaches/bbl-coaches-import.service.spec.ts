@@ -3,6 +3,7 @@ import type {
   ExternalSystemBootstrapService,
   ImportError,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page';
@@ -66,6 +67,7 @@ function makeService({
     { upsertCoach } as unknown as CoachesImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 
@@ -200,6 +202,7 @@ describe('BblCoachesImportService', () => {
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
+      new NameExternalIdService(),
     );
 
     const { result } = await service.importCoaches();
@@ -229,6 +232,7 @@ describe('BblCoachesImportService', () => {
       {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
+      new NameExternalIdService(),
     );
 
     const { result } = await service.importCoaches();

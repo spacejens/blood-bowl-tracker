@@ -3,6 +3,7 @@ import type {
   ImportError,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CoachPageParser } from '../coaches/coach-page-parser';
@@ -100,6 +101,7 @@ function makeService({
     { upsertTeam } as unknown as TeamsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 
