@@ -2,12 +2,18 @@ import type {
   ImportError,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RulesSetsProcessor } from './rules-sets.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -34,9 +40,12 @@ function makeContext(data: ManualDataFile): ProcessContext {
 describe('RulesSetsProcessor', () => {
   it('upserts each rules set, records its external ids, and counts it', async () => {
     const upsertRulesSet = vi.fn().mockResolvedValue({ id: 7 });
-    const processor = new RulesSetsProcessor({
-      upsertRulesSet,
-    } as unknown as RulesSetsImportService);
+    const processor = new RulesSetsProcessor(
+      {
+        upsertRulesSet,
+      } as unknown as RulesSetsImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.rulesSets = [
       { name: 'CRP', externalIds: [{ system: 'Name', id: 'name:crp' }] },
@@ -63,9 +72,12 @@ describe('RulesSetsProcessor', () => {
         errors.push({ item: {}, message: 'boom' });
         return Promise.resolve(undefined);
       });
-    const processor = new RulesSetsProcessor({
-      upsertRulesSet,
-    } as unknown as RulesSetsImportService);
+    const processor = new RulesSetsProcessor(
+      {
+        upsertRulesSet,
+      } as unknown as RulesSetsImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.rulesSets = [
       { name: 'CRP', externalIds: [{ system: 'Name', id: 'name:crp' }] },

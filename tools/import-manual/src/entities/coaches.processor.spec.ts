@@ -2,12 +2,18 @@ import type {
   CoachesImportService,
   ImportError,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { CoachesProcessor } from './coaches.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -34,9 +40,12 @@ function makeContext(data: ManualDataFile): ProcessContext {
 describe('CoachesProcessor', () => {
   it('upserts each coach, records its external ids, and counts it', async () => {
     const upsertCoach = vi.fn().mockResolvedValue({ id: 12 });
-    const processor = new CoachesProcessor({
-      upsertCoach,
-    } as unknown as CoachesImportService);
+    const processor = new CoachesProcessor(
+      {
+        upsertCoach,
+      } as unknown as CoachesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.coaches = [
       { name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] },
@@ -58,9 +67,12 @@ describe('CoachesProcessor', () => {
 
   it('does not record ids or count when the upsert fails', async () => {
     const upsertCoach = vi.fn().mockResolvedValue(undefined);
-    const processor = new CoachesProcessor({
-      upsertCoach,
-    } as unknown as CoachesImportService);
+    const processor = new CoachesProcessor(
+      {
+        upsertCoach,
+      } as unknown as CoachesImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.coaches = [
       { name: 'Bob', externalIds: [{ system: 'Name', id: 'name:bob' }] },

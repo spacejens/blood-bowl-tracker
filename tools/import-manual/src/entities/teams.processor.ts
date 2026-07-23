@@ -2,35 +2,34 @@ import { TeamsImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
-import {
-  resolveRef,
-  resolveRefs,
-  toExternalIds,
-} from '../references/resolve-refs';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 
 @Injectable()
 export class TeamsProcessor {
-  constructor(private readonly teamsImport: TeamsImportService) {}
+  constructor(
+    private readonly teamsImport: TeamsImportService,
+    private readonly refResolver: ReferenceResolverService,
+  ) {}
 
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.teams) {
       const label = `Cannot import team "${entry.name}"`;
-      const raceId = resolveRef({
+      const raceId = this.refResolver.resolveRef({
         ref: entry.race,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
-      const coachId = resolveRef({
+      const coachId = this.refResolver.resolveRef({
         ref: entry.coach,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
-      const eras = resolveRefs({
+      const eras = this.refResolver.resolveRefs({
         refs: entry.eras,
         idMap: ctx.idMap,
         errors: ctx.errors,
@@ -46,7 +45,10 @@ export class TeamsProcessor {
           raceId,
           coachId,
           eras,
-          externalIds: toExternalIds(entry.externalIds, ctx.systemIds),
+          externalIds: this.refResolver.toExternalIds(
+            entry.externalIds,
+            ctx.systemIds,
+          ),
         },
         ctx.errors,
       );

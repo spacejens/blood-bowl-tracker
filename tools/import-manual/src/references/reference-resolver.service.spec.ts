@@ -1,8 +1,13 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it } from 'vitest';
 
 import { ExternalIdMap } from './external-id-map';
-import { resolveRef, resolveRefs, toExternalIds } from './resolve-refs';
+import { ReferenceResolverService } from './reference-resolver.service';
+
+function makeService(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 describe('toExternalIds', () => {
   it('maps refs to { externalSystemId, externalId } pairs', () => {
@@ -11,7 +16,7 @@ describe('toExternalIds', () => {
       ['Name', 2],
     ]);
     expect(
-      toExternalIds(
+      makeService().toExternalIds(
         [
           { system: 'BBL', id: 'id:47' },
           { system: 'Name', id: 'name:x' },
@@ -26,7 +31,7 @@ describe('toExternalIds', () => {
 
   it('throws when a system name is unknown', () => {
     expect(() =>
-      toExternalIds([{ system: 'Nope', id: 'id:1' }], new Map()),
+      makeService().toExternalIds([{ system: 'Nope', id: 'id:1' }], new Map()),
     ).toThrow('Unknown external system "Nope"');
   });
 });
@@ -36,7 +41,7 @@ describe('resolveRef', () => {
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:l' }], 5);
     const errors: ImportError[] = [];
-    const id = resolveRef({
+    const id = makeService().resolveRef({
       ref: { system: 'Name', id: 'name:l' },
       idMap,
       errors,
@@ -49,7 +54,7 @@ describe('resolveRef', () => {
 
   it('records one error and returns undefined when unresolved', () => {
     const errors: ImportError[] = [];
-    const id = resolveRef({
+    const id = makeService().resolveRef({
       ref: { system: 'Name', id: 'name:missing' },
       idMap: new ExternalIdMap(),
       errors,
@@ -69,7 +74,7 @@ describe('resolveRefs', () => {
     idMap.add([{ system: 'Name', id: 'name:a' }], 1);
     idMap.add([{ system: 'Name', id: 'name:b' }], 2);
     const errors: ImportError[] = [];
-    const ids = resolveRefs({
+    const ids = makeService().resolveRefs({
       refs: [
         { system: 'Name', id: 'name:a' },
         { system: 'Name', id: 'name:b' },
@@ -87,7 +92,7 @@ describe('resolveRefs', () => {
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:a' }], 1);
     const errors: ImportError[] = [];
-    const ids = resolveRefs({
+    const ids = makeService().resolveRefs({
       refs: [
         { system: 'Name', id: 'name:a' },
         { system: 'Name', id: 'name:missing' },

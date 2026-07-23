@@ -2,16 +2,19 @@ import { RacesImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
-import { resolveRefs, toExternalIds } from '../references/resolve-refs';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 
 @Injectable()
 export class RacesProcessor {
-  constructor(private readonly racesImport: RacesImportService) {}
+  constructor(
+    private readonly racesImport: RacesImportService,
+    private readonly refResolver: ReferenceResolverService,
+  ) {}
 
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.races) {
-      const eras = resolveRefs({
+      const eras = this.refResolver.resolveRefs({
         refs: entry.eras,
         idMap: ctx.idMap,
         errors: ctx.errors,
@@ -25,7 +28,10 @@ export class RacesProcessor {
         {
           name: entry.name,
           eras,
-          externalIds: toExternalIds(entry.externalIds, ctx.systemIds),
+          externalIds: this.refResolver.toExternalIds(
+            entry.externalIds,
+            ctx.systemIds,
+          ),
         },
         ctx.errors,
       );

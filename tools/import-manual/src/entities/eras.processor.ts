@@ -2,28 +2,27 @@ import { ErasImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
-import {
-  resolveRef,
-  resolveRefs,
-  toExternalIds,
-} from '../references/resolve-refs';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 
 @Injectable()
 export class ErasProcessor {
-  constructor(private readonly erasImport: ErasImportService) {}
+  constructor(
+    private readonly erasImport: ErasImportService,
+    private readonly refResolver: ReferenceResolverService,
+  ) {}
 
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.eras) {
       const label = `Cannot import era "${entry.name}"`;
-      const leagueId = resolveRef({
+      const leagueId = this.refResolver.resolveRef({
         ref: entry.league,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
-      const rulesSetIds = resolveRefs({
+      const rulesSetIds = this.refResolver.resolveRefs({
         refs: entry.rulesSets,
         idMap: ctx.idMap,
         errors: ctx.errors,
@@ -40,7 +39,10 @@ export class ErasProcessor {
           rulesSetIds,
           startDate: entry.startDate,
           endDate: entry.endDate,
-          externalIds: toExternalIds(entry.externalIds, ctx.systemIds),
+          externalIds: this.refResolver.toExternalIds(
+            entry.externalIds,
+            ctx.systemIds,
+          ),
         },
         ctx.errors,
       );

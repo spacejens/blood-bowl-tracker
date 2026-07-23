@@ -1,6 +1,7 @@
 import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { CoachesProcessor } from './coaches.processor';
 import { ErasProcessor } from './eras.processor';
 import { ExternalSystemsProcessor } from './external-systems.processor';
@@ -23,7 +24,7 @@ const processors = [
 
 @Module({
   imports: [ImportModule],
-  providers: processors,
+  providers: [...processors, ReferenceResolverService],
   exports: processors,
 })
 export class EntitiesModule {}

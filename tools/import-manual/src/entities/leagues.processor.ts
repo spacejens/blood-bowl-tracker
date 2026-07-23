@@ -2,11 +2,14 @@ import { LeaguesImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
-import { toExternalIds } from '../references/resolve-refs';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 
 @Injectable()
 export class LeaguesProcessor {
-  constructor(private readonly leaguesImport: LeaguesImportService) {}
+  constructor(
+    private readonly leaguesImport: LeaguesImportService,
+    private readonly refResolver: ReferenceResolverService,
+  ) {}
 
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
@@ -14,7 +17,10 @@ export class LeaguesProcessor {
       const upserted = await this.leaguesImport.upsertLeague(
         {
           name: entry.name,
-          externalIds: toExternalIds(entry.externalIds, ctx.systemIds),
+          externalIds: this.refResolver.toExternalIds(
+            entry.externalIds,
+            ctx.systemIds,
+          ),
         },
         ctx.errors,
       );

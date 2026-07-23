@@ -2,12 +2,18 @@ import type {
   ErasImportService,
   ImportError,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
+import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { ErasProcessor } from './eras.processor';
+
+function makeRefResolver(): ReferenceResolverService {
+  return new ReferenceResolverService(new ImportResultService());
+}
 
 function emptyData(): ManualDataFile {
   return {
@@ -37,9 +43,12 @@ function makeContext(
 describe('ErasProcessor', () => {
   it('resolves league and rules-set refs, upserts, and records ids', async () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor({
-      upsertEra,
-    } as unknown as ErasImportService);
+    const processor = new ErasProcessor(
+      {
+        upsertEra,
+      } as unknown as ErasImportService,
+      makeRefResolver(),
+    );
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:my-league' }], 3);
     idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
@@ -76,9 +85,12 @@ describe('ErasProcessor', () => {
 
   it('passes endDate through when present', async () => {
     const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor({
-      upsertEra,
-    } as unknown as ErasImportService);
+    const processor = new ErasProcessor(
+      {
+        upsertEra,
+      } as unknown as ErasImportService,
+      makeRefResolver(),
+    );
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:l' }], 3);
     idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
@@ -101,9 +113,12 @@ describe('ErasProcessor', () => {
 
   it('skips the era and records errors when a reference is unresolved', async () => {
     const upsertEra = vi.fn();
-    const processor = new ErasProcessor({
-      upsertEra,
-    } as unknown as ErasImportService);
+    const processor = new ErasProcessor(
+      {
+        upsertEra,
+      } as unknown as ErasImportService,
+      makeRefResolver(),
+    );
     const data = emptyData();
     data.eras = [
       {
