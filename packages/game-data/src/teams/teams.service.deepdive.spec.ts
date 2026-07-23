@@ -34,25 +34,25 @@ describe('TeamsService lookups', () => {
       return builder;
     }
 
-    it('returns the team with its race and coach names', async () => {
-      const builder = makeFindByIdBuilder([
-        {
-          id: 7,
-          name: '40 grinders',
-          raceName: 'Dwarf',
-          coachName: 'Roze Madder',
-        },
-      ]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await expect(service.findById(7)).resolves.toEqual({
+    it('returns the team with its race and coach names and ids', async () => {
+      const row = {
         id: 7,
         name: '40 grinders',
         raceName: 'Dwarf',
+        raceId: 4,
         coachName: 'Roze Madder',
-      });
+        coachId: 12,
+      };
+      const builder = makeFindByIdBuilder([row]);
+      const select = vi.fn(() => builder);
+      const service = new TeamsService({ select } as unknown as Db);
+      await expect(service.findById(7)).resolves.toEqual(row);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
+      const selectArg = (select as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as Record<string, unknown>;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['raceId', 'coachId']),
+      );
     });
 
     it('returns undefined when no team matches', async () => {

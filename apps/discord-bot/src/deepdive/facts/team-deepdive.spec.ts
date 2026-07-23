@@ -12,7 +12,14 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { resolveTeamDeepdive } from './team-deepdive';
 
 function makeServices(options: {
-  team?: { id: number; name: string; raceName: string; coachName: string };
+  team?: {
+    id: number;
+    name: string;
+    raceName: string;
+    raceId: number;
+    coachName: string;
+    coachId: number;
+  };
   span?: { start: string; end: string };
   topPlayers?: { playerId: number; name: string; count: number }[];
 }): { teams: TeamsService } {
@@ -30,7 +37,9 @@ const grinders = {
   id: 1,
   name: '40 grinders',
   raceName: 'Dwarf',
+  raceId: 4,
   coachName: 'Roze Madder',
+  coachId: 12,
 };
 
 describe('resolveTeamDeepdive', () => {
@@ -74,6 +83,18 @@ describe('resolveTeamDeepdive', () => {
             {
               type: 2,
               style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
+            {
+              type: 2,
+              style: 1,
               label: 'Griff',
               custom_id: 'deepdive:player:5',
             },
@@ -111,7 +132,7 @@ describe('resolveTeamDeepdive', () => {
     expect(lines.every((l) => !l.startsWith('…and'))).toBe(true);
   });
 
-  it('shows race, coach and the no-matches message, skipping the top-players section', async () => {
+  it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach buttons', async () => {
     const services = makeServices({ team: grinders, span: undefined });
     const result = await resolveTeamDeepdive(1, services);
     expect(result).toEqual({
@@ -123,6 +144,25 @@ describe('resolveTeamDeepdive', () => {
             'Coach: Roze Madder',
             DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
           ].join('\n'),
+        },
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
+          ],
         },
       ],
     });
@@ -178,13 +218,15 @@ describe('resolveTeamDeepdive', () => {
     );
   });
 
-  it('renders a Primary button per listed player, keyed by player id', async () => {
+  it('renders race and coach buttons then a Primary button per listed player, keyed by id', async () => {
     const services = makeServices({
       team: {
         id: 1,
         name: 'Reikland Reavers',
         raceName: 'Human',
+        raceId: 2,
         coachName: 'Roze',
+        coachId: 9,
       },
       span: { start: '2021-09-01', end: '2023-06-10' },
       topPlayers: [
@@ -197,6 +239,8 @@ describe('resolveTeamDeepdive', () => {
     };
     const buttons = result.components.flatMap((row) => row.components);
     expect(buttons).toEqual([
+      { type: 2, style: 1, label: 'Human', custom_id: 'deepdive:race:2' },
+      { type: 2, style: 1, label: 'Roze', custom_id: 'deepdive:coach:9' },
       {
         type: 2,
         style: 1,
@@ -212,17 +256,25 @@ describe('resolveTeamDeepdive', () => {
     ]);
   });
 
-  it('omits components when the team has no matches', async () => {
+  it('still renders race and coach buttons when the team has no matches', async () => {
     const services = makeServices({
       team: {
         id: 1,
         name: 'Reikland Reavers',
         raceName: 'Human',
+        raceId: 2,
         coachName: 'Roze',
+        coachId: 9,
       },
       span: undefined,
     });
-    const result = await resolveTeamDeepdive(1, services);
-    expect(result).not.toHaveProperty('components');
+    const result = (await resolveTeamDeepdive(1, services)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons.map((b) => b.custom_id)).toEqual([
+      'deepdive:race:2',
+      'deepdive:coach:9',
+    ]);
   });
 });
