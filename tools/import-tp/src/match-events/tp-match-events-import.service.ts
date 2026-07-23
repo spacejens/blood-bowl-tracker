@@ -127,7 +127,7 @@ export class TpMatchEventsImportService {
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: tpSystemName, isBookkeeping: false },
+      { name: tpSystemName, category: 'imported_data_source' },
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
