@@ -1,5 +1,6 @@
 export type { TpCoach } from './inscriptions-parser.service';
 export { InscriptionsParserService } from './inscriptions-parser.service';
+// Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { MatchEventDecodersService } from './match-event-decoders.service';
 export type {
   SecretObjective,
@@ -18,7 +19,9 @@ export type {
   TpRosterPosition,
 } from './roster-parser.service';
 export { RosterParserService } from './roster-parser.service';
+// Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { SecretObjectiveService } from './secret-objective.service';
 export type { TpTournament } from './tournament-parser.service';
 export { TournamentParserService } from './tournament-parser.service';
+// Exported for direct construction (tests); not in ParseTpModule.exports — nothing outside this package injects it via DI.
 export { WeatherTypeService } from './weather-type.service';

@@ -3,7 +3,7 @@ import type { ImportError } from '@blood-bowl-tracker/import';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
-import { TpMatchEventBuildersService } from './tp-match-event-builders.service';
+import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import type { CasualtyPairing } from './tp-match-events-correlation.service';
 
 /** One resolved team_eras row: its DB id and the era it belongs to. */
@@ -35,13 +35,15 @@ export interface BuildEventDataOptions {
 /**
  * Resolves TP roster/era references and builds `UpsertMatchEvent`(s) for
  * every TP match event kind. The individual `build*Event` implementations
- * live in the injected {@link TpMatchEventBuildersService} — split out
+ * live in the injected {@link TpMatchEventKindBuildersService} — split out
  * purely to stay under this repo's 500-line source file ceiling; from the
  * outside, only `resolveTeamEraId` and `buildEventData` are the public API.
  */
 @Injectable()
 export class TpMatchEventsBuilderService {
-  constructor(private readonly eventBuilders: TpMatchEventBuildersService) {}
+  constructor(
+    private readonly eventBuilders: TpMatchEventKindBuildersService,
+  ) {}
 
   /** Resolve a roster id + era id to its team_eras id, or undefined. */
   resolveTeamEraId(options: ResolveTeamEraOptions): number | undefined {
@@ -58,7 +60,7 @@ export class TpMatchEventsBuilderService {
    * `casualtyPairing` (it's emitted as part of that injury's row instead), or
    * a standalone `'casualty'`-action row otherwise. Every other modeled TP
    * event type is administrative and delegates to
-   * {@link TpMatchEventBuildersService.buildAdminEvents}.
+   * {@link TpMatchEventKindBuildersService.buildAdminEvents}.
    */
   buildEventData(options: BuildEventDataOptions): UpsertMatchEvent[] {
     const { event, casualtyPairing } = options;

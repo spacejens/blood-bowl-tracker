@@ -30,7 +30,7 @@ interface ResolvePlayerOptions {
  * Every administrative TP match event kind — everything except the
  * gameplay events (touchdown, injury, mvp_award, and the five other simple
  * action kinds, plus casualty_caused and sent_off), which are all built by
- * their own dedicated methods rather than {@link TpMatchEventBuildersService.buildAdminEvents}.
+ * their own dedicated methods rather than {@link TpMatchEventKindBuildersService.buildAdminEvents}.
  */
 type TpAdminMatchEvent = Exclude<
   TpMatchEvent,
@@ -107,7 +107,7 @@ const INJURY_ACTION_SEVERITY_BY_TYPE: Record<TpInjuryType, ActionType> = {
  * service that `TpMatchEventsBuilderService` injects.
  */
 @Injectable()
-export class TpMatchEventBuildersService {
+export class TpMatchEventKindBuildersService {
   constructor(private readonly importResults: ImportResultService) {}
 
   /** Resolve a roster id + era id to its team_eras id, or undefined. */
