@@ -197,7 +197,8 @@ describe('PlayersService', () => {
       await expect(service.findById(1)).resolves.toEqual(row);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(1);
-      const selectArg = select.mock.calls[0][0] as Record<string, unknown>;
+      const selectArg = (select as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as Record<string, unknown>;
       expect(Object.keys(selectArg)).toEqual(
         expect.arrayContaining(['teamId', 'raceId']),
       );
