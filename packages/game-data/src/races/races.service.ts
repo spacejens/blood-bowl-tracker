@@ -17,8 +17,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { escapeLikePattern } from '../shared/escape-like-pattern';
 import type { FactScope } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -30,7 +30,10 @@ export interface RaceWithEras extends Race {
 
 @Injectable()
 export class RacesService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService = new LikePatternService(),
+  ) {}
 
   async findById(
     id: number,
@@ -49,7 +52,7 @@ export class RacesService {
     return this.db
       .select({ id: races.id, name: races.name })
       .from(races)
-      .where(ilike(races.name, `${escapeLikePattern(prefix)}%`))
+      .where(ilike(races.name, `${this.likePattern.escape(prefix)}%`))
       .limit(limit);
   }
 

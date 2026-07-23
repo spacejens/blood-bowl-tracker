@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   CASUALTY_CAUSED_TYPES,
   COMPLETION_TYPES,
@@ -83,7 +84,11 @@ describe('PlayersService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [PlayersService, { provide: DB, useValue: mockDb }],
+      providers: [
+        PlayersService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(PlayersService);

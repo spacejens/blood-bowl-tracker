@@ -5,6 +5,7 @@ import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -106,7 +107,11 @@ describe('RacesService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [RacesService, { provide: DB, useValue: mockDb }],
+      providers: [
+        RacesService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(RacesService);

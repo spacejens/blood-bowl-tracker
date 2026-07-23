@@ -3,6 +3,7 @@ import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   firstCallArg,
@@ -55,7 +56,11 @@ describe('LeaguesService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [LeaguesService, { provide: DB, useValue: mockDb }],
+      providers: [
+        LeaguesService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(LeaguesService);

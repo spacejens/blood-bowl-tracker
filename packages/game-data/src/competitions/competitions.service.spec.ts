@@ -8,6 +8,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -103,7 +104,11 @@ describe('CompetitionsService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [CompetitionsService, { provide: DB, useValue: mockDb }],
+      providers: [
+        CompetitionsService,
+        LikePatternService,
+        { provide: DB, useValue: mockDb },
+      ],
     }).compile();
 
     service = module.get(CompetitionsService);

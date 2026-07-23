@@ -12,8 +12,8 @@ import { Inject, Injectable } from '@nestjs/common';
 import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
-import { escapeLikePattern } from '../shared/escape-like-pattern';
 import type { FactScope } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -25,7 +25,10 @@ export interface EraWithRulesSets extends Era {
 
 @Injectable()
 export class ErasService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService = new LikePatternService(),
+  ) {}
 
   async upsert(
     data: UpsertEra,
@@ -101,7 +104,7 @@ export class ErasService {
       })
       .from(eras)
       .innerJoin(leagues, eq(leagues.id, eras.leagueId))
-      .where(ilike(eras.name, `${escapeLikePattern(prefix)}%`))
+      .where(ilike(eras.name, `${this.likePattern.escape(prefix)}%`))
       .limit(limit);
   }
 
