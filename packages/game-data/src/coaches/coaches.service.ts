@@ -129,12 +129,12 @@ export class CoachesService {
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .where(
         and(
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
           scope.leagueId === undefined
             ? undefined
             : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
         ),
       )
       .groupBy(coaches.id, coaches.name)
@@ -161,12 +161,12 @@ export class CoachesService {
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .where(
         and(
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
           scope.leagueId === undefined
             ? undefined
             : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
         ),
       )
       .groupBy(coaches.id, coaches.name)
@@ -184,21 +184,21 @@ export class CoachesService {
       })
       .from(coaches)
       .innerJoin(teams, eq(teams.coachId, coaches.id));
-    if (scope.eraId !== undefined) {
-      return base
-        .innerJoin(
-          teamEras,
-          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
-        )
-        .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(teams.id)));
-    }
     if (scope.leagueId !== undefined) {
       return base
         .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
         .innerJoin(
           eras,
           and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
+        )
+        .groupBy(coaches.id, coaches.name)
+        .orderBy(desc(countDistinct(teams.id)));
+    }
+    if (scope.eraId !== undefined) {
+      return base
+        .innerJoin(
+          teamEras,
+          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
         )
         .groupBy(coaches.id, coaches.name)
         .orderBy(desc(countDistinct(teams.id)));

@@ -6,7 +6,7 @@
  * the repo's 3-parameter ceiling.
  */
 export interface FactScope {
+  leagueId?: number;
   eraId?: number;
   competitionId?: number;
-  leagueId?: number;
 }

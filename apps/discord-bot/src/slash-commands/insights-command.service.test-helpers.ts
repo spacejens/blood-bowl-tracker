@@ -215,9 +215,9 @@ export function makeService() {
   });
   return {
     service: new InsightsCommandService(
+      leagues,
       eras,
       competitions,
-      leagues,
       factTree,
       registry as unknown as SlashCommandRegistryService,
     ),

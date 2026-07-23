@@ -8,21 +8,21 @@ import {
 } from './fact-tree-utils';
 
 const leafA: FactLeaf = {
+  supportsLeague: false,
   supportsEra: false,
   supportsCompetition: false,
-  supportsLeague: false,
   resolve: () => Promise.resolve('A'),
 };
 const leafB: FactLeaf = {
+  supportsLeague: false,
   supportsEra: false,
   supportsCompetition: false,
-  supportsLeague: false,
   resolve: () => Promise.resolve('B'),
 };
 const leafC: FactLeaf = {
+  supportsLeague: false,
   supportsEra: false,
   supportsCompetition: false,
-  supportsLeague: false,
   resolve: () => Promise.resolve('C'),
 };
 
