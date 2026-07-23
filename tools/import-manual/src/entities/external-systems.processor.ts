@@ -1,29 +1,11 @@
 import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
-import {
-  ExternalSystemsImportService,
-  NAF_EXTERNAL_SYSTEM_NAME,
-  NAME_EXTERNAL_SYSTEM_NAME,
-} from '@blood-bowl-tracker/import';
+import { ExternalSystemsImportService } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type {
   ExternalRef,
   ManualDataFile,
 } from '../data-file/manual-data-file.schema';
-
-/**
- * Manual data can reference well-known systems (Name, NAF) alongside its own
- * data-source systems. Well-known systems carry a fixed category regardless
- * of who registers them first — categorizing everything else as
- * imported_data_source would otherwise mislabel NAF if manual data happens
- * to register it before import-tp does (the two importers must agree, since
- * the first upsert wins and later upserts of the same name are no-ops).
- */
-function categoryFor(name: string): ExternalSystemCategory {
-  if (name === NAME_EXTERNAL_SYSTEM_NAME) return 'bookkeeping';
-  if (name === NAF_EXTERNAL_SYSTEM_NAME) return 'referenced_not_imported';
-  return 'imported_data_source';
-}
 
 /** Every distinct external-system name referenced anywhere in the pooled data. */
 function collectSystemNames(data: ManualDataFile): string[] {
@@ -70,6 +52,28 @@ function collectSystemNames(data: ManualDataFile): string[] {
   return [...names];
 }
 
+/**
+ * Every declared system's category, by name. Throws if the same name is
+ * declared twice with conflicting categories — the pooled data comes from
+ * every `.json5` file in a directory, so the same well-known system (e.g.
+ * "Name") is commonly declared in more than one file and must agree.
+ */
+function collectCategories(
+  data: ManualDataFile,
+): Map<string, ExternalSystemCategory> {
+  const categories = new Map<string, ExternalSystemCategory>();
+  for (const entry of data.externalSystems) {
+    const existing = categories.get(entry.name);
+    if (existing !== undefined && existing !== entry.category) {
+      throw new Error(
+        `External system "${entry.name}" is declared with conflicting categories: "${existing}" and "${entry.category}"`,
+      );
+    }
+    categories.set(entry.name, entry.category);
+  }
+  return categories;
+}
+
 @Injectable()
 export class ExternalSystemsProcessor {
   constructor(
@@ -78,18 +82,27 @@ export class ExternalSystemsProcessor {
 
   /**
    * Bootstrap every external system referenced in the pooled data, returning a
-   * name -> id map. Upserts are sequential; the first failure rejects, aborting
-   * the run (a bootstrap that can't reach the API can't import anything).
+   * name -> id map. Every referenced name must have a matching entry in the
+   * pooled `externalSystems` list declaring its category — an undeclared name
+   * throws rather than guessing, since a wrong guess (e.g. miscategorizing a
+   * referenced-only system as an imported data source) would silently corrupt
+   * statistics that depend on the category. Upserts are sequential; the first
+   * failure rejects, aborting the run (a bootstrap that can't reach the API
+   * can't import anything).
    */
   async bootstrap(data: ManualDataFile): Promise<Map<string, number>> {
+    const categories = collectCategories(data);
     const systemIds = new Map<string, number>();
     for (const name of collectSystemNames(data)) {
+      const category = categories.get(name);
+      if (category === undefined) {
+        throw new Error(
+          `External system "${name}" is referenced but not declared in externalSystems`,
+        );
+      }
       systemIds.set(
         name,
-        await this.externalSystemsImport.upsertExternalSystem(
-          name,
-          categoryFor(name),
-        ),
+        await this.externalSystemsImport.upsertExternalSystem(name, category),
       );
     }
     return systemIds;

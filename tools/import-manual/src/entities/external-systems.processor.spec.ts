@@ -31,7 +31,17 @@ describe('ExternalSystemsProcessor', () => {
       return Promise.resolve(seen.length);
     });
     const data = emptyData();
-    data.externalSystems = [{ name: 'Explicit' }];
+    data.externalSystems = [
+      { name: 'Explicit', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
+      { name: 'RulesSys', category: 'imported_data_source' },
+      { name: 'LeagueSys', category: 'imported_data_source' },
+      { name: 'BBL', category: 'imported_data_source' },
+      { name: 'RS', category: 'imported_data_source' },
+      { name: 'RaceEraSys', category: 'imported_data_source' },
+      { name: 'RaceSys', category: 'imported_data_source' },
+      { name: 'CoachSys', category: 'imported_data_source' },
+    ];
     data.rulesSets = [
       { name: 'CRP', externalIds: [{ system: 'RulesSys', id: 'rs:crp' }] },
     ];
@@ -91,6 +101,7 @@ describe('ExternalSystemsProcessor', () => {
   it('upserts each name once even when referenced many times', async () => {
     const upsert = vi.fn().mockResolvedValue(1);
     const data = emptyData();
+    data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
     data.coaches = [
       { name: 'A', externalIds: [{ system: 'Name', id: 'name:a' }] },
       { name: 'B', externalIds: [{ system: 'Name', id: 'name:b' }] },
@@ -105,6 +116,11 @@ describe('ExternalSystemsProcessor', () => {
   it('collects position raceEras race and era system names', async () => {
     const upsert = vi.fn().mockResolvedValue(1);
     const data = emptyData();
+    data.externalSystems = [
+      { name: 'RaceSys', category: 'imported_data_source' },
+      { name: 'EraSys', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
+    ];
     data.positions = [
       {
         name: 'Zombie',
@@ -129,9 +145,12 @@ describe('ExternalSystemsProcessor', () => {
     expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
   });
 
-  it('categorizes a NAF reference as referenced_not_imported', async () => {
+  it('upserts a declared NAF system with its declared category', async () => {
     const upsert = vi.fn().mockResolvedValue(1);
     const data = emptyData();
+    data.externalSystems = [
+      { name: 'NAF', category: 'referenced_not_imported' },
+    ];
     data.coaches = [
       { name: 'A', externalIds: [{ system: 'NAF', id: 'naf:1' }] },
     ];
@@ -141,9 +160,37 @@ describe('ExternalSystemsProcessor', () => {
     expect(upsert).toHaveBeenCalledWith('NAF', 'referenced_not_imported');
   });
 
+  it('throws when a referenced system is not declared in externalSystems', async () => {
+    const upsert = vi.fn().mockResolvedValue(1);
+    const data = emptyData();
+    data.coaches = [
+      { name: 'A', externalIds: [{ system: 'Undeclared', id: 'id:1' }] },
+    ];
+
+    await expect(makeProcessor(upsert).bootstrap(data)).rejects.toThrow(
+      'External system "Undeclared" is referenced but not declared in externalSystems',
+    );
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
+  it('throws when the same system is declared with conflicting categories', async () => {
+    const upsert = vi.fn().mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [
+      { name: 'Name', category: 'bookkeeping' },
+      { name: 'Name', category: 'imported_data_source' },
+    ];
+
+    await expect(makeProcessor(upsert).bootstrap(data)).rejects.toThrow(
+      'External system "Name" is declared with conflicting categories: "bookkeeping" and "imported_data_source"',
+    );
+    expect(upsert).not.toHaveBeenCalled();
+  });
+
   it('propagates an upsert failure', async () => {
     const upsert = vi.fn().mockRejectedValue(new Error('api down'));
     const data = emptyData();
+    data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
     data.coaches = [
       { name: 'A', externalIds: [{ system: 'Name', id: 'name:a' }] },
     ];
