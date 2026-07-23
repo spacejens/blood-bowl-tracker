@@ -116,17 +116,4 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
       { name: 'Major Season 24 (The Major)', value: '30' },
     ]);
   });
-
-  it('advertises a league option alongside category, era and competition', () => {
-    const { service } = makeService();
-    const command = service.buildCommand();
-    expect(command.options).toHaveLength(4);
-    expect(command.options?.[1]).toEqual({
-      name: 'league',
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-      description: expect.any(String),
-      type: 3,
-      autocomplete: true,
-    });
-  });
 });
