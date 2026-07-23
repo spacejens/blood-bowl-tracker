@@ -10,43 +10,39 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class NameExternalIdService {
   forCoach(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forEra(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forLeague(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forCompetition(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forRulesSet(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forTeam(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forRace(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   forStarPosition(name: string): string {
-    return this.bareName(name);
+    return name;
   }
 
   /** Regular positions are race-scoped: names are not globally unique. */
   forPosition(raceName: string, positionName: string): string {
     return `${raceName}: ${positionName}`;
-  }
-
-  private bareName(name: string): string {
-    return name;
   }
 }
