@@ -35,13 +35,13 @@ describe('InsightsCommandService — fact-path resolution', () => {
     );
   });
 
-  it('does not suffix a non-era-supporting fact (eras.list) when no era is given', async () => {
+  it('suffixes eras.list with the league scope when no league is explicitly given', async () => {
     const { service } = makeService();
     const result = await service.execute(chatInput('eras.list'));
     expect(result).toEqual({
       embeds: [
         {
-          title: 'Eras',
+          title: 'Eras — All time',
           description: ERAS_LIST_NO_DATA_MESSAGE,
         },
       ],

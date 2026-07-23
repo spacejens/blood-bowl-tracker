@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
@@ -42,8 +41,8 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     );
   });
 
-  it('rejects a league on a non-league-supporting category (eras.list)', async () => {
-    const { service, leagues } = makeService();
+  it('scopes eras.list to the league and names it in the title', async () => {
+    const { service, eras, leagues } = makeService();
     (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 5,
       name: 'GBBL',
@@ -51,7 +50,20 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     const result = await service.execute(
       chatInput('eras.list', { league: '5' }),
     );
-    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(eras.listErasWithLeague).toHaveBeenCalledWith({
+      leagueId: 5,
+    });
+    expect(result).toEqual(
+      expect.objectContaining({
+        embeds: [
+          {
+            title: 'Eras — GBBL',
+            description: expect.any(String) as unknown,
+          },
+        ],
+      }),
+    );
   });
 
   it('restricts the random pick to league-supporting leaves', async () => {
