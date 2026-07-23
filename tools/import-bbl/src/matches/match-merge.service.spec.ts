@@ -1,4 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
@@ -11,12 +12,16 @@ function makeService(
   merges: MatchMergePair[],
   matchesByCompetitionId: Record<string, BblMatch[]>,
 ): MatchMergeService {
-  const reader = new BblMatchListReaderService({} as never, {} as never);
+  const reader = new BblMatchListReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
     new Map(Object.entries(matchesByCompetitionId)),
   );
   const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig);
+  return new MatchMergeService(reader, mergeConfig, new ImportResultService());
 }
 
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);

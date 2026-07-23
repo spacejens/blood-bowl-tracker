@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventsPageParser } from '../matches/match-events-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 
 const MATCH_DETAIL_PAGE_TYPE = 'm';
 
@@ -15,6 +15,7 @@ export class BblMatchEventsReaderService {
   constructor(
     private readonly sourceReader: BblSourceReader,
     private readonly matchEventsPageParser: MatchEventsPageParser,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -42,7 +43,9 @@ export class BblMatchEventsReaderService {
         }
         matchEventsByBblId.set(events.bblId, events);
       } catch (error) {
-        errors.push(pageParseError(page.params, 'match events', error));
+        errors.push(
+          this.pageParseError.build(page.params, 'match events', error),
+        );
       }
     }
     this.cache = matchEventsByBblId;

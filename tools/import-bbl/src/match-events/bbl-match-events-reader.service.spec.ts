@@ -1,4 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
@@ -6,9 +7,11 @@ import { MatchEventsPageParser } from '../matches/match-events-page-parser';
 import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 
 const normalizeText = new NormalizeExtractedTextService();
+const pageParseError = new PageParseErrorService(new ImportResultService());
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -52,6 +55,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       makeParser({ '100': eventsOne }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -67,6 +71,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       reader,
       makeParser({ '100': eventsOne }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -80,6 +85,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' }), page({ m: '101' })]),
       makeParser({ '100': eventsOne, '101': null }),
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -98,6 +104,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -116,6 +123,7 @@ describe('BblMatchEventsReaderService', () => {
     const service = new BblMatchEventsReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 

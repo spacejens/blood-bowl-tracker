@@ -1,7 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -26,6 +25,7 @@ export class BblPositionRaceErasImportService {
   constructor(
     private readonly positionsImport: PositionsImportService,
     private readonly eraConfig: EraConfigService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -77,7 +77,7 @@ export class BblPositionRaceErasImportService {
           eraId === undefined
         ) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { ...o, era: era.identity.name },
               message: `Could not resolve positions override (typId ${o.positionId}, race ${o.raceId}, era "${era.identity.name}") to DB ids`,
             }),
@@ -124,6 +124,6 @@ export class BblPositionRaceErasImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 }

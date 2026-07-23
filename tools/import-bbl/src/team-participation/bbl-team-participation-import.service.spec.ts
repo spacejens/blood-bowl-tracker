@@ -9,6 +9,7 @@ import type {
   RacesImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblMatchDetailReaderService } from '../matches/bbl-match-detail-reader.service';
@@ -63,12 +64,16 @@ function makeMergeService(
   matchesById: Record<string, { bblId: string; date: Date }[]>,
   merges: MatchMergePair[] = [],
 ): MatchMergeService {
-  const reader = new BblMatchListReaderService({} as never, {} as never);
+  const reader = new BblMatchListReaderService(
+    {} as never,
+    {} as never,
+    {} as never,
+  );
   vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
     new Map(Object.entries(matchesById)),
   );
   const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig);
+  return new MatchMergeService(reader, mergeConfig, new ImportResultService());
 }
 
 const home: UpsertTeam = {
@@ -140,6 +145,7 @@ function makeService(opts: {
     } as unknown as MatchesImportService,
     makeMergeService(opts.matches ?? {}, []),
     makeStandingsReader(opts.standings),
+    new ImportResultService(),
   );
 }
 
@@ -700,6 +706,7 @@ describe('BblTeamParticipationImportService', () => {
         { firstMatchId: '1061', secondMatchId: '1062' },
       ]),
       makeStandingsReader(),
+      new ImportResultService(),
     );
 
     await service.importTeamParticipation({

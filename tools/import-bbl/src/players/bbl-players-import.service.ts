@@ -2,8 +2,7 @@ import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   PlayersImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
@@ -12,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 import { EraConfigService } from '../eras/era-config.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { PlayerPageParser } from './player-page-parser';
 
 const PLAYER_PAGE_TYPE = 'pl';
@@ -34,6 +33,8 @@ export class BblPlayersImportService {
     private readonly eraConfig: EraConfigService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -71,7 +72,7 @@ export class BblPlayersImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         playerIdsByPid,
         positionsUsedByEra,
         racesActiveByEra,
@@ -102,7 +103,7 @@ export class BblPlayersImportService {
         const player = this.playerPageParser.extractPlayer(page);
         if (!player) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { pid: page.params.pid },
               message: `Failed to parse player page for pid "${page.params.pid}": missing pid, <h1>, position link, or team link.`,
             }),
@@ -124,7 +125,7 @@ export class BblPlayersImportService {
           );
         if (!era) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { pid: player.pid, name: player.name },
               message: `Skipped player "${player.name}" (${player.pid}): no era range contains this player id`,
             }),
@@ -135,7 +136,7 @@ export class BblPlayersImportService {
         const eraId = eraIdsByName.get(era.identity.name);
         if (eraId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { pid: player.pid, era: era.identity.name },
               message: `Skipped player "${player.name}" (${player.pid}): era "${era.identity.name}" not imported`,
             }),
@@ -146,7 +147,7 @@ export class BblPlayersImportService {
         const team = teamsByCode.get(player.teamCode);
         if (!team) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { pid: player.pid, teamCode: player.teamCode },
               message: `Skipped player "${player.name}" (${player.pid}): team "${player.teamCode}" not imported`,
             }),
@@ -164,7 +165,7 @@ export class BblPlayersImportService {
         const teamEra = upsertedTeam.eras.find((e) => e.eraId === eraId);
         if (!teamEra) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { pid: player.pid, team: team.name, eraId },
               message: `Skipped player "${player.name}" (${player.pid}): could not resolve team era`,
             }),
@@ -179,7 +180,7 @@ export class BblPlayersImportService {
             : undefined;
         if (positionId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: {
                 pid: player.pid,
                 typId: player.typId,
@@ -209,13 +210,13 @@ export class BblPlayersImportService {
           racesActiveByEra.add(`${team.raceId}:${eraId}`);
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'player', error));
+        errors.push(this.pageParseError.build(page.params, 'player', error));
         continue;
       }
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       playerIdsByPid,
       positionsUsedByEra,
       racesActiveByEra,

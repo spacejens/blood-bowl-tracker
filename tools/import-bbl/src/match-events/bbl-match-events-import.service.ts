@@ -7,8 +7,7 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   MatchEventsImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
@@ -65,6 +64,7 @@ export class BblMatchEventsImportService {
     private readonly matchEventsImport: MatchEventsImportService,
     private readonly matchMerge: MatchMergeService,
     private readonly matchEventCorrelation: MatchEventCorrelationService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -110,7 +110,7 @@ export class BblMatchEventsImportService {
           const matchId = matchIdsByBblId.get(match.bblId);
           if (matchId === undefined) {
             errors.push(
-              makeImportError({
+              this.importResults.error({
                 item: { competition: competition.name, match: match.bblId },
                 message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": it has no imported match id.`,
               }),
@@ -158,7 +158,7 @@ export class BblMatchEventsImportService {
           }
           if (unresolvedTeam) {
             errors.push(
-              makeImportError({
+              this.importResults.error({
                 item: { competition: competition.name, match: match.bblId },
                 message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
               }),
@@ -176,7 +176,7 @@ export class BblMatchEventsImportService {
           });
         } catch (error) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { competition: competition.name, match: match.bblId },
               message: `Failed to import events for match "${match.bblId}": ${
                 error instanceof Error ? error.message : String(error)
@@ -187,7 +187,7 @@ export class BblMatchEventsImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 
   /**
@@ -295,7 +295,7 @@ export class BblMatchEventsImportService {
     const team = teamsByCode.get(code);
     if (!team) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { competition: competition.name, team: code },
           message: `Could not resolve team id "${code}" to an imported team while importing events for competition "${competition.name}".`,
         }),
@@ -333,7 +333,7 @@ export class BblMatchEventsImportService {
     const id = playerIdsByPid.get(pid);
     if (id === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { match: matchBblId, pid },
           message: `Player pid "${pid}" in match "${matchBblId}" has no imported id; emitting the event with a null player.`,
         }),

@@ -1,14 +1,18 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 const normalizeText = new NormalizeExtractedTextService();
+const importResults = new ImportResultService();
+const pageParseError = new PageParseErrorService(importResults);
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -52,6 +56,8 @@ describe('BblMatchDetailReaderService', () => {
     const service = new BblMatchDetailReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      importResults,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -67,6 +73,8 @@ describe('BblMatchDetailReaderService', () => {
     const service = new BblMatchDetailReaderService(
       reader,
       makeParser({ '100': teamsOne }),
+      importResults,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -80,6 +88,8 @@ describe('BblMatchDetailReaderService', () => {
     const service = new BblMatchDetailReaderService(
       makeReader([page({ m: '100' }), page({ m: '101' })]),
       makeParser({ '100': teamsOne, '101': null }),
+      importResults,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -102,6 +112,8 @@ describe('BblMatchDetailReaderService', () => {
     const service = new BblMatchDetailReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      importResults,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -120,6 +132,8 @@ describe('BblMatchDetailReaderService', () => {
     const service = new BblMatchDetailReaderService(
       makeReader([page({ m: '100' })]),
       parser,
+      importResults,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 

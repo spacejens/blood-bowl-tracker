@@ -1,8 +1,7 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -18,6 +17,7 @@ export class BblMatchesImportService {
     private readonly matchesImport: MatchesImportService,
     private readonly matchMerge: MatchMergeService,
     private readonly matchDetailReader: BblMatchDetailReaderService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -54,7 +54,7 @@ export class BblMatchesImportService {
       const competitionId = competitionIdsByBblId.get(competitionBblId);
       if (competition === undefined || competitionId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { competition: competitionBblId },
             message: `Skipping matches for competition id ${competitionBblId}: it was not imported.`,
           }),
@@ -74,7 +74,7 @@ export class BblMatchesImportService {
         const details = detailsByBblId.get(match.bblId);
         if (details === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { match: match.bblId },
               message: `Skipping match ${match.bblId}: its detail page was missing or failed to parse.`,
             }),
@@ -108,6 +108,9 @@ export class BblMatchesImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), matchIdsByBblId };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      matchIdsByBblId,
+    };
   }
 }

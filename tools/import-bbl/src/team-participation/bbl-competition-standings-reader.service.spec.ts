@@ -1,10 +1,15 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { CompetitionStandingsPageParser } from './competition-standings-page-parser';
+
+const importResults = new ImportResultService();
+const pageParseError = new PageParseErrorService(importResults);
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -28,7 +33,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 }
 
 function makeParser(teamsById: Record<string, string[]>) {
-  const parser = new CompetitionStandingsPageParser();
+  const parser = new CompetitionStandingsPageParser(importResults);
   vi.spyOn(parser, 'extractRegisteredTeamIds').mockImplementation(
     (p) => new Set(teamsById[p.params.s] ?? []),
   );
@@ -41,6 +46,7 @@ describe('BblCompetitionStandingsReaderService', () => {
     const service = new BblCompetitionStandingsReaderService(
       makeReader([page({ s: '69' }), page({ s: '69' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -57,6 +63,7 @@ describe('BblCompetitionStandingsReaderService', () => {
     const service = new BblCompetitionStandingsReaderService(
       makeReader([page({}), page({ s: '69' })]),
       parser,
+      pageParseError,
     );
 
     const result = await service.getRegisteredTeamIdsByCompetitionId([]);
@@ -70,6 +77,7 @@ describe('BblCompetitionStandingsReaderService', () => {
     const service = new BblCompetitionStandingsReaderService(
       reader,
       makeParser({ '69': ['äng'] }),
+      pageParseError,
     );
 
     await service.getRegisteredTeamIdsByCompetitionId([]);
@@ -79,13 +87,14 @@ describe('BblCompetitionStandingsReaderService', () => {
   });
 
   it('records an error and continues when a page fails to parse', async () => {
-    const parser = new CompetitionStandingsPageParser();
+    const parser = new CompetitionStandingsPageParser(importResults);
     vi.spyOn(parser, 'extractRegisteredTeamIds').mockImplementation(() => {
       throw new Error('bad se page');
     });
     const service = new BblCompetitionStandingsReaderService(
       makeReader([page({ s: '69' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 
@@ -98,7 +107,7 @@ describe('BblCompetitionStandingsReaderService', () => {
   });
 
   it('handles non-Error throws with String coercion in catch block', async () => {
-    const parser = new CompetitionStandingsPageParser();
+    const parser = new CompetitionStandingsPageParser(importResults);
     vi.spyOn(parser, 'extractRegisteredTeamIds').mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'boom';
@@ -106,6 +115,7 @@ describe('BblCompetitionStandingsReaderService', () => {
     const service = new BblCompetitionStandingsReaderService(
       makeReader([page({ s: '69' })]),
       parser,
+      pageParseError,
     );
     const errors: ImportError[] = [];
 

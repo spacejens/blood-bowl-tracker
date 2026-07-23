@@ -2,7 +2,7 @@ import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   RacesImportService,
@@ -11,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
 import { RacePageParser } from './race-page-parser';
@@ -40,6 +40,8 @@ export class BblRacesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -71,7 +73,7 @@ export class BblRacesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         raceIdsByBblId,
         racesByBblId,
         racesByRaceId,
@@ -101,7 +103,7 @@ export class BblRacesImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'team', error));
+        errors.push(this.pageParseError.build(page.params, 'team', error));
         continue;
       }
     }
@@ -125,13 +127,13 @@ export class BblRacesImportService {
           }
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'race list', error));
+        errors.push(this.pageParseError.build(page.params, 'race list', error));
         continue;
       }
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       raceIdsByBblId,
       racesByBblId,
       racesByRaceId,

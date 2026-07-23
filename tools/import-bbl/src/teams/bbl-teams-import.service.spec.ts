@@ -3,7 +3,10 @@ import type {
   ImportError,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import { CoachPageParser } from '../coaches/coach-page-parser';
@@ -16,6 +19,7 @@ import type { ExternalSystemNameConfigService } from '../source/external-system-
  * name in params for the stub parsers.
  */
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblTeamsImportService } from './bbl-teams-import.service';
 import { TeamPageParser } from './team-page-parser';
 
@@ -105,6 +109,8 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 

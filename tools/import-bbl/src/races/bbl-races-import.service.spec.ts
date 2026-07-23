@@ -3,7 +3,10 @@ import type {
   ImportError,
   RacesImportService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page.types';
@@ -15,6 +18,7 @@ import type { ExternalSystemNameConfigService } from '../source/external-system-
  * get distinct ids; pass an explicit id to control it.
  */
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblRacesImportService } from './bbl-races-import.service';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
@@ -132,6 +136,8 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 
@@ -278,6 +284,8 @@ describe('BblRacesImportService', () => {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
       new NameExternalIdService(),
+      new ImportResultService(),
+      new PageParseErrorService(new ImportResultService()),
     );
 
     const { result } = await service.importRaces();
@@ -309,6 +317,8 @@ describe('BblRacesImportService', () => {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
       new NameExternalIdService(),
+      new ImportResultService(),
+      new PageParseErrorService(new ImportResultService()),
     );
 
     const { result } = await service.importRaces();

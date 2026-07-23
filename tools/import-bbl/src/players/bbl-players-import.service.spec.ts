@@ -4,6 +4,7 @@ import type {
   PlayersImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -11,6 +12,7 @@ import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
@@ -101,6 +103,8 @@ function makeService(
     {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
   return { service, upsertTeam, upsertPlayerResult };
 }

@@ -3,7 +3,10 @@ import type {
   ExternalSystemBootstrapService,
   ImportError,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page.types';
@@ -11,6 +14,7 @@ import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 /** A fake team page carrying its coach name in params for the stub parser. */
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
 import {
   makeCoachRecord,
@@ -71,6 +75,8 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 
@@ -206,6 +212,8 @@ describe('BblCoachesImportService', () => {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
       new NameExternalIdService(),
+      new ImportResultService(),
+      new PageParseErrorService(new ImportResultService()),
     );
 
     const { result } = await service.importCoaches();
@@ -236,6 +244,8 @@ describe('BblCoachesImportService', () => {
         getBblSystemName: () => 'BBL',
       } as unknown as ExternalSystemNameConfigService,
       new NameExternalIdService(),
+      new ImportResultService(),
+      new PageParseErrorService(new ImportResultService()),
     );
 
     const { result } = await service.importCoaches();

@@ -2,7 +2,10 @@ import type {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -11,6 +14,7 @@ import type { BblMatch } from '../matches/match-list-page-parser';
 import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionsImportService } from './bbl-competitions-import.service';
 import { CompetitionListPageParser } from './competition-list-page-parser';
 
@@ -111,6 +115,8 @@ function makeService(opts: {
       getBblSystemName: () => 'BBL',
     } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
+    new PageParseErrorService(new ImportResultService()),
   );
 }
 

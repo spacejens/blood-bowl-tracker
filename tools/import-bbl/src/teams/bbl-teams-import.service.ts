@@ -2,8 +2,7 @@ import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   TeamsImportService,
@@ -14,7 +13,7 @@ import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { pageParseError } from '../source/page-parse-error';
+import { PageParseErrorService } from '../source/page-parse-error.service';
 import { TeamPageParser } from './team-page-parser';
 
 const TEAM_PAGE_TYPE = 'tm';
@@ -30,6 +29,8 @@ export class BblTeamsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
+    private readonly pageParseError: PageParseErrorService,
   ) {}
 
   /**
@@ -65,7 +66,7 @@ export class BblTeamsImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         teamRaceIdsByCode,
         teamsByName,
         teamsByCode,
@@ -89,7 +90,7 @@ export class BblTeamsImportService {
 
         if (raceId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { team },
               message: `Failed to import team "${team.name}": could not resolve race`,
             }),
@@ -99,7 +100,7 @@ export class BblTeamsImportService {
         teamRaceIdsByCode.set(team.id, raceId);
         if (coachId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { team },
               message: `Failed to import team "${team.name}": could not resolve coach`,
             }),
@@ -127,13 +128,13 @@ export class BblTeamsImportService {
           imported += 1;
         }
       } catch (error) {
-        errors.push(pageParseError(page.params, 'team', error));
+        errors.push(this.pageParseError.build(page.params, 'team', error));
         continue;
       }
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       teamRaceIdsByCode,
       teamsByName,
       teamsByCode,

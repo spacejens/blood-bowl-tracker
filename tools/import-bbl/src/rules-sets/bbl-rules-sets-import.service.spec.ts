@@ -2,7 +2,10 @@ import type {
   ExternalSystemBootstrapService,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
-import { NameExternalIdService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
@@ -28,6 +31,7 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getBblSystemName } as unknown as ExternalSystemNameConfigService,
     new NameExternalIdService(),
+    new ImportResultService(),
   );
 }
 

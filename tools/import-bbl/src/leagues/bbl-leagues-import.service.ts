@@ -1,9 +1,8 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
+  ImportResultService,
   LeaguesImportService,
-  makeImportError,
-  makeImportResult,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -21,6 +20,7 @@ export class BblLeaguesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -45,13 +45,13 @@ export class BblLeaguesImportService {
       names = this.config.getLeagueNames();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         leagueIdsByName,
       };
     }
@@ -63,7 +63,7 @@ export class BblLeaguesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         leagueIdsByName,
       };
     }
@@ -89,6 +89,9 @@ export class BblLeaguesImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), leagueIdsByName };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      leagueIdsByName,
+    };
   }
 }

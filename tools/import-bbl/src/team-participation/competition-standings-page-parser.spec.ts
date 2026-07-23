@@ -1,4 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
@@ -23,7 +24,7 @@ function row(code: string): string {
   );
 }
 
-const parser = new CompetitionStandingsPageParser();
+const parser = new CompetitionStandingsPageParser(new ImportResultService());
 
 describe('CompetitionStandingsPageParser', () => {
   it('extracts each registered team code from the standings rows', () => {
