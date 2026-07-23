@@ -103,9 +103,9 @@ describe('TpCoachesImportService', () => {
     await service.importCoaches();
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', isBookkeeping: false },
-      { name: 'Name', isBookkeeping: true },
-      { name: 'NAF', isBookkeeping: false },
+      { name: 'TP', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
+      { name: 'NAF', category: 'referenced_not_imported' },
     ]);
   });
 

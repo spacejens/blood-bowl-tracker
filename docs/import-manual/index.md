@@ -38,7 +38,7 @@ together before importing. A single file may mix any of these optional
 top-level sections:
 
 ```
-externalSystems   // rarely needed directly — usually implied by entries below
+externalSystems
 rulesSets
 leagues
 eras
@@ -48,11 +48,25 @@ coaches
 teams
 ```
 
+Every external-system name referenced anywhere in the pooled data — in
+`externalSystems` itself or in any `{ system, id }` pair below — must have a
+matching `externalSystems` entry declaring its
+[category](../game-concepts/external-systems/index.md). A referenced name with
+no matching declaration, or the same name declared twice with different
+categories, is a hard error:
+
+```jsonc
+externalSystems: [
+  { name: "BBL", category: "imported_data_source" },
+  { name: "Name", category: "bookkeeping" },
+]
+```
+
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
 again). External IDs and cross-references are written as `{ system, id }`
-pairs, where `system` is an external-system name (bootstrapped automatically)
-and `id` follows the `id:`/`name:` namespacing convention (see
+pairs, where `system` is an external-system name and `id` follows the
+`id:`/`name:` namespacing convention (see
 [docs/api/imports.md](../api/imports.md)):
 
 ```jsonc

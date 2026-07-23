@@ -19,12 +19,20 @@ describe('ExternalSystemBootstrapService', () => {
 
     await expect(
       service.bootstrap([
-        { name: 'BBL', isBookkeeping: false },
-        { name: 'Name', isBookkeeping: true },
+        { name: 'BBL', category: 'imported_data_source' },
+        { name: 'Name', category: 'bookkeeping' },
       ]),
     ).resolves.toEqual({ ok: true, ids: [1, 2] });
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(1, 'BBL', false);
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(2, 'Name', true);
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(
+      1,
+      'BBL',
+      'imported_data_source',
+    );
+    expect(upsertExternalSystem).toHaveBeenNthCalledWith(
+      2,
+      'Name',
+      'bookkeeping',
+    );
   });
 
   it('returns a not-ok result recording the names and message on failure', async () => {
@@ -34,8 +42,8 @@ describe('ExternalSystemBootstrapService', () => {
 
     await expect(
       service.bootstrap([
-        { name: 'BBL', isBookkeeping: false },
-        { name: 'Name', isBookkeeping: true },
+        { name: 'BBL', category: 'imported_data_source' },
+        { name: 'Name', category: 'bookkeeping' },
       ]),
     ).resolves.toEqual({
       ok: false,
@@ -53,7 +61,7 @@ describe('ExternalSystemBootstrapService', () => {
 
     await expect(
       service.bootstrap(
-        [{ name: 'BBL', isBookkeeping: false }],
+        [{ name: 'BBL', category: 'imported_data_source' }],
         'Failed to upsert external system: ',
       ),
     ).resolves.toEqual({
@@ -69,7 +77,7 @@ describe('ExternalSystemBootstrapService', () => {
     const service = makeService(vi.fn().mockRejectedValue('weird'));
 
     await expect(
-      service.bootstrap([{ name: 'BBL', isBookkeeping: false }]),
+      service.bootstrap([{ name: 'BBL', category: 'imported_data_source' }]),
     ).resolves.toEqual({
       ok: false,
       error: { item: { externalSystems: ['BBL'] }, message: 'weird' },

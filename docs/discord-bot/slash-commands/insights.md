@@ -29,11 +29,14 @@ so you can navigate the tree without memorizing it.
   `— <era>` suffix and the body changes: Leagues and Eras both read 1
   (intentionally kept, rather than dropped, for a consistent line set between
   all-time and era-scoped output); External systems becomes the count of
-  distinct external systems the era has an external ID for, excluding the
-  synthetic `Name` system; Rules sets becomes the count of the era's own
-  rules sets (not a name list); and Races, Positions, Coaches, Competitions,
-  Teams, Players, Matches, and Match events are each scoped to the selected
-  era.
+  distinct external systems linked directly to the era whose category is an
+  imported data source — excluding bookkeeping systems such as the synthetic
+  `Name` system, and excluding systems only referenced through a coach (e.g.
+  a coach's NAF number), since those describe the coach rather than the era
+  itself; Rules sets becomes the count of the era's own rules sets (not a
+  name list); and Races, Positions,
+  Coaches, Competitions, Teams, Players, Matches, and Match events are each
+  scoped to the selected era.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `coach.toplist.competitions.played` — coaches ranked by number of distinct

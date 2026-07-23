@@ -58,7 +58,7 @@ export class TpCoachesImportService {
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const systemNames = [
-      { name: tpSystemName, isBookkeeping: false },
+      { name: tpSystemName, category: 'imported_data_source' as const },
       NAME_EXTERNAL_SYSTEM,
       NAF_EXTERNAL_SYSTEM,
     ];

@@ -94,7 +94,7 @@ export class BblCompetitionsImportService {
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
-      { name: bblSystemName, isBookkeeping: false },
+      { name: bblSystemName, category: 'imported_data_source' },
       NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
