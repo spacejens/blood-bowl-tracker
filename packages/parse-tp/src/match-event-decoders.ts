@@ -126,21 +126,3 @@ export const concessionRaw = z.object({
 });
 
 export type Decoder = (raw: unknown) => TpMatchEvent;
-
-export function decode<T>(
-  schema: z.ZodType<T>,
-  code: number,
-  map: (v: T) => TpMatchEvent,
-): Decoder {
-  return (raw) => {
-    const result = schema.safeParse(raw);
-    if (!result.success) {
-      throw new Error(
-        `Invalid TP match event (code ${code}): ${result.error.issues
-          .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
-          .join('; ')}`,
-      );
-    }
-    return map(result.data);
-  };
-}

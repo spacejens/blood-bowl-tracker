@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import { z } from 'zod';
 
 import {
   casualtyCausedRaw,
   concessionRaw,
-  decode,
   type Decoder,
   dedicatedFansRaw,
   expensiveMistakeRaw,
@@ -18,6 +18,7 @@ import {
   weatherRaw,
   winningsRaw,
 } from './match-event-decoders';
+import type { TpMatchEvent } from './match-event-parser.service';
 import { SecretObjectiveService } from './secret-objective.service';
 import { WeatherTypeService } from './weather-type.service';
 
@@ -28,11 +29,29 @@ export class MatchEventDecodersService {
     private readonly weatherType: WeatherTypeService,
   ) {}
 
+  private decode<T>(
+    schema: z.ZodType<T>,
+    code: number,
+    map: (v: T) => TpMatchEvent,
+  ): Decoder {
+    return (raw) => {
+      const result = schema.safeParse(raw);
+      if (!result.success) {
+        throw new Error(
+          `Invalid TP match event (code ${code}): ${result.error.issues
+            .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+            .join('; ')}`,
+        );
+      }
+      return map(result.data);
+    };
+  }
+
   build(): Map<number, Decoder> {
     return new Map<number, Decoder>([
       [
         3,
-        decode(touchdownRaw, 3, (v) => ({
+        this.decode(touchdownRaw, 3, (v) => ({
           type: 'completion',
           tpEventId: v.id,
           instant: v.instant,
@@ -42,7 +61,7 @@ export class MatchEventDecodersService {
       ],
       [
         4,
-        decode(touchdownRaw, 4, (v) => ({
+        this.decode(touchdownRaw, 4, (v) => ({
           type: 'touchdown',
           tpEventId: v.id,
           instant: v.instant,
@@ -52,7 +71,7 @@ export class MatchEventDecodersService {
       ],
       [
         5,
-        decode(touchdownRaw, 5, (v) => ({
+        this.decode(touchdownRaw, 5, (v) => ({
           type: 'interception',
           tpEventId: v.id,
           instant: v.instant,
@@ -62,7 +81,7 @@ export class MatchEventDecodersService {
       ],
       [
         6,
-        decode(casualtyCausedRaw, 6, (v) => ({
+        this.decode(casualtyCausedRaw, 6, (v) => ({
           type: 'casualty_caused',
           tpEventId: v.id,
           instant: v.instant,
@@ -73,7 +92,7 @@ export class MatchEventDecodersService {
       ],
       [
         7,
-        decode(mvpAwardRaw, 7, (v) => ({
+        this.decode(mvpAwardRaw, 7, (v) => ({
           type: 'mvp_award',
           tpEventId: v.id,
           instant: v.instant,
@@ -83,7 +102,7 @@ export class MatchEventDecodersService {
       ],
       [
         8,
-        decode(injuryRaw, 8, (v) => ({
+        this.decode(injuryRaw, 8, (v) => ({
           type: 'injury',
           tpEventId: v.id,
           instant: v.instant,
@@ -96,7 +115,7 @@ export class MatchEventDecodersService {
       ],
       [
         10,
-        decode(weatherRaw, 10, (v) => ({
+        this.decode(weatherRaw, 10, (v) => ({
           type: 'weather_roll',
           tpEventId: v.id,
           instant: v.instant,
@@ -105,7 +124,7 @@ export class MatchEventDecodersService {
       ],
       [
         11,
-        decode(inducementsRaw, 11, (v) => ({
+        this.decode(inducementsRaw, 11, (v) => ({
           type: 'inducements_roll',
           tpEventId: v.id,
           instant: v.instant,
@@ -123,7 +142,7 @@ export class MatchEventDecodersService {
       ],
       [
         12,
-        decode(winningsRaw, 12, (v) => ({
+        this.decode(winningsRaw, 12, (v) => ({
           type: 'winnings_roll',
           tpEventId: v.id,
           instant: v.instant,
@@ -133,7 +152,7 @@ export class MatchEventDecodersService {
       ],
       [
         13,
-        decode(fanFactorRaw, 13, (v) => ({
+        this.decode(fanFactorRaw, 13, (v) => ({
           type: 'fan_factor_roll',
           tpEventId: v.id,
           instant: v.instant,
@@ -143,7 +162,7 @@ export class MatchEventDecodersService {
       ],
       [
         14,
-        decode(expensiveMistakeRaw, 14, (v) => ({
+        this.decode(expensiveMistakeRaw, 14, (v) => ({
           type: 'expensive_mistake',
           tpEventId: v.id,
           instant: v.instant,
@@ -153,7 +172,7 @@ export class MatchEventDecodersService {
       ],
       [
         15,
-        decode(journeymanSigningRaw, 15, (v) => ({
+        this.decode(journeymanSigningRaw, 15, (v) => ({
           type: 'journeyman_signing',
           tpEventId: v.id,
           instant: v.instant,
@@ -163,7 +182,7 @@ export class MatchEventDecodersService {
       ],
       [
         20,
-        decode(concessionRaw, 20, (v) => ({
+        this.decode(concessionRaw, 20, (v) => ({
           type: 'concession',
           tpEventId: v.id,
           instant: v.instant,
@@ -173,7 +192,7 @@ export class MatchEventDecodersService {
       ],
       [
         23,
-        decode(prayersToNuffleRaw, 23, (v) => ({
+        this.decode(prayersToNuffleRaw, 23, (v) => ({
           type: 'prayers_to_nuffle',
           tpEventId: v.id,
           instant: v.instant,
@@ -182,7 +201,7 @@ export class MatchEventDecodersService {
       ],
       [
         25,
-        decode(touchdownRaw, 25, (v) => ({
+        this.decode(touchdownRaw, 25, (v) => ({
           type: 'deflection',
           tpEventId: v.id,
           instant: v.instant,
@@ -192,7 +211,7 @@ export class MatchEventDecodersService {
       ],
       [
         26,
-        decode(dedicatedFansRaw, 26, (v) => ({
+        this.decode(dedicatedFansRaw, 26, (v) => ({
           type: 'dedicated_fans_roll',
           tpEventId: v.id,
           instant: v.instant,
@@ -203,7 +222,7 @@ export class MatchEventDecodersService {
       ],
       [
         31,
-        decode(touchdownRaw, 31, (v) => ({
+        this.decode(touchdownRaw, 31, (v) => ({
           type: 'foul',
           tpEventId: v.id,
           instant: v.instant,
@@ -213,7 +232,7 @@ export class MatchEventDecodersService {
       ],
       [
         32,
-        decode(touchdownRaw, 32, (v) => ({
+        this.decode(touchdownRaw, 32, (v) => ({
           type: 'sent_off',
           tpEventId: v.id,
           instant: v.instant,
@@ -223,7 +242,7 @@ export class MatchEventDecodersService {
       ],
       [
         42,
-        decode(secretObjectiveRaw, 42, (v) => ({
+        this.decode(secretObjectiveRaw, 42, (v) => ({
           type: 'secret_objective',
           tpEventId: v.id,
           instant: v.instant,
@@ -235,7 +254,7 @@ export class MatchEventDecodersService {
       ],
       [
         46,
-        decode(touchdownRaw, 46, (v) => ({
+        this.decode(touchdownRaw, 46, (v) => ({
           type: 'successful_landing',
           tpEventId: v.id,
           instant: v.instant,
