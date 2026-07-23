@@ -26,7 +26,8 @@ export class CoachToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Coaches by matches played',
-      fetchRows: () => this.coaches.countMatchesPlayedByCoach(scope),
+      fetchRows: (limit) =>
+        this.coaches.countMatchesPlayedByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.coachButtonId(row),
@@ -36,7 +37,7 @@ export class CoachToplistService {
   resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Coaches by teams coached',
-      fetchRows: () => this.coaches.countTeamsByCoach(scope),
+      fetchRows: (limit) => this.coaches.countTeamsByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.coachButtonId(row),
@@ -48,7 +49,7 @@ export class CoachToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Coaches by competitions played',
-      fetchRows: () => this.coaches.countCompetitionsByCoach(scope),
+      fetchRows: (limit) => this.coaches.countCompetitionsByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.coachButtonId(row),
@@ -58,7 +59,7 @@ export class CoachToplistService {
   resolveErasActive(): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Coaches by eras active',
-      fetchRows: () => this.coaches.countErasByCoach(),
+      fetchRows: (limit) => this.coaches.countErasByCoach(limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.coachButtonId(row),

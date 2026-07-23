@@ -118,6 +118,7 @@ export class CoachesService {
 
   async countMatchesPlayedByCoach(
     scope: FactScope,
+    limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -142,11 +143,13 @@ export class CoachesService {
         ),
       )
       .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(matches.id)));
+      .orderBy(desc(countDistinct(matches.id)))
+      .limit(limit);
   }
 
   async countCompetitionsByCoach(
     scope: FactScope,
+    limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -174,11 +177,13 @@ export class CoachesService {
         ),
       )
       .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(competitions.id)));
+      .orderBy(desc(countDistinct(competitions.id)))
+      .limit(limit);
   }
 
   async countTeamsByCoach(
     scope: FactScope,
+    limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     const base = this.db
       .select({
@@ -196,7 +201,8 @@ export class CoachesService {
           and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
         )
         .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)))
+        .limit(limit);
     }
     if (scope.eraId !== undefined) {
       return base
@@ -205,16 +211,18 @@ export class CoachesService {
           and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
         )
         .groupBy(coaches.id, coaches.name)
-        .orderBy(desc(countDistinct(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)))
+        .limit(limit);
     }
     return base
       .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(teams.id)));
+      .orderBy(desc(countDistinct(teams.id)))
+      .limit(limit);
   }
 
-  async countErasByCoach(): Promise<
-    { coachId: number; name: string; count: number }[]
-  > {
+  async countErasByCoach(
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
     return this.db
       .select({
         coachId: coaches.id,
@@ -225,7 +233,8 @@ export class CoachesService {
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(coaches, eq(coaches.id, teams.coachId))
       .groupBy(coaches.id, coaches.name)
-      .orderBy(desc(countDistinct(teamEras.eraId)));
+      .orderBy(desc(countDistinct(teamEras.eraId)))
+      .limit(limit);
   }
 
   countAll(): Promise<number> {

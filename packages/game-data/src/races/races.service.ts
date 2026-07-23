@@ -131,6 +131,7 @@ export class RacesService {
 
   async countTeamsByRace(
     scope: FactScope,
+    limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
     const base = this.db
       .select({
@@ -148,7 +149,8 @@ export class RacesService {
           and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
         )
         .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)))
+        .limit(limit);
     }
     if (scope.eraId !== undefined) {
       return base
@@ -157,15 +159,18 @@ export class RacesService {
           and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
         )
         .groupBy(races.id, races.name)
-        .orderBy(desc(countDistinct(teams.id)));
+        .orderBy(desc(countDistinct(teams.id)))
+        .limit(limit);
     }
     return base
       .groupBy(races.id, races.name)
-      .orderBy(desc(countDistinct(teams.id)));
+      .orderBy(desc(countDistinct(teams.id)))
+      .limit(limit);
   }
 
   async countMatchesPlayedByRace(
     scope: FactScope,
+    limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
     return this.db
       .select({
@@ -189,7 +194,8 @@ export class RacesService {
         ),
       )
       .groupBy(races.id, races.name)
-      .orderBy(desc(countDistinct(matchTeams.id)));
+      .orderBy(desc(countDistinct(matchTeams.id)))
+      .limit(limit);
   }
 
   countAll(): Promise<number> {

@@ -24,7 +24,7 @@ export class RaceToplistService {
   resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Races by teams',
-      fetchRows: () => this.races.countTeamsByRace(scope),
+      fetchRows: (limit) => this.races.countTeamsByRace(scope, limit),
       timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.raceButtonId(row),
@@ -36,7 +36,7 @@ export class RaceToplistService {
   ): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Races by matches played',
-      fetchRows: () => this.races.countMatchesPlayedByRace(scope),
+      fetchRows: (limit) => this.races.countMatchesPlayedByRace(scope, limit),
       timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
       buildCustomId: (row) => this.raceButtonId(row),

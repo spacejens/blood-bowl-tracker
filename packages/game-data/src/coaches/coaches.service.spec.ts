@@ -50,6 +50,7 @@ function makeQueryBuilder(rows: unknown[]) {
   builder.where = vi.fn(() => builder);
   builder.groupBy = vi.fn(() => builder);
   builder.orderBy = vi.fn(() => builder);
+  builder.limit = vi.fn(() => builder);
   builder.then = (
     resolve: (v: unknown) => unknown,
     reject: (e: unknown) => unknown,
@@ -205,7 +206,7 @@ describe('CoachesService', () => {
         likePattern,
       );
       await expect(
-        service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME),
+        service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
@@ -218,7 +219,7 @@ describe('CoachesService', () => {
         likePattern,
       );
       await expect(
-        service.countTeamsByCoach(FACT_SCOPE_ALL_TIME),
+        service.countTeamsByCoach(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
@@ -234,13 +235,14 @@ describe('CoachesService', () => {
         likePattern,
       );
       await expect(
-        service.countMatchesPlayedByCoach({ eraId: 20 }),
+        service.countMatchesPlayedByCoach({ eraId: 20 }, 21),
       ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['match_teams.match_id', 'matches.id'],
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countTeamsByCoach joins team_eras when an eraId is given', async () => {
@@ -251,9 +253,9 @@ describe('CoachesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByCoach({ eraId: 20 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByCoach({ eraId: 20 }, 21),
+      ).resolves.toEqual(rows);
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
@@ -274,7 +276,7 @@ describe('CoachesService', () => {
         likePattern,
       );
       await expect(
-        service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME),
+        service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
@@ -288,13 +290,14 @@ describe('CoachesService', () => {
         likePattern,
       );
       await expect(
-        service.countCompetitionsByCoach({ eraId: 20 }),
+        service.countCompetitionsByCoach({ eraId: 20 }, 21),
       ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['competition_teams.competition_id', 'competitions.id'],
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countErasByCoach returns the rows the query resolves to', async () => {
@@ -309,11 +312,12 @@ describe('CoachesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countErasByCoach()).resolves.toEqual(rows);
+      await expect(service.countErasByCoach(21)).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['teams.id', 'team_eras.team_id'],
       );
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
   });
 
@@ -326,7 +330,7 @@ describe('CoachesService', () => {
         } as unknown as Db,
         likePattern,
       );
-      await service.countMatchesPlayedByCoach({ leagueId: 9 });
+      await service.countMatchesPlayedByCoach({ leagueId: 9 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
         ['eras.id', 'team_eras.era_id'],
@@ -342,7 +346,7 @@ describe('CoachesService', () => {
         } as unknown as Db,
         likePattern,
       );
-      await service.countCompetitionsByCoach({ leagueId: 9 });
+      await service.countCompetitionsByCoach({ leagueId: 9 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
         ['eras.id', 'team_eras.era_id'],
@@ -358,9 +362,9 @@ describe('CoachesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByCoach({ leagueId: 9 }, 21),
+      ).resolves.toEqual(rows);
       // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(3);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
@@ -381,9 +385,9 @@ describe('CoachesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByCoach({ leagueId: 9 }, 21),
+      ).resolves.toEqual(rows);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
       expect(isCountDistinct(selectedFields.count)).toBe(true);
     });

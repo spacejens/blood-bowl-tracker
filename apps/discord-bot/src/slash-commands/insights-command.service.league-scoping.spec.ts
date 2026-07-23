@@ -5,6 +5,7 @@ import {
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
+import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard.service';
 import {
   autocompleteInteraction,
   chatInput,
@@ -26,9 +27,10 @@ describe('InsightsCommandService — league scoping and rejection', () => {
       chatInput('coach.toplist.matches.played', { league: '5' }),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith({
-      leagueId: 5,
-    });
+    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith(
+      { leagueId: 5 },
+      TOPLIST_FETCH_LIMIT,
+    );
     expect(result).toEqual(
       expect.objectContaining({
         embeds: [

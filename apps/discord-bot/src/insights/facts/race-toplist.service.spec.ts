@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { RACE_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { RACE_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { LeaderboardService } from '../leaderboard.service';
+import {
+  LeaderboardService,
+  TOPLIST_FETCH_LIMIT,
+} from '../leaderboard.service';
 import { RaceToplistService } from './race-toplist.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -82,7 +85,7 @@ describe.each(cases)(
       const queryFn = vi.fn().mockResolvedValue(eraRows);
       const races = { [method]: queryFn } as unknown as RacesService;
       await resolve(makeService(races), { eraId: 20 });
-      expect(queryFn).toHaveBeenCalledWith({ eraId: 20 });
+      expect(queryFn).toHaveBeenCalledWith({ eraId: 20 }, TOPLIST_FETCH_LIMIT);
     });
 
     it('falls back to the timeout message when the query does not respond in time', async () => {
