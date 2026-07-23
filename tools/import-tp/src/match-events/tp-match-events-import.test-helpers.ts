@@ -4,10 +4,14 @@ import type {
   ImportError,
   MatchEventsImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { TpMatchEventBuildersService } from './tp-match-event-builders.service';
+import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
 
 /**
@@ -57,6 +61,10 @@ export function makeService(upsertMatchEvent: ReturnType<typeof vi.fn>) {
     {
       getTpSystemName: () => 'TP',
     } as unknown as ExternalSystemNameConfigService,
+    new TpMatchEventsBuilderService(
+      new TpMatchEventBuildersService(new ImportResultService()),
+    ),
+    new TpMatchEventsCorrelationService(),
   );
 }
 

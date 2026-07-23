@@ -1,7 +1,7 @@
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it } from 'vitest';
 
-import { correlateCasualties } from './tp-match-events-correlation';
+import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 
 const HOME_ROSTER_ID = 164868;
 const AWAY_ROSTER_ID = 167242;
@@ -45,7 +45,10 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
     expect(pairing.pairedCasualtyEventIds.has(1)).toBe(true);
@@ -68,7 +71,10 @@ describe('correlateCasualties', () => {
       turnNumber: 6,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
     expect(pairing.pairedCasualtyEventIds.size).toBe(0);
@@ -95,7 +101,10 @@ describe('correlateCasualties', () => {
 
     // Array order also has the injury appearing first, matching TP's
     // observed async registration behavior.
-    const pairing = correlateCasualties([injuryEvent, casualtyEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      injuryEvent,
+      casualtyEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
     expect(pairing.pairedCasualtyEventIds.has(1)).toBe(true);
@@ -134,7 +143,7 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
       casualtyA,
       casualtyB,
       injuryNearA,
@@ -157,7 +166,9 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
     expect(pairing.pairedCasualtyEventIds.size).toBe(0);
@@ -173,7 +184,9 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
     expect(pairing.pairedCasualtyEventIds.size).toBe(0);
@@ -196,7 +209,10 @@ describe('correlateCasualties', () => {
       // turnNumber also omitted
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
   });
@@ -218,7 +234,10 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
   });
@@ -246,7 +265,10 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.size).toBe(0);
     expect(pairing.pairedCasualtyEventIds.size).toBe(0);
@@ -269,7 +291,10 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
     expect(pairing.pairedCasualtyEventIds.has(1)).toBe(true);
@@ -292,7 +317,10 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([casualtyEvent, injuryEvent]);
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
+      casualtyEvent,
+      injuryEvent,
+    ]);
 
     // Even though this was the ONLY raw candidate (turnNumber + direction
     // match), it's beyond the cutoff, so the casualty stays unpaired —
@@ -329,7 +357,7 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
       casualtyEvent,
       injuryOutOfWindow,
       injuryInWindow,
@@ -364,7 +392,7 @@ describe('correlateCasualties', () => {
       turnNumber: 5,
     });
 
-    const pairing = correlateCasualties([
+    const pairing = new TpMatchEventsCorrelationService().correlateCasualties([
       touchdown,
       casualtyEvent,
       injuryEvent,

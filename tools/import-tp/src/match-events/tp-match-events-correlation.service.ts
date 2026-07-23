@@ -1,4 +1,5 @@
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
+import { Injectable } from '@nestjs/common';
 
 /**
  * Pairs a code-6 (`casualty_caused`) event — the ACTION of a specific player
@@ -65,81 +66,82 @@ type InjuryEvent = Extract<TpMatchEvent, { type: 'injury' }>;
  */
 const MAX_PAIRING_DELAY_MS = 120_000;
 
-/**
- * A code-8 is a valid pairing candidate for a code-6 when the injury
- * happened on the casualty-causer's own turn (`injury.turnRosterId` matches
- * the casualty's acting `rosterId`), the victim is on the opposing side
- * (`injury.rosterId` differs from the casualty's `rosterId`), and both carry
- * the same `turnNumber`. This check is fully symmetric in time — neither
- * event's `instant` is consulted — since TP's async registration means
- * either can be logged first.
- */
-function isCandidate(casualty: CasualtyEvent, injury: InjuryEvent): boolean {
-  return (
-    injury.turnRosterId === casualty.rosterId &&
-    injury.rosterId !== casualty.rosterId &&
-    casualty.turnNumber !== undefined &&
-    injury.turnNumber === casualty.turnNumber
-  );
-}
-
-/**
- * Pair every match's `casualty_caused` events with their `injury` event, in
- * `matchEvents` array order (each code-8 consumed by at most one code-6).
- * A candidate must be within `MAX_PAIRING_DELAY_MS` (120s) of the casualty's
- * `instant` to be eligible at all; among still-eligible, same-turn,
- * correct-direction, still-unclaimed candidates, the nearest by absolute
- * `instant` difference is chosen as a secondary tiebreaker — never as an
- * ordering/direction filter.
- */
-export function correlateCasualties(
-  matchEvents: TpMatchEvent[],
-): CasualtyPairing {
-  const casualties = matchEvents.filter(
-    (e): e is CasualtyEvent => e.type === 'casualty_caused',
-  );
-  const injuries = matchEvents.filter(
-    (e): e is InjuryEvent => e.type === 'injury',
-  );
-
-  const casualtyByInjuryEventId = new Map<number, CasualtyEvent>();
-  const pairedCasualtyEventIds = new Set<number>();
-  const claimedInjuryEventIds = new Set<number>();
-
-  for (const casualty of casualties) {
-    let best: InjuryEvent | undefined;
-    let bestDiffMs = Infinity;
-    for (const injury of injuries) {
-      if (claimedInjuryEventIds.has(injury.tpEventId)) {
-        continue;
-      }
-      if (!isCandidate(casualty, injury)) {
-        continue;
-      }
-      const diffMs = Math.abs(
-        new Date(injury.instant).getTime() -
-          new Date(casualty.instant).getTime(),
-      );
-      // A candidate must be within the cutoff to be eligible at all. Phrased
-      // as an inclusion check (`<=`), not its negation, so an unparseable
-      // `instant` (diffs to NaN) is naturally excluded too: `NaN <=
-      // anything` is always false, so the `!(...)` branch below is taken —
-      // whereas the negated form `diffMs > MAX` would be false for NaN and
-      // would wrongly let it through.
-      if (!(diffMs <= MAX_PAIRING_DELAY_MS)) {
-        continue;
-      }
-      if (best === undefined || diffMs < bestDiffMs) {
-        best = injury;
-        bestDiffMs = diffMs;
-      }
-    }
-    if (best) {
-      casualtyByInjuryEventId.set(best.tpEventId, casualty);
-      pairedCasualtyEventIds.add(casualty.tpEventId);
-      claimedInjuryEventIds.add(best.tpEventId);
-    }
+@Injectable()
+export class TpMatchEventsCorrelationService {
+  /**
+   * A code-8 is a valid pairing candidate for a code-6 when the injury
+   * happened on the casualty-causer's own turn (`injury.turnRosterId`
+   * matches the casualty's acting `rosterId`), the victim is on the opposing
+   * side (`injury.rosterId` differs from the casualty's `rosterId`), and
+   * both carry the same `turnNumber`. This check is fully symmetric in time
+   * — neither event's `instant` is consulted — since TP's async
+   * registration means either can be logged first.
+   */
+  private isCandidate(casualty: CasualtyEvent, injury: InjuryEvent): boolean {
+    return (
+      injury.turnRosterId === casualty.rosterId &&
+      injury.rosterId !== casualty.rosterId &&
+      casualty.turnNumber !== undefined &&
+      injury.turnNumber === casualty.turnNumber
+    );
   }
 
-  return { casualtyByInjuryEventId, pairedCasualtyEventIds };
+  /**
+   * Pair every match's `casualty_caused` events with their `injury` event, in
+   * `matchEvents` array order (each code-8 consumed by at most one code-6).
+   * A candidate must be within `MAX_PAIRING_DELAY_MS` (120s) of the casualty's
+   * `instant` to be eligible at all; among still-eligible, same-turn,
+   * correct-direction, still-unclaimed candidates, the nearest by absolute
+   * `instant` difference is chosen as a secondary tiebreaker — never as an
+   * ordering/direction filter.
+   */
+  correlateCasualties(matchEvents: TpMatchEvent[]): CasualtyPairing {
+    const casualties = matchEvents.filter(
+      (e): e is CasualtyEvent => e.type === 'casualty_caused',
+    );
+    const injuries = matchEvents.filter(
+      (e): e is InjuryEvent => e.type === 'injury',
+    );
+
+    const casualtyByInjuryEventId = new Map<number, CasualtyEvent>();
+    const pairedCasualtyEventIds = new Set<number>();
+    const claimedInjuryEventIds = new Set<number>();
+
+    for (const casualty of casualties) {
+      let best: InjuryEvent | undefined;
+      let bestDiffMs = Infinity;
+      for (const injury of injuries) {
+        if (claimedInjuryEventIds.has(injury.tpEventId)) {
+          continue;
+        }
+        if (!this.isCandidate(casualty, injury)) {
+          continue;
+        }
+        const diffMs = Math.abs(
+          new Date(injury.instant).getTime() -
+            new Date(casualty.instant).getTime(),
+        );
+        // A candidate must be within the cutoff to be eligible at all.
+        // Phrased as an inclusion check (`<=`), not its negation, so an
+        // unparseable `instant` (diffs to NaN) is naturally excluded too:
+        // `NaN <= anything` is always false, so the `!(...)` branch below is
+        // taken — whereas the negated form `diffMs > MAX` would be false for
+        // NaN and would wrongly let it through.
+        if (!(diffMs <= MAX_PAIRING_DELAY_MS)) {
+          continue;
+        }
+        if (best === undefined || diffMs < bestDiffMs) {
+          best = injury;
+          bestDiffMs = diffMs;
+        }
+      }
+      if (best) {
+        casualtyByInjuryEventId.set(best.tpEventId, casualty);
+        pairedCasualtyEventIds.add(casualty.tpEventId);
+        claimedInjuryEventIds.add(best.tpEventId);
+      }
+    }
+
+    return { casualtyByInjuryEventId, pairedCasualtyEventIds };
+  }
 }

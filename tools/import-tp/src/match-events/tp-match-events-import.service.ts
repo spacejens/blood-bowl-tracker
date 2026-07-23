@@ -9,9 +9,9 @@ import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TeamEra } from './tp-match-events-builders';
-import { buildEventData, resolveTeamEraId } from './tp-match-events-builders';
-import { correlateCasualties } from './tp-match-events-correlation';
+import type { TeamEra } from './tp-match-events-builder.service';
+import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 
 /**
  * Options for {@link TpMatchEventsImportService.importMatchEvents}, bundled
@@ -49,6 +49,8 @@ export class TpMatchEventsImportService {
     private readonly matchEventsImport: MatchEventsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly eventsBuilder: TpMatchEventsBuilderService,
+    private readonly eventsCorrelation: TpMatchEventsCorrelationService,
   ) {}
 
   /**
@@ -60,9 +62,10 @@ export class TpMatchEventsImportService {
    * team directly on each event for every kind EXCEPT casualties: a code-6
    * (`casualty_caused`, the action) and its code-8 (`injury`, the
    * consequence) are logged as two independent events with no shared id, so
-   * they need their own correlation step (`correlateCasualties`, computed
-   * once per match — see `tp-match-events-correlation.ts` for why, and its
-   * turnNumber-based, order-independent pairing design).
+   * they need their own correlation step
+   * (`TpMatchEventsCorrelationService.correlateCasualties`, computed once
+   * per match — see `tp-match-events-correlation.service.ts` for why, and
+   * its turnNumber-based, order-independent pairing design).
    *
    * Per competition (iterating `matchesByCompetitionId`, keyed by competition
    * DB id): resolve the competition's real `eraId` via
@@ -75,9 +78,9 @@ export class TpMatchEventsImportService {
    * "both-sides" administrative events (winnings, fan factor, dedicated
    * fans) and concession, which need a specific side without an acting
    * roster id on the event itself, and compute `casualtyPairing` once for
-   * the match. Per event: `buildEventData` (see `tp-match-events-builders.ts`)
-   * maps the event to zero, one, or two `UpsertMatchEvent`s, each of which is
-   * upserted.
+   * the match. Per event: `TpMatchEventsBuilderService.buildEventData` (see
+   * `tp-match-events-builder.service.ts`) maps the event to zero, one, or
+   * two `UpsertMatchEvent`s, each of which is upserted.
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
    * `actingPlayerId` the scorer (`lineUpId`); mvp_award, completion,
@@ -159,20 +162,22 @@ export class TpMatchEventsImportService {
           continue;
         }
 
-        const homeTeamEraId = resolveTeamEraId({
+        const homeTeamEraId = this.eventsBuilder.resolveTeamEraId({
           teamErasByRosterId,
           rosterId: match.homeTeamTpId,
           eraId,
         });
-        const awayTeamEraId = resolveTeamEraId({
+        const awayTeamEraId = this.eventsBuilder.resolveTeamEraId({
           teamErasByRosterId,
           rosterId: match.awayTeamTpId,
           eraId,
         });
-        const casualtyPairing = correlateCasualties(match.matchEvents);
+        const casualtyPairing = this.eventsCorrelation.correlateCasualties(
+          match.matchEvents,
+        );
 
         for (const event of match.matchEvents) {
-          const dataList = buildEventData({
+          const dataList = this.eventsBuilder.buildEventData({
             event,
             matchId,
             eraId,
