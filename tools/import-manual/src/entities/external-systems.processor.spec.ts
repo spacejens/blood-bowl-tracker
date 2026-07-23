@@ -129,6 +129,18 @@ describe('ExternalSystemsProcessor', () => {
     expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
   });
 
+  it('categorizes a NAF reference as referenced_not_imported', async () => {
+    const upsert = vi.fn().mockResolvedValue(1);
+    const data = emptyData();
+    data.coaches = [
+      { name: 'A', externalIds: [{ system: 'NAF', id: 'naf:1' }] },
+    ];
+
+    await makeProcessor(upsert).bootstrap(data);
+
+    expect(upsert).toHaveBeenCalledWith('NAF', 'referenced_not_imported');
+  });
+
   it('propagates an upsert failure', async () => {
     const upsert = vi.fn().mockRejectedValue(new Error('api down'));
     const data = emptyData();
