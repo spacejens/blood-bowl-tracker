@@ -12,7 +12,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /**
  * One team (keyed by roster id), accumulated across its roster files.
@@ -43,6 +43,7 @@ export class TpTeamsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
   ) {}
 
   /**
@@ -106,7 +107,7 @@ export class TpTeamsImportService {
       }
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       } else {
         group.eraIds.add(eraId);
       }

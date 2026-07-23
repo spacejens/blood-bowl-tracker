@@ -12,7 +12,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /** One position, keyed by (raceId, name), accumulated across roster files. */
 interface PositionGroup {
@@ -42,6 +42,7 @@ export class TpPositionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
   ) {}
 
   /**
@@ -113,7 +114,7 @@ export class TpPositionsImportService {
       }
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
       for (const position of roster.positions) {
         const key = `${raceId} ${position.name}`;

@@ -16,7 +16,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
-import { unknownEraError } from '../source/roster-collection.service';
+import { RosterCollectionService } from '../source/roster-collection.service';
 
 /**
  * One hired-star-player group: the roster that hired them, the real era the
@@ -84,6 +84,7 @@ export class TpPlayersImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly positionsImport: PositionsImportService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly rosterCollection: RosterCollectionService,
   ) {}
 
   /**
@@ -179,7 +180,7 @@ export class TpPlayersImportService {
     for (const { roster, era } of rosters) {
       const eraId = eraIdsByName.get(era);
       if (eraId === undefined) {
-        errors.push(unknownEraError(era, roster));
+        errors.push(this.rosterCollection.unknownEraError(era, roster));
       }
 
       // Merge the match-embedded roster snapshot into the standalone

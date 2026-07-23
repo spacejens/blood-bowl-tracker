@@ -12,10 +12,7 @@ import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import {
-  isBaseTournamentFile,
-  TpSourceReader,
-} from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
 import { EraDataConfig, EraDataConfigService } from './era-data-config.service';
 
 /** Rule-set codes and parse failures seen while scanning tournament files. */
@@ -178,7 +175,10 @@ export class TpErasImportService {
     const codesByEra = new Map<string, Set<number>>();
     const parseErrorByEra = new Map<string, string[]>();
     for await (const file of this.sourceReader.files()) {
-      if (file.type !== 'tournament' || !isBaseTournamentFile(file.filename)) {
+      if (
+        file.type !== 'tournament' ||
+        !this.sourceReader.isBaseTournamentFile(file.filename)
+      ) {
         continue;
       }
       try {

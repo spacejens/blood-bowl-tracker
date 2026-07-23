@@ -31,7 +31,11 @@ function makeService({
   getTpSystemName = () => 'TP',
 }: MakeServiceOptions) {
   return new TpCompetitionsImportService(
-    { files } as unknown as TpSourceReader,
+    {
+      files,
+      isBaseTournamentFile: (filename: string) =>
+        /^tournament_[^_]+\.json$/.test(filename),
+    } as unknown as TpSourceReader,
     new TournamentParserService(),
     new MatchParserService(
       new MatchEventParserService(

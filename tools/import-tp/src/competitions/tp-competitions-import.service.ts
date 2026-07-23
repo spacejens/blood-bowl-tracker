@@ -16,10 +16,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import {
-  isBaseTournamentFile,
-  TpSourceReader,
-} from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (max - min) match-date span <= 3 days => cup, else season. Mirrors BBL's
@@ -177,7 +174,10 @@ export class TpCompetitionsImportService {
           competition: file.competition,
           matches: [],
         };
-        if (file.type === 'tournament' && isBaseTournamentFile(file.filename)) {
+        if (
+          file.type === 'tournament' &&
+          this.sourceReader.isBaseTournamentFile(file.filename)
+        ) {
           group.tournamentContent = file.content;
         } else if (file.type === 'match') {
           this.addMatch({
