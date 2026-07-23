@@ -29,9 +29,15 @@ describe('ApiClientConfigService', () => {
   it('defaults to http://localhost:3000 when API_BASE_URL is not set', () => {
     // ApiClientConfigService calls configService.get('API_BASE_URL', 'http://localhost:3000'),
     // relying on ConfigService's own default-value behaviour. A mocked ConfigService.get
-    // does not apply that default itself, so this stubs the mock to return the same
-    // default the service passes in, mirroring the real fallback behaviour.
-    config.get.mockReturnValue('http://localhost:3000');
+    // does not apply that default itself, so this makes the mock echo back whatever
+    // default value it was called with, mirroring the real fallback behaviour, and then
+    // asserts the service actually requested the expected key and default.
+    config.get.mockImplementation((_key, defaultValue) => defaultValue);
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(config.get).toHaveBeenCalledWith(
+      'API_BASE_URL',
+      'http://localhost:3000',
+    );
   });
 });
