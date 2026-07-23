@@ -72,7 +72,9 @@ export class ExternalSystemsProcessor {
         name,
         await this.externalSystemsImport.upsertExternalSystem(
           name,
-          name === NAME_EXTERNAL_SYSTEM_NAME,
+          name === NAME_EXTERNAL_SYSTEM_NAME
+            ? 'bookkeeping'
+            : 'imported_data_source',
         ),
       );
     }

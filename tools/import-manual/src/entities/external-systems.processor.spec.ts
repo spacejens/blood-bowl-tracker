@@ -84,8 +84,8 @@ describe('ExternalSystemsProcessor', () => {
     );
     expect(systemIds.get('Name')).toBeDefined();
     expect(systemIds.get('Explicit')).toBeDefined();
-    expect(upsert).toHaveBeenCalledWith('BBL', false);
-    expect(upsert).toHaveBeenCalledWith('Name', true);
+    expect(upsert).toHaveBeenCalledWith('BBL', 'imported_data_source');
+    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
   });
 
   it('upserts each name once even when referenced many times', async () => {
@@ -99,7 +99,7 @@ describe('ExternalSystemsProcessor', () => {
     await makeProcessor(upsert).bootstrap(data);
 
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(upsert).toHaveBeenCalledWith('Name', true);
+    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
   });
 
   it('collects position raceEras race and era system names', async () => {
@@ -124,9 +124,9 @@ describe('ExternalSystemsProcessor', () => {
     const names = upsert.mock.calls.map((c) => c[0] as string);
     expect(names).toContain('RaceSys');
     expect(names).toContain('EraSys');
-    expect(upsert).toHaveBeenCalledWith('RaceSys', false);
-    expect(upsert).toHaveBeenCalledWith('EraSys', false);
-    expect(upsert).toHaveBeenCalledWith('Name', true);
+    expect(upsert).toHaveBeenCalledWith('RaceSys', 'imported_data_source');
+    expect(upsert).toHaveBeenCalledWith('EraSys', 'imported_data_source');
+    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
   });
 
   it('propagates an upsert failure', async () => {
