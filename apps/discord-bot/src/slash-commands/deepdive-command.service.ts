@@ -34,22 +34,24 @@ import {
 } from '../error-messages';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
+export {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../deepdive/button-custom-ids';
+
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../deepdive/button-custom-ids';
+
 const MAX_AUTOCOMPLETE_CHOICES = 25;
-
-/** Prefix for era deepdive button customIds: `deepdive:era:<id>`. */
-export const ERA_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:era:';
-
-/** Prefix for coach deepdive button customIds: `deepdive:coach:<id>`. */
-export const COACH_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:coach:';
-
-/** Prefix for team deepdive button customIds: `deepdive:team:<id>`. */
-export const TEAM_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:team:';
-
-/** Prefix for player deepdive button customIds: `deepdive:player:<id>`. */
-export const PLAYER_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:player:';
-
-/** Prefix for race deepdive button customIds: `deepdive:race:<id>`. */
-export const RACE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:race:';
 
 @Injectable()
 export class DeepdiveCommandService implements OnModuleInit {
