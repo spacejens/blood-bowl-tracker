@@ -79,6 +79,51 @@ pnpm exec nest generate service <name>
 
 Entry point is `src/main.ts`; the root module is `src/app.module.ts`. Import new feature modules into the root module.
 
+## Service vs. loose function
+
+Prefer a NestJS `@Injectable()` service for all logic in NestJS-enabled
+packages/apps. A loose exported function is only appropriate when one of these
+four cases applies:
+
+1. **Generic over entity/table type.** The function does I/O but is
+   parameterized by a compile-time generic (a raw DB handle, `PgTable`, or
+   similar passed explicitly), not a concrete injected provider. NestJS DI
+   resolves dependencies by token at module-setup time; it doesn't model "this
+   class needs to operate on whichever entity table the caller has in mind right
+   now." Forcing these into services means either losing the generic's
+   compile-time type safety or multiplying into one boilerplate subclass per
+   entity, for no runtime benefit. Reference: `packages/game-data/src/shared/count-all.ts`
+   and the other `packages/game-data/src/shared/*.ts` helpers.
+
+2. **Pure assembly wrapped by a factory service.** A function that declaratively
+   builds a data structure — not one that performs application logic — and is
+   always invoked from a thin `@Injectable()` factory that supplies the real,
+   already-injected dependencies once at construction. The factory service is
+   what makes this safe: DI still resolves every real dependency; the pure
+   function is just the (testable, framework-free) shape of the assembly step.
+   Reference: `FactTreeFactoryService`/`buildFactTree` in
+   `apps/discord-bot/src/insights/`.
+
+3. **Provider bootstrap function used as a module's `useFactory`.** A function
+   that constructs the very instance NestJS DI will then manage and inject
+   elsewhere cannot itself depend on injection — that would be circular.
+   References: `createDb` (`packages/db/src/db.ts`) and `createApiClient`
+   (`packages/api-client/src/client.ts`).
+
+4. **Framework-agnostic package.** `packages/api-contract` and
+   `tools/eslint-rules` have no NestJS dependency at all. Adding one solely to
+   satisfy this convention would be a real architectural regression.
+
+**Everything else becomes a service — including pure data-transformation
+functions with no dependencies of their own** (string escaping, formatting, tree
+traversal, object/error construction, etc.). These could stay loose without
+correctness problems, but the codebase standardizes on services for consistency:
+one predictable place to look for logic, and no per-file judgment call.
+
+A function that takes an already-injected NestJS provider as a parameter and
+simply calls it is the clearest violation and must become a service (or a method
+folded into an existing service, or a thin injectable wrapper).
+
 ## Function parameter limit
 
 Functions and methods take at most 3 parameters — enforced repo-wide by the
