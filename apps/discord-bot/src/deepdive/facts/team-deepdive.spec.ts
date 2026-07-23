@@ -14,7 +14,7 @@ import { resolveTeamDeepdive } from './team-deepdive';
 function makeServices(options: {
   team?: { id: number; name: string; raceName: string; coachName: string };
   span?: { start: string; end: string };
-  topPlayers?: { name: string; count: number }[];
+  topPlayers?: { playerId: number; name: string; count: number }[];
 }): { teams: TeamsService } {
   const teams = {
     findById: vi.fn().mockResolvedValue(options.team),
@@ -47,8 +47,8 @@ describe('resolveTeamDeepdive', () => {
       team: grinders,
       span: { start: '2021-09-01', end: '2023-06-10' },
       topPlayers: [
-        { name: 'Griff', count: 20 },
-        { name: 'Morg', count: 11 },
+        { playerId: 5, name: 'Griff', count: 20 },
+        { playerId: 8, name: 'Morg', count: 11 },
       ],
     });
     const result = await resolveTeamDeepdive(1, services);
@@ -67,11 +67,31 @@ describe('resolveTeamDeepdive', () => {
           ].join('\n'),
         },
       ],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'Griff',
+              custom_id: 'deepdive:player:5',
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'Morg',
+              custom_id: 'deepdive:player:8',
+            },
+          ],
+        },
+      ],
     });
   });
 
   it('renders a tie group at the cutoff without a truncation note when within the cap', async () => {
     const topPlayers = Array.from({ length: 10 }, (_, i) => ({
+      playerId: i + 1,
       name: `P${i}`,
       count: 9,
     }));
@@ -156,5 +176,53 @@ describe('resolveTeamDeepdive', () => {
       }),
       DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('renders a Primary button per listed player, keyed by player id', async () => {
+    const services = makeServices({
+      team: {
+        id: 1,
+        name: 'Reikland Reavers',
+        raceName: 'Human',
+        coachName: 'Roze',
+      },
+      span: { start: '2021-09-01', end: '2023-06-10' },
+      topPlayers: [
+        { playerId: 5, name: 'Griff Oberwald', count: 30 },
+        { playerId: 8, name: 'Helmut Wulf', count: 12 },
+      ],
+    });
+    const result = (await resolveTeamDeepdive(1, services)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons).toEqual([
+      {
+        type: 2,
+        style: 1,
+        label: 'Griff Oberwald',
+        custom_id: 'deepdive:player:5',
+      },
+      {
+        type: 2,
+        style: 1,
+        label: 'Helmut Wulf',
+        custom_id: 'deepdive:player:8',
+      },
+    ]);
+  });
+
+  it('omits components when the team has no matches', async () => {
+    const services = makeServices({
+      team: {
+        id: 1,
+        name: 'Reikland Reavers',
+        raceName: 'Human',
+        coachName: 'Roze',
+      },
+      span: undefined,
+    });
+    const result = await resolveTeamDeepdive(1, services);
+    expect(result).not.toHaveProperty('components');
   });
 });

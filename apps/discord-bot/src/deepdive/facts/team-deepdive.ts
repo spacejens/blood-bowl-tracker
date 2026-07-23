@@ -10,13 +10,15 @@ import {
   DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
+  buildEntityButtons,
   MAX_LEADERBOARD_ENTRIES,
   topRanksWithTies,
 } from '../../insights/leaderboard';
+import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type Team = { id: number; name: string; raceName: string; coachName: string };
 type CareerSpan = { start: string; end: string };
-type TopPlayer = { name: string; count: number };
+type TopPlayer = { playerId: number; name: string; count: number };
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -92,5 +94,14 @@ export async function resolveTeamDeepdive(
     ...playerLines,
   ].join('\n');
 
-  return { embeds: [{ title: team.name, description }] };
+  const components = buildEntityButtons(
+    ranked,
+    (row) => `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`,
+    (row) => row.name,
+  );
+
+  return {
+    embeds: [{ title: team.name, description }],
+    ...(components.length > 0 ? { components } : {}),
+  };
 }

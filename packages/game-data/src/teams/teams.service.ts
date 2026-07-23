@@ -138,7 +138,7 @@ export class TeamsService {
   getTopPlayersByMatchEventCount(
     teamId: number,
     limit: number,
-  ): Promise<{ name: string; count: number }[]> {
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
     return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
   }
 
