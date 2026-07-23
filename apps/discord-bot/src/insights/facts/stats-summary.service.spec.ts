@@ -1,6 +1,21 @@
+import type {
+  CoachesService,
+  CompetitionsService,
+  ErasService,
+  ExternalSystemsService,
+  FactScope,
+  LeaguesService,
+  MatchesService,
+  PlayersService,
+  PositionsService,
+  RacesService,
+  RulesSetsService,
+  TeamsService,
+} from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
   STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
@@ -8,14 +23,46 @@ import {
   STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
   STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import type { StatsSummaryDeps } from './stats-summary';
-import { resolveStatsSummary } from './stats-summary';
+import { StatsSummaryFactsService } from './stats-summary.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
-function makeDeps(
-  overrides: Partial<Record<string, unknown>> = {},
-): StatsSummaryDeps {
-  return {
+interface ServiceOverrides {
+  leagues?: Partial<Record<string, unknown>>;
+  externalSystems?: Partial<Record<string, unknown>>;
+  rulesSets?: Partial<Record<string, unknown>>;
+  races?: Partial<Record<string, unknown>>;
+  positions?: Partial<Record<string, unknown>>;
+  coaches?: Partial<Record<string, unknown>>;
+  eras?: Partial<Record<string, unknown>>;
+  competitions?: Partial<Record<string, unknown>>;
+  teams?: Partial<Record<string, unknown>>;
+  players?: Partial<Record<string, unknown>>;
+  matches?: Partial<Record<string, unknown>>;
+}
+
+function makeService(
+  overrides: ServiceOverrides = {},
+): StatsSummaryFactsService {
+  return new StatsSummaryFactsService(
+    (overrides.leagues ?? {}) as unknown as LeaguesService,
+    (overrides.externalSystems ?? {}) as unknown as ExternalSystemsService,
+    (overrides.rulesSets ?? {}) as unknown as RulesSetsService,
+    (overrides.races ?? {}) as unknown as RacesService,
+    (overrides.positions ?? {}) as unknown as PositionsService,
+    (overrides.coaches ?? {}) as unknown as CoachesService,
+    (overrides.eras ?? {}) as unknown as ErasService,
+    (overrides.competitions ?? {}) as unknown as CompetitionsService,
+    (overrides.teams ?? {}) as unknown as TeamsService,
+    (overrides.players ?? {}) as unknown as PlayersService,
+    (overrides.matches ?? {}) as unknown as MatchesService,
+    new DatabaseTimeoutService(),
+  );
+}
+
+function makeAllTimeService(
+  overrides: ServiceOverrides = {},
+): StatsSummaryFactsService {
+  return makeService({
     leagues: { countAll: vi.fn().mockResolvedValue(3) },
     externalSystems: { countAll: vi.fn().mockResolvedValue(2) },
     rulesSets: { countAll: vi.fn().mockResolvedValue(2) },
@@ -36,12 +83,12 @@ function makeDeps(
       countMatchEvents: vi.fn().mockResolvedValue(5200),
     },
     ...overrides,
-  } as unknown as StatsSummaryDeps;
+  });
 }
 
-describe('resolveStatsSummary', () => {
+describe('StatsSummaryFactsService.resolve', () => {
   it('renders one embed row per entity type in the specified order with thousands separators', async () => {
-    const result = await resolveStatsSummary(makeDeps(), FACT_SCOPE_ALL_TIME);
+    const result = await makeAllTimeService().resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -67,10 +114,10 @@ describe('resolveStatsSummary', () => {
 
   it('falls back to the all-time timeout message when a count does not respond in time', async () => {
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) =>
-        resolveStatsSummary(deps, FACT_SCOPE_ALL_TIME),
+      (service: StatsSummaryFactsService) =>
+        service.resolve(FACT_SCOPE_ALL_TIME),
       () =>
-        makeDeps({
+        makeAllTimeService({
           matches: {
             countAll: vi.fn().mockReturnValue(new Promise(() => {})),
             countMatchEvents: vi.fn().mockResolvedValue(0),
@@ -81,10 +128,10 @@ describe('resolveStatsSummary', () => {
   });
 });
 
-function makeEraDeps(
-  overrides: Partial<Record<string, unknown>> = {},
-): StatsSummaryDeps {
-  return {
+function makeEraService(
+  overrides: ServiceOverrides = {},
+): StatsSummaryFactsService {
+  return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByEra: vi.fn().mockResolvedValue(2) },
     rulesSets: { countAll: vi.fn() },
@@ -105,12 +152,13 @@ function makeEraDeps(
       countMatchEventsByEra: vi.fn().mockResolvedValue(500),
     },
     ...overrides,
-  } as unknown as StatsSummaryDeps;
+  });
 }
 
-describe('resolveStatsSummary era-filtered', () => {
+describe('StatsSummaryFactsService.resolve era-filtered', () => {
   it('renders the era-scoped lines, showing leagues/eras as 1 and replacing external systems and rules sets', async () => {
-    const result = await resolveStatsSummary(makeEraDeps(), { eraId: 5 });
+    const scope: FactScope = { eraId: 5 };
+    const result = await makeEraService().resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -135,29 +183,28 @@ describe('resolveStatsSummary era-filtered', () => {
   });
 
   it('renders "0" for the rules sets line when the era has no rules sets', async () => {
-    const result = await resolveStatsSummary(
-      makeEraDeps({
-        eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
-      }),
-      { eraId: 5 },
-    );
+    const scope: FactScope = { eraId: 5 };
+    const result = await makeEraService({
+      eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
+    }).resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Rules sets: 0');
   });
 
   it('scopes external systems by era (excluding the Name system via countByEra)', async () => {
-    const deps = makeEraDeps();
-    await resolveStatsSummary(deps, { eraId: 5 });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(deps.externalSystems.countByEra).toHaveBeenCalledWith(5);
+    const countByEra = vi.fn().mockResolvedValue(2);
+    const scope: FactScope = { eraId: 5 };
+    await makeEraService({ externalSystems: { countByEra } }).resolve(scope);
+    expect(countByEra).toHaveBeenCalledWith(5);
   });
 
   it('falls back to the stunned message when an era count times out', async () => {
+    const scope: FactScope = { eraId: 5 };
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, { eraId: 5 }),
+      (service: StatsSummaryFactsService) => service.resolve(scope),
       () =>
-        makeEraDeps({
+        makeEraService({
           matches: {
             countByEra: vi.fn().mockReturnValue(new Promise(() => {})),
             countMatchEventsByEra: vi.fn().mockResolvedValue(0),
@@ -168,10 +215,10 @@ describe('resolveStatsSummary era-filtered', () => {
   });
 });
 
-function makeCompetitionDeps(
-  overrides: Partial<Record<string, unknown>> = {},
-): StatsSummaryDeps {
-  return {
+function makeCompetitionService(
+  overrides: ServiceOverrides = {},
+): StatsSummaryFactsService {
+  return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByCompetition: vi.fn().mockResolvedValue(2) },
     rulesSets: { countAll: vi.fn() },
@@ -194,14 +241,13 @@ function makeCompetitionDeps(
       countMatchEventsByCompetition: vi.fn().mockResolvedValue(250),
     },
     ...overrides,
-  } as unknown as StatsSummaryDeps;
+  });
 }
 
-describe('resolveStatsSummary competition-filtered', () => {
+describe('StatsSummaryFactsService.resolve competition-filtered', () => {
   it('renders competition-scoped lines with leagues/eras/competitions as 1 and a season breakdown', async () => {
-    const result = await resolveStatsSummary(makeCompetitionDeps(), {
-      competitionId: 7,
-    });
+    const scope: FactScope = { competitionId: 7 };
+    const result = await makeCompetitionService().resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -226,47 +272,45 @@ describe('resolveStatsSummary competition-filtered', () => {
   });
 
   it('shows a cup breakdown when the competition type is cup', async () => {
-    const result = await resolveStatsSummary(
-      makeCompetitionDeps({
-        competitions: {
-          findById: vi.fn().mockResolvedValue({
-            id: 8,
-            name: 'Spike Cup',
-            type: 'cup',
-            eraId: 5,
-          }),
-        },
-      }),
-      { competitionId: 8 },
-    );
+    const scope: FactScope = { competitionId: 8 };
+    const result = await makeCompetitionService({
+      competitions: {
+        findById: vi.fn().mockResolvedValue({
+          id: 8,
+          name: 'Spike Cup',
+          type: 'cup',
+          eraId: 5,
+        }),
+      },
+    }).resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Competitions: 1 (0 seasons, 1 cups)');
   });
 
   it('reuses the era rules-set names keyed by the competition era', async () => {
-    const deps = makeCompetitionDeps();
-    await resolveStatsSummary(deps, { competitionId: 7 });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(deps.eras.getRulesSetNames).toHaveBeenCalledWith(5);
+    const getRulesSetNames = vi.fn().mockResolvedValue(['BB2020']);
+    const scope: FactScope = { competitionId: 7 };
+    await makeCompetitionService({
+      eras: { getRulesSetNames },
+    }).resolve(scope);
+    expect(getRulesSetNames).toHaveBeenCalledWith(5);
   });
 
   it('returns the fallback message when the competition cannot be found', async () => {
-    const result = await resolveStatsSummary(
-      makeCompetitionDeps({
-        competitions: { findById: vi.fn().mockResolvedValue(undefined) },
-      }),
-      { competitionId: 999 },
-    );
+    const scope: FactScope = { competitionId: 999 };
+    const result = await makeCompetitionService({
+      competitions: { findById: vi.fn().mockResolvedValue(undefined) },
+    }).resolve(scope);
     expect(result).toBe(STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('falls back to the stunned message when a competition count times out', async () => {
+    const scope: FactScope = { competitionId: 7 };
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) =>
-        resolveStatsSummary(deps, { competitionId: 7 }),
+      (service: StatsSummaryFactsService) => service.resolve(scope),
       () =>
-        makeCompetitionDeps({
+        makeCompetitionService({
           matches: {
             countByCompetition: vi.fn().mockReturnValue(new Promise(() => {})),
             countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
@@ -277,10 +321,10 @@ describe('resolveStatsSummary competition-filtered', () => {
   });
 });
 
-function makeLeagueDeps(
-  overrides: Partial<Record<string, unknown>> = {},
-): StatsSummaryDeps {
-  return {
+function makeLeagueService(
+  overrides: ServiceOverrides = {},
+): StatsSummaryFactsService {
+  return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByLeague: vi.fn().mockResolvedValue(3) },
     rulesSets: { countAll: vi.fn() },
@@ -304,14 +348,13 @@ function makeLeagueDeps(
       countMatchEventsByLeague: vi.fn().mockResolvedValue(900),
     },
     ...overrides,
-  } as unknown as StatsSummaryDeps;
+  });
 }
 
-describe('resolveStatsSummary league-filtered', () => {
+describe('StatsSummaryFactsService.resolve league-filtered', () => {
   it('renders the league-scoped lines, showing leagues as 1 and the league era count', async () => {
-    const result = await resolveStatsSummary(makeLeagueDeps(), {
-      leagueId: 9,
-    });
+    const scope: FactScope = { leagueId: 9 };
+    const result = await makeLeagueService().resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -336,32 +379,33 @@ describe('resolveStatsSummary league-filtered', () => {
   });
 
   it('renders "0" for the rules sets line when the league has no rules sets', async () => {
-    const result = await resolveStatsSummary(
-      makeLeagueDeps({
-        eras: {
-          countByLeague: vi.fn().mockResolvedValue(0),
-          getRulesSetNamesByLeague: vi.fn().mockResolvedValue([]),
-        },
-      }),
-      { leagueId: 9 },
-    );
+    const scope: FactScope = { leagueId: 9 };
+    const result = await makeLeagueService({
+      eras: {
+        countByLeague: vi.fn().mockResolvedValue(0),
+        getRulesSetNamesByLeague: vi.fn().mockResolvedValue([]),
+      },
+    }).resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Rules sets: 0');
   });
 
   it('scopes external systems by league (excluding the Name system via countByLeague)', async () => {
-    const deps = makeLeagueDeps();
-    await resolveStatsSummary(deps, { leagueId: 9 });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(deps.externalSystems.countByLeague).toHaveBeenCalledWith(9);
+    const countByLeague = vi.fn().mockResolvedValue(3);
+    const scope: FactScope = { leagueId: 9 };
+    await makeLeagueService({ externalSystems: { countByLeague } }).resolve(
+      scope,
+    );
+    expect(countByLeague).toHaveBeenCalledWith(9);
   });
 
   it('falls back to the stunned message when a league count times out', async () => {
+    const scope: FactScope = { leagueId: 9 };
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, { leagueId: 9 }),
+      (service: StatsSummaryFactsService) => service.resolve(scope),
       () =>
-        makeLeagueDeps({
+        makeLeagueService({
           matches: {
             countByLeague: vi.fn().mockReturnValue(new Promise(() => {})),
             countMatchEventsByLeague: vi.fn().mockResolvedValue(0),

@@ -15,9 +15,8 @@ import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildFactTree } from './fact-tree';
-import type { FactLeaf } from './fact-tree.types';
+import type { FactLeaf, StatsSummaryDeps } from './fact-tree.types';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
-import type { StatsSummaryDeps } from './facts/stats-summary';
 import { TOPLIST_FETCH_LIMIT } from './leaderboard';
 
 const factTreeUtils = new FactTreeUtilsService();

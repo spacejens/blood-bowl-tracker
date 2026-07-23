@@ -1,20 +1,20 @@
 import { DatabaseTimeoutService } from '../database-timeout.service';
-import type { FactNode } from './fact-tree.types';
+import type { FactNode, StatsSummaryDeps } from './fact-tree.types';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
-import type { StatsSummaryDeps } from './facts/stats-summary';
-import { resolveStatsSummary } from './facts/stats-summary';
+import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { LeaderboardService } from './leaderboard.service';
 
 /**
  * buildFactTree is a pure function invoked once by FactTreeFactoryService, so
  * the toplist services converted so far (coach/race/expensive-mistakes/eras/
- * team/player) are instantiated directly here rather than injected — this
- * factory doesn't have a DI container to pull from until Task 12 rewires it.
+ * team/player/stats-summary) are instantiated directly here rather than
+ * injected — this factory doesn't have a DI container to pull from until
+ * Task 12 rewires it.
  */
 export function buildFactTree(deps: StatsSummaryDeps): FactNode {
   const leaderboard = new LeaderboardService(new DatabaseTimeoutService());
@@ -27,6 +27,20 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
   const erasList = new ErasListService(deps.eras, new DatabaseTimeoutService());
   const teamToplist = new TeamToplistService(deps.teams, leaderboard);
   const playerToplist = new PlayerToplistService(deps.players, leaderboard);
+  const statsSummary = new StatsSummaryFactsService(
+    deps.leagues,
+    deps.externalSystems,
+    deps.rulesSets,
+    deps.races,
+    deps.positions,
+    deps.coaches,
+    deps.eras,
+    deps.competitions,
+    deps.teams,
+    deps.players,
+    deps.matches,
+    new DatabaseTimeoutService(),
+  );
   return {
     coach: {
       toplist: {
@@ -328,7 +342,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
       supportsLeague: true,
       supportsEra: true,
       supportsCompetition: true,
-      resolve: (scope) => resolveStatsSummary(deps, scope),
+      resolve: (scope) => statsSummary.resolve(scope),
     },
   };
 }

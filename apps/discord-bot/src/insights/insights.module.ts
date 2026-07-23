@@ -22,6 +22,7 @@ import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
+import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { LeaderboardService } from './leaderboard.service';
 
@@ -52,6 +53,7 @@ const GAME_DATA_MODULES = [
     PlayerToplistService,
     ExpensiveMistakesToplistService,
     ErasListService,
+    StatsSummaryFactsService,
     {
       provide: FACT_TREE,
       useFactory: (factory: FactTreeFactoryService) => factory.build(),
@@ -69,6 +71,7 @@ const GAME_DATA_MODULES = [
     PlayerToplistService,
     ExpensiveMistakesToplistService,
     ErasListService,
+    StatsSummaryFactsService,
     FACT_TREE,
   ],
 })
