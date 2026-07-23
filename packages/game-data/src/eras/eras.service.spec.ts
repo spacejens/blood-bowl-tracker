@@ -283,7 +283,10 @@ describe('ErasService', () => {
 
   describe('getRulesSetNamesByLeague', () => {
     it('returns the distinct rules-set names across the league, ordered by id', async () => {
-      const rows = [{ name: 'BB2016' }, { name: 'BB2020' }];
+      const rows = [
+        { id: 1, name: 'BB2016' },
+        { id: 2, name: 'BB2020' },
+      ];
       const builder = makeCountBuilder(rows);
       const selectDistinct = vi.fn(() => builder);
       const service = new ErasService({
@@ -294,6 +297,13 @@ describe('ErasService', () => {
         'BB2020',
       ]);
       expect(selectDistinct).toHaveBeenCalledTimes(1);
+      // `id` must be selected alongside `name` -- Postgres rejects SELECT
+      // DISTINCT with an ORDER BY expression that isn't in the select list,
+      // and this query orders by rulesSets.id (regression test for that).
+      expect(Object.keys(firstCallArg(selectDistinct) as object)).toEqual([
+        'id',
+        'name',
+      ]);
       expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['rules_sets.id', 'era_rules_sets.rules_set_id'],

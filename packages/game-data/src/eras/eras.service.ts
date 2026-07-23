@@ -115,8 +115,12 @@ export class ErasService {
   }
 
   async getRulesSetNamesByLeague(leagueId: number): Promise<string[]> {
+    // Postgres requires SELECT DISTINCT's ORDER BY expressions to appear in
+    // the select list, so `id` is selected alongside `name` purely to make
+    // `.orderBy(rulesSets.id)` valid -- it doesn't widen what gets deduped,
+    // since id and name are in 1:1 correspondence per rules set.
     const rows = await this.db
-      .selectDistinct({ name: rulesSets.name })
+      .selectDistinct({ id: rulesSets.id, name: rulesSets.name })
       .from(eraRulesSets)
       .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
       .innerJoin(eras, eq(eras.id, eraRulesSets.eraId))
