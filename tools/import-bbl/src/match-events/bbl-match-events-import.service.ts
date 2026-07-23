@@ -235,6 +235,9 @@ export class BblMatchEventsImportService {
       if (event.consequenceType !== undefined) {
         data.consequenceType = event.consequenceType;
       }
+      if (event.journeymenCount !== undefined) {
+        data.journeymenCount = event.journeymenCount;
+      }
       if (event.actingTeamCode !== undefined) {
         data.actingTeamEraId = teamEraIdByCode.get(event.actingTeamCode);
       }

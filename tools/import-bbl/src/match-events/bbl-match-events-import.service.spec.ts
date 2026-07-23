@@ -61,7 +61,9 @@ const awayTeam: UpsertTeam = {
 };
 
 function makeEvents(
-  parts: Partial<Pick<BblMatchEvents, 'actions' | 'consequences'>>,
+  parts: Partial<
+    Pick<BblMatchEvents, 'actions' | 'consequences' | 'journeymenCount'>
+  >,
 ): BblMatchEvents {
   return {
     bblId: MATCH_BBL_ID,
@@ -69,6 +71,7 @@ function makeEvents(
     awayTeamId: 'awy',
     actions: parts.actions ?? [],
     consequences: parts.consequences ?? [],
+    journeymenCount: parts.journeymenCount,
   };
 }
 
@@ -746,5 +749,40 @@ describe('BblMatchEventsImportService', () => {
     );
     expect(merged).toHaveLength(0);
     expect(captured).toHaveLength(3);
+  });
+
+  it('emits a journeymen_signings event with the count and team, none for a zero side', async () => {
+    const { captured } = await runImport(
+      makeEvents({ journeymenCount: { home: 2, away: 0 } }),
+    );
+
+    const journeyman = captured.filter(
+      (c) => c.actionType === 'journeymen_signings',
+    );
+    expect(journeyman).toHaveLength(1);
+    expect(journeyman[0]).toEqual({
+      matchId: MATCH_DB_ID,
+      actionType: 'journeymen_signings',
+      actingTeamEraId: HOME_TEAM_ERA_ID,
+      journeymenCount: 2,
+      externalIds: [
+        { externalSystemId: BBL_SYSTEM_ID, externalId: '89-hme-journeyman-0' },
+      ],
+    });
+    expect(journeyman[0].actingPlayerId).toBeUndefined();
+  });
+
+  it('emits no journeymen_signings event when both counts are zero', async () => {
+    const { captured } = await runImport(
+      makeEvents({
+        actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
+        journeymenCount: { home: 0, away: 0 },
+      }),
+      { p1: 1 },
+    );
+
+    expect(captured.some((c) => c.actionType === 'journeymen_signings')).toBe(
+      false,
+    );
   });
 });
