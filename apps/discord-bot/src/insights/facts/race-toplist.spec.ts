@@ -1,4 +1,5 @@
-import type { RacesService } from '@blood-bowl-tracker/game-data';
+import type { FactScope, RacesService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { RACE_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
@@ -12,7 +13,7 @@ import { expectTimeoutFallback } from './toplist.test-helpers';
 interface RaceCase {
   describeName: string;
   method: keyof RacesService;
-  resolve: (races: RacesService, eraId?: number) => Promise<unknown>;
+  resolve: (races: RacesService, scope: FactScope) => Promise<unknown>;
   rows: { raceId: number; name: string; count: number }[];
   eraRows: { raceId: number; name: string; count: number }[];
   expectedTitle: string;
@@ -23,7 +24,7 @@ const cases: RaceCase[] = [
   {
     describeName: 'resolveRaceTeamsToplist',
     method: 'countTeamsByRace',
-    resolve: (races, eraId) => resolveRaceTeamsToplist(races, eraId),
+    resolve: (races, scope) => resolveRaceTeamsToplist(races, scope),
     rows: [
       { raceId: 1, name: 'Orc', count: 12 },
       { raceId: 2, name: 'Skaven', count: 12 },
@@ -36,7 +37,7 @@ const cases: RaceCase[] = [
   {
     describeName: 'resolveRaceMatchesPlayedToplist',
     method: 'countMatchesPlayedByRace',
-    resolve: (races, eraId) => resolveRaceMatchesPlayedToplist(races, eraId),
+    resolve: (races, scope) => resolveRaceMatchesPlayedToplist(races, scope),
     rows: [
       { raceId: 1, name: 'Orc', count: 40 },
       { raceId: 2, name: 'Skaven', count: 18 },
@@ -54,7 +55,7 @@ describe.each(cases)(
       const races = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as RacesService;
-      const result = (await resolve(races)) as {
+      const result = (await resolve(races, FACT_SCOPE_ALL_TIME)) as {
         embeds: { title: string; description: string }[];
         components: { components: { label: string; custom_id: string }[] }[];
       };
@@ -71,13 +72,13 @@ describe.each(cases)(
     it('passes the era id through to the query', async () => {
       const queryFn = vi.fn().mockResolvedValue(eraRows);
       const races = { [method]: queryFn } as unknown as RacesService;
-      await resolve(races, 20);
-      expect(queryFn).toHaveBeenCalledWith(20);
+      await resolve(races, { eraId: 20 });
+      expect(queryFn).toHaveBeenCalledWith({ eraId: 20 });
     });
 
     it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
-        (races: RacesService) => resolve(races),
+        (races: RacesService) => resolve(races, FACT_SCOPE_ALL_TIME),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),

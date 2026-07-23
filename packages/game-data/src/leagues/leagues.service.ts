@@ -4,8 +4,10 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { leagueExternalIds, leagues } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
+import { eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
+import { escapeLikePattern } from '../shared/escape-like-pattern';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -37,6 +39,27 @@ export class LeaguesService {
     });
 
     return { league, created };
+  }
+
+  async findById(
+    id: number,
+  ): Promise<{ id: number; name: string } | undefined> {
+    const rows = await this.db
+      .select({ id: leagues.id, name: leagues.name })
+      .from(leagues)
+      .where(eq(leagues.id, id));
+    return rows[0];
+  }
+
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: leagues.id, name: leagues.name })
+      .from(leagues)
+      .where(ilike(leagues.name, `${escapeLikePattern(prefix)}%`))
+      .limit(limit);
   }
 
   countAll(): Promise<number> {

@@ -47,6 +47,8 @@ export {
   RulesSetsService,
   RulesSetUpsertConflictError,
 } from './rules-sets/rules-sets.service';
+export type { FactScope } from './shared/fact-scope';
+export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';

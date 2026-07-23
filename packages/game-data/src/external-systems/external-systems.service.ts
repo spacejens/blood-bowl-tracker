@@ -3,6 +3,7 @@ import type { Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
   eraExternalIds,
+  eras,
   externalSystems,
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
@@ -66,6 +67,24 @@ export class ExternalSystemsService {
       .where(
         and(
           eq(competitionExternalIds.competitionId, competitionId),
+          eq(externalSystems.isBookkeeping, false),
+        ),
+      );
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(externalSystems.id) })
+      .from(eraExternalIds)
+      .innerJoin(
+        externalSystems,
+        eq(externalSystems.id, eraExternalIds.externalSystemId),
+      )
+      .innerJoin(eras, eq(eras.id, eraExternalIds.eraId))
+      .where(
+        and(
+          eq(eras.leagueId, leagueId),
           eq(externalSystems.isBookkeeping, false),
         ),
       );

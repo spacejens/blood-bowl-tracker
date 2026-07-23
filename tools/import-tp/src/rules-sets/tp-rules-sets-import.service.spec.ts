@@ -2,6 +2,7 @@ import type {
   ExternalSystemBootstrapService,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type {
@@ -29,6 +30,7 @@ function makeService({
     { upsertRulesSet } as unknown as RulesSetsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 

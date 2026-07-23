@@ -3,6 +3,7 @@ import type {
   ExternalSystemBootstrapService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -26,6 +27,7 @@ function makeService({
     { upsertPosition, syncRaceEras } as unknown as PositionsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 
@@ -66,7 +68,7 @@ function positionRecord(id: number) {
 }
 
 function oneSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }
 
 describe('TpPositionsImportService', () => {
@@ -97,12 +99,16 @@ describe('TpPositionsImportService', () => {
           id: 2,
         }),
       ],
-      new Map([['Dwarf', 50]]),
-      new Map([['Fourth era', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', isBookkeeping: false },
+      { name: 'Name', isBookkeeping: true },
     ]);
     expect(result.imported).toBe(1);
     expect(upsertPosition).toHaveBeenCalledTimes(1);
@@ -110,7 +116,10 @@ describe('TpPositionsImportService', () => {
       {
         name: 'Dwarf Blocker Lineman',
         isStarPlayer: false,
-        externalIds: [{ externalSystemId: 1, externalId: '280' }],
+        externalIds: [
+          { externalSystemId: 1, externalId: '280' },
+          { externalSystemId: 2, externalId: 'Dwarf: Dwarf Blocker Lineman' },
+        ],
       },
       expect.any(Array),
     );
@@ -143,14 +152,17 @@ describe('TpPositionsImportService', () => {
           id: 2,
         }),
       ],
-      new Map([
-        ['Dwarf', 50],
-        ['Dwarf_BB2025', 50],
-      ]),
-      new Map([
-        ['Fourth era', 100],
-        ['Fifth era', 200],
-      ]),
+      {
+        raceIdsByTeamRaceCode: new Map([
+          ['Dwarf', 50],
+          ['Dwarf_BB2025', 50],
+        ]),
+        eraIdsByName: new Map([
+          ['Fourth era', 100],
+          ['Fifth era', 200],
+        ]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(upsertPosition).toHaveBeenCalledTimes(1);
@@ -161,6 +173,7 @@ describe('TpPositionsImportService', () => {
     ).toEqual([
       { externalSystemId: 1, externalId: '281' },
       { externalSystemId: 1, externalId: '954' },
+      { externalSystemId: 2, externalId: 'Dwarf: Dwarf Runner' },
     ]);
     expect(syncRaceEras).toHaveBeenCalledWith(
       {
@@ -200,14 +213,17 @@ describe('TpPositionsImportService', () => {
           id: 2,
         }),
       ],
-      new Map([
-        ['Dwarf', 50],
-        ['Dwarf_BB2025', 50],
-      ]),
-      new Map([
-        ['Fourth era', 100],
-        ['Fifth era', 200],
-      ]),
+      {
+        raceIdsByTeamRaceCode: new Map([
+          ['Dwarf', 50],
+          ['Dwarf_BB2025', 50],
+        ]),
+        eraIdsByName: new Map([
+          ['Fourth era', 100],
+          ['Fifth era', 200],
+        ]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(result.imported).toBe(2);
@@ -232,8 +248,11 @@ describe('TpPositionsImportService', () => {
           id: 1,
         }),
       ],
-      new Map(),
-      new Map([['Fourth era', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map(),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+        raceNamesById: new Map(),
+      },
     );
 
     expect(upsertPosition).not.toHaveBeenCalled();
@@ -267,8 +286,11 @@ describe('TpPositionsImportService', () => {
           id: 1,
         }),
       ],
-      new Map([['Dwarf', 50]]),
-      new Map([['Fourth era', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(result.errors).toHaveLength(1);
@@ -296,8 +318,11 @@ describe('TpPositionsImportService', () => {
           id: 1,
         }),
       ],
-      new Map([['Dwarf', 50]]),
-      new Map([['Fourth era', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(result.success).toBe(false);
@@ -338,11 +363,17 @@ describe('TpPositionsImportService', () => {
             id: 2,
           }),
         ],
-        new Map([
-          ['Dwarf', 50],
-          ['Human', 60],
-        ]),
-        new Map([['Dwarf', 100]]),
+        {
+          raceIdsByTeamRaceCode: new Map([
+            ['Dwarf', 50],
+            ['Human', 60],
+          ]),
+          eraIdsByName: new Map([['Dwarf', 100]]),
+          raceNamesById: new Map([
+            [50, 'Dwarf'],
+            [60, 'Human'],
+          ]),
+        },
       );
 
     expect(result.imported).toBe(1);
@@ -350,7 +381,10 @@ describe('TpPositionsImportService', () => {
       {
         name: "Morg 'n' Thorg",
         isStarPlayer: true,
-        externalIds: [{ externalSystemId: 1, externalId: "Morg 'n' Thorg" }],
+        externalIds: [
+          { externalSystemId: 1, externalId: "Morg 'n' Thorg" },
+          { externalSystemId: 2, externalId: "Morg 'n' Thorg" },
+        ],
       },
       expect.any(Array),
     );
@@ -378,8 +412,11 @@ describe('TpPositionsImportService', () => {
           id: 1,
         }),
       ],
-      new Map([['Dwarf', 50]]),
-      new Map([['Dwarf', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        eraIdsByName: new Map([['Dwarf', 100]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     expect(starPositionIds).toEqual(new Set([800]));
@@ -409,8 +446,11 @@ describe('TpPositionsImportService', () => {
           id: 1,
         }),
       ],
-      new Map([['Dwarf', 50]]),
-      new Map([['Dwarf', 100]]),
+      {
+        raceIdsByTeamRaceCode: new Map([['Dwarf', 50]]),
+        eraIdsByName: new Map([['Dwarf', 100]]),
+        raceNamesById: new Map([[50, 'Dwarf']]),
+      },
     );
 
     // The regular position keeps id 280 -> 70; the star does NOT overwrite it.
@@ -418,5 +458,109 @@ describe('TpPositionsImportService', () => {
     expect(
       result.errors.some((e) => e.message.toLowerCase().includes('collision')),
     ).toBe(true);
+  });
+
+  it('attaches a Name external id "raceName: positionName" to regular positions', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const rosters = [
+      rosterEntry('Fourth era', {
+        teamRace: 'HU-1',
+        raceName: 'Human',
+        positions: [{ tpPositionId: 100, name: 'Lineman' }],
+        id: 1,
+      }),
+    ];
+    const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
+    const eraIdsByName = new Map([['Fourth era', 100]]);
+    const raceNamesById = new Map([[7, 'Human']]);
+
+    await service.importPositions(rosters, {
+      raceIdsByTeamRaceCode,
+      eraIdsByName,
+      raceNamesById,
+    });
+    const data = upsertPosition.mock.calls[0][0] as UpsertPosition;
+    expect(data.externalIds).toContainEqual({
+      externalSystemId: 2, // Name system id
+      externalId: 'Human: Lineman',
+    });
+  });
+
+  it('tags star positions under the Name system with a bare name', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
+    const syncRaceEras = vi.fn();
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const rostersWithStar = [
+      rosterEntry('Fourth era', {
+        teamRace: 'HU-1',
+        raceName: 'Human',
+        positions: [],
+        starPositions: [{ tpPositionId: 5001, name: 'Griff Oberwald' }],
+        id: 1,
+      }),
+    ];
+    const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
+    const eraIdsByName = new Map([['Fourth era', 100]]);
+    const raceNamesById = new Map([[7, 'Human']]);
+
+    await service.importPositions(rostersWithStar, {
+      raceIdsByTeamRaceCode,
+      eraIdsByName,
+      raceNamesById,
+    });
+    const starData = upsertPosition.mock.calls
+      .map((c) => c[0] as UpsertPosition)
+      .find((d) => d.isStarPlayer);
+    expect(starData?.externalIds).toEqual([
+      { externalSystemId: 1, externalId: 'Griff Oberwald' },
+      { externalSystemId: 2, externalId: 'Griff Oberwald' },
+    ]);
+  });
+
+  it('records an error and omits the Name id when the race name cannot be resolved', async () => {
+    const upsertPosition = vi.fn().mockResolvedValue(positionRecord(70));
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
+    const service = makeService({
+      bootstrap: oneSystemUpsertMock(),
+      upsertPosition,
+      syncRaceEras,
+    });
+
+    const rosters = [
+      rosterEntry('Fourth era', {
+        teamRace: 'HU-1',
+        raceName: 'Human',
+        positions: [{ tpPositionId: 100, name: 'Lineman' }],
+        id: 1,
+      }),
+    ];
+    const raceIdsByTeamRaceCode = new Map([['HU-1', 7]]);
+    const eraIdsByName = new Map([['Fourth era', 100]]);
+
+    // raceNamesById intentionally missing the group's raceId
+    const outcome = await service.importPositions(rosters, {
+      raceIdsByTeamRaceCode,
+      eraIdsByName,
+      raceNamesById: new Map(),
+    });
+    expect(outcome.result.errors.length).toBeGreaterThan(0);
+    const data = upsertPosition.mock.calls[0][0] as UpsertPosition;
+    expect(data.externalIds.some((e) => e.externalSystemId === 2)).toBe(false); // no Name id attached; TP-system id(s) still present
   });
 });

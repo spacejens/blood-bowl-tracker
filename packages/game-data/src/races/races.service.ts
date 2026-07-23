@@ -14,10 +14,11 @@ import {
 } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, count, countDistinct, desc, eq, ilike } from 'drizzle-orm';
+import { and, countDistinct, desc, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
+import type { FactScope } from '../shared/fact-scope';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -126,52 +127,66 @@ export class RacesService {
   }
 
   async countTeamsByRace(
-    eraId?: number,
+    scope: FactScope,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
-    if (eraId === undefined) {
-      return this.db
-        .select({
-          raceId: races.id,
-          name: races.name,
-          count: count(teams.id),
-        })
-        .from(races)
-        .innerJoin(teams, eq(teams.raceId, races.id))
-        .groupBy(races.id, races.name)
-        .orderBy(desc(count(teams.id)));
-    }
-    return this.db
+    const base = this.db
       .select({
         raceId: races.id,
         name: races.name,
-        count: count(teams.id),
+        count: countDistinct(teams.id),
       })
       .from(races)
-      .innerJoin(teams, eq(teams.raceId, races.id))
-      .innerJoin(
-        teamEras,
-        and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, eraId)),
-      )
+      .innerJoin(teams, eq(teams.raceId, races.id));
+    if (scope.leagueId !== undefined) {
+      return base
+        .innerJoin(teamEras, eq(teamEras.teamId, teams.id))
+        .innerJoin(
+          eras,
+          and(eq(eras.id, teamEras.eraId), eq(eras.leagueId, scope.leagueId)),
+        )
+        .groupBy(races.id, races.name)
+        .orderBy(desc(countDistinct(teams.id)));
+    }
+    if (scope.eraId !== undefined) {
+      return base
+        .innerJoin(
+          teamEras,
+          and(eq(teamEras.teamId, teams.id), eq(teamEras.eraId, scope.eraId)),
+        )
+        .groupBy(races.id, races.name)
+        .orderBy(desc(countDistinct(teams.id)));
+    }
+    return base
       .groupBy(races.id, races.name)
-      .orderBy(desc(count(teams.id)));
+      .orderBy(desc(countDistinct(teams.id)));
   }
 
   async countMatchesPlayedByRace(
-    eraId?: number,
+    scope: FactScope,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
     return this.db
       .select({
         raceId: races.id,
         name: races.name,
-        count: count(matchTeams.id),
+        count: countDistinct(matchTeams.id),
       })
       .from(matchTeams)
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(races, eq(races.id, teams.raceId))
-      .where(eraId === undefined ? undefined : eq(teamEras.eraId, eraId))
+      .where(
+        and(
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+        ),
+      )
       .groupBy(races.id, races.name)
-      .orderBy(desc(count(matchTeams.id)));
+      .orderBy(desc(countDistinct(matchTeams.id)));
   }
 
   countAll(): Promise<number> {
@@ -183,6 +198,15 @@ export class RacesService {
       .select({ count: countDistinct(raceEras.raceId) })
       .from(raceEras)
       .where(eq(raceEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(raceEras.raceId) })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
     return row.count;
   }
 

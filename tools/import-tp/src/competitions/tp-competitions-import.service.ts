@@ -6,6 +6,7 @@ import {
   makeImportError,
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -57,6 +58,7 @@ export class TpCompetitionsImportService {
     private readonly competitionsImport: CompetitionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -298,7 +300,10 @@ export class TpCompetitionsImportService {
       teamEraIds: [],
       externalIds: [
         { externalSystemId: systemIds.tp, externalId: String(tournament.id) },
-        { externalSystemId: systemIds.name, externalId: tournament.name },
+        {
+          externalSystemId: systemIds.name,
+          externalId: this.nameExternalId.forCompetition(tournament.name),
+        },
       ],
     };
     const upserted = await this.competitionsImport.upsertCompetitionResult(

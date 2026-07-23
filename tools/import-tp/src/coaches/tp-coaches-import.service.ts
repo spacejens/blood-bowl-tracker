@@ -6,6 +6,7 @@ import {
   makeImportResult,
   NAF_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
@@ -29,6 +30,7 @@ export class TpCoachesImportService {
     private readonly coachesImport: CoachesImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -139,7 +141,10 @@ export class TpCoachesImportService {
   private buildExternalIds(coach: TpCoach, systemIds: SystemIds) {
     const externalIds = [
       { externalSystemId: systemIds.tp, externalId: coach.id },
-      { externalSystemId: systemIds.name, externalId: coach.name },
+      {
+        externalSystemId: systemIds.name,
+        externalId: this.nameExternalId.forCoach(coach.name),
+      },
     ];
     if (coach.nafNumber !== undefined) {
       externalIds.push({

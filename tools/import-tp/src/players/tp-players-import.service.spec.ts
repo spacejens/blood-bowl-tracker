@@ -1,8 +1,10 @@
+import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
 import type {
   ExternalSystemBootstrapService,
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -18,7 +20,7 @@ interface MakeServiceOptions {
 
 function makeService({
   upsertPlayerResult,
-  bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+  bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
   getTpSystemName = () => 'TP',
   upsertPosition = vi.fn(),
 }: MakeServiceOptions) {
@@ -27,6 +29,7 @@ function makeService({
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
     { upsertPosition } as unknown as PositionsImportService,
+    new NameExternalIdService(),
   );
 }
 
@@ -345,6 +348,36 @@ describe('TpPlayersImportService', () => {
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
+  it('attaches a Name-system bare-name external id to hired star positions', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
+    const service = makeService({ upsertPlayerResult, upsertPosition });
+
+    await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[168446, [{ id: 6000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 500,
+          starPlayers: [
+            { name: 'Griff Oberwald', lineUpMasterId: 1122, number: 11 },
+          ],
+        },
+      ],
+    });
+
+    const starPositionUpsert = upsertPosition.mock.calls
+      .map((c) => c[0] as UpsertPosition)
+      .find((d) => d.isStarPlayer && d.name === 'Griff Oberwald');
+    expect(starPositionUpsert?.externalIds).toEqual([
+      { externalSystemId: 1, externalId: 'Griff Oberwald' },
+      { externalSystemId: 2, externalId: 'Griff Oberwald' },
+    ]);
+  });
+
   it('disambiguates a hiring team-era spanning multiple eras via the hire group real eraId', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
@@ -567,7 +600,10 @@ describe('TpPlayersImportService', () => {
       {
         name: 'Giant Mercenary',
         isStarPlayer: true,
-        externalIds: [{ externalSystemId: 1, externalId: 'Giant Mercenary' }],
+        externalIds: [
+          { externalSystemId: 1, externalId: 'Giant Mercenary' },
+          { externalSystemId: 2, externalId: 'Giant Mercenary' },
+        ],
       },
       expect.anything(),
     );

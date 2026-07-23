@@ -3,6 +3,8 @@ import {
   ExternalSystemBootstrapService,
   makeImportError,
   makeImportResult,
+  NAME_EXTERNAL_SYSTEM,
+  NameExternalIdService,
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
@@ -81,6 +83,7 @@ export class TpPlayersImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly positionsImport: PositionsImportService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -159,6 +162,7 @@ export class TpPlayersImportService {
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: tpSystemName, isBookkeeping: false },
+      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -169,7 +173,7 @@ export class TpPlayersImportService {
         starPositionUsages,
       };
     }
-    const [tpSystemId] = bootstrap.ids;
+    const [tpSystemId, nameSystemId] = bootstrap.ids;
     const mercenaryPositionIdsByName = new Map<string, number>();
 
     for (const { roster, era } of rosters) {
@@ -212,6 +216,7 @@ export class TpPlayersImportService {
           positionId = await this.resolveMercenaryPositionId({
             player,
             tpSystemId,
+            nameSystemId,
             mercenaryPositionIdsByName,
             errors,
           });
@@ -288,6 +293,12 @@ export class TpPlayersImportService {
               isStarPlayer: true,
               externalIds: [
                 { externalSystemId: tpSystemId, externalId: starPlayer.name },
+                {
+                  externalSystemId: nameSystemId,
+                  externalId: this.nameExternalId.forStarPosition(
+                    starPlayer.name,
+                  ),
+                },
               ],
             },
             errors,
@@ -345,10 +356,17 @@ export class TpPlayersImportService {
   private async resolveMercenaryPositionId(options: {
     player: TpRosterPlayer;
     tpSystemId: number;
+    nameSystemId: number;
     mercenaryPositionIdsByName: Map<string, number>;
     errors: ImportError[];
   }): Promise<number | undefined> {
-    const { player, tpSystemId, mercenaryPositionIdsByName, errors } = options;
+    const {
+      player,
+      tpSystemId,
+      nameSystemId,
+      mercenaryPositionIdsByName,
+      errors,
+    } = options;
     const cached = mercenaryPositionIdsByName.get(player.fallbackPositionName);
     if (cached !== undefined) {
       return cached;
@@ -362,6 +380,12 @@ export class TpPlayersImportService {
           {
             externalSystemId: tpSystemId,
             externalId: player.fallbackPositionName,
+          },
+          {
+            externalSystemId: nameSystemId,
+            externalId: this.nameExternalId.forStarPosition(
+              player.fallbackPositionName,
+            ),
           },
         ],
       },

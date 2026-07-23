@@ -3,6 +3,7 @@ import type {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
 } from '@blood-bowl-tracker/import';
+import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import {
   MatchEventParserService,
   MatchParserService,
@@ -34,6 +35,7 @@ function makeService({
     { upsertCompetitionResult } as unknown as CompetitionsImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new NameExternalIdService(),
   );
 }
 

@@ -6,6 +6,7 @@ import {
   makeImportResult,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
+  NameExternalIdService,
   RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
@@ -20,6 +21,7 @@ export class BblRulesSetsImportService {
     private readonly rulesSetsImport: RulesSetsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
+    private readonly nameExternalId: NameExternalIdService,
   ) {}
 
   /**
@@ -77,7 +79,10 @@ export class BblRulesSetsImportService {
         name,
         externalIds: [
           { externalSystemId: bblSystemId, externalId: name },
-          { externalSystemId: nameSystemId, externalId: name },
+          {
+            externalSystemId: nameSystemId,
+            externalId: this.nameExternalId.forRulesSet(name),
+          },
         ],
       };
       const rulesSet = await this.rulesSetsImport.upsertRulesSet(
