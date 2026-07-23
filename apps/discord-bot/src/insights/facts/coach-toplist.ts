@@ -1,4 +1,4 @@
-import type { CoachesService } from '@blood-bowl-tracker/game-data';
+import type { CoachesService, FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import {
@@ -14,11 +14,11 @@ function coachButtonId(row: { coachId: number }): string {
 
 export async function resolveCoachMatchesPlayedToplist(
   coaches: CoachesService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Coaches by matches played',
-    fetchRows: () => coaches.countMatchesPlayedByCoach(eraId),
+    fetchRows: () => coaches.countMatchesPlayedByCoach(scope),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: coachButtonId,
@@ -27,11 +27,11 @@ export async function resolveCoachMatchesPlayedToplist(
 
 export async function resolveCoachTeamsToplist(
   coaches: CoachesService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Coaches by teams coached',
-    fetchRows: () => coaches.countTeamsByCoach(eraId),
+    fetchRows: () => coaches.countTeamsByCoach(scope),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: coachButtonId,
@@ -40,11 +40,11 @@ export async function resolveCoachTeamsToplist(
 
 export async function resolveCoachCompetitionsPlayedToplist(
   coaches: CoachesService,
-  eraId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Coaches by competitions played',
-    fetchRows: () => coaches.countCompetitionsByCoach(eraId),
+    fetchRows: () => coaches.countCompetitionsByCoach(scope),
     timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: coachButtonId,

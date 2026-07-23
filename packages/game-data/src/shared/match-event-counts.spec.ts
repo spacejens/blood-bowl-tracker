@@ -46,7 +46,7 @@ describe('countMatchEventsByPlayer', () => {
     expect(select).toHaveBeenCalledTimes(1);
   });
 
-  it('joins four tables for the acting role', async () => {
+  it('joins five tables for the acting role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByPlayer({
@@ -54,7 +54,7 @@ describe('countMatchEventsByPlayer', () => {
       selector: { role: 'acting', types: ['touchdown'] },
       limit: 21,
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'players.id',
       'match_events.acting_player_id',
@@ -76,7 +76,7 @@ describe('countMatchEventsByPlayer', () => {
     expect(builder.limit).toHaveBeenCalledWith(21);
   });
 
-  it('joins four tables for the consequence role', async () => {
+  it('joins five tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByPlayer({
@@ -84,7 +84,7 @@ describe('countMatchEventsByPlayer', () => {
       selector: { role: 'consequence', types: ['sent_off'] },
       limit: 21,
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'players.id',
       'match_events.consequence_player_id',
@@ -111,7 +111,7 @@ describe('countMatchEventsByTeam', () => {
     expect(select).toHaveBeenCalledTimes(1);
   });
 
-  it('joins four tables for the consequence role', async () => {
+  it('joins five tables for the consequence role', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await countMatchEventsByTeam({
@@ -119,7 +119,7 @@ describe('countMatchEventsByTeam', () => {
       selector: { role: 'consequence', types: ['death'] },
       limit: 21,
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'match_teams.id',
       'match_events.consequence_match_team_id',
@@ -139,6 +139,27 @@ describe('countMatchEventsByTeam', () => {
       limit: 21,
     });
     expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
+  it('filters by league via the eras join when a leagueId is given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByTeam({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      leagueId: 9,
+      limit: 21,
+    });
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'touchdown',
+      9,
+    ]);
+    expect(
+      extractJoinColumns(firstCallArg(builder.where)).filter(
+        (column) => column === 'eras.league_id',
+      ),
+    ).toHaveLength(1);
   });
 });
 
@@ -204,7 +225,7 @@ describe('countMatchEventsForPlayer', () => {
       playerId: 42,
       selector: { role: 'acting', types: ['mvp_award'] },
     });
-    expect(builder.innerJoin).toHaveBeenCalledTimes(4);
+    expect(builder.innerJoin).toHaveBeenCalledTimes(5);
     expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
       'players.id',
       'match_events.acting_player_id',
@@ -235,6 +256,17 @@ describe('sumExpensiveMistakesByTeam', () => {
       sumExpensiveMistakesByTeam({ db, eraId: 5, competitionId: 6, limit: 21 }),
     ).resolves.toEqual(rows);
   });
+
+  it('filters by league when a leagueId is given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await sumExpensiveMistakesByTeam({ db, leagueId: 9, limit: 21 });
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'expensive_mistake',
+      9,
+    ]);
+  });
 });
 
 describe('listBiggestExpensiveMistakes', () => {
@@ -254,5 +286,16 @@ describe('listBiggestExpensiveMistakes', () => {
     await expect(
       listBiggestExpensiveMistakes({ db, limit: 21 }),
     ).resolves.toEqual(rows);
+  });
+
+  it('filters by league when a leagueId is given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await listBiggestExpensiveMistakes({ db, leagueId: 9, limit: 21 });
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'expensive_mistake',
+      9,
+    ]);
   });
 });

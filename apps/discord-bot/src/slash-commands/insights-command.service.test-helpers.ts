@@ -127,7 +127,11 @@ export function makeService() {
     findById: vi.fn().mockResolvedValue(undefined),
     searchByNamePrefix: vi.fn().mockResolvedValue([]),
   } as unknown as CompetitionsService;
-  const leagues = zero() as unknown as LeaguesService;
+  const leagues = {
+    ...zero(),
+    findById: vi.fn().mockResolvedValue(undefined),
+    searchByNamePrefix: vi.fn().mockResolvedValue([]),
+  } as unknown as LeaguesService;
   const rulesSets = zero() as unknown as RulesSetsService;
   const eras = {
     findById: vi.fn().mockResolvedValue(undefined),
@@ -211,6 +215,7 @@ export function makeService() {
   });
   return {
     service: new InsightsCommandService(
+      leagues,
       eras,
       competitions,
       factTree,
@@ -222,19 +227,30 @@ export function makeService() {
     eras,
     races,
     competitions,
+    leagues,
     registry,
   };
 }
 
 export function chatInput(
   category: string | null,
-  era: string | null = null,
-  competition: string | null = null,
+  scope: {
+    era?: string | null;
+    competition?: string | null;
+    league?: string | null;
+  } = {},
 ): ChatInputCommandInteraction {
+  const { era = null, competition = null, league = null } = scope;
   return {
     options: {
       getString: vi.fn((name: string) =>
-        name === 'era' ? era : name === 'competition' ? competition : category,
+        name === 'era'
+          ? era
+          : name === 'competition'
+            ? competition
+            : name === 'league'
+              ? league
+              : category,
       ),
     },
   } as unknown as ChatInputCommandInteraction;

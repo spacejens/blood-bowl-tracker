@@ -2,6 +2,7 @@ import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import type { Db, Match } from '@blood-bowl-tracker/db';
 import {
   DB,
+  eras,
   matches,
   matchEvents,
   matchExternalIds,
@@ -100,6 +101,27 @@ export class MatchesService {
       .innerJoin(matchTeams, eq(matchTeams.matchId, matchEvents.matchId))
       .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
       .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(matchTeams.matchId) })
+      .from(matchTeams)
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
+  }
+
+  async countMatchEventsByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(matchEvents.id) })
+      .from(matchEvents)
+      .innerJoin(matchTeams, eq(matchTeams.matchId, matchEvents.matchId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
     return row.count;
   }
 

@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
-  INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE,
+  INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
 import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard';
 import {
@@ -19,9 +19,12 @@ describe('InsightsCommandService — competition scoping', () => {
   it('rejects a request that supplies both an era and a competition', async () => {
     const { service, eras, competitions } = makeService();
     const result = await service.execute(
-      chatInput('coach.toplist.matches.played', '20', '30'),
+      chatInput('coach.toplist.matches.played', {
+        era: '20',
+        competition: '30',
+      }),
     );
-    expect(result).toBe(INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE);
+    expect(result).toBe(INSIGHTS_SCOPE_CONFLICT_MESSAGE);
     // mutual exclusion is checked before any lookup
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(eras.findById).not.toHaveBeenCalled();
@@ -35,7 +38,7 @@ describe('InsightsCommandService — competition scoping', () => {
       undefined,
     );
     const result = await service.execute(
-      chatInput('team.toplist.competitions.played', null, '999'),
+      chatInput('team.toplist.competitions.played', { competition: '999' }),
     );
     expect(result).toBe(INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE);
     // eslint-disable-next-line @typescript-eslint/unbound-method
@@ -51,12 +54,11 @@ describe('InsightsCommandService — competition scoping', () => {
       eraId: 5,
     });
     const result = await service.execute(
-      chatInput('team.toplist.touchdowns.scored', null, '30'),
+      chatInput('team.toplist.touchdowns.scored', { competition: '30' }),
     );
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
-      undefined,
-      30,
+      { eraId: undefined, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
     expect(result).toEqual(
@@ -81,7 +83,7 @@ describe('InsightsCommandService — competition scoping', () => {
       eraId: 5,
     });
     const result = await service.execute(
-      chatInput('coach.toplist.competitions.played', null, '30'),
+      chatInput('coach.toplist.competitions.played', { competition: '30' }),
     );
     expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE);
   });
@@ -94,7 +96,9 @@ describe('InsightsCommandService — competition scoping', () => {
       type: 'season',
       eraId: 5,
     });
-    const result = await service.execute(chatInput('eras.list', null, '30'));
+    const result = await service.execute(
+      chatInput('eras.list', { competition: '30' }),
+    );
     expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE);
   });
 
@@ -107,7 +111,9 @@ describe('InsightsCommandService — competition scoping', () => {
       eraId: 5,
     });
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
-    const result = await service.execute(chatInput(null, null, '30'));
+    const result = await service.execute(
+      chatInput(null, { competition: '30' }),
+    );
     expect(result).not.toBe(
       INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
     );

@@ -1,8 +1,10 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -23,6 +25,35 @@ function makeFromBuilder(rows: unknown[]) {
       Promise.resolve(rows).then(resolve, reject),
     catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
   };
+}
+
+/**
+ * True when a captured aggregate expression is `countDistinct(...)` rather
+ * than plain `count(...)`. drizzle-orm renders `countDistinct` as
+ * `sql`count(distinct ${expr})`` — its first query chunk is a `StringChunk`
+ * whose text starts with "count(distinct ", vs. "count(" for plain `count`.
+ * Used to guard against double-counting when a join can legitimately produce
+ * more than one row per grouped entity (e.g. a team with `teamEras` rows in
+ * two eras of the same league).
+ */
+function isCountDistinct(expr: unknown): boolean {
+  if (!is(expr, SQL)) return false;
+  const first = expr.queryChunks[0];
+  return is(first, StringChunk) && first.value.join('').includes('distinct');
+}
+
+function makeQueryBuilder(rows: unknown[]) {
+  const builder: Record<string, unknown> = {};
+  builder.from = vi.fn(() => builder);
+  builder.innerJoin = vi.fn(() => builder);
+  builder.where = vi.fn(() => builder);
+  builder.groupBy = vi.fn(() => builder);
+  builder.orderBy = vi.fn(() => builder);
+  builder.then = (
+    resolve: (v: unknown) => unknown,
+    reject: (e: unknown) => unknown,
+  ) => Promise.resolve(rows).then(resolve, reject);
+  return builder;
 }
 
 describe('CoachesService', () => {
@@ -157,20 +188,6 @@ describe('CoachesService', () => {
   });
 
   describe('toplist queries', () => {
-    function makeQueryBuilder(rows: unknown[]) {
-      const builder: Record<string, unknown> = {};
-      builder.from = vi.fn(() => builder);
-      builder.innerJoin = vi.fn(() => builder);
-      builder.where = vi.fn(() => builder);
-      builder.groupBy = vi.fn(() => builder);
-      builder.orderBy = vi.fn(() => builder);
-      builder.then = (
-        resolve: (v: unknown) => unknown,
-        reject: (e: unknown) => unknown,
-      ) => Promise.resolve(rows).then(resolve, reject);
-      return builder;
-    }
-
     it('countMatchesPlayedByCoach returns the rows the query resolves to', async () => {
       const rows = [
         { coachId: 1, name: 'Roze Madder', count: 9 },
@@ -178,7 +195,9 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach()).resolves.toEqual(rows);
+      await expect(
+        service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -186,8 +205,12 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countTeamsByCoach()).resolves.toEqual(rows);
+      await expect(
+        service.countTeamsByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
+      const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
 
     it('countMatchesPlayedByCoach filters by era when an eraId is given', async () => {
@@ -195,9 +218,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach(20)).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countMatchesPlayedByCoach({ eraId: 20 }),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['match_teams.match_id', 'matches.id'],
@@ -210,12 +233,16 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countTeamsByCoach(20)).resolves.toEqual(rows);
+      await expect(service.countTeamsByCoach({ eraId: 20 })).resolves.toEqual(
+        rows,
+      );
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
         ['team_eras.team_id', 'teams.id', 'team_eras.era_id'],
       );
+      const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
 
     it('countCompetitionsByCoach returns the rows the query resolves to', async () => {
@@ -225,7 +252,9 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByCoach()).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -234,7 +263,9 @@ describe('CoachesService', () => {
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByCoach(20)).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByCoach({ eraId: 20 }),
+      ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['competition_teams.competition_id', 'competitions.id'],
@@ -256,6 +287,66 @@ describe('CoachesService', () => {
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['teams.id', 'team_eras.team_id'],
       );
+    });
+  });
+
+  describe('league scoping', () => {
+    it('countMatchesPlayedByCoach filters by league via the eras join', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countMatchesPlayedByCoach({ leagueId: 9 });
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('countCompetitionsByCoach filters by league via the eras join', async () => {
+      const builder = makeQueryBuilder([]);
+      const service = new CoachesService({
+        select: vi.fn(() => builder),
+      } as unknown as Db);
+      await service.countCompetitionsByCoach({ leagueId: 9 });
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('countTeamsByCoach counts teams the coach ran in an era of the league', async () => {
+      const rows = [{ coachId: 1, name: 'Roze Madder', count: 2 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
+        rows,
+      );
+      // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
+      expect(builder.innerJoin).toHaveBeenCalledTimes(3);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id', 'eras.league_id'],
+      );
+    });
+
+    it('countTeamsByCoach does not double-count a team with teamEras rows in two eras of the same league', async () => {
+      // The league scope joins teamEras unfiltered by era, then filters by
+      // eras.leagueId. A team with separate teamEras rows in two different
+      // eras of the *same* league (no unique constraint on teamId alone)
+      // would join to two rows and be counted twice unless the aggregate
+      // uses DISTINCT on teams.id.
+      const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
+      const builder = makeQueryBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countTeamsByCoach({ leagueId: 9 })).resolves.toEqual(
+        rows,
+      );
+      const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
+      expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
   });
 
@@ -293,6 +384,35 @@ describe('CoachesService', () => {
         ['teams.id', 'team_eras.team_id'],
       );
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
+    });
+  });
+
+  describe('countByLeague', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct coach count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 15 }]);
+      const select = vi.fn(() => builder);
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(15);
+      expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['teams.id', 'team_eras.team_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
     });
   });
 

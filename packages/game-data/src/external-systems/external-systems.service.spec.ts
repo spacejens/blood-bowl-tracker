@@ -134,6 +134,28 @@ describe('ExternalSystemsService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    it('returns the distinct external-system count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 4 }]);
+      const select = vi.fn(() => builder);
+      const service = new ExternalSystemsService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(4);
+      expect(select).toHaveBeenCalledTimes(1);
+
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['external_systems.id', 'eras_external_ids.external_system_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'eras_external_ids.era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        9,
+        false,
+      ]);
+    });
+  });
+
   describe('listNamesByEra', () => {
     it('returns distinct non-bookkeeping system names ordered by name', async () => {
       const builder = makeListBuilder([{ name: 'BBL' }, { name: 'NAF' }]);

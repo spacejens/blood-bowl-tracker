@@ -298,6 +298,24 @@ describe('PositionsService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    it('counts distinct positions available in the league via positions_race_eras', async () => {
+      const builder = makeCountBuilder([{ count: 60 }]);
+      const select = vi.fn(() => builder);
+      const service = new PositionsService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(60);
+      expect(builder.innerJoin).toHaveBeenCalledTimes(2);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['race_eras.id', 'positions_race_eras.race_era_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'race_eras.era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+  });
+
   describe('countByCompetition', () => {
     it('counts distinct positions available for each team-era in the competition', async () => {
       const builder = makeCountBuilder([{ count: 25 }]);

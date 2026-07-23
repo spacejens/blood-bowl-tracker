@@ -1,4 +1,5 @@
 import type { CoachesService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { COACH_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
@@ -24,7 +25,8 @@ const cases: ToplistCase[] = [
   {
     describeName: 'resolveCoachMatchesPlayedToplist',
     method: 'countMatchesPlayedByCoach',
-    resolve: (coaches) => resolveCoachMatchesPlayedToplist(coaches),
+    resolve: (coaches) =>
+      resolveCoachMatchesPlayedToplist(coaches, FACT_SCOPE_ALL_TIME),
     rows: [
       { coachId: 1, name: 'Roze Madder', count: 9 },
       { coachId: 2, name: 'Grashnak', count: 9 },
@@ -37,7 +39,8 @@ const cases: ToplistCase[] = [
   {
     describeName: 'resolveCoachTeamsToplist',
     method: 'countTeamsByCoach',
-    resolve: (coaches) => resolveCoachTeamsToplist(coaches),
+    resolve: (coaches) =>
+      resolveCoachTeamsToplist(coaches, FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
     expectedTitle: 'Coaches by teams coached',
     expectedDescription: '1. Roze Madder — 3',
@@ -45,7 +48,8 @@ const cases: ToplistCase[] = [
   {
     describeName: 'resolveCoachCompetitionsPlayedToplist',
     method: 'countCompetitionsByCoach',
-    resolve: (coaches) => resolveCoachCompetitionsPlayedToplist(coaches),
+    resolve: (coaches) =>
+      resolveCoachCompetitionsPlayedToplist(coaches, FACT_SCOPE_ALL_TIME),
     rows: [
       { coachId: 1, name: 'Roze Madder', count: 5 },
       { coachId: 2, name: 'Grashnak', count: 2 },
@@ -105,7 +109,7 @@ describe('resolveCoachCompetitionsPlayedToplist', () => {
     const coaches = {
       countCompetitionsByCoach,
     } as unknown as CoachesService;
-    await resolveCoachCompetitionsPlayedToplist(coaches, 20);
-    expect(countCompetitionsByCoach).toHaveBeenCalledWith(20);
+    await resolveCoachCompetitionsPlayedToplist(coaches, { eraId: 20 });
+    expect(countCompetitionsByCoach).toHaveBeenCalledWith({ eraId: 20 });
   });
 });

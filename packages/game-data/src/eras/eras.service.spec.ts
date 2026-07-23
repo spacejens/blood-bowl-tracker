@@ -178,6 +178,17 @@ describe('ErasService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    it('returns the era count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 4 }]);
+      const select = vi.fn(() => builder);
+      const service = new ErasService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(4);
+      expect(select).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+  });
+
   describe('findById', () => {
     it('returns the matching era id and name', async () => {
       const where = vi.fn().mockResolvedValue([{ id: 7, name: 'BB2020' }]);
@@ -267,6 +278,49 @@ describe('ErasService', () => {
       const select = vi.fn(() => makeCountBuilder([]));
       const service = new ErasService({ select } as unknown as Db);
       await expect(service.getRulesSetNames(5)).resolves.toEqual([]);
+    });
+  });
+
+  describe('getRulesSetNamesByLeague', () => {
+    it('returns the distinct rules-set names across the league, ordered by id', async () => {
+      const rows = [
+        { id: 1, name: 'BB2016' },
+        { id: 2, name: 'BB2020' },
+      ];
+      const builder = makeCountBuilder(rows);
+      const selectDistinct = vi.fn(() => builder);
+      const service = new ErasService({
+        selectDistinct,
+      } as unknown as Db);
+      await expect(service.getRulesSetNamesByLeague(9)).resolves.toEqual([
+        'BB2016',
+        'BB2020',
+      ]);
+      expect(selectDistinct).toHaveBeenCalledTimes(1);
+      // `id` must be selected alongside `name` -- Postgres rejects SELECT
+      // DISTINCT with an ORDER BY expression that isn't in the select list,
+      // and this query orders by rulesSets.id (regression test for that).
+      expect(Object.keys(firstCallArg(selectDistinct) as object)).toEqual([
+        'id',
+        'name',
+      ]);
+      expect(builder.orderBy).toHaveBeenCalledWith(rulesSets.id);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['rules_sets.id', 'era_rules_sets.rules_set_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'era_rules_sets.era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+
+    it('returns an empty array when the league has no rules sets', async () => {
+      const selectDistinct = vi.fn(() => makeCountBuilder([]));
+      const service = new ErasService({
+        selectDistinct,
+      } as unknown as Db);
+      await expect(service.getRulesSetNamesByLeague(9)).resolves.toEqual([]);
     });
   });
 
