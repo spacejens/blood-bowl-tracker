@@ -13,6 +13,7 @@ import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
+import type { FactScope } from '../shared/fact-scope';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -129,7 +130,7 @@ export class ErasService {
     return rows.map((r) => r.name);
   }
 
-  listErasWithLeague(): Promise<
+  listErasWithLeague(scope: FactScope): Promise<
     {
       id: number;
       name: string;
@@ -147,7 +148,12 @@ export class ErasService {
         endDate: eras.endDate,
       })
       .from(eras)
-      .innerJoin(leagues, eq(leagues.id, eras.leagueId));
+      .innerJoin(leagues, eq(leagues.id, eras.leagueId))
+      .where(
+        scope.leagueId === undefined
+          ? undefined
+          : eq(eras.leagueId, scope.leagueId),
+      );
   }
 
   async findByIdWithLeague(id: number): Promise<

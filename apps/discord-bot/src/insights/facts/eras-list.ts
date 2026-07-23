@@ -1,4 +1,4 @@
-import type { ErasService } from '@blood-bowl-tracker/game-data';
+import type { ErasService, FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 import { ButtonStyle, ComponentType } from 'discord.js';
 
@@ -24,8 +24,9 @@ const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
 
 export async function resolveErasList(
   eras: ErasService,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
-  const rows = await withDatabaseTimeout(eras.listErasWithLeague(), null);
+  const rows = await withDatabaseTimeout(eras.listErasWithLeague(scope), null);
   if (rows === null) {
     return ERAS_LIST_TIMEOUT_MESSAGE;
   }

@@ -325,24 +325,42 @@ describe('ErasService', () => {
   });
 
   describe('listErasWithLeague', () => {
-    it('returns the rows the query resolves to', async () => {
-      const rows = [
-        {
-          id: 1,
-          name: 'Season 1',
-          leagueName: 'Premier',
-          startDate: '2020-01-01',
-          endDate: null,
-        },
-      ];
+    const rows = [
+      {
+        id: 1,
+        name: 'Season 1',
+        leagueName: 'Premier',
+        startDate: '2020-01-01',
+        endDate: null,
+      },
+    ];
+
+    it('returns the rows the query resolves to and joins eras to leagues', async () => {
       const builder = makeCountBuilder(rows);
       const select = vi.fn(() => builder);
       const service = new ErasService({ select } as unknown as Db);
-      await expect(service.listErasWithLeague()).resolves.toEqual(rows);
+      await expect(service.listErasWithLeague({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['leagues.id', 'eras.league_id'],
       );
+    });
+
+    it('filters by league id when the scope carries a leagueId', async () => {
+      const builder = makeCountBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new ErasService({ select } as unknown as Db);
+      await service.listErasWithLeague({ leagueId: 42 });
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(42);
+    });
+
+    it('applies no league filter when the scope has no leagueId', async () => {
+      const builder = makeCountBuilder(rows);
+      const select = vi.fn(() => builder);
+      const service = new ErasService({ select } as unknown as Db);
+      await service.listErasWithLeague({});
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(firstCallArg(builder.where)).toBeUndefined();
     });
   });
 
