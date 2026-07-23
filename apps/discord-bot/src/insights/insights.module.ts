@@ -16,6 +16,7 @@ import { Module } from '@nestjs/common';
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
+import { LeaderboardService } from './leaderboard.service';
 
 const GAME_DATA_MODULES = [
   CoachesModule,
@@ -35,6 +36,7 @@ const GAME_DATA_MODULES = [
   imports: GAME_DATA_MODULES,
   providers: [
     DatabaseTimeoutService,
+    LeaderboardService,
     FactTreeFactoryService,
     {
       provide: FACT_TREE,
@@ -42,6 +44,11 @@ const GAME_DATA_MODULES = [
       inject: [FactTreeFactoryService],
     },
   ],
-  exports: [...GAME_DATA_MODULES, DatabaseTimeoutService, FACT_TREE],
+  exports: [
+    ...GAME_DATA_MODULES,
+    DatabaseTimeoutService,
+    LeaderboardService,
+    FACT_TREE,
+  ],
 })
 export class InsightsModule {}

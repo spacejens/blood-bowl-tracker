@@ -1,15 +1,15 @@
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../database-timeout.service';
 import {
-  buildEntityButtons,
-  formatLeaderboardEmbed,
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
-  resolveToplist,
   TOPLIST_FETCH_LIMIT,
-  topRanksWithTies,
-} from './leaderboard';
+} from './leaderboard.service';
+import { LeaderboardService } from './leaderboard.service';
+
+const service = () => new LeaderboardService(new DatabaseTimeoutService());
 
 describe('TOPLIST_FETCH_LIMIT', () => {
   it('is MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1', () => {
@@ -28,7 +28,7 @@ describe('topRanksWithTies', () => {
       { name: 'b', count: 5 },
       { name: 'c', count: 2 },
     ];
-    expect(topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 5, rank: 2 },
@@ -44,7 +44,7 @@ describe('topRanksWithTies', () => {
       { name: 'b', count: 9 },
       { name: 'c', count: 4 },
     ];
-    expect(topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 9, rank: 1 },
@@ -61,7 +61,7 @@ describe('topRanksWithTies', () => {
       { name: 'c', count: 7 },
       { name: 'd', count: 1 },
     ];
-    expect(topRanksWithTies(rows, 2, 50)).toEqual({
+    expect(service().topRanksWithTies(rows, 2, 50)).toEqual({
       rows: [
         { name: 'a', count: 9, rank: 1 },
         { name: 'b', count: 7, rank: 2 },
@@ -73,14 +73,14 @@ describe('topRanksWithTies', () => {
 
   it('returns all rows when there are fewer than topEntries', () => {
     const rows = [{ name: 'a', count: 3 }];
-    expect(topRanksWithTies(rows, 5, 50)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [{ name: 'a', count: 3, rank: 1 }],
       truncatedCount: 0,
     });
   });
 
   it('returns an empty array for no rows', () => {
-    expect(topRanksWithTies([], 5, 50)).toEqual({
+    expect(service().topRanksWithTies([], 5, 50)).toEqual({
       rows: [],
       truncatedCount: 0,
     });
@@ -91,7 +91,7 @@ describe('topRanksWithTies', () => {
       name: `team-${i}`,
       count: 1,
     }));
-    const result = topRanksWithTies(rows, 5, 50);
+    const result = service().topRanksWithTies(rows, 5, 50);
     expect(result.rows).toHaveLength(50);
     expect(result.rows.every((row) => row.rank === 1)).toBe(true);
     expect(result.truncatedCount).toBe(250);
@@ -102,7 +102,7 @@ describe('topRanksWithTies', () => {
       { name: 'a', count: 2 },
       { name: 'b', count: 1 },
     ];
-    expect(topRanksWithTies(rows, 5, 2)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 2)).toEqual({
       rows: [
         { name: 'a', count: 2, rank: 1 },
         { name: 'b', count: 1, rank: 2 },
@@ -124,7 +124,7 @@ describe('topRanksWithTies', () => {
       { name: 'g', count: 10 },
       { name: 'h', count: 10 },
     ];
-    expect(topRanksWithTies(rows, 5, 10)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 10)).toEqual({
       rows: [
         { name: 'a', count: 15, rank: 1 },
         { name: 'b', count: 14, rank: 2 },
@@ -153,7 +153,7 @@ describe('topRanksWithTies', () => {
       { name: 't5', count: 5 },
       { name: 't6', count: 5 },
     ];
-    expect(topRanksWithTies(rows, 5, 10)).toEqual({
+    expect(service().topRanksWithTies(rows, 5, 10)).toEqual({
       rows: [
         { name: 'a', count: 20, rank: 1 },
         { name: 'b', count: 19, rank: 2 },
@@ -173,7 +173,7 @@ describe('topRanksWithTies', () => {
 
 describe('formatLeaderboardEmbed', () => {
   it('builds an embed with one line per ranked row', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [
         { name: 'a', count: 9, rank: 1 },
@@ -193,7 +193,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('uses the supplied no-data message when there are no rows', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [],
       noDataMessage: 'Nobody has laced up their boots yet.',
@@ -209,7 +209,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('appends a truncation note when rows were cut off by the entry cap', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [
         { name: 'a', count: 2, rank: 1 },
@@ -229,7 +229,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders an exact tie remainder as a numbered "more tied" line', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [
         { name: 'a', count: 2, rank: 1 },
@@ -249,7 +249,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders an approximate tie remainder as "lots more tied"', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [{ name: 'a', count: 2, rank: 1 }],
       noDataMessage: 'No data placeholder',
@@ -266,7 +266,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('omits the remainder line for an exact count of zero', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Teams by eras active',
       rankedRows: [{ name: 'a', count: 2, rank: 1 }],
       noDataMessage: 'No data placeholder',
@@ -278,7 +278,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('omits components entirely when no buildCustomId is supplied', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [{ name: 'a', count: 9, rank: 1 }],
       noDataMessage: 'No data placeholder',
@@ -287,7 +287,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('emits one Primary button per ranked row when buildCustomId is supplied', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [
         { name: 'a', count: 9, rank: 1, coachId: 1 },
@@ -324,7 +324,7 @@ describe('formatLeaderboardEmbed', () => {
       rank: i + 1,
       coachId: i + 1,
     }));
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows,
       noDataMessage: 'No data placeholder',
@@ -338,7 +338,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('adds no components for an empty result even with buildCustomId', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Coaches by matches',
       rankedRows: [],
       noDataMessage: 'Nobody yet.',
@@ -349,7 +349,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('renders each line via a supplied formatRow', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Teams by money lost to expensive mistakes',
       rankedRows: [
         { name: 'a', count: 150000, rank: 1 },
@@ -370,7 +370,7 @@ describe('formatLeaderboardEmbed', () => {
   });
 
   it('builds at most one button per distinct custom_id', () => {
-    const result = formatLeaderboardEmbed({
+    const result = service().formatLeaderboardEmbed({
       title: 'Biggest expensive mistakes',
       rankedRows: [
         { name: 'a', count: 90000, rank: 1, teamId: 1 },
@@ -396,7 +396,7 @@ describe('buildEntityButtons', () => {
       { id: 1, name: 'Alpha' },
       { id: 2, name: 'Beta' },
     ];
-    const result = buildEntityButtons(
+    const result = service().buildEntityButtons(
       rows,
       (row) => `deepdive:team:${row.id}`,
       (row) => row.name,
@@ -428,7 +428,7 @@ describe('buildEntityButtons', () => {
       { id: 1, name: 'Alpha again' },
       { id: 2, name: 'Beta' },
     ];
-    const result = buildEntityButtons(
+    const result = service().buildEntityButtons(
       rows,
       (row) => `deepdive:team:${row.id}`,
       (row) => row.name,
@@ -442,7 +442,7 @@ describe('buildEntityButtons', () => {
       id: i,
       name: `T${i}`,
     }));
-    const result = buildEntityButtons(
+    const result = service().buildEntityButtons(
       rows,
       (row) => `deepdive:team:${row.id}`,
       (row) => row.name,
@@ -455,7 +455,7 @@ describe('buildEntityButtons', () => {
 
   it('returns an empty array for no rows', () => {
     expect(
-      buildEntityButtons(
+      service().buildEntityButtons(
         [],
         () => 'x',
         () => 'y',
@@ -470,7 +470,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await resolveToplist({
+    const result = await service().resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -495,7 +495,7 @@ describe('resolveToplist', () => {
       { coachId: 1, name: 'a', count: 9 },
       { coachId: 2, name: 'b', count: 4 },
     ];
-    const result = (await resolveToplist({
+    const result = (await service().resolveToplist({
       title: 'Coaches by matches',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -512,7 +512,7 @@ describe('resolveToplist', () => {
 
   it('threads formatRow through to the embed lines', async () => {
     const rows = [{ teamId: 1, name: 'a', count: 150000 }];
-    const result = await resolveToplist({
+    const result = await service().resolveToplist({
       title: 'Teams by money lost to expensive mistakes',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -536,7 +536,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = await resolveToplist({
+    const result = await service().resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -558,7 +558,7 @@ describe('resolveToplist', () => {
 
   it('requests exactly TOPLIST_FETCH_LIMIT rows from fetchRows', async () => {
     const fetchRows = vi.fn().mockResolvedValue([{ name: 'a', count: 1 }]);
-    await resolveToplist({
+    await service().resolveToplist({
       title: 'Teams by eras active',
       fetchRows,
       timeoutMessage: 'timeout placeholder',
@@ -575,7 +575,7 @@ describe('resolveToplist', () => {
       name: `t${i}`,
       count: 1,
     }));
-    const result = (await resolveToplist({
+    const result = (await service().resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
@@ -585,5 +585,22 @@ describe('resolveToplist', () => {
     expect(lines).toHaveLength(11); // 10 rendered rows + 1 remainder line
     expect(lines[10]).toBe('…and lots more tied.');
     expect(lines).not.toContain(`1. t${TOPLIST_FETCH_LIMIT - 1} — 1`); // sentinel excluded
+  });
+
+  it('falls back to the timeout message when fetchRows does not settle in time', async () => {
+    vi.useFakeTimers();
+    try {
+      const promise = service().resolveToplist({
+        title: 'Teams by eras active',
+        fetchRows: () =>
+          new Promise<{ name: string; count: number }[]>(() => {}),
+        timeoutMessage: 'timeout placeholder',
+        noDataMessage: 'no-data placeholder',
+      });
+      await vi.advanceTimersByTimeAsync(2000);
+      await expect(promise).resolves.toBe('timeout placeholder');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

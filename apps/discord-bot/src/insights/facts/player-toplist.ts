@@ -1,14 +1,20 @@
 import type { PlayersService } from '@blood-bowl-tracker/game-data';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   PLAYER_TOPLIST_NO_DATA_MESSAGE,
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
+import { LeaderboardService } from '../leaderboard.service';
 import type { ScopedCountMethods } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
 type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
+
+// Temporary module-scoped instance until this file is migrated onto NestJS DI
+// (Task 5/6); makeToplistResolvers now requires a LeaderboardService.
+const leaderboard = new LeaderboardService(new DatabaseTimeoutService());
 
 function playerButtonId(row: { playerId: number }): string {
   return `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`;
@@ -43,6 +49,7 @@ const resolvers = makeToplistResolvers<
   timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
   noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
   buildCustomId: playerButtonId,
+  leaderboard,
 });
 
 export const resolvePlayerMvpsToplist = resolvers.countMvpAwardsByPlayer;

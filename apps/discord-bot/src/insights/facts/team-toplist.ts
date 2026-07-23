@@ -1,18 +1,24 @@
 import type { FactScope, TeamsService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
   TEAM_TOPLIST_NO_DATA_MESSAGE,
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
 import { resolveToplist } from '../leaderboard';
+import { LeaderboardService } from '../leaderboard.service';
 import type { ScopedCountMethods } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
 export function teamButtonId(row: { teamId: number }): string {
   return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
 }
+
+// Temporary module-scoped instance until this file is migrated onto NestJS DI
+// (Task 5/6); makeToplistResolvers now requires a LeaderboardService.
+const leaderboard = new LeaderboardService(new DatabaseTimeoutService());
 
 /**
  * `countMatchesPlayedByTeam`, `countCompetitionsByTeam`, and `countErasByTeam`
@@ -64,6 +70,7 @@ const resolvers = makeToplistResolvers<
   timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
   noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
   buildCustomId: teamButtonId,
+  leaderboard,
 });
 
 export const resolveTeamTouchdownsScoredToplist =
