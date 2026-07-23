@@ -2,6 +2,7 @@ import type {
   ExternalSystemBootstrapService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -25,6 +26,7 @@ function makeService({
     { upsertMatchResult } as unknown as MatchesImportService,
     { bootstrap } as unknown as ExternalSystemBootstrapService,
     { getTpSystemName } as unknown as ExternalSystemNameConfigService,
+    new ImportResultService(),
   );
 }
 

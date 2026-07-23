@@ -60,12 +60,10 @@ async function run(): Promise<ImportResult> {
     const rosters = await app
       .get(RosterCollectionService)
       .collect(rosterErrors);
-    const rosterCollectionResult = app
-      .get(ImportResultService)
-      .result({
-        imported: 0,
-        errors: rosterErrors,
-      });
+    const rosterCollectionResult = app.get(ImportResultService).result({
+      imported: 0,
+      errors: rosterErrors,
+    });
 
     const raceOutcome = await app
       .get(TpRacesImportService)

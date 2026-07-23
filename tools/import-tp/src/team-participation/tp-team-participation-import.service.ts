@@ -5,8 +5,7 @@ import type {
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
@@ -62,6 +61,7 @@ export class TpTeamParticipationImportService {
   constructor(
     private readonly competitionsImport: CompetitionsImportService,
     private readonly matchesImport: MatchesImportService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -125,7 +125,7 @@ export class TpTeamParticipationImportService {
       });
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 
   /** Resolve a roster id + era id to its team_eras id, or undefined. */
@@ -163,7 +163,7 @@ export class TpTeamParticipationImportService {
       });
       if (teamEraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { competition: upsert.name, roster: rosterId },
             message: `Skipping competition team for roster "${rosterId}" in competition "${upsert.name}": could not resolve its team era.`,
           }),
@@ -202,7 +202,7 @@ export class TpTeamParticipationImportService {
     const competitionId = competitionIdsByTpId.get(tpId);
     if (competitionId === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { competition: upsert.name },
           message: `Skipping match teams for competition "${upsert.name}": it has no imported competition id.`,
         }),
@@ -225,7 +225,7 @@ export class TpTeamParticipationImportService {
       });
       if (homeTeamEraId === undefined || awayTeamEraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { competition: upsert.name, match: match.id },
             message: `Skipping match teams for match "${match.id}" in competition "${upsert.name}": could not resolve both team eras.`,
           }),

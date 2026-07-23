@@ -2,8 +2,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM_NAME,
   NameExternalIdService,
@@ -31,6 +30,7 @@ export class TpErasImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly tournamentParser: TournamentParserService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -60,12 +60,15 @@ export class TpErasImportService {
       eras = this.eraConfig.getEras();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { externalSystems: [tpSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
     }
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -74,20 +77,26 @@ export class TpErasImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
     if (leagueId === undefined) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { eras: eras.map((e) => e.name) },
           message:
             'Cannot import eras: the league was not imported successfully, so ' +
             'its id is unknown.',
         }),
       );
-      return { result: makeImportResult({ imported, errors }), eraIdsByName };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
     }
 
     let scan: RuleSetScan;
@@ -95,7 +104,7 @@ export class TpErasImportService {
       scan = await this.scanRuleSetCodes();
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { eras: eras.map((e) => e.name) },
           message:
             'Could not complete the rule-set-code consistency scan across ' +
@@ -137,7 +146,10 @@ export class TpErasImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), eraIdsByName };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      eraIdsByName,
+    };
   }
 
   /**
@@ -155,7 +167,7 @@ export class TpErasImportService {
         return {
           ids: [],
           errors: [
-            makeImportError({
+            this.importResults.error({
               item: era,
               message: `Cannot import era "${era.name}": its rule set "${name}" was not imported successfully.`,
             }),
@@ -209,7 +221,7 @@ export class TpErasImportService {
     const parseErrors = scan.parseErrorByEra.get(era.name);
     if (parseErrors !== undefined && parseErrors.length > 0) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: era,
           message: `Era "${era.name}": ${parseErrors.length} tournament file(s) could not be parsed for the rule-set consistency check (${parseErrors.join('; ')}).`,
         }),
@@ -218,7 +230,7 @@ export class TpErasImportService {
     const codes = scan.codesByEra.get(era.name);
     if (codes !== undefined && codes.size > 1) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: era,
           message: `Era "${era.name}": tournaments report differing TP rule-set codes (${[...codes].sort((a, b) => a - b).join(', ')}); a tournament may live under the wrong era subdirectory.`,
         }),

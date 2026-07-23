@@ -65,6 +65,7 @@ export function makeService(upsertMatchEvent: ReturnType<typeof vi.fn>) {
       new TpMatchEventBuildersService(new ImportResultService()),
     ),
     new TpMatchEventsCorrelationService(),
+    new ImportResultService(),
   );
 }
 

@@ -1,8 +1,5 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import {
-  ImportResultService,
-  makeImportError,
-} from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpRoster } from '@blood-bowl-tracker/parse-tp';
 import { RosterParserService } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
@@ -53,7 +50,7 @@ export class RosterCollectionService {
           });
         } catch (error) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: {
                 era: file.era,
                 competition: file.competition,
@@ -69,7 +66,7 @@ export class RosterCollectionService {
       }
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { scan: 'rosters files' },
           message:
             'Could not complete the rosters file scan: ' +

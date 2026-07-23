@@ -1,3 +1,4 @@
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
@@ -61,6 +62,7 @@ function makeService(overrides: {
     procs.positions as never,
     procs.coaches as never,
     procs.teams as never,
+    new ImportResultService(),
   );
   return { service, reader, externalSystems, procs };
 }

@@ -2,7 +2,7 @@ import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   RacesImportService,
@@ -28,6 +28,7 @@ export class TpRacesImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -64,7 +65,7 @@ export class TpRacesImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         raceIdsByTeamRaceCode,
         raceNamesById,
       };
@@ -117,7 +118,7 @@ export class TpRacesImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       raceIdsByTeamRaceCode,
       raceNamesById,
     };

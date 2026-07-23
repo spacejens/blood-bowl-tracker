@@ -35,6 +35,7 @@ function makeService({
       {} as never,
       new ImportResultService(),
     ),
+    new ImportResultService(),
   );
 }
 

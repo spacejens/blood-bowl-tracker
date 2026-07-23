@@ -1,8 +1,7 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
   PlayersImportService,
@@ -85,6 +84,7 @@ export class TpPlayersImportService {
     private readonly positionsImport: PositionsImportService,
     private readonly nameExternalId: NameExternalIdService,
     private readonly rosterCollection: RosterCollectionService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -168,7 +168,7 @@ export class TpPlayersImportService {
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
       return {
-        result: makeImportResult({ imported, errors }),
+        result: this.importResults.result({ imported, errors }),
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
         starPositionUsages,
@@ -203,7 +203,7 @@ export class TpPlayersImportService {
         const teamEra = teamEras?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { player: player.id, rosterId: roster.id, era },
               message: `Skipped player "${player.name}" (${player.id}): could not resolve team era for roster ${roster.id} in era "${era}"`,
             }),
@@ -225,7 +225,7 @@ export class TpPlayersImportService {
         }
         if (positionId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: {
                 player: player.id,
                 lineUpMasterId: player.lineUpMasterId,
@@ -273,7 +273,7 @@ export class TpPlayersImportService {
           ?.find((te) => te.eraId === eraId);
         if (teamEra === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { rosterId },
               message: `Skipped ${starPlayers.length} hired star player(s) for roster ${rosterId}: could not resolve hiring team era`,
             }),
@@ -340,7 +340,7 @@ export class TpPlayersImportService {
     }
 
     return {
-      result: makeImportResult({ imported, errors }),
+      result: this.importResults.result({ imported, errors }),
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       starPositionUsages,

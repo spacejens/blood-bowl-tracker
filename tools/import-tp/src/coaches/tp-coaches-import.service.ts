@@ -2,8 +2,7 @@ import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   NAF_EXTERNAL_SYSTEM,
   NAME_EXTERNAL_SYSTEM,
   NameExternalIdService,
@@ -31,6 +30,7 @@ export class TpCoachesImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly nameExternalId: NameExternalIdService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -65,7 +65,10 @@ export class TpCoachesImportService {
     const bootstrap = await this.externalSystemBootstrap.bootstrap(systemNames);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }), coachIdsByTpId };
+      return {
+        result: this.importResults.result({ imported, errors }),
+        coachIdsByTpId,
+      };
     }
     const [tp, name, naf] = bootstrap.ids;
     const systemIds: SystemIds = { tp, name, naf };
@@ -90,7 +93,10 @@ export class TpCoachesImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }), coachIdsByTpId };
+    return {
+      result: this.importResults.result({ imported, errors }),
+      coachIdsByTpId,
+    };
   }
 
   /**
@@ -110,7 +116,7 @@ export class TpCoachesImportService {
           coaches.push(...this.inscriptionsParser.parseCoaches(file.content));
         } catch (error) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: {
                 era: file.era,
                 competition: file.competition,
@@ -126,7 +132,7 @@ export class TpCoachesImportService {
       }
     } catch (error) {
       errors.push(
-        makeImportError({
+        this.importResults.error({
           item: { scan: 'inscriptions files' },
           message:
             'Could not complete the inscriptions file scan: ' +

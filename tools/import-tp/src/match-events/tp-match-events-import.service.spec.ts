@@ -49,6 +49,7 @@ describe('TpMatchEventsImportService', () => {
         new TpMatchEventBuildersService(new ImportResultService()),
       ),
       new TpMatchEventsCorrelationService(),
+      new ImportResultService(),
     );
 
     const { result } = await service.importMatchEvents({

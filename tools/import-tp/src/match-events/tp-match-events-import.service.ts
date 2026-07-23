@@ -1,8 +1,7 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
-  makeImportError,
-  makeImportResult,
+  ImportResultService,
   MatchEventsImportService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
@@ -51,6 +50,7 @@ export class TpMatchEventsImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly eventsBuilder: TpMatchEventsBuilderService,
     private readonly eventsCorrelation: TpMatchEventsCorrelationService,
+    private readonly importResults: ImportResultService,
   ) {}
 
   /**
@@ -134,7 +134,7 @@ export class TpMatchEventsImportService {
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
-      return { result: makeImportResult({ imported, errors }) };
+      return { result: this.importResults.result({ imported, errors }) };
     }
     const [tpSystemId] = bootstrap.ids;
 
@@ -142,7 +142,7 @@ export class TpMatchEventsImportService {
       const eraId = eraIdByCompetitionId.get(competitionId);
       if (eraId === undefined) {
         errors.push(
-          makeImportError({
+          this.importResults.error({
             item: { competitionId },
             message: `Skipping match events for competition "${competitionId}": could not resolve its era.`,
           }),
@@ -154,7 +154,7 @@ export class TpMatchEventsImportService {
         const matchId = matchIdsByTpId.get(match.id);
         if (matchId === undefined) {
           errors.push(
-            makeImportError({
+            this.importResults.error({
               item: { match: match.id },
               message: `Skipping match events for match "${match.id}": it has no imported match id.`,
             }),
@@ -198,6 +198,6 @@ export class TpMatchEventsImportService {
       }
     }
 
-    return { result: makeImportResult({ imported, errors }) };
+    return { result: this.importResults.result({ imported, errors }) };
   }
 }
