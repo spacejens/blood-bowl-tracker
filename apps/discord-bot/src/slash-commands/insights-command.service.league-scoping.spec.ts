@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
@@ -78,6 +79,18 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     expect(result).toEqual(
       expect.objectContaining({ embeds: expect.any(Array) as unknown }),
     );
+  });
+
+  it('rejects a league on a non-league-supporting category (coach.toplist.eras.active)', async () => {
+    const { service, leagues } = makeService();
+    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 5,
+      name: 'GBBL',
+    });
+    const result = await service.execute(
+      chatInput('coach.toplist.eras.active', { league: '5' }),
+    );
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE);
   });
 
   it('rejects a league id that resolves to no league', async () => {
