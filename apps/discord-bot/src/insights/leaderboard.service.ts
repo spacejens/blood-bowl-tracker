@@ -52,6 +52,7 @@ const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
 export interface RankedRows<T> {
   rows: (T & { rank: number })[];
   truncatedCount: number;
+  tieGroupOpenEnded: boolean;
 }
 
 export interface FormatLeaderboardEmbedOptions<T> {
@@ -105,6 +106,7 @@ export class LeaderboardService {
     let truncatedCount = 0;
     let position = 0;
     let boundaryValue: number | null = null;
+    let boundaryTieBroken = false;
     for (const row of rows) {
       if (previousCount === null || row.count !== previousCount) {
         rank += 1;
@@ -112,6 +114,7 @@ export class LeaderboardService {
       }
       position += 1;
       if (boundaryValue !== null && row.count !== boundaryValue) {
+        boundaryTieBroken = true;
         break;
       }
       if (ranked.length >= maxEntries) {
@@ -123,7 +126,8 @@ export class LeaderboardService {
         boundaryValue = row.count;
       }
     }
-    return { rows: ranked, truncatedCount };
+    const tieGroupOpenEnded = boundaryValue !== null && !boundaryTieBroken;
+    return { rows: ranked, truncatedCount, tieGroupOpenEnded };
   }
 
   /**

@@ -35,6 +35,7 @@ describe('topRanksWithTies', () => {
         { name: 'c', count: 2, rank: 3 },
       ],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -51,6 +52,7 @@ describe('topRanksWithTies', () => {
         { name: 'c', count: 4, rank: 2 },
       ],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -68,6 +70,7 @@ describe('topRanksWithTies', () => {
         { name: 'c', count: 7, rank: 2 },
       ],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -76,6 +79,7 @@ describe('topRanksWithTies', () => {
     expect(service().topRanksWithTies(rows, 5, 50)).toEqual({
       rows: [{ name: 'a', count: 3, rank: 1 }],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -83,6 +87,7 @@ describe('topRanksWithTies', () => {
     expect(service().topRanksWithTies([], 5, 50)).toEqual({
       rows: [],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -95,6 +100,7 @@ describe('topRanksWithTies', () => {
     expect(result.rows).toHaveLength(50);
     expect(result.rows.every((row) => row.rank === 1)).toBe(true);
     expect(result.truncatedCount).toBe(250);
+    expect(result.tieGroupOpenEnded).toBe(true);
   });
 
   it('does not report truncation when the cap lands exactly on the last row', () => {
@@ -108,6 +114,7 @@ describe('topRanksWithTies', () => {
         { name: 'b', count: 1, rank: 2 },
       ],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -134,6 +141,7 @@ describe('topRanksWithTies', () => {
         { name: 'f', count: 11, rank: 4 },
       ],
       truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
   });
 
@@ -167,7 +175,41 @@ describe('topRanksWithTies', () => {
         { name: 't5', count: 5, rank: 5 },
       ],
       truncatedCount: 1,
+      tieGroupOpenEnded: true,
     });
+  });
+
+  it('flags an open-ended tie group when the boundary tie consumes every input row', () => {
+    // topEntries lands on the first `5`; every remaining row also `5`, so the
+    // boundary tie never breaks before the input ends.
+    const rows = [
+      { name: 'a', count: 9 },
+      { name: 'b', count: 8 },
+      { name: 'c', count: 7 },
+      { name: 'd', count: 6 },
+      { name: 'e', count: 5 },
+      { name: 'f', count: 5 },
+      { name: 'g', count: 5 },
+    ];
+    expect(service().topRanksWithTies(rows, 5, 10).tieGroupOpenEnded).toBe(
+      true,
+    );
+  });
+
+  it('does not flag open-ended when the boundary tie breaks before the input ends', () => {
+    // topEntries lands on the first `5`; the boundary tie breaks on the `4`.
+    const rows = [
+      { name: 'a', count: 9 },
+      { name: 'b', count: 8 },
+      { name: 'c', count: 7 },
+      { name: 'd', count: 6 },
+      { name: 'e', count: 5 },
+      { name: 'f', count: 5 },
+      { name: 'g', count: 4 },
+    ];
+    expect(service().topRanksWithTies(rows, 5, 10).tieGroupOpenEnded).toBe(
+      false,
+    );
   });
 });
 
