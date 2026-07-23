@@ -84,8 +84,8 @@ describe('BblCoachesImportService', () => {
     await service.importCoaches();
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'BBL', isBookkeeping: false },
-      { name: 'Name', isBookkeeping: true },
+      { name: 'BBL', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
@@ -102,8 +102,8 @@ describe('BblCoachesImportService', () => {
     await service.importCoaches();
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'MyLeague', isBookkeeping: false },
-      { name: 'Name', isBookkeeping: true },
+      { name: 'MyLeague', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 

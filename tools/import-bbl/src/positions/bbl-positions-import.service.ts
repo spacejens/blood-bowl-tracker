@@ -134,7 +134,10 @@ export class BblPositionsImportService {
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
-      [{ name: bblSystemName, isBookkeeping: false }, NAME_EXTERNAL_SYSTEM],
+      [
+        { name: bblSystemName, category: 'imported_data_source' },
+        NAME_EXTERNAL_SYSTEM,
+      ],
       'Failed to upsert external system: ',
     );
     if (!bootstrap.ok) {
