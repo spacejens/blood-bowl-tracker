@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 
 /** A coach extracted from BBL source data. Identified solely by name. */
 export interface BblCoach {
@@ -19,10 +20,11 @@ export class CoachPageParser {
     let name: string | null = null;
 
     $('td').each((_index, element) => {
-      if ($(element).text().trim() === 'Coach:') {
-        // trim() strips the leading `&nbsp;` (U+00A0) and surrounding
-        // whitespace; the name itself is preserved exactly.
-        const value = $(element).next('td').text().trim();
+      if (normalizeExtractedText($(element).text()) === 'Coach:') {
+        // normalizeExtractedText strips the leading `&nbsp;` (U+00A0) and
+        // surrounding whitespace and collapses any internal whitespace to a
+        // single ASCII space.
+        const value = normalizeExtractedText($(element).next('td').text());
         if (value) {
           name = value;
           return false;
