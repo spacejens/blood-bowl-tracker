@@ -17,6 +17,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
@@ -26,6 +27,7 @@ import {
 } from '../error-messages';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   DeepdiveCommandService,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -42,6 +44,9 @@ function makeService() {
   } as unknown as ErasService;
   const competitions = {
     listByEraChronological: vi.fn().mockResolvedValue([]),
+    findByIdWithEra: vi.fn().mockResolvedValue(undefined),
+    listTeams: vi.fn().mockResolvedValue([]),
+    searchByNamePrefix: vi.fn().mockResolvedValue([]),
   } as unknown as CompetitionsService;
   const externalSystems = {
     listNamesByEra: vi.fn().mockResolvedValue([]),
@@ -106,6 +111,7 @@ function chatInput(options: {
   team?: string | null;
   player?: string | null;
   race?: string | null;
+  competition?: string | null;
 }): ChatInputCommandInteraction {
   return {
     options: {
@@ -114,7 +120,8 @@ function chatInput(options: {
         if (name === 'coach') return options.coach ?? null;
         if (name === 'team') return options.team ?? null;
         if (name === 'player') return options.player ?? null;
-        return options.race ?? null;
+        if (name === 'race') return options.race ?? null;
+        return options.competition ?? null;
       }),
     },
   } as unknown as ChatInputCommandInteraction;
@@ -122,7 +129,7 @@ function chatInput(options: {
 
 function autocompleteInteraction(
   value: string,
-  name: 'era' | 'coach' | 'team' | 'player' | 'race' = 'era',
+  name: 'era' | 'coach' | 'team' | 'player' | 'race' | 'competition' = 'era',
 ): AutocompleteInteraction {
   return {
     options: {
@@ -178,6 +185,13 @@ describe('DeepdiveCommandService', () => {
       },
       {
         name: 'race',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+        description: expect.any(String),
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'competition',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
         description: expect.any(String),
         type: 3,
@@ -684,5 +698,83 @@ describe('DeepdiveCommandService', () => {
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(races.findById).not.toHaveBeenCalled();
+  });
+
+  it('renders the competition deepdive embed for a resolved competition', async () => {
+    const { service, competitions } = makeService();
+    (
+      competitions.findByIdWithEra as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      id: 3,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 20,
+      eraName: 'BB2020',
+    });
+    (competitions.listTeams as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 5, name: 'Gouged Eye' },
+    ]);
+    const result = await service.execute(chatInput({ competition: '3' }));
+    expect(result).toMatchObject({ embeds: [{ title: 'Major Season 24' }] });
+  });
+
+  it('returns the not-found message for a competition id that resolves to nothing', async () => {
+    const { service, competitions } = makeService();
+    const result = await service.execute(chatInput({ competition: '999' }));
+    expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(competitions.findByIdWithEra).toHaveBeenCalledWith(999);
+  });
+
+  it('rejects supplying both a competition and another target', async () => {
+    const { service, competitions } = makeService();
+    const result = await service.execute(
+      chatInput({ era: '7', competition: '3' }),
+    );
+    expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(competitions.findByIdWithEra).not.toHaveBeenCalled();
+  });
+
+  it('returns competition autocomplete choices labelled "<name> (<league>)"', async () => {
+    const { service, competitions } = makeService();
+    (
+      competitions.searchByNamePrefix as ReturnType<typeof vi.fn>
+    ).mockResolvedValue([
+      { id: 3, name: 'Major Season 24', leagueName: 'Premier' },
+    ]);
+    const choices = await service.autocomplete(
+      autocompleteInteraction('Maj', 'competition'),
+    );
+    expect(choices).toEqual([
+      { name: 'Major Season 24 (Premier)', value: '3' },
+    ]);
+  });
+
+  it('handles a competition button by resolving the id from its customId', async () => {
+    const { service, competitions } = makeService();
+    (
+      competitions.findByIdWithEra as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({
+      id: 3,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 20,
+      eraName: 'BB2020',
+    });
+    const result = await service.handleCompetitionButton(
+      buttonInteraction(`${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}3`),
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(competitions.findByIdWithEra).toHaveBeenCalledWith(3);
+    expect(result).toMatchObject({ embeds: [{ title: 'Major Season 24' }] });
+  });
+
+  it('returns the not-found message for a non-numeric competition id without hitting the database', async () => {
+    const { service, competitions } = makeService();
+    const result = await service.execute(chatInput({ competition: 'abc' }));
+    expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(competitions.findByIdWithEra).not.toHaveBeenCalled();
   });
 });

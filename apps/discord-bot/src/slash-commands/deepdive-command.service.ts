@@ -19,12 +19,14 @@ import type {
 import { ApplicationCommandOptionType } from 'discord.js';
 
 import { resolveCoachDeepdive } from '../deepdive/facts/coach-deepdive';
+import { resolveCompetitionDeepdive } from '../deepdive/facts/competition-deepdive';
 import { resolveEraDeepdive } from '../deepdive/facts/era-deepdive';
 import { resolvePlayerDeepdive } from '../deepdive/facts/player-deepdive';
 import { resolveRaceDeepdive } from '../deepdive/facts/race-deepdive';
 import { resolveTeamDeepdive } from '../deepdive/facts/team-deepdive';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
   DEEPDIVE_MULTIPLE_TARGETS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
@@ -45,6 +47,7 @@ export {
 
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -89,6 +92,10 @@ export class DeepdiveCommandService implements OnModuleInit {
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleRaceButton(interaction),
     );
+    this.discordClient.registerButtonHandler(
+      COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleCompetitionButton(interaction),
+    );
   }
 
   buildCommand(): SlashCommandDefinition {
@@ -126,6 +133,13 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'competition',
+          description:
+            'Show the detail view for a single competition (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -140,12 +154,14 @@ export class DeepdiveCommandService implements OnModuleInit {
     const teamOption = interaction.options.getString('team');
     const playerOption = interaction.options.getString('player');
     const raceOption = interaction.options.getString('race');
+    const competitionOption = interaction.options.getString('competition');
     const supplied = [
       eraOption,
       coachOption,
       teamOption,
       playerOption,
       raceOption,
+      competitionOption,
     ].filter((value) => value !== null);
     if (supplied.length > 1) {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
@@ -164,6 +180,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (raceOption !== null) {
       return this.resolveRace(raceOption);
+    }
+    if (competitionOption !== null) {
+      return this.resolveCompetition(competitionOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -211,6 +230,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       RACE_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolveRace(idPart);
+  }
+
+  async handleCompetitionButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      COMPETITION_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.resolveCompetition(idPart);
   }
 
   async autocomplete(
@@ -264,6 +292,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       );
       return races.map((row) => ({
         name: row.name,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'competition') {
+      const competitions = await this.competitions.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return competitions.map((row) => ({
+        name: `${row.name} (${row.leagueName})`,
         value: String(row.id),
       }));
     }
@@ -346,5 +384,20 @@ export class DeepdiveCommandService implements OnModuleInit {
       return Promise.resolve(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     }
     return resolveRaceDeepdive(id, { races: this.races });
+  }
+
+  /**
+   * Parses a competition id (from a slash option or a button customId) and
+   * renders the deepdive. Non-integer values are rejected up front with the
+   * not-found message, mirroring the other resolvers.
+   */
+  private resolveCompetition(
+    value: string,
+  ): Promise<string | InteractionReplyOptions> {
+    const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
+    }
+    return resolveCompetitionDeepdive(id, { competitions: this.competitions });
   }
 }
