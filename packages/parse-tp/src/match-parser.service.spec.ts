@@ -2,8 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { MatchEventParserService } from './match-event-parser.service';
 import { MatchParserService } from './match-parser.service';
+import { SecretObjectiveService } from './secret-objective.service';
+import { WeatherTypeService } from './weather-type.service';
 
-const service = new MatchParserService(new MatchEventParserService());
+const service = new MatchParserService(
+  new MatchEventParserService(
+    new SecretObjectiveService(),
+    new WeatherTypeService(),
+  ),
+);
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import { buildDecoders, type Decoder } from './match-event-decoders';
 import type { SecretObjective } from './secret-objective';
-import { decodeSecretObjective } from './secret-objective';
+import { SecretObjectiveService } from './secret-objective.service';
 import type { WeatherType } from './weather-type';
-import { decodeWeatherType } from './weather-type';
+import { WeatherTypeService } from './weather-type.service';
 
 export type { SecretObjective } from './secret-objective';
 export type { WeatherType } from './weather-type';
@@ -171,366 +172,19 @@ export type TpMatchEvent =
       concedeVisitor: boolean;
     });
 
-const injuryTypeSchema = z.enum([
-  'None',
-  'MissNextGame',
-  'NigglingInjury',
-  'Dead',
-  'AV',
-  'ST',
-  'MA',
-  'PA',
-  'AG',
-]);
-
-const starPlayerRaw = z.object({
-  name: z.string(),
-  lineUpMasterId: z.number(),
-  number: z.number(),
-});
-
-// One raw schema per modeled code. Extra fields are dropped by non-strict parse.
-const touchdownRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  lineUpId: z.number(),
-  rosterId: z.number(),
-});
-const mvpAwardRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  lineUpId: z.number(),
-  rosterId: z.number(),
-});
-const injuryRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  lineUpId: z.number(),
-  rosterId: z.number(),
-  turnRosterId: z.number().nullish(),
-  turnNumber: z.number().nullish(),
-  injuryType: injuryTypeSchema,
-});
-const casualtyCausedRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  lineUpId: z.number(),
-  rosterId: z.number(),
-  turnNumber: z.number().nullish(),
-});
-const weatherRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({ weatherType: z.number() }),
-});
-const inducementsRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  rosterId: z.number(),
-  extraData: z.object({
-    totalCost: z.number(),
-    starPlayers: z.array(starPlayerRaw),
-    fromTreasury: z.number().nullish(),
-  }),
-});
-const winningsRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({
-    localWinnings: z.number(),
-    visitorWinnings: z.number(),
-  }),
-});
-const fanFactorRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({
-    newFanFactorLocal: z.number(),
-    newFanFactorVisitor: z.number(),
-  }),
-});
-const journeymanSigningRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  rosterId: z.number(),
-  extraData: z.object({ journeymenCount: z.number() }),
-});
-/**
- * TP's `extraData.expensiveMistake` is which tier of the Expensive Mistakes
- * table was rolled (1 = no cost, 2 = a partial-treasury cost, 3 = half the
- * treasury), not the money lost — `extraData.totalCost` carries that.
- */
-const expensiveMistakeRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  rosterId: z.number(),
-  extraData: z.object({ totalCost: z.number() }),
-});
-const dedicatedFansRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({
-    dedicatedFansModifierLocal: z.number(),
-    dedicatedFansModifierVisitor: z.number(),
-  }),
-});
-const secretObjectiveRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  rosterId: z.number(),
-  extraData: z.object({ secretObjective: z.number() }),
-});
-const prayersToNuffleRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({ prayersToNuffle: z.number() }),
-});
-const concessionRaw = z.object({
-  id: z.number(),
-  instant: z.string(),
-  extraData: z.object({
-    concedeLocal: z.boolean(),
-    concedeVisitor: z.boolean(),
-  }),
-});
-
-type Decoder = (raw: unknown) => TpMatchEvent;
-
-function decode<T>(
-  schema: z.ZodType<T>,
-  code: number,
-  map: (v: T) => TpMatchEvent,
-): Decoder {
-  return (raw) => {
-    const result = schema.safeParse(raw);
-    if (!result.success) {
-      throw new Error(
-        `Invalid TP match event (code ${code}): ${result.error.issues
-          .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
-          .join('; ')}`,
-      );
-    }
-    return map(result.data);
-  };
-}
-
-const decoders = new Map<number, Decoder>([
-  [
-    3,
-    decode(touchdownRaw, 3, (v) => ({
-      type: 'completion',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    4,
-    decode(touchdownRaw, 4, (v) => ({
-      type: 'touchdown',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    5,
-    decode(touchdownRaw, 5, (v) => ({
-      type: 'interception',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    6,
-    decode(casualtyCausedRaw, 6, (v) => ({
-      type: 'casualty_caused',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-      ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
-    })),
-  ],
-  [
-    7,
-    decode(mvpAwardRaw, 7, (v) => ({
-      type: 'mvp_award',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    8,
-    decode(injuryRaw, 8, (v) => ({
-      type: 'injury',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-      ...(v.turnRosterId != null ? { turnRosterId: v.turnRosterId } : {}),
-      ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
-      injuryType: v.injuryType,
-    })),
-  ],
-  [
-    10,
-    decode(weatherRaw, 10, (v) => ({
-      type: 'weather_roll',
-      tpEventId: v.id,
-      instant: v.instant,
-      weatherType: decodeWeatherType(v.extraData.weatherType),
-    })),
-  ],
-  [
-    11,
-    decode(inducementsRaw, 11, (v) => ({
-      type: 'inducements_roll',
-      tpEventId: v.id,
-      instant: v.instant,
-      rosterId: v.rosterId,
-      totalCost: v.extraData.totalCost,
-      starPlayers: v.extraData.starPlayers.map((sp) => ({
-        name: sp.name,
-        lineUpMasterId: sp.lineUpMasterId,
-        number: sp.number,
-      })),
-      ...(v.extraData.fromTreasury != null
-        ? { fromTreasury: v.extraData.fromTreasury }
-        : {}),
-    })),
-  ],
-  [
-    12,
-    decode(winningsRaw, 12, (v) => ({
-      type: 'winnings_roll',
-      tpEventId: v.id,
-      instant: v.instant,
-      localWinnings: v.extraData.localWinnings,
-      visitorWinnings: v.extraData.visitorWinnings,
-    })),
-  ],
-  [
-    13,
-    decode(fanFactorRaw, 13, (v) => ({
-      type: 'fan_factor_roll',
-      tpEventId: v.id,
-      instant: v.instant,
-      newFanFactorLocal: v.extraData.newFanFactorLocal,
-      newFanFactorVisitor: v.extraData.newFanFactorVisitor,
-    })),
-  ],
-  [
-    14,
-    decode(expensiveMistakeRaw, 14, (v) => ({
-      type: 'expensive_mistake',
-      tpEventId: v.id,
-      instant: v.instant,
-      rosterId: v.rosterId,
-      expensiveMistake: v.extraData.totalCost,
-    })),
-  ],
-  [
-    15,
-    decode(journeymanSigningRaw, 15, (v) => ({
-      type: 'journeyman_signing',
-      tpEventId: v.id,
-      instant: v.instant,
-      rosterId: v.rosterId,
-      journeymenCount: v.extraData.journeymenCount,
-    })),
-  ],
-  [
-    20,
-    decode(concessionRaw, 20, (v) => ({
-      type: 'concession',
-      tpEventId: v.id,
-      instant: v.instant,
-      concedeLocal: v.extraData.concedeLocal,
-      concedeVisitor: v.extraData.concedeVisitor,
-    })),
-  ],
-  [
-    23,
-    decode(prayersToNuffleRaw, 23, (v) => ({
-      type: 'prayers_to_nuffle',
-      tpEventId: v.id,
-      instant: v.instant,
-      prayersToNuffle: v.extraData.prayersToNuffle,
-    })),
-  ],
-  [
-    25,
-    decode(touchdownRaw, 25, (v) => ({
-      type: 'deflection',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    26,
-    decode(dedicatedFansRaw, 26, (v) => ({
-      type: 'dedicated_fans_roll',
-      tpEventId: v.id,
-      instant: v.instant,
-      dedicatedFansModifierLocal: v.extraData.dedicatedFansModifierLocal,
-      dedicatedFansModifierVisitor: v.extraData.dedicatedFansModifierVisitor,
-    })),
-  ],
-  [
-    31,
-    decode(touchdownRaw, 31, (v) => ({
-      type: 'foul',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    32,
-    decode(touchdownRaw, 32, (v) => ({
-      type: 'sent_off',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-  [
-    42,
-    decode(secretObjectiveRaw, 42, (v) => ({
-      type: 'secret_objective',
-      tpEventId: v.id,
-      instant: v.instant,
-      rosterId: v.rosterId,
-      secretObjective: decodeSecretObjective(v.extraData.secretObjective),
-    })),
-  ],
-  [
-    46,
-    decode(touchdownRaw, 46, (v) => ({
-      type: 'successful_landing',
-      tpEventId: v.id,
-      instant: v.instant,
-      lineUpId: v.lineUpId,
-      rosterId: v.rosterId,
-    })),
-  ],
-]);
-
 const topLevelSchema = z.object({ matchEventType: z.number() });
 
 @Injectable()
 export class MatchEventParserService {
+  private readonly decoders: Map<number, Decoder>;
+
+  constructor(
+    private readonly secretObjective: SecretObjectiveService,
+    private readonly weatherType: WeatherTypeService,
+  ) {
+    this.decoders = buildDecoders(this.secretObjective, this.weatherType);
+  }
+
   /**
    * Decode a raw TP `matchEvents[]` array into the modeled subset. Structural
    * markers and per-roll noise (codes such as 0, 1, 18, 19, 27 — including
@@ -552,7 +206,7 @@ export class MatchEventParserService {
       if (!head.success) {
         continue; // no numeric matchEventType — not a decodable event
       }
-      const decoder = decoders.get(head.data.matchEventType);
+      const decoder = this.decoders.get(head.data.matchEventType);
       if (decoder) {
         events.push(decoder(raw));
       }

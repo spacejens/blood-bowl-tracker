@@ -2,9 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import { MatchEventParserService } from './match-event-parser.service';
 import { secretObjectiveByCode } from './secret-objective';
+import { SecretObjectiveService } from './secret-objective.service';
 import { weatherTypeByCode } from './weather-type';
+import { WeatherTypeService } from './weather-type.service';
 
-const parser = new MatchEventParserService();
+const parser = new MatchEventParserService(
+  new SecretObjectiveService(),
+  new WeatherTypeService(),
+);
 
 describe('MatchEventParserService', () => {
   it('decodes a touchdown (code 4)', () => {
