@@ -3,10 +3,10 @@ import { z } from 'zod';
 
 import type { Decoder } from './match-event-decoders';
 import { MatchEventDecodersService } from './match-event-decoders.service';
-import type { SecretObjective } from './secret-objective';
+import type { SecretObjective } from './secret-objective.service';
 import type { WeatherType } from './weather-type.service';
 
-export type { SecretObjective } from './secret-objective';
+export type { SecretObjective } from './secret-objective.service';
 export type { WeatherType } from './weather-type.service';
 
 /**

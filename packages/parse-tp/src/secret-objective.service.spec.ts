@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { secretObjectiveByCode } from './secret-objective';
-import { SecretObjectiveService } from './secret-objective.service';
+import {
+  secretObjectiveByCode,
+  SecretObjectiveService,
+} from './secret-objective.service';
 
 describe('SecretObjectiveService', () => {
   const service = new SecretObjectiveService();
