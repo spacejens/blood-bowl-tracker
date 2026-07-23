@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { MatchEventDecodersService } from './match-event-decoders.service';
 import { MatchEventParserService } from './match-event-parser.service';
 import { secretObjectiveByCode } from './secret-objective';
 import { SecretObjectiveService } from './secret-objective.service';
@@ -7,8 +8,10 @@ import { weatherTypeByCode } from './weather-type';
 import { WeatherTypeService } from './weather-type.service';
 
 const parser = new MatchEventParserService(
-  new SecretObjectiveService(),
-  new WeatherTypeService(),
+  new MatchEventDecodersService(
+    new SecretObjectiveService(),
+    new WeatherTypeService(),
+  ),
 );
 
 describe('MatchEventParserService', () => {

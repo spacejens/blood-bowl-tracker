@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import { buildDecoders, type Decoder } from './match-event-decoders';
+import type { Decoder } from './match-event-decoders';
+import { MatchEventDecodersService } from './match-event-decoders.service';
 import type { SecretObjective } from './secret-objective';
-import { SecretObjectiveService } from './secret-objective.service';
 import type { WeatherType } from './weather-type';
-import { WeatherTypeService } from './weather-type.service';
 
 export type { SecretObjective } from './secret-objective';
 export type { WeatherType } from './weather-type';
@@ -178,11 +177,8 @@ const topLevelSchema = z.object({ matchEventType: z.number() });
 export class MatchEventParserService {
   private readonly decoders: Map<number, Decoder>;
 
-  constructor(
-    private readonly secretObjective: SecretObjectiveService,
-    private readonly weatherType: WeatherTypeService,
-  ) {
-    this.decoders = buildDecoders(this.secretObjective, this.weatherType);
+  constructor(private readonly matchEventDecoders: MatchEventDecodersService) {
+    this.decoders = this.matchEventDecoders.build();
   }
 
   /**

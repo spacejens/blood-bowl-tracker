@@ -1,5 +1,6 @@
 export type { TpCoach } from './inscriptions-parser.service';
 export { InscriptionsParserService } from './inscriptions-parser.service';
+export { MatchEventDecodersService } from './match-event-decoders.service';
 export type {
   SecretObjective,
   TpInducedStarPlayer,

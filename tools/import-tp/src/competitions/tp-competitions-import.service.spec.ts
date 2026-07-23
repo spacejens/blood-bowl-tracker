@@ -8,6 +8,7 @@ import {
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import {
+  MatchEventDecodersService,
   MatchEventParserService,
   MatchParserService,
   SecretObjectiveService,
@@ -42,8 +43,10 @@ function makeService({
     new TournamentParserService(),
     new MatchParserService(
       new MatchEventParserService(
-        new SecretObjectiveService(),
-        new WeatherTypeService(),
+        new MatchEventDecodersService(
+          new SecretObjectiveService(),
+          new WeatherTypeService(),
+        ),
       ),
     ),
     { upsertCompetitionResult } as unknown as CompetitionsImportService,
