@@ -2,30 +2,30 @@ import type { FactScope, PlayersService } from '@blood-bowl-tracker/game-data';
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PLAYER_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
-import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import {
-  resolvePlayerCasualtiesCausedToplist,
-  resolvePlayerCasualtiesSufferedToplist,
-  resolvePlayerCompletionsToplist,
-  resolvePlayerDeathsCausedToplist,
-  resolvePlayerDeflectionsToplist,
-  resolvePlayerFoulsCommittedToplist,
-  resolvePlayerInterceptionsToplist,
-  resolvePlayerLastingInjuriesSufferedToplist,
-  resolvePlayerMvpsToplist,
-  resolvePlayerSeriousInjuriesCausedToplist,
-  resolvePlayerSeriousInjuriesSufferedToplist,
-  resolvePlayerTimesSentOffToplist,
-  resolvePlayerTouchdownsScoredToplist,
-} from './player-toplist';
+  LeaderboardService,
+  TOPLIST_FETCH_LIMIT,
+} from '../leaderboard.service';
+import { PlayerToplistService } from './player-toplist.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
+
+function makeService(players: PlayersService): PlayerToplistService {
+  return new PlayerToplistService(
+    players,
+    new LeaderboardService(new DatabaseTimeoutService()),
+  );
+}
 
 interface PlayerCase {
   describeName: string;
   method: keyof PlayersService;
-  resolve: (players: PlayersService, scope: FactScope) => Promise<unknown>;
+  resolve: (
+    service: PlayerToplistService,
+    scope: FactScope,
+  ) => Promise<unknown>;
   rows: { playerId: number; name: string; count: number }[];
   eraRows: { playerId: number; name: string; count: number }[];
   competitionRows?: { playerId: number; name: string; count: number }[];
@@ -35,9 +35,9 @@ interface PlayerCase {
 
 const cases: PlayerCase[] = [
   {
-    describeName: 'resolvePlayerMvpsToplist',
+    describeName: 'resolveMvps',
     method: 'countMvpAwardsByPlayer',
-    resolve: (players, scope) => resolvePlayerMvpsToplist(players, scope),
+    resolve: (service, scope) => service.resolveMvps(scope),
     rows: [
       { playerId: 1, name: 'Griff Oberwald', count: 7 },
       { playerId: 2, name: 'Morg n Thorg', count: 7 },
@@ -50,10 +50,9 @@ const cases: PlayerCase[] = [
       '1. Griff Oberwald — 7\n1. Morg n Thorg — 7\n2. Zug — 3',
   },
   {
-    describeName: 'resolvePlayerTouchdownsScoredToplist',
+    describeName: 'resolveTouchdownsScored',
     method: 'countTouchdownsScoredByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerTouchdownsScoredToplist(players, scope),
+    resolve: (service, scope) => service.resolveTouchdownsScored(scope),
     rows: [
       { playerId: 1, name: 'Griff Oberwald', count: 9 },
       { playerId: 2, name: 'Zug', count: 9 },
@@ -66,10 +65,9 @@ const cases: PlayerCase[] = [
       '1. Griff Oberwald — 9\n1. Zug — 9\n2. Morg n Thorg — 4',
   },
   {
-    describeName: 'resolvePlayerCompletionsToplist',
+    describeName: 'resolveCompletions',
     method: 'countCompletionsByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerCompletionsToplist(players, scope),
+    resolve: (service, scope) => service.resolveCompletions(scope),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 6 }],
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
@@ -77,10 +75,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Griff Oberwald — 6',
   },
   {
-    describeName: 'resolvePlayerInterceptionsToplist',
+    describeName: 'resolveInterceptions',
     method: 'countInterceptionsByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerInterceptionsToplist(players, scope),
+    resolve: (service, scope) => service.resolveInterceptions(scope),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 5 }],
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
@@ -88,10 +85,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Griff Oberwald — 5',
   },
   {
-    describeName: 'resolvePlayerDeflectionsToplist',
+    describeName: 'resolveDeflections',
     method: 'countDeflectionsByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerDeflectionsToplist(players, scope),
+    resolve: (service, scope) => service.resolveDeflections(scope),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 4 }],
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
@@ -99,10 +95,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Griff Oberwald — 4',
   },
   {
-    describeName: 'resolvePlayerCasualtiesCausedToplist',
+    describeName: 'resolveCasualtiesCaused',
     method: 'countCasualtiesCausedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerCasualtiesCausedToplist(players, scope),
+    resolve: (service, scope) => service.resolveCasualtiesCaused(scope),
     rows: [
       { playerId: 1, name: 'Morg n Thorg', count: 11 },
       { playerId: 2, name: 'Grashnak Blackhoof', count: 11 },
@@ -115,10 +110,9 @@ const cases: PlayerCase[] = [
       '1. Morg n Thorg — 11\n1. Grashnak Blackhoof — 11\n2. Griff Oberwald — 4',
   },
   {
-    describeName: 'resolvePlayerSeriousInjuriesCausedToplist',
+    describeName: 'resolveSeriousInjuriesCaused',
     method: 'countSeriousInjuriesCausedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerSeriousInjuriesCausedToplist(players, scope),
+    resolve: (service, scope) => service.resolveSeriousInjuriesCaused(scope),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 3 }],
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
@@ -126,10 +120,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Morg n Thorg — 3',
   },
   {
-    describeName: 'resolvePlayerDeathsCausedToplist',
+    describeName: 'resolveDeathsCaused',
     method: 'countDeathsCausedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerDeathsCausedToplist(players, scope),
+    resolve: (service, scope) => service.resolveDeathsCaused(scope),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
@@ -137,10 +130,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Morg n Thorg — 2',
   },
   {
-    describeName: 'resolvePlayerFoulsCommittedToplist',
+    describeName: 'resolveFoulsCommitted',
     method: 'countFoulsCommittedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerFoulsCommittedToplist(players, scope),
+    resolve: (service, scope) => service.resolveFoulsCommitted(scope),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 6 }],
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
@@ -148,10 +140,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Morg n Thorg — 6',
   },
   {
-    describeName: 'resolvePlayerTimesSentOffToplist',
+    describeName: 'resolveTimesSentOff',
     method: 'countTimesSentOffByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerTimesSentOffToplist(players, scope),
+    resolve: (service, scope) => service.resolveTimesSentOff(scope),
     rows: [{ playerId: 1, name: 'Morg n Thorg', count: 5 }],
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
@@ -159,10 +150,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Morg n Thorg — 5',
   },
   {
-    describeName: 'resolvePlayerCasualtiesSufferedToplist',
+    describeName: 'resolveCasualtiesSuffered',
     method: 'countCasualtiesSufferedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerCasualtiesSufferedToplist(players, scope),
+    resolve: (service, scope) => service.resolveCasualtiesSuffered(scope),
     rows: [
       { playerId: 1, name: 'Griff Oberwald', count: 12 },
       { playerId: 2, name: 'Zug', count: 12 },
@@ -175,10 +165,9 @@ const cases: PlayerCase[] = [
       '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
   },
   {
-    describeName: 'resolvePlayerSeriousInjuriesSufferedToplist',
+    describeName: 'resolveSeriousInjuriesSuffered',
     method: 'countSeriousInjuriesSufferedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerSeriousInjuriesSufferedToplist(players, scope),
+    resolve: (service, scope) => service.resolveSeriousInjuriesSuffered(scope),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 5 }],
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
@@ -186,10 +175,9 @@ const cases: PlayerCase[] = [
     expectedDescription: '1. Griff Oberwald — 5',
   },
   {
-    describeName: 'resolvePlayerLastingInjuriesSufferedToplist',
+    describeName: 'resolveLastingInjuriesSuffered',
     method: 'countLastingInjuriesSufferedByPlayer',
-    resolve: (players, scope) =>
-      resolvePlayerLastingInjuriesSufferedToplist(players, scope),
+    resolve: (service, scope) => service.resolveLastingInjuriesSuffered(scope),
     rows: [{ playerId: 1, name: 'Griff Oberwald', count: 4 }],
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
@@ -199,7 +187,7 @@ const cases: PlayerCase[] = [
 ];
 
 describe.each(cases)(
-  '$describeName',
+  'PlayerToplistService.$describeName',
   ({
     method,
     resolve,
@@ -213,7 +201,10 @@ describe.each(cases)(
       const players = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as PlayersService;
-      const result = (await resolve(players, FACT_SCOPE_ALL_TIME)) as {
+      const result = (await resolve(
+        makeService(players),
+        FACT_SCOPE_ALL_TIME,
+      )) as {
         embeds: { title: string; description: string }[];
         components: { components: { label: string; custom_id: string }[] }[];
       };
@@ -230,7 +221,7 @@ describe.each(cases)(
     it('passes the era id through to the query', async () => {
       const queryFn = vi.fn().mockResolvedValue(eraRows);
       const players = { [method]: queryFn } as unknown as PlayersService;
-      await resolve(players, { eraId: 20 });
+      await resolve(makeService(players), { eraId: 20 });
       expect(queryFn).toHaveBeenCalledWith({ eraId: 20 }, TOPLIST_FETCH_LIMIT);
     });
 
@@ -238,7 +229,7 @@ describe.each(cases)(
       it('passes the competition id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const players = { [method]: queryFn } as unknown as PlayersService;
-        await resolve(players, { competitionId: 30 });
+        await resolve(makeService(players), { competitionId: 30 });
         expect(queryFn).toHaveBeenCalledWith(
           { competitionId: 30 },
           TOPLIST_FETCH_LIMIT,
@@ -248,7 +239,8 @@ describe.each(cases)(
 
     it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
-        (players: PlayersService) => resolve(players, FACT_SCOPE_ALL_TIME),
+        (players: PlayersService) =>
+          resolve(makeService(players), FACT_SCOPE_ALL_TIME),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),
