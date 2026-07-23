@@ -324,6 +324,23 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    it('returns the player count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 130 }]);
+      const select = vi.fn(() => builder);
+      const service = new PlayersService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(130);
+      expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['team_eras.id', 'players.team_era_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+  });
+
   describe('countByCompetition', () => {
     it('returns the player count for the competition', async () => {
       const builder = makeCountBuilder([{ count: 42 }]);

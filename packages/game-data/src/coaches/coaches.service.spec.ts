@@ -387,6 +387,35 @@ describe('CoachesService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    function makeCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the distinct coach count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 15 }]);
+      const select = vi.fn(() => builder);
+      const service = new CoachesService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(15);
+      expect(select).toHaveBeenCalledTimes(1);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['teams.id', 'team_eras.team_id'],
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
+        ['eras.id', 'team_eras.era_id'],
+      );
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+  });
+
   describe('countByCompetition', () => {
     function makeCountBuilder(rows: unknown[]) {
       const builder: Record<string, unknown> = {};

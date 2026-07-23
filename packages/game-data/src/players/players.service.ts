@@ -3,6 +3,7 @@ import type { Db, Player } from '@blood-bowl-tracker/db';
 import {
   competitionTeams,
   DB,
+  eras,
   playerExternalIds,
   players,
   positions,
@@ -363,6 +364,16 @@ export class PlayersService {
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .where(eq(teamEras.eraId, eraId));
+    return row.count;
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count(players.id) })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
     return row.count;
   }
 

@@ -201,6 +201,15 @@ export class RacesService {
     return row.count;
   }
 
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: countDistinct(raceEras.raceId) })
+      .from(raceEras)
+      .innerJoin(eras, eq(eras.id, raceEras.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
+  }
+
   async countByCompetition(competitionId: number): Promise<number> {
     const [row] = await this.db
       .select({ count: countDistinct(teams.raceId) })

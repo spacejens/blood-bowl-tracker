@@ -9,7 +9,7 @@ import {
   rulesSets,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, ilike } from 'drizzle-orm';
+import { count, eq, ilike } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import { escapeLikePattern } from '../shared/escape-like-pattern';
@@ -114,6 +114,17 @@ export class ErasService {
     return rows.map((r) => r.name);
   }
 
+  async getRulesSetNamesByLeague(leagueId: number): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ name: rulesSets.name })
+      .from(eraRulesSets)
+      .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
+      .innerJoin(eras, eq(eras.id, eraRulesSets.eraId))
+      .where(eq(eras.leagueId, leagueId))
+      .orderBy(rulesSets.id);
+    return rows.map((r) => r.name);
+  }
+
   listErasWithLeague(): Promise<
     {
       id: number;
@@ -161,5 +172,13 @@ export class ErasService {
 
   countAll(): Promise<number> {
     return countRows(this.db, eras);
+  }
+
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(eras)
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
   }
 }
