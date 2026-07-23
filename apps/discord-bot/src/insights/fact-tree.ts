@@ -1,46 +1,11 @@
-import { DatabaseTimeoutService } from '../database-timeout.service';
-import type { FactNode, StatsSummaryDeps } from './fact-tree.types';
-import { CoachToplistService } from './facts/coach-toplist.service';
-import { ErasListService } from './facts/eras-list.service';
-import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
-import { PlayerToplistService } from './facts/player-toplist.service';
-import { RaceToplistService } from './facts/race-toplist.service';
-import { StatsSummaryFactsService } from './facts/stats-summary.service';
-import { TeamToplistService } from './facts/team-toplist.service';
-import { LeaderboardService } from './leaderboard.service';
+import type { FactNode, FactTreeDeps } from './fact-tree.types';
 
 /**
- * buildFactTree is a pure function invoked once by FactTreeFactoryService, so
- * the toplist services converted so far (coach/race/expensive-mistakes/eras/
- * team/player/stats-summary) are instantiated directly here rather than
- * injected — this factory doesn't have a DI container to pull from until
- * Task 12 rewires it.
+ * buildFactTree is a pure function invoked once by FactTreeFactoryService,
+ * which injects the fact services below through DI and passes them straight
+ * through as the FactTreeDeps bag.
  */
-export function buildFactTree(deps: StatsSummaryDeps): FactNode {
-  const leaderboard = new LeaderboardService(new DatabaseTimeoutService());
-  const coachToplist = new CoachToplistService(deps.coaches, leaderboard);
-  const raceToplist = new RaceToplistService(deps.races, leaderboard);
-  const expensiveMistakesToplist = new ExpensiveMistakesToplistService(
-    deps.teams,
-    leaderboard,
-  );
-  const erasList = new ErasListService(deps.eras, new DatabaseTimeoutService());
-  const teamToplist = new TeamToplistService(deps.teams, leaderboard);
-  const playerToplist = new PlayerToplistService(deps.players, leaderboard);
-  const statsSummary = new StatsSummaryFactsService(
-    deps.leagues,
-    deps.externalSystems,
-    deps.rulesSets,
-    deps.races,
-    deps.positions,
-    deps.coaches,
-    deps.eras,
-    deps.competitions,
-    deps.teams,
-    deps.players,
-    deps.matches,
-    new DatabaseTimeoutService(),
-  );
+export function buildFactTree(deps: FactTreeDeps): FactNode {
   return {
     coach: {
       toplist: {
@@ -49,21 +14,22 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) => coachToplist.resolveMatchesPlayed(scope),
+            resolve: (scope) => deps.coachToplist.resolveMatchesPlayed(scope),
           },
         },
         teams: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: false,
-          resolve: (scope) => coachToplist.resolveTeams(scope),
+          resolve: (scope) => deps.coachToplist.resolveTeams(scope),
         },
         competitions: {
           played: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) => coachToplist.resolveCompetitionsPlayed(scope),
+            resolve: (scope) =>
+              deps.coachToplist.resolveCompetitionsPlayed(scope),
           },
         },
         eras: {
@@ -71,7 +37,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: false,
             supportsEra: false,
             supportsCompetition: false,
-            resolve: () => coachToplist.resolveErasActive(),
+            resolve: () => deps.coachToplist.resolveErasActive(),
           },
         },
       },
@@ -83,7 +49,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) => teamToplist.resolveMatchesPlayed(scope),
+            resolve: (scope) => deps.teamToplist.resolveMatchesPlayed(scope),
           },
         },
         competitions: {
@@ -91,7 +57,8 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) => teamToplist.resolveCompetitionsPlayed(scope),
+            resolve: (scope) =>
+              deps.teamToplist.resolveCompetitionsPlayed(scope),
           },
         },
         eras: {
@@ -99,7 +66,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: false,
             supportsEra: false,
             supportsCompetition: false,
-            resolve: () => teamToplist.resolveErasActive(),
+            resolve: () => deps.teamToplist.resolveErasActive(),
           },
         },
         touchdowns: {
@@ -107,39 +74,40 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveTouchdownsScored(scope),
+            resolve: (scope) => deps.teamToplist.resolveTouchdownsScored(scope),
           },
         },
         completions: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => teamToplist.resolveCompletions(scope),
+          resolve: (scope) => deps.teamToplist.resolveCompletions(scope),
         },
         interceptions: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => teamToplist.resolveInterceptions(scope),
+          resolve: (scope) => deps.teamToplist.resolveInterceptions(scope),
         },
         deflections: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => teamToplist.resolveDeflections(scope),
+          resolve: (scope) => deps.teamToplist.resolveDeflections(scope),
         },
         casualties: {
           caused: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveCasualtiesCaused(scope),
+            resolve: (scope) => deps.teamToplist.resolveCasualtiesCaused(scope),
           },
           suffered: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveCasualtiesSuffered(scope),
+            resolve: (scope) =>
+              deps.teamToplist.resolveCasualtiesSuffered(scope),
           },
         },
         injuries: {
@@ -149,14 +117,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                teamToplist.resolveSeriousInjuriesCaused(scope),
+                deps.teamToplist.resolveSeriousInjuriesCaused(scope),
             },
             suffered: {
               supportsLeague: true,
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                teamToplist.resolveSeriousInjuriesSuffered(scope),
+                deps.teamToplist.resolveSeriousInjuriesSuffered(scope),
             },
           },
           lasting: {
@@ -165,7 +133,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                teamToplist.resolveLastingInjuriesSuffered(scope),
+                deps.teamToplist.resolveLastingInjuriesSuffered(scope),
             },
           },
         },
@@ -174,13 +142,13 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveDeathsCaused(scope),
+            resolve: (scope) => deps.teamToplist.resolveDeathsCaused(scope),
           },
           suffered: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveDeathsSuffered(scope),
+            resolve: (scope) => deps.teamToplist.resolveDeathsSuffered(scope),
           },
         },
         fouls: {
@@ -188,27 +156,27 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => teamToplist.resolveFoulsCommitted(scope),
+            resolve: (scope) => deps.teamToplist.resolveFoulsCommitted(scope),
           },
         },
         sent_off: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => teamToplist.resolveTimesSentOff(scope),
+          resolve: (scope) => deps.teamToplist.resolveTimesSentOff(scope),
         },
         expensiveMistakes: {
           total: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => expensiveMistakesToplist.resolveTotal(scope),
+            resolve: (scope) => deps.expensiveMistakes.resolveTotal(scope),
           },
           biggest: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => expensiveMistakesToplist.resolveBiggest(scope),
+            resolve: (scope) => deps.expensiveMistakes.resolveBiggest(scope),
           },
         },
       },
@@ -219,46 +187,49 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => playerToplist.resolveMvps(scope),
+          resolve: (scope) => deps.playerToplist.resolveMvps(scope),
         },
         touchdowns: {
           scored: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => playerToplist.resolveTouchdownsScored(scope),
+            resolve: (scope) =>
+              deps.playerToplist.resolveTouchdownsScored(scope),
           },
         },
         completions: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => playerToplist.resolveCompletions(scope),
+          resolve: (scope) => deps.playerToplist.resolveCompletions(scope),
         },
         interceptions: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => playerToplist.resolveInterceptions(scope),
+          resolve: (scope) => deps.playerToplist.resolveInterceptions(scope),
         },
         deflections: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => playerToplist.resolveDeflections(scope),
+          resolve: (scope) => deps.playerToplist.resolveDeflections(scope),
         },
         casualties: {
           caused: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => playerToplist.resolveCasualtiesCaused(scope),
+            resolve: (scope) =>
+              deps.playerToplist.resolveCasualtiesCaused(scope),
           },
           suffered: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => playerToplist.resolveCasualtiesSuffered(scope),
+            resolve: (scope) =>
+              deps.playerToplist.resolveCasualtiesSuffered(scope),
           },
         },
         injuries: {
@@ -268,14 +239,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                playerToplist.resolveSeriousInjuriesCaused(scope),
+                deps.playerToplist.resolveSeriousInjuriesCaused(scope),
             },
             suffered: {
               supportsLeague: true,
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                playerToplist.resolveSeriousInjuriesSuffered(scope),
+                deps.playerToplist.resolveSeriousInjuriesSuffered(scope),
             },
           },
           lasting: {
@@ -284,7 +255,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
               supportsEra: true,
               supportsCompetition: true,
               resolve: (scope) =>
-                playerToplist.resolveLastingInjuriesSuffered(scope),
+                deps.playerToplist.resolveLastingInjuriesSuffered(scope),
             },
           },
         },
@@ -293,7 +264,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => playerToplist.resolveDeathsCaused(scope),
+            resolve: (scope) => deps.playerToplist.resolveDeathsCaused(scope),
           },
         },
         fouls: {
@@ -301,14 +272,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: true,
-            resolve: (scope) => playerToplist.resolveFoulsCommitted(scope),
+            resolve: (scope) => deps.playerToplist.resolveFoulsCommitted(scope),
           },
         },
         sent_off: {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: true,
-          resolve: (scope) => playerToplist.resolveTimesSentOff(scope),
+          resolve: (scope) => deps.playerToplist.resolveTimesSentOff(scope),
         },
       },
     },
@@ -318,14 +289,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
           supportsLeague: true,
           supportsEra: true,
           supportsCompetition: false,
-          resolve: (scope) => raceToplist.resolveTeams(scope),
+          resolve: (scope) => deps.raceToplist.resolveTeams(scope),
         },
         matches: {
           played: {
             supportsLeague: true,
             supportsEra: true,
             supportsCompetition: false,
-            resolve: (scope) => raceToplist.resolveMatchesPlayed(scope),
+            resolve: (scope) => deps.raceToplist.resolveMatchesPlayed(scope),
           },
         },
       },
@@ -335,14 +306,14 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
         supportsLeague: true,
         supportsEra: false,
         supportsCompetition: false,
-        resolve: (scope) => erasList.resolve(scope),
+        resolve: (scope) => deps.erasList.resolve(scope),
       },
     },
     stats: {
       supportsLeague: true,
       supportsEra: true,
       supportsCompetition: true,
-      resolve: (scope) => statsSummary.resolve(scope),
+      resolve: (scope) => deps.statsSummary.resolve(scope),
     },
   };
 }

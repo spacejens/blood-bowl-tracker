@@ -1,36 +1,23 @@
-import type {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
-  FactScope,
-  LeaguesService,
-  MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
-/**
- * `buildFactTree`'s dependency bag. Stopgap until Task 12 rewires
- * `FactTreeFactoryService` to inject the converted fact services directly
- * instead of assembling this bag of raw game-data services.
- */
-export interface StatsSummaryDeps {
-  leagues: LeaguesService;
-  externalSystems: ExternalSystemsService;
-  rulesSets: RulesSetsService;
-  races: RacesService;
-  positions: PositionsService;
-  coaches: CoachesService;
-  eras: ErasService;
-  competitions: CompetitionsService;
-  teams: TeamsService;
-  players: PlayersService;
-  matches: MatchesService;
+import type { CoachToplistService } from './facts/coach-toplist.service';
+import type { ErasListService } from './facts/eras-list.service';
+import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import type { PlayerToplistService } from './facts/player-toplist.service';
+import type { RaceToplistService } from './facts/race-toplist.service';
+import type { StatsSummaryFactsService } from './facts/stats-summary.service';
+import type { TeamToplistService } from './facts/team-toplist.service';
+
+/** `buildFactTree`'s dependency bag: the fact services it wires into leaves. */
+export interface FactTreeDeps {
+  coachToplist: CoachToplistService;
+  teamToplist: TeamToplistService;
+  playerToplist: PlayerToplistService;
+  raceToplist: RaceToplistService;
+  expensiveMistakes: ExpensiveMistakesToplistService;
+  erasList: ErasListService;
+  statsSummary: StatsSummaryFactsService;
 }
 
 export interface FactLeaf {

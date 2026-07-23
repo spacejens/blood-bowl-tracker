@@ -1,78 +1,86 @@
-import type {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  ExternalSystemsService,
-  LeaguesService,
-  MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
+import type { CoachToplistService } from './facts/coach-toplist.service';
+import type { ErasListService } from './facts/eras-list.service';
+import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import type { PlayerToplistService } from './facts/player-toplist.service';
+import type { RaceToplistService } from './facts/race-toplist.service';
+import type { StatsSummaryFactsService } from './facts/stats-summary.service';
+import type { TeamToplistService } from './facts/team-toplist.service';
 
 const factTreeUtils = new FactTreeUtilsService();
 
 function makeFactory() {
-  const zero = () => ({
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  });
-  const coaches = {
-    countMatchesPlayedByCoach: vi
+  const coachToplist = {
+    resolveMatchesPlayed: vi
       .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 9 }]),
-    countTeamsByCoach: vi.fn().mockResolvedValue([]),
-    countCompetitionsByCoach: vi.fn().mockResolvedValue([]),
-    countErasByCoach: vi.fn().mockResolvedValue([]),
-    ...zero(),
-  } as unknown as CoachesService;
-  const teams = zero() as unknown as TeamsService;
-  const matches = {
-    countAll: vi.fn().mockResolvedValue(0),
-    countMatchEvents: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countMatchEventsByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-    countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as MatchesService;
-  const competitions = {
-    countAll: vi.fn().mockResolvedValue(0),
-    countByType: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-  } as unknown as CompetitionsService;
-  const leagues = zero() as unknown as LeaguesService;
-  const rulesSets = zero() as unknown as RulesSetsService;
-  const eras = {
-    countAll: vi.fn().mockResolvedValue(0),
-    getRulesSetNames: vi.fn().mockResolvedValue([]),
-    listErasWithLeague: vi.fn().mockResolvedValue([]),
-  } as unknown as ErasService;
-  const players = zero() as unknown as PlayersService;
-  const positions = zero() as unknown as PositionsService;
-  const races = zero() as unknown as RacesService;
-  const externalSystems = zero() as unknown as ExternalSystemsService;
+      .mockResolvedValue('coach matches played toplist'),
+    resolveTeams: vi.fn().mockResolvedValue('coach teams toplist'),
+    resolveCompetitionsPlayed: vi
+      .fn()
+      .mockResolvedValue('coach competitions played toplist'),
+    resolveErasActive: vi.fn().mockResolvedValue('coach eras active toplist'),
+  } as unknown as CoachToplistService;
+  const teamToplist = {
+    resolveMatchesPlayed: vi.fn().mockResolvedValue(''),
+    resolveCompetitionsPlayed: vi.fn().mockResolvedValue(''),
+    resolveErasActive: vi.fn().mockResolvedValue(''),
+    resolveTouchdownsScored: vi.fn().mockResolvedValue(''),
+    resolveCompletions: vi.fn().mockResolvedValue(''),
+    resolveInterceptions: vi.fn().mockResolvedValue(''),
+    resolveDeflections: vi.fn().mockResolvedValue(''),
+    resolveCasualtiesCaused: vi.fn().mockResolvedValue(''),
+    resolveCasualtiesSuffered: vi.fn().mockResolvedValue(''),
+    resolveSeriousInjuriesCaused: vi.fn().mockResolvedValue(''),
+    resolveSeriousInjuriesSuffered: vi.fn().mockResolvedValue(''),
+    resolveLastingInjuriesSuffered: vi.fn().mockResolvedValue(''),
+    resolveDeathsCaused: vi.fn().mockResolvedValue(''),
+    resolveDeathsSuffered: vi.fn().mockResolvedValue(''),
+    resolveFoulsCommitted: vi.fn().mockResolvedValue(''),
+    resolveTimesSentOff: vi.fn().mockResolvedValue(''),
+  } as unknown as TeamToplistService;
+  const playerToplist = {
+    resolveMvps: vi.fn().mockResolvedValue(''),
+    resolveTouchdownsScored: vi.fn().mockResolvedValue(''),
+    resolveCompletions: vi.fn().mockResolvedValue(''),
+    resolveInterceptions: vi.fn().mockResolvedValue(''),
+    resolveDeflections: vi.fn().mockResolvedValue(''),
+    resolveCasualtiesCaused: vi.fn().mockResolvedValue(''),
+    resolveCasualtiesSuffered: vi.fn().mockResolvedValue(''),
+    resolveSeriousInjuriesCaused: vi.fn().mockResolvedValue(''),
+    resolveSeriousInjuriesSuffered: vi.fn().mockResolvedValue(''),
+    resolveLastingInjuriesSuffered: vi.fn().mockResolvedValue(''),
+    resolveDeathsCaused: vi.fn().mockResolvedValue(''),
+    resolveFoulsCommitted: vi.fn().mockResolvedValue(''),
+    resolveTimesSentOff: vi.fn().mockResolvedValue(''),
+  } as unknown as PlayerToplistService;
+  const raceToplist = {
+    resolveTeams: vi.fn().mockResolvedValue(''),
+    resolveMatchesPlayed: vi.fn().mockResolvedValue(''),
+  } as unknown as RaceToplistService;
+  const expensiveMistakes = {
+    resolveTotal: vi.fn().mockResolvedValue(''),
+    resolveBiggest: vi.fn().mockResolvedValue(''),
+  } as unknown as ExpensiveMistakesToplistService;
+  const erasList = {
+    resolve: vi.fn().mockResolvedValue(''),
+  } as unknown as ErasListService;
+  const statsSummary = {
+    resolve: vi.fn().mockResolvedValue(''),
+  } as unknown as StatsSummaryFactsService;
 
   const factory = new FactTreeFactoryService(
-    coaches,
-    teams,
-    matches,
-    competitions,
-    leagues,
-    rulesSets,
-    eras,
-    players,
-    positions,
-    races,
-    externalSystems,
+    coachToplist,
+    teamToplist,
+    playerToplist,
+    raceToplist,
+    expensiveMistakes,
+    erasList,
+    statsSummary,
   );
-  return { factory, coaches };
+  return { factory, coachToplist };
 }
 
 describe('FactTreeFactoryService', () => {
@@ -88,7 +96,7 @@ describe('FactTreeFactoryService', () => {
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
-    const { factory, coaches } = makeFactory();
+    const { factory, coachToplist } = makeFactory();
     const leaf = factTreeUtils.resolvePath(
       factory.build(),
       'coach.toplist.matches.played',
@@ -99,6 +107,6 @@ describe('FactTreeFactoryService', () => {
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
     ).resolve();
     // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
-    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalled();
+    expect(coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 });
