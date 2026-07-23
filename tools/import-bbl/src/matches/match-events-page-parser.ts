@@ -223,7 +223,7 @@ export class MatchEventsPageParser {
    * Count `<br>`-separated segments of a cell whose only content is the literal
    * text "journeyman" (case-insensitive, spacer images and whitespace removed)
    * and that carry no player link. Each such segment is a distinct anonymous
-   * journeyman: a delinked, un-idexed player BBL renders as the bare word.
+   * journeyman: a delinked, un-indexed player BBL renders as the bare word.
    */
   private countJourneymenInCell(
     $: ReturnType<BblPage['load']>,
@@ -241,7 +241,7 @@ export class MatchEventsPageParser {
         .remove()
         .end()
         .text()
-        .replace(/ /g, ' ')
+        .replace(/\u00A0/g, ' ')
         .trim()
         .toLowerCase();
       if (text === 'journeyman') {

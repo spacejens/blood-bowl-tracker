@@ -241,4 +241,17 @@ describe('MatchEventsPageParser journeyman counting', () => {
     // ...and the anonymous journeyman is counted independently.
     expect(result.journeymenCount).toEqual({ home: 0, away: 1 });
   });
+
+  it('does not count a linked anchor with "journeyman" text as an anonymous mention', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row('Death', '', '<a href="default.asp?p=pl&pid=999">journeyman</a>'),
+      ),
+    )!;
+    // The linked anchor is skipped by countJourneymenInCell (any segment
+    // with a link is skipped), so removalCount stays 0. But the floor is
+    // still set to true because cell.text() includes the linked anchor's
+    // text "journeyman", yielding journeymenCount.away = max(1, 0) = 1.
+    expect(result.journeymenCount).toEqual({ home: 0, away: 1 });
+  });
 });
