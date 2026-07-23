@@ -94,6 +94,57 @@ export interface FormatLeaderboardEmbedOptions<T> {
   formatRow?: (row: T) => string;
 }
 
+export interface EntityButton {
+  type: ComponentType.Button;
+  style: ButtonStyle.Primary;
+  label: string;
+  custom_id: string;
+}
+
+export interface EntityButtonRow {
+  type: ComponentType.ActionRow;
+  components: EntityButton[];
+}
+
+/**
+ * Turns a list of entities into Discord action rows of link-through buttons:
+ * dedupe by custom_id (keep first occurrence — Discord rejects duplicate
+ * custom_ids), hard-cap at MAX_BUTTONS (Discord's 5×5 ceiling), then chunk
+ * into rows of MAX_BUTTONS_PER_ROW. Shared by the leaderboard embeds and every
+ * deepdive fact so the cap/dedupe/chunk rules live in exactly one place.
+ */
+export function buildEntityButtons<T>(
+  rows: T[],
+  buildCustomId: (row: T) => string,
+  label: (row: T) => string,
+): EntityButtonRow[] {
+  const seen = new Set<string>();
+  const buttons: EntityButton[] = rows
+    .filter((row) => {
+      const customId = buildCustomId(row);
+      if (seen.has(customId)) {
+        return false;
+      }
+      seen.add(customId);
+      return true;
+    })
+    .slice(0, MAX_BUTTONS)
+    .map((row) => ({
+      type: ComponentType.Button as const,
+      style: ButtonStyle.Primary as const,
+      label: label(row),
+      custom_id: buildCustomId(row),
+    }));
+  const actionRows: EntityButtonRow[] = [];
+  for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
+    actionRows.push({
+      type: ComponentType.ActionRow as const,
+      components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
+    });
+  }
+  return actionRows;
+}
+
 export function formatLeaderboardEmbed<
   T extends { name: string; count: number; rank: number },
 >({
@@ -117,35 +168,11 @@ export function formatLeaderboardEmbed<
   if (buildCustomId === undefined) {
     return embed;
   }
-  // A row may repeat a team (e.g. the biggest-mistakes list), but Discord
-  // rejects duplicate button custom_ids — keep only the first occurrence.
-  const seen = new Set<string>();
-  const buttons = rankedRows
-    .filter((row) => {
-      const customId = buildCustomId(row);
-      if (seen.has(customId)) {
-        return false;
-      }
-      seen.add(customId);
-      return true;
-    })
-    .slice(0, MAX_BUTTONS)
-    .map((row) => ({
-      type: ComponentType.Button as const,
-      style: ButtonStyle.Primary as const,
-      label: row.name,
-      custom_id: buildCustomId(row),
-    }));
-  const components: {
-    type: ComponentType.ActionRow;
-    components: typeof buttons;
-  }[] = [];
-  for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
-    components.push({
-      type: ComponentType.ActionRow as const,
-      components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
-    });
-  }
+  const components = buildEntityButtons(
+    rankedRows,
+    buildCustomId,
+    (row) => row.name,
+  );
   return { ...embed, components };
 }
 

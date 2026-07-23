@@ -398,4 +398,61 @@ describe('CompetitionsService', () => {
       await expect(service.listByEraChronological(5)).resolves.toEqual([]);
     });
   });
+
+  describe('findByIdWithEra', () => {
+    function makeChain(rows: unknown[]) {
+      const where = vi.fn().mockResolvedValue(rows);
+      const innerJoin = vi.fn(() => ({ where }));
+      const from = vi.fn(() => ({ innerJoin }));
+      return { select: vi.fn(() => ({ from })), from, innerJoin, where };
+    }
+
+    it('returns the competition joined with its era name', async () => {
+      const row = {
+        id: 1,
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+        eraName: 'BB2020',
+      };
+      const { select } = makeChain([row]);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.findByIdWithEra(1)).resolves.toEqual(row);
+    });
+
+    it('returns undefined when no competition matches', async () => {
+      const { select } = makeChain([]);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.findByIdWithEra(999)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('listTeams', () => {
+    function makeChain(rows: unknown[]) {
+      const orderBy = vi.fn().mockResolvedValue(rows);
+      const groupBy = vi.fn(() => ({ orderBy }));
+      const where = vi.fn(() => ({ groupBy }));
+      const innerJoin2 = vi.fn(() => ({ where }));
+      const innerJoin1 = vi.fn(() => ({ innerJoin: innerJoin2 }));
+      const from = vi.fn(() => ({ innerJoin: innerJoin1 }));
+      return { select: vi.fn(() => ({ from })), where, groupBy, orderBy };
+    }
+
+    it('returns the participating teams (id/name) ordered by name', async () => {
+      const rows = [
+        { id: 5, name: 'Gouged Eye' },
+        { id: 9, name: 'Reikland Reavers' },
+      ];
+      const { select, where } = makeChain(rows);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.listTeams(3)).resolves.toEqual(rows);
+      expect(extractFilterValues(firstCallArg(where))).toBe(3);
+    });
+
+    it('returns an empty array when no teams participated', async () => {
+      const { select } = makeChain([]);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.listTeams(3)).resolves.toEqual([]);
+    });
+  });
 });

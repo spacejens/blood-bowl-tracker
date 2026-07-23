@@ -51,7 +51,9 @@ export class PlayersService {
         id: number;
         name: string;
         teamName: string;
+        teamId: number;
         raceName: string;
+        raceId: number;
         positionName: string;
       }
     | undefined
@@ -61,7 +63,9 @@ export class PlayersService {
         id: players.id,
         name: players.name,
         teamName: teams.name,
+        teamId: teams.id,
         raceName: races.name,
+        raceId: races.id,
         positionName: positions.name,
       })
       .from(players)

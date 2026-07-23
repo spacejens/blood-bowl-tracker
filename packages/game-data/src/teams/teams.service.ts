@@ -93,10 +93,15 @@ export class TeamsService {
       .limit(limit);
   }
 
-  async findById(
-    id: number,
-  ): Promise<
-    | { id: number; name: string; raceName: string; coachName: string }
+  async findById(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        raceName: string;
+        raceId: number;
+        coachName: string;
+        coachId: number;
+      }
     | undefined
   > {
     const rows = await this.db
@@ -104,7 +109,9 @@ export class TeamsService {
         id: teams.id,
         name: teams.name,
         raceName: races.name,
+        raceId: races.id,
         coachName: coaches.name,
+        coachId: coaches.id,
       })
       .from(teams)
       .innerJoin(races, eq(races.id, teams.raceId))
@@ -138,7 +145,7 @@ export class TeamsService {
   getTopPlayersByMatchEventCount(
     teamId: number,
     limit: number,
-  ): Promise<{ name: string; count: number }[]> {
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
     return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
   }
 

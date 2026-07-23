@@ -8,6 +8,8 @@ import {
   eras,
   leagues,
   matches,
+  teamEras,
+  teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, count, eq, ilike, sql } from 'drizzle-orm';
@@ -139,6 +141,44 @@ export class CompetitionsService {
       .from(competitions)
       .where(eq(competitions.id, id));
     return rows[0];
+  }
+
+  async findByIdWithEra(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        type: 'season' | 'cup';
+        eraId: number;
+        eraName: string;
+      }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        type: competitions.type,
+        eraId: competitions.eraId,
+        eraName: eras.name,
+      })
+      .from(competitions)
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .where(eq(competitions.id, id));
+    return rows[0];
+  }
+
+  listTeams(competitionId: number): Promise<{ id: number; name: string }[]> {
+    // competition_teams links a competition to team_eras; join through to teams
+    // and dedupe by team (groupBy) so a team appears once even if it were
+    // linked via multiple team-eras. Ordered by name for stable button order.
+    return this.db
+      .select({ id: teams.id, name: teams.name })
+      .from(competitionTeams)
+      .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(competitionTeams.competitionId, competitionId))
+      .groupBy(teams.id, teams.name)
+      .orderBy(teams.name);
   }
 
   listByEraChronological(

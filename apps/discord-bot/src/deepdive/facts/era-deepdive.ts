@@ -14,6 +14,8 @@ import {
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { buildEntityButtons } from '../../insights/leaderboard';
+import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type EraHeader = {
   id: number;
@@ -102,5 +104,14 @@ export async function resolveEraDeepdive(
     ...competitionLines,
   ].join('\n');
 
-  return { embeds: [{ title: era.name, description }] };
+  const components = buildEntityButtons(
+    comps,
+    (comp) => `${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}${comp.id}`,
+    (comp) => comp.name,
+  );
+
+  return {
+    embeds: [{ title: era.name, description }],
+    ...(components.length > 0 ? { components } : {}),
+  };
 }
