@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { Decoder } from './match-event-decoders';
+import type { Decoder } from './match-event-decoders.service';
 import { MatchEventDecodersService } from './match-event-decoders.service';
 import type { SecretObjective } from './secret-objective.service';
 import type { WeatherType } from './weather-type.service';
