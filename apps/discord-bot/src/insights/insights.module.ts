@@ -13,6 +13,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Module } from '@nestjs/common';
 
+import { DatabaseTimeoutService } from '../database-timeout.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 
@@ -33,6 +34,7 @@ const GAME_DATA_MODULES = [
 @Module({
   imports: GAME_DATA_MODULES,
   providers: [
+    DatabaseTimeoutService,
     FactTreeFactoryService,
     {
       provide: FACT_TREE,
@@ -40,6 +42,6 @@ const GAME_DATA_MODULES = [
       inject: [FactTreeFactoryService],
     },
   ],
-  exports: [...GAME_DATA_MODULES, FACT_TREE],
+  exports: [...GAME_DATA_MODULES, DatabaseTimeoutService, FACT_TREE],
 })
 export class InsightsModule {}
