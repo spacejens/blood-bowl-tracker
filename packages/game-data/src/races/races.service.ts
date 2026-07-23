@@ -62,7 +62,7 @@ export class RacesService {
       .from(raceEras)
       .innerJoin(eras, eq(eras.id, raceEras.eraId))
       .where(eq(raceEras.raceId, raceId))
-      .orderBy(eras.name);
+      .orderBy(eras.startDate, eras.name);
   }
 
   getTopTeamsByMatchesPlayed(
