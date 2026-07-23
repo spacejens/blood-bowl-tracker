@@ -13,6 +13,7 @@ import { ExternalSystemsService } from './external-systems.service';
 const fakeSystem = {
   id: 1,
   name: 'BBL',
+  category: 'imported_data_source' as const,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -25,21 +26,12 @@ function makeFromBuilder(rows: unknown[]) {
   };
 }
 
-function makeCountBuilder(rows: unknown[]) {
+/** A linear join-chain builder whose terminal `.where()` resolves to `rows`. */
+function makeQuery(rows: unknown[]) {
   const builder: Record<string, unknown> = {};
   builder.from = vi.fn(() => builder);
   builder.innerJoin = vi.fn(() => builder);
   builder.where = vi.fn().mockResolvedValue(rows);
-  return builder;
-}
-
-function makeListBuilder(rows: unknown[]) {
-  const builder: Record<string, unknown> = {};
-  builder.selectDistinct = vi.fn(() => builder);
-  builder.from = vi.fn(() => builder);
-  builder.innerJoin = vi.fn(() => builder);
-  builder.where = vi.fn(() => builder);
-  builder.orderBy = vi.fn().mockResolvedValue(rows);
   return builder;
 }
 
@@ -73,112 +65,144 @@ describe('ExternalSystemsService', () => {
 
   it('returns the existing system without inserting when name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([fakeSystem]));
-    const result = await service.upsert({ name: 'BBL', isBookkeeping: false });
+    const result = await service.upsert({
+      name: 'BBL',
+      category: 'imported_data_source',
+    });
     expect(result).toEqual({ system: fakeSystem, created: false });
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
 
   it('creates a new system when no name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([]));
-    const result = await service.upsert({ name: 'NAF', isBookkeeping: false });
+    const result = await service.upsert({
+      name: 'NAF',
+      category: 'referenced_not_imported',
+    });
     expect(result).toEqual({ system: fakeSystem, created: true });
     expect(mockDb.insert).toHaveBeenCalled();
   });
 
   describe('countAll', () => {
-    it('returns the total row count', async () => {
-      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+    it('counts rows excluding the bookkeeping category', async () => {
+      const where = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const from = vi.fn(() => ({ where }));
       const service = new ExternalSystemsService({
         select: vi.fn(() => ({ from })),
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
-      expect(from).toHaveBeenCalledTimes(1);
+      // 'bookkeeping' is the excluded category literal.
+      expect(extractAllFilterValues(firstCallArg(where))).toEqual([
+        'bookkeeping',
+      ]);
     });
   });
 
   describe('countByEra', () => {
-    it('returns the distinct external-system count for the era', async () => {
-      const builder = makeCountBuilder([{ count: 3 }]);
-      const select = vi.fn(() => builder);
+    it('dedupes systems reachable directly and via coaches', async () => {
+      const direct = makeQuery([{ id: 1 }]);
+      const viaCoach = makeQuery([{ id: 1 }, { id: 2 }]);
+      const select = vi
+        .fn()
+        .mockReturnValueOnce(direct)
+        .mockReturnValueOnce(viaCoach);
       const service = new ExternalSystemsService({ select } as unknown as Db);
-      await expect(service.countByEra(5)).resolves.toBe(3);
-      expect(select).toHaveBeenCalledTimes(1);
 
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['external_systems.id', 'eras_external_ids.external_system_id'],
-      );
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      await expect(service.countByEra(5)).resolves.toBe(2);
+      expect(select).toHaveBeenCalledTimes(2);
+
+      // Direct path: eras_external_ids -> external_systems, filtered by era + category.
+      expect(extractJoinColumns(firstCallArg(direct.innerJoin, 0, 1))).toEqual([
+        'external_systems.id',
+        'eras_external_ids.external_system_id',
+      ]);
+      expect(extractAllFilterValues(firstCallArg(direct.where))).toEqual([
         5,
-        false,
+        'bookkeeping',
+      ]);
+
+      // Coach path reaches team_eras.era_id, filtered by era + category.
+      expect(extractAllFilterValues(firstCallArg(viaCoach.where))).toEqual([
+        5,
+        'bookkeeping',
       ]);
     });
   });
 
   describe('countByCompetition', () => {
-    it('returns the distinct external-system count for the competition', async () => {
-      const builder = makeCountBuilder([{ count: 2 }]);
-      const select = vi.fn(() => builder);
+    it('dedupes systems reachable directly and via coaches', async () => {
+      const direct = makeQuery([{ id: 7 }]);
+      const viaCoach = makeQuery([{ id: 8 }]);
+      const select = vi
+        .fn()
+        .mockReturnValueOnce(direct)
+        .mockReturnValueOnce(viaCoach);
       const service = new ExternalSystemsService({ select } as unknown as Db);
-      await expect(service.countByCompetition(7)).resolves.toBe(2);
-      expect(select).toHaveBeenCalledTimes(1);
 
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['external_systems.id', 'competitions_external_ids.external_system_id'],
-      );
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      await expect(service.countByCompetition(7)).resolves.toBe(2);
+      expect(select).toHaveBeenCalledTimes(2);
+      expect(extractJoinColumns(firstCallArg(direct.innerJoin, 0, 1))).toEqual([
+        'external_systems.id',
+        'competitions_external_ids.external_system_id',
+      ]);
+      expect(extractAllFilterValues(firstCallArg(direct.where))).toEqual([
         7,
-        false,
+        'bookkeeping',
+      ]);
+      expect(extractAllFilterValues(firstCallArg(viaCoach.where))).toEqual([
+        7,
+        'bookkeeping',
       ]);
     });
   });
 
   describe('countByLeague', () => {
-    it('returns the distinct external-system count for the league', async () => {
-      const builder = makeCountBuilder([{ count: 4 }]);
-      const select = vi.fn(() => builder);
+    it('dedupes systems reachable directly and via coaches', async () => {
+      const direct = makeQuery([{ id: 1 }, { id: 2 }]);
+      const viaCoach = makeQuery([{ id: 2 }, { id: 3 }]);
+      const select = vi
+        .fn()
+        .mockReturnValueOnce(direct)
+        .mockReturnValueOnce(viaCoach);
       const service = new ExternalSystemsService({ select } as unknown as Db);
-      await expect(service.countByLeague(9)).resolves.toBe(4);
-      expect(select).toHaveBeenCalledTimes(1);
 
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['external_systems.id', 'eras_external_ids.external_system_id'],
-      );
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
-        ['eras.id', 'eras_external_ids.era_id'],
-      );
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      await expect(service.countByLeague(9)).resolves.toBe(3);
+      expect(select).toHaveBeenCalledTimes(2);
+      expect(extractAllFilterValues(firstCallArg(direct.where))).toEqual([
         9,
-        false,
+        'bookkeeping',
+      ]);
+      expect(extractAllFilterValues(firstCallArg(viaCoach.where))).toEqual([
+        9,
+        'bookkeeping',
       ]);
     });
   });
 
   describe('listNamesByEra', () => {
-    it('returns distinct non-bookkeeping system names ordered by name', async () => {
-      const builder = makeListBuilder([{ name: 'BBL' }, { name: 'NAF' }]);
-      const selectDistinct = vi.fn(() => builder);
-      const service = new ExternalSystemsService({
-        selectDistinct,
-      } as unknown as Db);
+    it('returns deduped non-bookkeeping names, sorted, from both paths', async () => {
+      const direct = makeQuery([{ name: 'BBL' }]);
+      const viaCoach = makeQuery([{ name: 'NAF' }, { name: 'BBL' }]);
+      const select = vi
+        .fn()
+        .mockReturnValueOnce(direct)
+        .mockReturnValueOnce(viaCoach);
+      const service = new ExternalSystemsService({ select } as unknown as Db);
 
       await expect(service.listNamesByEra(5)).resolves.toEqual(['BBL', 'NAF']);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['external_systems.id', 'eras_external_ids.external_system_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      expect(select).toHaveBeenCalledTimes(2);
+      expect(extractAllFilterValues(firstCallArg(direct.where))).toEqual([
         5,
-        false,
+        'bookkeeping',
       ]);
     });
 
     it('returns an empty array for an era with no non-bookkeeping systems', async () => {
-      const builder = makeListBuilder([]);
-      const service = new ExternalSystemsService({
-        selectDistinct: vi.fn(() => builder),
-      } as unknown as Db);
+      const select = vi
+        .fn()
+        .mockReturnValueOnce(makeQuery([]))
+        .mockReturnValueOnce(makeQuery([]));
+      const service = new ExternalSystemsService({ select } as unknown as Db);
       await expect(service.listNamesByEra(9)).resolves.toEqual([]);
     });
   });
