@@ -5,6 +5,7 @@ import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchEventsImportService } from './match-events-import.service';
@@ -19,6 +20,7 @@ import { TeamsImportService } from './teams-import.service';
 @Module({
   providers: [
     ImportRunnerService,
+    ImportResultService,
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,
@@ -36,6 +38,7 @@ import { TeamsImportService } from './teams-import.service';
   ],
   exports: [
     ImportRunnerService,
+    ImportResultService,
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,

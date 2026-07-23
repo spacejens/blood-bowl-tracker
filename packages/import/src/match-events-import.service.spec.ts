@@ -1,6 +1,7 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { MatchEventsImportService } from './match-events-import.service';
 import type { ImportError } from './types';
@@ -10,7 +11,10 @@ describe('MatchEventsImportService', () => {
     const client = {
       matchEvents: { upsert: upsertMock },
     } as unknown as ApiClient;
-    return new MatchEventsImportService(client, new ImportRunnerService());
+    return new MatchEventsImportService(
+      client,
+      new ImportRunnerService(new ImportResultService()),
+    );
   }
 
   const data = {

@@ -2,11 +2,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import type { ExternalSystemsImportService } from './external-systems-import.service';
+import { ImportResultService } from './import-result.service';
 
 function makeService(upsertExternalSystem: ReturnType<typeof vi.fn>) {
-  return new ExternalSystemBootstrapService({
-    upsertExternalSystem,
-  } as unknown as ExternalSystemsImportService);
+  return new ExternalSystemBootstrapService(
+    {
+      upsertExternalSystem,
+    } as unknown as ExternalSystemsImportService,
+    new ImportResultService(),
+  );
 }
 
 describe('ExternalSystemBootstrapService', () => {
