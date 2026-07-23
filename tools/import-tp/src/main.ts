@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
-import { makeImportResult } from '@blood-bowl-tracker/import';
+import { ImportResultService } from '@blood-bowl-tracker/import';
 import type {
   TpInducedStarPlayer,
   TpRosterPlayer,
@@ -60,10 +60,12 @@ async function run(): Promise<ImportResult> {
     const rosters = await app
       .get(RosterCollectionService)
       .collect(rosterErrors);
-    const rosterCollectionResult = makeImportResult({
-      imported: 0,
-      errors: rosterErrors,
-    });
+    const rosterCollectionResult = app
+      .get(ImportResultService)
+      .result({
+        imported: 0,
+        errors: rosterErrors,
+      });
 
     const raceOutcome = await app
       .get(TpRacesImportService)
