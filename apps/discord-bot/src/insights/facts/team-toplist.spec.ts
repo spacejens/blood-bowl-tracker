@@ -1,4 +1,5 @@
 import type { FactScope, TeamsService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
@@ -239,7 +240,7 @@ describe.each(cases)(
       const teams = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as TeamsService;
-      const result = (await resolve(teams, {})) as {
+      const result = (await resolve(teams, FACT_SCOPE_ALL_TIME)) as {
         embeds: { title: string; description: string }[];
         components: { components: { label: string; custom_id: string }[] }[];
       };
@@ -279,7 +280,7 @@ describe.each(cases)(
 
     it('falls back to the timeout message when the query does not respond in time', async () => {
       await expectTimeoutFallback(
-        (teams: TeamsService) => resolve(teams, {}),
+        (teams: TeamsService) => resolve(teams, FACT_SCOPE_ALL_TIME),
         () =>
           ({
             [method]: vi.fn().mockReturnValue(new Promise(() => {})),

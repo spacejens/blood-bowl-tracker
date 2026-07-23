@@ -1,3 +1,4 @@
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -39,7 +40,7 @@ function makeDeps(
 
 describe('resolveStatsSummary', () => {
   it('renders one embed row per entity type in the specified order with thousands separators', async () => {
-    const result = await resolveStatsSummary(makeDeps(), {});
+    const result = await resolveStatsSummary(makeDeps(), FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -65,7 +66,8 @@ describe('resolveStatsSummary', () => {
 
   it('falls back to the all-time timeout message when a count does not respond in time', async () => {
     await expectTimeoutFallback(
-      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, {}),
+      (deps: StatsSummaryDeps) =>
+        resolveStatsSummary(deps, FACT_SCOPE_ALL_TIME),
       () =>
         makeDeps({
           matches: {

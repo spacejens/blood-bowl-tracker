@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -191,7 +192,9 @@ describe('RacesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countTeamsByRace({})).resolves.toEqual(rows);
+      await expect(
+        service.countTeamsByRace(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
       expect(isCountDistinct(selectedFields.count)).toBe(true);
@@ -200,7 +203,9 @@ describe('RacesService', () => {
     it('countTeamsByRace returns an empty array when there is no data', async () => {
       const select = vi.fn(() => makeQueryBuilder([]));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countTeamsByRace({})).resolves.toEqual([]);
+      await expect(
+        service.countTeamsByRace(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual([]);
     });
 
     it('countTeamsByRace joins team_eras when an eraId is given', async () => {
@@ -228,7 +233,9 @@ describe('RacesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByRace({})).resolves.toEqual(rows);
+      await expect(
+        service.countMatchesPlayedByRace(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 

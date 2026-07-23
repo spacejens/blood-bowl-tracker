@@ -1,4 +1,5 @@
 import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
@@ -59,7 +60,10 @@ describe('makeToplistResolvers', () => {
       noDataMessage: 'no data',
     });
     const alpha = vi.fn().mockResolvedValue([]);
-    const reply = await resolvers.alpha({ alpha } as never, {});
+    const reply = await resolvers.alpha(
+      { alpha } as never,
+      FACT_SCOPE_ALL_TIME,
+    );
     expect(reply).toEqual({
       embeds: [{ title: 'A title', description: 'no data' }],
     });
@@ -86,7 +90,10 @@ describe('makeToplistResolvers', () => {
       { teamId: 4, name: 'Griff', count: 3 },
       { teamId: 9, name: 'Morg', count: 1 },
     ]);
-    const reply = (await resolvers.gamma({ gamma }, {})) as unknown as {
+    const reply = (await resolvers.gamma(
+      { gamma },
+      FACT_SCOPE_ALL_TIME,
+    )) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = reply.components.flatMap((row) => row.components);

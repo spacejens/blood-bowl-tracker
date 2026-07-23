@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { is, SQL, StringChunk } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import {
   extractFilterValues,
   extractJoinColumns,
@@ -194,9 +195,9 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countMatchesPlayedByCoach({})).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countMatchesPlayedByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 
@@ -204,7 +205,9 @@ describe('CoachesService', () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 3 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countTeamsByCoach({})).resolves.toEqual(rows);
+      await expect(
+        service.countTeamsByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
       expect(isCountDistinct(selectedFields.count)).toBe(true);
@@ -249,7 +252,9 @@ describe('CoachesService', () => {
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
       const service = new CoachesService({ select } as unknown as Db);
-      await expect(service.countCompetitionsByCoach({})).resolves.toEqual(rows);
+      await expect(
+        service.countCompetitionsByCoach(FACT_SCOPE_ALL_TIME),
+      ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
 

@@ -1,4 +1,5 @@
 import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
@@ -58,7 +59,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
       (teams: TeamsService) =>
-        resolveTeamExpensiveMistakesTotalToplist(teams, {}),
+        resolveTeamExpensiveMistakesTotalToplist(teams, FACT_SCOPE_ALL_TIME),
       () =>
         ({
           sumExpensiveMistakesByTeam: vi
@@ -121,7 +122,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
       (teams: TeamsService) =>
-        resolveTeamExpensiveMistakesBiggestToplist(teams, {}),
+        resolveTeamExpensiveMistakesBiggestToplist(teams, FACT_SCOPE_ALL_TIME),
       () =>
         ({
           listBiggestExpensiveMistakes: vi

@@ -10,3 +10,6 @@ export interface FactScope {
   eraId?: number;
   competitionId?: number;
 }
+
+/** The all-time scope: no league, era, or competition restriction. */
+export const FACT_SCOPE_ALL_TIME: FactScope = {};
