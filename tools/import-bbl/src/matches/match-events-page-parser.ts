@@ -27,6 +27,7 @@ export interface BblMatchEvents {
   awayTeamId: string;
   actions: BblActionOccurrence[];
   consequences: BblConsequenceOccurrence[];
+  journeymenCount?: { home: number; away: number };
 }
 
 const PID_LINK = /[?&]p=pl&pid=([^&#"']+)/;
@@ -54,6 +55,7 @@ const CONSEQUENCE_LABELS: { test: RegExp; consequenceType: ConsequenceType }[] =
     { test: /^-1 ST$/i, consequenceType: 'stat_reduction_st' },
     { test: /^-1 AG$/i, consequenceType: 'stat_reduction_ag' },
     { test: /^-1 AV$/i, consequenceType: 'stat_reduction_av' },
+    { test: /^-1 PA$/i, consequenceType: 'stat_reduction_pa' },
     { test: /^Death$/i, consequenceType: 'death' },
   ];
 
@@ -82,6 +84,8 @@ export class MatchEventsPageParser {
 
     const actions: BblActionOccurrence[] = [];
     const consequences: BblConsequenceOccurrence[] = [];
+    const journeymenFloor = { home: false, away: false };
+    const journeymenRemoval = { home: 0, away: 0 };
 
     $('table.tblist tr').each((_i, tr) => {
       const cells = $(tr).find('td');
@@ -94,6 +98,20 @@ export class MatchEventsPageParser {
       }
       const homeCell = $(cells[0]);
       const awayCell = $(cells[2]);
+
+      for (const side of ['home', 'away'] as const) {
+        const cell = side === 'home' ? homeCell : awayCell;
+        if (cell.text().toLowerCase().includes('journeyman')) {
+          journeymenFloor[side] = true;
+        }
+      }
+      const isRemovalRow =
+        SENT_OFF.test(label) ||
+        CONSEQUENCE_LABELS.some((c) => c.test.test(label));
+      if (isRemovalRow) {
+        journeymenRemoval.home += this.countJourneymenInCell($, homeCell);
+        journeymenRemoval.away += this.countJourneymenInCell($, awayCell);
+      }
 
       const action = ACTION_LABELS.find((a) => a.test.test(label));
       if (action) {
@@ -140,6 +158,10 @@ export class MatchEventsPageParser {
       awayTeamId: teams.awayTeamId,
       actions,
       consequences,
+      journeymenCount: {
+        home: Math.max(journeymenFloor.home ? 1 : 0, journeymenRemoval.home),
+        away: Math.max(journeymenFloor.away ? 1 : 0, journeymenRemoval.away),
+      },
     };
   }
 
@@ -195,5 +217,37 @@ export class MatchEventsPageParser {
       .replace(/\u00A0/g, ' ')
       .trim();
     return text.length > 0 ? [null] : [];
+  }
+
+  /**
+   * Count `<br>`-separated segments of a cell whose only content is the literal
+   * text "journeyman" (case-insensitive, spacer images and whitespace removed)
+   * and that carry no player link. Each such segment is a distinct anonymous
+   * journeyman: a delinked, un-indexed player BBL renders as the bare word.
+   */
+  private countJourneymenInCell(
+    $: ReturnType<BblPage['load']>,
+    cell: ReturnType<ReturnType<BblPage['load']>>,
+  ): number {
+    const segments = (cell.html() ?? '').split(/<br\s*\/?>/i);
+    let count = 0;
+    for (const segment of segments) {
+      const fragment = $(`<div>${segment}</div>`);
+      if (fragment.find('a').length > 0) {
+        continue;
+      }
+      const text = fragment
+        .find('img')
+        .remove()
+        .end()
+        .text()
+        .replace(/\u00A0/g, ' ')
+        .trim()
+        .toLowerCase();
+      if (text === 'journeyman') {
+        count += 1;
+      }
+    }
+    return count;
   }
 }

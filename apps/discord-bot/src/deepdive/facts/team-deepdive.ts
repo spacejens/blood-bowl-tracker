@@ -10,13 +10,27 @@ import {
   DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
+  buildEntityButtons,
   MAX_LEADERBOARD_ENTRIES,
   topRanksWithTies,
 } from '../../insights/leaderboard';
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 
-type Team = { id: number; name: string; raceName: string; coachName: string };
+type Team = {
+  id: number;
+  name: string;
+  raceName: string;
+  raceId: number;
+  coachName: string;
+  coachId: number;
+};
 type CareerSpan = { start: string; end: string };
-type TopPlayer = { name: string; count: number };
+type TopPlayer = { playerId: number; name: string; count: number };
+type ButtonEntry = { customId: string; label: string };
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -46,6 +60,16 @@ export async function resolveTeamDeepdive(
   }
 
   const header = [`Race: ${team.raceName}`, `Coach: ${team.coachName}`];
+  const headerButtonEntries: ButtonEntry[] = [
+    {
+      customId: `${RACE_BUTTON_CUSTOM_ID_PREFIX}${team.raceId}`,
+      label: team.raceName,
+    },
+    {
+      customId: `${COACH_BUTTON_CUSTOM_ID_PREFIX}${team.coachId}`,
+      label: team.coachName,
+    },
+  ];
 
   const span: CareerSpan | undefined | null = await withDatabaseTimeout(
     teams.getCareerSpan(teamId),
@@ -62,6 +86,11 @@ export async function resolveTeamDeepdive(
           description: [...header, DEEPDIVE_TEAM_NO_MATCHES_MESSAGE].join('\n'),
         },
       ],
+      components: buildEntityButtons(
+        headerButtonEntries,
+        (entry) => entry.customId,
+        (entry) => entry.label,
+      ),
     };
   }
 
@@ -92,5 +121,21 @@ export async function resolveTeamDeepdive(
     ...playerLines,
   ].join('\n');
 
-  return { embeds: [{ title: team.name, description }] };
+  const buttonEntries: ButtonEntry[] = [
+    ...headerButtonEntries,
+    ...ranked.map((row) => ({
+      customId: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`,
+      label: row.name,
+    })),
+  ];
+  const components = buildEntityButtons(
+    buttonEntries,
+    (entry) => entry.customId,
+    (entry) => entry.label,
+  );
+
+  return {
+    embeds: [{ title: team.name, description }],
+    components,
+  };
 }

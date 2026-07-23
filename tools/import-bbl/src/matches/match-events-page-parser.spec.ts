@@ -10,6 +10,37 @@ function matchPage(id: string, html: string): BblPage {
 
 const parser = new MatchEventsPageParser();
 
+function journeymenPage(rows: string, id = '1000'): BblPage {
+  const html =
+    '<div align="center"><b>' +
+    '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
+    '<table class="tblist">' +
+    '<tr class="trborder">' +
+    '<td width="180"><a href="default.asp?p=tm&t=hom"><b>Home Team</b></a></td>' +
+    '<td>gate: <b>1000</b></td>' +
+    '<td width="180"><a href="default.asp?p=tm&t=awy"><b>Away Team</b></a></td>' +
+    '</tr>' +
+    rows +
+    '</table>';
+  return matchPage(id, html);
+}
+
+function row(label: string, homeHtml: string, awayHtml: string): string {
+  return (
+    '<tr class="trborder">' +
+    '<td class="td10"><img src="gfx/trans.gif">' +
+    homeHtml +
+    '</td>' +
+    '<td style="background-image:url(\'gfx/bgdarktrans5.png\')">' +
+    label +
+    '</td>' +
+    '<td class="td10"><img src="gfx/trans.gif">' +
+    awayHtml +
+    '</td>' +
+    '</tr>'
+  );
+}
+
 // Shaped after a real match-detail page
 // (tools/import-bbl/data/tloeg.bbleague.se/default.asp?p=m&m=1000): the team
 // header row, then 3-column achievement rows (label carried by the middle
@@ -116,5 +147,111 @@ describe('MatchEventsPageParser', () => {
   it('returns null when the team table is missing', () => {
     const page = matchPage('1000', '<div>no team table</div>');
     expect(parser.extractMatchEvents(page)).toBeNull();
+  });
+
+  it('maps a -1 PA Sustained-Injuries row to a stat_reduction_pa consequence', () => {
+    const html =
+      '<div align="center"><b>' +
+      '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
+      '<table class="tblist">' +
+      '<tr class="trborder">' +
+      '<td width="180"><a href="default.asp?p=tm&t=hom"><b>Home Team</b></a></td>' +
+      '<td>gate: <b>1000</b></td>' +
+      '<td width="180"><a href="default.asp?p=tm&t=awy"><b>Away Team</b></a></td>' +
+      '</tr>' +
+      '<tr class="trborder">' +
+      '<td class="td10"><img src="gfx/trans.gif"></td>' +
+      '<td style="background-image:url(\'gfx/bgdarktrans5.png\')">-1 PA</td>' +
+      '<td class="td10"><img src="gfx/trans.gif"><br>' +
+      '<a href="default.asp?p=pl&pid=2200">Passer</a></td>' +
+      '</tr>' +
+      '</table>';
+    const result = parser.extractMatchEvents(matchPage('1000', html))!;
+    const pa = result.consequences.find(
+      (c) => c.consequenceType === 'stat_reduction_pa',
+    );
+    expect(pa).toEqual({
+      consequenceType: 'stat_reduction_pa',
+      side: 'away',
+      pid: '2200',
+    });
+  });
+});
+
+describe('MatchEventsPageParser journeyman counting', () => {
+  it('counts a single journeyman in a removal row as 1 (home)', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Miss Next Game', 'journeyman', '')),
+    )!;
+    expect(result.journeymenCount).toEqual({ home: 1, away: 0 });
+  });
+
+  it('counts two journeymen in one removal cell as 2 (away, m=642 shape)', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Death', '', 'journeyman<br>journeyman')),
+    )!;
+    expect(result.journeymenCount).toEqual({ home: 0, away: 2 });
+  });
+
+  it('sums journeyman mentions across two removal rows for the same team', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row('Death', 'journeyman', '') +
+          row('Miss Next Game', 'journeyman', ''),
+      ),
+    )!;
+    expect(result.journeymenCount).toEqual({ home: 2, away: 0 });
+  });
+
+  it('counts a journeyman named only in an achievement row as 1 via the floor', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Foulers', 'journeyman', '')),
+    )!;
+    expect(result.journeymenCount).toEqual({ home: 1, away: 0 });
+  });
+
+  it('counts zero when no journeyman is mentioned', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row('Miss Next Game', '', '<a href="default.asp?p=pl&pid=1">Bob</a>'),
+      ),
+    )!;
+    expect(result.journeymenCount).toEqual({ home: 0, away: 0 });
+  });
+
+  it('counts a journeyman in a removal cell that also has a linked named victim', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Death',
+          '',
+          '<a href="default.asp?p=pl&pid=555">Bob</a><br>journeyman',
+        ),
+      ),
+    )!;
+    // The named victim's consequence is still captured by the existing path...
+    const death = result.consequences.find(
+      (c) => c.consequenceType === 'death' && c.side === 'away',
+    );
+    expect(death).toEqual({
+      consequenceType: 'death',
+      side: 'away',
+      pid: '555',
+    });
+    // ...and the anonymous journeyman is counted independently.
+    expect(result.journeymenCount).toEqual({ home: 0, away: 1 });
+  });
+
+  it('does not count a linked anchor with "journeyman" text as an anonymous mention', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row('Death', '', '<a href="default.asp?p=pl&pid=999">journeyman</a>'),
+      ),
+    )!;
+    // The linked anchor is skipped by countJourneymenInCell (any segment
+    // with a link is skipped), so removalCount stays 0. But the floor is
+    // still set to true because cell.text() includes the linked anchor's
+    // text "journeyman", yielding journeymenCount.away = max(1, 0) = 1.
+    expect(result.journeymenCount).toEqual({ home: 0, away: 1 });
   });
 });

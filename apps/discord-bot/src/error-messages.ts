@@ -114,3 +114,11 @@ export const DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE =
   'The scout is still counting how many teams of this race took the field.';
 export const DEEPDIVE_RACE_NO_TEAMS_MESSAGE =
   'No team of this race has taken the field yet.';
+export const DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE =
+  'The league secretary has no such competition on the fixture list.';
+export const DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE =
+  'The tournament clerk is still digging the trophy out of the cabinet.';
+export const DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE =
+  'The turnstile operators are still tallying who turned up to play.';
+export const DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE =
+  'Not a single team has signed up for this competition yet.';

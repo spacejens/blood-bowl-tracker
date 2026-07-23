@@ -14,7 +14,9 @@ const griff = {
   id: 1,
   name: 'Griff Oberwald',
   teamName: 'Reikland Reavers',
+  teamId: 11,
   raceName: 'Human',
+  raceId: 4,
   positionName: 'Blitzer',
 };
 
@@ -23,7 +25,9 @@ function makeServices(options: {
     id: number;
     name: string;
     teamName: string;
+    teamId: number;
     raceName: string;
+    raceId: number;
     positionName: string;
   };
   counts?: { label: string; count: number }[];
@@ -60,7 +64,7 @@ describe('resolvePlayerDeepdive', () => {
       ],
     });
     const result = await resolvePlayerDeepdive(1, services);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'Griff Oberwald',
@@ -88,7 +92,7 @@ describe('resolvePlayerDeepdive', () => {
       ],
     });
     const result = await resolvePlayerDeepdive(1, services);
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'Griff Oberwald',
@@ -102,6 +106,34 @@ describe('resolvePlayerDeepdive', () => {
         },
       ],
     });
+  });
+
+  it('renders a team button and a race button from the header', async () => {
+    const services = makeServices({
+      player: {
+        id: 1,
+        name: 'Griff Oberwald',
+        teamName: 'Reikland Reavers',
+        teamId: 11,
+        raceName: 'Human',
+        raceId: 4,
+        positionName: 'Blitzer',
+      },
+      counts: [{ label: 'Touchdowns', count: 3 }],
+    });
+    const result = (await resolvePlayerDeepdive(1, services)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons).toEqual([
+      {
+        type: 2,
+        style: 1,
+        label: 'Reikland Reavers',
+        custom_id: 'deepdive:team:11',
+      },
+      { type: 2, style: 1, label: 'Human', custom_id: 'deepdive:race:4' },
+    ]);
   });
 
   it('falls back to the player timeout message when the lookup times out', async () => {

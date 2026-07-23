@@ -10,13 +10,15 @@ import {
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
+  buildEntityButtons,
   MAX_LEADERBOARD_ENTRIES,
   topRanksWithTies,
 } from '../../insights/leaderboard';
+import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type Coach = { id: number; name: string };
 type CareerSpan = { start: string; end: string };
-type TopTeam = { name: string; count: number };
+type TopTeam = { id: number; name: string; count: number };
 
 /** Position at which the top-teams list opens a tie group (5th place). */
 const TOP_TEAMS_TOP_ENTRIES = 5;
@@ -86,5 +88,14 @@ export async function resolveCoachDeepdive(
     ...teamLines,
   ].join('\n');
 
-  return { embeds: [{ title: coach.name, description }] };
+  const components = buildEntityButtons(
+    ranked,
+    (row) => `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.id}`,
+    (row) => row.name,
+  );
+
+  return {
+    embeds: [{ title: coach.name, description }],
+    ...(components.length > 0 ? { components } : {}),
+  };
 }

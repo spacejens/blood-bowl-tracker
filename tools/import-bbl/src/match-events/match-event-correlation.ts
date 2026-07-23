@@ -103,6 +103,11 @@ export interface CombinedOccurrences {
   teamCodes: string[];
   actions: TeamCodedAction[];
   consequences: TeamCodedConsequence[];
+  journeymenSignings: {
+    teamCode: string;
+    count: number;
+    sourceBblId: string;
+  }[];
 }
 
 /**
@@ -120,6 +125,7 @@ export interface EmittedEvent {
   consequenceSourceBblId?: string;
   actingPid?: string | null;
   consequencePid?: string | null;
+  journeymenCount?: number;
 }
 
 /**
@@ -135,6 +141,7 @@ export function combineOccurrences(
   const teamCodes: string[] = [];
   const actions: TeamCodedAction[] = [];
   const consequences: TeamCodedConsequence[] = [];
+  const journeymenSignings: CombinedOccurrences['journeymenSignings'] = [];
 
   for (const source of sources) {
     const codeBySide: Record<BblEventSide, string> = {
@@ -162,9 +169,20 @@ export function combineOccurrences(
         sourceBblId: source.bblId,
       });
     }
+
+    const journeymen = source.journeymenCount ?? { home: 0, away: 0 };
+    for (const side of ['home', 'away'] as const) {
+      if (journeymen[side] > 0) {
+        journeymenSignings.push({
+          teamCode: codeBySide[side],
+          count: journeymen[side],
+          sourceBblId: source.bblId,
+        });
+      }
+    }
   }
 
-  return { teamCodes, actions, consequences };
+  return { teamCodes, actions, consequences, journeymenSignings };
 }
 
 /**
@@ -236,5 +254,15 @@ export function correlateEvents(combined: CombinedOccurrences): EmittedEvent[] {
       consequencePid: c.pid,
     }));
 
-  return [...merged, ...actionOnly, ...consequenceOnly];
+  const journeymanEvents: EmittedEvent[] = combined.journeymenSignings.map(
+    (j) => ({
+      actionType: 'journeymen_signings',
+      actingTeamCode: j.teamCode,
+      actingSourceBblId: j.sourceBblId,
+      actingPid: null,
+      journeymenCount: j.count,
+    }),
+  );
+
+  return [...merged, ...actionOnly, ...consequenceOnly, ...journeymanEvents];
 }

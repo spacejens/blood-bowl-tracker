@@ -98,6 +98,37 @@ Ogretoberfest finals, which this project stores as one merged match — see
 `MatchMergeService`). Names are not unique across matches (e.g. "Final"
 recurs every season) and are never used as an external id.
 
+Administrative match events on `m` pages: an `m` page's two label tables (an
+achievement table and a "Sustained Injuries" table) plus a freeform "Match
+notes" box are the only structured content. A full sweep of all match-detail
+pages found that nine of TP's administrative event/consequence types have **no
+structured BBL source** and are deliberately not imported: weather rolls,
+inducements rolls, winnings rolls, fan factor rolls, prayers to Nuffle,
+dedicated fans, secret objectives, expensive mistakes, and concessions. Where
+these appear at all, they are freeform "Match notes" prose on well under 1% of
+matches (most have zero occurrences), which is not a parseable field. Two facts
+BBL _does_ support are imported: the `-1 PA` passing stat-loss injury (a normal
+Sustained-Injuries row, handled like `-1 MA/ST/AG/AV`) and a lower-bound
+journeyman-signing count (below).
+
+Journeyman-count lower bound: BBL delinks a journeyman player to the bare text
+`journeyman` with no id, so journeymen cannot be told apart and an exact count
+is impossible. A **minimum** count per team per match is derived from
+casualty-consequence exclusivity — a player who receives a removal consequence
+(`miss_next_game`, `niggling_injury`, any `stat_reduction_*`, `death`, or
+`sent_off`) is out for the match and cannot receive a second, so every distinct
+`journeyman` mention across a team's removal-consequence rows proves a distinct
+journeyman was fielded. Per side: `removalCount` = number of `<br>`-separated
+cell segments across that team's removal rows whose text is exactly
+`journeyman` (no link); `floor` = 1 if `journeyman` appears anywhere in that
+team's cells (catching achievement-row-only mentions); the emitted
+`journeymenCount` is `max(floor, removalCount)`, and one `journeymen_signings`
+event is emitted per side with a positive count. This is why BBL's
+`journeymenCount` is a proven minimum, not TP's exact per-roster count. General
+multi-entry cell-parsing gaps (unlinked entries dropped when mixed with a link,
+multiple non-journeyman text-only entries collapsed) are out of scope here and
+tracked in issue #255.
+
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
 were backfilled in one sitting (rather than entered as they happened) can show

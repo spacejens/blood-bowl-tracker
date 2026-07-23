@@ -14,7 +14,7 @@ import { resolveCoachDeepdive } from './coach-deepdive';
 function makeServices(options: {
   coach?: { id: number; name: string };
   span?: { start: string; end: string };
-  topTeams?: { name: string; count: number }[];
+  topTeams?: { id: number; name: string; count: number }[];
 }): { coaches: CoachesService } {
   const coaches = {
     findById: vi.fn().mockResolvedValue(options.coach),
@@ -40,8 +40,8 @@ describe('resolveCoachDeepdive', () => {
       coach: { id: 1, name: 'Roze Madder' },
       span: { start: '2021-09-01', end: '2023-06-10' },
       topTeams: [
-        { name: 'Reikland Reavers', count: 12 },
-        { name: 'Gouged Eye', count: 5 },
+        { id: 11, name: 'Reikland Reavers', count: 12 },
+        { id: 22, name: 'Gouged Eye', count: 5 },
       ],
     });
     const result = await resolveCoachDeepdive(1, services);
@@ -58,21 +58,73 @@ describe('resolveCoachDeepdive', () => {
           ].join('\n'),
         },
       ],
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'Reikland Reavers',
+              custom_id: 'deepdive:team:11',
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'Gouged Eye',
+              custom_id: 'deepdive:team:22',
+            },
+          ],
+        },
+      ],
     });
+  });
+
+  it('renders a Primary button per listed team, keyed by team id', async () => {
+    const services = makeServices({
+      coach: { id: 1, name: 'Roze Madder' },
+      span: { start: '2021-09-01', end: '2023-06-10' },
+      topTeams: [
+        { id: 11, name: 'Reikland Reavers', count: 12 },
+        { id: 22, name: 'Gouged Eye', count: 5 },
+      ],
+    });
+    const result = (await resolveCoachDeepdive(1, services)) as unknown as {
+      components: { components: { label: string; custom_id: string }[] }[];
+    };
+    const buttons = result.components.flatMap((row) => row.components);
+    expect(buttons).toEqual([
+      {
+        type: 2,
+        style: 1,
+        label: 'Reikland Reavers',
+        custom_id: 'deepdive:team:11',
+      },
+      { type: 2, style: 1, label: 'Gouged Eye', custom_id: 'deepdive:team:22' },
+    ]);
+  });
+
+  it('omits components when the coach has no matches', async () => {
+    const services = makeServices({
+      coach: { id: 1, name: 'Roze Madder' },
+      span: undefined,
+    });
+    const result = await resolveCoachDeepdive(1, services);
+    expect(result).not.toHaveProperty('components');
   });
 
   it('renders a tie group at the cutoff with a truncation note', async () => {
     const topTeams = [
-      { name: 'A', count: 9 },
-      { name: 'B', count: 9 },
-      { name: 'C', count: 9 },
-      { name: 'D', count: 9 },
-      { name: 'E', count: 9 },
-      { name: 'F', count: 9 },
-      { name: 'G', count: 9 },
-      { name: 'H', count: 9 },
-      { name: 'I', count: 9 },
-      { name: 'J', count: 9 },
+      { id: 1, name: 'A', count: 9 },
+      { id: 2, name: 'B', count: 9 },
+      { id: 3, name: 'C', count: 9 },
+      { id: 4, name: 'D', count: 9 },
+      { id: 5, name: 'E', count: 9 },
+      { id: 6, name: 'F', count: 9 },
+      { id: 7, name: 'G', count: 9 },
+      { id: 8, name: 'H', count: 9 },
+      { id: 9, name: 'I', count: 9 },
+      { id: 10, name: 'J', count: 9 },
     ];
     const services = makeServices({
       coach: { id: 1, name: 'Roze Madder' },

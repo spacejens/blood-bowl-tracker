@@ -8,12 +8,19 @@ import {
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { buildEntityButtons } from '../../insights/leaderboard';
+import {
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 
 type Player = {
   id: number;
   name: string;
   teamName: string;
+  teamId: number;
   raceName: string;
+  raceId: number;
   positionName: string;
 };
 type CategoryCount = { label: string; count: number };
@@ -64,5 +71,21 @@ export async function resolvePlayerDeepdive(
       : nonZero.map((category) => `${category.label}: ${category.count}`);
 
   const description = [...header, '', ...categoryLines].join('\n');
-  return { embeds: [{ title: player.name, description }] };
+
+  const components = buildEntityButtons(
+    [
+      {
+        customId: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${player.teamId}`,
+        label: player.teamName,
+      },
+      {
+        customId: `${RACE_BUTTON_CUSTOM_ID_PREFIX}${player.raceId}`,
+        label: player.raceName,
+      },
+    ],
+    (entry) => entry.customId,
+    (entry) => entry.label,
+  );
+
+  return { embeds: [{ title: player.name, description }], components };
 }

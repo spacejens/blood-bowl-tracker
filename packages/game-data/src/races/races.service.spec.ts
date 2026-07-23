@@ -381,7 +381,7 @@ describe('RacesService', () => {
     });
   });
 
-  describe('listEraNames', () => {
+  describe('listEras', () => {
     function makeChain(rows: unknown[]) {
       const orderBy = vi.fn().mockResolvedValue(rows);
       const where = vi.fn(() => ({ orderBy }));
@@ -390,19 +390,22 @@ describe('RacesService', () => {
       return { select: vi.fn(() => ({ from })), orderBy, where, innerJoin };
     }
 
-    it('returns the era names the query resolves to', async () => {
-      const { select } = makeChain([{ name: 'BB2016' }, { name: 'BB2020' }]);
+    it('returns the id/name rows the query resolves to', async () => {
+      const { select } = makeChain([
+        { id: 3, name: 'BB2016' },
+        { id: 4, name: 'BB2020' },
+      ]);
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.listEraNames(1)).resolves.toEqual([
-        'BB2016',
-        'BB2020',
+      await expect(service.listEras(1)).resolves.toEqual([
+        { id: 3, name: 'BB2016' },
+        { id: 4, name: 'BB2020' },
       ]);
     });
 
     it('returns an empty array when the race is linked to no eras', async () => {
       const { select } = makeChain([]);
       const service = new RacesService({ select } as unknown as Db);
-      await expect(service.listEraNames(1)).resolves.toEqual([]);
+      await expect(service.listEras(1)).resolves.toEqual([]);
     });
   });
 
@@ -418,14 +421,17 @@ describe('RacesService', () => {
       return builder;
     }
 
-    it('returns the team/count rows and forwards the limit', async () => {
-      const rows = [{ name: 'Reikland Reavers', count: 12 }];
+    it('returns the team rows (with id) and forwards the limit', async () => {
+      const rows = [{ id: 9, name: 'Reikland Reavers', count: 12 }];
       const builder = makeChain(rows);
       const select = vi.fn(() => builder);
       const service = new RacesService({ select } as unknown as Db);
       await expect(service.getTopTeamsByMatchesPlayed(1, 10)).resolves.toEqual(
         rows,
       );
+      const selectArg = (select as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as Record<string, unknown>;
+      expect(Object.keys(selectArg)).toContain('id');
       expect(builder.limit).toHaveBeenCalledWith(10);
     });
 
