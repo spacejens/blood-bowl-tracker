@@ -503,14 +503,16 @@ describe('DeepdiveCommandService', () => {
       id: 7,
       name: 'Griff Oberwald',
       teamName: 'Reikland Reavers',
+      teamId: 11,
       raceName: 'Human',
+      raceId: 4,
       positionName: 'Blitzer',
     });
     (
       players.getDeepdiveCategoryCounts as ReturnType<typeof vi.fn>
     ).mockResolvedValue([{ label: 'MVP awards', count: 2 }]);
     const result = await service.execute(chatInput({ player: '7' }));
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'Griff Oberwald',

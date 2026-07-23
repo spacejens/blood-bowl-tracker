@@ -184,16 +184,23 @@ describe('PlayersService', () => {
         id: 1,
         name: 'Griff Oberwald',
         teamName: 'Reikland Reavers',
+        teamId: 11,
         raceName: 'Human',
+        raceId: 4,
         positionName: 'Blitzer',
       };
       const builder = makeJoinSelect([row]);
+      const select = vi.fn(() => builder);
       const service = new PlayersService({
-        select: vi.fn(() => builder),
+        select,
       } as unknown as Db);
       await expect(service.findById(1)).resolves.toEqual(row);
       expect(builder.innerJoin).toHaveBeenCalledTimes(4);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(1);
+      const selectArg = select.mock.calls[0][0] as Record<string, unknown>;
+      expect(Object.keys(selectArg)).toEqual(
+        expect.arrayContaining(['teamId', 'raceId']),
+      );
     });
 
     it('returns undefined when no player matches', async () => {
