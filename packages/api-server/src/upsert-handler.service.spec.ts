@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { runUpsert } from './upsert-handler';
+import { UpsertHandlerService } from './upsert-handler.service';
 
 class TestConflictError extends Error {}
 class ConflictReply extends Error {}
@@ -11,10 +11,12 @@ const errors = {
   ),
 };
 
-describe('runUpsert', () => {
+describe('UpsertHandlerService', () => {
   it('flattens the entity and created flag on success', async () => {
+    const handler = new UpsertHandlerService();
+
     await expect(
-      runUpsert(errors, TestConflictError, () =>
+      handler.run(errors, TestConflictError, () =>
         Promise.resolve({
           entity: { id: 1, name: 'Griff' },
           created: true,
@@ -24,8 +26,10 @@ describe('runUpsert', () => {
   });
 
   it('translates the entity conflict error into a CONFLICT reply', async () => {
+    const handler = new UpsertHandlerService();
+
     await expect(
-      runUpsert(errors, TestConflictError, () => {
+      handler.run(errors, TestConflictError, () => {
         throw new TestConflictError('two matches');
       }),
     ).rejects.toBeInstanceOf(ConflictReply);
@@ -33,9 +37,11 @@ describe('runUpsert', () => {
   });
 
   it('rethrows any other error untouched', async () => {
+    const handler = new UpsertHandlerService();
     const boom = new Error('db is down');
+
     await expect(
-      runUpsert(errors, TestConflictError, () => {
+      handler.run(errors, TestConflictError, () => {
         throw boom;
       }),
     ).rejects.toBe(boom);

@@ -15,7 +15,7 @@ vi.mock('@orpc/server/node', () => ({
 import { RPCHandler } from '@orpc/server/node';
 
 import { RpcMiddleware } from './rpc.middleware';
-import type { buildRpcRouter } from './rpc-router';
+import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
@@ -47,7 +47,9 @@ describe('RpcMiddleware', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    middleware = new RpcMiddleware({} as ReturnType<typeof buildRpcRouter>);
+    middleware = new RpcMiddleware(
+      {} as ReturnType<RpcRouterFactoryService['build']>,
+    );
   });
 
   it('delegates /rpc requests to the oRPC handler and does not call next() when matched', async () => {
