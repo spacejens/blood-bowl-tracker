@@ -22,12 +22,15 @@ describe('ExternalSystemsImportService', () => {
       new ImportRunnerService(),
     );
 
-    const id = await service.upsertExternalSystem('BBL', false);
+    const id = await service.upsertExternalSystem(
+      'BBL',
+      'imported_data_source',
+    );
 
     expect(id).toBe(1);
     expect(upsertMock).toHaveBeenCalledWith({
       name: 'BBL',
-      isBookkeeping: false,
+      category: 'imported_data_source',
     });
   });
 
@@ -41,9 +44,9 @@ describe('ExternalSystemsImportService', () => {
       new ImportRunnerService(),
     );
 
-    await expect(service.upsertExternalSystem('BBL', false)).rejects.toThrow(
-      'Failed to upsert external system "BBL": internal error',
-    );
+    await expect(
+      service.upsertExternalSystem('BBL', 'imported_data_source'),
+    ).rejects.toThrow('Failed to upsert external system "BBL": internal error');
   });
 
   it('resolves via real NestJS dependency injection, including the implicit-token ImportRunnerService', async () => {
@@ -67,12 +70,15 @@ describe('ExternalSystemsImportService', () => {
 
     const service = moduleRef.get(ExternalSystemsImportService);
 
-    const id = await service.upsertExternalSystem('BBL', false);
+    const id = await service.upsertExternalSystem(
+      'BBL',
+      'imported_data_source',
+    );
 
     expect(id).toBe(1);
     expect(upsertMock).toHaveBeenCalledWith({
       name: 'BBL',
-      isBookkeeping: false,
+      category: 'imported_data_source',
     });
   });
 });
