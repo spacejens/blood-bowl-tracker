@@ -2,6 +2,7 @@ import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  buildEntityButtons,
   formatLeaderboardEmbed,
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -386,6 +387,80 @@ describe('formatLeaderboardEmbed', () => {
       'deepdive:team:1',
       'deepdive:team:2',
     ]);
+  });
+});
+
+describe('buildEntityButtons', () => {
+  it('builds one Primary button per row with label and custom_id', () => {
+    const rows = [
+      { id: 1, name: 'Alpha' },
+      { id: 2, name: 'Beta' },
+    ];
+    const result = buildEntityButtons(
+      rows,
+      (row) => `deepdive:team:${row.id}`,
+      (row) => row.name,
+    );
+    expect(result).toEqual([
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            style: ButtonStyle.Primary,
+            label: 'Alpha',
+            custom_id: 'deepdive:team:1',
+          },
+          {
+            type: ComponentType.Button,
+            style: ButtonStyle.Primary,
+            label: 'Beta',
+            custom_id: 'deepdive:team:2',
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('drops rows whose custom_id duplicates an earlier one', () => {
+    const rows = [
+      { id: 1, name: 'Alpha' },
+      { id: 1, name: 'Alpha again' },
+      { id: 2, name: 'Beta' },
+    ];
+    const result = buildEntityButtons(
+      rows,
+      (row) => `deepdive:team:${row.id}`,
+      (row) => row.name,
+    );
+    const ids = result.flatMap((r) => r.components.map((b) => b.custom_id));
+    expect(ids).toEqual(['deepdive:team:1', 'deepdive:team:2']);
+  });
+
+  it('caps at 25 buttons and chunks into rows of 5', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      name: `T${i}`,
+    }));
+    const result = buildEntityButtons(
+      rows,
+      (row) => `deepdive:team:${row.id}`,
+      (row) => row.name,
+    );
+    expect(result).toHaveLength(5);
+    expect(result.every((r) => r.components.length === 5)).toBe(true);
+    const total = result.reduce((n, r) => n + r.components.length, 0);
+    expect(total).toBe(25);
+  });
+
+  it('returns an empty array for no rows', () => {
+    expect(
+      buildEntityButtons(
+        [],
+        () => 'x',
+        () => 'y',
+      ),
+    ).toEqual([]);
   });
 });
 
