@@ -232,6 +232,63 @@ describe('CompetitionsService', () => {
     });
   });
 
+  describe('countByLeague', () => {
+    function makeJoinCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('returns the competition count for the league', async () => {
+      const builder = makeJoinCountBuilder([{ count: 9 }]);
+      const select = vi.fn(() => builder);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.countByLeague(9)).resolves.toBe(9);
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['eras.id', 'competitions.era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
+    });
+  });
+
+  describe('countByType with league', () => {
+    function makeJoinCountBuilder(rows: unknown[]) {
+      const builder: Record<string, unknown> = {};
+      builder.from = vi.fn(() => builder);
+      builder.innerJoin = vi.fn(() => builder);
+      builder.where = vi.fn(() => builder);
+      builder.then = (
+        resolve: (v: unknown) => unknown,
+        reject: (e: unknown) => unknown,
+      ) => Promise.resolve(rows).then(resolve, reject);
+      return builder;
+    }
+
+    it('filters by league when a leagueId is given', async () => {
+      const builder = makeJoinCountBuilder([{ count: 3 }]);
+      const select = vi.fn(() => builder);
+      const service = new CompetitionsService({ select } as unknown as Db);
+      await expect(service.countByType('season', undefined, 9)).resolves.toBe(
+        3,
+      );
+      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
+        ['eras.id', 'competitions.era_id'],
+      );
+      expect(builder.where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+        'season',
+        9,
+      ]);
+    });
+  });
+
   describe('findById', () => {
     it('returns the competition row when found', async () => {
       const where = vi

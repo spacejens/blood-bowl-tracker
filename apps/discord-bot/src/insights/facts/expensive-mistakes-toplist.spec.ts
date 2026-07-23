@@ -1,8 +1,10 @@
 import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../slash-commands/deepdive-command.service';
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import {
   resolveTeamExpensiveMistakesBiggestToplist,
   resolveTeamExpensiveMistakesTotalToplist,
@@ -20,6 +22,7 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
     } as unknown as TeamsService;
     const result = (await resolveTeamExpensiveMistakesTotalToplist(
       teams,
+      {},
     )) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { label: string; custom_id: string }[] }[];
@@ -43,13 +46,20 @@ describe('resolveTeamExpensiveMistakesTotalToplist', () => {
     const teams = {
       sumExpensiveMistakesByTeam: queryFn,
     } as unknown as TeamsService;
-    await resolveTeamExpensiveMistakesTotalToplist(teams, 20, 30);
-    expect(queryFn).toHaveBeenCalledWith(20, 30);
+    await resolveTeamExpensiveMistakesTotalToplist(teams, {
+      eraId: 20,
+      competitionId: 30,
+    });
+    expect(queryFn).toHaveBeenCalledWith(
+      { eraId: 20, competitionId: 30 },
+      TOPLIST_FETCH_LIMIT,
+    );
   });
 
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => resolveTeamExpensiveMistakesTotalToplist(teams),
+      (teams: TeamsService) =>
+        resolveTeamExpensiveMistakesTotalToplist(teams, FACT_SCOPE_ALL_TIME),
       () =>
         ({
           sumExpensiveMistakesByTeam: vi
@@ -73,6 +83,7 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
     } as unknown as TeamsService;
     const result = (await resolveTeamExpensiveMistakesBiggestToplist(
       teams,
+      {},
     )) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { custom_id: string }[] }[];
@@ -98,14 +109,20 @@ describe('resolveTeamExpensiveMistakesBiggestToplist', () => {
     const teams = {
       listBiggestExpensiveMistakes: queryFn,
     } as unknown as TeamsService;
-    await resolveTeamExpensiveMistakesBiggestToplist(teams, 20, 30);
-    expect(queryFn).toHaveBeenCalledWith(20, 30);
+    await resolveTeamExpensiveMistakesBiggestToplist(teams, {
+      eraId: 20,
+      competitionId: 30,
+    });
+    expect(queryFn).toHaveBeenCalledWith(
+      { eraId: 20, competitionId: 30 },
+      TOPLIST_FETCH_LIMIT,
+    );
   });
 
   it('falls back to the timeout message when the query stalls', async () => {
     await expectTimeoutFallback(
       (teams: TeamsService) =>
-        resolveTeamExpensiveMistakesBiggestToplist(teams),
+        resolveTeamExpensiveMistakesBiggestToplist(teams, FACT_SCOPE_ALL_TIME),
       () =>
         ({
           listBiggestExpensiveMistakes: vi

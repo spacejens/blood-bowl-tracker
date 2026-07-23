@@ -43,12 +43,19 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     expect(command.name).toBe('insights');
   });
 
-  it('advertises an era option alongside category', () => {
+  it('advertises league, era, and competition options alongside category', () => {
     const { service } = makeService();
     const command = service.buildCommand();
     expect(command.options).toEqual([
       {
         name: 'category',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+        description: expect.any(String),
+        type: 3,
+        autocomplete: true,
+      },
+      {
+        name: 'league',
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
         description: expect.any(String),
         type: 3,
@@ -82,11 +89,11 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
   });
 
-  it('advertises a competition option alongside category and era', () => {
+  it('advertises a competition option alongside category, league and era', () => {
     const { service } = makeService();
     const command = service.buildCommand();
-    expect(command.options).toHaveLength(3);
-    expect(command.options?.[2]).toEqual({
+    expect(command.options).toHaveLength(4);
+    expect(command.options?.[3]).toEqual({
       name: 'competition',
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
       description: expect.any(String),

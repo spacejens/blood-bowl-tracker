@@ -1,5 +1,8 @@
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 
+import { TOPLIST_FETCH_LIMIT } from '../leaderboard';
 import { makeToplistResolvers } from './toplist-factory';
 
 /**
@@ -11,12 +14,12 @@ import { makeToplistResolvers } from './toplist-factory';
  */
 interface StubService {
   alpha: (
-    eraId?: number,
-    competitionId?: number,
+    scope: FactScope,
+    limit: number,
   ) => Promise<{ name: string; count: number }[]>;
   beta: (
-    eraId?: number,
-    competitionId?: number,
+    scope: FactScope,
+    limit: number,
   ) => Promise<{ name: string; count: number }[]>;
 }
 
@@ -37,8 +40,14 @@ describe('makeToplistResolvers', () => {
       noDataMessage: 'no data',
     });
     const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
-    const reply = await resolvers.alpha({ alpha } as never, 7, 9);
-    expect(alpha).toHaveBeenCalledWith(7, 9);
+    const reply = await resolvers.alpha({ alpha } as never, {
+      eraId: 7,
+      competitionId: 9,
+    });
+    expect(alpha).toHaveBeenCalledWith(
+      { eraId: 7, competitionId: 9 },
+      TOPLIST_FETCH_LIMIT,
+    );
     expect(reply).toEqual({
       embeds: [{ title: 'A title', description: '1. Griff — 3' }],
     });
@@ -51,7 +60,10 @@ describe('makeToplistResolvers', () => {
       noDataMessage: 'no data',
     });
     const alpha = vi.fn().mockResolvedValue([]);
-    const reply = await resolvers.alpha({ alpha } as never);
+    const reply = await resolvers.alpha(
+      { alpha } as never,
+      FACT_SCOPE_ALL_TIME,
+    );
     expect(reply).toEqual({
       embeds: [{ title: 'A title', description: 'no data' }],
     });
@@ -60,8 +72,8 @@ describe('makeToplistResolvers', () => {
   it('threads buildCustomId through to one button per row', async () => {
     interface TeamStub {
       gamma: (
-        eraId?: number,
-        competitionId?: number,
+        scope: FactScope,
+        limit: number,
       ) => Promise<{ teamId: number; name: string; count: number }[]>;
     }
     const resolvers = makeToplistResolvers<
@@ -78,7 +90,10 @@ describe('makeToplistResolvers', () => {
       { teamId: 4, name: 'Griff', count: 3 },
       { teamId: 9, name: 'Morg', count: 1 },
     ]);
-    const reply = (await resolvers.gamma({ gamma })) as unknown as {
+    const reply = (await resolvers.gamma(
+      { gamma },
+      FACT_SCOPE_ALL_TIME,
+    )) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
     const buttons = reply.components.flatMap((row) => row.components);

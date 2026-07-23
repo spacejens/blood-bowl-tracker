@@ -82,6 +82,26 @@ describe('UpsertMatchEventSchema', () => {
     ).toThrow();
   });
 
+  it('accepts a secret_objective event with a decoded secretObjective', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actionType: 'secret_objective',
+      secretObjective: 'just_a_little_further',
+    });
+    expect(parsed.actionType).toBe('secret_objective');
+    expect(parsed.secretObjective).toBe('just_a_little_further');
+  });
+
+  it('rejects a secretObjective that is not a known enum value', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        actionType: 'secret_objective',
+        secretObjective: 42,
+      }),
+    ).toThrow();
+  });
+
   it('rejects an event with both eventType and actionType set', () => {
     expect(() =>
       UpsertMatchEventSchema.parse({

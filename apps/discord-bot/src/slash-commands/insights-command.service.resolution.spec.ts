@@ -85,7 +85,7 @@ describe('InsightsCommandService — fact-path resolution', () => {
       ).mockReturnValue(new Promise(() => {}));
 
       const promise = service.execute(
-        chatInput('coach.toplist.matches.played', '20'),
+        chatInput('coach.toplist.matches.played', { era: '20' }),
       );
       await vi.advanceTimersByTimeAsync(2000);
 

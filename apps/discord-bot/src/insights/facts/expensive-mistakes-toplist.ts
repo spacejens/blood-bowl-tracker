@@ -1,4 +1,4 @@
-import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import type { FactScope, TeamsService } from '@blood-bowl-tracker/game-data';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import {
@@ -21,12 +21,11 @@ function gp(amount: number): string {
  */
 export async function resolveTeamExpensiveMistakesTotalToplist(
   teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Teams by money lost to expensive mistakes',
-    fetchRows: () => teams.sumExpensiveMistakesByTeam(eraId, competitionId),
+    fetchRows: (limit) => teams.sumExpensiveMistakesByTeam(scope, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: (row) => teamButtonId(row),
@@ -36,12 +35,11 @@ export async function resolveTeamExpensiveMistakesTotalToplist(
 
 export async function resolveTeamExpensiveMistakesBiggestToplist(
   teams: TeamsService,
-  eraId?: number,
-  competitionId?: number,
+  scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
   return resolveToplist({
     title: 'Biggest expensive mistakes',
-    fetchRows: () => teams.listBiggestExpensiveMistakes(eraId, competitionId),
+    fetchRows: (limit) => teams.listBiggestExpensiveMistakes(scope, limit),
     timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
     noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
     buildCustomId: (row) => teamButtonId(row),

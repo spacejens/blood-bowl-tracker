@@ -24,6 +24,7 @@ export function makeQueryBuilder(rows: unknown[]) {
   builder.where = vi.fn(() => builder);
   builder.groupBy = vi.fn(() => builder);
   builder.orderBy = vi.fn(() => builder);
+  builder.limit = vi.fn(() => builder);
   builder.then = (
     resolve: (v: unknown) => unknown,
     reject: (e: unknown) => unknown,

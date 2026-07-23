@@ -90,7 +90,28 @@ export class CompetitionsService {
     return row.count;
   }
 
-  async countByType(type: 'season' | 'cup', eraId?: number): Promise<number> {
+  async countByLeague(leagueId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(competitions)
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .where(eq(eras.leagueId, leagueId));
+    return row.count;
+  }
+
+  async countByType(
+    type: 'season' | 'cup',
+    eraId?: number,
+    leagueId?: number,
+  ): Promise<number> {
+    if (leagueId !== undefined) {
+      const [row] = await this.db
+        .select({ count: count() })
+        .from(competitions)
+        .innerJoin(eras, eq(eras.id, competitions.eraId))
+        .where(and(eq(competitions.type, type), eq(eras.leagueId, leagueId)));
+      return row.count;
+    }
     const [row] = await this.db
       .select({ count: count() })
       .from(competitions)

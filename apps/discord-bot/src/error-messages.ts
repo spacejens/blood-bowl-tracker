@@ -21,6 +21,8 @@ export const STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE =
   "The league secretary can't find that competition anywhere in the standings.";
 export const STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE =
   'The scorekeeper dropped the clipboard mid-count.';
+export const STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE =
+  'The commissioner is still auditing the whole league.';
 
 // --- Toplists (insights/facts/{player,team,coach,race}-toplist.ts) ---
 export const PLAYER_TOPLIST_TIMEOUT_MESSAGE =
@@ -45,12 +47,16 @@ export const INSIGHTS_ERA_NOT_FOUND_MESSAGE =
   "The assistant coach can't find that era in the history books.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE =
   'The food stands are all out of sausages.';
-export const INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE =
+export const INSIGHTS_SCOPE_CONFLICT_MESSAGE =
   'The referee rejects your request.';
 export const INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE =
   "Even the league secretary can't find that competition in the fixture list.";
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE =
   "Even the referee's assistant won't accept your bribes.";
+export const INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE =
+  'The commissioner has no record of that league in the standings.';
+export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE =
+  'The stadium turnstiles are jammed shut.';
 
 // --- /deepdive command (slash-commands/deepdive-command.service.ts,
 //     deepdive/facts/era-deepdive.ts) ---

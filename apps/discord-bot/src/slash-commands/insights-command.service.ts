@@ -1,7 +1,9 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
   CompetitionsService,
   ErasService,
+  LeaguesService,
 } from '@blood-bowl-tracker/game-data';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import type {
@@ -14,9 +16,11 @@ import { ApplicationCommandOptionType } from 'discord.js';
 import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
-  INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
+  INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
+  INSIGHTS_SCOPE_CONFLICT_MESSAGE,
   INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
 } from '../error-messages';
 import { FACT_TREE } from '../insights/fact-tree.token';
@@ -30,9 +34,17 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
+/** The single league/era/competition resolved for the current request, if any. */
+interface ResolvedScope {
+  league?: { id: number; name: string };
+  era?: { id: number; name: string };
+  competition?: { id: number; name: string };
+}
+
 @Injectable()
 export class InsightsCommandService implements OnModuleInit {
   constructor(
+    private readonly leagues: LeaguesService,
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
     @Inject(FACT_TREE) private readonly factTree: FactNode,
@@ -51,6 +63,12 @@ export class InsightsCommandService implements OnModuleInit {
         {
           name: 'category',
           description: 'Pick a category or specific insight (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
+        {
+          name: 'league',
+          description: 'Scope the insight to a single league (optional)',
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
@@ -76,21 +94,29 @@ export class InsightsCommandService implements OnModuleInit {
     interaction: ChatInputCommandInteraction,
   ): Promise<string | InteractionReplyOptions> {
     const category = interaction.options.getString('category');
+    const leagueOption = interaction.options.getString('league');
     const eraOption = interaction.options.getString('era');
     const competitionOption = interaction.options.getString('competition');
 
-    if (eraOption !== null && competitionOption !== null) {
-      return INSIGHTS_ERA_COMPETITION_CONFLICT_MESSAGE;
+    const givenCount = [leagueOption, eraOption, competitionOption].filter(
+      (option) => option !== null,
+    ).length;
+    if (givenCount > 1) {
+      return INSIGHTS_SCOPE_CONFLICT_MESSAGE;
     }
 
+    const leagueResult = await this.resolveScopeOption(leagueOption, (id) =>
+      this.leagues.findById(id),
+    );
+    if (leagueResult.kind === 'notFound') {
+      return INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE;
+    }
     const eraResult = await this.resolveScopeOption(eraOption, (id) =>
       this.eras.findById(id),
     );
     if (eraResult.kind === 'notFound') {
       return INSIGHTS_ERA_NOT_FOUND_MESSAGE;
     }
-    const era = eraResult.kind === 'found' ? eraResult.value : undefined;
-
     const competitionResult = await this.resolveScopeOption(
       competitionOption,
       (id) => this.competitions.findById(id),
@@ -98,11 +124,18 @@ export class InsightsCommandService implements OnModuleInit {
     if (competitionResult.kind === 'notFound') {
       return INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE;
     }
-    const competition =
-      competitionResult.kind === 'found' ? competitionResult.value : undefined;
+
+    const resolved: ResolvedScope = {
+      league: leagueResult.kind === 'found' ? leagueResult.value : undefined,
+      era: eraResult.kind === 'found' ? eraResult.value : undefined,
+      competition:
+        competitionResult.kind === 'found'
+          ? competitionResult.value
+          : undefined,
+    };
 
     if (!category) {
-      return this.resolveRandomFact(era, competition);
+      return this.resolveRandomFact(resolved);
     }
 
     const node = resolvePath(this.factTree, category);
@@ -111,34 +144,42 @@ export class InsightsCommandService implements OnModuleInit {
     }
 
     let leaves = collectLeaves(node);
-    if (era) {
+    if (resolved.league) {
+      leaves = leaves.filter((leaf) => leaf.supportsLeague);
+      if (leaves.length === 0) {
+        return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE;
+      }
+    }
+    if (resolved.era) {
       leaves = leaves.filter((leaf) => leaf.supportsEra);
       if (leaves.length === 0) {
         return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE;
       }
     }
-    if (competition) {
+    if (resolved.competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
       if (leaves.length === 0) {
         return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE;
       }
     }
 
-    return this.resolveLeaf(leaves, era, competition);
+    return this.resolveLeaf(leaves, resolved);
   }
 
   async resolveRandomFact(
-    era?: { id: number; name: string },
-    competition?: { id: number; name: string },
+    resolved: ResolvedScope = {},
   ): Promise<string | InteractionReplyOptions> {
     let leaves = collectLeaves(this.factTree);
-    if (era) {
+    if (resolved.league) {
+      leaves = leaves.filter((leaf) => leaf.supportsLeague);
+    }
+    if (resolved.era) {
       leaves = leaves.filter((leaf) => leaf.supportsEra);
     }
-    if (competition) {
+    if (resolved.competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
     }
-    return this.resolveLeaf(leaves, era, competition);
+    return this.resolveLeaf(leaves, resolved);
   }
 
   /**
@@ -167,15 +208,24 @@ export class InsightsCommandService implements OnModuleInit {
    */
   private async resolveLeaf(
     leaves: FactLeaf[],
-    era?: { id: number; name: string },
-    competition?: { id: number; name: string },
+    resolved: ResolvedScope,
   ): Promise<string | InteractionReplyOptions> {
     const picked = this.pickRandom(leaves);
-    const reply = await picked.resolve(era?.id, competition?.id);
-    return picked.supportsCompetition || picked.supportsEra
+    const scope: FactScope = {
+      leagueId: resolved.league?.id,
+      eraId: resolved.era?.id,
+      competitionId: resolved.competition?.id,
+    };
+    const reply = await picked.resolve(scope);
+    return picked.supportsLeague ||
+      picked.supportsEra ||
+      picked.supportsCompetition
       ? this.applyTitleSuffix(
           reply,
-          competition?.name ?? era?.name ?? 'All time',
+          resolved.league?.name ??
+            resolved.era?.name ??
+            resolved.competition?.name ??
+            'All time',
         )
       : reply;
   }
@@ -206,6 +256,13 @@ export class InsightsCommandService implements OnModuleInit {
     interaction: AutocompleteInteraction,
   ): Promise<{ name: string; value: string }[]> {
     const focused = interaction.options.getFocused(true);
+    if (focused.name === 'league') {
+      const leagues = await this.leagues.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return leagues.map((row) => ({ name: row.name, value: String(row.id) }));
+    }
     if (focused.name === 'era') {
       const eras = await this.eras.searchByNamePrefix(
         focused.value,

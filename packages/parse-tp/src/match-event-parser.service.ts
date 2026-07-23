@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
+import type { SecretObjective } from './secret-objective';
+import { decodeSecretObjective } from './secret-objective';
 import type { WeatherType } from './weather-type';
 import { decodeWeatherType } from './weather-type';
 
+export type { SecretObjective } from './secret-objective';
 export type { WeatherType } from './weather-type';
 
 /**
@@ -159,7 +162,7 @@ export type TpMatchEvent =
   | (TpMatchEventBase & {
       type: 'secret_objective';
       rosterId: number;
-      secretObjective: number;
+      secretObjective: SecretObjective;
     })
   | (TpMatchEventBase & { type: 'prayers_to_nuffle'; prayersToNuffle: number })
   | (TpMatchEventBase & {
@@ -509,7 +512,7 @@ const decoders = new Map<number, Decoder>([
       tpEventId: v.id,
       instant: v.instant,
       rosterId: v.rosterId,
-      secretObjective: v.extraData.secretObjective,
+      secretObjective: decodeSecretObjective(v.extraData.secretObjective),
     })),
   ],
   [

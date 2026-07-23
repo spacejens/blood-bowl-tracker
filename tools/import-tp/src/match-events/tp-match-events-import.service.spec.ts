@@ -273,7 +273,7 @@ describe('TpMatchEventsImportService', () => {
               tpEventId: 42,
               instant: 'x',
               rosterId: HOME_ROSTER_ID,
-              secretObjective: 3,
+              secretObjective: 'going_alone',
             },
           ],
         }),
@@ -283,7 +283,7 @@ describe('TpMatchEventsImportService', () => {
       expect.objectContaining({
         actionType: 'secret_objective',
         actingTeamEraId: HOME_TEAM_ERA_ID,
-        secretObjective: 3,
+        secretObjective: 'going_alone',
         externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-42' }],
       }),
     );
