@@ -12,10 +12,7 @@
     "strictNullChecks": true,
     "skipLibCheck": true,
     "outDir": "./dist",
-    "rootDir": "./src",
-    "paths": {
-      "vitest-mock-extended": ["./src/types/vitest-mock-extended.d.ts"]
-    }
+    "rootDir": "./src"
   },
   "include": ["src"]
 }
