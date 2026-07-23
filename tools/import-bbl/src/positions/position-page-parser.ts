@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { BblPage } from '../source/bbl-page';
+import { normalizeExtractedText } from '../source/normalize-extracted-text';
 
 /** One race a position can play for: its numeric BBL id and display name. */
 interface BblPositionRace {
@@ -36,7 +37,7 @@ export class PositionPageParser {
   extractPosition(page: BblPage): BblPosition | null {
     const typId = page.params.typID ?? '';
     const $ = page.load();
-    const name = $('h1').first().text().trim();
+    const name = normalizeExtractedText($('h1').first().text());
     if (!name || !typId) {
       return null;
     }
@@ -50,7 +51,7 @@ export class PositionPageParser {
         return;
       }
       const bblId = idMatch[1];
-      const raceName = $(element).text().trim();
+      const raceName = normalizeExtractedText($(element).text());
       if (!raceName || seen.has(bblId)) {
         return;
       }
@@ -60,7 +61,7 @@ export class PositionPageParser {
 
     let isStarPlayer = false;
     $('td').each((_index, element) => {
-      if ($(element).text().trim() === 'None (star player)') {
+      if (normalizeExtractedText($(element).text()) === 'None (star player)') {
         isStarPlayer = true;
         return false;
       }

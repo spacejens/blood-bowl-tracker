@@ -103,4 +103,19 @@ describe('PositionPageParser', () => {
     );
     expect(parser.extractPosition(page)?.isStarPlayer).toBe(false);
   });
+
+  it('normalizes internal non-breaking spaces in the name and race name', () => {
+    const page = positionPage(
+      '<h1>Orc&nbsp;Lineman</h1>' +
+        '<div>Can play for:</div>' +
+        '<a href="default.asp?p=tl#16">Orc&nbsp;Team</a>',
+      '10',
+    );
+    expect(parser.extractPosition(page)).toEqual({
+      typId: '10',
+      name: 'Orc Lineman',
+      races: [{ bblId: '16', name: 'Orc Team' }],
+      isStarPlayer: false,
+    });
+  });
 });
