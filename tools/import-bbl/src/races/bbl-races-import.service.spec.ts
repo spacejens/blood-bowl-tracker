@@ -6,19 +6,22 @@ import type {
 import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { BblRacesImportService } from './bbl-races-import.service';
-import { RaceListPageParser } from './race-list-page-parser';
-import type { BblRace } from './race-page-parser';
-import { RacePageParser } from './race-page-parser';
-
 /**
  * A fake team page carrying its race name and numeric BBL id in params for the
  * stub parser. The id defaults to one derived from the name so distinct races
  * get distinct ids; pass an explicit id to control it.
  */
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblRacesImportService } from './bbl-races-import.service';
+import { RaceListPageParser } from './race-list-page-parser';
+import type { BblRace } from './race-page-parser';
+import { RacePageParser } from './race-page-parser';
+
+const normalizeText = new NormalizeExtractedTextService();
+
 function page(raceName: string | null, id?: string): BblPage {
   return {
     type: 'tm',
@@ -46,7 +49,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 
 /** A parser that reads the race id and name straight from the page params. */
 function makeParser(): RacePageParser {
-  const parser = new RacePageParser();
+  const parser = new RacePageParser(normalizeText);
   vi.spyOn(parser, 'extractRace').mockImplementation((p) =>
     p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
   );
@@ -55,14 +58,14 @@ function makeParser(): RacePageParser {
 
 /** A race-list parser that yields no races — the default for tm-only tests. */
 function makeEmptyListParser(): RaceListPageParser {
-  const parser = new RaceListPageParser();
+  const parser = new RaceListPageParser(normalizeText);
   vi.spyOn(parser, 'extractRaces').mockReturnValue([]);
   return parser;
 }
 
 /** A race-list parser that reads its races array straight from page params. */
 function makeListParser(): RaceListPageParser {
-  const parser = new RaceListPageParser();
+  const parser = new RaceListPageParser(normalizeText);
   vi.spyOn(parser, 'extractRaces').mockImplementation(
     (p) => JSON.parse(p.params.races) as BblRace[],
   );
@@ -257,7 +260,7 @@ describe('BblRacesImportService', () => {
   it('records an error and continues when a team page fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
-    const parser = new RacePageParser();
+    const parser = new RacePageParser(normalizeText);
     vi.spyOn(parser, 'extractRace')
       .mockImplementationOnce(() => {
         throw new Error('bad page');
@@ -291,7 +294,7 @@ describe('BblRacesImportService', () => {
   it('records a stringified error when a team page throws a non-Error value', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
-    const parser = new RacePageParser();
+    const parser = new RacePageParser(normalizeText);
     vi.spyOn(parser, 'extractRace').mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
@@ -505,7 +508,7 @@ describe('BblRacesImportService', () => {
   it('records an error and continues when a tl page fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
-    const listParser = new RaceListPageParser();
+    const listParser = new RaceListPageParser(normalizeText);
     vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
       throw new Error('bad race list page');
     });
@@ -534,7 +537,7 @@ describe('BblRacesImportService', () => {
   it('records a stringified error when a tl page throws a non-Error value', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertRace = upsertRaceOk();
-    const listParser = new RaceListPageParser();
+    const listParser = new RaceListPageParser(normalizeText);
     vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad race list page';

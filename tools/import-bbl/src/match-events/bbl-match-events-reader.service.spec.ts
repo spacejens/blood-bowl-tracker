@@ -3,9 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventsPageParser } from '../matches/match-events-page-parser';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+
+const normalizeText = new NormalizeExtractedTextService();
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -29,7 +32,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 }
 
 function makeParser(eventsById: Record<string, BblMatchEvents | null>) {
-  const parser = new MatchEventsPageParser();
+  const parser = new MatchEventsPageParser(normalizeText);
   vi.spyOn(parser, 'extractMatchEvents').mockImplementation(
     (p) => eventsById[p.params.m] ?? null,
   );
@@ -88,7 +91,7 @@ describe('BblMatchEventsReaderService', () => {
   });
 
   it('records an error and continues when a page throws', async () => {
-    const parser = new MatchEventsPageParser();
+    const parser = new MatchEventsPageParser(normalizeText);
     vi.spyOn(parser, 'extractMatchEvents').mockImplementation(() => {
       throw new Error('bad m page');
     });
@@ -105,7 +108,7 @@ describe('BblMatchEventsReaderService', () => {
   });
 
   it('handles non-Error throws with String coercion in catch block', async () => {
-    const parser = new MatchEventsPageParser();
+    const parser = new MatchEventsPageParser(normalizeText);
     vi.spyOn(parser, 'extractMatchEvents').mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'boom';

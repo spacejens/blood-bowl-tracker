@@ -7,12 +7,15 @@ import type {
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EraConfig, EraConfigService } from '../eras/era-config.service';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
+
+const normalizeText = new NormalizeExtractedTextService();
 
 function plPage(player: BblPlayer | null, pid = '388'): BblPage {
   return {
@@ -37,7 +40,7 @@ function makeReader(pl: BblPage[]): BblSourceReader {
 }
 
 function makeParser() {
-  const parser = new PlayerPageParser();
+  const parser = new PlayerPageParser(normalizeText);
   vi.spyOn(parser, 'extractPlayer').mockImplementation(
     (p) => JSON.parse(p.params.player) as BblPlayer | null,
   );

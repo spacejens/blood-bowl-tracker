@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { CoachPageParser } from './coach-page-parser';
 
 function teamPage(html: string): BblPage {
   return { type: 'tm', params: { t: 'x' }, load: () => load(html) };
 }
 
-const parser = new CoachPageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new CoachPageParser(normalizeText);
 
 describe('CoachPageParser', () => {
   it('extracts the coach name from a team page', () => {

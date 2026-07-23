@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { RaceListPageParser } from './race-list-page-parser';
 
 function listPage(html: string): BblPage {
   return { type: 'tl', params: {}, load: () => load(html) };
 }
 
-const parser = new RaceListPageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new RaceListPageParser(normalizeText);
 
 describe('RaceListPageParser', () => {
   it('extracts each race from its numeric anchor and the following <b> heading', () => {

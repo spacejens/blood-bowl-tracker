@@ -4,13 +4,16 @@ import { join } from 'node:path';
 import { Injectable } from '@nestjs/common';
 import { load } from 'cheerio';
 
-import type { BblPage } from './bbl-page';
-import { parsePageFilename } from './bbl-page';
+import { BblPageService } from './bbl-page.service';
+import type { BblPage } from './bbl-page.types';
 import { SourceConfigService } from './source-config.service';
 
 @Injectable()
 export class BblSourceReader {
-  constructor(private readonly config: SourceConfigService) {}
+  constructor(
+    private readonly config: SourceConfigService,
+    private readonly bblPage: BblPageService,
+  ) {}
 
   /**
    * Stream every source page of the given type. Files are read, decoded from
@@ -24,7 +27,7 @@ export class BblSourceReader {
       if (!entry.isFile()) {
         continue;
       }
-      const parsed = parsePageFilename(entry.name);
+      const parsed = this.bblPage.parseFilename(entry.name);
       if (!parsed || parsed.type !== type) {
         continue;
       }

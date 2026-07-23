@@ -1,7 +1,7 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import type { BblMatch } from './match-list-page-parser';

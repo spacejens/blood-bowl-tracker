@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { RacePageParser } from './race-page-parser';
 
 function teamPage(html: string): BblPage {
   return { type: 'tm', params: { t: 'x' }, load: () => load(html) };
 }
 
-const parser = new RacePageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new RacePageParser(normalizeText);
 
 describe('RacePageParser', () => {
   it('extracts the numeric BBL id and name from the race link', () => {

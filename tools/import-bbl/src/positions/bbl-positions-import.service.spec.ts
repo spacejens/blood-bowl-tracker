@@ -7,12 +7,15 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { BblPlayer } from '../players/player-page-parser';
 import { PlayerPageParser } from '../players/player-page-parser';
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { BblPositionsImportService } from './bbl-positions-import.service';
 import type { BblPosition } from './position-page-parser';
 import { PositionPageParser } from './position-page-parser';
+
+const normalizeText = new NormalizeExtractedTextService();
 
 function ptPage(position: BblPosition | null): BblPage {
   return {
@@ -47,11 +50,11 @@ function makeReader(pt: BblPage[], pl: BblPage[] = []): BblSourceReader {
 }
 
 function makeParsers() {
-  const positionParser = new PositionPageParser();
+  const positionParser = new PositionPageParser(normalizeText);
   vi.spyOn(positionParser, 'extractPosition').mockImplementation(
     (p) => JSON.parse(p.params.position) as BblPosition | null,
   );
-  const playerParser = new PlayerPageParser();
+  const playerParser = new PlayerPageParser(normalizeText);
   vi.spyOn(playerParser, 'extractPlayer').mockImplementation(
     (p) => JSON.parse(p.params.player) as BblPlayer | null,
   );
@@ -584,7 +587,7 @@ describe('BblPositionsImportService', () => {
 
   it('records an error and continues when a position page throws while parsing', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(true);
-    const positionParser = new PositionPageParser();
+    const positionParser = new PositionPageParser(normalizeText);
     vi.spyOn(positionParser, 'extractPosition')
       .mockImplementationOnce(() => {
         throw new Error('bad page');
@@ -592,7 +595,7 @@ describe('BblPositionsImportService', () => {
       .mockImplementationOnce(
         (p) => JSON.parse(p.params.position) as BblPosition | null,
       );
-    const playerParser = new PlayerPageParser();
+    const playerParser = new PlayerPageParser(normalizeText);
     vi.spyOn(playerParser, 'extractPlayer').mockImplementation(
       (p) => JSON.parse(p.params.player) as BblPlayer | null,
     );

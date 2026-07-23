@@ -1,3 +1,5 @@
+import { Injectable } from '@nestjs/common';
+
 /**
  * Normalize a text value extracted from BBL's scraped HTML.
  *
@@ -13,6 +15,9 @@
  * equality, so a "Name" external id built from a corrupted race name never
  * matches its plain-space twin from another source.
  */
-export function normalizeExtractedText(text: string): string {
-  return text.replace(/\s+/g, ' ').trim();
+@Injectable()
+export class NormalizeExtractedTextService {
+  normalize(text: string): string {
+    return text.replace(/\s+/g, ' ').trim();
+  }
 }

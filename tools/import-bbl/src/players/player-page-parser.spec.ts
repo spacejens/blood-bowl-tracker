@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { PlayerPageParser } from './player-page-parser';
 
 function playerPage(html: string, pid = '5'): BblPage {
   return { type: 'pl', params: { pid }, load: () => load(html) };
 }
 
-const parser = new PlayerPageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new PlayerPageParser(normalizeText);
 
 describe('PlayerPageParser', () => {
   it('extracts the pid, name, position typId and team code', () => {

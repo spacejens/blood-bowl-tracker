@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 
 /**
  * A race extracted from BBL source data. `id` is the race's numeric BBL
@@ -15,6 +15,8 @@ export interface BblRace {
 
 @Injectable()
 export class RacePageParser {
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {}
+
   /**
    * Extract the race from a team page (`p=tm`). The `<td>` following the `<td>`
    * whose text is `Race:` holds the name as a link to the race's team-list
@@ -27,12 +29,12 @@ export class RacePageParser {
     let race: BblRace | null = null;
 
     $('td').each((_index, element) => {
-      if (normalizeExtractedText($(element).text()) === 'Race:') {
+      if (this.normalizeText.normalize($(element).text()) === 'Race:') {
         const cell = $(element).next('td');
-        // normalizeExtractedText strips the leading `&nbsp;` (U+00A0) and
+        // normalize() strips the leading `&nbsp;` (U+00A0) and
         // surrounding whitespace and collapses any internal whitespace (a
         // non-breaking space between words) to a single ASCII space.
-        const name = normalizeExtractedText(cell.text());
+        const name = this.normalizeText.normalize(cell.text());
         const href = cell.find('a').attr('href') ?? '';
         const idMatch = /#(\d+)/.exec(href);
         if (name && idMatch) {

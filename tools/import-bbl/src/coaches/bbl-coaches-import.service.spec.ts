@@ -6,9 +6,11 @@ import type {
 import { NameExternalIdService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import type { BblSourceReader } from '../source/bbl-source-reader';
 import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+/** A fake team page carrying its coach name in params for the stub parser. */
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
 import {
   makeCoachRecord,
@@ -16,7 +18,8 @@ import {
 } from './bbl-coaches-import.test-helpers';
 import { CoachPageParser } from './coach-page-parser';
 
-/** A fake team page carrying its coach name in params for the stub parser. */
+const normalizeText = new NormalizeExtractedTextService();
+
 function page(coachName: string | null): BblPage {
   return {
     type: 'tm',
@@ -41,7 +44,7 @@ function makeReader(pages: BblPage[]): BblSourceReader {
 
 /** A parser that reads the coach name straight from params.coach. */
 function makeParser(): CoachPageParser {
-  const parser = new CoachPageParser();
+  const parser = new CoachPageParser(normalizeText);
   vi.spyOn(parser, 'extractCoach').mockImplementation((p) =>
     p.params.coach ? { name: p.params.coach } : null,
   );
@@ -186,7 +189,7 @@ describe('BblCoachesImportService', () => {
   it('records an error and continues when a team page fails to parse', async () => {
     const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const parser = new CoachPageParser();
+    const parser = new CoachPageParser(normalizeText);
     vi.spyOn(parser, 'extractCoach')
       .mockImplementationOnce(() => {
         throw new Error('bad page');
@@ -219,7 +222,7 @@ describe('BblCoachesImportService', () => {
   it('records a stringified error when a team page throws a non-Error value', async () => {
     const bootstrap = makeTwoSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const parser = new CoachPageParser();
+    const parser = new CoachPageParser(normalizeText);
     vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';

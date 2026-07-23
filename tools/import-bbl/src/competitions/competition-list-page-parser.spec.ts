@@ -1,14 +1,17 @@
 import { load } from 'cheerio';
 import { describe, expect, it } from 'vitest';
 
-import type { BblPage } from '../source/bbl-page';
+import type { BblPage } from '../source/bbl-page.types';
 import { CompetitionListPageParser } from './competition-list-page-parser';
 
 function listPage(html: string): BblPage {
   return { type: 'se', params: { s: '66' }, load: () => load(html) };
 }
 
-const parser = new CompetitionListPageParser();
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+
+const normalizeText = new NormalizeExtractedTextService();
+const parser = new CompetitionListPageParser(normalizeText);
 
 describe('CompetitionListPageParser', () => {
   it('extracts each competition id and name from the se-option dropdown', () => {

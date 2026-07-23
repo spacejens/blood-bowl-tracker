@@ -4,8 +4,8 @@ import type {
 } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
-import type { BblPage } from '../source/bbl-page';
-import { normalizeExtractedText } from '../source/normalize-extracted-text';
+import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 export type BblEventSide = 'home' | 'away';
@@ -70,7 +70,11 @@ const CONSEQUENCE_LABELS: { test: RegExp; consequenceType: ConsequenceType }[] =
  */
 @Injectable()
 export class MatchEventsPageParser {
-  private readonly teamsParser = new MatchTeamsPageParser();
+  private readonly teamsParser: MatchTeamsPageParser;
+
+  constructor(private readonly normalizeText: NormalizeExtractedTextService) {
+    this.teamsParser = new MatchTeamsPageParser(normalizeText);
+  }
 
   extractMatchEvents(page: BblPage): BblMatchEvents | null {
     const bblId = page.params.m?.trim();
@@ -93,7 +97,7 @@ export class MatchEventsPageParser {
       if (cells.length !== 3) {
         return;
       }
-      const label = normalizeExtractedText($(cells[1]).text());
+      const label = this.normalizeText.normalize($(cells[1]).text());
       if (!label) {
         return;
       }
@@ -103,7 +107,8 @@ export class MatchEventsPageParser {
       for (const side of ['home', 'away'] as const) {
         const cell = side === 'home' ? homeCell : awayCell;
         if (
-          normalizeExtractedText(cell.text())
+          this.normalizeText
+            .normalize(cell.text())
             .toLowerCase()
             .includes('journeyman')
         ) {
@@ -213,7 +218,7 @@ export class MatchEventsPageParser {
       return pids;
     }
     // No links: a non-empty, non-spacer text node means one anonymous victim.
-    const text = normalizeExtractedText(
+    const text = this.normalizeText.normalize(
       cell.clone().find('img').remove().end().text(),
     );
     return text.length > 0 ? [null] : [];
@@ -236,9 +241,9 @@ export class MatchEventsPageParser {
       if (fragment.find('a').length > 0) {
         continue;
       }
-      const text = normalizeExtractedText(
-        fragment.find('img').remove().end().text(),
-      ).toLowerCase();
+      const text = this.normalizeText
+        .normalize(fragment.find('img').remove().end().text())
+        .toLowerCase();
       if (text === 'journeyman') {
         count += 1;
       }
