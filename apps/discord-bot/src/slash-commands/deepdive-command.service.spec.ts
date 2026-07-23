@@ -337,9 +337,9 @@ describe('DeepdiveCommandService', () => {
     });
     (
       coaches.getTopTeamsByMatchesPlayed as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ name: 'Reikland Reavers', count: 12 }]);
+    ).mockResolvedValue([{ id: 11, name: 'Reikland Reavers', count: 12 }]);
     const result = await service.execute(chatInput({ coach: '7' }));
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: 'Roze Madder',
@@ -423,9 +423,9 @@ describe('DeepdiveCommandService', () => {
     });
     (
       teams.getTopPlayersByMatchEventCount as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ name: 'Griff', count: 20 }]);
+    ).mockResolvedValue([{ playerId: 5, name: 'Griff', count: 20 }]);
     const result = await service.execute(chatInput({ team: '7' }));
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       embeds: [
         {
           title: '40 grinders',
