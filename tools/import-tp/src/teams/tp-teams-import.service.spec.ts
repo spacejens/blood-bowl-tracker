@@ -96,8 +96,8 @@ describe('TpTeamsImportService', () => {
     );
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', isBookkeeping: false },
-      { name: 'Name', isBookkeeping: true },
+      { name: 'TP', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(result.imported).toBe(1);
     expect(result.success).toBe(true);

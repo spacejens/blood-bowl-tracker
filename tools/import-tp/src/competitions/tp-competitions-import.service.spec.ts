@@ -162,8 +162,8 @@ describe('TpCompetitionsImportService', () => {
       await service.importCompetitions(eraIdsByName);
 
     expect(bootstrap).toHaveBeenCalledWith([
-      { name: 'TP', isBookkeeping: false },
-      { name: 'Name', isBookkeeping: true },
+      { name: 'TP', category: 'imported_data_source' },
+      { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(result.imported).toBe(2);
     // matchesByCompetitionId is keyed by DB competition id (42, 43), each

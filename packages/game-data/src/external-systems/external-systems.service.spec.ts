@@ -13,6 +13,7 @@ import { ExternalSystemsService } from './external-systems.service';
 const fakeSystem = {
   id: 1,
   name: 'BBL',
+  category: 'imported_data_source' as const,
   createdAt: new Date('2026-01-01'),
 };
 
@@ -73,73 +74,83 @@ describe('ExternalSystemsService', () => {
 
   it('returns the existing system without inserting when name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([fakeSystem]));
-    const result = await service.upsert({ name: 'BBL', isBookkeeping: false });
+    const result = await service.upsert({
+      name: 'BBL',
+      category: 'imported_data_source',
+    });
     expect(result).toEqual({ system: fakeSystem, created: false });
     expect(mockDb.insert).not.toHaveBeenCalled();
   });
 
   it('creates a new system when no name matches', async () => {
     mockDb.select().from.mockReturnValue(makeFromBuilder([]));
-    const result = await service.upsert({ name: 'NAF', isBookkeeping: false });
+    const result = await service.upsert({
+      name: 'NAF',
+      category: 'referenced_not_imported',
+    });
     expect(result).toEqual({ system: fakeSystem, created: true });
     expect(mockDb.insert).toHaveBeenCalled();
   });
 
   describe('countAll', () => {
-    it('returns the total row count', async () => {
-      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
+    it('counts only imported-data-source systems', async () => {
+      const where = vi.fn().mockResolvedValue([{ count: 5 }]);
+      const from = vi.fn(() => ({ where }));
       const service = new ExternalSystemsService({
         select: vi.fn(() => ({ from })),
       } as unknown as Db);
       await expect(service.countAll()).resolves.toBe(5);
-      expect(from).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(where))).toEqual([
+        'imported_data_source',
+      ]);
     });
   });
 
   describe('countByEra', () => {
-    it('returns the distinct external-system count for the era', async () => {
+    it('returns the distinct imported-data-source count for the era', async () => {
       const builder = makeCountBuilder([{ count: 3 }]);
       const select = vi.fn(() => builder);
       const service = new ExternalSystemsService({ select } as unknown as Db);
+
       await expect(service.countByEra(5)).resolves.toBe(3);
       expect(select).toHaveBeenCalledTimes(1);
 
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['external_systems.id', 'eras_external_ids.external_system_id'],
       );
-      expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         5,
-        false,
+        'imported_data_source',
       ]);
     });
   });
 
   describe('countByCompetition', () => {
-    it('returns the distinct external-system count for the competition', async () => {
+    it('returns the distinct imported-data-source count for the competition', async () => {
       const builder = makeCountBuilder([{ count: 2 }]);
       const select = vi.fn(() => builder);
       const service = new ExternalSystemsService({ select } as unknown as Db);
+
       await expect(service.countByCompetition(7)).resolves.toBe(2);
       expect(select).toHaveBeenCalledTimes(1);
 
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['external_systems.id', 'competitions_external_ids.external_system_id'],
       );
-      expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         7,
-        false,
+        'imported_data_source',
       ]);
     });
   });
 
   describe('countByLeague', () => {
-    it('returns the distinct external-system count for the league', async () => {
-      const builder = makeCountBuilder([{ count: 4 }]);
+    it('returns the distinct imported-data-source count for the league', async () => {
+      const builder = makeCountBuilder([{ count: 1 }]);
       const select = vi.fn(() => builder);
       const service = new ExternalSystemsService({ select } as unknown as Db);
-      await expect(service.countByLeague(9)).resolves.toBe(4);
+
+      await expect(service.countByLeague(9)).resolves.toBe(1);
       expect(select).toHaveBeenCalledTimes(1);
 
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -148,33 +159,32 @@ describe('ExternalSystemsService', () => {
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
         ['eras.id', 'eras_external_ids.era_id'],
       );
-      expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         9,
-        false,
+        'imported_data_source',
       ]);
     });
   });
 
   describe('listNamesByEra', () => {
-    it('returns distinct non-bookkeeping system names ordered by name', async () => {
-      const builder = makeListBuilder([{ name: 'BBL' }, { name: 'NAF' }]);
+    it('returns sorted imported-data-source names for the era', async () => {
+      const builder = makeListBuilder([{ name: 'BBL' }, { name: 'TP' }]);
       const selectDistinct = vi.fn(() => builder);
       const service = new ExternalSystemsService({
         selectDistinct,
       } as unknown as Db);
 
-      await expect(service.listNamesByEra(5)).resolves.toEqual(['BBL', 'NAF']);
+      await expect(service.listNamesByEra(5)).resolves.toEqual(['BBL', 'TP']);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['external_systems.id', 'eras_external_ids.external_system_id'],
       );
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         5,
-        false,
+        'imported_data_source',
       ]);
     });
 
-    it('returns an empty array for an era with no non-bookkeeping systems', async () => {
+    it('returns an empty array for an era with no imported-data-source systems', async () => {
       const builder = makeListBuilder([]);
       const service = new ExternalSystemsService({
         selectDistinct: vi.fn(() => builder),

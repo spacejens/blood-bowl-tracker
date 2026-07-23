@@ -128,7 +128,7 @@ describe('BblPlayersImportService', () => {
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
     expect(bootstrap).toHaveBeenCalledWith(
-      [{ name: 'BBL', isBookkeeping: false }],
+      [{ name: 'BBL', category: 'imported_data_source' }],
       'Failed to upsert external system: ',
     );
     expect(playerIdsByPid.get('42')).toBe(900);

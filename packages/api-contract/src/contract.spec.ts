@@ -26,24 +26,28 @@ describe('contract', () => {
     expect(errorCodesOf(contract.externalSystems.upsert)).toEqual([]);
   });
 
-  it('UpsertExternalSystemSchema requires name and isBookkeeping', () => {
+  it('UpsertExternalSystemSchema requires name and category', () => {
     expect(
       UpsertExternalSystemSchema.safeParse({
         name: 'BBL',
-        isBookkeeping: false,
+        category: 'imported_data_source',
       }).success,
     ).toBe(true);
     expect(UpsertExternalSystemSchema.safeParse({ name: 'BBL' }).success).toBe(
       false,
     );
+    expect(
+      UpsertExternalSystemSchema.safeParse({ name: 'BBL', category: 'nope' })
+        .success,
+    ).toBe(false);
   });
 
-  it('ExternalSystemSchema includes isBookkeeping', () => {
+  it('ExternalSystemSchema includes category', () => {
     expect(
       ExternalSystemSchema.safeParse({
         id: 1,
         name: 'BBL',
-        isBookkeeping: false,
+        category: 'imported_data_source',
         createdAt: new Date('2026-01-01'),
       }).success,
     ).toBe(true);

@@ -129,8 +129,8 @@ describe('BblPositionsImportService', () => {
 
     expect(bootstrap).toHaveBeenCalledWith(
       [
-        { name: 'BBL', isBookkeeping: false },
-        { name: 'Name', isBookkeeping: true },
+        { name: 'BBL', category: 'imported_data_source' },
+        { name: 'Name', category: 'bookkeeping' },
       ],
       'Failed to upsert external system: ',
     );

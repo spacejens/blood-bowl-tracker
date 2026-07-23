@@ -1,5 +1,6 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
@@ -11,9 +12,12 @@ export class ExternalSystemsImportService {
     private readonly importRunner: ImportRunnerService,
   ) {}
 
-  upsertExternalSystem(name: string, isBookkeeping: boolean): Promise<number> {
+  upsertExternalSystem(
+    name: string,
+    category: ExternalSystemCategory,
+  ): Promise<number> {
     return this.importRunner.upsertExternalSystem(
-      () => this.client.externalSystems.upsert({ name, isBookkeeping }),
+      () => this.client.externalSystems.upsert({ name, category }),
       name,
     );
   }

@@ -1,3 +1,4 @@
+import { ExternalSystemCategorySchema } from '@blood-bowl-tracker/api-contract';
 import { z } from 'zod';
 
 /** An external-id pair, both in an entry's own externalIds and in a
@@ -16,6 +17,7 @@ const externalIds = z.array(ExternalRefSchema).min(1);
 
 const ExternalSystemEntrySchema = z.object({
   name: z.string().min(1),
+  category: ExternalSystemCategorySchema,
 });
 
 const RulesSetEntrySchema = z.object({

@@ -1,3 +1,4 @@
+import type { ExternalSystemCategory } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemsImportService } from './external-systems-import.service';
@@ -21,17 +22,14 @@ export class ExternalSystemBootstrapService {
    * the callers (players, positions) that prefix it.
    */
   async bootstrap(
-    names: readonly { name: string; isBookkeeping: boolean }[],
+    names: readonly { name: string; category: ExternalSystemCategory }[],
     messagePrefix = '',
   ): Promise<ExternalSystemBootstrapResult> {
     const ids: number[] = [];
     try {
-      for (const { name, isBookkeeping } of names) {
+      for (const { name, category } of names) {
         ids.push(
-          await this.externalSystemsImport.upsertExternalSystem(
-            name,
-            isBookkeeping,
-          ),
+          await this.externalSystemsImport.upsertExternalSystem(name, category),
         );
       }
     } catch (error) {
