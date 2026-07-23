@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { weatherTypeByCode } from './weather-type';
-import { WeatherTypeService } from './weather-type.service';
+import { weatherTypeByCode, WeatherTypeService } from './weather-type.service';
 
 describe('WeatherTypeService', () => {
   const service = new WeatherTypeService();
