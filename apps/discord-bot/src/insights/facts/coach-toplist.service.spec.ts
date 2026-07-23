@@ -5,7 +5,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { COACH_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { LeaderboardService } from '../leaderboard.service';
+import {
+  LeaderboardService,
+  TOPLIST_FETCH_LIMIT,
+} from '../leaderboard.service';
 import { CoachToplistService } from './coach-toplist.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -113,6 +116,18 @@ describe('CoachToplistService.resolveCompetitionsPlayed', () => {
     } as unknown as CoachesService;
     const service = makeService(coaches);
     await service.resolveCompetitionsPlayed({ eraId: 20 });
-    expect(countCompetitionsByCoach).toHaveBeenCalledWith({ eraId: 20 });
+    expect(countCompetitionsByCoach).toHaveBeenCalledWith(
+      { eraId: 20 },
+      TOPLIST_FETCH_LIMIT,
+    );
+  });
+});
+
+describe('CoachToplistService.resolveErasActive', () => {
+  it('passes the fetch limit through to the query', async () => {
+    const countErasByCoach = vi.fn().mockResolvedValue([]);
+    const coaches = { countErasByCoach } as unknown as CoachesService;
+    await makeService(coaches).resolveErasActive();
+    expect(countErasByCoach).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
   });
 });
