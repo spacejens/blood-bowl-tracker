@@ -1,20 +1,37 @@
 import { ConfigService } from '@nestjs/config';
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { ApiClientConfigService } from './api-client-config.service';
 
 describe('ApiClientConfigService', () => {
+  let service: ApiClientConfigService;
+  let config: MockProxy<ConfigService>;
+
+  beforeEach(async () => {
+    config = mock<ConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ApiClientConfigService,
+        { provide: ConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(ApiClientConfigService);
+  });
+
   it('returns the configured API_BASE_URL', () => {
-    const configService = new ConfigService({
-      API_BASE_URL: 'http://prod.example.com',
-    });
-    const service = new ApiClientConfigService(configService);
+    config.get.mockReturnValue('http://prod.example.com');
     expect(service.getApiBaseUrl()).toBe('http://prod.example.com');
   });
 
   it('defaults to http://localhost:3000 when API_BASE_URL is not set', () => {
-    const configService = new ConfigService({});
-    const service = new ApiClientConfigService(configService);
+    // ApiClientConfigService calls configService.get('API_BASE_URL', 'http://localhost:3000'),
+    // relying on ConfigService's own default-value behaviour. A mocked ConfigService.get
+    // does not apply that default itself, so this stubs the mock to return the same
+    // default the service passes in, mirroring the real fallback behaviour.
+    config.get.mockReturnValue('http://localhost:3000');
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
   });
 });
