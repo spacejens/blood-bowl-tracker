@@ -220,14 +220,22 @@ export class LeaderboardService {
     // because we can no longer count it exactly.
     const saturated = rows.length === TOPLIST_FETCH_LIMIT;
     const consideredRows = saturated ? rows.slice(0, -1) : rows;
-    const { rows: ranked, truncatedCount } = this.topRanksWithTies(
+    const {
+      rows: ranked,
+      truncatedCount,
+      tieGroupOpenEnded,
+    } = this.topRanksWithTies(
       consideredRows,
       MAX_LEADERBOARD_TOP_ENTRIES,
       MAX_LEADERBOARD_ENTRIES,
     );
-    const tieRemainder: TieRemainder = saturated
-      ? { type: 'approximate' }
-      : { type: 'exact', count: truncatedCount };
+    // Only "lots more tied" when the fetch was saturated AND the boundary tie
+    // was still open at the window edge; a saturated fetch whose boundary tie
+    // resolves inside the window can still report an exact remainder.
+    const tieRemainder: TieRemainder =
+      saturated && tieGroupOpenEnded
+        ? { type: 'approximate' }
+        : { type: 'exact', count: truncatedCount };
     return this.formatLeaderboardEmbed({
       title,
       rankedRows: ranked,

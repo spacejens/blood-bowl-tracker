@@ -598,6 +598,64 @@ describe('resolveToplist', () => {
     });
   });
 
+  it('reports an exact remainder when a saturated fetch’s boundary tie resolves within the window', async () => {
+    // 21 rows fetched (saturated). Positions 5–12 are an 8-way tie at 50; the
+    // boundary tie opens at position 5 and breaks on the 40 at position 13, so
+    // the remainder is exactly countable (2 tied rows past the 10-row cap) and
+    // must NOT render as "lots more tied".
+    const rows = [
+      { name: 'a', count: 100 },
+      { name: 'b', count: 90 },
+      { name: 'c', count: 80 },
+      { name: 'd', count: 70 },
+      { name: 't0', count: 50 },
+      { name: 't1', count: 50 },
+      { name: 't2', count: 50 },
+      { name: 't3', count: 50 },
+      { name: 't4', count: 50 },
+      { name: 't5', count: 50 },
+      { name: 't6', count: 50 },
+      { name: 't7', count: 50 },
+      { name: 'u0', count: 40 },
+      { name: 'u1', count: 39 },
+      { name: 'u2', count: 38 },
+      { name: 'u3', count: 37 },
+      { name: 'u4', count: 36 },
+      { name: 'u5', count: 35 },
+      { name: 'u6', count: 34 },
+      { name: 'u7', count: 33 },
+      { name: 'u8', count: 32 },
+    ];
+    expect(rows).toHaveLength(TOPLIST_FETCH_LIMIT); // guard: fetch is saturated
+    const result = await service().resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: () => Promise.resolve(rows),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    });
+    const expectedLines = [
+      '1. a — 100',
+      '2. b — 90',
+      '3. c — 80',
+      '4. d — 70',
+      '5. t0 — 50',
+      '5. t1 — 50',
+      '5. t2 — 50',
+      '5. t3 — 50',
+      '5. t4 — 50',
+      '5. t5 — 50',
+      '…and 2 more tied.',
+    ];
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by eras active',
+          description: expectedLines.join('\n'),
+        },
+      ],
+    });
+  });
+
   it('requests exactly TOPLIST_FETCH_LIMIT rows from fetchRows', async () => {
     const fetchRows = vi.fn().mockResolvedValue([{ name: 'a', count: 1 }]);
     await service().resolveToplist({
