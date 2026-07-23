@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { Decoder } from './match-event-decoders';
+import type { Decoder } from './match-event-decoders.service';
 import { MatchEventDecodersService } from './match-event-decoders.service';
-import type { SecretObjective } from './secret-objective';
-import type { WeatherType } from './weather-type';
+import type { SecretObjective } from './secret-objective.service';
+import type { WeatherType } from './weather-type.service';
 
-export type { SecretObjective } from './secret-objective';
-export type { WeatherType } from './weather-type';
+export type { SecretObjective } from './secret-objective.service';
+export type { WeatherType } from './weather-type.service';
 
 /**
  * The set of injury outcomes TP's `matchEvents[].injuryType` field can carry
