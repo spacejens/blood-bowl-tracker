@@ -35,6 +35,7 @@ function makeQueryBuilder(rows: unknown[]) {
   builder.where = vi.fn(() => builder);
   builder.groupBy = vi.fn(() => builder);
   builder.orderBy = vi.fn(() => builder);
+  builder.limit = vi.fn(() => builder);
   builder.then = (
     resolve: (v: unknown) => unknown,
     reject: (e: unknown) => unknown,
@@ -205,7 +206,7 @@ describe('RacesService', () => {
         likePattern,
       );
       await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME),
+        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
@@ -219,7 +220,7 @@ describe('RacesService', () => {
         likePattern,
       );
       await expect(
-        service.countTeamsByRace(FACT_SCOPE_ALL_TIME),
+        service.countTeamsByRace(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual([]);
     });
 
@@ -231,9 +232,9 @@ describe('RacesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByRace({ eraId: 20 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByRace({ eraId: 20 }, 21),
+      ).resolves.toEqual(rows);
       // Era path adds a second innerJoin (teams + teamEras) vs. one when unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(2);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -242,6 +243,7 @@ describe('RacesService', () => {
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
         ['team_eras.team_id', 'teams.id', 'team_eras.era_id'],
       );
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
 
     it('countMatchesPlayedByRace returns the rows the query resolves to', async () => {
@@ -255,7 +257,7 @@ describe('RacesService', () => {
         likePattern,
       );
       await expect(
-        service.countMatchesPlayedByRace(FACT_SCOPE_ALL_TIME),
+        service.countMatchesPlayedByRace(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
     });
@@ -269,10 +271,11 @@ describe('RacesService', () => {
         likePattern,
       );
       await expect(
-        service.countMatchesPlayedByRace({ eraId: 20 }),
+        service.countMatchesPlayedByRace({ eraId: 20 }, 21),
       ).resolves.toEqual(rows);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(20);
+      expect(builder.limit).toHaveBeenCalledWith(21);
     });
   });
 
@@ -285,7 +288,7 @@ describe('RacesService', () => {
         } as unknown as Db,
         likePattern,
       );
-      await service.countMatchesPlayedByRace({ leagueId: 9 });
+      await service.countMatchesPlayedByRace({ leagueId: 9 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 1, 1))).toEqual(
         ['eras.id', 'team_eras.era_id'],
@@ -301,9 +304,9 @@ describe('RacesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByRace({ leagueId: 9 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByRace({ leagueId: 9 }, 21),
+      ).resolves.toEqual(rows);
       // League path adds two innerJoins (teams + teamEras + eras) vs. one unfiltered.
       expect(builder.innerJoin).toHaveBeenCalledTimes(3);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
@@ -324,9 +327,9 @@ describe('RacesService', () => {
         { select } as unknown as Db,
         likePattern,
       );
-      await expect(service.countTeamsByRace({ leagueId: 9 })).resolves.toEqual(
-        rows,
-      );
+      await expect(
+        service.countTeamsByRace({ leagueId: 9 }, 21),
+      ).resolves.toEqual(rows);
       const selectedFields = firstCallArg(select, 0, 0) as { count: unknown };
       expect(isCountDistinct(selectedFields.count)).toBe(true);
     });
