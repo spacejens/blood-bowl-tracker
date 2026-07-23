@@ -378,7 +378,7 @@ export function buildFactTree(deps: StatsSummaryDeps): FactNode {
       },
     },
     stats: {
-      supportsLeague: false,
+      supportsLeague: true,
       supportsEra: true,
       supportsCompetition: true,
       resolve: (scope) => resolveStatsSummary(deps, scope),

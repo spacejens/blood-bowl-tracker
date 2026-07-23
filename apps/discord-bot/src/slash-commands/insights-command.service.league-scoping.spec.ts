@@ -42,13 +42,15 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     );
   });
 
-  it('rejects a league on a non-league-supporting category (stats)', async () => {
+  it('rejects a league on a non-league-supporting category (eras.list)', async () => {
     const { service, leagues } = makeService();
     (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
       id: 5,
       name: 'GBBL',
     });
-    const result = await service.execute(chatInput('stats', { league: '5' }));
+    const result = await service.execute(
+      chatInput('eras.list', { league: '5' }),
+    );
     expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE);
   });
 

@@ -20,6 +20,7 @@ import {
   STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
   STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
   STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 
 export interface StatsSummaryDeps {
@@ -96,6 +97,28 @@ type CompetitionCounts = [
   string[],
 ];
 
+/**
+ * Result of the league view's `Promise.all` count query. Element order must
+ * match that array exactly: eraCount, externalSystems, races, positions,
+ * coaches, competitions, seasons, cups, teams, players, matches, matchEvents,
+ * rulesSetNames.
+ */
+type LeagueCounts = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  string[],
+];
+
 function statsSummaryEmbed(
   values: StatsSummaryValues,
 ): InteractionReplyOptions {
@@ -121,6 +144,9 @@ export async function resolveStatsSummary(
   deps: StatsSummaryDeps,
   scope: FactScope,
 ): Promise<string | InteractionReplyOptions> {
+  if (scope.leagueId !== undefined) {
+    return resolveLeagueStats(deps, scope.leagueId);
+  }
   if (scope.competitionId !== undefined) {
     return resolveCompetitionStats(deps, scope.competitionId);
   }
@@ -291,6 +317,63 @@ async function resolveCompetitionStats(
     positions,
     coaches,
     competitions: `1 (${seasons} seasons, ${cups} cups)`,
+    teams,
+    players,
+    matches,
+    matchEvents,
+  });
+}
+
+async function resolveLeagueStats(
+  deps: StatsSummaryDeps,
+  leagueId: number,
+): Promise<string | InteractionReplyOptions> {
+  const counts = await withDatabaseTimeout<LeagueCounts | null>(
+    Promise.all([
+      deps.eras.countByLeague(leagueId),
+      deps.externalSystems.countByLeague(leagueId),
+      deps.races.countByLeague(leagueId),
+      deps.positions.countByLeague(leagueId),
+      deps.coaches.countByLeague(leagueId),
+      deps.competitions.countByLeague(leagueId),
+      deps.competitions.countByType('season', undefined, leagueId),
+      deps.competitions.countByType('cup', undefined, leagueId),
+      deps.teams.countByLeague(leagueId),
+      deps.players.countByLeague(leagueId),
+      deps.matches.countByLeague(leagueId),
+      deps.matches.countMatchEventsByLeague(leagueId),
+      deps.eras.getRulesSetNamesByLeague(leagueId),
+    ]),
+    null,
+  );
+  if (counts === null) {
+    return STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE;
+  }
+  const [
+    eraCount,
+    externalSystems,
+    races,
+    positions,
+    coaches,
+    competitions,
+    seasons,
+    cups,
+    teams,
+    players,
+    matches,
+    matchEvents,
+    rulesSetNames,
+  ] = counts;
+
+  return statsSummaryEmbed({
+    leagues: '1',
+    eras: fmt(eraCount),
+    externalSystems,
+    rulesSets: rulesSetNames.length,
+    races,
+    positions,
+    coaches,
+    competitions: `${fmt(competitions)} (${fmt(seasons)} seasons, ${fmt(cups)} cups)`,
     teams,
     players,
     matches,

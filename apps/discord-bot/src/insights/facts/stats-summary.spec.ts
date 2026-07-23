@@ -6,6 +6,7 @@ import {
   STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
   STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
   STATS_SUMMARY_ERA_TIMEOUT_MESSAGE,
+  STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import type { StatsSummaryDeps } from './stats-summary';
 import { resolveStatsSummary } from './stats-summary';
@@ -272,6 +273,101 @@ describe('resolveStatsSummary competition-filtered', () => {
           },
         }),
       STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE,
+    );
+  });
+});
+
+function makeLeagueDeps(
+  overrides: Partial<Record<string, unknown>> = {},
+): StatsSummaryDeps {
+  return {
+    leagues: { countAll: vi.fn() },
+    externalSystems: { countByLeague: vi.fn().mockResolvedValue(3) },
+    rulesSets: { countAll: vi.fn() },
+    races: { countByLeague: vi.fn().mockResolvedValue(18) },
+    positions: { countByLeague: vi.fn().mockResolvedValue(90) },
+    coaches: { countByLeague: vi.fn().mockResolvedValue(10) },
+    eras: {
+      countByLeague: vi.fn().mockResolvedValue(4),
+      getRulesSetNamesByLeague: vi.fn().mockResolvedValue(['BB2016', 'BB2020']),
+    },
+    competitions: {
+      countByLeague: vi.fn().mockResolvedValue(9),
+      countByType: vi.fn((t: string) =>
+        Promise.resolve(t === 'season' ? 6 : 3),
+      ),
+    },
+    teams: { countByLeague: vi.fn().mockResolvedValue(22) },
+    players: { countByLeague: vi.fn().mockResolvedValue(260) },
+    matches: {
+      countByLeague: vi.fn().mockResolvedValue(70),
+      countMatchEventsByLeague: vi.fn().mockResolvedValue(900),
+    },
+    ...overrides,
+  } as unknown as StatsSummaryDeps;
+}
+
+describe('resolveStatsSummary league-filtered', () => {
+  it('renders the league-scoped lines, showing leagues as 1 and the league era count', async () => {
+    const result = await resolveStatsSummary(makeLeagueDeps(), {
+      leagueId: 9,
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Statistics',
+          description: [
+            'Leagues: 1',
+            'Eras: 4',
+            'External systems: 3',
+            'Rules sets: 2',
+            'Races: 18',
+            'Positions: 90',
+            'Coaches: 10',
+            'Competitions: 9 (6 seasons, 3 cups)',
+            'Teams: 22',
+            'Players: 260',
+            'Matches: 70',
+            'Match events: 900',
+          ].join('\n'),
+        },
+      ],
+    });
+  });
+
+  it('renders "0" for the rules sets line when the league has no rules sets', async () => {
+    const result = await resolveStatsSummary(
+      makeLeagueDeps({
+        eras: {
+          countByLeague: vi.fn().mockResolvedValue(0),
+          getRulesSetNamesByLeague: vi.fn().mockResolvedValue([]),
+        },
+      }),
+      { leagueId: 9 },
+    );
+    const description = (result as { embeds: { description: string }[] })
+      .embeds[0].description;
+    expect(description).toContain('Rules sets: 0');
+  });
+
+  it('scopes external systems by league (excluding the Name system via countByLeague)', async () => {
+    const deps = makeLeagueDeps();
+    await resolveStatsSummary(deps, { leagueId: 9 });
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(deps.externalSystems.countByLeague).toHaveBeenCalledWith(9);
+  });
+
+  it('falls back to the stunned message when a league count times out', async () => {
+    await expectTimeoutFallback(
+      (deps: StatsSummaryDeps) => resolveStatsSummary(deps, { leagueId: 9 }),
+      () =>
+        makeLeagueDeps({
+          matches: {
+            countByLeague: vi.fn().mockReturnValue(new Promise(() => {})),
+            countMatchEventsByLeague: vi.fn().mockResolvedValue(0),
+          },
+        }),
+      STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE,
     );
   });
 });

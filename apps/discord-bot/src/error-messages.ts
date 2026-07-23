@@ -21,6 +21,8 @@ export const STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE =
   "The league secretary can't find that competition anywhere in the standings.";
 export const STATS_SUMMARY_COMPETITION_TIMEOUT_MESSAGE =
   'The scorekeeper dropped the clipboard mid-count.';
+export const STATS_SUMMARY_LEAGUE_TIMEOUT_MESSAGE =
+  'The commissioner is still auditing the whole league.';
 
 // --- Toplists (insights/facts/{player,team,coach,race}-toplist.ts) ---
 export const PLAYER_TOPLIST_TIMEOUT_MESSAGE =
