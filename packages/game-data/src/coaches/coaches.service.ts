@@ -28,7 +28,7 @@ export class CoachUpsertConflictError extends UpsertConflictError {}
 export class CoachesService {
   constructor(
     @Inject(DB) private readonly db: Db,
-    private readonly likePattern: LikePatternService = new LikePatternService(),
+    private readonly likePattern: LikePatternService,
   ) {}
 
   async upsert(data: UpsertCoach): Promise<{ coach: Coach; created: boolean }> {

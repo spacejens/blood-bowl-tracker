@@ -2,6 +2,7 @@ import type { Db } from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -12,6 +13,8 @@ import { TeamsService } from './teams.service';
 import { makeQueryBuilder } from './teams.service.test-helpers';
 
 describe('TeamsService', () => {
+  const likePattern = new LikePatternService();
+
   describe('toplist queries', () => {
     it('countMatchesPlayedByTeam returns the rows the query resolves to', async () => {
       const rows = [
@@ -19,7 +22,10 @@ describe('TeamsService', () => {
         { teamId: 2, name: 'Reikland Reavers', count: 7 },
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countMatchesPlayedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -30,7 +36,10 @@ describe('TeamsService', () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 3 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countMatchesPlayedByTeam({ eraId: 20 }, 21),
       ).resolves.toEqual(rows);
@@ -49,7 +58,10 @@ describe('TeamsService', () => {
         { teamId: 2, name: 'Reikland Reavers', count: 4 },
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompetitionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -60,7 +72,10 @@ describe('TeamsService', () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 2 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompetitionsByTeam({ eraId: 20 }, 21),
       ).resolves.toEqual(rows);
@@ -77,7 +92,10 @@ describe('TeamsService', () => {
       const rows: unknown[] = [];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompetitionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -91,7 +109,10 @@ describe('TeamsService', () => {
       ];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -104,7 +125,10 @@ describe('TeamsService', () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 5 }];
       const builder = makeQueryBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
       expect(builder.where).not.toHaveBeenCalled();
     });
@@ -112,7 +136,10 @@ describe('TeamsService', () => {
     it('countTouchdownsScoredByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 15 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countTouchdownsScoredByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -121,9 +148,12 @@ describe('TeamsService', () => {
 
     it('countTouchdownsScoredByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countTouchdownsScoredByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -135,9 +165,12 @@ describe('TeamsService', () => {
 
     it('countTouchdownsScoredByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countTouchdownsScoredByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -153,7 +186,10 @@ describe('TeamsService', () => {
     it('countCompletionsByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCompletionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -161,9 +197,12 @@ describe('TeamsService', () => {
 
     it('countCompletionsByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countCompletionsByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -175,9 +214,12 @@ describe('TeamsService', () => {
 
     it('countCompletionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countCompletionsByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -193,7 +235,10 @@ describe('TeamsService', () => {
     it('countInterceptionsByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 5 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countInterceptionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -201,9 +246,12 @@ describe('TeamsService', () => {
 
     it('countInterceptionsByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countInterceptionsByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -215,9 +263,12 @@ describe('TeamsService', () => {
 
     it('countInterceptionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countInterceptionsByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -233,7 +284,10 @@ describe('TeamsService', () => {
     it('countDeflectionsByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countDeflectionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -241,9 +295,12 @@ describe('TeamsService', () => {
 
     it('countDeflectionsByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countDeflectionsByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -255,9 +312,12 @@ describe('TeamsService', () => {
 
     it('countDeflectionsByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countDeflectionsByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -276,7 +336,10 @@ describe('TeamsService', () => {
         { teamId: 2, name: 'Gouged Eye', count: 9 },
       ];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countCasualtiesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -285,9 +348,12 @@ describe('TeamsService', () => {
 
     it('countCasualtiesCausedByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countCasualtiesCausedByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -302,9 +368,12 @@ describe('TeamsService', () => {
 
     it('countCasualtiesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countCasualtiesCausedByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -323,7 +392,10 @@ describe('TeamsService', () => {
     it('countSeriousInjuriesCausedByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 7 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countSeriousInjuriesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -331,9 +403,12 @@ describe('TeamsService', () => {
 
     it('countSeriousInjuriesCausedByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countSeriousInjuriesCausedByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -345,9 +420,12 @@ describe('TeamsService', () => {
 
     it('countSeriousInjuriesCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countSeriousInjuriesCausedByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -363,7 +441,10 @@ describe('TeamsService', () => {
     it('countDeathsCausedByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countDeathsCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -371,9 +452,12 @@ describe('TeamsService', () => {
 
     it('countDeathsCausedByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countDeathsCausedByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -385,9 +469,12 @@ describe('TeamsService', () => {
 
     it('countDeathsCausedByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countDeathsCausedByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -403,7 +490,10 @@ describe('TeamsService', () => {
     it('countFoulsCommittedByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 13 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countFoulsCommittedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -411,9 +501,12 @@ describe('TeamsService', () => {
 
     it('countFoulsCommittedByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countFoulsCommittedByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -425,9 +518,12 @@ describe('TeamsService', () => {
 
     it('countFoulsCommittedByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countFoulsCommittedByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -443,7 +539,10 @@ describe('TeamsService', () => {
     it('countTimesSentOffByTeam returns the rows the query resolves to', async () => {
       const rows = [{ teamId: 1, name: '40 grinders', count: 8 }];
       const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.countTimesSentOffByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
@@ -451,9 +550,12 @@ describe('TeamsService', () => {
 
     it('countTimesSentOffByTeam adds an era filter when an eraId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countTimesSentOffByTeam({ eraId: 20 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.limit).toHaveBeenCalledWith(21);
@@ -465,9 +567,12 @@ describe('TeamsService', () => {
 
     it('countTimesSentOffByTeam joins matches and filters by competition when a competitionId is given', async () => {
       const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.countTimesSentOffByTeam({ competitionId: 30 }, 21);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(builder.innerJoin).toHaveBeenCalledTimes(5);
@@ -477,492 +582,6 @@ describe('TeamsService', () => {
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
         'sent_off',
         30,
-      ]);
-    });
-
-    it('countCasualtiesSufferedByTeam returns the rows the query resolves to', async () => {
-      const rows = [
-        { teamId: 1, name: '40 grinders', count: 18 },
-        { teamId: 2, name: 'Gouged Eye', count: 7 },
-      ];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.countCasualtiesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(select).toHaveBeenCalledTimes(1);
-    });
-
-    it('countCasualtiesSufferedByTeam adds an era filter when an eraId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countCasualtiesSufferedByTeam({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'casualty',
-        'badly_hurt',
-        'death',
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        20,
-      ]);
-    });
-
-    it('countCasualtiesSufferedByTeam filters on the full casualty-suffered consequence type list', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countCasualtiesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21);
-      const condition = firstCallArg(builder.where);
-      expect(extractFilterValues(condition)).toEqual([
-        'casualty',
-        'badly_hurt',
-        'death',
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-      ]);
-    });
-
-    it('countCasualtiesSufferedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countCasualtiesSufferedByTeam({ competitionId: 30 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'casualty',
-        'badly_hurt',
-        'death',
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        30,
-      ]);
-    });
-
-    it('countSeriousInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 6 }];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.countSeriousInjuriesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countSeriousInjuriesSufferedByTeam adds an era filter when an eraId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByTeam({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        20,
-      ]);
-    });
-
-    it('countSeriousInjuriesSufferedByTeam filters on the serious-injury-suffered consequence type list', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21);
-      const condition = firstCallArg(builder.where);
-      expect(extractFilterValues(condition)).toEqual([
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-      ]);
-    });
-
-    it('countSeriousInjuriesSufferedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countSeriousInjuriesSufferedByTeam(
-        { competitionId: 30 },
-        21,
-      );
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'serious_injury',
-        'niggling_injury',
-        'miss_next_game',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        30,
-      ]);
-    });
-
-    it('countLastingInjuriesSufferedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 4 }];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.countLastingInjuriesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countLastingInjuriesSufferedByTeam adds an era filter when an eraId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countLastingInjuriesSufferedByTeam({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'niggling_injury',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        20,
-      ]);
-    });
-
-    it('countLastingInjuriesSufferedByTeam filters on the lasting-injury-suffered consequence type list', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countLastingInjuriesSufferedByTeam(FACT_SCOPE_ALL_TIME, 21);
-      const condition = firstCallArg(builder.where);
-      expect(extractFilterValues(condition)).toEqual([
-        'niggling_injury',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-      ]);
-    });
-
-    it('countLastingInjuriesSufferedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countLastingInjuriesSufferedByTeam(
-        { competitionId: 30 },
-        21,
-      );
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'niggling_injury',
-        'stat_reduction_ma',
-        'stat_reduction_st',
-        'stat_reduction_ag',
-        'stat_reduction_av',
-        'stat_reduction_pa',
-        30,
-      ]);
-    });
-
-    it('countDeathsSufferedByTeam returns the rows the query resolves to', async () => {
-      const rows = [{ teamId: 1, name: '40 grinders', count: 2 }];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.countDeathsSufferedByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-    });
-
-    it('countDeathsSufferedByTeam adds an era filter when an eraId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countDeathsSufferedByTeam({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'death',
-        20,
-      ]);
-    });
-
-    it('countDeathsSufferedByTeam filters on the single death consequence type', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countDeathsSufferedByTeam(FACT_SCOPE_ALL_TIME, 21);
-      const condition = firstCallArg(builder.where);
-      expect(extractFilterValues(condition)).toEqual(['death']);
-    });
-
-    it('countDeathsSufferedByTeam joins matches and filters by competition when a competitionId is given', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countDeathsSufferedByTeam({ competitionId: 30 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'death',
-        30,
-      ]);
-    });
-
-    it('sumExpensiveMistakesByTeam returns the rows the query resolves to', async () => {
-      const rows = [
-        { teamId: 1, name: '40 grinders', count: 150000 },
-        { teamId: 2, name: 'Reikland Reavers', count: 40000 },
-      ];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.sumExpensiveMistakesByTeam(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(select).toHaveBeenCalledTimes(1);
-    });
-
-    it('sumExpensiveMistakesByTeam applies the SQL limit to the query', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam(FACT_SCOPE_ALL_TIME, 21);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-    });
-
-    it('sumExpensiveMistakesByTeam filters on the expensive_mistake consequence and era', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        20,
-      ]);
-    });
-
-    it('sumExpensiveMistakesByTeam joins the consequence side and filters by competition', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam({ competitionId: 30 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        30,
-      ]);
-    });
-
-    it('sumExpensiveMistakesByTeam groups by team', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam(FACT_SCOPE_ALL_TIME, 21);
-      expect(builder.groupBy).toHaveBeenCalledTimes(1);
-    });
-
-    it('listBiggestExpensiveMistakes returns the rows the query resolves to', async () => {
-      const rows = [
-        { teamId: 1, name: '40 grinders', count: 90000, date: '2026-03-04' },
-        { teamId: 2, name: 'Gouged Eye', count: 60000, date: '2026-02-01' },
-      ];
-      const select = vi.fn(() => makeQueryBuilder(rows));
-      const service = new TeamsService({ select } as unknown as Db);
-      await expect(
-        service.listBiggestExpensiveMistakes(FACT_SCOPE_ALL_TIME, 21),
-      ).resolves.toEqual(rows);
-      expect(select).toHaveBeenCalledTimes(1);
-    });
-
-    it('listBiggestExpensiveMistakes applies the SQL limit to the query', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes(FACT_SCOPE_ALL_TIME, 21);
-      expect(builder.limit).toHaveBeenCalledWith(21);
-    });
-
-    it('listBiggestExpensiveMistakes filters on the expensive_mistake consequence and era', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes({ eraId: 20 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        20,
-      ]);
-    });
-
-    it('listBiggestExpensiveMistakes excludes rows with a null expensive-mistake amount', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes(FACT_SCOPE_ALL_TIME, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(
-        extractJoinColumns(firstCallArg(builder.where)).filter(
-          (column) => column === 'match_events.expensive_mistake',
-        ),
-      ).toHaveLength(1);
-    });
-
-    it('listBiggestExpensiveMistakes joins the consequence side and filters by competition', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes({ competitionId: 30 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
-        ['match_teams.id', 'match_events.consequence_match_team_id'],
-      );
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        30,
-      ]);
-    });
-
-    it('listBiggestExpensiveMistakes does not group (one row per event)', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes(FACT_SCOPE_ALL_TIME, 21);
-      expect(builder.groupBy).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('league scoping', () => {
-    it('countMatchesPlayedByTeam filters by league via the eras join', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countMatchesPlayedByTeam({ leagueId: 9 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
-        ['eras.id', 'team_eras.era_id'],
-      );
-      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
-    });
-
-    it('countCompetitionsByTeam filters by league via the eras join', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countCompetitionsByTeam({ leagueId: 9 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractJoinColumns(firstCallArg(builder.innerJoin, 2, 1))).toEqual(
-        ['eras.id', 'team_eras.era_id'],
-      );
-      expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
-    });
-
-    it('countTouchdownsScoredByTeam filters by league', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.countTouchdownsScoredByTeam({ leagueId: 9 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(builder.innerJoin).toHaveBeenCalledTimes(5);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'touchdown',
-        9,
-      ]);
-    });
-
-    it('sumExpensiveMistakesByTeam filters by league', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.sumExpensiveMistakesByTeam({ leagueId: 9 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        9,
-      ]);
-    });
-
-    it('listBiggestExpensiveMistakes filters by league', async () => {
-      const builder = makeQueryBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
-      await service.listBiggestExpensiveMistakes({ leagueId: 9 }, 21);
-      expect(builder.where).toHaveBeenCalledTimes(1);
-      expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
-        'expensive_mistake',
-        9,
       ]);
     });
   });

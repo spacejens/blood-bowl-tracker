@@ -64,6 +64,7 @@ function makeChronoBuilder(rows: unknown[]) {
 }
 
 describe('CompetitionsService', () => {
+  const likePattern = new LikePatternService();
   let service: CompetitionsService;
   let externalIdRows: unknown[];
   let existingTeamEraRows: { teamEraId: number }[];
@@ -191,9 +192,12 @@ describe('CompetitionsService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new CompetitionsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -203,9 +207,12 @@ describe('CompetitionsService', () => {
     it('countByType filters competitions by the given type', async () => {
       const where = vi.fn().mockResolvedValue([{ count: 4 }]);
       const from = vi.fn(() => ({ where }));
-      const service = new CompetitionsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByType('season')).resolves.toBe(4);
       expect(where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(where))).toBe('season');
@@ -216,7 +223,10 @@ describe('CompetitionsService', () => {
     it('returns the competition count for the era', async () => {
       const builder = makeCountBuilder([{ count: 4 }]);
       const select = vi.fn(() => builder);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByEra(5)).resolves.toBe(4);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
@@ -227,7 +237,10 @@ describe('CompetitionsService', () => {
     it('filters by era when an eraId is given', async () => {
       const builder = makeCountBuilder([{ count: 2 }]);
       const select = vi.fn(() => builder);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByType('season', 5)).resolves.toBe(2);
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
@@ -253,7 +266,10 @@ describe('CompetitionsService', () => {
     it('returns the competition count for the league', async () => {
       const builder = makeJoinCountBuilder([{ count: 9 }]);
       const select = vi.fn(() => builder);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByLeague(9)).resolves.toBe(9);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
         ['eras.id', 'competitions.era_id'],
@@ -279,7 +295,10 @@ describe('CompetitionsService', () => {
     it('filters by league when a leagueId is given', async () => {
       const builder = makeJoinCountBuilder([{ count: 3 }]);
       const select = vi.fn(() => builder);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByType('season', undefined, 9)).resolves.toBe(
         3,
       );
@@ -302,9 +321,12 @@ describe('CompetitionsService', () => {
           { id: 7, name: 'Major Season 24', type: 'season', eraId: 20 },
         ]);
       const from = vi.fn(() => ({ where }));
-      const service = new CompetitionsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'Major Season 24',
@@ -316,9 +338,12 @@ describe('CompetitionsService', () => {
     it('returns undefined when no competition matches', async () => {
       const where = vi.fn().mockResolvedValue([]);
       const from = vi.fn(() => ({ where }));
-      const service = new CompetitionsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(999)).resolves.toBeUndefined();
     });
   });
@@ -338,9 +363,12 @@ describe('CompetitionsService', () => {
         { id: 7, name: 'Major Season 24', leagueName: 'The Major' },
       ];
       const builder = makeJoinBuilder(rows);
-      const service = new CompetitionsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.searchByNamePrefix('Maj', 25)).resolves.toEqual(
         rows,
       );
@@ -355,9 +383,12 @@ describe('CompetitionsService', () => {
 
     it('escapes LIKE metacharacters in the prefix', async () => {
       const builder = makeJoinBuilder([]);
-      const service = new CompetitionsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await service.searchByNamePrefix('50%_x', 10);
       expect(builder.where).toHaveBeenCalledTimes(1);
       // ilike() (unlike eq()/inArray()) embeds its pattern as a raw string
@@ -381,7 +412,10 @@ describe('CompetitionsService', () => {
       ];
       const builder = makeChronoBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.listByEraChronological(5)).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       // filtered to the requested era
@@ -397,9 +431,12 @@ describe('CompetitionsService', () => {
 
     it('returns an empty array when the era has no competitions', async () => {
       const builder = makeChronoBuilder([]);
-      const service = new CompetitionsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new CompetitionsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.listByEraChronological(5)).resolves.toEqual([]);
     });
   });
@@ -421,13 +458,19 @@ describe('CompetitionsService', () => {
         eraName: 'BB2020',
       };
       const { select } = makeChain([row]);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findByIdWithEra(1)).resolves.toEqual(row);
     });
 
     it('returns undefined when no competition matches', async () => {
       const { select } = makeChain([]);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findByIdWithEra(999)).resolves.toBeUndefined();
     });
   });
@@ -449,14 +492,20 @@ describe('CompetitionsService', () => {
         { id: 9, name: 'Reikland Reavers' },
       ];
       const { select, where } = makeChain(rows);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.listTeams(3)).resolves.toEqual(rows);
       expect(extractFilterValues(firstCallArg(where))).toBe(3);
     });
 
     it('returns an empty array when no teams participated', async () => {
       const { select } = makeChain([]);
-      const service = new CompetitionsService({ select } as unknown as Db);
+      const service = new CompetitionsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.listTeams(3)).resolves.toEqual([]);
     });
   });

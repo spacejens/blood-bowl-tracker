@@ -13,6 +13,7 @@ import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam, makeFromBuilder } from './teams.service.test-helpers';
 
 describe('TeamsService', () => {
+  const likePattern = new LikePatternService();
   let service: TeamsService;
   let externalIdRows: unknown[];
   let existingEraRows: { eraId: number }[];
@@ -169,9 +170,12 @@ describe('TeamsService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new TeamsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -192,7 +196,10 @@ describe('TeamsService', () => {
     it('returns the distinct team count for the era', async () => {
       const builder = makeCountBuilder([{ count: 12 }]);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByEra(5)).resolves.toBe(12);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(5);
@@ -215,7 +222,10 @@ describe('TeamsService', () => {
     it('returns the distinct team count for the league', async () => {
       const builder = makeCountBuilder([{ count: 20 }]);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByLeague(9)).resolves.toBe(20);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -241,7 +251,10 @@ describe('TeamsService', () => {
     it('returns the distinct team count for the competition', async () => {
       const builder = makeCountBuilder([{ count: 9 }]);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countByCompetition(7)).resolves.toBe(9);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(

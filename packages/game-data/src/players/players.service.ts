@@ -46,7 +46,7 @@ export class PlayerUpsertConflictError extends UpsertConflictError {}
 export class PlayersService {
   constructor(
     @Inject(DB) private readonly db: Db,
-    private readonly likePattern: LikePatternService = new LikePatternService(),
+    private readonly likePattern: LikePatternService,
   ) {}
 
   async findById(id: number): Promise<

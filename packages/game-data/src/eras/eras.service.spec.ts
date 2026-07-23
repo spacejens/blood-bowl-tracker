@@ -49,6 +49,7 @@ function makeFromBuilder(rows: unknown[]) {
 }
 
 describe('ErasService', () => {
+  const likePattern = new LikePatternService();
   let service: ErasService;
   let externalIdRows: unknown[];
   let existingRulesSetRows: { rulesSetId: number }[];
@@ -175,9 +176,12 @@ describe('ErasService', () => {
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.countAll()).resolves.toBe(5);
       expect(from).toHaveBeenCalledTimes(1);
     });
@@ -187,7 +191,7 @@ describe('ErasService', () => {
     it('returns the era count for the league', async () => {
       const builder = makeCountBuilder([{ count: 4 }]);
       const select = vi.fn(() => builder);
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await expect(service.countByLeague(9)).resolves.toBe(4);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(9);
@@ -198,9 +202,12 @@ describe('ErasService', () => {
     it('returns the matching era id and name', async () => {
       const where = vi.fn().mockResolvedValue([{ id: 7, name: 'BB2020' }]);
       const from = vi.fn(() => ({ where }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'BB2020',
@@ -212,9 +219,12 @@ describe('ErasService', () => {
     it('returns undefined when no era matches', async () => {
       const where = vi.fn().mockResolvedValue([]);
       const from = vi.fn(() => ({ where }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(where))).toBe(999);
@@ -228,9 +238,12 @@ describe('ErasService', () => {
       const where = vi.fn(() => ({ limit }));
       const innerJoin = vi.fn(() => ({ where }));
       const from = vi.fn(() => ({ innerJoin }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.searchByNamePrefix('bb', 25)).resolves.toEqual(rows);
       expect(limit).toHaveBeenCalledWith(25);
       expect(extractJoinColumns(firstCallArg(innerJoin, 0, 1))).toEqual([
@@ -246,9 +259,12 @@ describe('ErasService', () => {
       }));
       const innerJoin = vi.fn(() => ({ where }));
       const from = vi.fn(() => ({ innerJoin }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
 
       await service.searchByNamePrefix('50%_\\off', 25);
 
@@ -264,7 +280,7 @@ describe('ErasService', () => {
       const rows = [{ name: 'BB2016' }, { name: 'BB2020' }];
       const builder = makeCountBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await expect(service.getRulesSetNames(5)).resolves.toEqual([
         'BB2016',
         'BB2020',
@@ -281,7 +297,7 @@ describe('ErasService', () => {
 
     it('returns an empty array when the era has no rules sets', async () => {
       const select = vi.fn(() => makeCountBuilder([]));
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await expect(service.getRulesSetNames(5)).resolves.toEqual([]);
     });
   });
@@ -294,9 +310,12 @@ describe('ErasService', () => {
       ];
       const builder = makeCountBuilder(rows);
       const selectDistinct = vi.fn(() => builder);
-      const service = new ErasService({
-        selectDistinct,
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          selectDistinct,
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getRulesSetNamesByLeague(9)).resolves.toEqual([
         'BB2016',
         'BB2020',
@@ -322,9 +341,12 @@ describe('ErasService', () => {
 
     it('returns an empty array when the league has no rules sets', async () => {
       const selectDistinct = vi.fn(() => makeCountBuilder([]));
-      const service = new ErasService({
-        selectDistinct,
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          selectDistinct,
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getRulesSetNamesByLeague(9)).resolves.toEqual([]);
     });
   });
@@ -343,7 +365,7 @@ describe('ErasService', () => {
     it('returns the rows the query resolves to and joins eras to leagues', async () => {
       const builder = makeCountBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await expect(service.listErasWithLeague({})).resolves.toEqual(rows);
       expect(select).toHaveBeenCalledTimes(1);
       expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual(
@@ -354,7 +376,7 @@ describe('ErasService', () => {
     it('filters by league id when the scope carries a leagueId', async () => {
       const builder = makeCountBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await service.listErasWithLeague({ leagueId: 42 });
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(42);
     });
@@ -362,7 +384,7 @@ describe('ErasService', () => {
     it('applies no league filter when the scope has no leagueId', async () => {
       const builder = makeCountBuilder(rows);
       const select = vi.fn(() => builder);
-      const service = new ErasService({ select } as unknown as Db);
+      const service = new ErasService({ select } as unknown as Db, likePattern);
       await service.listErasWithLeague({});
       expect(builder.where).toHaveBeenCalledTimes(1);
       expect(firstCallArg(builder.where)).toBeUndefined();
@@ -381,9 +403,12 @@ describe('ErasService', () => {
       const where = vi.fn().mockResolvedValue([row]);
       const innerJoin = vi.fn(() => ({ where }));
       const from = vi.fn(() => ({ innerJoin }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findByIdWithLeague(7)).resolves.toEqual(row);
       expect(where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(where))).toBe(7);
@@ -397,9 +422,12 @@ describe('ErasService', () => {
       const where = vi.fn().mockResolvedValue([]);
       const innerJoin = vi.fn(() => ({ where }));
       const from = vi.fn(() => ({ innerJoin }));
-      const service = new ErasService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new ErasService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findByIdWithLeague(999)).resolves.toBeUndefined();
       expect(extractFilterValues(firstCallArg(where))).toBe(999);
     });

@@ -32,7 +32,7 @@ export interface RaceWithEras extends Race {
 export class RacesService {
   constructor(
     @Inject(DB) private readonly db: Db,
-    private readonly likePattern: LikePatternService = new LikePatternService(),
+    private readonly likePattern: LikePatternService,
   ) {}
 
   async findById(

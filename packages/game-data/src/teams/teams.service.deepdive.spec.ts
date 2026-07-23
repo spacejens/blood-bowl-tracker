@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
   firstCallArg,
@@ -8,6 +9,8 @@ import {
 import { TeamsService } from './teams.service';
 
 describe('TeamsService lookups', () => {
+  const likePattern = new LikePatternService();
+
   describe('searchByNamePrefix', () => {
     it('returns id/name choices for a name prefix, capped to the limit', async () => {
       const rows = [
@@ -17,9 +20,12 @@ describe('TeamsService lookups', () => {
       const limit = vi.fn().mockResolvedValue(rows);
       const where = vi.fn(() => ({ limit }));
       const from = vi.fn(() => ({ where }));
-      const service = new TeamsService({
-        select: vi.fn(() => ({ from })),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => ({ from })),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.searchByNamePrefix('4', 25)).resolves.toEqual(rows);
       expect(limit).toHaveBeenCalledWith(25);
     });
@@ -45,7 +51,10 @@ describe('TeamsService lookups', () => {
       };
       const builder = makeFindByIdBuilder([row]);
       const select = vi.fn(() => builder);
-      const service = new TeamsService({ select } as unknown as Db);
+      const service = new TeamsService(
+        { select } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(7)).resolves.toEqual(row);
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(7);
       const selectArg = (select as ReturnType<typeof vi.fn>).mock
@@ -57,9 +66,12 @@ describe('TeamsService lookups', () => {
 
     it('returns undefined when no team matches', async () => {
       const builder = makeFindByIdBuilder([]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(extractFilterValues(firstCallArg(builder.where))).toBe(999);
     });
@@ -78,9 +90,12 @@ describe('TeamsService lookups', () => {
       const builder = makeSpanBuilder([
         { start: '2021-09-01', end: '2023-06-10' },
       ]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getCareerSpan(7)).resolves.toEqual({
         start: '2021-09-01',
         end: '2023-06-10',
@@ -90,9 +105,12 @@ describe('TeamsService lookups', () => {
 
     it('returns undefined when the team has played no matches', async () => {
       const builder = makeSpanBuilder([{ start: null, end: null }]);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(service.getCareerSpan(7)).resolves.toBeUndefined();
     });
   });
@@ -115,9 +133,12 @@ describe('TeamsService lookups', () => {
         { playerId: 2, name: 'Morg', count: 11 },
       ];
       const builder = makeTopPlayersBuilder(rows);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.getTopPlayersByMatchEventCount(7, 10),
       ).resolves.toEqual(rows);
@@ -132,9 +153,12 @@ describe('TeamsService lookups', () => {
       // shape the SQL would produce; this pins the pass-through and limit.
       const rows = [{ playerId: 1, name: 'Griff', count: 37 }];
       const builder = makeTopPlayersBuilder(rows);
-      const service = new TeamsService({
-        select: vi.fn(() => builder),
-      } as unknown as Db);
+      const service = new TeamsService(
+        {
+          select: vi.fn(() => builder),
+        } as unknown as Db,
+        likePattern,
+      );
       await expect(
         service.getTopPlayersByMatchEventCount(7, 10),
       ).resolves.toEqual(rows);
