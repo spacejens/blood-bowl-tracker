@@ -1,5 +1,6 @@
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import { buildFactTree } from './fact-tree';
@@ -13,7 +14,14 @@ import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 
-const factTreeUtils = new FactTreeUtilsService();
+let factTreeUtils: FactTreeUtilsService;
+
+beforeAll(async () => {
+  const moduleRef = await Test.createTestingModule({
+    providers: [FactTreeUtilsService],
+  }).compile();
+  factTreeUtils = moduleRef.get(FactTreeUtilsService);
+});
 
 function deps(): FactTreeDeps {
   const coachToplist = mock<CoachToplistService>();

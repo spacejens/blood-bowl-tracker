@@ -13,10 +13,9 @@ import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 
-const factTreeUtils = new FactTreeUtilsService();
-
 describe('FactTreeFactoryService', () => {
   let factory: FactTreeFactoryService;
+  let factTreeUtils: FactTreeUtilsService;
   let coachToplist: MockProxy<CoachToplistService>;
   let teamToplist: MockProxy<TeamToplistService>;
   let playerToplist: MockProxy<PlayerToplistService>;
@@ -48,6 +47,7 @@ describe('FactTreeFactoryService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         FactTreeFactoryService,
+        FactTreeUtilsService,
         { provide: CoachToplistService, useValue: coachToplist },
         { provide: TeamToplistService, useValue: teamToplist },
         { provide: PlayerToplistService, useValue: playerToplist },
@@ -61,6 +61,7 @@ describe('FactTreeFactoryService', () => {
       ],
     }).compile();
     factory = moduleRef.get(FactTreeFactoryService);
+    factTreeUtils = moduleRef.get(FactTreeUtilsService);
   });
 
   it('build() returns the fully assembled fact tree', () => {
