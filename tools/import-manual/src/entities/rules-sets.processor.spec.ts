@@ -1,19 +1,16 @@
-import type {
-  ImportError,
-  RulesSetsImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import type { ImportError } from '@blood-bowl-tracker/import';
+import { RulesSetsImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
+import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 import { RulesSetsProcessor } from './rules-sets.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
 
 function emptyData(): ManualDataFile {
   return {
@@ -33,19 +30,35 @@ function makeContext(data: ManualDataFile): ProcessContext {
     data,
     systemIds: new Map([['Name', 2]]),
     idMap: new ExternalIdMap(),
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
 describe('RulesSetsProcessor', () => {
+  let processor: RulesSetsProcessor;
+  let rulesSets: MockProxy<RulesSetsImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    rulesSets = mock<RulesSetsImportService>();
+    refResolver = mockReferenceResolver();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RulesSetsProcessor,
+        { provide: RulesSetsImportService, useValue: rulesSets },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(RulesSetsProcessor);
+  });
+
   it('upserts each rules set, records its external ids, and counts it', async () => {
-    const upsertRulesSet = vi.fn().mockResolvedValue({ id: 7 });
-    const processor = new RulesSetsProcessor(
-      {
-        upsertRulesSet,
-      } as unknown as RulesSetsImportService,
-      makeRefResolver(),
-    );
+    rulesSets.upsertRulesSet.mockResolvedValue({
+      id: 7,
+      name: 'CRP',
+      createdAt: new Date(),
+      created: true,
+    });
     const data = emptyData();
     data.rulesSets = [
       { name: 'CRP', externalIds: [{ system: 'Name', id: 'name:crp' }] },
@@ -55,7 +68,8 @@ describe('RulesSetsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertRulesSet).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(rulesSets.upsertRulesSet).toHaveBeenCalledWith(
       {
         name: 'CRP',
         externalIds: [{ externalSystemId: 2, externalId: 'name:crp' }],
@@ -66,17 +80,11 @@ describe('RulesSetsProcessor', () => {
   });
 
   it('does not record ids or count when the upsert fails', async () => {
-    const upsertRulesSet = vi
-      .fn()
-      .mockImplementation((_d: unknown, errors: ImportError[]) => {
+    rulesSets.upsertRulesSet.mockImplementation(
+      (_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'boom' });
         return Promise.resolve(undefined);
-      });
-    const processor = new RulesSetsProcessor(
-      {
-        upsertRulesSet,
-      } as unknown as RulesSetsImportService,
-      makeRefResolver(),
+      },
     );
     const data = emptyData();
     data.rulesSets = [

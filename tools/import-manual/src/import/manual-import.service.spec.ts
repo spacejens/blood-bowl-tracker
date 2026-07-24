@@ -1,9 +1,19 @@
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import type { ManualDataReader } from '../data-file/manual-data-reader.service';
-import type { ExternalSystemsProcessor } from '../entities/external-systems.processor';
+import { ManualDataReader } from '../data-file/manual-data-reader.service';
+import { CoachesProcessor } from '../entities/coaches.processor';
+import { ErasProcessor } from '../entities/eras.processor';
+import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
+import { LeaguesProcessor } from '../entities/leagues.processor';
+import { PositionsProcessor } from '../entities/positions.processor';
+import { RacesProcessor } from '../entities/races.processor';
+import { RulesSetsProcessor } from '../entities/rules-sets.processor';
+import { TeamsProcessor } from '../entities/teams.processor';
 import type { ProcessContext } from '../references/process-context';
 import { ManualImportService } from './manual-import.service';
 
@@ -20,56 +30,103 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeService(overrides: {
+interface Overrides {
   read?: () => Promise<ManualDataFile>;
   bootstrap?: () => Promise<Map<string, number>>;
   counts?: Partial<Record<string, number>>;
   errorFrom?: { processor: string; message: string };
-}) {
-  const reader = {
-    read: vi.fn(overrides.read ?? (() => Promise.resolve(emptyData()))),
-  } as unknown as ManualDataReader;
-  const externalSystems = {
-    bootstrap: vi.fn(overrides.bootstrap ?? (() => Promise.resolve(new Map()))),
-  } as unknown as ExternalSystemsProcessor;
+}
 
-  const makeProc = (name: string) => ({
-    process: vi.fn((ctx: ProcessContext) => {
-      if (overrides.errorFrom?.processor === name) {
-        ctx.errors.push({ item: {}, message: overrides.errorFrom.message });
-      }
-      return Promise.resolve(overrides.counts?.[name] ?? 0);
-    }),
-  });
+interface ProcessorMocks {
+  rulesSets: MockProxy<RulesSetsProcessor>;
+  leagues: MockProxy<LeaguesProcessor>;
+  eras: MockProxy<ErasProcessor>;
+  races: MockProxy<RacesProcessor>;
+  positions: MockProxy<PositionsProcessor>;
+  coaches: MockProxy<CoachesProcessor>;
+  teams: MockProxy<TeamsProcessor>;
+}
 
-  const procs = {
-    rulesSets: makeProc('rulesSets'),
-    leagues: makeProc('leagues'),
-    eras: makeProc('eras'),
-    races: makeProc('races'),
-    positions: makeProc('positions'),
-    coaches: makeProc('coaches'),
-    teams: makeProc('teams'),
+function processImpl(name: string, overrides: Overrides) {
+  return (ctx: ProcessContext): Promise<number> => {
+    if (overrides.errorFrom?.processor === name) {
+      ctx.errors.push({ item: {}, message: overrides.errorFrom.message });
+    }
+    return Promise.resolve(overrides.counts?.[name] ?? 0);
   };
+}
 
-  const service = new ManualImportService(
+async function makeService(overrides: Overrides = {}): Promise<{
+  service: ManualImportService;
+  reader: MockProxy<ManualDataReader>;
+  externalSystems: MockProxy<ExternalSystemsProcessor>;
+  procs: ProcessorMocks;
+}> {
+  const reader = mock<ManualDataReader>();
+  reader.read.mockImplementation(
+    overrides.read ?? (() => Promise.resolve(emptyData())),
+  );
+
+  const externalSystems = mock<ExternalSystemsProcessor>();
+  externalSystems.bootstrap.mockImplementation(
+    overrides.bootstrap ?? (() => Promise.resolve(new Map())),
+  );
+
+  const procs: ProcessorMocks = {
+    rulesSets: mock<RulesSetsProcessor>(),
+    leagues: mock<LeaguesProcessor>(),
+    eras: mock<ErasProcessor>(),
+    races: mock<RacesProcessor>(),
+    positions: mock<PositionsProcessor>(),
+    coaches: mock<CoachesProcessor>(),
+    teams: mock<TeamsProcessor>(),
+  };
+  procs.rulesSets.process.mockImplementation(
+    processImpl('rulesSets', overrides),
+  );
+  procs.leagues.process.mockImplementation(processImpl('leagues', overrides));
+  procs.eras.process.mockImplementation(processImpl('eras', overrides));
+  procs.races.process.mockImplementation(processImpl('races', overrides));
+  procs.positions.process.mockImplementation(
+    processImpl('positions', overrides),
+  );
+  procs.coaches.process.mockImplementation(processImpl('coaches', overrides));
+  procs.teams.process.mockImplementation(processImpl('teams', overrides));
+
+  const importResults = mock<ImportResultService>();
+  importResults.result.mockImplementation(({ imported, errors }) => ({
+    success: errors.length === 0,
+    imported,
+    errors,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      ManualImportService,
+      { provide: ManualDataReader, useValue: reader },
+      { provide: ExternalSystemsProcessor, useValue: externalSystems },
+      { provide: RulesSetsProcessor, useValue: procs.rulesSets },
+      { provide: LeaguesProcessor, useValue: procs.leagues },
+      { provide: ErasProcessor, useValue: procs.eras },
+      { provide: RacesProcessor, useValue: procs.races },
+      { provide: PositionsProcessor, useValue: procs.positions },
+      { provide: CoachesProcessor, useValue: procs.coaches },
+      { provide: TeamsProcessor, useValue: procs.teams },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(ManualImportService),
     reader,
     externalSystems,
-    procs.rulesSets as never,
-    procs.leagues as never,
-    procs.eras as never,
-    procs.races as never,
-    procs.positions as never,
-    procs.coaches as never,
-    procs.teams as never,
-    new ImportResultService(),
-  );
-  return { service, reader, externalSystems, procs };
+    procs,
+  };
 }
 
 describe('ManualImportService', () => {
   it('sums processor counts and reports success when there are no errors', async () => {
-    const { service } = makeService({
+    const { service } = await makeService({
       counts: {
         rulesSets: 1,
         leagues: 1,
@@ -88,7 +145,7 @@ describe('ManualImportService', () => {
   });
 
   it('reads the directory, bootstraps, and shares one context/id-map across processors', async () => {
-    const { service, reader, externalSystems, procs } = makeService({});
+    const { service, reader, externalSystems, procs } = await makeService({});
 
     await service.run('/data/dir');
 
@@ -104,13 +161,35 @@ describe('ManualImportService', () => {
 
   it('runs processors in dependency order', async () => {
     const order: string[] = [];
-    const { service, procs } = makeService({});
-    for (const [name, proc] of Object.entries(procs)) {
-      proc.process.mockImplementation(() => {
-        order.push(name);
-        return Promise.resolve(0);
-      });
-    }
+    const { service, procs } = await makeService({});
+    procs.rulesSets.process.mockImplementation(() => {
+      order.push('rulesSets');
+      return Promise.resolve(0);
+    });
+    procs.leagues.process.mockImplementation(() => {
+      order.push('leagues');
+      return Promise.resolve(0);
+    });
+    procs.eras.process.mockImplementation(() => {
+      order.push('eras');
+      return Promise.resolve(0);
+    });
+    procs.races.process.mockImplementation(() => {
+      order.push('races');
+      return Promise.resolve(0);
+    });
+    procs.positions.process.mockImplementation(() => {
+      order.push('positions');
+      return Promise.resolve(0);
+    });
+    procs.coaches.process.mockImplementation(() => {
+      order.push('coaches');
+      return Promise.resolve(0);
+    });
+    procs.teams.process.mockImplementation(() => {
+      order.push('teams');
+      return Promise.resolve(0);
+    });
 
     await service.run('/data/dir');
 
@@ -126,7 +205,7 @@ describe('ManualImportService', () => {
   });
 
   it('reports failure when a processor collected an error', async () => {
-    const { service } = makeService({
+    const { service } = await makeService({
       counts: { rulesSets: 1 },
       errorFrom: { processor: 'eras', message: 'unresolved league' },
     });
@@ -138,7 +217,7 @@ describe('ManualImportService', () => {
   });
 
   it('propagates a bootstrap failure (thrown, not collected)', async () => {
-    const { service } = makeService({
+    const { service } = await makeService({
       bootstrap: () => Promise.reject(new Error('api down')),
     });
 

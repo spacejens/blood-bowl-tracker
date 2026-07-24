@@ -1,19 +1,15 @@
-import type {
-  ImportError,
-  RacesImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { RacesImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RacesProcessor } from './races.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
+import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 
 function emptyData(): ManualDataFile {
   return {
@@ -39,19 +35,36 @@ function makeContext(
       ['BBL', 1],
     ]),
     idMap,
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
 describe('RacesProcessor', () => {
+  let processor: RacesProcessor;
+  let races: MockProxy<RacesImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    races = mock<RacesImportService>();
+    refResolver = mockReferenceResolver();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RacesProcessor,
+        { provide: RacesImportService, useValue: races },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(RacesProcessor);
+  });
+
   it('resolves era refs, upserts, and records ids', async () => {
-    const upsertRace = vi.fn().mockResolvedValue({ id: 40 });
-    const processor = new RacesProcessor(
-      {
-        upsertRace,
-      } as unknown as RacesImportService,
-      makeRefResolver(),
-    );
+    races.upsertRace.mockResolvedValue({
+      id: 40,
+      name: 'Necromantic Horror',
+      eras: [50],
+      createdAt: new Date(),
+      created: true,
+    });
     const idMap = new ExternalIdMap();
     idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
     const data = emptyData();
@@ -70,7 +83,8 @@ describe('RacesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertRace).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(races.upsertRace).toHaveBeenCalledWith(
       {
         name: 'Necromantic Horror',
         eras: [50],
@@ -85,13 +99,13 @@ describe('RacesProcessor', () => {
   });
 
   it('upserts a race with no eras (empty list)', async () => {
-    const upsertRace = vi.fn().mockResolvedValue({ id: 41 });
-    const processor = new RacesProcessor(
-      {
-        upsertRace,
-      } as unknown as RacesImportService,
-      makeRefResolver(),
-    );
+    races.upsertRace.mockResolvedValue({
+      id: 41,
+      name: 'Amazon',
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
     const data = emptyData();
     data.races = [
       {
@@ -106,17 +120,10 @@ describe('RacesProcessor', () => {
     );
 
     expect(count).toBe(1);
-    expect(upsertRace.mock.calls[0][0]).toMatchObject({ eras: [] });
+    expect(races.upsertRace.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
   it('skips the race and records an error when an era ref is unresolved', async () => {
-    const upsertRace = vi.fn();
-    const processor = new RacesProcessor(
-      {
-        upsertRace,
-      } as unknown as RacesImportService,
-      makeRefResolver(),
-    );
     const data = emptyData();
     data.races = [
       {
@@ -130,17 +137,14 @@ describe('RacesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(upsertRace).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(races.upsertRace).not.toHaveBeenCalled();
     expect(ctx.errors).toHaveLength(1);
   });
 
   it('does not record ids when upsert returns null', async () => {
-    const upsertRace = vi.fn().mockResolvedValue(null);
-    const processor = new RacesProcessor(
-      {
-        upsertRace,
-      } as unknown as RacesImportService,
-      makeRefResolver(),
+    races.upsertRace.mockResolvedValue(
+      null as unknown as Awaited<ReturnType<RacesImportService['upsertRace']>>,
     );
     const idMap = new ExternalIdMap();
     const data = emptyData();

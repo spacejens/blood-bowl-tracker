@@ -1,19 +1,15 @@
-import type {
-  ImportError,
-  TeamsImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { TeamsImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
+import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 import { TeamsProcessor } from './teams.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
 
 function emptyData(): ManualDataFile {
   return {
@@ -36,7 +32,7 @@ function makeContext(
     data,
     systemIds: new Map([['Name', 2]]),
     idMap,
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
@@ -49,14 +45,33 @@ function seededMap(): ExternalIdMap {
 }
 
 describe('TeamsProcessor', () => {
+  let processor: TeamsProcessor;
+  let teams: MockProxy<TeamsImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    teams = mock<TeamsImportService>();
+    refResolver = mockReferenceResolver();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TeamsProcessor,
+        { provide: TeamsImportService, useValue: teams },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(TeamsProcessor);
+  });
+
   it('resolves race, coach, and era refs, upserts, and records ids', async () => {
-    const upsertTeam = vi.fn().mockResolvedValue({ id: 99 });
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
+    teams.upsertTeam.mockResolvedValue({
+      id: 99,
+      name: 'Grave Diggers',
+      raceId: 40,
+      coachId: 12,
+      eras: [{ id: 1, eraId: 50 }],
+      createdAt: new Date(),
+      created: true,
+    });
     const data = emptyData();
     data.teams = [
       {
@@ -72,7 +87,8 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertTeam).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.upsertTeam).toHaveBeenCalledWith(
       {
         name: 'Grave Diggers',
         raceId: 40,
@@ -90,13 +106,15 @@ describe('TeamsProcessor', () => {
   });
 
   it('upserts a team with no eras', async () => {
-    const upsertTeam = vi.fn().mockResolvedValue({ id: 100 });
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
+    teams.upsertTeam.mockResolvedValue({
+      id: 100,
+      name: 'T',
+      raceId: 40,
+      coachId: 12,
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
     const data = emptyData();
     data.teams = [
       {
@@ -111,17 +129,10 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(makeContext(data, seededMap()));
 
     expect(count).toBe(1);
-    expect(upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
+    expect(teams.upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
   it('skips the team and records errors when references are unresolved', async () => {
-    const upsertTeam = vi.fn();
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
     const data = emptyData();
     data.teams = [
       {
@@ -137,7 +148,8 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(teams.upsertTeam).not.toHaveBeenCalled();
     expect(ctx.errors.length).toBe(3);
   });
 });

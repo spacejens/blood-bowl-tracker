@@ -1,6 +1,7 @@
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock node:fs, wrapping actual implementations to allow spying on readFileSync
@@ -18,7 +19,10 @@ vi.mock('node:fs', async () => {
 import * as fsModule from 'node:fs';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
-import { ImportManualConfigService } from './import-manual-config.service';
+import {
+  IMPORT_MANUAL_CONFIG_PATH,
+  ImportManualConfigService,
+} from './import-manual-config.service';
 
 describe('ImportManualConfigService', () => {
   let dir: string;
@@ -37,51 +41,59 @@ describe('ImportManualConfigService', () => {
     return path;
   }
 
-  it('treats a missing file as an empty config', () => {
-    const service = new ImportManualConfigService(
-      join(dir, 'does-not-exist.json5'),
-    );
+  async function makeService(
+    configPath: string,
+  ): Promise<ImportManualConfigService> {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ImportManualConfigService,
+        { provide: IMPORT_MANUAL_CONFIG_PATH, useValue: configPath },
+      ],
+    }).compile();
+    return moduleRef.get(ImportManualConfigService);
+  }
+
+  it('treats a missing file as an empty config', async () => {
+    const service = await makeService(join(dir, 'does-not-exist.json5'));
     expect(service.get('connection')).toBeUndefined();
   });
 
-  it('throws when the file is missing, since connection is not set', () => {
-    const service = new ImportManualConfigService(
-      join(dir, 'does-not-exist.json5'),
-    );
+  it('throws when the file is missing, since connection is not set', async () => {
+    const service = await makeService(join(dir, 'does-not-exist.json5'));
     expect(() => service.getApiBaseUrl()).toThrow(
       'connection is not set in import-manual-config.json5',
     );
   });
 
-  it('throws when connection is not set', () => {
+  it('throws when connection is not set', async () => {
     const path = writeConfig(`{ }`);
-    const service = new ImportManualConfigService(path);
+    const service = await makeService(path);
     expect(() => service.getApiBaseUrl()).toThrow(
       'connection is not set in import-manual-config.json5',
     );
   });
 
-  it('returns the default API base URL when connection is present but apiBaseUrl is unset', () => {
+  it('returns the default API base URL when connection is present but apiBaseUrl is unset', async () => {
     const path = writeConfig(`{ connection: {} }`);
-    const service = new ImportManualConfigService(path);
+    const service = await makeService(path);
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
   });
 
-  it('parses JSON5 and returns the configured API base URL', () => {
+  it('parses JSON5 and returns the configured API base URL', async () => {
     const path = writeConfig(`{
       // a comment
       connection: { apiBaseUrl: 'http://example.test:3000' },
     }`);
-    const service = new ImportManualConfigService(path);
+    const service = await makeService(path);
     expect(service.getApiBaseUrl()).toBe('http://example.test:3000');
   });
 
-  it('throws with the file path when the file is not valid JSON5', () => {
+  it('throws with the file path when the file is not valid JSON5', async () => {
     const path = writeConfig('{ this is : not valid');
-    expect(() => new ImportManualConfigService(path)).toThrow(path);
+    await expect(makeService(path)).rejects.toThrow(path);
   });
 
-  it('throws when the config file cannot be read due to a non-ENOENT error', () => {
+  it('throws when the config file cannot be read due to a non-ENOENT error', async () => {
     const path = join(dir, 'import-manual-config.json5');
     writeFileSync(path, '{ connection: {} }', 'utf8');
 
@@ -94,7 +106,7 @@ describe('ImportManualConfigService', () => {
     });
 
     try {
-      expect(() => new ImportManualConfigService(path)).toThrow();
+      await expect(makeService(path)).rejects.toThrow();
     } finally {
       fsMocked.readFileSync.mockRestore();
     }
