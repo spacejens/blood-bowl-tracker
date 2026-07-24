@@ -9,7 +9,6 @@ import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { PositionsProcessor } from './positions.processor';
-import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 
 function emptyData(): ManualDataFile {
   return {
@@ -43,7 +42,7 @@ describe('PositionsProcessor', () => {
 
   beforeEach(async () => {
     positions = mock<PositionsImportService>();
-    refResolver = mockReferenceResolver();
+    refResolver = mock<ReferenceResolverService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         PositionsProcessor,
@@ -66,9 +65,14 @@ describe('PositionsProcessor', () => {
       positionId: 80,
       raceEraIds: [1],
     });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:necromantic' }], 40);
-    idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:zombie' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
+    // One resolveRef call per race-era pair: race first, then era.
+    refResolver.resolveRef
+      .mockReturnValueOnce(40) // race
+      .mockReturnValueOnce(50); // era
     const data = emptyData();
     data.positions = [
       {
@@ -83,19 +87,17 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
     expect(positions.upsertPosition).toHaveBeenCalledWith(
-      {
-        name: 'Zombie',
-        isStarPlayer: false,
-        externalIds: [{ externalSystemId: 2, externalId: 'name:zombie' }],
-      },
+      { name: 'Zombie', isStarPlayer: false, externalIds: cannedExternalIds },
       ctx.errors,
     );
+    // The processor must pair each pair's resolved race/era ids together
+    // in the order they were resolved, not just pass either one through.
     expect(positions.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 80, raceEras: [{ raceId: 40, eraId: 50 }] },
       ctx.errors,
@@ -111,6 +113,7 @@ describe('PositionsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.positions = [
       {
@@ -127,8 +130,13 @@ describe('PositionsProcessor', () => {
 
     expect(count).toBe(1);
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
   });
 
+  // Resolution-failure error counting is the resolver's own behaviour and is
+  // covered by reference-resolver.service.spec.ts. This test instead asserts
+  // the processor's own logic: an unresolved pair must still count the
+  // already-successful upsert but must not call syncRaceEras.
   it('records the count but skips syncRaceEras when a race-era ref is unresolved', async () => {
     positions.upsertPosition.mockResolvedValue({
       id: 82,
@@ -137,8 +145,10 @@ describe('PositionsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:necromantic' }], 40);
+    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.resolveRef
+      .mockReturnValueOnce(40) // race resolves
+      .mockReturnValueOnce(undefined); // era fails
     const data = emptyData();
     data.positions = [
       {
@@ -153,13 +163,12 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
-    expect(ctx.errors).toHaveLength(1);
   });
 
   it('does not sync or count when the position upsert fails', async () => {

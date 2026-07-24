@@ -9,7 +9,6 @@ import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { ErasProcessor } from './eras.processor';
-import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 
 function emptyData(): ManualDataFile {
   return {
@@ -43,7 +42,7 @@ describe('ErasProcessor', () => {
 
   beforeEach(async () => {
     eras = mock<ErasImportService>();
-    refResolver = mockReferenceResolver();
+    refResolver = mock<ReferenceResolverService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         ErasProcessor,
@@ -65,9 +64,12 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:my-league' }], 3);
-    idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
+    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveRefs.mockReturnValue([7]);
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:season-12' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.eras = [
       {
@@ -78,11 +80,19 @@ describe('ErasProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:season-12' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: data.eras[0].league }),
+    );
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({ refs: data.eras[0].rulesSets }),
+    );
+    // The processor must wire each canned resolver output into the exact
+    // field the upsert call expects -- not just pass some id through.
     expect(eras.upsertEra).toHaveBeenCalledWith(
       {
         name: 'Season 12',
@@ -90,7 +100,7 @@ describe('ErasProcessor', () => {
         rulesSetIds: [7],
         startDate: '2024-01-01',
         endDate: undefined,
-        externalIds: [{ externalSystemId: 2, externalId: 'name:season-12' }],
+        externalIds: cannedExternalIds,
       },
       ctx.errors,
     );
@@ -110,9 +120,9 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:l' }], 3);
-    idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
+    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveRefs.mockReturnValue([7]);
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.eras = [
       {
@@ -125,14 +135,21 @@ describe('ErasProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, idMap));
+    await processor.process(makeContext(data, new ExternalIdMap()));
 
     expect(eras.upsertEra.mock.calls[0][0]).toMatchObject({
       endDate: '2024-12-31',
     });
   });
 
-  it('skips the era and records errors when a reference is unresolved', async () => {
+  // Resolution-failure counting (how many ImportErrors get recorded) is the
+  // resolver's own behaviour and is covered by reference-resolver.service.spec.ts.
+  // This test instead asserts the processor's own logic: when either resolver
+  // call signals failure it must skip the entry (no upsert) and never reach
+  // toExternalIds.
+  it('skips the era and never upserts when a reference is unresolved', async () => {
+    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.eras = [
       {
@@ -149,6 +166,6 @@ describe('ErasProcessor', () => {
 
     expect(count).toBe(0);
     expect(eras.upsertEra).not.toHaveBeenCalled();
-    expect(ctx.errors.length).toBe(2);
+    expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 });

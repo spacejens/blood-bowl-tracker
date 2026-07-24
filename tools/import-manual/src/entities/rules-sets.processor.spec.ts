@@ -9,7 +9,6 @@ import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
-import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 import { RulesSetsProcessor } from './rules-sets.processor';
 
 function emptyData(): ManualDataFile {
@@ -41,7 +40,7 @@ describe('RulesSetsProcessor', () => {
 
   beforeEach(async () => {
     rulesSets = mock<RulesSetsImportService>();
-    refResolver = mockReferenceResolver();
+    refResolver = mock<ReferenceResolverService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         RulesSetsProcessor,
@@ -59,6 +58,10 @@ describe('RulesSetsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:crp' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.rulesSets = [
       { name: 'CRP', externalIds: [{ system: 'Name', id: 'name:crp' }] },
@@ -68,11 +71,12 @@ describe('RulesSetsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
+    expect(refResolver.toExternalIds).toHaveBeenCalledWith(
+      data.rulesSets[0].externalIds,
+      ctx.systemIds,
+    );
     expect(rulesSets.upsertRulesSet).toHaveBeenCalledWith(
-      {
-        name: 'CRP',
-        externalIds: [{ externalSystemId: 2, externalId: 'name:crp' }],
-      },
+      { name: 'CRP', externalIds: cannedExternalIds },
       ctx.errors,
     );
     expect(ctx.idMap.resolve({ system: 'Name', id: 'name:crp' })).toBe(7);

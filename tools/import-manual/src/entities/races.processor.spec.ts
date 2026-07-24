@@ -9,7 +9,6 @@ import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RacesProcessor } from './races.processor';
-import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 
 function emptyData(): ManualDataFile {
   return {
@@ -46,7 +45,7 @@ describe('RacesProcessor', () => {
 
   beforeEach(async () => {
     races = mock<RacesImportService>();
-    refResolver = mockReferenceResolver();
+    refResolver = mock<ReferenceResolverService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         RacesProcessor,
@@ -65,8 +64,12 @@ describe('RacesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
+    refResolver.resolveRefs.mockReturnValue([50]);
+    const cannedExternalIds = [
+      { externalSystemId: 98, externalId: 'canned:bbl-47' },
+      { externalSystemId: 99, externalId: 'canned:necromantic-horror' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.races = [
       {
@@ -78,19 +81,19 @@ describe('RacesProcessor', () => {
         ],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({ refs: data.races[0].eras }),
+    );
     expect(races.upsertRace).toHaveBeenCalledWith(
       {
         name: 'Necromantic Horror',
         eras: [50],
-        externalIds: [
-          { externalSystemId: 1, externalId: 'id:47' },
-          { externalSystemId: 2, externalId: 'name:necromantic-horror' },
-        ],
+        externalIds: cannedExternalIds,
       },
       ctx.errors,
     );
@@ -105,6 +108,8 @@ describe('RacesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.races = [
       {
@@ -122,7 +127,12 @@ describe('RacesProcessor', () => {
     expect(races.upsertRace.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
-  it('skips the race and records an error when an era ref is unresolved', async () => {
+  // Resolution-failure error counting is the resolver's own behaviour and is
+  // covered by reference-resolver.service.spec.ts. This test instead asserts
+  // the processor's own logic: it must skip the entry (no upsert) and never
+  // reach toExternalIds when the era refs fail to resolve.
+  it('skips the race and never upserts when an era ref is unresolved', async () => {
+    refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.races = [
       {
@@ -137,13 +147,15 @@ describe('RacesProcessor', () => {
 
     expect(count).toBe(0);
     expect(races.upsertRace).not.toHaveBeenCalled();
-    expect(ctx.errors).toHaveLength(1);
+    expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
   it('does not record ids when upsert returns null', async () => {
     races.upsertRace.mockResolvedValue(
       null as unknown as Awaited<ReturnType<RacesImportService['upsertRace']>>,
     );
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
     const idMap = new ExternalIdMap();
     const data = emptyData();
     data.races = [

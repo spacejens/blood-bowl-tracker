@@ -9,7 +9,6 @@ import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { LeaguesProcessor } from './leagues.processor';
-import { mockReferenceResolver } from './reference-resolver-mock.test-helpers';
 
 function emptyData(): ManualDataFile {
   return {
@@ -40,7 +39,7 @@ describe('LeaguesProcessor', () => {
 
   beforeEach(async () => {
     leagues = mock<LeaguesImportService>();
-    refResolver = mockReferenceResolver();
+    refResolver = mock<ReferenceResolverService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         LeaguesProcessor,
@@ -58,6 +57,10 @@ describe('LeaguesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:my-league' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.leagues = [
       {
@@ -70,11 +73,12 @@ describe('LeaguesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
+    expect(refResolver.toExternalIds).toHaveBeenCalledWith(
+      data.leagues[0].externalIds,
+      ctx.systemIds,
+    );
     expect(leagues.upsertLeague).toHaveBeenCalledWith(
-      {
-        name: 'My League',
-        externalIds: [{ externalSystemId: 2, externalId: 'name:my-league' }],
-      },
+      { name: 'My League', externalIds: cannedExternalIds },
       ctx.errors,
     );
     expect(ctx.idMap.resolve({ system: 'Name', id: 'name:my-league' })).toBe(3);
