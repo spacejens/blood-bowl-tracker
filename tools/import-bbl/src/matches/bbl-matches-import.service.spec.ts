@@ -1,40 +1,19 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
-import type { MatchesImportService } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import {
+  ImportResultService,
+  MatchesImportService,
+} from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import type { BblMatch } from './match-list-page-parser';
+import type { MatchMergeResolution } from './match-merge.service';
 import { MatchMergeService } from './match-merge.service';
-import type {
-  MatchMergeConfigService,
-  MatchMergePair,
-} from './match-merge-config.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
-
-function makeReader(matchesById: Record<string, BblMatch[]>) {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
-    new Map(Object.entries(matchesById)),
-  );
-  return reader;
-}
-
-function makeDetailReader(
-  detailsById: Record<string, BblMatchDetails>,
-): BblMatchDetailReaderService {
-  return {
-    getMatchTeamsByBblId: vi
-      .fn()
-      .mockResolvedValue(new Map(Object.entries(detailsById))),
-  } as unknown as BblMatchDetailReaderService;
-}
 
 const detail = (bblId: string, name: string): BblMatchDetails => ({
   bblId,
@@ -43,12 +22,69 @@ const detail = (bblId: string, name: string): BblMatchDetails => ({
   name,
 });
 
-function makeMergeService(
-  reader: BblMatchListReaderService,
-  merges: MatchMergePair[],
-): MatchMergeService {
-  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig, new ImportResultService());
+/** A resolution with no merged pairs: every match imports independently. */
+function noMergeResolution(): MatchMergeResolution {
+  return {
+    primaryBblIdByBblId: new Map(),
+    partnerBblId: () => undefined,
+    isPrimary: () => false,
+    isSecondary: () => false,
+    effectivePlayedAt: (_bblId, rawDate) => rawDate,
+  };
+}
+
+interface Mocks {
+  matchListReader: MockProxy<BblMatchListReaderService>;
+  matchesImport: MockProxy<MatchesImportService>;
+  matchMerge: MockProxy<MatchMergeService>;
+  matchDetailReader: MockProxy<BblMatchDetailReaderService>;
+}
+
+async function makeService(
+  matchesById: Record<string, BblMatch[]>,
+  detailsById: Record<string, BblMatchDetails>,
+): Promise<{ service: BblMatchesImportService; mocks: Mocks }> {
+  const matchListReader = mock<BblMatchListReaderService>();
+  matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+    new Map(Object.entries(matchesById)),
+  );
+
+  const matchesImport = mock<MatchesImportService>();
+
+  const matchMerge = mock<MatchMergeService>();
+  matchMerge.resolve.mockResolvedValue(noMergeResolution());
+
+  const matchDetailReader = mock<BblMatchDetailReaderService>();
+  matchDetailReader.getMatchTeamsByBblId.mockResolvedValue(
+    new Map(Object.entries(detailsById)),
+  );
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblMatchesImportService,
+      { provide: BblMatchListReaderService, useValue: matchListReader },
+      { provide: MatchesImportService, useValue: matchesImport },
+      { provide: MatchMergeService, useValue: matchMerge },
+      { provide: BblMatchDetailReaderService, useValue: matchDetailReader },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblMatchesImportService),
+    mocks: { matchListReader, matchesImport, matchMerge, matchDetailReader },
+  };
 }
 
 const match: BblMatch = {
@@ -66,15 +102,11 @@ const competition: UpsertCompetition = {
 
 describe('BblMatchesImportService', () => {
   it('upserts each match and returns its DB id keyed by BBL match id', async () => {
-    const reader = makeReader({ '3': [match] });
-    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, []),
-      makeDetailReader({ '89': detail('89', 'Match 3') }),
-      new ImportResultService(),
+    const { service, mocks } = await makeService(
+      { '3': [match] },
+      { '89': detail('89', 'Match 3') },
     );
+    mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 7 });
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
@@ -83,7 +115,8 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(matchIdsByBblId.get('89')).toBe(7);
-    expect(upsertMatchResult).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 8, 25)),
@@ -96,14 +129,9 @@ describe('BblMatchesImportService', () => {
   });
 
   it('records an error and skips a competition absent from the id map', async () => {
-    const reader = makeReader({ '3': [match, { ...match, bblId: '90' }] });
-    const upsertMatchResult = vi.fn();
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, []),
-      makeDetailReader({}),
-      new ImportResultService(),
+    const { service, mocks } = await makeService(
+      { '3': [match, { ...match, bblId: '90' }] },
+      {},
     );
 
     const { result, matchIdsByBblId } = await service.importMatches(
@@ -113,21 +141,18 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
-    expect(upsertMatchResult).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(matchIdsByBblId.size).toBe(0);
   });
 
   it('does not count or map a match whose upsert reports failure', async () => {
-    const reader = makeReader({ '3': [match] });
-    const upsertMatchResult = vi.fn().mockResolvedValue(undefined);
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, []),
-      makeDetailReader({ '89': detail('89', 'Match 3') }),
-      new ImportResultService(),
+    const { service, mocks } = await makeService(
+      { '3': [match] },
+      { '89': detail('89', 'Match 3') },
     );
+    mocks.matchesImport.upsertMatchResult.mockResolvedValue(undefined);
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
@@ -136,7 +161,8 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
-    expect(upsertMatchResult).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
   });
 
   it('merges a configured pair into one upsert carrying both external ids and the canonical playedAt', async () => {
@@ -148,17 +174,23 @@ describe('BblMatchesImportService', () => {
       bblId: '1062',
       date: new Date(Date.UTC(2016, 8, 24)),
     };
-    const reader = makeReader({ '32': [primary, secondary] });
-    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 500 });
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, [
-        { firstMatchId: '1061', secondMatchId: '1062' },
-      ]),
-      makeDetailReader({ '1061': detail('1061', 'Bierhallentodball') }),
-      new ImportResultService(),
+    const { service, mocks } = await makeService(
+      { '32': [primary, secondary] },
+      { '1061': detail('1061', 'Bierhallentodball') },
     );
+    mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 500 });
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        ['1061', '1061'],
+        ['1062', '1061'],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === '1061' ? '1062' : bblId === '1062' ? '1061' : undefined,
+      isPrimary: (bblId) => bblId === '1061',
+      isSecondary: (bblId) => bblId === '1062',
+      effectivePlayedAt: (bblId, rawDate) =>
+        bblId === '1061' || bblId === '1062' ? secondary.date : rawDate,
+    });
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([
@@ -174,8 +206,10 @@ describe('BblMatchesImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    expect(upsertMatchResult).toHaveBeenCalledTimes(1);
-    expect(upsertMatchResult).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
         competitionId: 99,
         playedAt: new Date(Date.UTC(2016, 8, 24)),
@@ -199,23 +233,21 @@ describe('BblMatchesImportService', () => {
     };
     const b: BblMatch = { bblId: '1062', date: new Date(Date.UTC(2017, 9, 8)) };
     // The two ids are in different competitions, so the pair does not resolve.
-    const reader = makeReader({ '32': [a], '40': [b] });
-    const upsertMatchResult = vi
-      .fn()
+    const { service, mocks } = await makeService(
+      { '32': [a], '40': [b] },
+      { '1061': detail('1061', 'Match A'), '1062': detail('1062', 'Match B') },
+    );
+    mocks.matchesImport.upsertMatchResult
       .mockResolvedValueOnce({ id: 500 })
       .mockResolvedValueOnce({ id: 600 });
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, [
-        { firstMatchId: '1061', secondMatchId: '1062' },
-      ]),
-      makeDetailReader({
-        '1061': detail('1061', 'Match A'),
-        '1062': detail('1062', 'Match B'),
-      }),
-      new ImportResultService(),
-    );
+    mocks.matchMerge.resolve.mockImplementation((errors) => {
+      errors.push({
+        item: { matches: ['1061', '1062'] },
+        message:
+          "Skipping match merge for pair [1061, 1062]: both match ids must appear in the same competition's match list, but they do not. Importing them as independent matches.",
+      });
+      return Promise.resolve(noMergeResolution());
+    });
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([
@@ -240,7 +272,8 @@ describe('BblMatchesImportService', () => {
       ]),
     );
 
-    expect(upsertMatchResult).toHaveBeenCalledTimes(2);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(2);
     expect(matchIdsByBblId.get('1061')).toBe(500);
     expect(matchIdsByBblId.get('1062')).toBe(600);
     // The unresolved-pair error is recorded by MatchMergeService.resolve().
@@ -248,22 +281,15 @@ describe('BblMatchesImportService', () => {
   });
 
   it('records an error and skips a match with no detail-page entry', async () => {
-    const reader = makeReader({ '3': [match] });
-    const upsertMatchResult = vi.fn();
-    const service = new BblMatchesImportService(
-      reader,
-      { upsertMatchResult } as unknown as MatchesImportService,
-      makeMergeService(reader, []),
-      makeDetailReader({}),
-      new ImportResultService(),
-    );
+    const { service, mocks } = await makeService({ '3': [match] }, {});
 
     const { result, matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
-    expect(upsertMatchResult).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
     expect(result.errors).toHaveLength(1);

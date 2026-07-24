@@ -1,111 +1,128 @@
 import type {
-  UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type {
+import {
+  ImportResultService,
   MatchEventsImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
+import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
-import type {
-  MatchMergeConfigService,
-  MatchMergePair,
-} from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
+import {
+  AWAY_TEAM_ERA_ID,
+  awayTeam,
+  BBL_SYSTEM_ID,
+  combineOccurrencesLike,
+  competition,
+  correlateEventsLike,
+  HOME_TEAM_ERA_ID,
+  homeTeam,
+  makeEvents,
+  makeTeamRecord,
+  MATCH_BBL_ID,
+  MATCH_DB_ID,
+} from './bbl-match-events-import.test-helpers';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 import { MatchEventCorrelationService } from './match-event-correlation.service';
 
-const importResults = new ImportResultService();
-
-function makeMergeService(
-  matchesById: Record<string, { bblId: string; date: Date }[]>,
-  merges: MatchMergePair[] = [],
-): MatchMergeService {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
-    new Map(Object.entries(matchesById)),
-  );
-  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig, importResults);
-}
-
-const MATCH_BBL_ID = '89';
-const MATCH_DB_ID = 42;
-const HOME_TEAM_ERA_ID = 1000;
-const AWAY_TEAM_ERA_ID = 2000;
-const BBL_SYSTEM_ID = 1;
-
-const competition: UpsertCompetition = {
-  name: 'Major Season 3',
-  type: 'season',
-  eraId: 200,
-  teamEraIds: [],
-  externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: '3' }],
-};
-
-const homeTeam: UpsertTeam = {
-  name: 'Home',
-  raceId: 70,
-  coachId: 9,
-  eras: [],
-  externalIds: [],
-};
-const awayTeam: UpsertTeam = {
-  name: 'Away',
-  raceId: 71,
-  coachId: 10,
-  eras: [],
-  externalIds: [],
-};
-
-function makeEvents(
-  parts: Partial<
-    Pick<BblMatchEvents, 'actions' | 'consequences' | 'journeymenCount'>
-  >,
-): BblMatchEvents {
+/** A resolution with no merged pairs: every match imports independently. */
+function noMergeResolution(): MatchMergeResolution {
   return {
-    bblId: MATCH_BBL_ID,
-    homeTeamId: 'hme',
-    awayTeamId: 'awy',
-    actions: parts.actions ?? [],
-    consequences: parts.consequences ?? [],
-    journeymenCount: parts.journeymenCount,
+    primaryBblIdByBblId: new Map(),
+    partnerBblId: () => undefined,
+    isPrimary: () => false,
+    isSecondary: () => false,
+    effectivePlayedAt: (_bblId, rawDate) => rawDate,
   };
 }
 
-function makeMatchListReader() {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
-    new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
-  );
-  return reader;
+interface Mocks {
+  matchListReader: MockProxy<BblMatchListReaderService>;
+  eventsReader: MockProxy<BblMatchEventsReaderService>;
+  teamsImport: MockProxy<TeamsImportService>;
+  matchEventsImport: MockProxy<MatchEventsImportService>;
+  matchMerge: MockProxy<MatchMergeService>;
 }
 
-function makeEventsReader(events: BblMatchEvents) {
-  const reader = new BblMatchEventsReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. MatchEventCorrelationService's `combineOccurrences`
+ * and `correlateEvents` mirror its real, deterministic logic exactly (see
+ * bbl-match-events-import.test-helpers.ts), so a regression in either the
+ * service under test or that mirrored logic still fails these tests; the
+ * correlation logic itself has its own dedicated spec
+ * (match-event-correlation.service.spec.ts).
+ */
+async function makeService(): Promise<{
+  service: BblMatchEventsImportService;
+  mocks: Mocks;
+}> {
+  const matchListReader = mock<BblMatchListReaderService>();
+
+  const eventsReader = mock<BblMatchEventsReaderService>();
+
+  const teamsImport = mock<TeamsImportService>();
+
+  const matchEventsImport = mock<MatchEventsImportService>();
+
+  const matchMerge = mock<MatchMergeService>();
+  matchMerge.resolve.mockResolvedValue(noMergeResolution());
+
+  const correlation = mock<MatchEventCorrelationService>();
+  correlation.combineOccurrences.mockImplementation((...sources) =>
+    combineOccurrencesLike(...sources),
   );
-  vi.spyOn(reader, 'getMatchEventsByBblId').mockResolvedValue(
-    new Map([[events.bblId, events]]),
+  correlation.correlateEvents.mockImplementation((combined) =>
+    correlateEventsLike(combined),
   );
-  return reader;
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblMatchEventsImportService,
+      { provide: BblMatchListReaderService, useValue: matchListReader },
+      { provide: BblMatchEventsReaderService, useValue: eventsReader },
+      { provide: TeamsImportService, useValue: teamsImport },
+      { provide: MatchEventsImportService, useValue: matchEventsImport },
+      { provide: MatchMergeService, useValue: matchMerge },
+      { provide: MatchEventCorrelationService, useValue: correlation },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblMatchEventsImportService),
+    mocks: {
+      matchListReader,
+      eventsReader,
+      teamsImport,
+      matchEventsImport,
+      matchMerge,
+    },
+  };
 }
+
+type UpsertTeamImpl = (
+  data: UpsertTeam,
+) => Promise<ReturnType<typeof makeTeamRecord> | undefined>;
 
 async function runImport(
   events: BblMatchEvents,
@@ -113,29 +130,30 @@ async function runImport(
   overrides: {
     matchIdsByBblId?: Map<string, number>;
     teamsByCode?: Map<string, UpsertTeam>;
-    upsertTeam?: ReturnType<typeof vi.fn>;
+    upsertTeam?: UpsertTeamImpl;
   } = {},
 ) {
+  const { service, mocks } = await makeService();
+  mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+    new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
+  );
+  mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
+    new Map([[events.bblId, events]]),
+  );
+
   const captured: UpsertMatchEvent[] = [];
-  const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+  mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
     captured.push(data);
     return Promise.resolve(true);
   });
-  const upsertTeam =
+  mocks.teamsImport.upsertTeam.mockImplementation(
     overrides.upsertTeam ??
-    vi.fn((data: UpsertTeam) => {
-      const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;
-      return Promise.resolve({ eras: [{ id, eraId: data.eras?.[0] }] });
-    });
-
-  const service = new BblMatchEventsImportService(
-    makeMatchListReader(),
-    makeEventsReader(events),
-    { upsertTeam } as unknown as TeamsImportService,
-    { upsertMatchEvent } as unknown as MatchEventsImportService,
-    makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
-    new MatchEventCorrelationService(),
-    importResults,
+      ((data) => {
+        const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;
+        return Promise.resolve(
+          makeTeamRecord([{ id, eraId: data.eras?.[0] ?? 0 }]),
+        );
+      }),
   );
 
   const { result } = await service.importMatchEvents({
@@ -151,7 +169,7 @@ async function runImport(
     playerIdsByPid: new Map(Object.entries(playerIds)),
   });
 
-  return { captured, result, upsertTeam, upsertMatchEvent };
+  return { captured, result, mocks };
 }
 
 function externalIds(captured: UpsertMatchEvent[]): string[] {
@@ -339,7 +357,7 @@ describe('BblMatchEventsImportService', () => {
   });
 
   it('records an error and skips a match with no imported id', async () => {
-    const { captured, result, upsertMatchEvent } = await runImport(
+    const { captured, result, mocks } = await runImport(
       makeEvents({
         actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
       }),
@@ -348,13 +366,14 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    expect(upsertMatchEvent).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('no imported match id');
   });
 
   it('records an error and skips a match whose team code does not resolve', async () => {
-    const { captured, result, upsertMatchEvent } = await runImport(
+    const { captured, result, mocks } = await runImport(
       makeEvents({
         actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
       }),
@@ -363,7 +382,8 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    expect(upsertMatchEvent).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve all')),
     ).toBe(true);
@@ -376,7 +396,7 @@ describe('BblMatchEventsImportService', () => {
         actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
       }),
       { p1: 1 },
-      { upsertTeam: vi.fn().mockResolvedValue(undefined) },
+      { upsertTeam: () => Promise.resolve(undefined) },
     );
 
     expect(captured).toHaveLength(0);
@@ -420,26 +440,24 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
 
+    const { service, mocks } = await makeService();
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        makeTeamRecord([
+          {
+            id: eraIdByName[data.name.toLowerCase()],
+            eraId: data.eras?.[0] ?? 0,
+          },
+        ]),
+      ),
+    );
     const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
       captured.push(data);
       return Promise.resolve(true);
     });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
           '32',
@@ -450,36 +468,27 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
     );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
       new Map([
         [PRIMARY, eventsA],
         [SECONDARY, eventsB],
       ]),
     );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '32': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        [PRIMARY, PRIMARY],
+        [SECONDARY, PRIMARY],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === PRIMARY
+          ? SECONDARY
+          : bblId === SECONDARY
+            ? PRIMARY
+            : undefined,
+      isPrimary: (bblId) => bblId === PRIMARY,
+      isSecondary: (bblId) => bblId === SECONDARY,
+      effectivePlayedAt: (_bblId, rawDate) => rawDate,
+    });
 
     const { result } = await service.importMatchEvents({
       competitionsByBblId: new Map([
@@ -552,26 +561,24 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
 
+    const { service, mocks } = await makeService();
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        makeTeamRecord([
+          {
+            id: eraIdByName[data.name.toLowerCase()],
+            eraId: data.eras?.[0] ?? 0,
+          },
+        ]),
+      ),
+    );
     const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
       captured.push(data);
       return Promise.resolve(true);
     });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
           '32',
@@ -582,35 +589,26 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
     );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
     // PRIMARY's own events page is missing (e.g. failed to fetch/parse); only
     // SECONDARY's page is present in the map.
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
       new Map([[SECONDARY, eventsB]]),
     );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '32': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        [PRIMARY, PRIMARY],
+        [SECONDARY, PRIMARY],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === PRIMARY
+          ? SECONDARY
+          : bblId === SECONDARY
+            ? PRIMARY
+            : undefined,
+      isPrimary: (bblId) => bblId === PRIMARY,
+      isSecondary: (bblId) => bblId === SECONDARY,
+      effectivePlayedAt: (_bblId, rawDate) => rawDate,
+    });
 
     const { result } = await service.importMatchEvents({
       competitionsByBblId: new Map([
@@ -687,26 +685,24 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
 
+    const { service, mocks } = await makeService();
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        makeTeamRecord([
+          {
+            id: eraIdByName[data.name.toLowerCase()],
+            eraId: data.eras?.[0] ?? 0,
+          },
+        ]),
+      ),
+    );
     const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
       captured.push(data);
       return Promise.resolve(true);
     });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
           '46',
@@ -717,36 +713,27 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
     );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
       new Map([
         [PRIMARY, eventsA],
         [SECONDARY, eventsB],
       ]),
     );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '46': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2018, 8, 22)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        [PRIMARY, PRIMARY],
+        [SECONDARY, PRIMARY],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === PRIMARY
+          ? SECONDARY
+          : bblId === SECONDARY
+            ? PRIMARY
+            : undefined,
+      isPrimary: (bblId) => bblId === PRIMARY,
+      isSecondary: (bblId) => bblId === SECONDARY,
+      effectivePlayedAt: (_bblId, rawDate) => rawDate,
+    });
 
     await service.importMatchEvents({
       competitionsByBblId: new Map([

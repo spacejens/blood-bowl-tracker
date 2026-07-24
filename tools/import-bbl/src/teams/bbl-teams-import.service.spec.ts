@@ -1,30 +1,26 @@
-import type {
-  ExternalSystemBootstrapService,
-  ImportError,
-  TeamsImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
 import type { BblPage } from '../source/bbl-page.types';
-import type { BblSourceReader } from '../source/bbl-source-reader';
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-/**
- * A fake team page carrying the team id/name, the race's BBL id, and the coach
- * name in params for the stub parsers.
- */
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblSourceReader } from '../source/bbl-source-reader';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblTeamsImportService } from './bbl-teams-import.service';
 import { TeamPageParser } from './team-page-parser';
 
-const normalizeText = new NormalizeExtractedTextService();
-
+/**
+ * A fake team page carrying the team id/name, the race's BBL id, and the coach
+ * name in params for the stub parsers.
+ */
 function page(opts: {
   teamId?: string;
   teamName?: string;
@@ -57,61 +53,117 @@ function makeReader(pages: BblPage[]): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-function makeTeamParser(): TeamPageParser {
-  const parser = new TeamPageParser(normalizeText);
-  vi.spyOn(parser, 'extractTeam').mockImplementation((p) =>
+interface Mocks {
+  teamParser: MockProxy<TeamPageParser>;
+  raceParser: MockProxy<RacePageParser>;
+  coachParser: MockProxy<CoachPageParser>;
+  teamsImport: MockProxy<TeamsImportService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  nameConfig: MockProxy<ExternalSystemNameConfigService>;
+}
+
+/**
+ * The full upsertTeam result record (TeamsImportService.upsertTeam resolves
+ * the API's Team + created shape). This service only checks the result's
+ * truthiness, so the field values are unremarkable defaults.
+ */
+function makeTeamRecord() {
+  return {
+    id: 1,
+    name: 'Team',
+    raceId: 500,
+    coachId: 900,
+    eras: [],
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
+}
+
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. Deterministic collaborators (name resolution, error
+ * building) mirror the real production logic so a regression in the service
+ * under test still fails these tests.
+ */
+async function makeService(
+  reader: BblSourceReader,
+): Promise<{ service: BblTeamsImportService; mocks: Mocks }> {
+  const teamParser = mock<TeamPageParser>();
+  teamParser.extractTeam.mockImplementation((p) =>
     p.params.t ? { id: p.params.t, name: p.params.teamName } : null,
   );
-  return parser;
-}
 
-function makeRaceParser(): RacePageParser {
-  const parser = new RacePageParser(normalizeText);
-  vi.spyOn(parser, 'extractRace').mockImplementation((p) =>
+  const raceParser = mock<RacePageParser>();
+  raceParser.extractRace.mockImplementation((p) =>
     p.params.raceBblId ? { id: p.params.raceBblId, name: 'RaceName' } : null,
   );
-  return parser;
-}
 
-function makeCoachParser(): CoachPageParser {
-  const parser = new CoachPageParser(normalizeText);
-  vi.spyOn(parser, 'extractCoach').mockImplementation((p) =>
+  const coachParser = mock<CoachPageParser>();
+  coachParser.extractCoach.mockImplementation((p) =>
     p.params.coachName ? { name: p.params.coachName } : null,
   );
-  return parser;
-}
 
-interface MakeServiceOptions {
-  reader: BblSourceReader;
-  bootstrap: ReturnType<typeof vi.fn>;
-  upsertTeam: ReturnType<typeof vi.fn>;
-  parsers?: {
-    team?: TeamPageParser;
-    race?: RacePageParser;
-    coach?: CoachPageParser;
-  };
-  getBblSystemName?: () => string;
-}
+  const teamsImport = mock<TeamsImportService>();
+  teamsImport.upsertTeam.mockResolvedValue(makeTeamRecord());
 
-function makeService({
-  reader,
-  bootstrap,
-  upsertTeam,
-  parsers,
-  getBblSystemName = () => 'BBL',
-}: MakeServiceOptions) {
-  return new BblTeamsImportService(
-    reader,
-    parsers?.team ?? makeTeamParser(),
-    parsers?.race ?? makeRaceParser(),
-    parsers?.coach ?? makeCoachParser(),
-    { upsertTeam } as unknown as TeamsImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
-    new PageParseErrorService(new ImportResultService()),
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forTeam.mockImplementation((name) => name);
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockImplementation(
+    (pageParams, pageDescription, error) =>
+      importResults.error({
+        item: { page: pageParams },
+        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }),
   );
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblTeamsImportService,
+      { provide: BblSourceReader, useValue: reader },
+      { provide: TeamPageParser, useValue: teamParser },
+      { provide: RacePageParser, useValue: raceParser },
+      { provide: CoachPageParser, useValue: coachParser },
+      { provide: TeamsImportService, useValue: teamsImport },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+      { provide: PageParseErrorService, useValue: pageParseError },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblTeamsImportService),
+    mocks: {
+      teamParser,
+      raceParser,
+      coachParser,
+      teamsImport,
+      bootstrap,
+      nameConfig,
+    },
+  };
 }
 
 const raceIds = new Map<string, number>([['16', 500]]);
@@ -119,10 +171,8 @@ const coachIds = new Map<string, number>([['Hugo E', 900]]);
 
 describe('BblTeamsImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -130,23 +180,20 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     await service.importTeams(raceIds, coachIds);
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts the configured BBL system name when set', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -154,25 +201,21 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-      parsers: undefined,
-      getBblSystemName: () => 'MyLeague',
-    });
+    );
+    mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
 
     await service.importTeams(raceIds, coachIds);
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts a team with its resolved raceId/coachId and page-id + name external IDs', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -180,9 +223,7 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result, teamsByName } = await service.importTeams(
       raceIds,
@@ -190,7 +231,8 @@ describe('BblTeamsImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    expect(upsertTeam).toHaveBeenCalledWith(
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       {
         name: '40 grinders',
         raceId: 500,
@@ -216,10 +258,8 @@ describe('BblTeamsImportService', () => {
   });
 
   it('deduplicates a team (by id) appearing on multiple pages', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -233,36 +273,30 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    expect(upsertTeam).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
 
   it('skips pages with no team', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
-      bootstrap,
-      upsertTeam,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
+    );
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
   });
 
   it('records an error and skips a team whose race id is not in the map', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -270,13 +304,12 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(
       result.errors.some((e) => e.message.includes('could not resolve race')),
@@ -284,29 +317,24 @@ describe('BblTeamsImportService', () => {
   });
 
   it('records an error and skips a team with no race on the page', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({ teamId: '40g', teamName: '40 grinders', coachName: 'Hugo E' }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
   });
 
   it('records an error and skips a team whose coach name is not in the map', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -314,31 +342,20 @@ describe('BblTeamsImportService', () => {
           coachName: 'Nobody',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve coach')),
     ).toBe(true);
   });
 
   it('records an error and continues when a team upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi
-      .fn()
-      .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
-        errors.push({
-          item: {},
-          message: 'Failed to import team "40 grinders"',
-        });
-        return Promise.resolve(false);
-      });
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -346,8 +363,13 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
+    );
+    mocks.teamsImport.upsertTeam.mockImplementationOnce((_data, errors) => {
+      errors.push({
+        item: {},
+        message: 'Failed to import team "40 grinders"',
+      });
+      return Promise.resolve(undefined);
     });
 
     const { result } = await service.importTeams(raceIds, coachIds);
@@ -360,17 +382,11 @@ describe('BblTeamsImportService', () => {
   });
 
   it('records an error and continues when a page fails to parse', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const teamParser = new TeamPageParser(normalizeText);
-    vi.spyOn(teamParser, 'extractTeam').mockImplementation(() => {
+    const { service, mocks } = await makeService(
+      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+    );
+    mocks.teamParser.extractTeam.mockImplementation(() => {
       throw new Error('bad page');
-    });
-    const service = makeService({
-      reader: makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
-      bootstrap,
-      upsertTeam,
-      parsers: { team: teamParser },
     });
 
     const { result } = await service.importTeams(raceIds, coachIds);
@@ -384,18 +400,12 @@ describe('BblTeamsImportService', () => {
   });
 
   it('records a stringified error when a page throws a non-Error value', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const teamParser = new TeamPageParser(normalizeText);
-    vi.spyOn(teamParser, 'extractTeam').mockImplementation(() => {
+    const { service, mocks } = await makeService(
+      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+    );
+    mocks.teamParser.extractTeam.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
-    });
-    const service = makeService({
-      reader: makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
-      bootstrap,
-      upsertTeam,
-      parsers: { team: teamParser },
     });
 
     const { result } = await service.importTeams(raceIds, coachIds);
@@ -407,16 +417,8 @@ describe('BblTeamsImportService', () => {
   });
 
   it('records one error and skips teams when an external system upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({
-      ok: false,
-      error: {
-        item: { externalSystems: ['BBL', 'Name'] },
-        message: 'network timeout',
-      },
-    });
-    const upsertTeam = vi.fn();
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -424,8 +426,13 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
+    );
+    mocks.bootstrap.bootstrap.mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'network timeout',
+      },
     });
 
     const { result } = await service.importTeams(raceIds, coachIds);
@@ -439,14 +446,13 @@ describe('BblTeamsImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(upsertTeam).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
   });
 
   it('returns a map from each team page code to its resolved race id', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -454,9 +460,7 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { teamRaceIdsByCode } = await service.importTeams(raceIds, coachIds);
 
@@ -464,10 +468,8 @@ describe('BblTeamsImportService', () => {
   });
 
   it('returns teamsByCode keyed by the team BBL code', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertTeam = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([
+    const { service } = await makeService(
+      makeReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -475,9 +477,7 @@ describe('BblTeamsImportService', () => {
           coachName: 'Hugo E',
         }),
       ]),
-      bootstrap,
-      upsertTeam,
-    });
+    );
 
     const { result, teamsByName, teamsByCode } = await service.importTeams(
       raceIds,
