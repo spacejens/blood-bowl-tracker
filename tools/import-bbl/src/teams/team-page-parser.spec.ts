@@ -1,19 +1,34 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { TeamPageParser } from './team-page-parser';
 
 function teamPage(id: string, html: string): BblPage {
   return { type: 'tm', params: { t: id }, load: () => load(html) };
 }
 
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new TeamPageParser(normalizeText);
-
 describe('TeamPageParser', () => {
+  let parser: TeamPageParser;
+  let normalizeText: MockProxy<NormalizeExtractedTextService>;
+
+  beforeEach(async () => {
+    normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TeamPageParser,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(TeamPageParser);
+  });
+
   it('extracts the team id from params.t and the name from the <h1>', () => {
     const page = teamPage('40g', '<h1>40 grinders</h1>');
     expect(parser.extractTeam(page)).toEqual({

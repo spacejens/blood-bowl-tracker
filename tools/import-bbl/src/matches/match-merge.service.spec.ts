@@ -1,6 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import type { BblMatch } from './match-list-page-parser';
@@ -8,27 +10,38 @@ import { MatchMergeService } from './match-merge.service';
 import type { MatchMergePair } from './match-merge-config.service';
 import { MatchMergeConfigService } from './match-merge-config.service';
 
-function makeService(
+async function makeService(
   merges: MatchMergePair[],
   matchesByCompetitionId: Record<string, BblMatch[]>,
-): MatchMergeService {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
+): Promise<MatchMergeService> {
+  const reader = mock<BblMatchListReaderService>();
+  reader.getMatchesByCompetitionId.mockResolvedValue(
     new Map(Object.entries(matchesByCompetitionId)),
   );
-  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig, new ImportResultService());
+  const mergeConfig = mock<MatchMergeConfigService>();
+  mergeConfig.getMerges.mockReturnValue(merges);
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      MatchMergeService,
+      { provide: BblMatchListReaderService, useValue: reader },
+      { provide: MatchMergeConfigService, useValue: mergeConfig },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(MatchMergeService);
 }
 
 const d = (iso: string) => new Date(`${iso}T00:00:00.000Z`);
 
 describe('MatchMergeService', () => {
   it('resolves a pair whose ids share a competition, picking the lower id as primary', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1062', secondMatchId: '1061' }],
       {
         '32': [
@@ -51,7 +64,7 @@ describe('MatchMergeService', () => {
   });
 
   it('resolves the canonical playedAt to the earliest of the pair for both members', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1061', secondMatchId: '1062' }],
       {
         '32': [
@@ -71,7 +84,7 @@ describe('MatchMergeService', () => {
   });
 
   it('passes an unpaired match date through unchanged', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1061', secondMatchId: '1062' }],
       {
         '32': [
@@ -91,7 +104,7 @@ describe('MatchMergeService', () => {
   });
 
   it('does not merge a pair whose ids are in different competitions, and records one error', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1061', secondMatchId: '1062' }],
       {
         '32': [{ bblId: '1061', date: d('2016-09-25') }],
@@ -113,7 +126,7 @@ describe('MatchMergeService', () => {
   });
 
   it('records an error when one id of a pair is missing from every match list', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1061', secondMatchId: '1062' }],
       {
         '32': [{ bblId: '1061', date: d('2016-09-25') }],
@@ -125,7 +138,7 @@ describe('MatchMergeService', () => {
   });
 
   it('memoizes the resolution, only recording pair errors once', async () => {
-    const service = makeService(
+    const service = await makeService(
       [{ firstMatchId: '1061', secondMatchId: '1062' }],
       {
         '32': [{ bblId: '1061', date: d('2016-09-25') }],

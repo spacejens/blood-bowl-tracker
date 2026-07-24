@@ -1,17 +1,32 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { MatchEventsPageParser } from './match-events-page-parser';
 
 function matchPage(id: string, html: string): BblPage {
   return { type: 'm', params: { m: id }, load: () => load(html) };
 }
 
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+let parser: MatchEventsPageParser;
 
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new MatchEventsPageParser(normalizeText);
+async function makeParser(): Promise<MatchEventsPageParser> {
+  const normalizeText: MockProxy<NormalizeExtractedTextService> =
+    mock<NormalizeExtractedTextService>();
+  normalizeText.normalize.mockImplementation((s: string) =>
+    s.replace(/\s+/g, ' ').trim(),
+  );
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      MatchEventsPageParser,
+      { provide: NormalizeExtractedTextService, useValue: normalizeText },
+    ],
+  }).compile();
+  return moduleRef.get(MatchEventsPageParser);
+}
 
 function journeymenPage(rows: string, id = '1000'): BblPage {
   const html =
@@ -88,6 +103,10 @@ const HTML =
   '</table>';
 
 describe('MatchEventsPageParser', () => {
+  beforeEach(async () => {
+    parser = await makeParser();
+  });
+
   it('returns null when the m param is missing', () => {
     const page = matchPage('', HTML);
     expect(parser.extractMatchEvents(page)).toBeNull();
@@ -182,6 +201,10 @@ describe('MatchEventsPageParser', () => {
 });
 
 describe('MatchEventsPageParser journeyman counting', () => {
+  beforeEach(async () => {
+    parser = await makeParser();
+  });
+
   it('counts a single journeyman in a removal row as 1 (home)', () => {
     const result = parser.extractMatchEvents(
       journeymenPage(row('Miss Next Game', 'journeyman', '')),

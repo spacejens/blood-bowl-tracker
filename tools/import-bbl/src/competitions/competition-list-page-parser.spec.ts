@@ -1,19 +1,34 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { CompetitionListPageParser } from './competition-list-page-parser';
 
 function listPage(html: string): BblPage {
   return { type: 'se', params: { s: '66' }, load: () => load(html) };
 }
 
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new CompetitionListPageParser(normalizeText);
-
 describe('CompetitionListPageParser', () => {
+  let parser: CompetitionListPageParser;
+  let normalizeText: MockProxy<NormalizeExtractedTextService>;
+
+  beforeEach(async () => {
+    normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        CompetitionListPageParser,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(CompetitionListPageParser);
+  });
+
   it('extracts each competition id and name from the se-option dropdown', () => {
     const page = listPage(
       '<select>' +

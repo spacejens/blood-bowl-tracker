@@ -1,18 +1,15 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import { ImportResultService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
-import type { BblSourceReader } from '../source/bbl-source-reader';
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
-
-const normalizeText = new NormalizeExtractedTextService();
-const importResults = new ImportResultService();
-const pageParseError = new PageParseErrorService(importResults);
 
 function page(params: Record<string, string>): BblPage {
   return {
@@ -35,12 +32,52 @@ function makeReader(pages: BblPage[]): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-function makeParser(teamsById: Record<string, BblMatchDetails | null>) {
-  const parser = new MatchTeamsPageParser(normalizeText);
-  vi.spyOn(parser, 'extractMatchTeams').mockImplementation(
+function makeParser(
+  teamsById: Record<string, BblMatchDetails | null>,
+): MockProxy<MatchTeamsPageParser> {
+  const parser = mock<MatchTeamsPageParser>();
+  parser.extractMatchTeams.mockImplementation(
     (p) => teamsById[p.params.m] ?? null,
   );
   return parser;
+}
+
+function makeImportResults(): MockProxy<ImportResultService> {
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  return importResults;
+}
+
+function makePageParseError(): MockProxy<PageParseErrorService> {
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockImplementation(
+    (pageParams, pageDescription, error) => ({
+      item: { page: pageParams },
+      message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    }),
+  );
+  return pageParseError;
+}
+
+async function makeService(options: {
+  reader: BblSourceReader;
+  parser: MockProxy<MatchTeamsPageParser>;
+}): Promise<BblMatchDetailReaderService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblMatchDetailReaderService,
+      { provide: BblSourceReader, useValue: options.reader },
+      { provide: MatchTeamsPageParser, useValue: options.parser },
+      { provide: ImportResultService, useValue: makeImportResults() },
+      { provide: PageParseErrorService, useValue: makePageParseError() },
+    ],
+  }).compile();
+  return moduleRef.get(BblMatchDetailReaderService);
 }
 
 const teamsOne: BblMatchDetails = {
@@ -53,12 +90,10 @@ const teamsOne: BblMatchDetails = {
 describe('BblMatchDetailReaderService', () => {
   it('keys parsed match teams by bblId in a single pass', async () => {
     const parser = makeParser({ '100': teamsOne });
-    const service = new BblMatchDetailReaderService(
-      makeReader([page({ m: '100' })]),
+    const service = await makeService({
+      reader: makeReader([page({ m: '100' })]),
       parser,
-      importResults,
-      pageParseError,
-    );
+    });
     const errors: ImportError[] = [];
 
     const result = await service.getMatchTeamsByBblId(errors);
@@ -70,12 +105,10 @@ describe('BblMatchDetailReaderService', () => {
   it('memoizes: a second call does not re-read the source', async () => {
     const reader = makeReader([page({ m: '100' })]);
     const pagesSpy = vi.spyOn(reader, 'pages');
-    const service = new BblMatchDetailReaderService(
+    const service = await makeService({
       reader,
-      makeParser({ '100': teamsOne }),
-      importResults,
-      pageParseError,
-    );
+      parser: makeParser({ '100': teamsOne }),
+    });
     const errors: ImportError[] = [];
 
     await service.getMatchTeamsByBblId(errors);
@@ -85,12 +118,10 @@ describe('BblMatchDetailReaderService', () => {
   });
 
   it('records an error and skips a page the parser returns null for', async () => {
-    const service = new BblMatchDetailReaderService(
-      makeReader([page({ m: '100' }), page({ m: '101' })]),
-      makeParser({ '100': teamsOne, '101': null }),
-      importResults,
-      pageParseError,
-    );
+    const service = await makeService({
+      reader: makeReader([page({ m: '100' }), page({ m: '101' })]),
+      parser: makeParser({ '100': teamsOne, '101': null }),
+    });
     const errors: ImportError[] = [];
 
     const result = await service.getMatchTeamsByBblId(errors);
@@ -105,16 +136,14 @@ describe('BblMatchDetailReaderService', () => {
   });
 
   it('records an error and continues when a page throws', async () => {
-    const parser = new MatchTeamsPageParser(normalizeText);
-    vi.spyOn(parser, 'extractMatchTeams').mockImplementation(() => {
+    const parser = mock<MatchTeamsPageParser>();
+    parser.extractMatchTeams.mockImplementation(() => {
       throw new Error('bad m page');
     });
-    const service = new BblMatchDetailReaderService(
-      makeReader([page({ m: '100' })]),
+    const service = await makeService({
+      reader: makeReader([page({ m: '100' })]),
       parser,
-      importResults,
-      pageParseError,
-    );
+    });
     const errors: ImportError[] = [];
 
     const result = await service.getMatchTeamsByBblId(errors);
@@ -124,17 +153,15 @@ describe('BblMatchDetailReaderService', () => {
   });
 
   it('handles non-Error throws with String coercion in catch block', async () => {
-    const parser = new MatchTeamsPageParser(normalizeText);
-    vi.spyOn(parser, 'extractMatchTeams').mockImplementation(() => {
+    const parser = mock<MatchTeamsPageParser>();
+    parser.extractMatchTeams.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'boom';
     });
-    const service = new BblMatchDetailReaderService(
-      makeReader([page({ m: '100' })]),
+    const service = await makeService({
+      reader: makeReader([page({ m: '100' })]),
       parser,
-      importResults,
-      pageParseError,
-    );
+    });
     const errors: ImportError[] = [];
 
     const result = await service.getMatchTeamsByBblId(errors);

@@ -2,18 +2,60 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { BblPageService } from './bbl-page.service';
 import type { BblPage } from './bbl-page.types';
 import { BblSourceReader } from './bbl-source-reader';
-import type { SourceConfigService } from './source-config.service';
+import { SourceConfigService } from './source-config.service';
 
-function makeReader(dir: string): BblSourceReader {
-  return new BblSourceReader(
-    { getDataDir: () => dir } as unknown as SourceConfigService,
-    new BblPageService(),
-  );
+/** Mirrors BblPageService.parseFilename's real logic as a mock default. */
+function parseFilename(
+  filename: string,
+): { type: string; params: Record<string, string> } | null {
+  const prefix = 'default.asp?';
+  if (!filename.startsWith(prefix)) {
+    return null;
+  }
+
+  const params: Record<string, string> = {};
+  let type: string | undefined;
+  for (const pair of filename.slice(prefix.length).split('&')) {
+    const eq = pair.indexOf('=');
+    if (eq === -1) {
+      continue;
+    }
+    const key = pair.slice(0, eq);
+    const value = pair.slice(eq + 1).normalize('NFC');
+    if (key === 'p') {
+      type = value;
+    } else {
+      params[key] = value;
+    }
+  }
+
+  if (!type) {
+    return null;
+  }
+  return { type, params };
+}
+
+async function makeReader(dir: string): Promise<BblSourceReader> {
+  const config = mock<SourceConfigService>();
+  config.getDataDir.mockReturnValue(dir);
+  const bblPage = mock<BblPageService>();
+  bblPage.parseFilename.mockImplementation(parseFilename);
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblSourceReader,
+      { provide: SourceConfigService, useValue: config },
+      { provide: BblPageService, useValue: bblPage },
+    ],
+  }).compile();
+  return moduleRef.get(BblSourceReader);
 }
 
 async function collect(iterable: AsyncIterable<BblPage>): Promise<BblPage[]> {
@@ -41,7 +83,7 @@ describe('BblSourceReader', () => {
     await writeFile(join(dir, 'default.asp?p=pl&pid=1'), '<html></html>');
     await writeFile(join(dir, 'index.html'), '<html></html>');
 
-    const reader = makeReader(dir);
+    const reader = await makeReader(dir);
     const pages = await collect(reader.pages('tm'));
 
     expect(pages).toHaveLength(2);
@@ -60,7 +102,7 @@ describe('BblSourceReader', () => {
     ]);
     await writeFile(join(dir, 'default.asp?p=tm&t=abc'), bytes);
 
-    const reader = makeReader(dir);
+    const reader = await makeReader(dir);
     const [page] = await collect(reader.pages('tm'));
     const $ = page.load();
 
@@ -68,14 +110,14 @@ describe('BblSourceReader', () => {
     expect($('td').text()).toContain('Åke');
   });
 
-  it('does not read the directory until iteration begins (lazy)', () => {
-    const reader = makeReader('/no/such/bbl/dir');
+  it('does not read the directory until iteration begins (lazy)', async () => {
+    const reader = await makeReader('/no/such/bbl/dir');
     // Obtaining the iterable must not throw synchronously.
     expect(() => reader.pages('tm')).not.toThrow();
   });
 
   it('throws when the data directory does not exist', async () => {
-    const reader = makeReader('/no/such/bbl/dir');
+    const reader = await makeReader('/no/such/bbl/dir');
     await expect(collect(reader.pages('tm'))).rejects.toThrow();
   });
 
@@ -83,7 +125,7 @@ describe('BblSourceReader', () => {
     await mkdir(join(dir, 'default.asp?p=tm&t=subdir'));
     await writeFile(join(dir, 'default.asp?p=tm&t=knu'), '<html></html>');
 
-    const reader = makeReader(dir);
+    const reader = await makeReader(dir);
     const pages = await collect(reader.pages('tm'));
 
     expect(pages).toHaveLength(1);

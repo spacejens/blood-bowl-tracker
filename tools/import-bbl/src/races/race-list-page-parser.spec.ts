@@ -1,19 +1,34 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { RaceListPageParser } from './race-list-page-parser';
 
 function listPage(html: string): BblPage {
   return { type: 'tl', params: {}, load: () => load(html) };
 }
 
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new RaceListPageParser(normalizeText);
-
 describe('RaceListPageParser', () => {
+  let parser: RaceListPageParser;
+  let normalizeText: MockProxy<NormalizeExtractedTextService>;
+
+  beforeEach(async () => {
+    normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RaceListPageParser,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(RaceListPageParser);
+  });
+
   it('extracts each race from its numeric anchor and the following <b> heading', () => {
     const page = listPage(
       '<a name="CollegeofShadow"></a><a name="48"></a>' +

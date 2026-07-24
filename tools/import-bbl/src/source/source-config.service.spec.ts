@@ -1,30 +1,47 @@
 import { resolve } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { ImportBblConfigService } from '../config/import-bbl-config.service';
+import { ImportBblConfigService } from '../config/import-bbl-config.service';
 import { SourceConfigService } from './source-config.service';
 
-function makeService(dataDir: string | undefined): SourceConfigService {
-  const config = {
-    get: (_key: string) => dataDir,
-  } as unknown as ImportBblConfigService;
-  return new SourceConfigService(config);
-}
-
 describe('SourceConfigService', () => {
+  let service: SourceConfigService;
+  let config: MockProxy<ImportBblConfigService>;
+
+  beforeEach(async () => {
+    config = mock<ImportBblConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        SourceConfigService,
+        { provide: ImportBblConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(SourceConfigService);
+  });
+
+  function stub(dataDir: string | undefined): void {
+    config.get.mockImplementation((key: string) =>
+      key === 'dataDir' ? dataDir : undefined,
+    );
+  }
+
   it('resolves a relative dataDir against the current working directory', () => {
-    const service = makeService('data/tloeg.bbleague.se');
+    stub('data/tloeg.bbleague.se');
     expect(service.getDataDir()).toBe(resolve('data/tloeg.bbleague.se'));
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(config.get).toHaveBeenCalledWith('dataDir');
   });
 
   it('returns an absolute dataDir unchanged', () => {
-    const service = makeService('/srv/bbl/data');
+    stub('/srv/bbl/data');
     expect(service.getDataDir()).toBe('/srv/bbl/data');
   });
 
   it('throws when dataDir is not set', () => {
-    const service = makeService(undefined);
+    stub(undefined);
     expect(() => service.getDataDir()).toThrow(
       'dataDir is not set in import-bbl-config.json5',
     );

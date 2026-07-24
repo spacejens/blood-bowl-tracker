@@ -1,10 +1,28 @@
 import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { PageParseErrorService } from './page-parse-error.service';
 
 describe('PageParseErrorService', () => {
-  const service = new PageParseErrorService(new ImportResultService());
+  let service: PageParseErrorService;
+  let importResults: MockProxy<ImportResultService>;
+
+  beforeEach(async () => {
+    importResults = mock<ImportResultService>();
+    importResults.error.mockImplementation((args) => ({
+      item: args.item,
+      message: args.message,
+    }));
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PageParseErrorService,
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+    service = moduleRef.get(PageParseErrorService);
+  });
 
   it('records the page params and the error message', () => {
     expect(
