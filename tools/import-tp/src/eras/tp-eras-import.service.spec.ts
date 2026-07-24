@@ -1,20 +1,25 @@
-import type {
+import {
   ErasImportService,
   ExternalSystemBootstrapService,
-} from '@blood-bowl-tracker/import';
-import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TpSourceFile, TpSourceReader } from '../source/tp-source-reader';
-import type {
-  EraDataConfig,
-  EraDataConfigService,
-} from './era-data-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+  mockTournamentParserService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import type { TpSourceFile } from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
+import type { EraDataConfig } from './era-data-config.service';
+import { EraDataConfigService } from './era-data-config.service';
 import { TpErasImportService } from './tp-eras-import.service';
 
 interface MakeServiceOptions {
@@ -25,27 +30,61 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+/**
+ * `TournamentParserService.parse` is mocked as an identity pass-through of
+ * each `TpSourceFile.content` (already-parsed `TpTournament`, built directly
+ * by `tournamentFile()` below) that throws when `ruleSet` is missing —
+ * mirroring the one validation rule these specs exercise, without
+ * re-implementing the real Zod schema. Full validation behaviour is covered
+ * by `TournamentParserService`'s own dedicated spec in
+ * `packages/parse-tp/src/tournament-parser.service.spec.ts`.
+ */
+async function makeService({
   getEras,
   files,
   bootstrap,
   upsertEra,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpErasImportService(
-    { getEras } as unknown as EraDataConfigService,
-    { upsertEra } as unknown as ErasImportService,
-    {
-      files,
-      isBaseTournamentFile: (filename: string) =>
-        /^tournament_[^_]+\.json$/.test(filename),
-    } as unknown as TpSourceReader,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new TournamentParserService(),
-    new NameExternalIdService(),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpErasImportService> {
+  const eraDataConfig = mock<EraDataConfigService>();
+  eraDataConfig.getEras.mockImplementation(getEras);
+  const erasImport = mock<ErasImportService>();
+  erasImport.upsertEra.mockImplementation(asProviderMethod(upsertEra));
+  const sourceReader = mock<TpSourceReader>();
+  sourceReader.files.mockImplementation(files);
+  sourceReader.isBaseTournamentFile.mockImplementation((filename: string) =>
+    /^tournament_[^_]+\.json$/.test(filename),
   );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const tournamentParser = mockTournamentParserService();
+  const nameExternalId = mockNameExternalIdService();
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpErasImportService,
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: ErasImportService, useValue: erasImport },
+      { provide: TpSourceReader, useValue: sourceReader },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: TournamentParserService, useValue: tournamentParser },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpErasImportService);
 }
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
@@ -116,7 +155,7 @@ describe('TpErasImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
       .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       files: makeFiles([
         tournamentFile('Third era', 'tournament_third-cup.json', 20),
@@ -175,7 +214,7 @@ describe('TpErasImportService', () => {
   it('records one error and imports nothing when the league id is missing', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
@@ -194,7 +233,7 @@ describe('TpErasImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const partialIds = new Map<string, number>([['LRB6', 100]]);
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
@@ -217,7 +256,7 @@ describe('TpErasImportService', () => {
   it('passes silently when one era directory reports a single rule-set code', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         tournamentFile('Third era', 'tournament_a.json', 20),
@@ -239,7 +278,7 @@ describe('TpErasImportService', () => {
   it('records an error but still upserts when an era directory reports mismatched codes', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         tournamentFile('Third era', 'tournament_a.json', 20),
@@ -269,7 +308,7 @@ describe('TpErasImportService', () => {
   it('records a diagnostic error but still upserts when a tournament file fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         {
@@ -299,7 +338,7 @@ describe('TpErasImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
       .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       files: makeFilesThatThrow(
         [tournamentFile('Third era', 'tournament_third-cup.json', 20)],
@@ -336,7 +375,7 @@ describe('TpErasImportService', () => {
   it('accumulates every parse failure for an era, not just the last one', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         {
@@ -374,7 +413,7 @@ describe('TpErasImportService', () => {
   it('records one error and imports nothing when the era config cannot be read', async () => {
     const bootstrap = vi.fn();
     const upsertEra = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getEras: () => {
         throw new Error('TP_ERAS is not set.');
       },
@@ -401,7 +440,7 @@ describe('TpErasImportService', () => {
       },
     });
     const upsertEra = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,

@@ -1,16 +1,21 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
-import type {
+import {
   ExternalSystemBootstrapService,
+  ImportResultService,
+  NameExternalIdService,
   PlayersImportService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import {
-  ImportResultService,
-  NameExternalIdService,
-} from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
 import { TpPlayersImportService } from './tp-players-import.service';
@@ -22,25 +27,53 @@ interface MakeServiceOptions {
   upsertPosition?: ReturnType<typeof vi.fn>;
 }
 
-function makeService({
+async function makeService({
   upsertPlayerResult,
   bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
   getTpSystemName = () => 'TP',
   upsertPosition = vi.fn(),
-}: MakeServiceOptions) {
-  return new TpPlayersImportService(
-    { upsertPlayerResult } as unknown as PlayersImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    { upsertPosition } as unknown as PositionsImportService,
-    new NameExternalIdService(),
-    new RosterCollectionService(
-      {} as never,
-      {} as never,
-      new ImportResultService(),
-    ),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpPlayersImportService> {
+  const playersImport = mock<PlayersImportService>();
+  playersImport.upsertPlayerResult.mockImplementation(
+    asProviderMethod(upsertPlayerResult),
   );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const positionsImport = mock<PositionsImportService>();
+  positionsImport.upsertPosition.mockImplementation(
+    asProviderMethod(upsertPosition),
+  );
+  const nameExternalId = mockNameExternalIdService();
+  const rosterCollection = mock<RosterCollectionService>();
+  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
+    item: { era, roster: roster.id },
+    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
+  }));
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpPlayersImportService,
+      { provide: PlayersImportService, useValue: playersImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: PositionsImportService, useValue: positionsImport },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: RosterCollectionService, useValue: rosterCollection },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpPlayersImportService);
 }
 
 const rosters: RosterEntry[] = [
@@ -73,7 +106,7 @@ const rosters: RosterEntry[] = [
 describe('TpPlayersImportService', () => {
   it('imports a resolvable roster player and maps its lineUpId to the DB id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -97,7 +130,7 @@ describe('TpPlayersImportService', () => {
 
   it('imports a player present only in matchEmbeddedPlayersByRosterId (absent from roster.players), filling the departed-player gap', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -135,7 +168,7 @@ describe('TpPlayersImportService', () => {
 
   it('prefers roster.players data over matchEmbeddedPlayersByRosterId for the same player id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     await service.importPlayers({
       rosters,
@@ -172,7 +205,7 @@ describe('TpPlayersImportService', () => {
 
   it('records an unknown-era error and skips a player whose roster era is not imported', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -190,7 +223,7 @@ describe('TpPlayersImportService', () => {
 
   it('records a non-fatal error and skips a player whose team era cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -206,7 +239,7 @@ describe('TpPlayersImportService', () => {
 
   it('records a non-fatal error and skips a player whose position cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -222,7 +255,7 @@ describe('TpPlayersImportService', () => {
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertPlayerResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       upsertPlayerResult,
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
@@ -245,7 +278,7 @@ describe('TpPlayersImportService', () => {
   it('imports a hired star player as an isStarPlayer position + a player on the hiring team-era', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -281,7 +314,7 @@ describe('TpPlayersImportService', () => {
   it('records a non-fatal error and skips a star player whose hiring team-era cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { result, starPlayerIdsByRosterAndMaster } =
       await service.importPlayers({
@@ -309,7 +342,7 @@ describe('TpPlayersImportService', () => {
   it('does not redundantly re-import the same hired star player within one run', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -336,7 +369,7 @@ describe('TpPlayersImportService', () => {
   it('skips a star player without creating a player when the position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -361,7 +394,7 @@ describe('TpPlayersImportService', () => {
   it('attaches a Name-system bare-name external id to hired star positions', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     await service.importPlayers({
       rosters,
@@ -391,7 +424,7 @@ describe('TpPlayersImportService', () => {
   it('disambiguates a hiring team-era spanning multiple eras via the hire group real eraId', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     // Two RosterEntry rows share rosterId 168446 across different eras, so
     // teamErasByRosterId.get(168446) returns two genuinely ambiguous
@@ -469,7 +502,7 @@ describe('TpPlayersImportService', () => {
 
   it('imports an embedded star player from a standalone roster whose lineUpMasterId resolves via a star catalog id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     // A permanently-rostered star player: its lineUps entry references a star
     // catalog id (5002), which positionIdsByTpPositionId now maps (Task 2).
@@ -522,7 +555,7 @@ describe('TpPlayersImportService', () => {
 
   it('imports an embedded star player present only in a match-embedded snapshot', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 951 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -567,7 +600,7 @@ describe('TpPlayersImportService', () => {
   it('imports a mercenary Big Guy (isBigGuy: true, unresolvable lineUpMasterId) via its fallbackPositionName as an isStarPlayer position', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -634,7 +667,7 @@ describe('TpPlayersImportService', () => {
       .mockResolvedValueOnce({ id: 960 })
       .mockResolvedValueOnce({ id: 961 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -686,7 +719,7 @@ describe('TpPlayersImportService', () => {
   it('skips a mercenary Big Guy without creating a player when the fallback position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -730,7 +763,7 @@ describe('TpPlayersImportService', () => {
   it('does not fall back to fallbackPositionName for a non-isBigGuy player, and still skips it with an error', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { result, playerIdsByLineUpId } = await service.importPlayers({
       rosters,
@@ -753,7 +786,7 @@ describe('TpPlayersImportService', () => {
 
   it('emits no starPositionUsages for a regular (non-star) roster player', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
 
     const { starPositionUsages } = await service.importPlayers({
       rosters,
@@ -768,7 +801,7 @@ describe('TpPlayersImportService', () => {
 
   it('emits a starPositionUsage for an embedded roster player whose position is a star position', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = makeService({ upsertPlayerResult });
+    const service = await makeService({ upsertPlayerResult });
     const embeddedStarRosters: RosterEntry[] = [
       {
         era: 'Third Era',
@@ -812,7 +845,7 @@ describe('TpPlayersImportService', () => {
   it('emits a starPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 902 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 820 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
     const mercRosters: RosterEntry[] = [
       {
         era: 'Third Era',
@@ -855,7 +888,7 @@ describe('TpPlayersImportService', () => {
   it('emits a starPositionUsage for an inducements-hired star player', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 810 });
-    const service = makeService({ upsertPlayerResult, upsertPosition });
+    const service = await makeService({ upsertPlayerResult, upsertPosition });
 
     const { starPositionUsages } = await service.importPlayers({
       rosters, // roster 123 -> teamRaceCode 'Dwarf', era 'Third Era'

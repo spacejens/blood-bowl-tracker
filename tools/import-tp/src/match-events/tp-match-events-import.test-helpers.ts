@@ -1,14 +1,16 @@
 import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
-import type {
+import type { ImportError } from '@blood-bowl-tracker/import';
+import {
   ExternalSystemBootstrapService,
-  ImportError,
+  ImportResultService,
   MatchEventsImportService,
 } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
@@ -52,21 +54,78 @@ interface RunImportOptions {
   matches: TpMatch[];
 }
 
-export function makeService(upsertMatchEvent: ReturnType<typeof vi.fn>) {
-  return new TpMatchEventsImportService(
-    { upsertMatchEvent } as unknown as MatchEventsImportService,
-    {
-      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [TP_SYSTEM_ID] }),
-    } as unknown as ExternalSystemBootstrapService,
-    {
-      getTpSystemName: () => 'TP',
-    } as unknown as ExternalSystemNameConfigService,
-    new TpMatchEventsBuilderService(
-      new TpMatchEventKindBuildersService(new ImportResultService()),
-    ),
-    new TpMatchEventsCorrelationService(),
-    new ImportResultService(),
+/**
+ * `TpMatchEventsImportService` is built through a real `Test.
+ * createTestingModule`, but — deliberately, unlike every other migrated spec
+ * in this workspace — `TpMatchEventsBuilderService`,
+ * `TpMatchEventKindBuildersService`, `TpMatchEventsCorrelationService` and
+ * `ImportResultService` are registered as REAL providers, not mocks.
+ *
+ * Reason: `TpMatchEventsBuilderService` and `TpMatchEventKindBuildersService`
+ * (the per-event-kind construction logic — touchdown, mvp_award, sent_off,
+ * injury/casualty pairing, every administrative event) have NO dedicated spec
+ * of their own anywhere in this workspace; their only coverage comes
+ * incidentally through this shared helper, consumed by both this file's
+ * `tp-match-events-import.service.spec.ts` (administrative events/error
+ * handling) and the sibling `tp-match-events-gameplay.spec.ts` (gameplay
+ * events) — which is explicitly OUT of scope for this migration task (it has
+ * no direct `new XService(...)` call of its own to convert). Mocking these
+ * collaborators here would silently drop their only coverage and would also
+ * require rewriting `tp-match-events-gameplay.spec.ts`'s ~30 gameplay-event
+ * assertions to work off canned mock return values instead of exercising the
+ * real per-event-kind logic they exist to test — out of scope for a
+ * test-setup-only migration. Per the migration conventions' remedy for this
+ * exact situation ("if mocking would drop a collaborator's coverage, add a
+ * dedicated spec instead"), the correct long-term fix is a dedicated spec for
+ * `TpMatchEventKindBuildersService`/`TpMatchEventsBuilderService` — flagged
+ * as a follow-up in this task's report, not attempted here.
+ * `TpMatchEventsCorrelationService` and `ImportResultService` are kept real
+ * alongside them for the same reason: they are its real, already-migrated
+ * (Task 12) collaborators, and Nest's DI wires the whole chain exactly as
+ * production does. Only the three genuine external-boundary collaborators —
+ * `MatchEventsImportService` (the `@blood-bowl-tracker/import` upsert
+ * boundary), `ExternalSystemBootstrapService` and
+ * `ExternalSystemNameConfigService` — are mocked.
+ */
+export async function makeService(
+  upsertMatchEvent: ReturnType<typeof vi.fn>,
+  options?: {
+    /** Override for a failed external-system bootstrap (defaults to success). */
+    bootstrapResult?: Awaited<
+      ReturnType<ExternalSystemBootstrapService['bootstrap']>
+    >;
+  },
+): Promise<TpMatchEventsImportService> {
+  const matchEventsImport = mock<MatchEventsImportService>();
+  matchEventsImport.upsertMatchEvent.mockImplementation(
+    upsertMatchEvent as MatchEventsImportService['upsertMatchEvent'],
   );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockResolvedValue(
+    options?.bootstrapResult ?? { ok: true, ids: [TP_SYSTEM_ID] },
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockReturnValue('TP');
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpMatchEventsImportService,
+      TpMatchEventsBuilderService,
+      TpMatchEventKindBuildersService,
+      TpMatchEventsCorrelationService,
+      ImportResultService,
+      { provide: MatchEventsImportService, useValue: matchEventsImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+    ],
+  }).compile();
+  return moduleRef.get(TpMatchEventsImportService);
 }
 
 export async function runImportRaw({ matches }: RunImportOptions): Promise<{
@@ -81,7 +140,7 @@ export async function runImportRaw({ matches }: RunImportOptions): Promise<{
       return Promise.resolve(true);
     },
   );
-  const service = makeService(upsertMatchEvent);
+  const service = await makeService(upsertMatchEvent);
 
   const { result } = await service.importMatchEvents({
     matchesByCompetitionId: new Map([[COMPETITION_DB_ID, matches]]),

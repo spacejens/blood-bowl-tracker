@@ -1,15 +1,20 @@
-import type {
-  ExternalSystemBootstrapService,
-  LeaguesImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
+  LeaguesImportService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { LeagueConfigService } from './league-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { LeagueConfigService } from './league-config.service';
 import { TpLeaguesImportService } from './tp-leagues-import.service';
 
 interface MakeServiceOptions {
@@ -19,20 +24,43 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   getLeagueName,
   bootstrap,
   upsertLeague,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpLeaguesImportService(
-    { getLeagueName } as unknown as LeagueConfigService,
-    { upsertLeague } as unknown as LeaguesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpLeaguesImportService> {
+  const leagueConfig = mock<LeagueConfigService>();
+  leagueConfig.getLeagueName.mockImplementation(getLeagueName);
+  const leaguesImport = mock<LeaguesImportService>();
+  leaguesImport.upsertLeague.mockImplementation(asProviderMethod(upsertLeague));
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
   );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mockNameExternalIdService();
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpLeaguesImportService,
+      { provide: LeagueConfigService, useValue: leagueConfig },
+      { provide: LeaguesImportService, useValue: leaguesImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpLeaguesImportService);
 }
 
 describe('TpLeaguesImportService', () => {
@@ -41,7 +69,7 @@ describe('TpLeaguesImportService', () => {
     const upsertLeague = vi
       .fn()
       .mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
-    const service = makeService({
+    const service = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,
@@ -71,7 +99,7 @@ describe('TpLeaguesImportService', () => {
   it('records one error and no leagueId when the league name is unset', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getLeagueName: () => {
         throw new Error('league.name is not set in import-tp-config.json5');
       },
@@ -95,7 +123,7 @@ describe('TpLeaguesImportService', () => {
       },
     });
     const upsertLeague = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,
@@ -118,7 +146,7 @@ describe('TpLeaguesImportService', () => {
         errors.push({ message: 'league boom' });
         return Promise.resolve(undefined);
       });
-    const service = makeService({
+    const service = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,

@@ -1,15 +1,20 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
-import type {
-  ExternalSystemBootstrapService,
-  PositionsImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  PositionsImportService,
 } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
 import { TpPositionsImportService } from './tp-positions-import.service';
@@ -21,24 +26,51 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   bootstrap,
   upsertPosition,
   syncRaceEras,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpPositionsImportService(
-    { upsertPosition, syncRaceEras } as unknown as PositionsImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new RosterCollectionService(
-      {} as never,
-      {} as never,
-      new ImportResultService(),
-    ),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpPositionsImportService> {
+  const positionsImport = mock<PositionsImportService>();
+  positionsImport.upsertPosition.mockImplementation(
+    asProviderMethod(upsertPosition),
   );
+  positionsImport.syncRaceEras.mockImplementation(
+    asProviderMethod(syncRaceEras),
+  );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mockNameExternalIdService();
+  const rosterCollection = mock<RosterCollectionService>();
+  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
+    item: { era, roster: roster.id },
+    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
+  }));
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpPositionsImportService,
+      { provide: PositionsImportService, useValue: positionsImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: RosterCollectionService, useValue: rosterCollection },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpPositionsImportService);
 }
 
 interface RosterOpts {
@@ -88,7 +120,7 @@ describe('TpPositionsImportService', () => {
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
     const bootstrap = oneSystemUpsertMock();
-    const service = makeService({
+    const service = await makeService({
       bootstrap,
       upsertPosition,
       syncRaceEras,
@@ -141,7 +173,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1, 2] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -202,7 +234,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -243,7 +275,7 @@ describe('TpPositionsImportService', () => {
   it('skips a roster and records an error when its race cannot be resolved', async () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -275,7 +307,7 @@ describe('TpPositionsImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertPosition = vi.fn();
     const syncRaceEras = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
         error: {
@@ -313,7 +345,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -349,7 +381,7 @@ describe('TpPositionsImportService', () => {
   it('imports a star position grouped by name (not race) with a bare-name external id and no syncRaceEras', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
     const syncRaceEras = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -406,7 +438,7 @@ describe('TpPositionsImportService', () => {
   it('returns the DB ids of upserted star positions in starPositionIds', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
     const syncRaceEras = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -440,7 +472,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -475,7 +507,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -508,7 +540,7 @@ describe('TpPositionsImportService', () => {
   it('tags star positions under the Name system with a bare name', async () => {
     const upsertPosition = vi.fn().mockResolvedValue(positionRecord(800));
     const syncRaceEras = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,
@@ -546,7 +578,7 @@ describe('TpPositionsImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 70, raceEraIds: [1] });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: oneSystemUpsertMock(),
       upsertPosition,
       syncRaceEras,

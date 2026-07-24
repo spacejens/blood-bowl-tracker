@@ -1,15 +1,20 @@
 import type { UpsertRace } from '@blood-bowl-tracker/api-contract';
-import type {
-  ExternalSystemBootstrapService,
-  RacesImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  RacesImportService,
 } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { RosterCollectionService } from '../source/roster-collection.service';
 import { TpRacesImportService } from './tp-races-import.service';
@@ -20,23 +25,45 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   bootstrap,
   upsertRace,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpRacesImportService(
-    { upsertRace } as unknown as RacesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new RosterCollectionService(
-      {} as never,
-      {} as never,
-      new ImportResultService(),
-    ),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpRacesImportService> {
+  const racesImport = mock<RacesImportService>();
+  racesImport.upsertRace.mockImplementation(asProviderMethod(upsertRace));
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
   );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mockNameExternalIdService();
+  const rosterCollection = mock<RosterCollectionService>();
+  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
+    item: { era, roster: roster.id },
+    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
+  }));
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpRacesImportService,
+      { provide: RacesImportService, useValue: racesImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: RosterCollectionService, useValue: rosterCollection },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpRacesImportService);
 }
 
 interface RosterOpts {
@@ -76,7 +103,7 @@ describe('TpRacesImportService', () => {
   it('upserts a single-code race with its TP id, Name id and era', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
     const bootstrap = twoSystemUpsertMock();
-    const service = makeService({
+    const service = await makeService({
       bootstrap,
       upsertRace,
     });
@@ -115,7 +142,7 @@ describe('TpRacesImportService', () => {
 
   it('returns raceNamesById mapping each upserted race DB id to its display name', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(42));
-    const service = makeService({
+    const service = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
@@ -136,7 +163,7 @@ describe('TpRacesImportService', () => {
 
   it('merges multiple codes for one race name into a single upsert call', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const service = makeService({
+    const service = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
@@ -175,7 +202,7 @@ describe('TpRacesImportService', () => {
 
   it('accumulates eras when one code appears under multiple eras', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const service = makeService({
+    const service = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
@@ -201,7 +228,7 @@ describe('TpRacesImportService', () => {
 
   it('records an error for a roster under an unknown era but still upserts the race', async () => {
     const upsertRace = vi.fn().mockResolvedValue(raceRecord(50));
-    const service = makeService({
+    const service = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertRace,
     });
@@ -220,7 +247,7 @@ describe('TpRacesImportService', () => {
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertRace = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
         error: {

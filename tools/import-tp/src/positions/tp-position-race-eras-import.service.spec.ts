@@ -1,14 +1,35 @@
-import type { PositionsImportService } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  PositionsImportService,
+} from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
+import {
+  asProviderMethod,
+  mockImportResultService,
+} from '../import-package.test-helpers';
 import type { StarPositionUsage } from '../players/tp-players-import.service';
 import { TpPositionRaceErasImportService } from './tp-position-race-eras-import.service';
 
-function makePositionsImport(
+async function makeService(
   syncRaceEras: ReturnType<typeof vi.fn>,
-): PositionsImportService {
-  return { syncRaceEras } as unknown as PositionsImportService;
+): Promise<TpPositionRaceErasImportService> {
+  const positionsImport = mock<PositionsImportService>();
+  positionsImport.syncRaceEras.mockImplementation(
+    asProviderMethod(syncRaceEras),
+  );
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpPositionRaceErasImportService,
+      { provide: PositionsImportService, useValue: positionsImport },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpPositionRaceErasImportService);
 }
 
 const raceIdsByTeamRaceCode = new Map<string, number>([
@@ -25,10 +46,7 @@ describe('TpPositionRaceErasImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Human', era: 'Fourth era' },
@@ -59,10 +77,7 @@ describe('TpPositionRaceErasImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
@@ -82,10 +97,7 @@ describe('TpPositionRaceErasImportService', () => {
 
   it('makes no syncRaceEras call when there are no star position usages', async () => {
     const syncRaceEras = vi.fn();
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
 
     const { result } = await service.syncStarPositionRaceEras({
       starPositionUsages: [],
@@ -102,10 +114,7 @@ describe('TpPositionRaceErasImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 0, raceEraIds: [1] });
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 810, teamRaceCode: 'Human', era: 'Fourth era' },
@@ -133,10 +142,7 @@ describe('TpPositionRaceErasImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'UnknownRace', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
@@ -158,10 +164,7 @@ describe('TpPositionRaceErasImportService', () => {
 
   it('records an ImportError and skips a usage whose era cannot be resolved', async () => {
     const syncRaceEras = vi.fn();
-    const service = new TpPositionRaceErasImportService(
-      makePositionsImport(syncRaceEras),
-      new ImportResultService(),
-    );
+    const service = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Unknown Era' },
     ];

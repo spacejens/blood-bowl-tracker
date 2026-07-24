@@ -1,24 +1,29 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
-import type {
+import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
-} from '@blood-bowl-tracker/import';
-import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
+import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import {
-  MatchEventDecodersService,
-  MatchEventParserService,
   MatchParserService,
-  SecretObjectiveService,
   TournamentParserService,
-  WeatherTypeService,
 } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TpSourceFile, TpSourceReader } from '../source/tp-source-reader';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockMatchParserService,
+  mockNameExternalIdService,
+  mockTournamentParserService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import type { TpSourceFile } from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
 import { TpCompetitionsImportService } from './tp-competitions-import.service';
 
 interface MakeServiceOptions {
@@ -28,33 +33,52 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   files,
   bootstrap,
   upsertCompetitionResult,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpCompetitionsImportService(
-    {
-      files,
-      isBaseTournamentFile: (filename: string) =>
-        /^tournament_[^_]+\.json$/.test(filename),
-    } as unknown as TpSourceReader,
-    new TournamentParserService(),
-    new MatchParserService(
-      new MatchEventParserService(
-        new MatchEventDecodersService(
-          new SecretObjectiveService(),
-          new WeatherTypeService(),
-        ),
-      ),
-    ),
-    { upsertCompetitionResult } as unknown as CompetitionsImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpCompetitionsImportService> {
+  const sourceReader = mock<TpSourceReader>();
+  sourceReader.files.mockImplementation(files);
+  sourceReader.isBaseTournamentFile.mockImplementation((filename: string) =>
+    /^tournament_[^_]+\.json$/.test(filename),
   );
+  const tournamentParser = mockTournamentParserService();
+  const matchParser = mockMatchParserService();
+  const competitionsImport = mock<CompetitionsImportService>();
+  competitionsImport.upsertCompetitionResult.mockImplementation(
+    asProviderMethod(upsertCompetitionResult),
+  );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mockNameExternalIdService();
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpCompetitionsImportService,
+      { provide: TpSourceReader, useValue: sourceReader },
+      { provide: TournamentParserService, useValue: tournamentParser },
+      { provide: MatchParserService, useValue: matchParser },
+      { provide: CompetitionsImportService, useValue: competitionsImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpCompetitionsImportService);
 }
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
@@ -97,7 +121,13 @@ function tournamentFile(
 interface MatchFileOptions {
   era: string;
   competition: string;
-  scheduledDate: string | null;
+  /**
+   * Pre-resolved play date, as `MatchParserService.parse` would have
+   * produced it (its own `scheduledDate`/`createdInstant`/
+   * `scoreResume.startInstant` fallback is covered by its own dedicated spec,
+   * not re-tested here — see `mockMatchParserService`).
+   */
+  playedDate: Date;
   matchId?: number;
   round?: number;
   roundName?: string;
@@ -106,25 +136,28 @@ interface MatchFileOptions {
 function matchFile({
   era,
   competition,
-  scheduledDate,
+  playedDate,
   matchId = 1,
   round = 1,
   roundName = 'ROUND',
 }: MatchFileOptions): TpSourceFile {
+  const titleCasedRoundName = `${roundName.charAt(0).toUpperCase()}${roundName.slice(1).toLowerCase()}`;
+  const match: TpMatch = {
+    id: matchId,
+    playedDate,
+    name: `${titleCasedRoundName} ${round}`,
+    homeTeamTpId: 1,
+    awayTeamTpId: 2,
+    matchEvents: [],
+    homeRosterPlayers: [],
+    awayRosterPlayers: [],
+  };
   return {
     era,
     competition,
     type: 'match',
     filename: `match_${matchId}.json`,
-    content: {
-      matchId,
-      scheduledDate,
-      createdInstant: '2021-01-01T00:00:00Z',
-      round,
-      group: { phase: { roundName } },
-      inscriptionLocal: { roster: { id: 1, lineUps: [] } },
-      inscriptionVisitor: { roster: { id: 2, lineUps: [] } },
-    },
+    content: match,
   };
 }
 
@@ -137,7 +170,7 @@ describe('TpCompetitionsImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 42 })
       .mockResolvedValueOnce({ id: 43 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -146,13 +179,13 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T18:00:00Z',
+          playedDate: new Date('2021-05-15T18:00:00Z'),
           matchId: 2,
         }),
         tournamentFile('Fourth era', 'sasong-26', {
@@ -162,13 +195,13 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'sasong-26',
-          scheduledDate: '2021-01-10T10:00:00Z',
+          playedDate: new Date('2021-01-10T10:00:00Z'),
           matchId: 3,
         }),
         matchFile({
           era: 'Fourth era',
           competition: 'sasong-26',
-          scheduledDate: '2021-08-10T10:00:00Z',
+          playedDate: new Date('2021-08-10T10:00:00Z'),
           matchId: 4,
         }),
       ]),
@@ -231,7 +264,7 @@ describe('TpCompetitionsImportService', () => {
   it('treats a single-day span as a cup (boundary: span 0)', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -240,7 +273,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -256,26 +289,28 @@ describe('TpCompetitionsImportService', () => {
     ).toBe('cup');
   });
 
-  it('uses createdInstant when a match has a null scheduledDate', async () => {
+  it('classifies by the resolved playedDate span, spanning a fallback-resolved date', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
           name: 'Chaos Cup 8',
         }),
-        // Null scheduledDate -> falls back to createdInstant 2021-01-01.
+        // Models a match whose playedDate was resolved via the createdInstant
+        // fallback (MatchParserService's own concern, covered by its
+        // dedicated spec) rather than scheduledDate.
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: null,
+          playedDate: new Date('2021-01-01T00:00:00Z'),
           matchId: 1,
         }),
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-08-10T10:00:00Z',
+          playedDate: new Date('2021-08-10T10:00:00Z'),
           matchId: 2,
         }),
       ]),
@@ -295,7 +330,7 @@ describe('TpCompetitionsImportService', () => {
   it('skips a competition with no dated matches, recording an error', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -319,12 +354,12 @@ describe('TpCompetitionsImportService', () => {
   it('skips a competition with no base tournament file, recording an error', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -347,7 +382,7 @@ describe('TpCompetitionsImportService', () => {
   it('skips a competition whose base tournament file fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         {
           era: 'Fourth era',
@@ -359,7 +394,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -381,7 +416,7 @@ describe('TpCompetitionsImportService', () => {
   it('skips a competition whose era has no known database id', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Unknown era', 'chaos-cup-8', {
           id: 111,
@@ -390,7 +425,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Unknown era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -414,7 +449,7 @@ describe('TpCompetitionsImportService', () => {
   it('records an error for an unparsable match file but still imports using the good ones', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -430,7 +465,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 2,
         }),
       ]),
@@ -459,7 +494,7 @@ describe('TpCompetitionsImportService', () => {
       },
     });
     const upsertCompetitionResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -468,7 +503,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -489,7 +524,7 @@ describe('TpCompetitionsImportService', () => {
   it('records a diagnostic error but keeps competitions found before a scan failure', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFilesThatThrow(
         [
           tournamentFile('Fourth era', 'chaos-cup-8', {
@@ -499,7 +534,7 @@ describe('TpCompetitionsImportService', () => {
           matchFile({
             era: 'Fourth era',
             competition: 'chaos-cup-8',
-            scheduledDate: '2021-05-15T10:00:00Z',
+            playedDate: new Date('2021-05-15T10:00:00Z'),
             matchId: 1,
           }),
         ],
@@ -528,7 +563,7 @@ describe('TpCompetitionsImportService', () => {
     // Simulates the shared import runner reporting a failure via `errors`
     // and resolving undefined instead of a competition.
     const upsertCompetitionResult = vi.fn().mockResolvedValueOnce(undefined);
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -537,7 +572,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -556,7 +591,7 @@ describe('TpCompetitionsImportService', () => {
   it('ignores a non-base tournament variant file, still importing using the base file', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -572,7 +607,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),
@@ -590,10 +625,10 @@ describe('TpCompetitionsImportService', () => {
   });
 
   it('re-runs idempotently, upserting the same competition with identical data', async () => {
-    const makeRunService = () => {
+    const makeRunService = async () => {
       const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
       const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-      const service = makeService({
+      const service = await makeService({
         files: makeFiles([
           tournamentFile('Fourth era', 'chaos-cup-8', {
             id: 111,
@@ -602,7 +637,7 @@ describe('TpCompetitionsImportService', () => {
           matchFile({
             era: 'Fourth era',
             competition: 'chaos-cup-8',
-            scheduledDate: '2021-05-15T10:00:00Z',
+            playedDate: new Date('2021-05-15T10:00:00Z'),
             matchId: 1,
           }),
         ]),
@@ -612,9 +647,9 @@ describe('TpCompetitionsImportService', () => {
       return { service, upsertCompetitionResult };
     };
 
-    const first = makeRunService();
+    const first = await makeRunService();
     const firstResult = await first.service.importCompetitions(eraIdsByName);
-    const second = makeRunService();
+    const second = await makeRunService();
     const secondResult = await second.service.importCompetitions(eraIdsByName);
 
     expect(firstResult.result.imported).toBe(1);
@@ -627,7 +662,7 @@ describe('TpCompetitionsImportService', () => {
   it('exposes parsed matches with constructed names keyed by competition DB id', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -636,7 +671,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
           round: 3,
           roundName: 'ROUND',
@@ -644,7 +679,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T12:00:00Z',
+          playedDate: new Date('2021-05-15T12:00:00Z'),
           matchId: 2,
           round: 2,
           roundName: 'DAY',
@@ -668,7 +703,7 @@ describe('TpCompetitionsImportService', () => {
   it('exposes competitionsByTpId with each competition upsert, era and competition directory', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -677,7 +712,7 @@ describe('TpCompetitionsImportService', () => {
         matchFile({
           era: 'Fourth era',
           competition: 'chaos-cup-8',
-          scheduledDate: '2021-05-15T10:00:00Z',
+          playedDate: new Date('2021-05-15T10:00:00Z'),
           matchId: 1,
         }),
       ]),

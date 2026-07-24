@@ -1,12 +1,18 @@
-import type {
+import {
   ExternalSystemBootstrapService,
+  ImportResultService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMatchesImportService } from './tp-matches-import.service';
 
 const MATCH_DB_ID = 7;
@@ -17,17 +23,39 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   bootstrap,
   upsertMatchResult,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpMatchesImportService(
-    { upsertMatchResult } as unknown as MatchesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpMatchesImportService> {
+  const matchesImport = mock<MatchesImportService>();
+  matchesImport.upsertMatchResult.mockImplementation(
+    asProviderMethod(upsertMatchResult),
   );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpMatchesImportService,
+      { provide: MatchesImportService, useValue: matchesImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpMatchesImportService);
 }
 
 function tpMatch(id: number, name: string): TpMatch {
@@ -46,7 +74,7 @@ function tpMatch(id: number, name: string): TpMatch {
 describe('TpMatchesImportService', () => {
   it('upserts every match across competitions with its competitionId, name and TP external id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
@@ -95,7 +123,7 @@ describe('TpMatchesImportService', () => {
         },
       )
       .mockResolvedValue({ id: 7 });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
@@ -116,7 +144,7 @@ describe('TpMatchesImportService', () => {
 
   it('imports nothing for a competition with an empty match list', async () => {
     const upsertMatchResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
@@ -130,7 +158,7 @@ describe('TpMatchesImportService', () => {
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchResult = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
         error: {
@@ -153,7 +181,7 @@ describe('TpMatchesImportService', () => {
 
   it('returns a matchIdsByTpId map keyed by TP match id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: MATCH_DB_ID });
-    const service = makeService({
+    const service = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
