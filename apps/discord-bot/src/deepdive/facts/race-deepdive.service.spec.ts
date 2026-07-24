@@ -1,5 +1,7 @@
-import type { RacesService } from '@blood-bowl-tracker/game-data';
+import { RacesService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -9,16 +11,32 @@ import {
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import {
+  expectTimeoutFallback,
+  makeDeepdiveLeaderboardMock,
+} from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
-function makeService(races: RacesService): RaceDeepdiveService {
-  return new RaceDeepdiveService(
-    races,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
+  const databaseTimeout = mock<DatabaseTimeoutService>();
+  databaseTimeout.run.mockImplementation(async (work) => work);
+  return databaseTimeout;
+}
+
+async function makeService(
+  races: RacesService,
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+): Promise<RaceDeepdiveService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      RaceDeepdiveService,
+      { provide: RacesService, useValue: races },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: makeDeepdiveLeaderboardMock() },
+    ],
+  }).compile();
+  return moduleRef.get(RaceDeepdiveService);
 }
 
 function makeRaces(options: {
@@ -37,13 +55,13 @@ function makeRaces(options: {
 
 describe('RaceDeepdiveService', () => {
   it('returns the not-found message when the race does not exist', async () => {
-    const service = makeService(makeRaces({ race: undefined }));
+    const service = await makeService(makeRaces({ race: undefined }));
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
   });
 
   it('renders the eras list and top-teams list', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeRaces({
         race: { id: 1, name: 'Orc' },
         eras: [
@@ -95,7 +113,7 @@ describe('RaceDeepdiveService', () => {
   });
 
   it('shows "None recorded" when the race is linked to no eras', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeRaces({
         race: { id: 1, name: 'Orc' },
         eras: [],
@@ -111,7 +129,7 @@ describe('RaceDeepdiveService', () => {
   });
 
   it('shows the no-teams placeholder when the race has no top teams', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeRaces({
         race: { id: 1, name: 'Orc' },
         eras: [{ id: 4, name: 'BB2020' }],
@@ -155,7 +173,7 @@ describe('RaceDeepdiveService', () => {
       { id: 9, name: 'I', count: 9 },
       { id: 10, name: 'J', count: 9 },
     ];
-    const service = makeService(
+    const service = await makeService(
       makeRaces({
         race: { id: 1, name: 'Orc' },
         eras: [{ id: 4, name: 'BB2020' }],
@@ -172,7 +190,7 @@ describe('RaceDeepdiveService', () => {
   });
 
   it('builds era buttons then team buttons in one combined pool', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeRaces({
         race: { id: 7, name: 'Orc' },
         eras: [
@@ -199,7 +217,7 @@ describe('RaceDeepdiveService', () => {
   });
 
   it('omits components when the race has no eras and no teams', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeRaces({ race: { id: 7, name: 'Orc' }, eras: [], topTeams: [] }),
     );
     const result = await service.resolve(7);
@@ -208,41 +226,53 @@ describe('RaceDeepdiveService', () => {
 
   it('falls back to the race timeout message when the race lookup times out', async () => {
     await expectTimeoutFallback(
-      (races: RacesService) => makeService(races).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockReturnValue(new Promise(() => {})),
-          listEras: vi.fn(),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as RacesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run.mockResolvedValueOnce(null);
+        const service = await makeService(makeRaces({}), databaseTimeout);
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_RACE_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the eras timeout message when the era-names lookup times out', async () => {
     await expectTimeoutFallback(
-      (races: RacesService) => makeService(races).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Orc' }),
-          listEras: vi.fn().mockReturnValue(new Promise(() => {})),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as RacesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeRaces({ race: { id: 1, name: 'Orc' } }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (races: RacesService) => makeService(races).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Orc' }),
-          listEras: vi.fn().mockResolvedValue([{ id: 4, name: 'BB2020' }]),
-          getTopTeamsByMatchesPlayed: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as RacesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeRaces({
+            race: { id: 1, name: 'Orc' },
+            eras: [{ id: 4, name: 'BB2020' }],
+          }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
     );
   });

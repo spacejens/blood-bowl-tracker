@@ -1,5 +1,7 @@
-import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -9,16 +11,32 @@ import {
   DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import {
+  expectTimeoutFallback,
+  makeDeepdiveLeaderboardMock,
+} from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
-function makeService(teams: TeamsService): TeamDeepdiveService {
-  return new TeamDeepdiveService(
-    teams,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
+  const databaseTimeout = mock<DatabaseTimeoutService>();
+  databaseTimeout.run.mockImplementation(async (work) => work);
+  return databaseTimeout;
+}
+
+async function makeService(
+  teams: TeamsService,
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+): Promise<TeamDeepdiveService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TeamDeepdiveService,
+      { provide: TeamsService, useValue: teams },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: makeDeepdiveLeaderboardMock() },
+    ],
+  }).compile();
+  return moduleRef.get(TeamDeepdiveService);
 }
 
 function makeTeams(options: {
@@ -53,13 +71,13 @@ const grinders = {
 
 describe('TeamDeepdiveService', () => {
   it('returns the not-found message when the team does not exist', async () => {
-    const service = makeService(makeTeams({ team: undefined }));
+    const service = await makeService(makeTeams({ team: undefined }));
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
   });
 
   it('renders the race, coach, career span and top-players list', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
@@ -120,7 +138,7 @@ describe('TeamDeepdiveService', () => {
       name: `P${i}`,
       count: 9,
     }));
-    const service = makeService(
+    const service = await makeService(
       makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
@@ -138,7 +156,7 @@ describe('TeamDeepdiveService', () => {
 
   it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach buttons', async () => {
     const teams = makeTeams({ team: grinders, span: undefined });
-    const service = makeService(teams);
+    const service = await makeService(teams);
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -172,49 +190,59 @@ describe('TeamDeepdiveService', () => {
 
   it('falls back to the team timeout message when the team lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockReturnValue(new Promise(() => {})),
-          getCareerSpan: vi.fn(),
-          getTopPlayersByMatchEventCount: vi.fn(),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run.mockResolvedValueOnce(null);
+        const service = await makeService(makeTeams({}), databaseTimeout);
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the career timeout message when the span lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue(grinders),
-          getCareerSpan: vi.fn().mockReturnValue(new Promise(() => {})),
-          getTopPlayersByMatchEventCount: vi.fn(),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeTeams({ team: grinders }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the players timeout message when the top-players lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue(grinders),
-          getCareerSpan: vi
-            .fn()
-            .mockResolvedValue({ start: '2021-09-01', end: '2023-06-10' }),
-          getTopPlayersByMatchEventCount: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
     );
   });
 
   it('renders race and coach buttons then a Primary button per listed player, keyed by id', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeTeams({
         team: {
           id: 1,
@@ -254,7 +282,7 @@ describe('TeamDeepdiveService', () => {
   });
 
   it('still renders race and coach buttons when the team has no matches', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeTeams({
         team: {
           id: 1,

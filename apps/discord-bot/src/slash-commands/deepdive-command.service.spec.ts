@@ -1,21 +1,22 @@
-import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import type {
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import {
   CoachesService,
   CompetitionsService,
   ErasService,
-  ExternalSystemsService,
   PlayersService,
   RacesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
   ButtonInteraction,
   ChatInputCommandInteraction,
+  InteractionReplyOptions,
 } from 'discord.js';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../database-timeout.service';
 import { CoachDeepdiveService } from '../deepdive/facts/coach-deepdive.service';
 import { CompetitionDeepdiveService } from '../deepdive/facts/competition-deepdive.service';
 import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
@@ -32,7 +33,6 @@ import {
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
-import { LeaderboardService } from '../insights/leaderboard.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -42,87 +42,78 @@ import {
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive-command.service';
-import type { SlashCommandRegistryService } from './slash-command-registry.service';
+import { SlashCommandRegistryService } from './slash-command-registry.service';
 
-function makeService() {
-  const eras = {
-    findByIdWithLeague: vi.fn().mockResolvedValue(undefined),
-    getRulesSetNames: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as ErasService;
-  const competitions = {
-    listByEraChronological: vi.fn().mockResolvedValue([]),
-    findByIdWithEra: vi.fn().mockResolvedValue(undefined),
-    listTeams: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as CompetitionsService;
-  const externalSystems = {
-    listNamesByEra: vi.fn().mockResolvedValue([]),
-  } as unknown as ExternalSystemsService;
-  const coaches = {
-    findById: vi.fn().mockResolvedValue(undefined),
-    getCareerSpan: vi.fn().mockResolvedValue(undefined),
-    getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as CoachesService;
-  const teams = {
-    findById: vi.fn().mockResolvedValue(undefined),
-    getCareerSpan: vi.fn().mockResolvedValue(undefined),
-    getTopPlayersByMatchEventCount: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as TeamsService;
-  const players = {
-    findById: vi.fn().mockResolvedValue(undefined),
-    getDeepdiveCategoryCounts: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as PlayersService;
-  const races = {
-    findById: vi.fn().mockResolvedValue(undefined),
-    listEras: vi.fn().mockResolvedValue([]),
-    getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as RacesService;
-  const discordClient = {
-    registerButtonHandler: vi.fn(),
-  };
-  const registry = {
-    register: vi.fn(),
-  };
-  const databaseTimeout = new DatabaseTimeoutService();
-  const leaderboard = new LeaderboardService(databaseTimeout);
-  const service = new DeepdiveCommandService(
-    eras,
-    competitions,
-    coaches,
-    teams,
-    players,
-    races,
-    discordClient as unknown as DiscordClientService,
-    registry as unknown as SlashCommandRegistryService,
-    new EraDeepdiveService(
-      eras,
-      competitions,
-      externalSystems,
-      databaseTimeout,
-      leaderboard,
-    ),
-    new CoachDeepdiveService(coaches, databaseTimeout, leaderboard),
-    new TeamDeepdiveService(teams, databaseTimeout, leaderboard),
-    new PlayerDeepdiveService(players, databaseTimeout, leaderboard),
-    new RaceDeepdiveService(races, databaseTimeout, leaderboard),
-    new CompetitionDeepdiveService(competitions, databaseTimeout, leaderboard),
-  );
+interface MadeService {
+  service: DeepdiveCommandService;
+  eras: MockProxy<ErasService>;
+  competitions: MockProxy<CompetitionsService>;
+  coaches: MockProxy<CoachesService>;
+  teams: MockProxy<TeamsService>;
+  players: MockProxy<PlayersService>;
+  races: MockProxy<RacesService>;
+  discordClient: MockProxy<DiscordClientService>;
+  registry: MockProxy<SlashCommandRegistryService>;
+  eraDeepdive: MockProxy<EraDeepdiveService>;
+  coachDeepdive: MockProxy<CoachDeepdiveService>;
+  teamDeepdive: MockProxy<TeamDeepdiveService>;
+  playerDeepdive: MockProxy<PlayerDeepdiveService>;
+  raceDeepdive: MockProxy<RaceDeepdiveService>;
+  competitionDeepdive: MockProxy<CompetitionDeepdiveService>;
+}
+
+async function makeService(): Promise<MadeService> {
+  const eras = mock<ErasService>();
+  const competitions = mock<CompetitionsService>();
+  const coaches = mock<CoachesService>();
+  const teams = mock<TeamsService>();
+  const players = mock<PlayersService>();
+  const races = mock<RacesService>();
+  const discordClient = mock<DiscordClientService>();
+  const registry = mock<SlashCommandRegistryService>();
+  const eraDeepdive = mock<EraDeepdiveService>();
+  const coachDeepdive = mock<CoachDeepdiveService>();
+  const teamDeepdive = mock<TeamDeepdiveService>();
+  const playerDeepdive = mock<PlayerDeepdiveService>();
+  const raceDeepdive = mock<RaceDeepdiveService>();
+  const competitionDeepdive = mock<CompetitionDeepdiveService>();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      DeepdiveCommandService,
+      { provide: ErasService, useValue: eras },
+      { provide: CompetitionsService, useValue: competitions },
+      { provide: CoachesService, useValue: coaches },
+      { provide: TeamsService, useValue: teams },
+      { provide: PlayersService, useValue: players },
+      { provide: RacesService, useValue: races },
+      { provide: DiscordClientService, useValue: discordClient },
+      { provide: SlashCommandRegistryService, useValue: registry },
+      { provide: EraDeepdiveService, useValue: eraDeepdive },
+      { provide: CoachDeepdiveService, useValue: coachDeepdive },
+      { provide: TeamDeepdiveService, useValue: teamDeepdive },
+      { provide: PlayerDeepdiveService, useValue: playerDeepdive },
+      { provide: RaceDeepdiveService, useValue: raceDeepdive },
+      { provide: CompetitionDeepdiveService, useValue: competitionDeepdive },
+    ],
+  }).compile();
+
   return {
-    service,
+    service: moduleRef.get(DeepdiveCommandService),
     eras,
     competitions,
-    externalSystems,
     coaches,
     teams,
     players,
     races,
     discordClient,
     registry,
+    eraDeepdive,
+    coachDeepdive,
+    teamDeepdive,
+    playerDeepdive,
+    raceDeepdive,
+    competitionDeepdive,
   };
 }
 
@@ -165,13 +156,13 @@ function buttonInteraction(customId: string): ButtonInteraction {
   return { customId } as unknown as ButtonInteraction;
 }
 
-describe('DeepdiveCommandService', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
+const SAMPLE_EMBED: InteractionReplyOptions = {
+  embeds: [{ title: 'Sample', description: 'a rendered deepdive' }],
+};
 
-  it('builds a deepdive command with optional autocompleted era, coach, and team options', () => {
-    const { service } = makeService();
+describe('DeepdiveCommandService', () => {
+  it('builds a deepdive command with optional autocompleted era, coach, and team options', async () => {
+    const { service } = await makeService();
     const command = service.buildCommand();
     expect(command.name).toBe('deepdive');
     expect(command.description).toEqual(expect.any(String));
@@ -223,86 +214,66 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the usage message when no era target is given', async () => {
-    const { service } = makeService();
+    const { service } = await makeService();
     const result = await service.execute(chatInput({}));
     expect(result).toBe(DEEPDIVE_USAGE_MESSAGE);
   });
 
   it('returns the not-found message for an era id that resolves to nothing', async () => {
-    const { service, eras } = makeService();
-    (eras.findByIdWithLeague as ReturnType<typeof vi.fn>).mockResolvedValue(
-      undefined,
-    );
+    const { service, eraDeepdive } = await makeService();
+    eraDeepdive.resolve.mockResolvedValue(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ era: '999' }));
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.findByIdWithLeague).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
-  it('renders the era deepdive embed for a resolved era', async () => {
-    const { service, eras, competitions } = makeService();
-    (eras.findByIdWithLeague as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'BB2020',
-      leagueName: 'Premier',
-      startDate: '2021-09-01',
-      endDate: null,
-    });
-    (eras.getRulesSetNames as ReturnType<typeof vi.fn>).mockResolvedValue([
-      'BB2020',
-    ]);
-    (
-      competitions.listByEraChronological as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ id: 10, name: 'Season 1', type: 'season' }]);
+  it('forwards the rendered embed from the era deepdive service for a resolved era', async () => {
+    const { service, eraDeepdive } = await makeService();
+    eraDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ era: '7' }));
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: 'BB2020',
-          description: [
-            'League: Premier',
-            'Dates: 2021-09-01 – present',
-            'Rules: BB2020',
-            'External systems: None recorded',
-            '',
-            'Season 1 (season)',
-          ].join('\n'),
-        },
-      ],
-    });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
   it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = makeService();
-    (eras.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, eras } = await makeService();
+    eras.searchByNamePrefix.mockResolvedValue([
       { id: 20, name: 'BB2020', leagueName: 'Premier League' },
     ]);
     const choices = await service.autocomplete(autocompleteInteraction('bb'));
     expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
   });
 
-  it('registers itself with the registry and both button handlers on init', () => {
-    const { service, registry, discordClient } = makeService();
+  it('registers itself with the registry and both button handlers on init', async () => {
+    const { service, registry, discordClient } = await makeService();
     service.onModuleInit();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(registry.register).toHaveBeenCalledTimes(1);
     const command = registry.register.mock.calls[0][0] as { name: string };
     expect(command.name).toBe('deepdive');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       ERA_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       COACH_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       TEAM_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
@@ -310,98 +281,74 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles an era button by resolving the id from its customId', async () => {
-    const { service, eras } = makeService();
-    (eras.findByIdWithLeague as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'BB2020',
-      leagueName: 'Premier',
-      startDate: '2021-09-01',
-      endDate: null,
-    });
+    const { service, eraDeepdive } = await makeService();
+    eraDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.findByIdWithLeague).toHaveBeenCalledWith(7);
-    expect(result).toMatchObject({ embeds: [{ title: 'BB2020' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).toHaveBeenCalledWith(7);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
   it('returns the not-found message when an era button id resolves to nothing', async () => {
-    const { service } = makeService();
+    const { service, eraDeepdive } = await makeService();
+    eraDeepdive.resolve.mockResolvedValue(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
 
-  it('returns the not-found message for non-numeric era input without hitting the database', async () => {
-    const { service, eras } = makeService();
+  it('returns the not-found message for non-numeric era input without hitting the deepdive service', async () => {
+    const { service, eraDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: 'abc' }));
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).not.toHaveBeenCalled();
   });
 
-  it('returns the not-found message for a non-numeric era button id without hitting the database', async () => {
-    const { service, eras } = makeService();
+  it('returns the not-found message for a non-numeric era button id without hitting the deepdive service', async () => {
+    const { service, eraDeepdive } = await makeService();
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}abc`),
     );
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns the not-found message for a coach id that resolves to nothing', async () => {
-    const { service, coaches } = makeService();
+    const { service, coachDeepdive } = await makeService();
+    coachDeepdive.resolve.mockResolvedValue(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ coach: '999' }));
     expect(result).toBe(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.findById).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(coachDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
-  it('renders the coach deepdive embed for a resolved coach', async () => {
-    const { service, coaches } = makeService();
-    (coaches.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Roze Madder',
-    });
-    (coaches.getCareerSpan as ReturnType<typeof vi.fn>).mockResolvedValue({
-      start: '2021-09-01',
-      end: '2023-06-10',
-    });
-    (
-      coaches.getTopTeamsByMatchesPlayed as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ id: 11, name: 'Reikland Reavers', count: 12 }]);
+  it('forwards the rendered embed from the coach deepdive service for a resolved coach', async () => {
+    const { service, coachDeepdive } = await makeService();
+    coachDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ coach: '7' }));
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: 'Roze Madder',
-          description: [
-            'Career: 2021-09-01 – 2023-06-10',
-            '',
-            'Top teams by matches played:',
-            '1. Reikland Reavers — 12',
-          ].join('\n'),
-        },
-      ],
-    });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(coachDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
   it('rejects the call when both era and coach are supplied', async () => {
-    const { service, eras, coaches } = makeService();
+    const { service, eraDeepdive, coachDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', coach: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.findByIdWithLeague).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(eraDeepdive.resolve).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(coachDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns coach autocomplete choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, coaches } = makeService();
-    (coaches.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, coaches } = await makeService();
+    coaches.searchByNamePrefix.mockResolvedValue([
       { id: 20, name: 'Roze Madder' },
     ]);
     const choices = await service.autocomplete(
@@ -411,25 +358,19 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a coach button by resolving the id from its customId', async () => {
-    const { service, coaches } = makeService();
-    (coaches.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Roze Madder',
-    });
-    (coaches.getCareerSpan as ReturnType<typeof vi.fn>).mockResolvedValue({
-      start: '2021-09-01',
-      end: '2023-06-10',
-    });
+    const { service, coachDeepdive } = await makeService();
+    coachDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleCoachButton(
       buttonInteraction(`${COACH_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.findById).toHaveBeenCalledWith(7);
-    expect(result).toMatchObject({ embeds: [{ title: 'Roze Madder' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(coachDeepdive.resolve).toHaveBeenCalledWith(7);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
   it('returns the not-found message when a coach button id resolves to nothing', async () => {
-    const { service } = makeService();
+    const { service, coachDeepdive } = await makeService();
+    coachDeepdive.resolve.mockResolvedValue(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
     const result = await service.handleCoachButton(
       buttonInteraction(`${COACH_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
@@ -437,57 +378,34 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a team id that resolves to nothing', async () => {
-    const { service, teams } = makeService();
+    const { service, teamDeepdive } = await makeService();
+    teamDeepdive.resolve.mockResolvedValue(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ team: '999' }));
     expect(result).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.findById).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(teamDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
-  it('renders the team deepdive embed for a resolved team', async () => {
-    const { service, teams } = makeService();
-    (teams.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: '40 grinders',
-      raceName: 'Dwarf',
-      coachName: 'Roze Madder',
-    });
-    (teams.getCareerSpan as ReturnType<typeof vi.fn>).mockResolvedValue({
-      start: '2021-09-01',
-      end: '2023-06-10',
-    });
-    (
-      teams.getTopPlayersByMatchEventCount as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ playerId: 5, name: 'Griff', count: 20 }]);
+  it('forwards the rendered embed from the team deepdive service for a resolved team', async () => {
+    const { service, teamDeepdive } = await makeService();
+    teamDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ team: '7' }));
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: '40 grinders',
-          description: [
-            'Race: Dwarf',
-            'Coach: Roze Madder',
-            'Career: 2021-09-01 – 2023-06-10',
-            '',
-            'Top players by match events:',
-            '1. Griff — 20',
-          ].join('\n'),
-        },
-      ],
-    });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(teamDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
   it('rejects supplying both a team and another target', async () => {
-    const { service, teams } = makeService();
+    const { service, teamDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', team: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(teamDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns team autocomplete choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, teams } = makeService();
-    (teams.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, teams } = await makeService();
+    teams.searchByNamePrefix.mockResolvedValue([
       { id: 20, name: '40 grinders' },
     ]);
     const choices = await service.autocomplete(
@@ -497,27 +415,19 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a team button by resolving the id from its customId', async () => {
-    const { service, teams } = makeService();
-    (teams.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: '40 grinders',
-      raceName: 'Dwarf',
-      coachName: 'Roze Madder',
-    });
-    (teams.getCareerSpan as ReturnType<typeof vi.fn>).mockResolvedValue({
-      start: '2021-09-01',
-      end: '2023-06-10',
-    });
+    const { service, teamDeepdive } = await makeService();
+    teamDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleTeamButton(
       buttonInteraction(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(teams.findById).toHaveBeenCalledWith(7);
-    expect(result).toMatchObject({ embeds: [{ title: '40 grinders' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(teamDeepdive.resolve).toHaveBeenCalledWith(7);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
   it('returns the not-found message when a team button id resolves to nothing', async () => {
-    const { service } = makeService();
+    const { service, teamDeepdive } = await makeService();
+    teamDeepdive.resolve.mockResolvedValue(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
     const result = await service.handleTeamButton(
       buttonInteraction(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
@@ -525,55 +435,34 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('returns the not-found message for a player id that resolves to nothing', async () => {
-    const { service, players } = makeService();
+    const { service, playerDeepdive } = await makeService();
+    playerDeepdive.resolve.mockResolvedValue(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ player: '999' }));
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.findById).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(playerDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
-  it('renders the player deepdive embed for a resolved player', async () => {
-    const { service, players } = makeService();
-    (players.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Griff Oberwald',
-      teamName: 'Reikland Reavers',
-      teamId: 11,
-      raceName: 'Human',
-      raceId: 4,
-      positionName: 'Blitzer',
-    });
-    (
-      players.getDeepdiveCategoryCounts as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ label: 'MVP awards', count: 2 }]);
+  it('forwards the rendered embed from the player deepdive service for a resolved player', async () => {
+    const { service, playerDeepdive } = await makeService();
+    playerDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ player: '7' }));
-    expect(result).toMatchObject({
-      embeds: [
-        {
-          title: 'Griff Oberwald',
-          description: [
-            'Team: Reikland Reavers',
-            'Race: Human',
-            'Position: Blitzer',
-            '',
-            'MVP awards: 2',
-          ].join('\n'),
-        },
-      ],
-    });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(playerDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
   it('rejects supplying both a player and another target', async () => {
-    const { service, players } = makeService();
+    const { service, playerDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', player: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(playerDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns player autocomplete choices labelled "<name> (<team>)" with id values', async () => {
-    const { service, players } = makeService();
-    (players.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, players } = await makeService();
+    players.searchByNamePrefix.mockResolvedValue([
       { id: 20, name: 'Griff Oberwald', teamName: 'Reikland Reavers' },
     ]);
     const choices = await service.autocomplete(
@@ -585,106 +474,62 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a player button by resolving the id from its customId', async () => {
-    const { service, players } = makeService();
-    (players.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Griff Oberwald',
-      teamName: 'Reikland Reavers',
-      raceName: 'Human',
-      positionName: 'Blitzer',
-    });
+    const { service, playerDeepdive } = await makeService();
+    playerDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handlePlayerButton(
       buttonInteraction(`${PLAYER_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.findById).toHaveBeenCalledWith(7);
-    expect(result).toMatchObject({ embeds: [{ title: 'Griff Oberwald' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(playerDeepdive.resolve).toHaveBeenCalledWith(7);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
   it('returns the not-found message when a player button id resolves to nothing', async () => {
-    const { service } = makeService();
+    const { service, playerDeepdive } = await makeService();
+    playerDeepdive.resolve.mockResolvedValue(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
     const result = await service.handlePlayerButton(
       buttonInteraction(`${PLAYER_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
   });
 
-  it('returns the not-found message for a non-numeric player id without hitting the database', async () => {
-    const { service, players } = makeService();
+  it('returns the not-found message for a non-numeric player id without hitting the deepdive service', async () => {
+    const { service, playerDeepdive } = await makeService();
     const result = await service.execute(chatInput({ player: 'abc' }));
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(players.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(playerDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns the not-found message for a race id that resolves to nothing', async () => {
-    const { service, races } = makeService();
+    const { service, raceDeepdive } = await makeService();
+    raceDeepdive.resolve.mockResolvedValue(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ race: '999' }));
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.findById).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(raceDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
-  it('renders the race deepdive embed for a resolved race', async () => {
-    const { service, races } = makeService();
-    (races.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Orc',
-    });
-    (races.listEras as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 4, name: 'BB2020' },
-    ]);
-    (
-      races.getTopTeamsByMatchesPlayed as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([{ id: 9, name: 'Gouged Eye', count: 40 }]);
+  it('forwards the rendered embed from the race deepdive service for a resolved race', async () => {
+    const { service, raceDeepdive } = await makeService();
+    raceDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ race: '7' }));
-    expect(result).toEqual({
-      embeds: [
-        {
-          title: 'Orc',
-          description: [
-            'Eras: BB2020',
-            '',
-            'Top teams by matches played:',
-            '1. Gouged Eye — 40',
-          ].join('\n'),
-        },
-      ],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 1,
-              label: 'BB2020',
-              custom_id: 'deepdive:era:4',
-            },
-            {
-              type: 2,
-              style: 1,
-              label: 'Gouged Eye',
-              custom_id: 'deepdive:team:9',
-            },
-          ],
-        },
-      ],
-    });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(raceDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
   it('rejects supplying both a race and another target', async () => {
-    const { service, races } = makeService();
+    const { service, raceDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', race: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(raceDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns race autocomplete choices labelled by plain name with id values', async () => {
-    const { service, races } = makeService();
-    (races.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 20, name: 'Orc' },
-    ]);
+    const { service, races } = await makeService();
+    races.searchByNamePrefix.mockResolvedValue([{ id: 20, name: 'Orc' }]);
     const choices = await service.autocomplete(
       autocompleteInteraction('or', 'race'),
     );
@@ -692,76 +537,66 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a race button by resolving the id from its customId', async () => {
-    const { service, races } = makeService();
-    (races.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 7,
-      name: 'Orc',
-    });
+    const { service, raceDeepdive } = await makeService();
+    raceDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleRaceButton(
       buttonInteraction(`${RACE_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.findById).toHaveBeenCalledWith(7);
-    expect(result).toMatchObject({ embeds: [{ title: 'Orc' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(raceDeepdive.resolve).toHaveBeenCalledWith(7);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
   it('returns the not-found message when a race button id resolves to nothing', async () => {
-    const { service } = makeService();
+    const { service, raceDeepdive } = await makeService();
+    raceDeepdive.resolve.mockResolvedValue(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     const result = await service.handleRaceButton(
       buttonInteraction(`${RACE_BUTTON_CUSTOM_ID_PREFIX}999`),
     );
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
   });
 
-  it('returns the not-found message for a non-numeric race id without hitting the database', async () => {
-    const { service, races } = makeService();
+  it('returns the not-found message for a non-numeric race id without hitting the deepdive service', async () => {
+    const { service, raceDeepdive } = await makeService();
     const result = await service.execute(chatInput({ race: 'abc' }));
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(races.findById).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(raceDeepdive.resolve).not.toHaveBeenCalled();
   });
 
-  it('renders the competition deepdive embed for a resolved competition', async () => {
-    const { service, competitions } = makeService();
-    (
-      competitions.findByIdWithEra as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
-      id: 3,
-      name: 'Major Season 24',
-      type: 'season',
-      eraId: 20,
-      eraName: 'BB2020',
-    });
-    (competitions.listTeams as ReturnType<typeof vi.fn>).mockResolvedValue([
-      { id: 5, name: 'Gouged Eye' },
-    ]);
+  it('forwards the rendered embed from the competition deepdive service for a resolved competition', async () => {
+    const { service, competitionDeepdive } = await makeService();
+    competitionDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ competition: '3' }));
-    expect(result).toMatchObject({ embeds: [{ title: 'Major Season 24' }] });
+    expect(result).toBe(SAMPLE_EMBED);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(competitionDeepdive.resolve).toHaveBeenCalledWith(3);
   });
 
   it('returns the not-found message for a competition id that resolves to nothing', async () => {
-    const { service, competitions } = makeService();
+    const { service, competitionDeepdive } = await makeService();
+    competitionDeepdive.resolve.mockResolvedValue(
+      DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+    );
     const result = await service.execute(chatInput({ competition: '999' }));
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(competitions.findByIdWithEra).toHaveBeenCalledWith(999);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(competitionDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
   it('rejects supplying both a competition and another target', async () => {
-    const { service, competitions } = makeService();
+    const { service, competitionDeepdive } = await makeService();
     const result = await service.execute(
       chatInput({ era: '7', competition: '3' }),
     );
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(competitions.findByIdWithEra).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
   });
 
   it('returns competition autocomplete choices labelled "<name> (<league>)"', async () => {
-    const { service, competitions } = makeService();
-    (
-      competitions.searchByNamePrefix as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([
+    const { service, competitions } = await makeService();
+    competitions.searchByNamePrefix.mockResolvedValue([
       { id: 3, name: 'Major Season 24', leagueName: 'Premier' },
     ]);
     const choices = await service.autocomplete(
@@ -773,29 +608,21 @@ describe('DeepdiveCommandService', () => {
   });
 
   it('handles a competition button by resolving the id from its customId', async () => {
-    const { service, competitions } = makeService();
-    (
-      competitions.findByIdWithEra as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
-      id: 3,
-      name: 'Major Season 24',
-      type: 'season',
-      eraId: 20,
-      eraName: 'BB2020',
-    });
+    const { service, competitionDeepdive } = await makeService();
+    competitionDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.handleCompetitionButton(
       buttonInteraction(`${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}3`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(competitions.findByIdWithEra).toHaveBeenCalledWith(3);
-    expect(result).toMatchObject({ embeds: [{ title: 'Major Season 24' }] });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(competitionDeepdive.resolve).toHaveBeenCalledWith(3);
+    expect(result).toBe(SAMPLE_EMBED);
   });
 
-  it('returns the not-found message for a non-numeric competition id without hitting the database', async () => {
-    const { service, competitions } = makeService();
+  it('returns the not-found message for a non-numeric competition id without hitting the deepdive service', async () => {
+    const { service, competitionDeepdive } = await makeService();
     const result = await service.execute(chatInput({ competition: 'abc' }));
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(competitions.findByIdWithEra).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
   });
 });

@@ -4,11 +4,21 @@ import { expect, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import type { ResolveToplistOptions } from '../leaderboard.service';
+import type {
+  EntityButtonRow,
+  RankedRows,
+  ResolveToplistOptions,
+} from '../leaderboard.service';
 import {
   LeaderboardService,
+  MAX_LEADERBOARD_ENTRIES,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
+
+/** Discord allows at most 5 buttons per action row and 5 rows per message. */
+const MAX_BUTTONS_PER_ROW = 5;
+const MAX_BUTTON_ROWS = 5;
+const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
 
 /**
  * A `LeaderboardService` mock whose `resolveToplist` runs a minimal dense-rank
@@ -80,6 +90,90 @@ export function makeLeaderboardMock(): MockProxy<LeaderboardService> {
           { type: ComponentType.ActionRow as const, components: buttons },
         ],
       };
+    },
+  );
+  return leaderboard;
+}
+
+/**
+ * A `LeaderboardService` mock whose `topRanksWithTies` and `buildEntityButtons`
+ * faithfully reproduce the real dense-rank / tie-boundary / button-dedupe
+ * algorithms (unlike `makeLeaderboardMock()` above, these two methods take no
+ * dependency on `databaseTimeout` and are exactly what the deepdive fact
+ * services call, so a subset reimplementation would break the assertions this
+ * migration must preserve). Used by the deepdive fact-service specs, which
+ * assert on the fully rendered rank/tie/button output without wiring a real
+ * `LeaderboardService` instance into the spec.
+ */
+export function makeDeepdiveLeaderboardMock(): MockProxy<LeaderboardService> {
+  const leaderboard = mock<LeaderboardService>();
+  leaderboard.topRanksWithTies.mockImplementation(
+    <T extends { count: number }>(
+      rows: T[],
+      topEntries: number,
+      maxEntries: number = MAX_LEADERBOARD_ENTRIES,
+    ): RankedRows<T> => {
+      const ranked: (T & { rank: number })[] = [];
+      let rank = 0;
+      let previousCount: number | null = null;
+      let truncatedCount = 0;
+      let position = 0;
+      let boundaryValue: number | null = null;
+      let boundaryTieBroken = false;
+      for (const row of rows) {
+        if (previousCount === null || row.count !== previousCount) {
+          rank += 1;
+          previousCount = row.count;
+        }
+        position += 1;
+        if (boundaryValue !== null && row.count !== boundaryValue) {
+          boundaryTieBroken = true;
+          break;
+        }
+        if (ranked.length >= maxEntries) {
+          truncatedCount += 1;
+        } else {
+          ranked.push({ ...row, rank });
+        }
+        if (position === topEntries) {
+          boundaryValue = row.count;
+        }
+      }
+      const tieGroupOpenEnded = boundaryValue !== null && !boundaryTieBroken;
+      return { rows: ranked, truncatedCount, tieGroupOpenEnded };
+    },
+  );
+  leaderboard.buildEntityButtons.mockImplementation(
+    <T>(
+      rows: T[],
+      buildCustomId: (row: T) => string,
+      label: (row: T) => string,
+    ): EntityButtonRow[] => {
+      const seen = new Set<string>();
+      const buttons = rows
+        .filter((row) => {
+          const customId = buildCustomId(row);
+          if (seen.has(customId)) {
+            return false;
+          }
+          seen.add(customId);
+          return true;
+        })
+        .slice(0, MAX_BUTTONS)
+        .map((row) => ({
+          type: ComponentType.Button as const,
+          style: ButtonStyle.Primary as const,
+          label: label(row),
+          custom_id: buildCustomId(row),
+        }));
+      const actionRows: EntityButtonRow[] = [];
+      for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
+        actionRows.push({
+          type: ComponentType.ActionRow as const,
+          components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
+        });
+      }
+      return actionRows;
     },
   );
   return leaderboard;

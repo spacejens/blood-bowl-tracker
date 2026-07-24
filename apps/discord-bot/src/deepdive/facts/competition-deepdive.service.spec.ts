@@ -1,5 +1,7 @@
-import type { CompetitionsService } from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -8,18 +10,32 @@ import {
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import {
+  expectTimeoutFallback,
+  makeDeepdiveLeaderboardMock,
+} from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-function makeService(
+function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
+  const databaseTimeout = mock<DatabaseTimeoutService>();
+  databaseTimeout.run.mockImplementation(async (work) => work);
+  return databaseTimeout;
+}
+
+async function makeService(
   competitions: CompetitionsService,
-): CompetitionDeepdiveService {
-  return new CompetitionDeepdiveService(
-    competitions,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+): Promise<CompetitionDeepdiveService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      CompetitionDeepdiveService,
+      { provide: CompetitionsService, useValue: competitions },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: makeDeepdiveLeaderboardMock() },
+    ],
+  }).compile();
+  return moduleRef.get(CompetitionDeepdiveService);
 }
 
 function makeCompetitions(options: {
@@ -40,13 +56,15 @@ function makeCompetitions(options: {
 
 describe('CompetitionDeepdiveService', () => {
   it('returns the not-found message when the competition does not exist', async () => {
-    const service = makeService(makeCompetitions({ competition: undefined }));
+    const service = await makeService(
+      makeCompetitions({ competition: undefined }),
+    );
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('renders the type, era line, and participating-teams list with buttons', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeCompetitions({
         competition: {
           id: 1,
@@ -90,7 +108,7 @@ describe('CompetitionDeepdiveService', () => {
   });
 
   it('shows the no-teams message but still renders the era button', async () => {
-    const service = makeService(
+    const service = await makeService(
       makeCompetitions({
         competition: {
           id: 1,
@@ -117,32 +135,42 @@ describe('CompetitionDeepdiveService', () => {
 
   it('falls back to the competition timeout message when the header lookup times out', async () => {
     await expectTimeoutFallback(
-      (competitions: CompetitionsService) =>
-        makeService(competitions).resolve(1),
-      () =>
-        ({
-          findByIdWithEra: vi.fn().mockReturnValue(new Promise(() => {})),
-          listTeams: vi.fn(),
-        }) as unknown as CompetitionsService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run.mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeCompetitions({}),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (competitions: CompetitionsService) =>
-        makeService(competitions).resolve(1),
-      () =>
-        ({
-          findByIdWithEra: vi.fn().mockResolvedValue({
-            id: 1,
-            name: 'Major Season 24',
-            type: 'season',
-            eraId: 20,
-            eraName: 'BB2020',
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeCompetitions({
+            competition: {
+              id: 1,
+              name: 'Major Season 24',
+              type: 'season',
+              eraId: 20,
+              eraName: 'BB2020',
+            },
           }),
-          listTeams: vi.fn().mockReturnValue(new Promise(() => {})),
-        }) as unknown as CompetitionsService,
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
     );
   });

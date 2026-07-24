@@ -1,32 +1,42 @@
-import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { DiscordBotConfigService } from './discord-bot-config.service';
-import type { InsightsCommandService } from './slash-commands/insights-command.service';
+import { DiscordBotConfigService } from './discord-bot-config.service';
+import { InsightsCommandService } from './slash-commands/insights-command.service';
 import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {
-  let discordClient: { sendMessage: ReturnType<typeof vi.fn> };
-  let insightsCommand: { resolveRandomFact: ReturnType<typeof vi.fn> };
-  let config: { getDiscordChannelId: ReturnType<typeof vi.fn> };
+  let discordClient: MockProxy<DiscordClientService>;
+  let insightsCommand: MockProxy<InsightsCommandService>;
+  let config: MockProxy<DiscordBotConfigService>;
   let service: StartupNotifierService;
 
-  beforeEach(() => {
-    discordClient = { sendMessage: vi.fn().mockResolvedValue(undefined) };
-    insightsCommand = {
-      resolveRandomFact: vi.fn().mockResolvedValue('a random fact'),
-    };
-    config = { getDiscordChannelId: vi.fn().mockReturnValue('42') };
-    service = new StartupNotifierService(
-      discordClient as unknown as DiscordClientService,
-      insightsCommand as unknown as InsightsCommandService,
-      config as unknown as DiscordBotConfigService,
-    );
+  beforeEach(async () => {
+    discordClient = mock<DiscordClientService>();
+    discordClient.sendMessage.mockResolvedValue(undefined);
+    insightsCommand = mock<InsightsCommandService>();
+    insightsCommand.resolveRandomFact.mockResolvedValue('a random fact');
+    config = mock<DiscordBotConfigService>();
+    config.getDiscordChannelId.mockReturnValue('42');
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        StartupNotifierService,
+        { provide: DiscordClientService, useValue: discordClient },
+        { provide: InsightsCommandService, useValue: insightsCommand },
+        { provide: DiscordBotConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(StartupNotifierService);
   });
 
   it('posts a random insights fact string to the configured channel', async () => {
     await service.onApplicationBootstrap();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '42',
       'a random fact',
@@ -39,6 +49,7 @@ describe('StartupNotifierService', () => {
     };
     insightsCommand.resolveRandomFact.mockResolvedValue(embed);
     await service.onApplicationBootstrap();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.sendMessage).toHaveBeenCalledWith('42', embed);
   });
 
@@ -49,6 +60,7 @@ describe('StartupNotifierService', () => {
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
       'DISCORD_CHANNEL_ID is not configured',
     );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
   });
 });

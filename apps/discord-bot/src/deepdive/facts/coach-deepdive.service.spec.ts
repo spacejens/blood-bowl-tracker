@@ -1,5 +1,7 @@
-import type { CoachesService } from '@blood-bowl-tracker/game-data';
+import { CoachesService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -9,45 +11,66 @@ import {
   DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import {
+  expectTimeoutFallback,
+  makeDeepdiveLeaderboardMock,
+} from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { CoachDeepdiveService } from './coach-deepdive.service';
 
-function makeService(options: {
+function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
+  const databaseTimeout = mock<DatabaseTimeoutService>();
+  databaseTimeout.run.mockImplementation(async (work) => work);
+  return databaseTimeout;
+}
+
+async function makeService(
+  coaches: CoachesService,
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+): Promise<CoachDeepdiveService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      CoachDeepdiveService,
+      { provide: CoachesService, useValue: coaches },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: makeDeepdiveLeaderboardMock() },
+    ],
+  }).compile();
+  return moduleRef.get(CoachDeepdiveService);
+}
+
+function makeCoaches(options: {
   coach?: { id: number; name: string };
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
-}): CoachDeepdiveService {
-  const coaches = {
+}): CoachesService {
+  return {
     findById: vi.fn().mockResolvedValue(options.coach),
     getCareerSpan: vi.fn().mockResolvedValue(options.span),
     getTopTeamsByMatchesPlayed: vi
       .fn()
       .mockResolvedValue(options.topTeams ?? []),
   } as unknown as CoachesService;
-  return new CoachDeepdiveService(
-    coaches,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
 }
 
 describe('CoachDeepdiveService', () => {
   it('returns the not-found message when the coach does not exist', async () => {
-    const service = makeService({ coach: undefined });
+    const service = await makeService(makeCoaches({ coach: undefined }));
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
   });
 
   it('renders the career span and top-teams list', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams: [
-        { id: 11, name: 'Reikland Reavers', count: 12 },
-        { id: 22, name: 'Gouged Eye', count: 5 },
-      ],
-    });
+    const service = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [
+          { id: 11, name: 'Reikland Reavers', count: 12 },
+          { id: 22, name: 'Gouged Eye', count: 5 },
+        ],
+      }),
+    );
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -85,14 +108,16 @@ describe('CoachDeepdiveService', () => {
   });
 
   it('renders a Primary button per listed team, keyed by team id', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams: [
-        { id: 11, name: 'Reikland Reavers', count: 12 },
-        { id: 22, name: 'Gouged Eye', count: 5 },
-      ],
-    });
+    const service = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [
+          { id: 11, name: 'Reikland Reavers', count: 12 },
+          { id: 22, name: 'Gouged Eye', count: 5 },
+        ],
+      }),
+    );
     const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };
@@ -109,10 +134,24 @@ describe('CoachDeepdiveService', () => {
   });
 
   it('omits components when the coach has no matches', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: undefined,
-    });
+    const service = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: undefined,
+      }),
+    );
+    const result = await service.resolve(1);
+    expect(result).not.toHaveProperty('components');
+  });
+
+  it('omits components when the coach has a career span but no top teams', async () => {
+    const service = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [],
+      }),
+    );
     const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
   });
@@ -130,11 +169,13 @@ describe('CoachDeepdiveService', () => {
       { id: 9, name: 'I', count: 9 },
       { id: 10, name: 'J', count: 9 },
     ];
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams,
-    });
+    const service = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams,
+      }),
+    );
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
@@ -147,16 +188,12 @@ describe('CoachDeepdiveService', () => {
   });
 
   it('shows the no-matches message and skips the top-teams section', async () => {
-    const coaches = {
-      findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-      getCareerSpan: vi.fn().mockResolvedValue(undefined),
-      getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
-    } as unknown as CoachesService;
-    const service = new CoachDeepdiveService(
-      coaches,
-      new DatabaseTimeoutService(),
-      new LeaderboardService(new DatabaseTimeoutService()),
-    );
+    const coaches = makeCoaches({
+      coach: { id: 1, name: 'Roze Madder' },
+      span: undefined,
+      topTeams: [],
+    });
+    const service = await makeService(coaches);
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -173,58 +210,53 @@ describe('CoachDeepdiveService', () => {
 
   it('falls back to the coach timeout message when the coach lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockReturnValue(new Promise(() => {})),
-          getCareerSpan: vi.fn(),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run.mockResolvedValueOnce(null);
+        const service = await makeService(makeCoaches({}), databaseTimeout);
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the career timeout message when the span lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-          getCareerSpan: vi.fn().mockReturnValue(new Promise(() => {})),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeCoaches({ coach: { id: 1, name: 'Roze Madder' } }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-          getCareerSpan: vi
-            .fn()
-            .mockResolvedValue({ start: '2021-09-01', end: '2023-06-10' }),
-          getTopTeamsByMatchesPlayed: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mock<DatabaseTimeoutService>();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockResolvedValueOnce(null);
+        const service = await makeService(
+          makeCoaches({
+            coach: { id: 1, name: 'Roze Madder' },
+            span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
     );
   });
