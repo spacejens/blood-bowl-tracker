@@ -129,9 +129,10 @@ See "Testing services" below for how services are tested.
 ## Testing services
 
 Every `*.spec.ts` that tests a NestJS service builds it through a
-`Test.createTestingModule` in a `beforeEach`, with the service under test as the
-**only** real provider and every injected dependency supplied as a
-`vitest-mock-extended` mock. Direct instantiation (`new XService(...)`) is
+`Test.createTestingModule`, with the service under test as the **only** real
+provider and every injected dependency supplied as a `vitest-mock-extended`
+mock. Each test gets a freshly-compiled module and fresh mocks, so no state
+leaks between test cases. Direct instantiation (`new XService(...)`) is
 forbidden in spec files and enforced by the custom
 `local/no-direct-service-instantiation` ESLint rule (in `tools/eslint-rules`,
 scoped to `*.spec.ts`, `*.e2e-spec.ts`, and `*.test-helpers.ts`). The rule
@@ -167,15 +168,37 @@ describe('CoachesImportService', () => {
 });
 ```
 
+**Two idioms for compiling the module, chosen by fit — not two conventions.**
+Both build the same `Test.createTestingModule` shape; they differ only in where
+the compile happens:
+
+- **`beforeEach` (above)** when the subject is the same across the suite and each
+  test only varies stubbed *return values* after construction
+  (`client.coaches.upsert.mockResolvedValue(...)`). This is the default.
+- **A per-test `makeService(...)` factory** when the subject must be
+  *constructed differently per test* — where a collaborator's behavior is an
+  *input* that has to exist before the service is built, not a value stubbed
+  afterward (e.g. a reader seeded with specific source pages, or a dependency
+  mock returning a specific entity vs. `undefined`). Each test calls
+  `makeService(seed)` with just the collaborator it cares about; give the
+  factory's parameters sensible mock defaults so a test overrides only what it
+  needs. This reads better than building a default subject in `beforeEach` and
+  reconfiguring it in most tests. See e.g.
+  `tools/import-bbl/src/coaches/bbl-coaches-import.service.spec.ts` and
+  `apps/discord-bot/src/deepdive/facts/coach-deepdive.service.spec.ts`.
+
+  Prefer `beforeEach` when it fits; reach for the factory only when per-test
+  construction genuinely earns it. Either way, compile a fresh module per test.
+
 - **Services with no injected dependencies use the identical shape**, with
   `providers: [TheService]` only. There is no exception and no per-file judgment
   call — the same rationale this file gives for making every piece of logic a
   service.
 - `mock<T>()` for flat dependencies; `mockDeep<T>()` where the test reaches
   through nested properties (e.g. `client.coaches.upsert`).
-- Mocks are built fresh in `beforeEach`, and each test stubs only the methods it
-  needs. Never pass a *real* collaborator — a test about one service must not
-  silently exercise another service's concrete behavior.
+- Mocks are built fresh per test — never module-level — and each test stubs only
+  the methods it needs. Never pass a *real* collaborator: a test about one
+  service must not silently exercise another service's concrete behavior.
 - `moduleRef.get(TheService)` means every test also verifies the service's own DI
   metadata.
 
