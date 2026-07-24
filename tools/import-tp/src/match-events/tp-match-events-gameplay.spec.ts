@@ -1,3 +1,4 @@
+import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -13,6 +14,8 @@ import {
   TP_SYSTEM_ID,
   VICTIM_PLAYER_ID,
 } from './tp-match-events-import.test-helpers';
+
+type CasualtyEvent = Extract<TpMatchEvent, { type: 'casualty_caused' }>;
 
 /**
  * Gameplay TP match events: touchdown, mvp_award, the other five simple
@@ -271,19 +274,26 @@ describe('TpMatchEventsImportService gameplay events', () => {
   });
 
   it('pairs a casualty_caused event with its injury (same turnNumber), crediting the specific attacker and severity, and does not emit the casualty standalone', async () => {
+    // The pairing itself (turnNumber matching, direction, tiebreaking) is
+    // TpMatchEventsCorrelationService's job, verified by its own dedicated
+    // spec — this test cans that result and asserts what
+    // TpMatchEventsImportService/its builders DO with an already-paired
+    // casualty: credit the specific attacker + team-era on the injury row,
+    // bucket the severity, and suppress the casualty's standalone row.
+    const pairedCasualty: CasualtyEvent = {
+      type: 'casualty_caused',
+      tpEventId: 41,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 2442075,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 6,
+    };
     const captured = await runImport({
       matches: [
         matchWithEvents({
           id: 566088,
           events: [
-            {
-              type: 'casualty_caused',
-              tpEventId: 41,
-              instant: '2026-01-17T18:00:00Z',
-              lineUpId: 2442075,
-              rosterId: HOME_ROSTER_ID,
-              turnNumber: 6,
-            },
+            pairedCasualty,
             {
               type: 'injury',
               tpEventId: 42,
@@ -297,6 +307,10 @@ describe('TpMatchEventsImportService gameplay events', () => {
           ],
         }),
       ],
+      correlationResult: {
+        casualtyByInjuryEventId: new Map([[42, pairedCasualty]]),
+        pairedCasualtyEventIds: new Set([41]),
+      },
     });
     // No standalone casualty row for the paired casualty_caused event.
     expect(
@@ -316,19 +330,20 @@ describe('TpMatchEventsImportService gameplay events', () => {
   });
 
   it('buckets a None-injury casualty pairing as badly_hurt', async () => {
+    const pairedCasualty: CasualtyEvent = {
+      type: 'casualty_caused',
+      tpEventId: 43,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 2442075,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 7,
+    };
     const captured = await runImport({
       matches: [
         matchWithEvents({
           id: 566088,
           events: [
-            {
-              type: 'casualty_caused',
-              tpEventId: 43,
-              instant: '2026-01-17T18:00:00Z',
-              lineUpId: 2442075,
-              rosterId: HOME_ROSTER_ID,
-              turnNumber: 7,
-            },
+            pairedCasualty,
             {
               type: 'injury',
               tpEventId: 44,
@@ -342,6 +357,10 @@ describe('TpMatchEventsImportService gameplay events', () => {
           ],
         }),
       ],
+      correlationResult: {
+        casualtyByInjuryEventId: new Map([[44, pairedCasualty]]),
+        pairedCasualtyEventIds: new Set([43]),
+      },
     });
     expect(captured).toContainEqual(
       expect.objectContaining({
@@ -353,19 +372,20 @@ describe('TpMatchEventsImportService gameplay events', () => {
   });
 
   it('buckets a Dead-injury casualty pairing as death', async () => {
+    const pairedCasualty: CasualtyEvent = {
+      type: 'casualty_caused',
+      tpEventId: 45,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 2442075,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 8,
+    };
     const captured = await runImport({
       matches: [
         matchWithEvents({
           id: 566088,
           events: [
-            {
-              type: 'casualty_caused',
-              tpEventId: 45,
-              instant: '2026-01-17T18:00:00Z',
-              lineUpId: 2442075,
-              rosterId: HOME_ROSTER_ID,
-              turnNumber: 8,
-            },
+            pairedCasualty,
             {
               type: 'injury',
               tpEventId: 46,
@@ -379,53 +399,15 @@ describe('TpMatchEventsImportService gameplay events', () => {
           ],
         }),
       ],
+      correlationResult: {
+        casualtyByInjuryEventId: new Map([[46, pairedCasualty]]),
+        pairedCasualtyEventIds: new Set([45]),
+      },
     });
     expect(captured).toContainEqual(
       expect.objectContaining({
         consequenceType: 'death',
         actionType: 'death',
-        actingPlayerId: SCORER_PLAYER_ID,
-      }),
-    );
-  });
-
-  it('pairs even when the injury (code 8) is registered before its casualty (code 6) — async registration', async () => {
-    // Array order and instant both have the injury appearing first, mirroring
-    // TP's observed asynchronous event registration.
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'injury',
-              tpEventId: 48,
-              instant: '2026-01-17T17:59:00Z',
-              lineUpId: 2459782,
-              rosterId: AWAY_ROSTER_ID,
-              turnRosterId: HOME_ROSTER_ID,
-              turnNumber: 9,
-              injuryType: 'MissNextGame',
-            },
-            {
-              type: 'casualty_caused',
-              tpEventId: 47,
-              instant: '2026-01-17T18:00:00Z',
-              lineUpId: 2442075,
-              rosterId: HOME_ROSTER_ID,
-              turnNumber: 9,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(
-      captured.filter((c) => c.externalIds[0].externalId === 'tp-47'),
-    ).toHaveLength(0);
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        consequenceType: 'miss_next_game',
-        actionType: 'serious_injury',
         actingPlayerId: SCORER_PLAYER_ID,
       }),
     );

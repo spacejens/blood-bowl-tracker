@@ -55,76 +55,41 @@ export function matchWithEvents(options: {
 
 interface RunImportOptions {
   matches: TpMatch[];
+  /**
+   * Canned `TpMatchEventsCorrelationService.correlateCasualties` return
+   * value for this run. Defaults to "nothing paired" (empty map/set) — the
+   * common case for every test that doesn't exercise casualty/injury
+   * pairing. A test that DOES care about pairing supplies the exact
+   * `CasualtyPairing` it wants `TpMatchEventsImportService` to receive; the
+   * real pairing algorithm (turnNumber equality, opposing-side direction,
+   * nearest-`instant`-within-120s tiebreak, async-registration-order
+   * robustness) is verified independently by
+   * `TpMatchEventsCorrelationService`'s own dedicated spec
+   * (`tp-match-events-correlation.service.spec.ts`); this helper must not
+   * reimplement it.
+   */
+  correlationResult?: CasualtyPairing;
+}
+
+function emptyCasualtyPairing(): CasualtyPairing {
+  return {
+    casualtyByInjuryEventId: new Map(),
+    pairedCasualtyEventIds: new Set(),
+  };
 }
 
 /**
- * A `MockProxy<TpMatchEventsCorrelationService>` that reimplements the real
- * `correlateCasualties` casualty/injury pairing algorithm (turnNumber
- * equality, opposing-side direction, nearest-`instant`-within-120s
- * tiebreak — see `tp-match-events-correlation.service.ts` for the full
- * rationale) inline, so this shared helper's casualty-pairing assertions in
- * `tp-match-events-gameplay.spec.ts` still exercise input-dependent pairing
- * behaviour rather than a hardcoded stub. The algorithm itself is verified
- * independently by `TpMatchEventsCorrelationService`'s own dedicated spec
- * (`tp-match-events-correlation.service.spec.ts`); mocking it here costs no
- * coverage.
+ * A `MockProxy<TpMatchEventsCorrelationService>` whose `correlateCasualties`
+ * returns a caller-supplied, canned `CasualtyPairing` — never a
+ * recomputation of the real pairing algorithm (that's
+ * `TpMatchEventsCorrelationService`'s own job, covered by its dedicated
+ * spec). Defaults to "nothing paired" when the caller doesn't need pairing.
  */
-function mockTpMatchEventsCorrelationService(): MockProxy<TpMatchEventsCorrelationService> {
-  const MAX_PAIRING_DELAY_MS = 120_000;
-  type CasualtyEvent = Extract<TpMatchEvent, { type: 'casualty_caused' }>;
-  type InjuryEvent = Extract<TpMatchEvent, { type: 'injury' }>;
-
+function mockTpMatchEventsCorrelationService(
+  correlationResult: CasualtyPairing,
+): MockProxy<TpMatchEventsCorrelationService> {
   const correlation = mock<TpMatchEventsCorrelationService>();
-  correlation.correlateCasualties.mockImplementation(
-    (matchEvents): CasualtyPairing => {
-      const casualties = matchEvents.filter(
-        (e): e is CasualtyEvent => e.type === 'casualty_caused',
-      );
-      const injuries = matchEvents.filter(
-        (e): e is InjuryEvent => e.type === 'injury',
-      );
-
-      const casualtyByInjuryEventId = new Map<number, CasualtyEvent>();
-      const pairedCasualtyEventIds = new Set<number>();
-      const claimedInjuryEventIds = new Set<number>();
-
-      for (const casualty of casualties) {
-        let best: InjuryEvent | undefined;
-        let bestDiffMs = Infinity;
-        for (const injury of injuries) {
-          if (claimedInjuryEventIds.has(injury.tpEventId)) {
-            continue;
-          }
-          const isCandidate =
-            injury.turnRosterId === casualty.rosterId &&
-            injury.rosterId !== casualty.rosterId &&
-            casualty.turnNumber !== undefined &&
-            injury.turnNumber === casualty.turnNumber;
-          if (!isCandidate) {
-            continue;
-          }
-          const diffMs = Math.abs(
-            new Date(injury.instant).getTime() -
-              new Date(casualty.instant).getTime(),
-          );
-          if (!(diffMs <= MAX_PAIRING_DELAY_MS)) {
-            continue;
-          }
-          if (best === undefined || diffMs < bestDiffMs) {
-            best = injury;
-            bestDiffMs = diffMs;
-          }
-        }
-        if (best) {
-          casualtyByInjuryEventId.set(best.tpEventId, casualty);
-          pairedCasualtyEventIds.add(casualty.tpEventId);
-          claimedInjuryEventIds.add(best.tpEventId);
-        }
-      }
-
-      return { casualtyByInjuryEventId, pairedCasualtyEventIds };
-    },
-  );
+  correlation.correlateCasualties.mockReturnValue(correlationResult);
   return correlation;
 }
 
@@ -168,6 +133,8 @@ export async function makeService(
     bootstrapResult?: Awaited<
       ReturnType<ExternalSystemBootstrapService['bootstrap']>
     >;
+    /** Canned `correlateCasualties` result (defaults to "nothing paired"). */
+    correlationResult?: CasualtyPairing;
   },
 ): Promise<TpMatchEventsImportService> {
   const matchEventsImport = mock<MatchEventsImportService>();
@@ -180,7 +147,9 @@ export async function makeService(
   );
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockReturnValue('TP');
-  const eventsCorrelation = mockTpMatchEventsCorrelationService();
+  const eventsCorrelation = mockTpMatchEventsCorrelationService(
+    options?.correlationResult ?? emptyCasualtyPairing(),
+  );
   const importResults = mockImportResultService();
 
   const moduleRef = await Test.createTestingModule({
@@ -207,7 +176,10 @@ export async function makeService(
   return moduleRef.get(TpMatchEventsImportService);
 }
 
-export async function runImportRaw({ matches }: RunImportOptions): Promise<{
+export async function runImportRaw({
+  matches,
+  correlationResult,
+}: RunImportOptions): Promise<{
   captured: UpsertMatchEvent[];
   errors: ImportError[];
 }> {
@@ -219,7 +191,7 @@ export async function runImportRaw({ matches }: RunImportOptions): Promise<{
       return Promise.resolve(true);
     },
   );
-  const service = await makeService(upsertMatchEvent);
+  const service = await makeService(upsertMatchEvent, { correlationResult });
 
   const { result } = await service.importMatchEvents({
     matchesByCompetitionId: new Map([[COMPETITION_DB_ID, matches]]),
