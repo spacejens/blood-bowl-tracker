@@ -6,6 +6,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 import { maxFunctionParams } from './tools/eslint-rules/src/max-function-params.ts';
+import { noDirectServiceInstantiation } from './tools/eslint-rules/src/no-direct-service-instantiation.ts';
 
 export default tseslint.config(
   {
@@ -40,7 +41,12 @@ export default tseslint.config(
   {
     plugins: {
       'simple-import-sort': simpleImportSort,
-      local: { rules: { 'max-function-params': maxFunctionParams } },
+      local: {
+        rules: {
+          'max-function-params': maxFunctionParams,
+          'no-direct-service-instantiation': noDirectServiceInstantiation,
+        },
+      },
     },
     rules: {
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
@@ -74,6 +80,12 @@ export default tseslint.config(
         'error',
         { max: 1000, skipBlankLines: true, skipComments: true },
       ],
+    },
+  },
+  {
+    files: ['**/*.spec.ts', '**/*.test-helpers.ts'],
+    rules: {
+      'local/no-direct-service-instantiation': 'error',
     },
   },
 );
