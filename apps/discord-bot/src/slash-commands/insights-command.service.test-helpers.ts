@@ -1,24 +1,22 @@
-import type {
-  CoachesService,
+import {
   CompetitionsService,
   ErasService,
-  ExternalSystemsService,
   LeaguesService,
-  MatchesService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
 } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
   ChatInputCommandInteraction,
+  InteractionReplyOptions,
 } from 'discord.js';
 import { vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../database-timeout.service';
+import { ERAS_LIST_NO_DATA_MESSAGE } from '../error-messages';
 import { buildFactTree } from '../insights/fact-tree';
+import { FACT_TREE } from '../insights/fact-tree.token';
+import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
 import { ErasListService } from '../insights/facts/eras-list.service';
@@ -27,230 +25,328 @@ import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
 import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
 import { TeamToplistService } from '../insights/facts/team-toplist.service';
-import { LeaderboardService } from '../insights/leaderboard.service';
 import { InsightsCommandService } from './insights-command.service';
-import type { SlashCommandRegistryService } from './slash-command-registry.service';
+import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 /**
  * Test-only helpers for the `/insights` command service specs.
- * Do not import from production code.
+ * Do not import from production code (beyond types/tokens/constants).
+ *
+ * `InsightsCommandService`'s FACT_TREE dependency is built with the real,
+ * pure `buildFactTree` (a loose function, not a service — CLAUDE.md case 2
+ * exemption) wired to seven MOCKED fact services. This keeps the real tree
+ * topology (paths, supportsLeague/Era/Competition flags per leaf — already
+ * verified against production by `fact-tree.spec.ts`) while every leaf's
+ * actual computation is a controlled mock, so these specs never construct
+ * or DI-provide a real fact service, LeaderboardService, or
+ * DatabaseTimeoutService.
  */
-export function makeService() {
-  const zero = () => ({
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  });
-  const coaches = {
-    countMatchesPlayedByCoach: vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 9 }]),
-    countTeamsByCoach: vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
-    countCompetitionsByCoach: vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 5 }]),
-    countErasByCoach: vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]),
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as CoachesService;
-  const teams = {
-    countMatchesPlayedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 12 }]),
-    countCompetitionsByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
-    countErasByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 3 }]),
-    countTouchdownsScoredByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 15 }]),
-    countCompletionsByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
-    countInterceptionsByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 5 }]),
-    countDeflectionsByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
-    countCasualtiesCausedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 22 }]),
-    countSeriousInjuriesCausedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 7 }]),
-    countDeathsCausedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
-    countCasualtiesSufferedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 18 }]),
-    countSeriousInjuriesSufferedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 6 }]),
-    countLastingInjuriesSufferedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 4 }]),
-    countDeathsSufferedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 2 }]),
-    countFoulsCommittedByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 13 }]),
-    countTimesSentOffByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 8 }]),
-    sumExpensiveMistakesByTeam: vi
-      .fn()
-      .mockResolvedValue([{ teamId: 1, name: '40 grinders', count: 150000 }]),
-    listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([
-      {
-        teamId: 1,
-        name: '40 grinders',
-        count: 150000,
-        date: '2026-03-04',
-      },
-    ]),
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as TeamsService;
-  const matches = {
-    countAll: vi.fn().mockResolvedValue(0),
-    countMatchEvents: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countMatchEventsByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-    countMatchEventsByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as MatchesService;
-  const competitions = {
-    countAll: vi.fn().mockResolvedValue(0),
-    countByType: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    findById: vi.fn().mockResolvedValue(undefined),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as CompetitionsService;
-  const leagues = {
-    ...zero(),
-    findById: vi.fn().mockResolvedValue(undefined),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-  } as unknown as LeaguesService;
-  const rulesSets = zero() as unknown as RulesSetsService;
-  const eras = {
-    findById: vi.fn().mockResolvedValue(undefined),
-    searchByNamePrefix: vi.fn().mockResolvedValue([]),
-    countAll: vi.fn().mockResolvedValue(0),
-    getRulesSetNames: vi.fn().mockResolvedValue([]),
-    listErasWithLeague: vi.fn().mockResolvedValue([]),
-  } as unknown as ErasService;
-  const players = {
-    countMvpAwardsByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 7 }]),
-    countTouchdownsScoredByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 9 }]),
-    countCompletionsByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 6 }]),
-    countInterceptionsByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 5 }]),
-    countDeflectionsByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 4 }]),
-    countCasualtiesCausedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 11 }]),
-    countSeriousInjuriesCausedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 3 }]),
-    countDeathsCausedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 2 }]),
-    countCasualtiesSufferedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 12 }]),
-    countSeriousInjuriesSufferedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 5 }]),
-    countLastingInjuriesSufferedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Griff Oberwald', count: 4 }]),
-    countFoulsCommittedByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 6 }]),
-    countTimesSentOffByPlayer: vi
-      .fn()
-      .mockResolvedValue([{ playerId: 1, name: 'Morg n Thorg', count: 5 }]),
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as PlayersService;
-  const positions = zero() as unknown as PositionsService;
-  const races = {
-    countTeamsByRace: vi
-      .fn()
-      .mockResolvedValue([{ raceId: 1, name: 'Orc', count: 12 }]),
-    countMatchesPlayedByRace: vi
-      .fn()
-      .mockResolvedValue([{ raceId: 1, name: 'Orc', count: 40 }]),
-    countAll: vi.fn().mockResolvedValue(0),
-    countByEra: vi.fn().mockResolvedValue(0),
-    countByCompetition: vi.fn().mockResolvedValue(0),
-  } as unknown as RacesService;
-  const externalSystems = zero() as unknown as ExternalSystemsService;
-  const registry = {
-    register: vi.fn(),
-  };
-  const databaseTimeout = new DatabaseTimeoutService();
-  const leaderboard = new LeaderboardService(databaseTimeout);
-  const factTree = buildFactTree({
-    coachToplist: new CoachToplistService(coaches, leaderboard),
-    teamToplist: new TeamToplistService(teams, leaderboard),
-    playerToplist: new PlayerToplistService(players, leaderboard),
-    raceToplist: new RaceToplistService(races, leaderboard),
-    expensiveMistakes: new ExpensiveMistakesToplistService(teams, leaderboard),
-    erasList: new ErasListService(eras, databaseTimeout),
-    statsSummary: new StatsSummaryFactsService(
-      leagues,
-      externalSystems,
-      rulesSets,
-      races,
-      positions,
-      coaches,
-      eras,
-      competitions,
-      teams,
-      players,
-      matches,
-      databaseTimeout,
+
+function isLeaf(node: FactNode): node is FactLeaf {
+  return typeof (node as FactLeaf).resolve === 'function';
+}
+
+/**
+ * A faithful, argument-driven reimplementation of `FactTreeUtilsService`'s
+ * pure tree-navigation algorithms (mirrors `fact-tree-utils.service.ts`,
+ * itself covered at 100% by its own dedicated spec). Used as
+ * `FactTreeUtilsService`'s mock default so InsightsCommandService's
+ * category-path routing is exercised for real against whatever tree a test
+ * builds, rather than hardcoded to match assertions — without constructing
+ * or DI-providing the real service (forbidden per the migration
+ * conventions' failure mode #1).
+ */
+function resolvePathImpl(tree: FactNode, path: string): FactNode | undefined {
+  const segments = path.split('.').filter((segment) => segment.length > 0);
+  let current: FactNode = tree;
+  for (const segment of segments) {
+    if (isLeaf(current)) {
+      return undefined;
+    }
+    const next = current[segment];
+    if (next === undefined) {
+      return undefined;
+    }
+    current = next;
+  }
+  return current;
+}
+
+function collectLeavesImpl(node: FactNode): FactLeaf[] {
+  if (isLeaf(node)) {
+    return [node];
+  }
+  return Object.values(node).flatMap((child) => collectLeavesImpl(child));
+}
+
+function nextSegmentCompletionsImpl(
+  tree: FactNode,
+  partialPath: string,
+): string[] {
+  const segments = partialPath.split('.');
+  const partialLast = segments[segments.length - 1];
+  const parentSegments = segments.slice(0, -1);
+  const parentPath = parentSegments.join('.');
+  const parent =
+    parentPath.length === 0 ? tree : resolvePathImpl(tree, parentPath);
+  if (parent === undefined || isLeaf(parent)) {
+    return [];
+  }
+  const prefix = parentSegments.length === 0 ? '' : `${parentPath}.`;
+  return Object.keys(parent)
+    .filter((key) => key.startsWith(partialLast))
+    .map((key) => `${prefix}${key}`);
+}
+
+function makeFactTreeUtilsMock(): MockProxy<FactTreeUtilsService> {
+  const utils = mock<FactTreeUtilsService>();
+  utils.resolvePath.mockImplementation(resolvePathImpl);
+  utils.collectLeaves.mockImplementation(collectLeavesImpl);
+  utils.nextSegmentCompletions.mockImplementation(nextSegmentCompletionsImpl);
+  return utils;
+}
+
+/**
+ * A canned rendered reply standing in for a real fact service's rendering
+ * (title/description/button formatting is that service's own concern,
+ * covered by its dedicated spec — not InsightsCommandService's).
+ */
+function sampleEmbedReply(
+  title: string,
+  description: string,
+): InteractionReplyOptions {
+  return { embeds: [{ title, description }], components: [] };
+}
+
+export interface FactTreeMocks {
+  coachToplist: MockProxy<CoachToplistService>;
+  teamToplist: MockProxy<TeamToplistService>;
+  playerToplist: MockProxy<PlayerToplistService>;
+  raceToplist: MockProxy<RaceToplistService>;
+  expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
+  erasList: MockProxy<ErasListService>;
+  statsSummary: MockProxy<StatsSummaryFactsService>;
+}
+
+/**
+ * The seven fact services `buildFactTree` wires into leaves, each a
+ * `MockProxy` with a default resolved reply — the same title/description
+ * content the pre-migration game-data-fake-driven tree produced via real
+ * computation, now canned directly since that computation belongs to these
+ * services' own specs, not InsightsCommandService's.
+ */
+function makeFactTreeMocks(): FactTreeMocks {
+  const coachToplist = mock<CoachToplistService>();
+  coachToplist.resolveMatchesPlayed.mockResolvedValue(
+    sampleEmbedReply('Coaches by matches played', '1. Roze Madder — 9'),
+  );
+  coachToplist.resolveTeams.mockResolvedValue(
+    sampleEmbedReply('Coaches by teams', '1. Roze Madder — 3'),
+  );
+  coachToplist.resolveCompetitionsPlayed.mockResolvedValue(
+    sampleEmbedReply('Coaches by competitions played', '1. Roze Madder — 5'),
+  );
+  coachToplist.resolveErasActive.mockResolvedValue(
+    sampleEmbedReply('Coaches by eras active', '1. Roze Madder — 3'),
+  );
+
+  const teamToplist = mock<TeamToplistService>();
+  teamToplist.resolveMatchesPlayed.mockResolvedValue(
+    sampleEmbedReply('Teams by matches played', '1. 40 grinders — 12'),
+  );
+  teamToplist.resolveCompetitionsPlayed.mockResolvedValue(
+    sampleEmbedReply('Teams by competitions played', '1. 40 grinders — 4'),
+  );
+  teamToplist.resolveErasActive.mockResolvedValue(
+    sampleEmbedReply('Teams by eras active', '1. 40 grinders — 3'),
+  );
+  teamToplist.resolveTouchdownsScored.mockResolvedValue(
+    sampleEmbedReply('Teams by touchdowns scored', '1. 40 grinders — 15'),
+  );
+  teamToplist.resolveCompletions.mockResolvedValue(
+    sampleEmbedReply('Teams by completions', '1. 40 grinders — 8'),
+  );
+  teamToplist.resolveInterceptions.mockResolvedValue(
+    sampleEmbedReply('Teams by interceptions', '1. 40 grinders — 5'),
+  );
+  teamToplist.resolveDeflections.mockResolvedValue(
+    sampleEmbedReply('Teams by deflections', '1. 40 grinders — 4'),
+  );
+  teamToplist.resolveCasualtiesCaused.mockResolvedValue(
+    sampleEmbedReply('Teams by casualties inflicted', '1. 40 grinders — 22'),
+  );
+  teamToplist.resolveCasualtiesSuffered.mockResolvedValue(
+    sampleEmbedReply('Teams by casualties suffered', '1. 40 grinders — 18'),
+  );
+  teamToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    sampleEmbedReply(
+      'Teams by serious injuries inflicted',
+      '1. 40 grinders — 7',
     ),
+  );
+  teamToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
+    sampleEmbedReply(
+      'Teams by serious injuries suffered',
+      '1. 40 grinders — 6',
+    ),
+  );
+  teamToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
+    sampleEmbedReply(
+      'Teams by lasting injuries suffered',
+      '1. 40 grinders — 4',
+    ),
+  );
+  teamToplist.resolveDeathsCaused.mockResolvedValue(
+    sampleEmbedReply('Teams by deaths inflicted', '1. 40 grinders — 4'),
+  );
+  teamToplist.resolveDeathsSuffered.mockResolvedValue(
+    sampleEmbedReply('Teams by deaths suffered', '1. 40 grinders — 2'),
+  );
+  teamToplist.resolveFoulsCommitted.mockResolvedValue(
+    sampleEmbedReply('Teams by fouls committed', '1. 40 grinders — 13'),
+  );
+  teamToplist.resolveTimesSentOff.mockResolvedValue(
+    sampleEmbedReply('Teams by times sent off', '1. 40 grinders — 8'),
+  );
+
+  const playerToplist = mock<PlayerToplistService>();
+  playerToplist.resolveMvps.mockResolvedValue(
+    sampleEmbedReply('Players by MVP awards', '1. Griff Oberwald — 7'),
+  );
+  playerToplist.resolveTouchdownsScored.mockResolvedValue(
+    sampleEmbedReply('Players by touchdowns scored', '1. Griff Oberwald — 9'),
+  );
+  playerToplist.resolveCompletions.mockResolvedValue(
+    sampleEmbedReply('Players by completions', '1. Griff Oberwald — 6'),
+  );
+  playerToplist.resolveInterceptions.mockResolvedValue(
+    sampleEmbedReply('Players by interceptions', '1. Griff Oberwald — 5'),
+  );
+  playerToplist.resolveDeflections.mockResolvedValue(
+    sampleEmbedReply('Players by deflections', '1. Griff Oberwald — 4'),
+  );
+  playerToplist.resolveCasualtiesCaused.mockResolvedValue(
+    sampleEmbedReply('Players by casualties inflicted', '1. Morg n Thorg — 11'),
+  );
+  playerToplist.resolveCasualtiesSuffered.mockResolvedValue(
+    sampleEmbedReply(
+      'Players by casualties suffered',
+      '1. Griff Oberwald — 12',
+    ),
+  );
+  playerToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    sampleEmbedReply(
+      'Players by serious injuries inflicted',
+      '1. Morg n Thorg — 3',
+    ),
+  );
+  playerToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
+    sampleEmbedReply(
+      'Players by serious injuries suffered',
+      '1. Griff Oberwald — 5',
+    ),
+  );
+  playerToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
+    sampleEmbedReply(
+      'Players by lasting injuries suffered',
+      '1. Griff Oberwald — 4',
+    ),
+  );
+  playerToplist.resolveDeathsCaused.mockResolvedValue(
+    sampleEmbedReply('Players by deaths inflicted', '1. Morg n Thorg — 2'),
+  );
+  playerToplist.resolveFoulsCommitted.mockResolvedValue(
+    sampleEmbedReply('Players by fouls committed', '1. Morg n Thorg — 6'),
+  );
+  playerToplist.resolveTimesSentOff.mockResolvedValue(
+    sampleEmbedReply('Players by times sent off', '1. Morg n Thorg — 5'),
+  );
+
+  const raceToplist = mock<RaceToplistService>();
+  raceToplist.resolveTeams.mockResolvedValue(
+    sampleEmbedReply('Races by teams', '1. Orc — 12'),
+  );
+  raceToplist.resolveMatchesPlayed.mockResolvedValue(
+    sampleEmbedReply('Races by matches played', '1. Orc — 40'),
+  );
+
+  const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
+  expensiveMistakes.resolveTotal.mockResolvedValue(
+    sampleEmbedReply('Teams by expensive mistakes', '1. 40 grinders — 150000'),
+  );
+  expensiveMistakes.resolveBiggest.mockResolvedValue(
+    sampleEmbedReply('Biggest expensive mistakes', '1. 40 grinders — 150000'),
+  );
+
+  const erasList = mock<ErasListService>();
+  erasList.resolve.mockResolvedValue({
+    embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
   });
+
+  const statsSummary = mock<StatsSummaryFactsService>();
+  statsSummary.resolve.mockResolvedValue(
+    sampleEmbedReply('Stats summary', 'sample stats'),
+  );
+
   return {
-    service: new InsightsCommandService(
-      leagues,
-      eras,
-      competitions,
-      factTree,
-      registry as unknown as SlashCommandRegistryService,
-      new FactTreeUtilsService(),
-    ),
-    coaches,
-    teams,
-    players,
-    eras,
-    races,
-    competitions,
+    coachToplist,
+    teamToplist,
+    playerToplist,
+    raceToplist,
+    expensiveMistakes,
+    erasList,
+    statsSummary,
+  };
+}
+
+export interface MakeServiceResult {
+  service: InsightsCommandService;
+  leagues: MockProxy<LeaguesService>;
+  eras: MockProxy<ErasService>;
+  competitions: MockProxy<CompetitionsService>;
+  registry: MockProxy<SlashCommandRegistryService>;
+  factTreeUtils: MockProxy<FactTreeUtilsService>;
+  factTreeDeps: FactTreeMocks;
+}
+
+export async function makeService(): Promise<MakeServiceResult> {
+  const leagues = mock<LeaguesService>();
+  leagues.findById.mockResolvedValue(undefined);
+  leagues.searchByNamePrefix.mockResolvedValue([]);
+
+  const eras = mock<ErasService>();
+  eras.findById.mockResolvedValue(undefined);
+  eras.searchByNamePrefix.mockResolvedValue([]);
+
+  const competitions = mock<CompetitionsService>();
+  competitions.findById.mockResolvedValue(undefined);
+  competitions.searchByNamePrefix.mockResolvedValue([]);
+
+  const registry = mock<SlashCommandRegistryService>();
+  const factTreeUtils = makeFactTreeUtilsMock();
+  const factTreeDeps = makeFactTreeMocks();
+  const factTree = buildFactTree(factTreeDeps);
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      InsightsCommandService,
+      { provide: LeaguesService, useValue: leagues },
+      { provide: ErasService, useValue: eras },
+      { provide: CompetitionsService, useValue: competitions },
+      { provide: FACT_TREE, useValue: factTree },
+      { provide: SlashCommandRegistryService, useValue: registry },
+      { provide: FactTreeUtilsService, useValue: factTreeUtils },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(InsightsCommandService),
     leagues,
+    eras,
+    competitions,
     registry,
+    factTreeUtils,
+    factTreeDeps,
   };
 }
 
