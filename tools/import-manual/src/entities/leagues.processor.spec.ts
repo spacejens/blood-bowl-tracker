@@ -70,7 +70,6 @@ describe('LeaguesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(leagues.upsertLeague).toHaveBeenCalledWith(
       {
         name: 'My League',

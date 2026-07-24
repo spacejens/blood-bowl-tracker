@@ -67,7 +67,6 @@ describe('CoachesProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.upsertCoach).toHaveBeenCalledWith(
       {
         name: 'Bob',

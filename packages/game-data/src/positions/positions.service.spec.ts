@@ -58,9 +58,7 @@ describe('PositionsService', () => {
       created: true,
     });
     expect(chains).toHaveLength(3);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).toHaveBeenCalledWith(positions);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -88,7 +86,6 @@ describe('PositionsService', () => {
 
     expect(result.created).toBe(false);
     expect(chains).toHaveLength(3);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).toHaveBeenCalledWith(positions);
   });
 
@@ -102,9 +99,7 @@ describe('PositionsService', () => {
       PositionUpsertConflictError,
     );
     expect(chains).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -225,7 +220,6 @@ describe('PositionsService', () => {
       expect(result).toEqual({ positionId: 1, raceEraIds: [] });
       // `raceEras.length === 0` returns before issuing any query.
       expect(chains).toHaveLength(0);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalled();
     });
   });
@@ -234,7 +228,6 @@ describe('PositionsService', () => {
     it('returns the total row count', async () => {
       const { db } = await build([{ count: 5 }]);
       await expect(service.countAll()).resolves.toBe(5);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
     });
   });

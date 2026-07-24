@@ -41,7 +41,6 @@ describe('ExternalSystemsService', () => {
       category: 'imported_data_source',
     });
     expect(result).toEqual({ system: fakeSystem, created: false });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).not.toHaveBeenCalled();
   });
 
@@ -52,7 +51,6 @@ describe('ExternalSystemsService', () => {
       category: 'referenced_not_imported',
     });
     expect(result).toEqual({ system: fakeSystem, created: true });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).toHaveBeenCalled();
   });
 
@@ -71,7 +69,6 @@ describe('ExternalSystemsService', () => {
       const { db, chains } = await build([{ count: 3 }]);
 
       await expect(service.countByEra(5)).resolves.toBe(3);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
 
       expect(
@@ -92,7 +89,6 @@ describe('ExternalSystemsService', () => {
       const { db, chains } = await build([{ count: 2 }]);
 
       await expect(service.countByCompetition(7)).resolves.toBe(2);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
 
       expect(
@@ -113,7 +109,6 @@ describe('ExternalSystemsService', () => {
       const { db, chains } = await build([{ count: 1 }]);
 
       await expect(service.countByLeague(9)).resolves.toBe(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
 
       expect(

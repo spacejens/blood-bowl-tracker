@@ -149,9 +149,7 @@ describe('ManualImportService', () => {
 
     await service.run('/data/dir');
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(reader.read).toHaveBeenCalledWith('/data/dir');
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystems.bootstrap).toHaveBeenCalledTimes(1);
     const rulesCtx = procs.rulesSets.process.mock.calls[0][0];
     const teamsCtx = procs.teams.process.mock.calls[0][0];

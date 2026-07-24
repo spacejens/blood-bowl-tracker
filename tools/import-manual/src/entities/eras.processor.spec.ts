@@ -83,7 +83,6 @@ describe('ErasProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(eras.upsertEra).toHaveBeenCalledWith(
       {
         name: 'Season 12',
@@ -149,7 +148,6 @@ describe('ErasProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(eras.upsertEra).not.toHaveBeenCalled();
     expect(ctx.errors.length).toBe(2);
   });

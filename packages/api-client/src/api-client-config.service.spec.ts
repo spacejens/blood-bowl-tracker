@@ -34,7 +34,6 @@ describe('ApiClientConfigService', () => {
     // asserts the service actually requested the expected key and default.
     config.get.mockImplementation((_key, defaultValue) => defaultValue);
     expect(service.getApiBaseUrl()).toBe('http://localhost:3000');
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(config.get).toHaveBeenCalledWith(
       'API_BASE_URL',
       'http://localhost:3000',

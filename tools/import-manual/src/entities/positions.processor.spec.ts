@@ -88,7 +88,6 @@ describe('PositionsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(positions.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Zombie',
@@ -97,7 +96,6 @@ describe('PositionsProcessor', () => {
       },
       ctx.errors,
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(positions.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 80, raceEras: [{ raceId: 40, eraId: 50 }] },
       ctx.errors,
@@ -128,7 +126,6 @@ describe('PositionsProcessor', () => {
     );
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
 
@@ -161,7 +158,6 @@ describe('PositionsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
     expect(ctx.errors).toHaveLength(1);
   });
@@ -183,7 +179,6 @@ describe('PositionsProcessor', () => {
     );
 
     expect(count).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
 });

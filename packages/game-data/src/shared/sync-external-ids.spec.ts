@@ -37,7 +37,6 @@ describe('insertMissingExternalIds', () => {
       externalIds: [{ externalSystemId: 1, externalId: 'a' }],
       buildRow: (pair) => ({ rulesSetId: 99, ...pair }),
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).not.toHaveBeenCalled();
     expect(values).not.toHaveBeenCalled();
   });

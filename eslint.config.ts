@@ -86,6 +86,10 @@ export default tseslint.config(
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/*.test-helpers.ts'],
     rules: {
       'local/no-direct-service-instantiation': 'error',
+      // Asserting on a mock method reference (e.g.
+      // `expect(mock.method).toHaveBeenCalledWith(...)`) trips unbound-method,
+      // which only matters for real, `this`-bound methods — never for mocks.
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
 );

@@ -182,7 +182,6 @@ describe('TeamDeepdiveService', () => {
         },
       ],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.getTopPlayersByMatchEventCount).not.toHaveBeenCalled();
   });
 

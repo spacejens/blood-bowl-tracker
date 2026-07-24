@@ -183,7 +183,6 @@ describe('BblPositionsImportService', () => {
       teamRaceIdsByCode,
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
       [
         { name: 'BBL', category: 'imported_data_source' },
@@ -192,7 +191,6 @@ describe('BblPositionsImportService', () => {
       'Failed to upsert external system: ',
     );
     expect(result.imported).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Goblin Linemen',
@@ -207,7 +205,6 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Goblin Linemen',
@@ -258,7 +255,6 @@ describe('BblPositionsImportService', () => {
     expect(positionIdsByBblId.get('60-7')).toBe(100);
     expect(positionIdsByBblId.get('60-14')).toBe(100);
     // listed race
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
@@ -271,7 +267,6 @@ describe('BblPositionsImportService', () => {
       expect.any(Array),
     );
     // extra reverse-engineered race: duplicate row
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
@@ -323,7 +318,6 @@ describe('BblPositionsImportService', () => {
     expect(positionIdsByBblId.get('60-7')).toBe(100);
     expect(positionIdsByBblId.get('60-14')).toBe(100);
     // listed race row (unchanged listed-race convention: isStarPlayer false)
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
@@ -336,7 +330,6 @@ describe('BblPositionsImportService', () => {
       expect.any(Array),
     );
     // extra races merged into one star row with a bare-name external id
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
@@ -392,7 +385,6 @@ describe('BblPositionsImportService', () => {
 
     // Only the 2 listed races import; the resolved race is deduped away.
     expect(result.imported).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(2);
   });
 
@@ -420,7 +412,6 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(1);
     expect(result.errors.some((e) => e.message.includes('Unknown Race'))).toBe(
       true,
@@ -464,9 +455,7 @@ describe('BblPositionsImportService', () => {
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('99-14')).toBe(100);
     expect(positionIdsByBblId.get('99-48')).toBe(100);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Wilhelm Chaney',
@@ -520,7 +509,6 @@ describe('BblPositionsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('121-14')).toBe(100);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Norse Catchers',
@@ -562,7 +550,6 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('Zolcath the Zoat')),
@@ -593,7 +580,6 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('Norse Catchers')),
@@ -631,7 +617,6 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(result.errors.some((e) => e.message.includes('Grotty'))).toBe(true);
   });
@@ -648,7 +633,6 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
   });
 
@@ -712,7 +696,6 @@ describe('BblPositionsImportService', () => {
     expect(
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
   });
 

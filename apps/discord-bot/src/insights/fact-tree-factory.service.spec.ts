@@ -80,7 +80,6 @@ describe('FactTreeFactoryService', () => {
     await (
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
     ).resolve();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 });

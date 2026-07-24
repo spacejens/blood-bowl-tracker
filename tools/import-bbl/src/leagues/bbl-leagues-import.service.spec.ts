@@ -84,9 +84,7 @@ describe('BblLeaguesImportService', () => {
 
     await service.importLeagues();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -106,7 +104,6 @@ describe('BblLeaguesImportService', () => {
 
     await service.importLeagues();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -140,7 +137,6 @@ describe('BblLeaguesImportService', () => {
         ['GBBL', 43],
       ]),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.leaguesImport.upsertLeague).toHaveBeenNthCalledWith(
       1,
       {
@@ -152,7 +148,6 @@ describe('BblLeaguesImportService', () => {
       },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.leaguesImport.upsertLeague).toHaveBeenNthCalledWith(
       2,
       {
@@ -199,7 +194,6 @@ describe('BblLeaguesImportService', () => {
 
     expect(result.success).toBe(false);
     expect(result.errors.some((e) => e.message.includes('leagues'))).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
   });
 
@@ -222,7 +216,6 @@ describe('BblLeaguesImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
   });
 });

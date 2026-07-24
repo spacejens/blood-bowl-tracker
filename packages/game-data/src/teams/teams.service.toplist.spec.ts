@@ -51,7 +51,6 @@ describe('TeamsService', () => {
       await expect(
         service.countMatchesPlayedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
     });
 
@@ -79,7 +78,6 @@ describe('TeamsService', () => {
       await expect(
         service.countCompetitionsByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
     });
 
@@ -114,7 +112,6 @@ describe('TeamsService', () => {
       ];
       const { db, chains } = await build(rows);
       await expect(service.countErasByTeam(21)).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
@@ -135,7 +132,6 @@ describe('TeamsService', () => {
       await expect(
         service.countTouchdownsScoredByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
     });
 
@@ -272,7 +268,6 @@ describe('TeamsService', () => {
       await expect(
         service.countCasualtiesCausedByTeam(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
     });
 

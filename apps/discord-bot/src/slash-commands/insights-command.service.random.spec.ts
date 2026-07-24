@@ -14,7 +14,6 @@ describe('InsightsCommandService — random pick', () => {
     const { service, factTreeDeps } = await makeService();
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await service.execute(chatInput('coach'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -22,7 +21,6 @@ describe('InsightsCommandService — random pick', () => {
     const { service, factTreeDeps } = await makeService();
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await service.execute(chatInput(null));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -30,7 +28,6 @@ describe('InsightsCommandService — random pick', () => {
     const { service, factTreeDeps } = await makeService();
     vi.spyOn(Math, 'random').mockReturnValue(0);
     await service.resolveRandomFact({});
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -44,7 +41,6 @@ describe('InsightsCommandService — random pick', () => {
     // after the "eras" branch (which has no era-supporting leaves).
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null, { era: '20' }));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: 20,
@@ -59,7 +55,6 @@ describe('InsightsCommandService — random pick', () => {
     // out of the era-scoped pool, so resolveErasActive is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null, { era: '20' }));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.teamToplist.resolveErasActive).not.toHaveBeenCalled();
   });
 
@@ -92,7 +87,6 @@ describe('InsightsCommandService — random pick', () => {
     // out of the era-scoped pool, so resolveErasActive is never called.
     vi.spyOn(Math, 'random').mockReturnValue(0.999999);
     await service.execute(chatInput(null, { era: '20' }));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveErasActive).not.toHaveBeenCalled();
   });
 

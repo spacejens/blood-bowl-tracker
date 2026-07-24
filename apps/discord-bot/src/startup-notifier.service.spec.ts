@@ -34,9 +34,7 @@ describe('StartupNotifierService', () => {
 
   it('posts a random insights fact string to the configured channel', async () => {
     await service.onApplicationBootstrap();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '42',
       'a random fact',
@@ -49,7 +47,6 @@ describe('StartupNotifierService', () => {
     };
     insightsCommand.resolveRandomFact.mockResolvedValue(embed);
     await service.onApplicationBootstrap();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.sendMessage).toHaveBeenCalledWith('42', embed);
   });
 
@@ -60,7 +57,6 @@ describe('StartupNotifierService', () => {
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
       'DISCORD_CHANNEL_ID is not configured',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
   });
 });

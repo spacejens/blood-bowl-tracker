@@ -60,9 +60,7 @@ describe('LeaguesService', () => {
 
       expect(result).toEqual({ league: fakeLeague, created: true });
       expect(chains).toHaveLength(3);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -76,7 +74,6 @@ describe('LeaguesService', () => {
 
       expect(result).toEqual({ league: fakeLeague, created: false });
       expect(chains).toHaveLength(3);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).toHaveBeenCalled();
     });
 
@@ -90,9 +87,7 @@ describe('LeaguesService', () => {
         service.upsert({ name: 'Test League', externalIds }),
       ).rejects.toThrow(LeagueUpsertConflictError);
       expect(chains).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -108,7 +103,6 @@ describe('LeaguesService', () => {
       await service.upsert({ name: 'Test League', externalIds });
 
       expect(chains).toHaveLength(2);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalled();
     });
 

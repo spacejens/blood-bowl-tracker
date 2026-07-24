@@ -108,12 +108,10 @@ describe('ExternalSystemsProcessor', () => {
     );
     expect(systemIds.get('Name')).toBeDefined();
     expect(systemIds.get('Explicit')).toBeDefined();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'BBL',
       'imported_data_source',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'Name',
       'bookkeeping',
@@ -131,9 +129,7 @@ describe('ExternalSystemsProcessor', () => {
 
     await processor.bootstrap(data);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'Name',
       'bookkeeping',
@@ -169,17 +165,14 @@ describe('ExternalSystemsProcessor', () => {
     );
     expect(names).toContain('RaceSys');
     expect(names).toContain('EraSys');
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'RaceSys',
       'imported_data_source',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'EraSys',
       'imported_data_source',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'Name',
       'bookkeeping',
@@ -198,7 +191,6 @@ describe('ExternalSystemsProcessor', () => {
 
     await processor.bootstrap(data);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
       'NAF',
       'referenced_not_imported',
@@ -215,7 +207,6 @@ describe('ExternalSystemsProcessor', () => {
     await expect(processor.bootstrap(data)).rejects.toThrow(
       'External system "Undeclared" is referenced but not declared in externalSystems',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).not.toHaveBeenCalled();
   });
 
@@ -230,7 +221,6 @@ describe('ExternalSystemsProcessor', () => {
     await expect(processor.bootstrap(data)).rejects.toThrow(
       'External system "Name" is declared with conflicting categories: "bookkeeping" and "imported_data_source"',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(externalSystemsImport.upsertExternalSystem).not.toHaveBeenCalled();
   });
 

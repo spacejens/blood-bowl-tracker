@@ -366,7 +366,6 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('no imported match id');
@@ -382,7 +381,6 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve all')),

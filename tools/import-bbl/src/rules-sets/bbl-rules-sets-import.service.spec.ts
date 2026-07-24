@@ -129,14 +129,11 @@ describe('BblRulesSetsImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenNthCalledWith(
       1,
       {
@@ -173,7 +170,6 @@ describe('BblRulesSetsImportService', () => {
 
     const { result, rulesSetIdsByName } = await service.importRulesSets();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
     expect(rulesSetIdsByName.get('BB2020')).toBe(200);
@@ -209,12 +205,10 @@ describe('BblRulesSetsImportService', () => {
 
     const outcome = await service.importRulesSets();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).toHaveBeenCalledTimes(3);
     const upsertedNames = mocks.rulesSetsImport.upsertRulesSet.mock.calls.map(
       (c) => (c[0] as { name: string }).name,
@@ -262,7 +256,6 @@ describe('BblRulesSetsImportService', () => {
     expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
       true,
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).not.toHaveBeenCalled();
   });
 
@@ -288,7 +281,6 @@ describe('BblRulesSetsImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.rulesSetsImport.upsertRulesSet).not.toHaveBeenCalled();
   });
 });

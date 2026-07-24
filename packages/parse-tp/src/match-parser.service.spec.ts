@@ -227,14 +227,12 @@ describe('MatchParserService', () => {
 
     const result = service.parse(matchBody({ matchEvents: rawMatchEvents }));
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(matchEventParser.parse).toHaveBeenCalledWith(rawMatchEvents);
     expect(result.matchEvents).toBe(decodedEvents);
   });
 
   it('passes an empty array to MatchEventParserService.parse when matchEvents is absent', () => {
     service.parse(matchBody());
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(matchEventParser.parse).toHaveBeenCalledWith([]);
   });
 

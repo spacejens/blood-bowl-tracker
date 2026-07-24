@@ -33,7 +33,6 @@ describe('SlashCommandRegistryService', () => {
       execute: vi.fn(),
     });
     await registry.onApplicationBootstrap();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerCommands).toHaveBeenCalledTimes(1);
     const commands = discordClient.registerCommands.mock.calls[0][0] as {
       name: string;
@@ -43,7 +42,6 @@ describe('SlashCommandRegistryService', () => {
 
   it('calls registerCommands with an empty list when nothing registered', async () => {
     await registry.onApplicationBootstrap();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerCommands).toHaveBeenCalledWith([]);
   });
 });

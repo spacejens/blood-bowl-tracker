@@ -190,18 +190,15 @@ describe('BblPlayersImportService', () => {
 
     expect(result.success).toBe(true);
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
       [{ name: 'BBL', category: 'imported_data_source' }],
       'Failed to upsert external system: ',
     );
     expect(playerIdsByPid.get('42')).toBe(900);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
       {
         name: 'Griff Oberwald',
@@ -250,12 +247,10 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalled();
   });
 
@@ -296,7 +291,6 @@ describe('BblPlayersImportService', () => {
       eraIdsByName: otherEraIdsByName,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
@@ -348,7 +342,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
@@ -404,7 +397,6 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(1);
     // Pinned to the GBBL era's team era (eraId 700), not the tLoEG pid-range
     // era (500).
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [700] },
       expect.any(Array),
@@ -456,7 +448,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
@@ -508,7 +499,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(1);
     // Pinned to Side (eraId 500), not Main, via team code.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
@@ -563,7 +553,6 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(1);
     // Lands in "Enabled" (eraId 500), proving "Disabled" was genuinely
     // skipped by the range scan rather than merely checked-and-not-matching.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
@@ -600,7 +589,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
@@ -627,7 +615,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalled();
   });
 
@@ -656,7 +643,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -674,7 +660,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -723,7 +708,6 @@ describe('BblPlayersImportService', () => {
     // Players bootstraps only the BBL external system (no Name system).
     expect(result.errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(playerIdsByPid.size).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -740,7 +724,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('388');
@@ -767,7 +750,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(playerIdsByPid.get('388')).toBe(900);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
       {
         name: '',
@@ -804,9 +786,7 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -824,7 +804,6 @@ describe('BblPlayersImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -845,7 +824,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -868,7 +846,6 @@ describe('BblPlayersImportService', () => {
     expect(result.imported).toBe(0);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]?.message).toContain('33-?');
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -887,7 +864,6 @@ describe('BblPlayersImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(playerIdsByPid.size).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalled();
   });
 

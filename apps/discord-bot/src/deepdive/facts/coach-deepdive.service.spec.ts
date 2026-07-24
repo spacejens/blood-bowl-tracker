@@ -202,7 +202,6 @@ describe('CoachDeepdiveService', () => {
       ],
     });
     // Top-teams lookup must not run for a coach with no matches.
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.getTopTeamsByMatchesPlayed).not.toHaveBeenCalled();
   });
 

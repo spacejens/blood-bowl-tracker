@@ -50,7 +50,6 @@ describe('PlayersService toplist queries', () => {
     await expect(
       service.countMvpAwardsByPlayer(FACT_SCOPE_ALL_TIME, 21),
     ).resolves.toEqual(rows);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.select).toHaveBeenCalledTimes(1);
   });
 
@@ -108,7 +107,6 @@ describe('PlayersService toplist queries', () => {
     await expect(
       service.countTouchdownsScoredByPlayer(FACT_SCOPE_ALL_TIME, 21),
     ).resolves.toEqual(rows);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.select).toHaveBeenCalledTimes(1);
   });
 
@@ -245,7 +243,6 @@ describe('PlayersService toplist queries', () => {
     await expect(
       service.countCasualtiesCausedByPlayer(FACT_SCOPE_ALL_TIME, 21),
     ).resolves.toEqual(rows);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.select).toHaveBeenCalledTimes(1);
   });
 
@@ -421,7 +418,6 @@ describe('PlayersService toplist queries', () => {
     await expect(
       service.countCasualtiesSufferedByPlayer(FACT_SCOPE_ALL_TIME, 21),
     ).resolves.toEqual(rows);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.select).toHaveBeenCalledTimes(1);
   });
 

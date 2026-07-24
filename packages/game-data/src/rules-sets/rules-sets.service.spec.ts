@@ -46,9 +46,7 @@ describe('RulesSetsService', () => {
 
     expect(result).toEqual({ rulesSet: fakeRulesSet, created: true });
     expect(chains).toHaveLength(3);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).toHaveBeenCalledWith(rulesSets);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).not.toHaveBeenCalled();
   });
 
@@ -62,7 +60,6 @@ describe('RulesSetsService', () => {
 
     expect(result.created).toBe(false);
     expect(chains).toHaveLength(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).toHaveBeenCalledWith(rulesSets);
   });
 
@@ -76,9 +73,7 @@ describe('RulesSetsService', () => {
       RulesSetUpsertConflictError,
     );
     expect(chains).toHaveLength(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.insert).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(db.update).not.toHaveBeenCalled();
   });
 

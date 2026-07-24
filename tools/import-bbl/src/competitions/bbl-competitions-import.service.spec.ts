@@ -184,14 +184,12 @@ describe('BblCompetitionsImportService', () => {
     const { result, competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(result.imported).toBe(1);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       {
@@ -239,7 +237,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Chaos Cup', type: 'cup', eraId: 200 }),
@@ -260,7 +257,6 @@ describe('BblCompetitionsImportService', () => {
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
@@ -285,7 +281,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
@@ -315,7 +310,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
@@ -353,7 +347,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
@@ -387,7 +380,6 @@ describe('BblCompetitionsImportService', () => {
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
   });
 
@@ -413,7 +405,6 @@ describe('BblCompetitionsImportService', () => {
     const { result } = await service.importCompetitions(eraIdsByName);
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
   });
 
@@ -441,7 +432,6 @@ describe('BblCompetitionsImportService', () => {
       externalSystems: ['BBL', 'Name'],
     });
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
   });
@@ -458,7 +448,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
@@ -505,7 +494,6 @@ describe('BblCompetitionsImportService', () => {
     expect(result.imported).toBe(1);
     expect(result.errors).toHaveLength(0);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       {
@@ -563,7 +551,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'season', eraId: 200 }),
@@ -613,7 +600,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -671,7 +657,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -774,7 +759,6 @@ describe('BblCompetitionsImportService', () => {
     await service.importCompetitions(eraIds);
 
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
       expect.objectContaining({ eraId: 900, type: 'season' }),

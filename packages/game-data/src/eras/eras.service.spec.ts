@@ -80,7 +80,6 @@ describe('ErasService', () => {
         startDate: '2021-09-01',
         endDate: '2023-06-10',
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -101,7 +100,6 @@ describe('ErasService', () => {
       const result = await service.upsert(baseData);
 
       expect(result.created).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).toHaveBeenCalledWith(eras);
     });
 
@@ -115,9 +113,7 @@ describe('ErasService', () => {
         EraUpsertConflictError,
       );
       expect(chains).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -143,7 +139,6 @@ describe('ErasService', () => {
       const result = await service.upsert(baseData);
 
       expect(chains).toHaveLength(4);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalledWith(eraRulesSets);
       expect(result.era.rulesSetIds).toEqual([20, 21]);
     });
@@ -161,7 +156,6 @@ describe('ErasService', () => {
     it('returns the era count for the league', async () => {
       const { db, chains } = await build([{ count: 4 }]);
       await expect(service.countByLeague(9)).resolves.toBe(4);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
     });
@@ -221,7 +215,6 @@ describe('ErasService', () => {
         'BB2016',
         'BB2020',
       ]);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(chains[0].orderBy).toHaveBeenCalledWith(rulesSets.id);
       expect(
@@ -248,12 +241,10 @@ describe('ErasService', () => {
         'BB2016',
         'BB2020',
       ]);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.selectDistinct).toHaveBeenCalledTimes(1);
       // `id` must be selected alongside `name` -- Postgres rejects SELECT
       // DISTINCT with an ORDER BY expression that isn't in the select list,
       // and this query orders by rulesSets.id (regression test for that).
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn()/mock() mock, not a real bound method
       expect(Object.keys(firstCallArg(db.selectDistinct) as object)).toEqual([
         'id',
         'name',
@@ -289,7 +280,6 @@ describe('ErasService', () => {
     it('returns the rows the query resolves to and joins eras to leagues', async () => {
       const { db, chains } = await build(rows);
       await expect(service.listErasWithLeague({})).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),

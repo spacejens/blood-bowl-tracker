@@ -115,7 +115,6 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(matchIdsByBblId.get('89')).toBe(7);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
         competitionId: 42,
@@ -141,7 +140,6 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(matchIdsByBblId.size).toBe(0);
@@ -161,7 +159,6 @@ describe('BblMatchesImportService', () => {
 
     expect(result.imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
   });
 
@@ -206,9 +203,7 @@ describe('BblMatchesImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
         competitionId: 99,
@@ -272,7 +267,6 @@ describe('BblMatchesImportService', () => {
       ]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(2);
     expect(matchIdsByBblId.get('1061')).toBe(500);
     expect(matchIdsByBblId.get('1062')).toBe(600);
@@ -288,7 +282,6 @@ describe('BblMatchesImportService', () => {
       new Map([['3', 42]]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);

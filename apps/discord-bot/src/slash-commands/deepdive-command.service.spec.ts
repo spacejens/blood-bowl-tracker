@@ -224,7 +224,6 @@ describe('DeepdiveCommandService', () => {
     eraDeepdive.resolve.mockResolvedValue(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ era: '999' }));
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -233,7 +232,6 @@ describe('DeepdiveCommandService', () => {
     eraDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ era: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
@@ -249,31 +247,25 @@ describe('DeepdiveCommandService', () => {
   it('registers itself with the registry and both button handlers on init', async () => {
     const { service, registry, discordClient } = await makeService();
     service.onModuleInit();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(registry.register).toHaveBeenCalledTimes(1);
     const command = registry.register.mock.calls[0][0] as { name: string };
     expect(command.name).toBe('deepdive');
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       ERA_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       COACH_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       TEAM_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
@@ -286,7 +278,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handleEraButton(
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).toHaveBeenCalledWith(7);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -304,7 +295,6 @@ describe('DeepdiveCommandService', () => {
     const { service, eraDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: 'abc' }));
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -314,7 +304,6 @@ describe('DeepdiveCommandService', () => {
       buttonInteraction(`${ERA_BUTTON_CUSTOM_ID_PREFIX}abc`),
     );
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -323,7 +312,6 @@ describe('DeepdiveCommandService', () => {
     coachDeepdive.resolve.mockResolvedValue(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ coach: '999' }));
     expect(result).toBe(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -332,7 +320,6 @@ describe('DeepdiveCommandService', () => {
     coachDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ coach: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
@@ -340,9 +327,7 @@ describe('DeepdiveCommandService', () => {
     const { service, eraDeepdive, coachDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', coach: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eraDeepdive.resolve).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -363,7 +348,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handleCoachButton(
       buttonInteraction(`${COACH_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachDeepdive.resolve).toHaveBeenCalledWith(7);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -382,7 +366,6 @@ describe('DeepdiveCommandService', () => {
     teamDeepdive.resolve.mockResolvedValue(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ team: '999' }));
     expect(result).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(teamDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -391,7 +374,6 @@ describe('DeepdiveCommandService', () => {
     teamDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ team: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(teamDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
@@ -399,7 +381,6 @@ describe('DeepdiveCommandService', () => {
     const { service, teamDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', team: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(teamDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -420,7 +401,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handleTeamButton(
       buttonInteraction(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(teamDeepdive.resolve).toHaveBeenCalledWith(7);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -439,7 +419,6 @@ describe('DeepdiveCommandService', () => {
     playerDeepdive.resolve.mockResolvedValue(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ player: '999' }));
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(playerDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -448,7 +427,6 @@ describe('DeepdiveCommandService', () => {
     playerDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ player: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(playerDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
@@ -456,7 +434,6 @@ describe('DeepdiveCommandService', () => {
     const { service, playerDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', player: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(playerDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -479,7 +456,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handlePlayerButton(
       buttonInteraction(`${PLAYER_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(playerDeepdive.resolve).toHaveBeenCalledWith(7);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -497,7 +473,6 @@ describe('DeepdiveCommandService', () => {
     const { service, playerDeepdive } = await makeService();
     const result = await service.execute(chatInput({ player: 'abc' }));
     expect(result).toBe(DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(playerDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -506,7 +481,6 @@ describe('DeepdiveCommandService', () => {
     raceDeepdive.resolve.mockResolvedValue(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
     const result = await service.execute(chatInput({ race: '999' }));
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(raceDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -515,7 +489,6 @@ describe('DeepdiveCommandService', () => {
     raceDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ race: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(raceDeepdive.resolve).toHaveBeenCalledWith(7);
   });
 
@@ -523,7 +496,6 @@ describe('DeepdiveCommandService', () => {
     const { service, raceDeepdive } = await makeService();
     const result = await service.execute(chatInput({ era: '7', race: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(raceDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -542,7 +514,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handleRaceButton(
       buttonInteraction(`${RACE_BUTTON_CUSTOM_ID_PREFIX}7`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(raceDeepdive.resolve).toHaveBeenCalledWith(7);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -560,7 +531,6 @@ describe('DeepdiveCommandService', () => {
     const { service, raceDeepdive } = await makeService();
     const result = await service.execute(chatInput({ race: 'abc' }));
     expect(result).toBe(DEEPDIVE_RACE_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(raceDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -569,7 +539,6 @@ describe('DeepdiveCommandService', () => {
     competitionDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
     const result = await service.execute(chatInput({ competition: '3' }));
     expect(result).toBe(SAMPLE_EMBED);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitionDeepdive.resolve).toHaveBeenCalledWith(3);
   });
 
@@ -580,7 +549,6 @@ describe('DeepdiveCommandService', () => {
     );
     const result = await service.execute(chatInput({ competition: '999' }));
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitionDeepdive.resolve).toHaveBeenCalledWith(999);
   });
 
@@ -590,7 +558,6 @@ describe('DeepdiveCommandService', () => {
       chatInput({ era: '7', competition: '3' }),
     );
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
   });
 
@@ -613,7 +580,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.handleCompetitionButton(
       buttonInteraction(`${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}3`),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitionDeepdive.resolve).toHaveBeenCalledWith(3);
     expect(result).toBe(SAMPLE_EMBED);
   });
@@ -622,7 +588,6 @@ describe('DeepdiveCommandService', () => {
     const { service, competitionDeepdive } = await makeService();
     const result = await service.execute(chatInput({ competition: 'abc' }));
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
   });
 });

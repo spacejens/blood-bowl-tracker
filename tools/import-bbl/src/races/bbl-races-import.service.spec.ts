@@ -176,7 +176,6 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -191,7 +190,6 @@ describe('BblRacesImportService', () => {
 
     await service.importRaces();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -206,7 +204,6 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       {
         name: 'Orc',
@@ -227,7 +224,6 @@ describe('BblRacesImportService', () => {
 
     const { result } = await service.importRaces();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(2);
     expect(result.imported).toBe(2);
   });
@@ -239,7 +235,6 @@ describe('BblRacesImportService', () => {
 
     const { result } = await service.importRaces();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
@@ -271,7 +266,6 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>
@@ -316,7 +310,6 @@ describe('BblRacesImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
   });
 
@@ -408,7 +401,6 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       {
         name: 'College of Shadow',
@@ -436,9 +428,7 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Orc' }),
       expect.any(Array),
@@ -459,7 +449,6 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Retired Race' }),
       expect.any(Array),
@@ -480,7 +469,6 @@ describe('BblRacesImportService', () => {
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>

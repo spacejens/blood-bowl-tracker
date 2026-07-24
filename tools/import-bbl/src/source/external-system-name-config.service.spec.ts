@@ -29,7 +29,6 @@ describe('ExternalSystemNameConfigService', () => {
   it('returns "BBL" when externalSystemName is not set', () => {
     stub(undefined);
     expect(service.getBblSystemName()).toBe('BBL');
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(config.get).toHaveBeenCalledWith('externalSystemName');
   });
 

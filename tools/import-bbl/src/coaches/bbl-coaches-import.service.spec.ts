@@ -129,7 +129,6 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -142,7 +141,6 @@ describe('BblCoachesImportService', () => {
 
     await service.importCoaches();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -155,7 +153,6 @@ describe('BblCoachesImportService', () => {
     const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledWith(
       {
         name: 'Hugo E',
@@ -175,7 +172,6 @@ describe('BblCoachesImportService', () => {
 
     const { result } = await service.importCoaches();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(2);
     expect(result.imported).toBe(2);
   });
@@ -187,7 +183,6 @@ describe('BblCoachesImportService', () => {
 
     const { result } = await service.importCoaches();
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
@@ -219,7 +214,6 @@ describe('BblCoachesImportService', () => {
     const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>
@@ -264,7 +258,6 @@ describe('BblCoachesImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.coachesImport.upsertCoach).not.toHaveBeenCalled();
   });
 

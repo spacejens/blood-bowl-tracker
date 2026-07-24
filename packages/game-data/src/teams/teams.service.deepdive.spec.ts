@@ -64,7 +64,6 @@ describe('TeamsService lookups', () => {
       const { db, chains } = await build([row]);
       await expect(service.findById(7)).resolves.toEqual(row);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn()/mock() mock, not a real bound method
       const selectArg = firstCallArg(db.select, 0, 0) as Record<
         string,
         unknown

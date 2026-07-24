@@ -131,7 +131,6 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -142,7 +141,6 @@ describe('BblErasImportService', () => {
         ['BB2020', 600],
       ]),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).toHaveBeenNthCalledWith(
       1,
       {
@@ -158,7 +156,6 @@ describe('BblErasImportService', () => {
       },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).toHaveBeenNthCalledWith(
       2,
       {
@@ -185,7 +182,6 @@ describe('BblErasImportService', () => {
 
     await service.importEras(leagueIds, rulesSetIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
       expect.objectContaining({ leagueId: 10 }),
       expect.anything(),
@@ -218,7 +214,6 @@ describe('BblErasImportService', () => {
       new Map([['BB2016', 300]]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(
@@ -240,7 +235,6 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(1);
     expect(result.success).toBe(false);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some(
@@ -280,7 +274,6 @@ describe('BblErasImportService', () => {
       new Map([['CRP', 20]]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
     expect(result.errors[0].message).toMatch(/MISSING/);
   });
@@ -308,7 +301,6 @@ describe('BblErasImportService', () => {
       ]),
     );
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
       expect.objectContaining({ rulesSetIds: [20, 21] }),
       expect.anything(),
@@ -327,7 +319,6 @@ describe('BblErasImportService', () => {
     expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
       true,
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
   });
 
@@ -353,7 +344,6 @@ describe('BblErasImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
   });
 });

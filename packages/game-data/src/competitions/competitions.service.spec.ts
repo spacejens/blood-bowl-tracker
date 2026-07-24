@@ -77,9 +77,7 @@ describe('CompetitionsService', () => {
         created: true,
       });
       expect(chains).toHaveLength(5);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).toHaveBeenCalledWith(competitions);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -104,7 +102,6 @@ describe('CompetitionsService', () => {
       const result = await service.upsert(baseData);
 
       expect(result.created).toBe(false);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).toHaveBeenCalledWith(competitions);
     });
 
@@ -118,9 +115,7 @@ describe('CompetitionsService', () => {
         CompetitionUpsertConflictError,
       );
       expect(chains).toHaveLength(1);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalled();
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.update).not.toHaveBeenCalled();
     });
 
@@ -151,7 +146,6 @@ describe('CompetitionsService', () => {
       const result = await service.upsert(baseData);
 
       expect(chains).toHaveLength(4);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.insert).not.toHaveBeenCalledWith(competitionTeams);
       expect(result.competition.teamEraIds).toEqual([100, 101]);
     });
@@ -178,7 +172,6 @@ describe('CompetitionsService', () => {
     it('returns the competition count for the era', async () => {
       const { db, chains } = await build([{ count: 4 }]);
       await expect(service.countByEra(5)).resolves.toBe(4);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(5);
     });
@@ -289,7 +282,6 @@ describe('CompetitionsService', () => {
       ];
       const { db, chains } = await build(rows);
       await expect(service.listByEraChronological(5)).resolves.toEqual(rows);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
       expect(db.select).toHaveBeenCalledTimes(1);
       // filtered to the requested era
       expect(chains[0].where).toHaveBeenCalledTimes(1);

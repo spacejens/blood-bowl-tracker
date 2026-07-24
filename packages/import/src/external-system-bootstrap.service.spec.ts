@@ -40,13 +40,11 @@ describe('ExternalSystemBootstrapService', () => {
         { name: 'Name', category: 'bookkeeping' },
       ]),
     ).resolves.toEqual({ ok: true, ids: [1, 2] });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenNthCalledWith(
       1,
       'BBL',
       'imported_data_source',
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(externalSystemsImport.upsertExternalSystem).toHaveBeenNthCalledWith(
       2,
       'Name',

@@ -87,7 +87,6 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.upsertTeam).toHaveBeenCalledWith(
       {
         name: 'Grave Diggers',
@@ -148,7 +147,6 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.upsertTeam).not.toHaveBeenCalled();
     expect(ctx.errors.length).toBe(3);
   });

@@ -237,22 +237,18 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...home, eras: [200] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1001, 1002] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       { ...orcRace, eras: [200] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       { ...vampireRace, eras: [200] },
       expect.any(Array),
@@ -307,7 +303,6 @@ describe('BblTeamParticipationImportService', () => {
       ]),
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       { ...orcRace, eras: [200, 999] },
       expect.any(Array),
@@ -334,9 +329,7 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1001] },
       expect.any(Array),
@@ -377,7 +370,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1001] },
       expect.any(Array),
@@ -401,11 +393,8 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
   });
 
@@ -436,7 +425,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1001] },
       expect.any(Array),
@@ -462,7 +450,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
   });
 
@@ -481,7 +468,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).not.toHaveBeenCalled();
   });
 
@@ -505,7 +491,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledTimes(1);
   });
 
@@ -535,7 +520,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatch).toHaveBeenCalledWith(
       {
         competitionId: 42,
@@ -567,7 +551,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatch).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) =>
@@ -595,7 +578,6 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map(),
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.matchesImport.upsertMatch).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) =>
@@ -729,12 +711,10 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...home, eras: [200] },
       expect.any(Array),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1003] },
       expect.any(Array),
@@ -763,9 +743,7 @@ describe('BblTeamParticipationImportService', () => {
 
     expect(result.imported).toBe(1);
     // Set union dedupes 'sew': the team is upserted exactly once.
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).toHaveBeenCalledWith(
       { ...competition, teamEraIds: [1001] },
       expect.any(Array),
@@ -786,7 +764,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) =>
@@ -807,7 +784,6 @@ describe('BblTeamParticipationImportService', () => {
     });
 
     expect(result.imported).toBe(0);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.competitionsImport.upsertCompetition).not.toHaveBeenCalled();
   });
 });

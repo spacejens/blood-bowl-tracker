@@ -16,7 +16,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(
       chatInput('coach.toplist.matches.played'),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: undefined, competitionId: undefined },
     );
@@ -34,7 +33,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
   it('suffixes eras.list with the league scope when no league is explicitly given', async () => {
     const { service, factTreeDeps } = await makeService();
     const result = await service.execute(chatInput('eras.list'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.erasList.resolve).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: undefined,
@@ -59,7 +57,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
   it('resolves player.toplist.mvps with no era, suffixed with "All time"', async () => {
     const { service, factTreeDeps } = await makeService();
     const result = await service.execute(chatInput('player.toplist.mvps'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.playerToplist.resolveMvps).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: undefined,
@@ -111,7 +108,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(
       chatInput('player.toplist.completions'),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.playerToplist.resolveCompletions).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: undefined,
@@ -131,7 +127,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
   it('resolves team.toplist.deflections with no era, suffixed with "All time"', async () => {
     const { service, factTreeDeps } = await makeService();
     const result = await service.execute(chatInput('team.toplist.deflections'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.teamToplist.resolveDeflections).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: undefined,
@@ -151,7 +146,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
   it('resolves player.toplist.sent_off with no era, suffixed with "All time"', async () => {
     const { service, factTreeDeps } = await makeService();
     const result = await service.execute(chatInput('player.toplist.sent_off'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.playerToplist.resolveTimesSentOff).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: undefined, competitionId: undefined },
     );
@@ -171,7 +165,6 @@ describe('InsightsCommandService — fact-path resolution', () => {
     const result = await service.execute(
       chatInput('team.toplist.deaths.suffered'),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.teamToplist.resolveDeathsSuffered).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: undefined, competitionId: undefined },
     );

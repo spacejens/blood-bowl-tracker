@@ -25,9 +25,7 @@ describe('InsightsCommandService — competition scoping', () => {
     );
     expect(result).toBe(INSIGHTS_SCOPE_CONFLICT_MESSAGE);
     // mutual exclusion is checked before any lookup
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eras.findById).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitions.findById).not.toHaveBeenCalled();
   });
 
@@ -38,7 +36,6 @@ describe('InsightsCommandService — competition scoping', () => {
       chatInput('team.toplist.competitions.played', { competition: '999' }),
     );
     expect(result).toBe(INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(competitions.findById).toHaveBeenCalledWith(999);
   });
 
@@ -54,7 +51,6 @@ describe('InsightsCommandService — competition scoping', () => {
       chatInput('team.toplist.touchdowns.scored', { competition: '30' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.teamToplist.resolveTouchdownsScored,
     ).toHaveBeenCalledWith({
       leagueId: undefined,

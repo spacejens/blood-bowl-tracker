@@ -94,7 +94,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra: new Set(),
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       {
         positionId: 100,
@@ -132,7 +131,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
       expect.any(Array),
@@ -162,7 +160,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
       expect.any(Array),
@@ -192,7 +189,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [] },
       expect.any(Array),
@@ -222,7 +218,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
       expect.any(Array),
@@ -257,7 +252,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [] },
       expect.any(Array),
@@ -292,7 +286,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra,
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.positionsImport.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 100, raceEras: [{ raceId: 7, eraId: 500 }] },
       expect.any(Array),

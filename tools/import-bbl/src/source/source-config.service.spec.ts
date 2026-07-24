@@ -31,7 +31,6 @@ describe('SourceConfigService', () => {
   it('resolves a relative dataDir against the current working directory', () => {
     stub('data/tloeg.bbleague.se');
     expect(service.getDataDir()).toBe(resolve('data/tloeg.bbleague.se'));
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(config.get).toHaveBeenCalledWith('dataDir');
   });
 

@@ -80,7 +80,6 @@ describe('BblCompetitionStandingsReaderService', () => {
     const result = await service.getRegisteredTeamIdsByCompetitionId(errors);
 
     expect(result.get('69')).toEqual(new Set(['red4', 'äng']));
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(parser.extractRegisteredTeamIds).toHaveBeenCalledTimes(1);
     expect(errors).toHaveLength(0);
   });

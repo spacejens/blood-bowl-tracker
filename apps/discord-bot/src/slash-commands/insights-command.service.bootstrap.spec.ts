@@ -38,7 +38,6 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   it('registers the insights command with the registry on init', async () => {
     const { service, registry } = await makeService();
     service.onModuleInit();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(registry.register).toHaveBeenCalledTimes(1);
     const command = registry.register.mock.calls[0][0] as { name: string };
     expect(command.name).toBe('insights');

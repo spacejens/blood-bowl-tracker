@@ -184,7 +184,6 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -206,7 +205,6 @@ describe('BblTeamsImportService', () => {
 
     await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -231,7 +229,6 @@ describe('BblTeamsImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       {
         name: '40 grinders',
@@ -277,7 +274,6 @@ describe('BblTeamsImportService', () => {
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
@@ -289,7 +285,6 @@ describe('BblTeamsImportService', () => {
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(result.imported).toBe(0);
   });
@@ -308,7 +303,6 @@ describe('BblTeamsImportService', () => {
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(
@@ -325,7 +319,6 @@ describe('BblTeamsImportService', () => {
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve race')),
@@ -346,7 +339,6 @@ describe('BblTeamsImportService', () => {
 
     const { result } = await service.importTeams(raceIds, coachIds);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve coach')),
@@ -446,7 +438,6 @@ describe('BblTeamsImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
   });
 

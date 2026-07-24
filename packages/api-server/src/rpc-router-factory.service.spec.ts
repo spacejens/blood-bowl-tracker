@@ -448,7 +448,6 @@ describe('RpcRouterFactoryService', () => {
     };
     const result = await call(router.positions.syncRaceEras, input);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- mock method, not a real bound method
     expect(positionsService.syncRaceEras).toHaveBeenCalledWith(input);
     expect(result).toEqual({
       positionId: 1,

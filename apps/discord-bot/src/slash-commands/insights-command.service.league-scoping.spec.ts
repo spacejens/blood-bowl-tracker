@@ -22,7 +22,6 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { league: '5' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
       { leagueId: 5, eraId: undefined, competitionId: undefined },
     );
@@ -43,7 +42,6 @@ describe('InsightsCommandService — league scoping and rejection', () => {
     const result = await service.execute(
       chatInput('eras.list', { league: '5' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.erasList.resolve).toHaveBeenCalledWith({
       leagueId: 5,
       eraId: undefined,

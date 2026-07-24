@@ -60,7 +60,6 @@ describe('MatchEventParserService', () => {
   });
 
   it('builds its decoder table once, from MatchEventDecodersService, at construction', () => {
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(matchEventDecoders.build).toHaveBeenCalledTimes(1);
   });
 

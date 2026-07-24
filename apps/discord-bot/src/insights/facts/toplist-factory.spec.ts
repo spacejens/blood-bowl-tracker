@@ -54,7 +54,6 @@ describe('makeToplistResolvers', () => {
         eraId: 7,
         competitionId: 9,
       });
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'A title',
@@ -131,7 +130,6 @@ describe('makeToplistResolvers', () => {
       });
       const gamma = vi.fn().mockResolvedValue([]);
       await resolvers.gamma({ gamma }, FACT_SCOPE_ALL_TIME);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
         expect.objectContaining({ buildCustomId }),
       );

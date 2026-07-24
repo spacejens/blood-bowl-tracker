@@ -21,7 +21,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { era: '20' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
       { leagueId: undefined, eraId: 20, competitionId: undefined },
     );
@@ -51,35 +50,30 @@ describe('InsightsCommandService — era scoping and rejection', () => {
   }>([
     {
       factPath: 'team.toplist.competitions.played',
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       selectMock: (deps) => deps.teamToplist.resolveCompetitionsPlayed,
       expectedTitle: 'Teams by competitions played — BB2020',
       expectedDescription: '1. 40 grinders — 4',
     },
     {
       factPath: 'coach.toplist.competitions.played',
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       selectMock: (deps) => deps.coachToplist.resolveCompetitionsPlayed,
       expectedTitle: 'Coaches by competitions played — BB2020',
       expectedDescription: '1. Roze Madder — 5',
     },
     {
       factPath: 'player.toplist.mvps',
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       selectMock: (deps) => deps.playerToplist.resolveMvps,
       expectedTitle: 'Players by MVP awards — BB2020',
       expectedDescription: '1. Griff Oberwald — 7',
     },
     {
       factPath: 'race.toplist.teams',
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       selectMock: (deps) => deps.raceToplist.resolveTeams,
       expectedTitle: 'Races by teams — BB2020',
       expectedDescription: '1. Orc — 12',
     },
     {
       factPath: 'race.toplist.matches.played',
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       selectMock: (deps) => deps.raceToplist.resolveMatchesPlayed,
       expectedTitle: 'Races by matches played — BB2020',
       expectedDescription: '1. Orc — 40',
@@ -125,7 +119,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('coach.toplist.matches.played', { era: '999' }),
     );
     expect(result).toBe(INSIGHTS_ERA_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(eras.findById).toHaveBeenCalledWith(999);
   });
 
@@ -136,7 +129,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('player.toplist.touchdowns.scored', { era: '20' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.playerToplist.resolveTouchdownsScored,
     ).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -160,7 +152,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
     const result = await service.execute(
       chatInput('team.toplist.interceptions', { era: '20' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(factTreeDeps.teamToplist.resolveInterceptions).toHaveBeenCalledWith({
       leagueId: undefined,
       eraId: 20,
@@ -184,7 +175,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('player.toplist.casualties.caused', { era: '20' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.playerToplist.resolveCasualtiesCaused,
     ).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -209,7 +199,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('team.toplist.injuries.serious.caused', { era: '20' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.teamToplist.resolveSeriousInjuriesCaused,
     ).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -234,7 +223,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('player.toplist.casualties.suffered', { era: '20' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.playerToplist.resolveCasualtiesSuffered,
     ).toHaveBeenCalledWith({
       leagueId: undefined,
@@ -259,7 +247,6 @@ describe('InsightsCommandService — era scoping and rejection', () => {
       chatInput('team.toplist.injuries.lasting.suffered', { era: '20' }),
     );
     expect(
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       factTreeDeps.teamToplist.resolveLastingInjuriesSuffered,
     ).toHaveBeenCalledWith({
       leagueId: undefined,

@@ -90,7 +90,6 @@ describe('BblMatchListReaderService', () => {
     const result = await service.getMatchesByCompetitionId(errors);
 
     expect(result.get('1')).toEqual([matchOne]);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(parser.extractMatches).toHaveBeenCalledTimes(1);
     expect(errors).toHaveLength(0);
   });

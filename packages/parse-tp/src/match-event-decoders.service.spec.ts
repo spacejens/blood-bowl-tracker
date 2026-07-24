@@ -238,7 +238,6 @@ describe('MatchEventDecodersService', () => {
       extraData: { weatherType: 104 },
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(weatherType.decode).toHaveBeenCalledWith(104);
     expect(event).toEqual({
       type: 'weather_roll',
@@ -516,7 +515,6 @@ describe('MatchEventDecodersService', () => {
       extraData: { secretObjective: 12 },
     });
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(secretObjective.decode).toHaveBeenCalledWith(12);
     expect(event).toEqual({
       type: 'secret_objective',

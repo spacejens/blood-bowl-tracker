@@ -297,7 +297,6 @@ describe.each(cases)(
       );
       const result = await resolve(service, FACT_SCOPE_ALL_TIME);
       expect(result).toBe(TEAM_TOPLIST_TIMEOUT_MESSAGE);
-      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
       expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
         expect.objectContaining({
           timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
