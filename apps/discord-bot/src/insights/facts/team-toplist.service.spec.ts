@@ -1,8 +1,12 @@
-import type { FactScope, TeamsService } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import {
+  FACT_SCOPE_ALL_TIME,
+  TeamsService,
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
 import {
@@ -10,13 +14,23 @@ import {
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
 import { TeamToplistService } from './team-toplist.service';
-import { expectTimeoutFallback } from './toplist.test-helpers';
+import { makeLeaderboardMock } from './toplist.test-helpers';
 
-function makeService(teams: TeamsService): TeamToplistService {
-  return new TeamToplistService(
-    teams,
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+interface MadeService {
+  service: TeamToplistService;
+  leaderboard: MockProxy<LeaderboardService>;
+}
+
+async function makeService(teams: TeamsService): Promise<MadeService> {
+  const leaderboard = makeLeaderboardMock();
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TeamToplistService,
+      { provide: TeamsService, useValue: teams },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return { service: moduleRef.get(TeamToplistService), leaderboard };
 }
 
 interface TeamCase {
@@ -232,10 +246,8 @@ describe.each(cases)(
       const teams = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as TeamsService;
-      const result = (await resolve(
-        makeService(teams),
-        FACT_SCOPE_ALL_TIME,
-      )) as {
+      const { service } = await makeService(teams);
+      const result = (await resolve(service, FACT_SCOPE_ALL_TIME)) as {
         embeds: { title: string; description: string }[];
         components: { components: { label: string; custom_id: string }[] }[];
       };
@@ -253,7 +265,8 @@ describe.each(cases)(
       it('passes the era id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(eraRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
-        await resolve(makeService(teams), { eraId: 20 });
+        const { service } = await makeService(teams);
+        await resolve(service, { eraId: 20 });
         expect(queryFn).toHaveBeenCalledWith(
           { eraId: 20 },
           TOPLIST_FETCH_LIMIT,
@@ -265,7 +278,8 @@ describe.each(cases)(
       it('passes the competition id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
-        await resolve(makeService(teams), { competitionId: 30 });
+        const { service } = await makeService(teams);
+        await resolve(service, { competitionId: 30 });
         expect(queryFn).toHaveBeenCalledWith(
           { competitionId: 30 },
           TOPLIST_FETCH_LIMIT,
@@ -273,15 +287,21 @@ describe.each(cases)(
       });
     }
 
-    it('falls back to the timeout message when the query does not respond in time', async () => {
-      await expectTimeoutFallback(
-        (teams: TeamsService) =>
-          resolve(makeService(teams), FACT_SCOPE_ALL_TIME),
-        () =>
-          ({
-            [method]: vi.fn().mockReturnValue(new Promise(() => {})),
-          }) as unknown as TeamsService,
+    it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
+      const teams = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as TeamsService;
+      const { service, leaderboard } = await makeService(teams);
+      leaderboard.resolveToplist.mockResolvedValueOnce(
         TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      );
+      const result = await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(result).toBe(TEAM_TOPLIST_TIMEOUT_MESSAGE);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+      expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+        }),
       );
     });
   },
@@ -291,15 +311,17 @@ describe('TeamToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
     const queryFn = vi.fn().mockResolvedValue([]);
     const teams = { countErasByTeam: queryFn } as unknown as TeamsService;
-    await makeService(teams).resolveErasActive();
+    const { service } = await makeService(teams);
+    await service.resolveErasActive();
     expect(queryFn).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
   });
 });
 
 describe('TeamToplistService.teamButtonId', () => {
-  it('formats the deepdive team button customId', () => {
+  it('formats the deepdive team button customId', async () => {
     const teams = {} as unknown as TeamsService;
-    expect(makeService(teams).teamButtonId({ teamId: 42 })).toBe(
+    const { service } = await makeService(teams);
+    expect(service.teamButtonId({ teamId: 42 })).toBe(
       `${TEAM_BUTTON_CUSTOM_ID_PREFIX}42`,
     );
   });

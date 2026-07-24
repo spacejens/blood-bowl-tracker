@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { FactLeaf, FactNode } from './fact-tree.types';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
@@ -35,7 +36,14 @@ const tree: FactNode = {
 };
 
 describe('FactTreeUtilsService', () => {
-  const service = new FactTreeUtilsService();
+  let service: FactTreeUtilsService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [FactTreeUtilsService],
+    }).compile();
+    service = moduleRef.get(FactTreeUtilsService);
+  });
 
   describe('resolvePath', () => {
     it('resolves an exact leaf path to the leaf resolver', () => {

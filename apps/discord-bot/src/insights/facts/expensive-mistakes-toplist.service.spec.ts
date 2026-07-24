@@ -1,20 +1,35 @@
-import type { TeamsService } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
-import { TOPLIST_FETCH_LIMIT } from '../leaderboard.service';
-import { LeaderboardService } from '../leaderboard.service';
+import {
+  LeaderboardService,
+  TOPLIST_FETCH_LIMIT,
+} from '../leaderboard.service';
 import { ExpensiveMistakesToplistService } from './expensive-mistakes-toplist.service';
-import { expectTimeoutFallback } from './toplist.test-helpers';
+import { makeLeaderboardMock } from './toplist.test-helpers';
 
-function makeService(teams: TeamsService): ExpensiveMistakesToplistService {
-  return new ExpensiveMistakesToplistService(
-    teams,
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+interface MadeService {
+  service: ExpensiveMistakesToplistService;
+  leaderboard: MockProxy<LeaderboardService>;
+}
+
+async function makeService(teams: TeamsService): Promise<MadeService> {
+  const leaderboard = makeLeaderboardMock();
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      ExpensiveMistakesToplistService,
+      { provide: TeamsService, useValue: teams },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return {
+    service: moduleRef.get(ExpensiveMistakesToplistService),
+    leaderboard,
+  };
 }
 
 describe('ExpensiveMistakesToplistService.resolveTotal', () => {
@@ -26,7 +41,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     const teams = {
       sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue(rows),
     } as unknown as TeamsService;
-    const result = (await makeService(teams).resolveTotal({})) as unknown as {
+    const { service } = await makeService(teams);
+    const result = (await service.resolveTotal({})) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { label: string; custom_id: string }[] }[];
     };
@@ -49,7 +65,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     const teams = {
       sumExpensiveMistakesByTeam: queryFn,
     } as unknown as TeamsService;
-    await makeService(teams).resolveTotal({
+    const { service } = await makeService(teams);
+    await service.resolveTotal({
       eraId: 20,
       competitionId: 30,
     });
@@ -59,17 +76,19 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     );
   });
 
-  it('falls back to the timeout message when the query stalls', async () => {
-    await expectTimeoutFallback(
-      (teams: TeamsService) =>
-        makeService(teams).resolveTotal(FACT_SCOPE_ALL_TIME),
-      () =>
-        ({
-          sumExpensiveMistakesByTeam: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as TeamsService,
+  it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
+    const teams = {
+      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
+    );
+    const result = await service.resolveTotal({});
+    expect(result).toBe(TEAM_TOPLIST_TIMEOUT_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE }),
     );
   });
 });
@@ -84,7 +103,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     const teams = {
       listBiggestExpensiveMistakes: vi.fn().mockResolvedValue(rows),
     } as unknown as TeamsService;
-    const result = (await makeService(teams).resolveBiggest({})) as unknown as {
+    const { service } = await makeService(teams);
+    const result = (await service.resolveBiggest({})) as unknown as {
       embeds: { title: string; description: string }[];
       components: { components: { custom_id: string }[] }[];
     };
@@ -109,7 +129,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     const teams = {
       listBiggestExpensiveMistakes: queryFn,
     } as unknown as TeamsService;
-    await makeService(teams).resolveBiggest({
+    const { service } = await makeService(teams);
+    await service.resolveBiggest({
       eraId: 20,
       competitionId: 30,
     });
@@ -119,17 +140,19 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     );
   });
 
-  it('falls back to the timeout message when the query stalls', async () => {
-    await expectTimeoutFallback(
-      (teams: TeamsService) =>
-        makeService(teams).resolveBiggest(FACT_SCOPE_ALL_TIME),
-      () =>
-        ({
-          listBiggestExpensiveMistakes: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as TeamsService,
+  it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
+    const teams = {
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
+    );
+    const result = await service.resolveBiggest({});
+    expect(result).toBe(TEAM_TOPLIST_TIMEOUT_MESSAGE);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
+    expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+      expect.objectContaining({ timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE }),
     );
   });
 });

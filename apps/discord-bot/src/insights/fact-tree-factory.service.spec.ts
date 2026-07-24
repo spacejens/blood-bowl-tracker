@@ -1,102 +1,75 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { FactTreeFactoryService } from './fact-tree-factory.service';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
-import type { CoachToplistService } from './facts/coach-toplist.service';
-import type { ErasListService } from './facts/eras-list.service';
-import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
-import type { PlayerToplistService } from './facts/player-toplist.service';
-import type { RaceToplistService } from './facts/race-toplist.service';
-import type { StatsSummaryFactsService } from './facts/stats-summary.service';
-import type { TeamToplistService } from './facts/team-toplist.service';
+import { CoachToplistService } from './facts/coach-toplist.service';
+import { ErasListService } from './facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { PlayerToplistService } from './facts/player-toplist.service';
+import { RaceToplistService } from './facts/race-toplist.service';
+import { StatsSummaryFactsService } from './facts/stats-summary.service';
+import { TeamToplistService } from './facts/team-toplist.service';
 
 const factTreeUtils = new FactTreeUtilsService();
 
-function makeFactory() {
-  const coachToplist = {
-    resolveMatchesPlayed: vi
-      .fn()
-      .mockResolvedValue('coach matches played toplist'),
-    resolveTeams: vi.fn().mockResolvedValue('coach teams toplist'),
-    resolveCompetitionsPlayed: vi
-      .fn()
-      .mockResolvedValue('coach competitions played toplist'),
-    resolveErasActive: vi.fn().mockResolvedValue('coach eras active toplist'),
-  } as unknown as CoachToplistService;
-  const teamToplist = {
-    resolveMatchesPlayed: vi.fn().mockResolvedValue(''),
-    resolveCompetitionsPlayed: vi.fn().mockResolvedValue(''),
-    resolveErasActive: vi.fn().mockResolvedValue(''),
-    resolveTouchdownsScored: vi.fn().mockResolvedValue(''),
-    resolveCompletions: vi.fn().mockResolvedValue(''),
-    resolveInterceptions: vi.fn().mockResolvedValue(''),
-    resolveDeflections: vi.fn().mockResolvedValue(''),
-    resolveCasualtiesCaused: vi.fn().mockResolvedValue(''),
-    resolveCasualtiesSuffered: vi.fn().mockResolvedValue(''),
-    resolveSeriousInjuriesCaused: vi.fn().mockResolvedValue(''),
-    resolveSeriousInjuriesSuffered: vi.fn().mockResolvedValue(''),
-    resolveLastingInjuriesSuffered: vi.fn().mockResolvedValue(''),
-    resolveDeathsCaused: vi.fn().mockResolvedValue(''),
-    resolveDeathsSuffered: vi.fn().mockResolvedValue(''),
-    resolveFoulsCommitted: vi.fn().mockResolvedValue(''),
-    resolveTimesSentOff: vi.fn().mockResolvedValue(''),
-  } as unknown as TeamToplistService;
-  const playerToplist = {
-    resolveMvps: vi.fn().mockResolvedValue(''),
-    resolveTouchdownsScored: vi.fn().mockResolvedValue(''),
-    resolveCompletions: vi.fn().mockResolvedValue(''),
-    resolveInterceptions: vi.fn().mockResolvedValue(''),
-    resolveDeflections: vi.fn().mockResolvedValue(''),
-    resolveCasualtiesCaused: vi.fn().mockResolvedValue(''),
-    resolveCasualtiesSuffered: vi.fn().mockResolvedValue(''),
-    resolveSeriousInjuriesCaused: vi.fn().mockResolvedValue(''),
-    resolveSeriousInjuriesSuffered: vi.fn().mockResolvedValue(''),
-    resolveLastingInjuriesSuffered: vi.fn().mockResolvedValue(''),
-    resolveDeathsCaused: vi.fn().mockResolvedValue(''),
-    resolveFoulsCommitted: vi.fn().mockResolvedValue(''),
-    resolveTimesSentOff: vi.fn().mockResolvedValue(''),
-  } as unknown as PlayerToplistService;
-  const raceToplist = {
-    resolveTeams: vi.fn().mockResolvedValue(''),
-    resolveMatchesPlayed: vi.fn().mockResolvedValue(''),
-  } as unknown as RaceToplistService;
-  const expensiveMistakes = {
-    resolveTotal: vi.fn().mockResolvedValue(''),
-    resolveBiggest: vi.fn().mockResolvedValue(''),
-  } as unknown as ExpensiveMistakesToplistService;
-  const erasList = {
-    resolve: vi.fn().mockResolvedValue(''),
-  } as unknown as ErasListService;
-  const statsSummary = {
-    resolve: vi.fn().mockResolvedValue(''),
-  } as unknown as StatsSummaryFactsService;
-
-  const factory = new FactTreeFactoryService(
-    coachToplist,
-    teamToplist,
-    playerToplist,
-    raceToplist,
-    expensiveMistakes,
-    erasList,
-    statsSummary,
-  );
-  return { factory, coachToplist };
-}
-
 describe('FactTreeFactoryService', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
+  let factory: FactTreeFactoryService;
+  let coachToplist: MockProxy<CoachToplistService>;
+  let teamToplist: MockProxy<TeamToplistService>;
+  let playerToplist: MockProxy<PlayerToplistService>;
+  let raceToplist: MockProxy<RaceToplistService>;
+  let expensiveMistakes: MockProxy<ExpensiveMistakesToplistService>;
+  let erasList: MockProxy<ErasListService>;
+  let statsSummary: MockProxy<StatsSummaryFactsService>;
+
+  beforeEach(async () => {
+    coachToplist = mock<CoachToplistService>();
+    teamToplist = mock<TeamToplistService>();
+    playerToplist = mock<PlayerToplistService>();
+    raceToplist = mock<RaceToplistService>();
+    expensiveMistakes = mock<ExpensiveMistakesToplistService>();
+    erasList = mock<ErasListService>();
+    statsSummary = mock<StatsSummaryFactsService>();
+
+    coachToplist.resolveMatchesPlayed.mockResolvedValue(
+      'coach matches played toplist',
+    );
+    coachToplist.resolveTeams.mockResolvedValue('coach teams toplist');
+    coachToplist.resolveCompetitionsPlayed.mockResolvedValue(
+      'coach competitions played toplist',
+    );
+    coachToplist.resolveErasActive.mockResolvedValue(
+      'coach eras active toplist',
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        FactTreeFactoryService,
+        { provide: CoachToplistService, useValue: coachToplist },
+        { provide: TeamToplistService, useValue: teamToplist },
+        { provide: PlayerToplistService, useValue: playerToplist },
+        { provide: RaceToplistService, useValue: raceToplist },
+        {
+          provide: ExpensiveMistakesToplistService,
+          useValue: expensiveMistakes,
+        },
+        { provide: ErasListService, useValue: erasList },
+        { provide: StatsSummaryFactsService, useValue: statsSummary },
+      ],
+    }).compile();
+    factory = moduleRef.get(FactTreeFactoryService);
   });
 
   it('build() returns the fully assembled fact tree', () => {
-    const { factory } = makeFactory();
     const tree = factory.build();
     // buildFactTree currently produces 39 leaves (see fact-tree.spec.ts).
     expect(factTreeUtils.collectLeaves(tree)).toHaveLength(39);
   });
 
   it('wires its injected services into the tree so leaves call the right service', async () => {
-    const { factory, coachToplist } = makeFactory();
     const leaf = factTreeUtils.resolvePath(
       factory.build(),
       'coach.toplist.matches.played',
@@ -106,7 +79,7 @@ describe('FactTreeFactoryService', () => {
     await (
       leaf as { resolve: (e?: number, c?: number) => Promise<unknown> }
     ).resolve();
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vitest-mock-extended mock method, not a real bound method
     expect(coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 });

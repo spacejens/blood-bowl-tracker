@@ -1,7 +1,13 @@
-import type { ErasService, FactScope } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import {
+  ErasService,
+  FACT_SCOPE_ALL_TIME,
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
@@ -20,23 +26,45 @@ type EraRow = {
   endDate: string | null;
 };
 
-function makeService(rows: EraRow[]): ErasListService {
+let databaseTimeout: MockProxy<DatabaseTimeoutService>;
+
+beforeEach(() => {
+  databaseTimeout = mock<DatabaseTimeoutService>();
+  // Pass-through default mirroring DatabaseTimeoutService.run's happy path.
+  // Tests that need the timeout branch override this per-call.
+  databaseTimeout.run.mockImplementation(async (work) => work);
+});
+
+async function makeServiceFromEras(
+  eras: ErasService,
+): Promise<ErasListService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      ErasListService,
+      { provide: ErasService, useValue: eras },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+    ],
+  }).compile();
+  return moduleRef.get(ErasListService);
+}
+
+async function makeService(rows: EraRow[]): Promise<ErasListService> {
   const eras = {
     listErasWithLeague: vi.fn().mockResolvedValue(rows),
   } as unknown as ErasService;
-  return new ErasListService(eras, new DatabaseTimeoutService());
+  return makeServiceFromEras(eras);
 }
 
 describe('ErasListService.resolve', () => {
   it('returns the empty-state embed when there are no eras', async () => {
-    const result = await makeService([]).resolve(FACT_SCOPE_ALL_TIME);
+    const result = await (await makeService([])).resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [{ title: 'Eras', description: ERAS_LIST_NO_DATA_MESSAGE }],
     });
   });
 
   it('renders a single era with a deepdive button and no inline rules', async () => {
-    const result = await makeService([
+    const service = await makeService([
       {
         id: 1,
         name: 'Season 1',
@@ -44,7 +72,8 @@ describe('ErasListService.resolve', () => {
         startDate: '2020-01-01',
         endDate: '2020-12-31',
       },
-    ]).resolve(FACT_SCOPE_ALL_TIME);
+    ]);
+    const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -69,7 +98,7 @@ describe('ErasListService.resolve', () => {
   });
 
   it('renders an ongoing era with no end date as "present" and still attaches a deepdive button', async () => {
-    const result = await makeService([
+    const service = await makeService([
       {
         id: 1,
         name: 'Season 1',
@@ -77,7 +106,8 @@ describe('ErasListService.resolve', () => {
         startDate: '2020-01-01',
         endDate: null,
       },
-    ]).resolve(FACT_SCOPE_ALL_TIME);
+    ]);
+    const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -102,7 +132,7 @@ describe('ErasListService.resolve', () => {
   });
 
   it('lists all eras in flat chronological order across leagues, breaking ties by league then era name', async () => {
-    const result = await makeService([
+    const service = await makeService([
       // deliberately scrambled input order
       {
         id: 4,
@@ -162,7 +192,8 @@ describe('ErasListService.resolve', () => {
         startDate: '2024-01-01',
         endDate: null,
       },
-    ]).resolve(FACT_SCOPE_ALL_TIME);
+    ]);
+    const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -246,11 +277,14 @@ describe('ErasListService.resolve', () => {
   });
 
   it('falls back to the stunned message when the era query times out', async () => {
+    // The real timeout race is DatabaseTimeoutService's own responsibility
+    // (covered by database-timeout.service.spec.ts); here databaseTimeout is a
+    // mock, so this stubs its timeout branch directly rather than waiting on a
+    // real timer.
+    databaseTimeout.run.mockResolvedValueOnce(null);
     await expectTimeoutFallback(
-      (eras: ErasService) =>
-        new ErasListService(eras, new DatabaseTimeoutService()).resolve(
-          FACT_SCOPE_ALL_TIME,
-        ),
+      async (eras: ErasService) =>
+        (await makeServiceFromEras(eras)).resolve(FACT_SCOPE_ALL_TIME),
       () =>
         ({
           listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
@@ -267,9 +301,8 @@ describe('ErasListService.resolve', () => {
       startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
       endDate: null,
     }));
-    const result = (await makeService(rows).resolve(
-      FACT_SCOPE_ALL_TIME,
-    )) as unknown as {
+    const service = await makeService(rows);
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as unknown as {
       embeds: unknown[];
       components: { components: unknown[] }[];
     };
@@ -284,7 +317,7 @@ describe('ErasListService.resolve', () => {
   it('passes the league scope through to the query', async () => {
     const listErasWithLeague = vi.fn().mockResolvedValue([]);
     const eras = { listErasWithLeague } as unknown as ErasService;
-    const service = new ErasListService(eras, new DatabaseTimeoutService());
+    const service = await makeServiceFromEras(eras);
     const scope: FactScope = { leagueId: 7 };
     await service.resolve(scope);
     expect(listErasWithLeague).toHaveBeenCalledWith(scope);
