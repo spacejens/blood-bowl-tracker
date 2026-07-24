@@ -199,6 +199,16 @@ the compile happens:
 - Mocks are built fresh per test — never module-level — and each test stubs only
   the methods it needs. Never pass a *real* collaborator: a test about one
   service must not silently exercise another service's concrete behavior.
+- **A mock returns the canned responses the test expects — it never
+  reimplements the collaborator's real logic.** Copying a collaborator's
+  algorithm into its mock (so the mock "computes" the right answer) just
+  smuggles the real implementation back in: the test then exercises a *copy* of
+  the collaborator, drifts from it, and stops isolating the service under test.
+  Stub the specific value each test needs and assert what the service under test
+  *does* with it. The collaborator's own algorithm is tested in the
+  collaborator's own spec, not re-derived here. (Test-helper modules are
+  test-only: `local/no-test-helper-imports` forbids production code from
+  importing a `*.test-helpers.ts`.)
 - `moduleRef.get(TheService)` means every test also verifies the service's own DI
   metadata.
 
