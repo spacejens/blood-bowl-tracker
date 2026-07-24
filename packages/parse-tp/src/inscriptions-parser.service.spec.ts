@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { InscriptionsParserService } from './inscriptions-parser.service';
 
 describe('InscriptionsParserService', () => {
-  const service = new InscriptionsParserService();
+  let service: InscriptionsParserService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [InscriptionsParserService],
+    }).compile();
+    service = moduleRef.get(InscriptionsParserService);
+  });
 
   it('flattens every category into one TpCoach[] with trimmed names', () => {
     const result = service.parseCoaches({

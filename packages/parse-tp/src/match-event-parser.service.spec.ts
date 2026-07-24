@@ -1,4 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { MatchEventDecodersService } from './match-event-decoders.service';
 import { MatchEventParserService } from './match-event-parser.service';
@@ -8,14 +10,36 @@ import {
 } from './secret-objective.service';
 import { weatherTypeByCode, WeatherTypeService } from './weather-type.service';
 
-const parser = new MatchEventParserService(
-  new MatchEventDecodersService(
-    new SecretObjectiveService(),
-    new WeatherTypeService(),
-  ),
-);
-
 describe('MatchEventParserService', () => {
+  let parser: MatchEventParserService;
+  let matchEventDecoders: MockProxy<MatchEventDecodersService>;
+
+  beforeEach(async () => {
+    matchEventDecoders = mock<MatchEventDecodersService>();
+    // Delegates to a real MatchEventDecodersService (built from the real
+    // SecretObjectiveService/WeatherTypeService) rather than a hardcoded
+    // stub, so every decode assertion below still exercises genuine decode
+    // logic -- see the tautology-avoidance rule in the migration brief.
+    // MatchEventDecodersService has no dedicated spec of its own, so this
+    // delegation is also what keeps its coverage intact after mocking it out
+    // of MatchEventParserService's construction.
+    const realMatchEventDecoders = new MatchEventDecodersService(
+      new SecretObjectiveService(),
+      new WeatherTypeService(),
+    );
+    matchEventDecoders.build.mockImplementation(() =>
+      realMatchEventDecoders.build(),
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchEventParserService,
+        { provide: MatchEventDecodersService, useValue: matchEventDecoders },
+      ],
+    }).compile();
+    parser = moduleRef.get(MatchEventParserService);
+  });
+
   it('decodes a touchdown (code 4)', () => {
     expect(
       parser.parse([

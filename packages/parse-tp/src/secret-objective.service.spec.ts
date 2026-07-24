@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   secretObjectiveByCode,
@@ -6,7 +7,14 @@ import {
 } from './secret-objective.service';
 
 describe('SecretObjectiveService', () => {
-  const service = new SecretObjectiveService();
+  let service: SecretObjectiveService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [SecretObjectiveService],
+    }).compile();
+    service = moduleRef.get(SecretObjectiveService);
+  });
 
   it.each(Object.entries(secretObjectiveByCode))(
     'decodes code %s to %s',

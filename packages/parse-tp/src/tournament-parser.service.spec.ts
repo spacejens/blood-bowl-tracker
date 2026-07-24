@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { TournamentParserService } from './tournament-parser.service';
 
 describe('TournamentParserService', () => {
-  const service = new TournamentParserService();
+  let service: TournamentParserService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [TournamentParserService],
+    }).compile();
+    service = moduleRef.get(TournamentParserService);
+  });
 
   it('extracts id, name and ruleSet from a valid tournament body', () => {
     const result = service.parse({

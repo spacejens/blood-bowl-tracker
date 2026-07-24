@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { weatherTypeByCode, WeatherTypeService } from './weather-type.service';
 
 describe('WeatherTypeService', () => {
-  const service = new WeatherTypeService();
+  let service: WeatherTypeService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [WeatherTypeService],
+    }).compile();
+    service = moduleRef.get(WeatherTypeService);
+  });
 
   it.each(Object.entries(weatherTypeByCode))(
     'decodes code %s to %s',

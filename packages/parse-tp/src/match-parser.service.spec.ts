@@ -1,19 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { MatchEventDecodersService } from './match-event-decoders.service';
 import { MatchEventParserService } from './match-event-parser.service';
 import { MatchParserService } from './match-parser.service';
 import { SecretObjectiveService } from './secret-objective.service';
 import { WeatherTypeService } from './weather-type.service';
-
-const service = new MatchParserService(
-  new MatchEventParserService(
-    new MatchEventDecodersService(
-      new SecretObjectiveService(),
-      new WeatherTypeService(),
-    ),
-  ),
-);
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,
@@ -33,6 +26,36 @@ function matchBody(overrides: Record<string, unknown> = {}) {
 }
 
 describe('MatchParserService', () => {
+  let service: MatchParserService;
+  let matchEventParser: MockProxy<MatchEventParserService>;
+
+  beforeEach(async () => {
+    matchEventParser = mock<MatchEventParserService>();
+    // Delegates to a real MatchEventParserService (built from the real decode
+    // chain) rather than a hardcoded stub, so `matchEvents` in these tests
+    // still reflects genuine decode behavior -- see the "decodes a populated
+    // matchEvents array end-to-end" test below, which would otherwise become
+    // a tautology. MatchEventParserService/MatchEventDecodersService each
+    // keep their own dedicated specs for isolated coverage of that logic.
+    const realMatchEventParser = new MatchEventParserService(
+      new MatchEventDecodersService(
+        new SecretObjectiveService(),
+        new WeatherTypeService(),
+      ),
+    );
+    matchEventParser.parse.mockImplementation((rawEvents: unknown) =>
+      realMatchEventParser.parse(rawEvents),
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchParserService,
+        { provide: MatchEventParserService, useValue: matchEventParser },
+      ],
+    }).compile();
+    service = moduleRef.get(MatchParserService);
+  });
+
   it('maps matchId to id, prefers scoreResume.startInstant, builds name, and parses home/away roster ids', () => {
     const result = service.parse(
       matchBody({
