@@ -1,28 +1,46 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-import type { ImportTpConfigService } from '../config/import-tp-config.service';
+import { ImportTpConfigService } from '../config/import-tp-config.service';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 
-function makeService(
-  name: string | undefined,
-): ExternalSystemNameConfigService {
-  const config = {
-    get: (_key: string) => name,
-  } as unknown as ImportTpConfigService;
-  return new ExternalSystemNameConfigService(config);
-}
-
 describe('ExternalSystemNameConfigService', () => {
+  let config: MockProxy<ImportTpConfigService>;
+  let service: ExternalSystemNameConfigService;
+
+  beforeEach(async () => {
+    config = mock<ImportTpConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ExternalSystemNameConfigService,
+        { provide: ImportTpConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(ExternalSystemNameConfigService);
+  });
+
+  function withName(name: string | undefined): void {
+    config.get.mockImplementation((key: string) =>
+      key === 'externalSystemName' ? name : undefined,
+    );
+  }
+
   it('returns "TP" when externalSystemName is not set', () => {
-    expect(makeService(undefined).getTpSystemName()).toBe('TP');
+    withName(undefined);
+    expect(service.getTpSystemName()).toBe('TP');
   });
 
   it('returns "TP" when externalSystemName is empty or whitespace', () => {
-    expect(makeService('').getTpSystemName()).toBe('TP');
-    expect(makeService('   ').getTpSystemName()).toBe('TP');
+    withName('');
+    expect(service.getTpSystemName()).toBe('TP');
+    withName('   ');
+    expect(service.getTpSystemName()).toBe('TP');
   });
 
   it('returns the configured value when externalSystemName is set', () => {
-    expect(makeService('MyTp').getTpSystemName()).toBe('MyTp');
+    withName('MyTp');
+    expect(service.getTpSystemName()).toBe('MyTp');
   });
 });

@@ -1,34 +1,54 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-import type { ImportTpConfigService } from '../config/import-tp-config.service';
+import { ImportTpConfigService } from '../config/import-tp-config.service';
 import { LeagueConfigService } from './league-config.service';
 
-function makeService(league: unknown): LeagueConfigService {
-  const config = {
-    get: (key: string) => (key === 'league' ? league : undefined),
-  } as unknown as ImportTpConfigService;
-  return new LeagueConfigService(config);
-}
-
 describe('LeagueConfigService', () => {
+  let config: MockProxy<ImportTpConfigService>;
+  let service: LeagueConfigService;
+
+  beforeEach(async () => {
+    config = mock<ImportTpConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        LeagueConfigService,
+        { provide: ImportTpConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(LeagueConfigService);
+  });
+
+  function withLeague(league: unknown): void {
+    config.get.mockImplementation((key: string) =>
+      key === 'league' ? league : undefined,
+    );
+  }
+
   it('returns league.name when set', () => {
-    expect(makeService({ name: 'tLoEGBBL' }).getLeagueName()).toBe('tLoEGBBL');
+    withLeague({ name: 'tLoEGBBL' });
+    expect(service.getLeagueName()).toBe('tLoEGBBL');
   });
 
   it('throws when league.name is missing', () => {
-    expect(() => makeService({ eras: [] }).getLeagueName()).toThrow(
+    withLeague({ eras: [] });
+    expect(() => service.getLeagueName()).toThrow(
       'league.name is not set in import-tp-config.json5',
     );
   });
 
   it('throws when league is not set at all', () => {
-    expect(() => makeService(undefined).getLeagueName()).toThrow(
+    withLeague(undefined);
+    expect(() => service.getLeagueName()).toThrow(
       'league.name is not set in import-tp-config.json5',
     );
   });
 
   it('throws when league.name is an empty string', () => {
-    expect(() => makeService({ name: '' }).getLeagueName()).toThrow(
+    withLeague({ name: '' });
+    expect(() => service.getLeagueName()).toThrow(
       'league.name is not set in import-tp-config.json5',
     );
   });
