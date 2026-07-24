@@ -183,6 +183,13 @@ and an auto-mock cannot self-chain builder methods. Use
 `packages/game-data/src/shared/db-mock.test-helpers.ts` — see that file for the
 exact shape it returns and how to assert on captured query calls.
 
+**Module composition is the one deliberate exception.** A handful of
+`*.module.spec.ts` files (e.g. `packages/import/src/import.module.spec.ts` and
+each `tools/import-*/src/app.module.spec.ts`) compile the *real* module with its
+*real* providers, on purpose — their job is to verify the whole dependency graph
+wires together, which mocking would defeat. This is the only place a real
+collaborator is intentionally constructed in a test.
+
 ## Function parameter limit
 
 Functions and methods take at most 3 parameters — enforced repo-wide by the
