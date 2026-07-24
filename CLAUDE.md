@@ -124,6 +124,65 @@ A function that takes an already-injected NestJS provider as a parameter and
 simply calls it is the clearest violation and must become a service (or a method
 folded into an existing service, or a thin injectable wrapper).
 
+See "Testing services" below for how services are tested.
+
+## Testing services
+
+Every `*.spec.ts` that tests a NestJS service builds it through a
+`Test.createTestingModule` in a `beforeEach`, with the service under test as the
+**only** real provider and every injected dependency supplied as a
+`vitest-mock-extended` mock. Direct instantiation (`new XService(...)`) is
+forbidden in spec files and enforced by the custom
+`local/no-direct-service-instantiation` ESLint rule (in `tools/eslint-rules`,
+scoped to `*.spec.ts`, `*.e2e-spec.ts`, and `*.test-helpers.ts`). The rule
+matches by class-name suffix, so `@Injectable()` classes named e.g. `*Parser` or
+`*Reader` are not caught by it — those were migrated to the same pattern
+manually and rely on review, not lint, to stay that way.
+
+```ts
+describe('CoachesImportService', () => {
+  let service: CoachesImportService;
+  let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        CoachesImportService,
+        { provide: API_CLIENT, useValue: client },
+        { provide: ImportRunnerService, useValue: runner },
+      ],
+    }).compile();
+    service = moduleRef.get(CoachesImportService);
+  });
+
+  it('returns the upsert result on success', async () => {
+    client.coaches.upsert.mockResolvedValue(upsertResult);
+    // ...
+  });
+});
+```
+
+- **Services with no injected dependencies use the identical shape**, with
+  `providers: [TheService]` only. There is no exception and no per-file judgment
+  call — the same rationale this file gives for making every piece of logic a
+  service.
+- `mock<T>()` for flat dependencies; `mockDeep<T>()` where the test reaches
+  through nested properties (e.g. `client.coaches.upsert`).
+- Mocks are built fresh in `beforeEach`, and each test stubs only the methods it
+  needs. Never pass a *real* collaborator — a test about one service must not
+  silently exercise another service's concrete behavior.
+- `moduleRef.get(TheService)` means every test also verifies the service's own DI
+  metadata.
+
+**drizzle queries.** `packages/game-data` services build fluent drizzle chains,
+and an auto-mock cannot self-chain builder methods. Use
+`mockDb(...rowsPerQuery)` from
+`packages/game-data/src/shared/db-mock.test-helpers.ts` — see that file for the
+exact shape it returns and how to assert on captured query calls.
+
 ## Function parameter limit
 
 Functions and methods take at most 3 parameters — enforced repo-wide by the
