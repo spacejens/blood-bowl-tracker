@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { NameExternalIdService } from './name-external-id.service';
 
 describe('NameExternalIdService', () => {
-  const service = new NameExternalIdService();
+  let service: NameExternalIdService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [NameExternalIdService],
+    }).compile();
+    service = moduleRef.get(NameExternalIdService);
+  });
 
   it('returns the bare name for a coach', () => {
     expect(service.forCoach('Ada Lovelace')).toBe('Ada Lovelace');

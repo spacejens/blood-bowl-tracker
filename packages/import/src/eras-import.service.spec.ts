@@ -1,19 +1,33 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
-import { describe, expect, it, vi } from 'vitest';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { ErasImportService } from './eras-import.service';
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { stubImportRunner } from './import-runner.test-helpers';
 import type { ImportError } from './types';
 
 describe('ErasImportService', () => {
-  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = { eras: { upsert: upsertMock } } as unknown as ApiClient;
-    return new ErasImportService(
-      client,
-      new ImportRunnerService(new ImportResultService()),
-    );
-  }
+  let service: ErasImportService;
+  let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
+    stubImportRunner(runner);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ErasImportService,
+        { provide: API_CLIENT, useValue: client },
+        { provide: ImportRunnerService, useValue: runner },
+      ],
+    }).compile();
+    service = moduleRef.get(ErasImportService);
+  });
 
   const data = {
     name: 'BB2020',
@@ -25,7 +39,7 @@ describe('ErasImportService', () => {
   };
 
   it('returns the upserted era on success', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
+    client.eras.upsert.mockResolvedValue({
       id: 1,
       name: 'BB2020',
       leagueId: 10,
@@ -35,7 +49,6 @@ describe('ErasImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
     const result = await service.upsertEra(data, errors);
@@ -50,13 +63,12 @@ describe('ErasImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(client.eras.upsert).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
   it('returns false and records an error when the client call fails', async () => {
-    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
-    const service = makeService(upsertMock);
+    client.eras.upsert.mockRejectedValue(new Error('conflict'));
     const errors: ImportError[] = [];
 
     const result = await service.upsertEra(data, errors);
@@ -68,8 +80,7 @@ describe('ErasImportService', () => {
   });
 
   it('records an error using String(err) for a non-Error rejection', async () => {
-    const upsertMock = vi.fn().mockRejectedValue('boom');
-    const service = makeService(upsertMock);
+    client.eras.upsert.mockRejectedValue('boom');
     const errors: ImportError[] = [];
 
     const result = await service.upsertEra(data, errors);
