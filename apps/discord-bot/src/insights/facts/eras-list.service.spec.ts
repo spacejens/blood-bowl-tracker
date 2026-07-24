@@ -7,9 +7,12 @@ import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
@@ -29,10 +32,8 @@ type EraRow = {
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
 
 beforeEach(() => {
-  databaseTimeout = mock<DatabaseTimeoutService>();
-  // Pass-through default mirroring DatabaseTimeoutService.run's happy path.
+  databaseTimeout = mockDatabaseTimeout();
   // Tests that need the timeout branch override this per-call.
-  databaseTimeout.run.mockImplementation(async (work) => work);
 });
 
 async function makeServiceFromEras(
@@ -281,7 +282,7 @@ describe('ErasListService.resolve', () => {
     // (covered by database-timeout.service.spec.ts); here databaseTimeout is a
     // mock, so this stubs its timeout branch directly rather than waiting on a
     // real timer.
-    databaseTimeout.run.mockResolvedValueOnce(null);
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
       async (eras: ErasService) =>
         (await makeServiceFromEras(eras)).resolve(FACT_SCOPE_ALL_TIME),

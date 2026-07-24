@@ -2,9 +2,12 @@ import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeout,
+} from '../database-timeout-mock.test-helpers';
 import {
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -20,11 +23,8 @@ function service(): LeaderboardService {
 }
 
 beforeEach(async () => {
-  databaseTimeout = mock<DatabaseTimeoutService>();
-  // Pass-through default mirroring DatabaseTimeoutService.run's happy path:
-  // resolve with the work, ignore the fallback/timeoutMs. Individual tests
-  // that need the timeout branch override this per-call.
-  databaseTimeout.run.mockImplementation(async (work) => work);
+  databaseTimeout = mockDatabaseTimeout();
+  // Individual tests that need the timeout branch override this per-call.
   const moduleRef = await Test.createTestingModule({
     providers: [
       LeaderboardService,
@@ -715,7 +715,7 @@ describe('resolveToplist', () => {
     // resolve with the fallback (null) instead of the work — the actual
     // timeout race is DatabaseTimeoutService's own responsibility and is
     // covered by database-timeout.service.spec.ts.
-    databaseTimeout.run.mockResolvedValue(null);
+    stubDatabaseTimeout(databaseTimeout);
     const result = await service().resolveToplist({
       title: 'Teams by eras active',
       fetchRows: () => new Promise<{ name: string; count: number }[]>(() => {}),

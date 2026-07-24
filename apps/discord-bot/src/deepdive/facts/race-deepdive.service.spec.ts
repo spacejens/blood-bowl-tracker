@@ -1,9 +1,13 @@
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import type { MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
@@ -18,15 +22,9 @@ import {
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
-function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
-  const databaseTimeout = mock<DatabaseTimeoutService>();
-  databaseTimeout.run.mockImplementation(async (work) => work);
-  return databaseTimeout;
-}
-
 async function makeService(
   races: RacesService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
 ): Promise<RaceDeepdiveService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -227,8 +225,8 @@ describe('RaceDeepdiveService', () => {
   it('falls back to the race timeout message when the race lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run.mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(makeRaces({}), databaseTimeout);
         return service.resolve(1);
       },
@@ -240,10 +238,9 @@ describe('RaceDeepdiveService', () => {
   it('falls back to the eras timeout message when the era-names lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(
           makeRaces({ race: { id: 1, name: 'Orc' } }),
           databaseTimeout,
@@ -258,11 +255,11 @@ describe('RaceDeepdiveService', () => {
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
+        const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run
           .mockImplementationOnce(async (work) => work)
-          .mockImplementationOnce(async (work) => work)
-          .mockResolvedValueOnce(null);
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(
           makeRaces({
             race: { id: 1, name: 'Orc' },

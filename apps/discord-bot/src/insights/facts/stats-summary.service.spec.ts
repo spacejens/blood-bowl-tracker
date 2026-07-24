@@ -16,9 +16,12 @@ import {
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
-import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
   STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
@@ -46,10 +49,8 @@ interface ServiceOverrides {
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
 
 beforeEach(() => {
-  databaseTimeout = mock<DatabaseTimeoutService>();
-  // Pass-through default mirroring DatabaseTimeoutService.run's happy path.
+  databaseTimeout = mockDatabaseTimeout();
   // Tests that need the timeout branch override this per-call.
-  databaseTimeout.run.mockImplementation(async (work) => work);
 });
 
 async function makeService(
@@ -167,7 +168,7 @@ describe('StatsSummaryFactsService.resolve', () => {
     // (covered by database-timeout.service.spec.ts); here databaseTimeout is a
     // mock, so this stubs its timeout branch directly rather than waiting on a
     // real timer.
-    databaseTimeout.run.mockResolvedValueOnce(null);
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
       (service: Promise<StatsSummaryFactsService>) =>
         service.then((s) => s.resolve(FACT_SCOPE_ALL_TIME)),
@@ -259,7 +260,7 @@ describe('StatsSummaryFactsService.resolve era-filtered', () => {
 
   it('falls back to the stunned message when an era count times out', async () => {
     const scope: FactScope = { eraId: 5 };
-    databaseTimeout.run.mockResolvedValueOnce(null);
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
       (service: Promise<StatsSummaryFactsService>) =>
         service.then((s) => s.resolve(scope)),
@@ -371,7 +372,7 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
 
   it('falls back to the stunned message when a competition count times out', async () => {
     const scope: FactScope = { competitionId: 7 };
-    databaseTimeout.run.mockResolvedValueOnce(null);
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
       (service: Promise<StatsSummaryFactsService>) =>
         service.then((s) => s.resolve(scope)),
@@ -471,7 +472,7 @@ describe('StatsSummaryFactsService.resolve league-filtered', () => {
 
   it('falls back to the stunned message when a league count times out', async () => {
     const scope: FactScope = { leagueId: 9 };
-    databaseTimeout.run.mockResolvedValueOnce(null);
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
       (service: Promise<StatsSummaryFactsService>) =>
         service.then((s) => s.resolve(scope)),

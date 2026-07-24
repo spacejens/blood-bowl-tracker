@@ -1,9 +1,13 @@
 import { PlayersService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import type { MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
@@ -27,15 +31,9 @@ const griff = {
   positionName: 'Blitzer',
 };
 
-function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
-  const databaseTimeout = mock<DatabaseTimeoutService>();
-  databaseTimeout.run.mockImplementation(async (work) => work);
-  return databaseTimeout;
-}
-
 async function makeService(
   players: PlayersService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
 ): Promise<PlayerDeepdiveService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -170,8 +168,8 @@ describe('PlayerDeepdiveService', () => {
   it('falls back to the player timeout message when the lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run.mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(makePlayers({}), databaseTimeout);
         return service.resolve(1);
       },
@@ -183,10 +181,9 @@ describe('PlayerDeepdiveService', () => {
   it('falls back to the counts timeout message when the counts lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(
           makePlayers({ player: griff }),
           databaseTimeout,

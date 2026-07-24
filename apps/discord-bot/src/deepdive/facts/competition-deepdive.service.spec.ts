@@ -1,9 +1,13 @@
 import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import type { MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -17,15 +21,9 @@ import {
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-function makeDatabaseTimeout(): MockProxy<DatabaseTimeoutService> {
-  const databaseTimeout = mock<DatabaseTimeoutService>();
-  databaseTimeout.run.mockImplementation(async (work) => work);
-  return databaseTimeout;
-}
-
 async function makeService(
   competitions: CompetitionsService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = makeDatabaseTimeout(),
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
 ): Promise<CompetitionDeepdiveService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -136,8 +134,8 @@ describe('CompetitionDeepdiveService', () => {
   it('falls back to the competition timeout message when the header lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run.mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(
           makeCompetitions({}),
           databaseTimeout,
@@ -152,10 +150,9 @@ describe('CompetitionDeepdiveService', () => {
   it('falls back to the teams timeout message when the teams lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
-        const databaseTimeout = mock<DatabaseTimeoutService>();
-        databaseTimeout.run
-          .mockImplementationOnce(async (work) => work)
-          .mockResolvedValueOnce(null);
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
         const service = await makeService(
           makeCompetitions({
             competition: {
