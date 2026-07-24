@@ -7,6 +7,7 @@ import tseslint from 'typescript-eslint';
 
 import { maxFunctionParams } from './tools/eslint-rules/src/max-function-params.ts';
 import { noDirectServiceInstantiation } from './tools/eslint-rules/src/no-direct-service-instantiation.ts';
+import { noTestHelperImports } from './tools/eslint-rules/src/no-test-helper-imports.ts';
 
 export default tseslint.config(
   {
@@ -45,6 +46,7 @@ export default tseslint.config(
         rules: {
           'max-function-params': maxFunctionParams,
           'no-direct-service-instantiation': noDirectServiceInstantiation,
+          'no-test-helper-imports': noTestHelperImports,
         },
       },
     },
@@ -57,6 +59,7 @@ export default tseslint.config(
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       'local/max-function-params': ['error', { max: 3 }],
+      'local/no-test-helper-imports': 'error',
     },
   },
   {
