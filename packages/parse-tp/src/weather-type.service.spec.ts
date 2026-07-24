@@ -23,4 +23,8 @@ describe('WeatherTypeService', () => {
   it('decodes an unknown code to unknown', () => {
     expect(service.decode(999)).toBe('unknown');
   });
+
+  it('has a decode test for every known weather code (guards against silent shrinkage of the code map)', () => {
+    expect(Object.keys(weatherTypeByCode)).toHaveLength(20);
+  });
 });

@@ -2,11 +2,9 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { MatchEventDecodersService } from './match-event-decoders.service';
+import type { TpMatchEvent } from './match-event-parser.service';
 import { MatchEventParserService } from './match-event-parser.service';
 import { MatchParserService } from './match-parser.service';
-import { SecretObjectiveService } from './secret-objective.service';
-import { WeatherTypeService } from './weather-type.service';
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,
@@ -31,21 +29,13 @@ describe('MatchParserService', () => {
 
   beforeEach(async () => {
     matchEventParser = mock<MatchEventParserService>();
-    // Delegates to a real MatchEventParserService (built from the real decode
-    // chain) rather than a hardcoded stub, so `matchEvents` in these tests
-    // still reflects genuine decode behavior -- see the "decodes a populated
-    // matchEvents array end-to-end" test below, which would otherwise become
-    // a tautology. MatchEventParserService/MatchEventDecodersService each
-    // keep their own dedicated specs for isolated coverage of that logic.
-    const realMatchEventParser = new MatchEventParserService(
-      new MatchEventDecodersService(
-        new SecretObjectiveService(),
-        new WeatherTypeService(),
-      ),
-    );
-    matchEventParser.parse.mockImplementation((rawEvents: unknown) =>
-      realMatchEventParser.parse(rawEvents),
-    );
+    // MatchEventParserService.parse is a genuine mock here, returning a
+    // canned empty array by default. `MatchParserService` only needs to know
+    // that whatever `matchEventParser.parse` returns ends up, unmodified, in
+    // `result.matchEvents` -- the decode logic itself is
+    // MatchEventParserService's (and, in turn, MatchEventDecodersService's)
+    // own concern, covered by their dedicated specs.
+    matchEventParser.parse.mockReturnValue([]);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -213,22 +203,18 @@ describe('MatchParserService', () => {
     ]);
   });
 
-  it('decodes a populated matchEvents array end-to-end', () => {
-    const result = service.parse(
-      matchBody({
-        matchEvents: [
-          {
-            id: 7150327,
-            matchEventType: 4,
-            instant: '2026-01-17T18:50:14Z',
-            lineUpId: 2442075,
-            rosterId: 164868,
-            extraData: { scoreLocal: 1, scoreVisitor: 1 },
-          },
-        ],
-      }),
-    );
-    expect(result.matchEvents).toEqual([
+  it('passes the raw matchEvents array to MatchEventParserService.parse and returns its output unmodified as matchEvents', () => {
+    const rawMatchEvents = [
+      {
+        id: 7150327,
+        matchEventType: 4,
+        instant: '2026-01-17T18:50:14Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+        extraData: { scoreLocal: 1, scoreVisitor: 1 },
+      },
+    ];
+    const decodedEvents: TpMatchEvent[] = [
       {
         type: 'touchdown',
         tpEventId: 7150327,
@@ -236,7 +222,20 @@ describe('MatchParserService', () => {
         lineUpId: 2442075,
         rosterId: 164868,
       },
-    ]);
+    ];
+    matchEventParser.parse.mockReturnValue(decodedEvents);
+
+    const result = service.parse(matchBody({ matchEvents: rawMatchEvents }));
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(matchEventParser.parse).toHaveBeenCalledWith(rawMatchEvents);
+    expect(result.matchEvents).toBe(decodedEvents);
+  });
+
+  it('passes an empty array to MatchEventParserService.parse when matchEvents is absent', () => {
+    service.parse(matchBody());
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+    expect(matchEventParser.parse).toHaveBeenCalledWith([]);
   });
 
   it('parses distinct home and away roster ids from inscriptionLocal/inscriptionVisitor', () => {
