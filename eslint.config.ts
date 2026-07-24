@@ -83,7 +83,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.spec.ts', '**/*.test-helpers.ts'],
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/*.test-helpers.ts'],
     rules: {
       'local/no-direct-service-instantiation': 'error',
     },
