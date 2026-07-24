@@ -8,11 +8,14 @@ import {
 import type { TpMatch, TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
+import { mockImportResultService } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import type { CasualtyPairing } from './tp-match-events-correlation.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
 
@@ -55,11 +58,82 @@ interface RunImportOptions {
 }
 
 /**
+ * A `MockProxy<TpMatchEventsCorrelationService>` that reimplements the real
+ * `correlateCasualties` casualty/injury pairing algorithm (turnNumber
+ * equality, opposing-side direction, nearest-`instant`-within-120s
+ * tiebreak — see `tp-match-events-correlation.service.ts` for the full
+ * rationale) inline, so this shared helper's casualty-pairing assertions in
+ * `tp-match-events-gameplay.spec.ts` still exercise input-dependent pairing
+ * behaviour rather than a hardcoded stub. The algorithm itself is verified
+ * independently by `TpMatchEventsCorrelationService`'s own dedicated spec
+ * (`tp-match-events-correlation.service.spec.ts`); mocking it here costs no
+ * coverage.
+ */
+function mockTpMatchEventsCorrelationService(): MockProxy<TpMatchEventsCorrelationService> {
+  const MAX_PAIRING_DELAY_MS = 120_000;
+  type CasualtyEvent = Extract<TpMatchEvent, { type: 'casualty_caused' }>;
+  type InjuryEvent = Extract<TpMatchEvent, { type: 'injury' }>;
+
+  const correlation = mock<TpMatchEventsCorrelationService>();
+  correlation.correlateCasualties.mockImplementation(
+    (matchEvents): CasualtyPairing => {
+      const casualties = matchEvents.filter(
+        (e): e is CasualtyEvent => e.type === 'casualty_caused',
+      );
+      const injuries = matchEvents.filter(
+        (e): e is InjuryEvent => e.type === 'injury',
+      );
+
+      const casualtyByInjuryEventId = new Map<number, CasualtyEvent>();
+      const pairedCasualtyEventIds = new Set<number>();
+      const claimedInjuryEventIds = new Set<number>();
+
+      for (const casualty of casualties) {
+        let best: InjuryEvent | undefined;
+        let bestDiffMs = Infinity;
+        for (const injury of injuries) {
+          if (claimedInjuryEventIds.has(injury.tpEventId)) {
+            continue;
+          }
+          const isCandidate =
+            injury.turnRosterId === casualty.rosterId &&
+            injury.rosterId !== casualty.rosterId &&
+            casualty.turnNumber !== undefined &&
+            injury.turnNumber === casualty.turnNumber;
+          if (!isCandidate) {
+            continue;
+          }
+          const diffMs = Math.abs(
+            new Date(injury.instant).getTime() -
+              new Date(casualty.instant).getTime(),
+          );
+          if (!(diffMs <= MAX_PAIRING_DELAY_MS)) {
+            continue;
+          }
+          if (best === undefined || diffMs < bestDiffMs) {
+            best = injury;
+            bestDiffMs = diffMs;
+          }
+        }
+        if (best) {
+          casualtyByInjuryEventId.set(best.tpEventId, casualty);
+          pairedCasualtyEventIds.add(casualty.tpEventId);
+          claimedInjuryEventIds.add(best.tpEventId);
+        }
+      }
+
+      return { casualtyByInjuryEventId, pairedCasualtyEventIds };
+    },
+  );
+  return correlation;
+}
+
+/**
  * `TpMatchEventsImportService` is built through a real `Test.
  * createTestingModule`, but — deliberately, unlike every other migrated spec
- * in this workspace — `TpMatchEventsBuilderService`,
- * `TpMatchEventKindBuildersService`, `TpMatchEventsCorrelationService` and
- * `ImportResultService` are registered as REAL providers, not mocks.
+ * in this workspace — `TpMatchEventsBuilderService` and
+ * `TpMatchEventKindBuildersService` are registered as REAL providers, not
+ * mocks.
  *
  * Reason: `TpMatchEventsBuilderService` and `TpMatchEventKindBuildersService`
  * (the per-event-kind construction logic — touchdown, mvp_award, sent_off,
@@ -79,13 +153,13 @@ interface RunImportOptions {
  * dedicated spec instead"), the correct long-term fix is a dedicated spec for
  * `TpMatchEventKindBuildersService`/`TpMatchEventsBuilderService` — flagged
  * as a follow-up in this task's report, not attempted here.
- * `TpMatchEventsCorrelationService` and `ImportResultService` are kept real
- * alongside them for the same reason: they are its real, already-migrated
- * (Task 12) collaborators, and Nest's DI wires the whole chain exactly as
- * production does. Only the three genuine external-boundary collaborators —
- * `MatchEventsImportService` (the `@blood-bowl-tracker/import` upsert
- * boundary), `ExternalSystemBootstrapService` and
- * `ExternalSystemNameConfigService` — are mocked.
+ *
+ * `TpMatchEventsCorrelationService` and `ImportResultService`, by contrast,
+ * ARE mocked below (`mockTpMatchEventsCorrelationService()` and
+ * `mockImportResultService()`): each already has coverage elsewhere — its
+ * own dedicated spec for the former, every other consuming spec in this
+ * workspace for the latter's trivial pure construction — so mocking them here
+ * drops no coverage, unlike the Builder/KindBuilders chain above.
  */
 export async function makeService(
   upsertMatchEvent: ReturnType<typeof vi.fn>,
@@ -106,14 +180,19 @@ export async function makeService(
   );
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockReturnValue('TP');
+  const eventsCorrelation = mockTpMatchEventsCorrelationService();
+  const importResults = mockImportResultService();
 
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpMatchEventsImportService,
       TpMatchEventsBuilderService,
       TpMatchEventKindBuildersService,
-      TpMatchEventsCorrelationService,
-      ImportResultService,
+      {
+        provide: TpMatchEventsCorrelationService,
+        useValue: eventsCorrelation,
+      },
+      { provide: ImportResultService, useValue: importResults },
       { provide: MatchEventsImportService, useValue: matchEventsImport },
       {
         provide: ExternalSystemBootstrapService,
