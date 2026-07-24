@@ -1,5 +1,8 @@
-import type { ExternalSystemsImportService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { ExternalSystemsImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalSystemsProcessor } from './external-systems.processor';
@@ -17,16 +20,27 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeProcessor(upsertExternalSystem: ReturnType<typeof vi.fn>) {
-  return new ExternalSystemsProcessor({
-    upsertExternalSystem,
-  } as unknown as ExternalSystemsImportService);
-}
-
 describe('ExternalSystemsProcessor', () => {
+  let processor: ExternalSystemsProcessor;
+  let externalSystemsImport: MockProxy<ExternalSystemsImportService>;
+
+  beforeEach(async () => {
+    externalSystemsImport = mock<ExternalSystemsImportService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ExternalSystemsProcessor,
+        {
+          provide: ExternalSystemsImportService,
+          useValue: externalSystemsImport,
+        },
+      ],
+    }).compile();
+    processor = moduleRef.get(ExternalSystemsProcessor);
+  });
+
   it('collects every distinct system name from all sections and pairs', async () => {
     const seen: string[] = [];
-    const upsert = vi.fn().mockImplementation((name: string) => {
+    externalSystemsImport.upsertExternalSystem.mockImplementation((name) => {
       seen.push(name);
       return Promise.resolve(seen.length);
     });
@@ -77,7 +91,7 @@ describe('ExternalSystemsProcessor', () => {
       },
     ];
 
-    const systemIds = await makeProcessor(upsert).bootstrap(data);
+    const systemIds = await processor.bootstrap(data);
 
     expect(new Set(seen)).toEqual(
       new Set([
@@ -94,12 +108,20 @@ describe('ExternalSystemsProcessor', () => {
     );
     expect(systemIds.get('Name')).toBeDefined();
     expect(systemIds.get('Explicit')).toBeDefined();
-    expect(upsert).toHaveBeenCalledWith('BBL', 'imported_data_source');
-    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'BBL',
+      'imported_data_source',
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'Name',
+      'bookkeeping',
+    );
   });
 
   it('upserts each name once even when referenced many times', async () => {
-    const upsert = vi.fn().mockResolvedValue(1);
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();
     data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
     data.coaches = [
@@ -107,14 +129,19 @@ describe('ExternalSystemsProcessor', () => {
       { name: 'B', externalIds: [{ system: 'Name', id: 'name:b' }] },
     ];
 
-    await makeProcessor(upsert).bootstrap(data);
+    await processor.bootstrap(data);
 
-    expect(upsert).toHaveBeenCalledTimes(1);
-    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledTimes(1);
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'Name',
+      'bookkeeping',
+    );
   });
 
   it('collects position raceEras race and era system names', async () => {
-    const upsert = vi.fn().mockResolvedValue(1);
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();
     data.externalSystems = [
       { name: 'RaceSys', category: 'imported_data_source' },
@@ -135,18 +162,32 @@ describe('ExternalSystemsProcessor', () => {
       },
     ];
 
-    await makeProcessor(upsert).bootstrap(data);
+    await processor.bootstrap(data);
 
-    const names = upsert.mock.calls.map((c) => c[0] as string);
+    const names = externalSystemsImport.upsertExternalSystem.mock.calls.map(
+      (c) => c[0],
+    );
     expect(names).toContain('RaceSys');
     expect(names).toContain('EraSys');
-    expect(upsert).toHaveBeenCalledWith('RaceSys', 'imported_data_source');
-    expect(upsert).toHaveBeenCalledWith('EraSys', 'imported_data_source');
-    expect(upsert).toHaveBeenCalledWith('Name', 'bookkeeping');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'RaceSys',
+      'imported_data_source',
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'EraSys',
+      'imported_data_source',
+    );
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'Name',
+      'bookkeeping',
+    );
   });
 
   it('upserts a declared NAF system with its declared category', async () => {
-    const upsert = vi.fn().mockResolvedValue(1);
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();
     data.externalSystems = [
       { name: 'NAF', category: 'referenced_not_imported' },
@@ -155,48 +196,54 @@ describe('ExternalSystemsProcessor', () => {
       { name: 'A', externalIds: [{ system: 'NAF', id: 'naf:1' }] },
     ];
 
-    await makeProcessor(upsert).bootstrap(data);
+    await processor.bootstrap(data);
 
-    expect(upsert).toHaveBeenCalledWith('NAF', 'referenced_not_imported');
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenCalledWith(
+      'NAF',
+      'referenced_not_imported',
+    );
   });
 
   it('throws when a referenced system is not declared in externalSystems', async () => {
-    const upsert = vi.fn().mockResolvedValue(1);
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();
     data.coaches = [
       { name: 'A', externalIds: [{ system: 'Undeclared', id: 'id:1' }] },
     ];
 
-    await expect(makeProcessor(upsert).bootstrap(data)).rejects.toThrow(
+    await expect(processor.bootstrap(data)).rejects.toThrow(
       'External system "Undeclared" is referenced but not declared in externalSystems',
     );
-    expect(upsert).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).not.toHaveBeenCalled();
   });
 
   it('throws when the same system is declared with conflicting categories', async () => {
-    const upsert = vi.fn().mockResolvedValue(1);
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();
     data.externalSystems = [
       { name: 'Name', category: 'bookkeeping' },
       { name: 'Name', category: 'imported_data_source' },
     ];
 
-    await expect(makeProcessor(upsert).bootstrap(data)).rejects.toThrow(
+    await expect(processor.bootstrap(data)).rejects.toThrow(
       'External system "Name" is declared with conflicting categories: "bookkeeping" and "imported_data_source"',
     );
-    expect(upsert).not.toHaveBeenCalled();
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
+    expect(externalSystemsImport.upsertExternalSystem).not.toHaveBeenCalled();
   });
 
   it('propagates an upsert failure', async () => {
-    const upsert = vi.fn().mockRejectedValue(new Error('api down'));
+    externalSystemsImport.upsertExternalSystem.mockRejectedValue(
+      new Error('api down'),
+    );
     const data = emptyData();
     data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
     data.coaches = [
       { name: 'A', externalIds: [{ system: 'Name', id: 'name:a' }] },
     ];
 
-    await expect(makeProcessor(upsert).bootstrap(data)).rejects.toThrow(
-      'api down',
-    );
+    await expect(processor.bootstrap(data)).rejects.toThrow('api down');
   });
 });

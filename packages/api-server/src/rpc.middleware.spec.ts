@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import { Logger } from '@nestjs/common';
+import { Test } from '@nestjs/testing';
 import { isDefinedError, ORPCError } from '@orpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,6 +16,7 @@ vi.mock('@orpc/server/node', () => ({
 import { RPCHandler } from '@orpc/server/node';
 
 import { RpcMiddleware } from './rpc.middleware';
+import { RPC_ROUTER } from './rpc-router.token';
 import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
 describe('RpcMiddleware', () => {
@@ -45,11 +47,18 @@ describe('RpcMiddleware', () => {
     url: new URL('http://localhost/rpc/coaches/upsert'),
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    middleware = new RpcMiddleware(
-      {} as ReturnType<RpcRouterFactoryService['build']>,
-    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RpcMiddleware,
+        {
+          provide: RPC_ROUTER,
+          useValue: {} as ReturnType<RpcRouterFactoryService['build']>,
+        },
+      ],
+    }).compile();
+    middleware = moduleRef.get(RpcMiddleware);
   });
 
   it('delegates /rpc requests to the oRPC handler and does not call next() when matched', async () => {

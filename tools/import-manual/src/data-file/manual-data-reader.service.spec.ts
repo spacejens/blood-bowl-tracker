@@ -2,15 +2,20 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ManualDataReader } from './manual-data-reader.service';
 
 describe('ManualDataReader', () => {
   let dir: string;
-  const reader = new ManualDataReader();
+  let reader: ManualDataReader;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [ManualDataReader],
+    }).compile();
+    reader = moduleRef.get(ManualDataReader);
     dir = mkdtempSync(join(tmpdir(), 'import-manual-data-'));
   });
 

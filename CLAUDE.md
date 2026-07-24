@@ -135,9 +135,11 @@ Every `*.spec.ts` that tests a NestJS service builds it through a
 forbidden in spec files and enforced by the custom
 `local/no-direct-service-instantiation` ESLint rule (in `tools/eslint-rules`,
 scoped to `*.spec.ts`, `*.e2e-spec.ts`, and `*.test-helpers.ts`). The rule
-matches by class-name suffix, so `@Injectable()` classes named e.g. `*Parser` or
-`*Reader` are not caught by it — those were migrated to the same pattern
-manually and rely on review, not lint, to stay that way.
+matches by class-name suffix and covers every suffix `@Injectable()` classes
+in this repo actually use — `*Service`, `*Parser`, `*Processor`, `*Reader`,
+and `*Middleware`. A future `@Injectable()` class named with a suffix outside
+that list would not be caught by it — the rule is a suffix heuristic, not
+decorator-aware — and would rely on review, not lint, to stay on the pattern.
 
 ```ts
 describe('CoachesImportService', () => {

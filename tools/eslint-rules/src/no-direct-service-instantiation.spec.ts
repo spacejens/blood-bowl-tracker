@@ -26,6 +26,14 @@ describe('no-direct-service-instantiation', () => {
         },
         // A namespaced constructor is not an unqualified service identifier.
         { code: 'const s = new nest.CoachesService();' },
+        // The bare suffix names themselves are not flagged, matching how the
+        // bare "Service" identifier is excluded above.
+        { code: 'const r = new Reader();' },
+        { code: 'const p = new Parser();' },
+        { code: 'const p = new Processor();' },
+        { code: 'const m = new Middleware();' },
+        // A class merely containing a suffix, not ending in it, is unaffected.
+        { code: 'const b = new BufferReaderFactory();' },
       ],
       invalid: [
         {
@@ -38,6 +46,22 @@ describe('no-direct-service-instantiation', () => {
         },
         {
           code: 'function f() { return new LikePatternService(); }',
+          errors: [{ message: MESSAGE }],
+        },
+        {
+          code: 'const p = new TpSourceParser(cfg);',
+          errors: [{ message: MESSAGE }],
+        },
+        {
+          code: 'const p = new ExternalSystemsProcessor(imp);',
+          errors: [{ message: MESSAGE }],
+        },
+        {
+          code: 'const r = new TpSourceReader(cfg, eras);',
+          errors: [{ message: MESSAGE }],
+        },
+        {
+          code: 'const m = new RpcMiddleware(router);',
           errors: [{ message: MESSAGE }],
         },
       ],
