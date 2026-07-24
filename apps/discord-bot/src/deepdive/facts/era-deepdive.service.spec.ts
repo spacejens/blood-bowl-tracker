@@ -6,6 +6,7 @@ import {
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -20,10 +21,7 @@ import {
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import {
-  expectTimeoutFallback,
-  makeDeepdiveLeaderboardMock,
-} from '../../insights/facts/toplist.test-helpers';
+import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { EraDeepdiveService } from './era-deepdive.service';
 
@@ -40,6 +38,21 @@ interface MakeServiceOptions {
   competitions: CompetitionsService;
   externalSystems: ExternalSystemsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
+  leaderboard?: MockProxy<LeaderboardService>;
+}
+
+/**
+ * Defaults `buildEntityButtons` to return no components. LeaderboardService's
+ * own button-building logic is covered by leaderboard.service.spec.ts; this
+ * default exists only so tests that don't care about the exact button
+ * composition (most of them - the description-rendering tests below) don't
+ * need to configure a mock return value just to avoid the service's
+ * unconditional call to it.
+ */
+function defaultLeaderboard(): MockProxy<LeaderboardService> {
+  const leaderboard = mock<LeaderboardService>();
+  leaderboard.buildEntityButtons.mockReturnValue([]);
+  return leaderboard;
 }
 
 async function makeService({
@@ -47,7 +60,11 @@ async function makeService({
   competitions,
   externalSystems,
   databaseTimeout = mockDatabaseTimeout(),
-}: MakeServiceOptions): Promise<EraDeepdiveService> {
+  leaderboard = defaultLeaderboard(),
+}: MakeServiceOptions): Promise<{
+  service: EraDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
+}> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       EraDeepdiveService,
@@ -55,10 +72,10 @@ async function makeService({
       { provide: CompetitionsService, useValue: competitions },
       { provide: ExternalSystemsService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
-      { provide: LeaderboardService, useValue: makeDeepdiveLeaderboardMock() },
+      { provide: LeaderboardService, useValue: leaderboard },
     ],
   }).compile();
-  return moduleRef.get(EraDeepdiveService);
+  return { service: moduleRef.get(EraDeepdiveService), leaderboard };
 }
 
 function makeServices(options: {
@@ -93,7 +110,11 @@ describe('EraDeepdiveService', () => {
     const { eras, competitions, externalSystems } = makeServices({
       era: undefined,
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
@@ -114,7 +135,11 @@ describe('EraDeepdiveService', () => {
         { id: 11, name: 'Winter Cup', type: 'cup' },
       ],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -146,7 +171,11 @@ describe('EraDeepdiveService', () => {
       rulesSetNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -180,7 +209,11 @@ describe('EraDeepdiveService', () => {
         { id: 12, name: 'Unplayed Cup', type: 'cup' },
       ],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
@@ -203,7 +236,11 @@ describe('EraDeepdiveService', () => {
       },
       competitions: [],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -234,14 +271,33 @@ describe('EraDeepdiveService', () => {
       externalSystemNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('External systems: None recorded');
   });
 
-  it('renders a Primary button per competition, keyed by competition id', async () => {
+  // LeaderboardService.buildEntityButtons itself (dedupe/cap/chunk) is
+  // covered by leaderboard.service.spec.ts. Here `leaderboard` is a mock
+  // returning a canned button list, so this test asserts only what
+  // EraDeepdiveService itself owns: the per-competition button-entry pool
+  // (id/label pairs, one per competition) it hands to buildEntityButtons.
+  it('builds one button entry per competition, keyed by competition id', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const cannedButtons = [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+        ],
+      },
+    ];
+    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
     const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
@@ -255,25 +311,23 @@ describe('EraDeepdiveService', () => {
         { id: 11, name: 'Spike Cup', type: 'cup' },
       ],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+      leaderboard,
+    });
     const result = (await service.resolve(1)) as unknown as {
-      components: { components: { label: string; custom_id: string }[] }[];
+      components: unknown;
     };
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons).toEqual([
-      {
-        type: 2,
-        style: 1,
-        label: 'Season 1',
-        custom_id: 'deepdive:competition:10',
-      },
-      {
-        type: 2,
-        style: 1,
-        label: 'Spike Cup',
-        custom_id: 'deepdive:competition:11',
-      },
+    expect(result.components).toBe(cannedButtons);
+    const [entries, buildCustomId, label] =
+      leaderboard.buildEntityButtons.mock.calls[0];
+    expect(entries.map(buildCustomId)).toEqual([
+      'deepdive:competition:10',
+      'deepdive:competition:11',
     ]);
+    expect(entries.map(label)).toEqual(['Season 1', 'Spike Cup']);
   });
 
   it('omits components when the era has no competitions', async () => {
@@ -287,7 +341,11 @@ describe('EraDeepdiveService', () => {
       },
       competitions: [],
     });
-    const service = await makeService({ eras, competitions, externalSystems });
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
   });
@@ -298,7 +356,7 @@ describe('EraDeepdiveService', () => {
         const databaseTimeout = mockDatabaseTimeout();
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { eras, competitions, externalSystems } = makeServices({});
-        const service = await makeService({
+        const { service } = await makeService({
           eras,
           competitions,
           externalSystems,
@@ -326,7 +384,7 @@ describe('EraDeepdiveService', () => {
             endDate: null,
           },
         });
-        const service = await makeService({
+        const { service } = await makeService({
           eras,
           competitions,
           externalSystems,
@@ -357,7 +415,7 @@ describe('EraDeepdiveService', () => {
           },
           rulesSetNames: [],
         });
-        const service = await makeService({
+        const { service } = await makeService({
           eras,
           competitions,
           externalSystems,
@@ -390,7 +448,7 @@ describe('EraDeepdiveService', () => {
           rulesSetNames: [],
           competitions: [],
         });
-        const service = await makeService({
+        const { service } = await makeService({
           eras,
           competitions,
           externalSystems,

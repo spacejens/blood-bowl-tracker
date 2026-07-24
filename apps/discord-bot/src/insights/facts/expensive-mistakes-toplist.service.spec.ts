@@ -2,15 +2,16 @@ import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { TEAM_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
 import { ExpensiveMistakesToplistService } from './expensive-mistakes-toplist.service';
-import { makeLeaderboardMock } from './toplist.test-helpers';
 
 interface MadeService {
   service: ExpensiveMistakesToplistService;
@@ -18,7 +19,7 @@ interface MadeService {
 }
 
 async function makeService(teams: TeamsService): Promise<MadeService> {
-  const leaderboard = makeLeaderboardMock();
+  const leaderboard = mock<LeaderboardService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       ExpensiveMistakesToplistService,
@@ -32,32 +33,45 @@ async function makeService(teams: TeamsService): Promise<MadeService> {
   };
 }
 
+interface MistakeRow {
+  teamId: number;
+  name: string;
+  count: number;
+}
+
+interface BiggestMistakeRow extends MistakeRow {
+  date: string;
+}
+
 describe('ExpensiveMistakesToplistService.resolveTotal', () => {
-  it('renders gp-suffixed totals with one deepdive button per team', async () => {
-    const rows = [
-      { teamId: 1, name: '40 grinders', count: 150000 },
-      { teamId: 2, name: 'Reikland Reavers', count: 40000 },
-    ];
+  // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
+  // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
+  // is a mock returning a canned reply, so this test asserts only what
+  // ExpensiveMistakesToplistService itself owns: the embed title, its
+  // gp-suffixed formatRow closure, and its per-row deepdive button id.
+  it('wires the embed title, gp-suffixed formatRow, and per-row deepdive button id', async () => {
     const teams = {
-      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue(rows),
+      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
     } as unknown as TeamsService;
-    const { service } = await makeService(teams);
-    const result = (await service.resolveTotal({})) as unknown as {
-      embeds: { title: string; description: string }[];
-      components: { components: { label: string; custom_id: string }[] }[];
-    };
-    expect(result.embeds).toEqual([
-      {
-        title: 'Teams by money lost to expensive mistakes',
-        description:
-          '1. 40 grinders — 150,000 gp\n2. Reikland Reavers — 40,000 gp',
-      },
-    ]);
-    const buttons = result.components.flatMap((r) => r.components);
-    expect(buttons.map((b) => b.custom_id)).toEqual([
-      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`,
-      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}2`,
-    ]);
+    const { service, leaderboard } = await makeService(teams);
+    const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
+    leaderboard.resolveToplist.mockResolvedValueOnce(canned);
+    const result = await service.resolveTotal({});
+    expect(result).toBe(canned);
+    const options = leaderboard.resolveToplist.mock
+      .calls[0][0] as unknown as ResolveToplistOptions<MistakeRow>;
+    expect(options.title).toBe('Teams by money lost to expensive mistakes');
+    expect(
+      options.buildCustomId?.({ teamId: 1, name: '40 grinders', count: 0 }),
+    ).toBe(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`);
+    expect(
+      options.formatRow?.({
+        teamId: 1,
+        name: '40 grinders',
+        count: 150000,
+        rank: 1,
+      }),
+    ).toBe('1. 40 grinders — 150,000 gp');
   });
 
   it('passes era and competition ids through to the query', async () => {
@@ -65,7 +79,11 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     const teams = {
       sumExpensiveMistakesByTeam: queryFn,
     } as unknown as TeamsService;
-    const { service } = await makeService(teams);
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
     await service.resolveTotal({
       eraId: 20,
       competitionId: 30,
@@ -93,34 +111,41 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
 });
 
 describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
-  it('renders gp-suffixed amounts with dates and dedupes repeated teams', async () => {
-    const rows = [
-      { teamId: 1, name: '40 grinders', count: 90000, date: '2026-03-04' },
-      { teamId: 1, name: '40 grinders', count: 60000, date: '2026-02-01' },
-      { teamId: 2, name: 'Gouged Eye', count: 50000, date: '2026-01-10' },
-    ];
+  // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
+  // rendering, and per-row button dedupe) is covered by
+  // leaderboard.service.spec.ts. Here `leaderboard` is a mock returning a
+  // canned reply, so this test asserts only what
+  // ExpensiveMistakesToplistService itself owns: the embed title, its
+  // gp-and-date formatRow closure, and its per-row deepdive button id.
+  it('wires the embed title, gp-and-date formatRow, and per-row deepdive button id', async () => {
     const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue(rows),
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
     } as unknown as TeamsService;
-    const { service } = await makeService(teams);
-    const result = (await service.resolveBiggest({})) as unknown as {
-      embeds: { title: string; description: string }[];
-      components: { components: { custom_id: string }[] }[];
-    };
-    expect(result.embeds).toEqual([
-      {
-        title: 'Biggest expensive mistakes',
-        description:
-          '1. 40 grinders — 90,000 gp (2026-03-04)\n' +
-          '2. 40 grinders — 60,000 gp (2026-02-01)\n' +
-          '3. Gouged Eye — 50,000 gp (2026-01-10)',
-      },
-    ]);
-    const buttons = result.components.flatMap((r) => r.components);
-    expect(buttons.map((b) => b.custom_id)).toEqual([
-      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`,
-      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}2`,
-    ]);
+    const { service, leaderboard } = await makeService(teams);
+    const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
+    leaderboard.resolveToplist.mockResolvedValueOnce(canned);
+    const result = await service.resolveBiggest({});
+    expect(result).toBe(canned);
+    const options = leaderboard.resolveToplist.mock
+      .calls[0][0] as unknown as ResolveToplistOptions<BiggestMistakeRow>;
+    expect(options.title).toBe('Biggest expensive mistakes');
+    expect(
+      options.buildCustomId?.({
+        teamId: 1,
+        name: '40 grinders',
+        count: 0,
+        date: '2026-03-04',
+      }),
+    ).toBe(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`);
+    expect(
+      options.formatRow?.({
+        teamId: 1,
+        name: '40 grinders',
+        count: 90000,
+        date: '2026-03-04',
+        rank: 1,
+      }),
+    ).toBe('1. 40 grinders — 90,000 gp (2026-03-04)');
   });
 
   it('passes era and competition ids through to the query', async () => {
@@ -128,7 +153,11 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     const teams = {
       listBiggestExpensiveMistakes: queryFn,
     } as unknown as TeamsService;
-    const { service } = await makeService(teams);
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
     await service.resolveBiggest({
       eraId: 20,
       competitionId: 30,
