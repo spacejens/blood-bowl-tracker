@@ -1,8 +1,12 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
+import type { QueryChain } from '../shared/db-mock.test-helpers';
+import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
@@ -16,55 +20,28 @@ const fakeLeague = {
   createdAt: new Date('2026-01-01'),
 };
 
-function makeFromBuilder(rows: unknown[]) {
-  return {
-    where: vi.fn().mockResolvedValue(rows),
-    then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
-      Promise.resolve(rows).then(resolve, reject),
-    catch: (fn: (e: unknown) => unknown) => Promise.resolve(rows).catch(fn),
-  };
-}
-
 describe('LeaguesService', () => {
-  const likePattern = new LikePatternService();
   let service: LeaguesService;
-  let mockDb: {
-    select: () => { from: ReturnType<typeof vi.fn> };
-    insert: ReturnType<typeof vi.fn>;
-    update: ReturnType<typeof vi.fn>;
-  };
+  let likePattern: MockProxy<LikePatternService>;
 
-  beforeEach(async () => {
-    const selectChain = {
-      from: vi.fn().mockReturnValue(makeFromBuilder([fakeLeague])),
-    };
-    const insertChain = {
-      values: vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeLeague]),
-      })),
-    };
-    const updateChain = {
-      set: vi.fn(() => ({
-        where: vi.fn(() => ({
-          returning: vi.fn().mockResolvedValue([fakeLeague]),
-        })),
-      })),
-    };
-    mockDb = {
-      select: vi.fn(() => selectChain),
-      insert: vi.fn(() => insertChain),
-      update: vi.fn(() => updateChain),
-    };
-
-    const module = await Test.createTestingModule({
+  async function build(...rowsPerQuery: unknown[][]): Promise<{
+    db: Db;
+    chains: QueryChain[];
+  }> {
+    const { db, chains } = mockDb(...rowsPerQuery);
+    const moduleRef = await Test.createTestingModule({
       providers: [
         LeaguesService,
-        LikePatternService,
-        { provide: DB, useValue: mockDb },
+        { provide: LikePatternService, useValue: likePattern },
+        { provide: DB, useValue: db },
       ],
     }).compile();
+    service = moduleRef.get(LeaguesService);
+    return { db, chains };
+  }
 
-    service = module.get(LeaguesService);
+  beforeEach(() => {
+    likePattern = mock<LikePatternService>();
   });
 
   describe('upsert', () => {
@@ -74,74 +51,77 @@ describe('LeaguesService', () => {
     ];
 
     it('creates a new league when no external IDs match', async () => {
-      mockDb.select().from.mockReturnValue(makeFromBuilder([]));
+      // query 0: external-id lookup finds nothing; query 1: the insert
+      // returns the row; query 2: both external IDs are new and get
+      // inserted.
+      const { db, chains } = await build([], [fakeLeague]);
 
       const result = await service.upsert({ name: 'Test League', externalIds });
 
       expect(result).toEqual({ league: fakeLeague, created: true });
-      expect(mockDb.insert).toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
+      expect(chains).toHaveLength(3);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.insert).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.update).not.toHaveBeenCalled();
     });
 
     it('updates the matching league when exactly one external ID matches', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
-          ]),
-        );
+      const { db, chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Test League' }],
+        [fakeLeague],
+      );
 
       const result = await service.upsert({ name: 'Test League', externalIds });
 
       expect(result).toEqual({ league: fakeLeague, created: false });
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(chains).toHaveLength(3);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.update).toHaveBeenCalled();
     });
 
     it('throws LeagueUpsertConflictError when external IDs match different leagues', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
-          { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
-          { ownerId: 2, externalSystemId: 2, externalId: 'Test League' },
-        ]),
-      );
+      const { db, chains } = await build([
+        { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
+        { ownerId: 2, externalSystemId: 2, externalId: 'Test League' },
+      ]);
 
       await expect(
         service.upsert({ name: 'Test League', externalIds }),
       ).rejects.toThrow(LeagueUpsertConflictError);
-      expect(mockDb.insert).not.toHaveBeenCalled();
-      expect(mockDb.update).not.toHaveBeenCalled();
+      expect(chains).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.insert).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.update).not.toHaveBeenCalled();
     });
 
     it('does not re-insert external IDs that already exist on the matched league', async () => {
-      mockDb.select().from.mockReturnValue(
-        makeFromBuilder([
+      const { db, chains } = await build(
+        [
           { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
           { ownerId: 1, externalSystemId: 2, externalId: 'Test League' },
-        ]),
+        ],
+        [fakeLeague],
       );
 
       await service.upsert({ name: 'Test League', externalIds });
 
-      expect(mockDb.insert).not.toHaveBeenCalled();
+      expect(chains).toHaveLength(2);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
+      expect(db.insert).not.toHaveBeenCalled();
     });
 
     it('inserts only the external IDs that are new for an existing league', async () => {
-      mockDb
-        .select()
-        .from.mockReturnValue(
-          makeFromBuilder([
-            { ownerId: 1, externalSystemId: 1, externalId: 'Test League' },
-          ]),
-        );
-      const insertValues = vi.fn(() => ({
-        returning: vi.fn().mockResolvedValue([fakeLeague]),
-      }));
-      mockDb.insert.mockReturnValue({ values: insertValues });
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Test League' }],
+        [fakeLeague],
+      );
 
       await service.upsert({ name: 'Test League', externalIds });
 
-      expect(insertValues).toHaveBeenCalledWith([
+      expect(chains).toHaveLength(3);
+      expect(firstCallArg(chains[2].values)).toEqual([
         { leagueId: 1, externalSystemId: 2, externalId: 'Test League' },
       ]);
     });
@@ -149,48 +129,28 @@ describe('LeaguesService', () => {
 
   describe('countAll', () => {
     it('returns the total row count', async () => {
-      const from = vi.fn().mockResolvedValue([{ count: 5 }]);
-      const service = new LeaguesService(
-        {
-          select: vi.fn(() => ({ from })),
-        } as unknown as Db,
-        likePattern,
-      );
+      const { chains } = await build([{ count: 5 }]);
       await expect(service.countAll()).resolves.toBe(5);
-      expect(from).toHaveBeenCalledTimes(1);
+      expect(chains[0].from).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('findById', () => {
     it('returns the matching league id and name', async () => {
-      const where = vi.fn().mockResolvedValue([{ id: 7, name: 'GBBL' }]);
-      const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService(
-        {
-          select: vi.fn(() => ({ from })),
-        } as unknown as Db,
-        likePattern,
-      );
+      const { chains } = await build([{ id: 7, name: 'GBBL' }]);
       await expect(service.findById(7)).resolves.toEqual({
         id: 7,
         name: 'GBBL',
       });
-      expect(where).toHaveBeenCalledTimes(1);
-      expect(extractFilterValues(firstCallArg(where))).toBe(7);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
     });
 
     it('returns undefined when no league matches', async () => {
-      const where = vi.fn().mockResolvedValue([]);
-      const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService(
-        {
-          select: vi.fn(() => ({ from })),
-        } as unknown as Db,
-        likePattern,
-      );
+      const { chains } = await build([]);
       await expect(service.findById(999)).resolves.toBeUndefined();
-      expect(where).toHaveBeenCalledTimes(1);
-      expect(extractFilterValues(firstCallArg(where))).toBe(999);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(999);
     });
   });
 
@@ -200,39 +160,25 @@ describe('LeaguesService', () => {
         { id: 1, name: 'GBBL' },
         { id: 2, name: 'GBBL North' },
       ];
-      const limit = vi.fn().mockResolvedValue(rows);
-      const where = vi.fn(() => ({ limit }));
-      const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService(
-        {
-          select: vi.fn(() => ({ from })),
-        } as unknown as Db,
-        likePattern,
-      );
+      likePattern.escape.mockReturnValue('GBBL');
+      const { chains } = await build(rows);
       await expect(service.searchByNamePrefix('GBBL', 25)).resolves.toEqual(
         rows,
       );
-      expect(limit).toHaveBeenCalledWith(25);
+      expect(chains[0].limit).toHaveBeenCalledWith(25);
     });
 
     it('escapes LIKE metacharacters in the prefix before matching', async () => {
-      const limit = vi.fn().mockResolvedValue([]);
-      const where = vi.fn((_condition: { queryChunks: unknown[] }) => ({
-        limit,
-      }));
-      const from = vi.fn(() => ({ where }));
-      const service = new LeaguesService(
-        {
-          select: vi.fn(() => ({ from })),
-        } as unknown as Db,
-        likePattern,
-      );
+      likePattern.escape.mockReturnValue('50\\%\\_\\\\off');
+      const { chains } = await build([]);
 
       await service.searchByNamePrefix('50%_\\off', 25);
 
-      expect(where).toHaveBeenCalledTimes(1);
-      const condition = where.mock.calls[0][0];
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
       // The escaped pattern value is passed as a raw SQL parameter chunk.
+      const condition = firstCallArg(chains[0].where) as {
+        queryChunks: unknown[];
+      };
       expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
     });
   });
