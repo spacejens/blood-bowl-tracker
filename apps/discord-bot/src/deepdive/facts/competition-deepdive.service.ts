@@ -3,13 +3,14 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import type { EntityComponentEntry } from '../../entity-components.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { LeaderboardService } from '../../insights/leaderboard.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -23,7 +24,6 @@ type CompetitionHeader = {
   eraName: string;
 };
 type ParticipatingTeam = { id: number; name: string };
-type ButtonEntry = { customId: string; label: string };
 
 /**
  * Composes the competition header (type), its era line, and its participating-
@@ -39,7 +39,7 @@ export class CompetitionDeepdiveService {
   constructor(
     private readonly competitions: CompetitionsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
-    private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(
@@ -70,29 +70,32 @@ export class CompetitionDeepdiveService {
         ? teams.map((team) => team.name)
         : [DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE];
 
-    const description = [
+    const descriptionLines = [
       `Type: ${competition.type}`,
       `Era: ${competition.eraName}`,
       '',
       'Participating teams:',
       ...teamLines,
-    ].join('\n');
+    ];
 
-    const buttonEntries: ButtonEntry[] = [
+    const entries: EntityComponentEntry[] = [
       {
-        customId: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${competition.eraId}`,
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(competition.eraId),
         label: competition.eraName,
       },
       ...teams.map((team) => ({
-        customId: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${team.id}`,
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(team.id),
         label: team.name,
       })),
     ];
-    const components = this.leaderboard.buildEntityButtons(
-      buttonEntries,
-      (entry) => entry.customId,
-      (entry) => entry.label,
-    );
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(entries);
+    const description = [
+      ...descriptionLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
+    ].join('\n');
 
     return { embeds: [{ title: competition.name, description }], components };
   }

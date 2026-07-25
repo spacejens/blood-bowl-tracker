@@ -9,6 +9,7 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -16,28 +17,40 @@ import {
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { LeaderboardService } from '../../insights/leaderboard.service';
+import {
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from '../button-custom-ids';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
+
+function defaultEntityComponents(): MockProxy<EntityComponentsService> {
+  const entityComponents = mock<EntityComponentsService>();
+  entityComponents.buildEntityComponents.mockReturnValue({
+    components: [],
+    overflowNote: null,
+  });
+  return entityComponents;
+}
 
 async function makeService(
   competitions: CompetitionsService,
   databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  leaderboard: MockProxy<LeaderboardService> = mock<LeaderboardService>(),
+  entityComponents: MockProxy<EntityComponentsService> = defaultEntityComponents(),
 ): Promise<{
   service: CompetitionDeepdiveService;
-  leaderboard: MockProxy<LeaderboardService>;
+  entityComponents: MockProxy<EntityComponentsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       CompetitionDeepdiveService,
       { provide: CompetitionsService, useValue: competitions },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
-      { provide: LeaderboardService, useValue: leaderboard },
+      { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
   return {
     service: moduleRef.get(CompetitionDeepdiveService),
-    leaderboard,
+    entityComponents,
   };
 }
 
@@ -66,15 +79,15 @@ describe('CompetitionDeepdiveService', () => {
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
-  // LeaderboardService.buildEntityButtons itself (dedupe/cap/chunk) is
-  // covered by leaderboard.service.spec.ts. Here `leaderboard` is a mock
-  // returning a canned button list, so this test asserts only what
+  // EntityComponentsService's own dedupe/cap/chunk/select logic is covered
+  // by entity-components.service.spec.ts. Here `entityComponents` is a mock
+  // returning a canned component list, so this test asserts only what
   // CompetitionDeepdiveService itself owns: the type/era/teams description
-  // text, and the era-then-teams button-entry pool (in that order, with the
-  // right ids/labels) it hands to buildEntityButtons.
-  it('renders the type, era line, and participating-teams list, with the era button before team buttons', async () => {
-    const leaderboard = mock<LeaderboardService>();
-    const cannedButtons = [
+  // text, and the era-then-teams entry pool (in that order, with the right
+  // ids/labels) it hands to buildEntityComponents.
+  it('renders the type, era line, and participating-teams list, with the era entry before team entries', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    const cannedComponents = [
       {
         type: 1,
         components: [
@@ -82,7 +95,10 @@ describe('CompetitionDeepdiveService', () => {
         ],
       },
     ];
-    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: cannedComponents,
+      overflowNote: null,
+    });
     const { service } = await makeService(
       makeCompetitions({
         competition: {
@@ -98,7 +114,7 @@ describe('CompetitionDeepdiveService', () => {
         ],
       }),
       undefined,
-      leaderboard,
+      entityComponents,
     );
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -115,25 +131,34 @@ describe('CompetitionDeepdiveService', () => {
           ].join('\n'),
         },
       ],
-      components: cannedButtons,
+      components: cannedComponents,
     });
-    const [entries, buildCustomId, label] =
-      leaderboard.buildEntityButtons.mock.calls[0];
-    expect(entries.map(buildCustomId)).toEqual([
-      'deepdive:era:20',
-      'deepdive:team:5',
-      'deepdive:team:9',
-    ]);
-    expect(entries.map(label)).toEqual([
-      'BB2020',
-      'Gouged Eye',
-      'Reikland Reavers',
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Gouged Eye',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '9',
+        label: 'Reikland Reavers',
+      },
     ]);
   });
 
-  it('shows the no-teams message but still passes the era-only entry to buildEntityButtons', async () => {
-    const leaderboard = mock<LeaderboardService>();
-    leaderboard.buildEntityButtons.mockReturnValue([]);
+  it('shows the no-teams message but still passes the era-only entry to buildEntityComponents', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
     const { service } = await makeService(
       makeCompetitions({
         competition: {
@@ -146,7 +171,7 @@ describe('CompetitionDeepdiveService', () => {
         teams: [],
       }),
       undefined,
-      leaderboard,
+      entityComponents,
     );
     const result = (await service.resolve(1)) as unknown as {
       embeds: { description: string }[];
@@ -154,9 +179,14 @@ describe('CompetitionDeepdiveService', () => {
     expect(result.embeds[0].description).toContain(
       DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
     );
-    const [entries, buildCustomId] =
-      leaderboard.buildEntityButtons.mock.calls[0];
-    expect(entries.map(buildCustomId)).toEqual(['deepdive:era:20']);
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
+      },
+    ]);
   });
 
   it('falls back to the competition timeout message when the header lookup times out', async () => {

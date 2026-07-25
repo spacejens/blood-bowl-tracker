@@ -7,6 +7,7 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
@@ -15,7 +16,6 @@ import {
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { LeaderboardService } from '../../insights/leaderboard.service';
 import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type EraHeader = {
@@ -46,7 +46,7 @@ export class EraDeepdiveService {
     private readonly competitions: CompetitionsService,
     private readonly externalSystems: ExternalSystemsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
-    private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(eraId: number): Promise<string | InteractionReplyOptions> {
@@ -97,6 +97,15 @@ export class EraDeepdiveService {
         ? comps.map((comp) => `${comp.name} (${comp.type})`)
         : [DEEPDIVE_NO_COMPETITIONS_MESSAGE];
 
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(
+        comps.map((comp) => ({
+          customIdPrefix: COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(comp.id),
+          label: comp.name,
+        })),
+      );
+
     const description = [
       `League: ${era.leagueName}`,
       `Dates: ${era.startDate} – ${end}`,
@@ -104,13 +113,8 @@ export class EraDeepdiveService {
       `External systems: ${externalSystemsLine}`,
       '',
       ...competitionLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
-
-    const components = this.leaderboard.buildEntityButtons(
-      comps,
-      (comp) => `${COMPETITION_BUTTON_CUSTOM_ID_PREFIX}${comp.id}`,
-      (comp) => comp.name,
-    );
 
     return {
       embeds: [{ title: era.name, description }],
