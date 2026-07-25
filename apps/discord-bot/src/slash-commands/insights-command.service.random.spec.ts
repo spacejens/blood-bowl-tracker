@@ -34,7 +34,7 @@ describe('InsightsCommandService — random pick', () => {
   it('restricts the random pick to era-supporting leaves when an era but no category is given', async () => {
     const { service, factTreeDeps, eras } = await makeService();
     eras.findById.mockResolvedValue({ id: 20, name: 'BB2020' });
-    // The real fact tree has exactly 36 era-supporting leaves (verified by
+    // The real fact tree has exactly 37 era-supporting leaves (verified by
     // walking fact-tree.ts); with pickRandom using
     // leaves[Math.floor(Math.random() * leaves.length)], 0.999999 lands
     // deterministically on the last one — "stats", the sole leaf added

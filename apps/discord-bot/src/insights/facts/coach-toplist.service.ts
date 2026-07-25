@@ -15,10 +15,13 @@ import { makeToplistResolvers } from './toplist-factory';
 @Injectable()
 export class CoachToplistService {
   /**
-   * `countFoulsCommittedByCoach` is the only coach count with the
-   * (scope, limit) -> counted rows shape the shared factory binds to; the four
-   * resolvers below it take a narrower scope (league/era only, or none) and
-   * stay hand-written rather than widening their signatures.
+   * `resolveMatchesPlayed`, `resolveTeams`, and `resolveCompetitionsPlayed`
+   * already have the `(scope, limit) -> counted rows` shape this factory
+   * requires and could be migrated onto it too; they're left hand-written for
+   * now, with that migration tracked as a follow-up issue (see the "Follow-up"
+   * section of `docs/plans/2026-07-25-coach-toplist-fouls-committed-design.md`).
+   * Only `resolveErasActive` (backed by `countErasByCoach`, which takes no
+   * scope at all) is structurally incompatible with the factory.
    */
   private readonly resolvers: Record<
     'countFoulsCommittedByCoach',
