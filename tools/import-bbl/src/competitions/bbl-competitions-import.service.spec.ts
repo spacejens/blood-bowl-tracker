@@ -148,6 +148,9 @@ async function makeService(
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // Identity passthroughs (name in, same name out): nothing computed or
+  // formatted, so nothing can drift out of sync with the real
+  // NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forCompetition.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
