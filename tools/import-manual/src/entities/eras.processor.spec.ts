@@ -1,19 +1,14 @@
-import type {
-  ErasImportService,
-  ImportError,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { ErasImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { ErasProcessor } from './eras.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
 
 function emptyData(): ManualDataFile {
   return {
@@ -36,22 +31,45 @@ function makeContext(
     data,
     systemIds: new Map([['Name', 2]]),
     idMap,
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
 describe('ErasProcessor', () => {
+  let processor: ErasProcessor;
+  let eras: MockProxy<ErasImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    eras = mock<ErasImportService>();
+    refResolver = mock<ReferenceResolverService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ErasProcessor,
+        { provide: ErasImportService, useValue: eras },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(ErasProcessor);
+  });
+
   it('resolves league and rules-set refs, upserts, and records ids', async () => {
-    const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor(
-      {
-        upsertEra,
-      } as unknown as ErasImportService,
-      makeRefResolver(),
-    );
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:my-league' }], 3);
-    idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
+    eras.upsertEra.mockResolvedValue({
+      id: 50,
+      name: 'Season 12',
+      leagueId: 3,
+      rulesSetIds: [7],
+      startDate: '2024-01-01',
+      endDate: null,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveRefs.mockReturnValue([7]);
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:season-12' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.eras = [
       {
@@ -62,19 +80,27 @@ describe('ErasProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:season-12' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertEra).toHaveBeenCalledWith(
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: data.eras[0].league }),
+    );
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({ refs: data.eras[0].rulesSets }),
+    );
+    // The processor must wire each canned resolver output into the exact
+    // field the upsert call expects -- not just pass some id through.
+    expect(eras.upsertEra).toHaveBeenCalledWith(
       {
         name: 'Season 12',
         leagueId: 3,
         rulesSetIds: [7],
         startDate: '2024-01-01',
         endDate: undefined,
-        externalIds: [{ externalSystemId: 2, externalId: 'name:season-12' }],
+        externalIds: cannedExternalIds,
       },
       ctx.errors,
     );
@@ -84,16 +110,19 @@ describe('ErasProcessor', () => {
   });
 
   it('passes endDate through when present', async () => {
-    const upsertEra = vi.fn().mockResolvedValue({ id: 50 });
-    const processor = new ErasProcessor(
-      {
-        upsertEra,
-      } as unknown as ErasImportService,
-      makeRefResolver(),
-    );
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:l' }], 3);
-    idMap.add([{ system: 'Name', id: 'name:crp' }], 7);
+    eras.upsertEra.mockResolvedValue({
+      id: 50,
+      name: 'E',
+      leagueId: 3,
+      rulesSetIds: [7],
+      startDate: '2024-01-01',
+      endDate: '2024-12-31',
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveRefs.mockReturnValue([7]);
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.eras = [
       {
@@ -106,19 +135,21 @@ describe('ErasProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, idMap));
+    await processor.process(makeContext(data, new ExternalIdMap()));
 
-    expect(upsertEra.mock.calls[0][0]).toMatchObject({ endDate: '2024-12-31' });
+    expect(eras.upsertEra.mock.calls[0][0]).toMatchObject({
+      endDate: '2024-12-31',
+    });
   });
 
-  it('skips the era and records errors when a reference is unresolved', async () => {
-    const upsertEra = vi.fn();
-    const processor = new ErasProcessor(
-      {
-        upsertEra,
-      } as unknown as ErasImportService,
-      makeRefResolver(),
-    );
+  // Resolution-failure counting (how many ImportErrors get recorded) is the
+  // resolver's own behaviour and is covered by reference-resolver.service.spec.ts.
+  // This test instead asserts the processor's own logic: when either resolver
+  // call signals failure it must skip the entry (no upsert) and never reach
+  // toExternalIds.
+  it('skips the era and never upserts when a reference is unresolved', async () => {
+    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.eras = [
       {
@@ -134,7 +165,7 @@ describe('ErasProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(upsertEra).not.toHaveBeenCalled();
-    expect(ctx.errors.length).toBe(2);
+    expect(eras.upsertEra).not.toHaveBeenCalled();
+    expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 });

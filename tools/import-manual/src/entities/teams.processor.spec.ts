@@ -1,19 +1,14 @@
-import type {
-  ImportError,
-  TeamsImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { TeamsImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { TeamsProcessor } from './teams.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
 
 function emptyData(): ManualDataFile {
   return {
@@ -36,27 +31,47 @@ function makeContext(
     data,
     systemIds: new Map([['Name', 2]]),
     idMap,
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
-function seededMap(): ExternalIdMap {
-  const idMap = new ExternalIdMap();
-  idMap.add([{ system: 'Name', id: 'name:necromantic' }], 40);
-  idMap.add([{ system: 'Name', id: 'name:bob' }], 12);
-  idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
-  return idMap;
-}
-
 describe('TeamsProcessor', () => {
+  let processor: TeamsProcessor;
+  let teams: MockProxy<TeamsImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    teams = mock<TeamsImportService>();
+    refResolver = mock<ReferenceResolverService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        TeamsProcessor,
+        { provide: TeamsImportService, useValue: teams },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(TeamsProcessor);
+  });
+
   it('resolves race, coach, and era refs, upserts, and records ids', async () => {
-    const upsertTeam = vi.fn().mockResolvedValue({ id: 99 });
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
+    teams.upsertTeam.mockResolvedValue({
+      id: 99,
+      name: 'Grave Diggers',
+      raceId: 40,
+      coachId: 12,
+      eras: [{ id: 1, eraId: 50 }],
+      createdAt: new Date(),
+      created: true,
+    });
+    // Calls happen in the order the processor makes them: race, then coach.
+    refResolver.resolveRef
+      .mockReturnValueOnce(40) // race
+      .mockReturnValueOnce(12); // coach
+    refResolver.resolveRefs.mockReturnValue([50]);
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:grave-diggers' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
     data.teams = [
       {
@@ -67,20 +82,20 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:grave-diggers' }],
       },
     ];
-    const ctx = makeContext(data, seededMap());
+    const ctx = makeContext(data, new ExternalIdMap());
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertTeam).toHaveBeenCalledWith(
+    // Each canned resolver output must land in the field the processor
+    // says it belongs to (raceId vs coachId), not just be passed through.
+    expect(teams.upsertTeam).toHaveBeenCalledWith(
       {
         name: 'Grave Diggers',
         raceId: 40,
         coachId: 12,
         eras: [50],
-        externalIds: [
-          { externalSystemId: 2, externalId: 'name:grave-diggers' },
-        ],
+        externalIds: cannedExternalIds,
       },
       ctx.errors,
     );
@@ -90,13 +105,18 @@ describe('TeamsProcessor', () => {
   });
 
   it('upserts a team with no eras', async () => {
-    const upsertTeam = vi.fn().mockResolvedValue({ id: 100 });
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
+    teams.upsertTeam.mockResolvedValue({
+      id: 100,
+      name: 'T',
+      raceId: 40,
+      coachId: 12,
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveRef.mockReturnValueOnce(40).mockReturnValueOnce(12);
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.teams = [
       {
@@ -108,20 +128,21 @@ describe('TeamsProcessor', () => {
       },
     ];
 
-    const count = await processor.process(makeContext(data, seededMap()));
+    const count = await processor.process(
+      makeContext(data, new ExternalIdMap()),
+    );
 
     expect(count).toBe(1);
-    expect(upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
+    expect(teams.upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
   });
 
-  it('skips the team and records errors when references are unresolved', async () => {
-    const upsertTeam = vi.fn();
-    const processor = new TeamsProcessor(
-      {
-        upsertTeam,
-      } as unknown as TeamsImportService,
-      makeRefResolver(),
-    );
+  // Resolution-failure error counting is the resolver's own behaviour and is
+  // covered by reference-resolver.service.spec.ts. This test instead asserts
+  // the processor's own logic: it must skip the entry (no upsert) and never
+  // reach toExternalIds when any reference fails to resolve.
+  it('skips the team and never upserts when references are unresolved', async () => {
+    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.teams = [
       {
@@ -137,7 +158,7 @@ describe('TeamsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(upsertTeam).not.toHaveBeenCalled();
-    expect(ctx.errors.length).toBe(3);
+    expect(teams.upsertTeam).not.toHaveBeenCalled();
+    expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 });

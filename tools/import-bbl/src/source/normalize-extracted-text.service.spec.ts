@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { NormalizeExtractedTextService } from './normalize-extracted-text.service';
 
 describe('NormalizeExtractedTextService', () => {
-  const service = new NormalizeExtractedTextService();
+  let service: NormalizeExtractedTextService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [NormalizeExtractedTextService],
+    }).compile();
+    service = moduleRef.get(NormalizeExtractedTextService);
+  });
 
   it('collapses an internal non-breaking space to a plain space', () => {
     // U+00A0 between the two words, as cheerio decodes a `&nbsp;` entity.

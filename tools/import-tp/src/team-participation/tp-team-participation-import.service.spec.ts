@@ -1,28 +1,44 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
-import type {
+import {
   CompetitionsImportService,
+  ImportResultService,
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
+import {
+  asProviderMethod,
+  mockImportResultService,
+} from '../import-package.test-helpers';
 import type { RosterEntry } from '../source/roster-collection.service';
 import { TpTeamParticipationImportService } from './tp-team-participation-import.service';
 
-function makeService(opts: {
+async function makeService(opts: {
   upsertCompetition: ReturnType<typeof vi.fn>;
   upsertMatch?: ReturnType<typeof vi.fn>;
-}) {
-  return new TpTeamParticipationImportService(
-    {
-      upsertCompetition: opts.upsertCompetition,
-    } as unknown as CompetitionsImportService,
-    {
-      upsertMatch: opts.upsertMatch ?? vi.fn().mockResolvedValue(true),
-    } as unknown as MatchesImportService,
-    new ImportResultService(),
+}): Promise<TpTeamParticipationImportService> {
+  const competitionsImport = mock<CompetitionsImportService>();
+  competitionsImport.upsertCompetition.mockImplementation(
+    asProviderMethod(opts.upsertCompetition),
   );
+  const matchesImport = mock<MatchesImportService>();
+  matchesImport.upsertMatch.mockImplementation(
+    asProviderMethod(opts.upsertMatch ?? vi.fn().mockResolvedValue(true)),
+  );
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpTeamParticipationImportService,
+      { provide: CompetitionsImportService, useValue: competitionsImport },
+      { provide: MatchesImportService, useValue: matchesImport },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpTeamParticipationImportService);
 }
 
 /** An UpsertCompetition as competitions import builds it (TP id 111, era 100). */
@@ -76,7 +92,7 @@ function tpMatch(id: number, home: number, away: number): TpMatch {
 describe('TpTeamParticipationImportService', () => {
   it('re-upserts a competition with the team eras of its own directory rosters', async () => {
     const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const service = makeService({ upsertCompetition });
+    const service = await makeService({ upsertCompetition });
 
     const { result } = await service.importTeamParticipation({
       competitionsByTpId: new Map([
@@ -112,7 +128,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('resolves each competition against the era its own eraId names (multi-competition roster reuse)', async () => {
     const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const service = makeService({ upsertCompetition });
+    const service = await makeService({ upsertCompetition });
 
     const compA = competition({
       name: 'Comp A',
@@ -166,7 +182,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('re-upserts each match with both resolved team eras and a TP external id', async () => {
     const upsertMatch = vi.fn().mockResolvedValue(true);
-    const service = makeService({
+    const service = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
       upsertMatch,
     });
@@ -208,7 +224,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('records an error and skips a roster id it cannot resolve, still upserting the rest', async () => {
     const upsertCompetition = vi.fn().mockResolvedValue(true);
-    const service = makeService({ upsertCompetition });
+    const service = await makeService({ upsertCompetition });
 
     const { result } = await service.importTeamParticipation({
       competitionsByTpId: new Map([
@@ -243,7 +259,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('records an error and skips a match when its home team era does not resolve', async () => {
     const upsertMatch = vi.fn().mockResolvedValue(true);
-    const service = makeService({
+    const service = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
       upsertMatch,
     });
@@ -275,7 +291,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('records an error and skips a match when its away team era does not resolve', async () => {
     const upsertMatch = vi.fn().mockResolvedValue(true);
-    const service = makeService({
+    const service = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
       upsertMatch,
     });
@@ -303,7 +319,7 @@ describe('TpTeamParticipationImportService', () => {
   it('skips a competition with no matching rosters and no matches (no upsert)', async () => {
     const upsertCompetition = vi.fn();
     const upsertMatch = vi.fn();
-    const service = makeService({ upsertCompetition, upsertMatch });
+    const service = await makeService({ upsertCompetition, upsertMatch });
 
     const { result } = await service.importTeamParticipation({
       competitionsByTpId: new Map([
@@ -331,7 +347,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('records an error and skips match teams for a competition with no imported db id', async () => {
     const upsertMatch = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
       upsertMatch,
     });
@@ -370,7 +386,7 @@ describe('TpTeamParticipationImportService', () => {
 
   it('does not count a competition as imported when its re-upsert reports failure', async () => {
     const upsertCompetition = vi.fn().mockResolvedValue(false);
-    const service = makeService({ upsertCompetition });
+    const service = await makeService({ upsertCompetition });
 
     const { result } = await service.importTeamParticipation({
       competitionsByTpId: new Map([

@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BblPageService } from './bbl-page.service';
 
 describe('BblPageService', () => {
-  const service = new BblPageService();
+  let service: BblPageService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [BblPageService],
+    }).compile();
+    service = moduleRef.get(BblPageService);
+  });
 
   it('parses a team page filename into type and params', () => {
     expect(service.parseFilename('default.asp?p=tm&t=knu')).toEqual({

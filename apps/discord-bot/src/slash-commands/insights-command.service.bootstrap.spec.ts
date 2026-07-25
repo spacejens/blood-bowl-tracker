@@ -10,8 +10,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     vi.restoreAllMocks();
   });
 
-  it('builds an insights command definition with an autocompleted category option', () => {
-    const { service } = makeService();
+  it('builds an insights command definition with an autocompleted category option', async () => {
+    const { service } = await makeService();
     const command = service.buildCommand();
     expect(command.name).toBe('insights');
     expect(command.description).toEqual(expect.any(String));
@@ -26,7 +26,7 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns category autocomplete choices for the focused partial path', async () => {
-    const { service } = makeService();
+    const { service } = await makeService();
     const choices = await service.autocomplete(
       autocompleteInteraction('category', 'coach.'),
     );
@@ -35,16 +35,16 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     ]);
   });
 
-  it('registers the insights command with the registry on init', () => {
-    const { service, registry } = makeService();
+  it('registers the insights command with the registry on init', async () => {
+    const { service, registry } = await makeService();
     service.onModuleInit();
     expect(registry.register).toHaveBeenCalledTimes(1);
     const command = registry.register.mock.calls[0][0] as { name: string };
     expect(command.name).toBe('insights');
   });
 
-  it('advertises league, era, and competition options alongside category', () => {
-    const { service } = makeService();
+  it('advertises league, era, and competition options alongside category', async () => {
+    const { service } = await makeService();
     const command = service.buildCommand();
     expect(command.options).toEqual([
       {
@@ -79,8 +79,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = makeService();
-    (eras.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, eras } = await makeService();
+    eras.searchByNamePrefix.mockResolvedValue([
       { id: 20, name: 'BB2020', leagueName: 'Premier League' },
     ]);
     const choices = await service.autocomplete(
@@ -89,8 +89,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
   });
 
-  it('advertises a competition option alongside category, league and era', () => {
-    const { service } = makeService();
+  it('advertises a competition option alongside category, league and era', async () => {
+    const { service } = await makeService();
     const command = service.buildCommand();
     expect(command.options).toHaveLength(4);
     expect(command.options?.[3]).toEqual({
@@ -103,10 +103,8 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   });
 
   it('returns competition autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, competitions } = makeService();
-    (
-      competitions.searchByNamePrefix as ReturnType<typeof vi.fn>
-    ).mockResolvedValue([
+    const { service, competitions } = await makeService();
+    competitions.searchByNamePrefix.mockResolvedValue([
       { id: 30, name: 'Major Season 24', leagueName: 'The Major' },
     ]);
     const choices = await service.autocomplete(

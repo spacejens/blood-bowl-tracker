@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventCorrelationService } from './match-event-correlation.service';
@@ -15,9 +16,17 @@ function makeEvents(overrides: Partial<BblMatchEvents> = {}): BblMatchEvents {
 }
 
 describe('MatchEventCorrelationService', () => {
+  let service: MatchEventCorrelationService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [MatchEventCorrelationService],
+    }).compile();
+    service = moduleRef.get(MatchEventCorrelationService);
+  });
+
   describe('combineOccurrences', () => {
     it('tags each action/consequence with its side team code and source bblId', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
@@ -45,7 +54,6 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('merges a partner match into a single 4-team-code result without collisions', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
@@ -67,7 +75,6 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('records journeymen signings only for sides with a positive count', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({ journeymenCount: { home: 2, away: 0 } }),
       );
@@ -80,7 +87,6 @@ describe('MatchEventCorrelationService', () => {
 
   describe('correlateEvents', () => {
     it('merges a single death action with the single matching death consequence on another team', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
@@ -107,7 +113,6 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('does not merge when two action candidates match the same consequence group', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [
@@ -131,7 +136,6 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('emits journeymen-signing events with a null pid and the source bblId', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({ journeymenCount: { home: 3, away: 0 } }),
       );
@@ -150,7 +154,6 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('emits leftover actions and consequences independently, unmerged events last', () => {
-      const service = new MatchEventCorrelationService();
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],

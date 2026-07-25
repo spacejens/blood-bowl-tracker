@@ -1,25 +1,37 @@
-import type {
-  ExternalSystemBootstrapService,
-  PositionsImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  PositionsImportService,
 } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPlayer } from '../players/player-page-parser';
 import { PlayerPageParser } from '../players/player-page-parser';
 import type { BblPage } from '../source/bbl-page.types';
-import type { BblSourceReader } from '../source/bbl-source-reader';
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblSourceReader } from '../source/bbl-source-reader';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblPositionsImportService } from './bbl-positions-import.service';
 import type { BblPosition } from './position-page-parser';
 import { PositionPageParser } from './position-page-parser';
 
-const normalizeText = new NormalizeExtractedTextService();
+/**
+ * The full upsertPosition result record (PositionsImportService.upsertPosition
+ * resolves the API's Position + created shape). Defaults match the id=100
+ * value repeated across these tests; pass overrides to vary the id.
+ */
+function makePositionRecord(overrides: { id?: number } = {}) {
+  return {
+    id: overrides.id ?? 100,
+    name: 'Position',
+    isStarPlayer: false,
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
+}
 
 function ptPage(position: BblPosition | null): BblPage {
   return {
@@ -53,51 +65,87 @@ function makeReader(pt: BblPage[], pl: BblPage[] = []): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-function makeParsers() {
-  const positionParser = new PositionPageParser(normalizeText);
-  vi.spyOn(positionParser, 'extractPosition').mockImplementation(
+interface Mocks {
+  positionParser: MockProxy<PositionPageParser>;
+  playerParser: MockProxy<PlayerPageParser>;
+  positionsImport: MockProxy<PositionsImportService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+}
+
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. Deterministic collaborators (name resolution, error
+ * building) mirror the real production logic so a regression in the service
+ * under test still fails these tests.
+ */
+async function makeService(
+  reader: BblSourceReader,
+): Promise<{ service: BblPositionsImportService; mocks: Mocks }> {
+  const positionParser = mock<PositionPageParser>();
+  positionParser.extractPosition.mockImplementation(
     (p) => JSON.parse(p.params.position) as BblPosition | null,
   );
-  const playerParser = new PlayerPageParser(normalizeText);
-  vi.spyOn(playerParser, 'extractPlayer').mockImplementation(
+
+  const playerParser = mock<PlayerPageParser>();
+  playerParser.extractPlayer.mockImplementation(
     (p) => JSON.parse(p.params.player) as BblPlayer | null,
   );
-  return { positionParser, playerParser };
-}
 
-interface MakeServiceOptions {
-  reader: BblSourceReader;
-  bootstrap: ReturnType<typeof vi.fn>;
-  upsertPosition: ReturnType<typeof vi.fn>;
-  parsers?: {
-    positionParser: PositionPageParser;
-    playerParser: PlayerPageParser;
-  };
-}
+  const positionsImport = mock<PositionsImportService>();
 
-function makeService({
-  reader,
-  bootstrap,
-  upsertPosition,
-  parsers = makeParsers(),
-}: MakeServiceOptions) {
-  return new BblPositionsImportService(
-    reader,
-    parsers.positionParser,
-    parsers.playerParser,
-    { upsertPosition } as unknown as PositionsImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    {
-      getBblSystemName: () => 'BBL',
-    } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
-    new PageParseErrorService(new ImportResultService()),
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forPosition.mockImplementation(
+    (raceName, positionName) => `${raceName}: ${positionName}`,
   );
-}
+  nameExternalId.forStarPosition.mockImplementation((name) => name);
 
-function externalSystemsOk() {
-  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockImplementation(
+    (pageParams, pageDescription, error) =>
+      importResults.error({
+        item: { page: pageParams },
+        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }),
+  );
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblPositionsImportService,
+      { provide: BblSourceReader, useValue: reader },
+      { provide: PositionPageParser, useValue: positionParser },
+      { provide: PlayerPageParser, useValue: playerParser },
+      { provide: PositionsImportService, useValue: positionsImport },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+      { provide: PageParseErrorService, useValue: pageParseError },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblPositionsImportService),
+    mocks: { positionParser, playerParser, positionsImport, bootstrap },
+  };
 }
 
 const racesByBblId = new Map<string, { id: number; name: string }>([
@@ -113,10 +161,8 @@ const teamRaceIdsByCode = new Map<string, number>([
 
 describe('BblPositionsImportService', () => {
   it('upserts one row per listed race with composite external ids', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const bootstrap = externalSystemsOk();
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         ptPage({
           typId: '33',
           name: 'Goblin Linemen',
@@ -127,16 +173,17 @@ describe('BblPositionsImportService', () => {
           ],
         }),
       ]),
-      bootstrap,
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionRaceCandidates } = await service.importPositions(
       racesByBblId,
       teamRaceIdsByCode,
     );
 
-    expect(bootstrap).toHaveBeenCalledWith(
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
       [
         { name: 'BBL', category: 'imported_data_source' },
         { name: 'Name', category: 'bookkeeping' },
@@ -144,7 +191,7 @@ describe('BblPositionsImportService', () => {
       'Failed to upsert external system: ',
     );
     expect(result.imported).toBe(2);
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Goblin Linemen',
         isStarPlayer: false,
@@ -158,7 +205,7 @@ describe('BblPositionsImportService', () => {
       },
       expect.any(Array),
     );
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Goblin Linemen',
         isStarPlayer: false,
@@ -177,9 +224,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate candidate row', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '60',
@@ -197,9 +243,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionIdsByBblId, positionRaceCandidates } =
       await service.importPositions(racesByBblId, teamRaceIdsByCode);
@@ -208,7 +255,7 @@ describe('BblPositionsImportService', () => {
     expect(positionIdsByBblId.get('60-7')).toBe(100);
     expect(positionIdsByBblId.get('60-14')).toBe(100);
     // listed race
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
@@ -220,7 +267,7 @@ describe('BblPositionsImportService', () => {
       expect.any(Array),
     );
     // extra reverse-engineered race: duplicate row
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
@@ -240,9 +287,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('imports listed races and an extra reverse-engineered race (star) merged into one row', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '60',
@@ -260,9 +306,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionIdsByBblId, positionRaceCandidates } =
       await service.importPositions(racesByBblId, teamRaceIdsByCode);
@@ -271,7 +318,7 @@ describe('BblPositionsImportService', () => {
     expect(positionIdsByBblId.get('60-7')).toBe(100);
     expect(positionIdsByBblId.get('60-14')).toBe(100);
     // listed race row (unchanged listed-race convention: isStarPlayer false)
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: false,
@@ -283,7 +330,7 @@ describe('BblPositionsImportService', () => {
       expect.any(Array),
     );
     // extra races merged into one star row with a bare-name external id
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Minotaur 2',
         isStarPlayer: true,
@@ -304,9 +351,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('imports only listed races when the reverse-engineered race is already listed (dedup, no regression)', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '33',
@@ -327,9 +373,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -338,13 +385,12 @@ describe('BblPositionsImportService', () => {
 
     // Only the 2 listed races import; the resolved race is deduped away.
     expect(result.imported).toBe(2);
-    expect(upsertPosition).toHaveBeenCalledTimes(2);
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(2);
   });
 
   it('skips a listed race not in the map but imports the others', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         ptPage({
           typId: '33',
           name: 'Goblin Linemen',
@@ -355,9 +401,10 @@ describe('BblPositionsImportService', () => {
           ],
         }),
       ]),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -365,16 +412,15 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(1);
-    expect(upsertPosition).toHaveBeenCalledTimes(1);
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(1);
     expect(result.errors.some((e) => e.message.includes('Unknown Race'))).toBe(
       true,
     );
   });
 
   it('imports a star player as one row with a positions_race_eras row per resolved race and a bare-name external id', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '99',
@@ -398,9 +444,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionIdsByBblId, positionRaceCandidates } =
       await service.importPositions(racesByBblId, teamRaceIdsByCode);
@@ -408,8 +455,8 @@ describe('BblPositionsImportService', () => {
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('99-14')).toBe(100);
     expect(positionIdsByBblId.get('99-48')).toBe(100);
-    expect(upsertPosition).toHaveBeenCalledTimes(1);
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledTimes(1);
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Wilhelm Chaney',
         isStarPlayer: true,
@@ -433,9 +480,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('imports a defunct-race position as duplicate rows, recorded as a candidate', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '121',
@@ -453,16 +499,17 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionIdsByBblId, positionRaceCandidates } =
       await service.importPositions(racesByBblId, teamRaceIdsByCode);
 
     expect(result.imported).toBe(1);
     expect(positionIdsByBblId.get('121-14')).toBe(100);
-    expect(upsertPosition).toHaveBeenCalledWith(
+    expect(mocks.positionsImport.upsertPosition).toHaveBeenCalledWith(
       {
         name: 'Norse Catchers',
         isStarPlayer: false,
@@ -480,9 +527,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('skips a zero-race star player when no player is found and records an error', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '99',
@@ -493,9 +539,10 @@ describe('BblPositionsImportService', () => {
         ],
         [],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -503,16 +550,15 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('Zolcath the Zoat')),
     ).toBe(true);
   });
 
   it('skips a zero-race non-star position when no player is found and records an error', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '121',
@@ -523,9 +569,10 @@ describe('BblPositionsImportService', () => {
         ],
         [],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -533,16 +580,15 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('Norse Catchers')),
     ).toBe(true);
   });
 
   it('skips a resolved player whose team race is not in the maps', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '99',
@@ -560,9 +606,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -570,17 +617,15 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
     expect(result.errors.some((e) => e.message.includes('Grotty'))).toBe(true);
   });
 
   it('skips pages the position parser returns null for', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(true);
-    const service = makeService({
-      reader: makeReader([ptPage(null)]),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    const { service, mocks } = await makeService(makeReader([ptPage(null)]));
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -588,25 +633,12 @@ describe('BblPositionsImportService', () => {
     );
 
     expect(result.imported).toBe(0);
-    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
   });
 
   it('records an error and continues when a position page throws while parsing', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(true);
-    const positionParser = new PositionPageParser(normalizeText);
-    vi.spyOn(positionParser, 'extractPosition')
-      .mockImplementationOnce(() => {
-        throw new Error('bad page');
-      })
-      .mockImplementationOnce(
-        (p) => JSON.parse(p.params.position) as BblPosition | null,
-      );
-    const playerParser = new PlayerPageParser(normalizeText);
-    vi.spyOn(playerParser, 'extractPlayer').mockImplementation(
-      (p) => JSON.parse(p.params.player) as BblPlayer | null,
-    );
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         ptPage(null),
         ptPage({
           typId: '10',
@@ -615,9 +647,12 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '48', name: 'College of Shadow' }],
         }),
       ]),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-      parsers: { positionParser, playerParser },
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
+    mocks.positionParser.extractPosition.mockImplementationOnce(() => {
+      throw new Error('bad page');
     });
 
     const { result } = await service.importPositions(
@@ -634,16 +669,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('records one error and skips positions when an external system upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({
-      ok: false,
-      error: {
-        item: { externalSystems: ['BBL', 'Name'] },
-        message: 'Failed to upsert external system: internal error',
-      },
-    });
-    const upsertPosition = vi.fn();
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         ptPage({
           typId: '10',
           name: 'Lineman',
@@ -651,8 +678,13 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '48', name: 'College of Shadow' }],
         }),
       ]),
-      bootstrap,
-      upsertPosition,
+    );
+    mocks.bootstrap.bootstrap.mockResolvedValue({
+      ok: false,
+      error: {
+        item: { externalSystems: ['BBL', 'Name'] },
+        message: 'Failed to upsert external system: internal error',
+      },
     });
 
     const { result } = await service.importPositions(
@@ -664,14 +696,13 @@ describe('BblPositionsImportService', () => {
     expect(
       result.errors.some((e) => e.message.includes('external system')),
     ).toBe(true);
-    expect(upsertPosition).not.toHaveBeenCalled();
+    expect(mocks.positionsImport.upsertPosition).not.toHaveBeenCalled();
   });
 
   it('returns positionIdsByBblId keyed by `${typId}-${raceBblId}`', async () => {
     // one pt page: position typId '10', listing race bblId '7' (in racesByBblId)
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader([
+    const { service, mocks } = await makeService(
+      makeReader([
         ptPage({
           typId: '10',
           name: 'Lineman',
@@ -679,9 +710,10 @@ describe('BblPositionsImportService', () => {
           races: [{ bblId: '7', name: 'Goblin Team' }],
         }),
       ]),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result, positionIdsByBblId } = await service.importPositions(
       racesByBblId,
@@ -693,9 +725,8 @@ describe('BblPositionsImportService', () => {
   });
 
   it('records an error when a scanned team code has no race in teamRaceIdsByCode', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '10',
@@ -713,9 +744,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,
@@ -733,14 +765,13 @@ describe('BblPositionsImportService', () => {
   });
 
   it('records an error when a resolved race db id is missing from racesByBblId', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 100 });
     const teamRaceIdsWithOrphan = new Map<string, number>([
       ['knu', 140],
       ['col', 480],
       ['orphan', 999], // 999 has no entry in racesByBblId
     ]);
-    const service = makeService({
-      reader: makeReader(
+    const { service, mocks } = await makeService(
+      makeReader(
         [
           ptPage({
             typId: '10',
@@ -758,9 +789,10 @@ describe('BblPositionsImportService', () => {
           }),
         ],
       ),
-      bootstrap: externalSystemsOk(),
-      upsertPosition,
-    });
+    );
+    mocks.positionsImport.upsertPosition.mockResolvedValue(
+      makePositionRecord(),
+    );
 
     const { result } = await service.importPositions(
       racesByBblId,

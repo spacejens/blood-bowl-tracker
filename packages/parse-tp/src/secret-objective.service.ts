@@ -26,9 +26,9 @@ export type SecretObjective =
   | 'unknown';
 
 /**
- * Exported for `match-event-parser.service.spec.ts`, so its secret-objective
- * decode tests are driven directly off this map (every known code gets a test
- * case, with no risk of the two lists drifting apart).
+ * Exported for `secret-objective.service.spec.ts`, so its decode tests are
+ * driven directly off this map (every known code gets a test case, with no
+ * risk of the two lists drifting apart).
  */
 export const secretObjectiveByCode: Record<number, SecretObjective> = {
   1: 'red_card',

@@ -1,21 +1,33 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
-import { describe, expect, it, vi } from 'vitest';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { stubImportRunner } from './import-runner.test-helpers';
 import { MatchEventsImportService } from './match-events-import.service';
 import type { ImportError } from './types';
 
 describe('MatchEventsImportService', () => {
-  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = {
-      matchEvents: { upsert: upsertMock },
-    } as unknown as ApiClient;
-    return new MatchEventsImportService(
-      client,
-      new ImportRunnerService(new ImportResultService()),
-    );
-  }
+  let service: MatchEventsImportService;
+  let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
+    stubImportRunner(runner);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchEventsImportService,
+        { provide: API_CLIENT, useValue: client },
+        { provide: ImportRunnerService, useValue: runner },
+      ],
+    }).compile();
+    service = moduleRef.get(MatchEventsImportService);
+  });
 
   const data = {
     matchId: 10,
@@ -26,20 +38,29 @@ describe('MatchEventsImportService', () => {
   };
 
   it('returns true and calls the client on success', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({ id: 1, created: true });
-    const service = makeService(upsertMock);
+    client.matchEvents.upsert.mockResolvedValue({
+      id: 1,
+      matchId: 10,
+      actingMatchTeamId: 500,
+      consequenceMatchTeamId: null,
+      actingPlayerId: 9,
+      consequencePlayerId: null,
+      actionType: 'touchdown',
+      consequenceType: null,
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchEvent(data, errors);
 
     expect(result).toBe(true);
-    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(client.matchEvents.upsert).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
   it('returns false and records an error on failure', async () => {
-    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
-    const service = makeService(upsertMock);
+    client.matchEvents.upsert.mockRejectedValue(new Error('conflict'));
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchEvent(data, errors);
@@ -54,8 +75,7 @@ describe('MatchEventsImportService', () => {
   });
 
   it('records an error using String(err) for a non-Error rejection', async () => {
-    const upsertMock = vi.fn().mockRejectedValue('boom');
-    const service = makeService(upsertMock);
+    client.matchEvents.upsert.mockRejectedValue('boom');
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchEvent(data, errors);

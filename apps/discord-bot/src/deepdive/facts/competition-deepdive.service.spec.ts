@@ -1,7 +1,14 @@
-import type { CompetitionsService } from '@blood-bowl-tracker/game-data';
+import { CompetitionsService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -12,14 +19,26 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-function makeService(
+async function makeService(
   competitions: CompetitionsService,
-): CompetitionDeepdiveService {
-  return new CompetitionDeepdiveService(
-    competitions,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
+  leaderboard: MockProxy<LeaderboardService> = mock<LeaderboardService>(),
+): Promise<{
+  service: CompetitionDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
+}> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      CompetitionDeepdiveService,
+      { provide: CompetitionsService, useValue: competitions },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return {
+    service: moduleRef.get(CompetitionDeepdiveService),
+    leaderboard,
+  };
 }
 
 function makeCompetitions(options: {
@@ -40,13 +59,31 @@ function makeCompetitions(options: {
 
 describe('CompetitionDeepdiveService', () => {
   it('returns the not-found message when the competition does not exist', async () => {
-    const service = makeService(makeCompetitions({ competition: undefined }));
+    const { service } = await makeService(
+      makeCompetitions({ competition: undefined }),
+    );
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
-  it('renders the type, era line, and participating-teams list with buttons', async () => {
-    const service = makeService(
+  // LeaderboardService.buildEntityButtons itself (dedupe/cap/chunk) is
+  // covered by leaderboard.service.spec.ts. Here `leaderboard` is a mock
+  // returning a canned button list, so this test asserts only what
+  // CompetitionDeepdiveService itself owns: the type/era/teams description
+  // text, and the era-then-teams button-entry pool (in that order, with the
+  // right ids/labels) it hands to buildEntityButtons.
+  it('renders the type, era line, and participating-teams list, with the era button before team buttons', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const cannedButtons = [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+        ],
+      },
+    ];
+    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
+    const { service } = await makeService(
       makeCompetitions({
         competition: {
           id: 1,
@@ -60,37 +97,44 @@ describe('CompetitionDeepdiveService', () => {
           { id: 9, name: 'Reikland Reavers' },
         ],
       }),
+      undefined,
+      leaderboard,
     );
-    const result = (await service.resolve(1)) as unknown as {
-      embeds: { title: string; description: string }[];
-      components: { components: { label: string; custom_id: string }[] }[];
-    };
-    expect(result.embeds[0]).toEqual({
-      title: 'Major Season 24',
-      description: [
-        'Type: season',
-        'Era: BB2020',
-        '',
-        'Participating teams:',
-        'Gouged Eye',
-        'Reikland Reavers',
-      ].join('\n'),
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Major Season 24',
+          description: [
+            'Type: season',
+            'Era: BB2020',
+            '',
+            'Participating teams:',
+            'Gouged Eye',
+            'Reikland Reavers',
+          ].join('\n'),
+        },
+      ],
+      components: cannedButtons,
     });
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons.map((b) => b.custom_id)).toEqual([
+    const [entries, buildCustomId, label] =
+      leaderboard.buildEntityButtons.mock.calls[0];
+    expect(entries.map(buildCustomId)).toEqual([
       'deepdive:era:20',
       'deepdive:team:5',
       'deepdive:team:9',
     ]);
-    expect(buttons.map((b) => b.label)).toEqual([
+    expect(entries.map(label)).toEqual([
       'BB2020',
       'Gouged Eye',
       'Reikland Reavers',
     ]);
   });
 
-  it('shows the no-teams message but still renders the era button', async () => {
-    const service = makeService(
+  it('shows the no-teams message but still passes the era-only entry to buildEntityButtons', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    leaderboard.buildEntityButtons.mockReturnValue([]);
+    const { service } = await makeService(
       makeCompetitions({
         competition: {
           id: 1,
@@ -101,48 +145,57 @@ describe('CompetitionDeepdiveService', () => {
         },
         teams: [],
       }),
+      undefined,
+      leaderboard,
     );
     const result = (await service.resolve(1)) as unknown as {
       embeds: { description: string }[];
-      components: { components: { custom_id: string }[] }[];
     };
     expect(result.embeds[0].description).toContain(
       DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
     );
-    const ids = result.components.flatMap((r) =>
-      r.components.map((b) => b.custom_id),
-    );
-    expect(ids).toEqual(['deepdive:era:20']);
+    const [entries, buildCustomId] =
+      leaderboard.buildEntityButtons.mock.calls[0];
+    expect(entries.map(buildCustomId)).toEqual(['deepdive:era:20']);
   });
 
   it('falls back to the competition timeout message when the header lookup times out', async () => {
     await expectTimeoutFallback(
-      (competitions: CompetitionsService) =>
-        makeService(competitions).resolve(1),
-      () =>
-        ({
-          findByIdWithEra: vi.fn().mockReturnValue(new Promise(() => {})),
-          listTeams: vi.fn(),
-        }) as unknown as CompetitionsService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeCompetitions({}),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (competitions: CompetitionsService) =>
-        makeService(competitions).resolve(1),
-      () =>
-        ({
-          findByIdWithEra: vi.fn().mockResolvedValue({
-            id: 1,
-            name: 'Major Season 24',
-            type: 'season',
-            eraId: 20,
-            eraName: 'BB2020',
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeCompetitions({
+            competition: {
+              id: 1,
+              name: 'Major Season 24',
+              type: 'season',
+              eraId: 20,
+              eraName: 'BB2020',
+            },
           }),
-          listTeams: vi.fn().mockReturnValue(new Promise(() => {})),
-        }) as unknown as CompetitionsService,
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
     );
   });

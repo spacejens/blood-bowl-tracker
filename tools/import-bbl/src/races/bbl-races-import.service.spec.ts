@@ -1,31 +1,27 @@
-import type {
-  ExternalSystemBootstrapService,
-  ImportError,
-  RacesImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  RacesImportService,
 } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
-import type { BblSourceReader } from '../source/bbl-source-reader';
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-/**
- * A fake team page carrying its race name and numeric BBL id in params for the
- * stub parser. The id defaults to one derived from the name so distinct races
- * get distinct ids; pass an explicit id to control it.
- */
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblSourceReader } from '../source/bbl-source-reader';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblRacesImportService } from './bbl-races-import.service';
 import { RaceListPageParser } from './race-list-page-parser';
 import type { BblRace } from './race-page-parser';
 import { RacePageParser } from './race-page-parser';
 
-const normalizeText = new NormalizeExtractedTextService();
-
+/**
+ * A fake team page carrying its race name and numeric BBL id in params for the
+ * stub parser. The id defaults to one derived from the name so distinct races
+ * get distinct ids; pass an explicit id to control it.
+ */
 function page(raceName: string | null, id?: string): BblPage {
   return {
     type: 'tm',
@@ -49,31 +45,6 @@ function makeReader(pages: BblPage[]): BblSourceReader {
       }
     },
   } as unknown as BblSourceReader;
-}
-
-/** A parser that reads the race id and name straight from the page params. */
-function makeParser(): RacePageParser {
-  const parser = new RacePageParser(normalizeText);
-  vi.spyOn(parser, 'extractRace').mockImplementation((p) =>
-    p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
-  );
-  return parser;
-}
-
-/** A race-list parser that yields no races — the default for tm-only tests. */
-function makeEmptyListParser(): RaceListPageParser {
-  const parser = new RaceListPageParser(normalizeText);
-  vi.spyOn(parser, 'extractRaces').mockReturnValue([]);
-  return parser;
-}
-
-/** A race-list parser that reads its races array straight from page params. */
-function makeListParser(): RaceListPageParser {
-  const parser = new RaceListPageParser(normalizeText);
-  vi.spyOn(parser, 'extractRaces').mockImplementation(
-    (p) => JSON.parse(p.params.races) as BblRace[],
-  );
-  return parser;
 }
 
 /** A fake tl (race-list) page carrying a JSON array of races in params. */
@@ -101,95 +72,139 @@ function makeReaderByType(
   } as unknown as BblSourceReader;
 }
 
-function upsertRaceOk() {
+function upsertRaceOk(): (data: { name: string }) => Promise<{
+  id: number;
+  name: string;
+  eras: number[];
+  createdAt: Date;
+  created: boolean;
+}> {
   let nextId = 100;
-  return vi.fn().mockImplementation((data: { name: string }) =>
+  return (data) =>
     Promise.resolve({
       id: nextId++,
       name: data.name,
+      eras: [],
       createdAt: new Date('2026-01-01'),
       created: true,
-    }),
-  );
+    });
 }
 
-interface MakeServiceOptions {
-  reader: BblSourceReader;
-  bootstrap: ReturnType<typeof vi.fn>;
-  upsertRace: ReturnType<typeof vi.fn>;
-  getBblSystemName?: () => string;
-  listParser?: RaceListPageParser;
+interface Mocks {
+  parser: MockProxy<RacePageParser>;
+  listParser: MockProxy<RaceListPageParser>;
+  racesImport: MockProxy<RacesImportService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  nameConfig: MockProxy<ExternalSystemNameConfigService>;
 }
 
-function makeService({
-  reader,
-  bootstrap,
-  upsertRace,
-  getBblSystemName = () => 'BBL',
-  listParser = makeEmptyListParser(),
-}: MakeServiceOptions) {
-  return new BblRacesImportService(
-    reader,
-    makeParser(),
-    listParser,
-    { upsertRace } as unknown as RacesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
-    new PageParseErrorService(new ImportResultService()),
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. Deterministic collaborators (name resolution, error
+ * building) mirror the real production logic so a regression in the service
+ * under test still fails these tests.
+ */
+async function makeService(
+  reader: BblSourceReader,
+): Promise<{ service: BblRacesImportService; mocks: Mocks }> {
+  const parser = mock<RacePageParser>();
+  parser.extractRace.mockImplementation((p) =>
+    p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
   );
+
+  const listParser = mock<RaceListPageParser>();
+  listParser.extractRaces.mockReturnValue([]);
+
+  const racesImport = mock<RacesImportService>();
+  racesImport.upsertRace.mockImplementation(upsertRaceOk());
+
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forRace.mockImplementation((name) => name);
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockImplementation(
+    (pageParams, pageDescription, error) =>
+      importResults.error({
+        item: { page: pageParams },
+        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }),
+  );
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblRacesImportService,
+      { provide: BblSourceReader, useValue: reader },
+      { provide: RacePageParser, useValue: parser },
+      { provide: RaceListPageParser, useValue: listParser },
+      { provide: RacesImportService, useValue: racesImport },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+      { provide: PageParseErrorService, useValue: pageParseError },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblRacesImportService),
+    mocks: { parser, listParser, racesImport, bootstrap, nameConfig },
+  };
 }
 
 describe('BblRacesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReader([page('Orc')]),
-      bootstrap,
-      upsertRace,
-    });
+    const { service, mocks } = await makeService(makeReader([page('Orc')]));
 
     await service.importRaces();
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReader([page('Orc', '16')]),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'MyLeague',
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16')]),
+    );
+    mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
 
     await service.importRaces();
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts each race with a numeric BBL external ID and a Name external ID', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReader([page('Orc', '16')]),
-      bootstrap,
-      upsertRace,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16')]),
+    );
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    expect(upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       {
         name: 'Orc',
         eras: [],
@@ -203,57 +218,34 @@ describe('BblRacesImportService', () => {
   });
 
   it('deduplicates a race (by id) appearing on multiple team pages', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReader([
-        page('Orc', '16'),
-        page('Orc', '16'),
-        page('Elf', '6'),
-      ]),
-      bootstrap,
-      upsertRace,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16'), page('Orc', '16'), page('Elf', '6')]),
+    );
 
     const { result } = await service.importRaces();
 
-    expect(upsertRace).toHaveBeenCalledTimes(2);
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(2);
     expect(result.imported).toBe(2);
   });
 
   it('skips team pages that have no race', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReader([page(null), page('Elf')]),
-      bootstrap,
-      upsertRace,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page(null), page('Elf')]),
+    );
 
     const { result } = await service.importRaces();
 
-    expect(upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
 
   it('records an error and continues when a race upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = vi
-      .fn()
-      .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
-        errors.push({ item: {}, message: 'Failed to import race "Orc"' });
-        return Promise.resolve(undefined);
-      })
-      .mockResolvedValueOnce({
-        id: 101,
-        name: 'Elf',
-        createdAt: new Date('2026-01-01'),
-        created: true,
-      });
-    const service = makeService({
-      reader: makeReader([page('Orc'), page('Elf')]),
-      bootstrap,
-      upsertRace,
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc'), page('Elf')]),
+    );
+    mocks.racesImport.upsertRace.mockImplementationOnce((_data, errors) => {
+      errors.push({ item: {}, message: 'Failed to import race "Orc"' });
+      return Promise.resolve(undefined);
     });
 
     const { result } = await service.importRaces();
@@ -264,34 +256,17 @@ describe('BblRacesImportService', () => {
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const parser = new RacePageParser(normalizeText);
-    vi.spyOn(parser, 'extractRace')
-      .mockImplementationOnce(() => {
-        throw new Error('bad page');
-      })
-      .mockImplementationOnce((p) =>
-        p.params.race ? { id: p.params.raceId, name: p.params.race } : null,
-      );
-    const service = new BblRacesImportService(
+    const { service, mocks } = await makeService(
       makeReader([page('Orc'), page('Elf')]),
-      parser,
-      makeEmptyListParser(),
-      { upsertRace } as unknown as RacesImportService,
-      { bootstrap } as unknown as ExternalSystemBootstrapService,
-      {
-        getBblSystemName: () => 'BBL',
-      } as unknown as ExternalSystemNameConfigService,
-      new NameExternalIdService(),
-      new ImportResultService(),
-      new PageParseErrorService(new ImportResultService()),
     );
+    mocks.parser.extractRace.mockImplementationOnce(() => {
+      throw new Error('bad page');
+    });
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    expect(upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>
         e.message.includes('Failed to parse team page'),
@@ -300,26 +275,11 @@ describe('BblRacesImportService', () => {
   });
 
   it('records a stringified error when a team page throws a non-Error value', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const parser = new RacePageParser(normalizeText);
-    vi.spyOn(parser, 'extractRace').mockImplementationOnce(() => {
+    const { service, mocks } = await makeService(makeReader([page('Orc')]));
+    mocks.parser.extractRace.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
     });
-    const service = new BblRacesImportService(
-      makeReader([page('Orc')]),
-      parser,
-      makeEmptyListParser(),
-      { upsertRace } as unknown as RacesImportService,
-      { bootstrap } as unknown as ExternalSystemBootstrapService,
-      {
-        getBblSystemName: () => 'BBL',
-      } as unknown as ExternalSystemNameConfigService,
-      new NameExternalIdService(),
-      new ImportResultService(),
-      new PageParseErrorService(new ImportResultService()),
-    );
 
     const { result } = await service.importRaces();
 
@@ -330,18 +290,13 @@ describe('BblRacesImportService', () => {
   });
 
   it('records one error and skips races when an external system upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({
+    const { service, mocks } = await makeService(makeReader([page('Orc')]));
+    mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
         item: { externalSystems: ['BBL', 'Name'] },
         message: 'network timeout',
       },
-    });
-    const upsertRace = vi.fn();
-    const service = makeService({
-      reader: makeReader([page('Orc')]),
-      bootstrap,
-      upsertRace,
     });
 
     const { result } = await service.importRaces();
@@ -355,24 +310,22 @@ describe('BblRacesImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(upsertRace).not.toHaveBeenCalled();
+    expect(mocks.racesImport.upsertRace).not.toHaveBeenCalled();
   });
 
   it('returns a map from each race BBL id to its local id', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16'), page('Elf', '6')]),
+    );
+    mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
         name: data.name,
+        eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,
       }),
     );
-    const service = makeService({
-      reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      bootstrap,
-      upsertRace,
-    });
 
     const { raceIdsByBblId } = await service.importRaces();
 
@@ -381,20 +334,18 @@ describe('BblRacesImportService', () => {
   });
 
   it('returns a map from each race BBL id to its local id and name', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16'), page('Elf', '6')]),
+    );
+    mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
         name: data.name,
+        eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,
       }),
     );
-    const service = makeService({
-      reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      bootstrap,
-      upsertRace,
-    });
 
     const { racesByBblId } = await service.importRaces();
 
@@ -403,20 +354,18 @@ describe('BblRacesImportService', () => {
   });
 
   it('returns a map from each race local id to its upsert data', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = vi.fn().mockImplementation((data: { name: string }) =>
+    const { service, mocks } = await makeService(
+      makeReader([page('Orc', '16'), page('Elf', '6')]),
+    );
+    mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
         name: data.name,
+        eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,
       }),
     );
-    const service = makeService({
-      reader: makeReader([page('Orc', '16'), page('Elf', '6')]),
-      bootstrap,
-      upsertRace,
-    });
 
     const { racesByRaceId } = await service.importRaces();
 
@@ -439,23 +388,20 @@ describe('BblRacesImportService', () => {
   });
 
   it('imports a race found only on the tl page (no team page)', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReaderByType({
+    const { service, mocks } = await makeService(
+      makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([{ id: '48', name: 'College of Shadow' }])],
       }),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'BBL',
-      listParser: makeListParser(),
-    });
+    );
+    mocks.listParser.extractRaces.mockImplementation(
+      (p) => JSON.parse(p.params.races) as BblRace[],
+    );
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(2);
-    expect(upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       {
         name: 'College of Shadow',
         eras: [],
@@ -469,74 +415,61 @@ describe('BblRacesImportService', () => {
   });
 
   it('does not re-import a race already found via a team page (first pass wins)', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReaderByType({
+    const { service, mocks } = await makeService(
+      makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([{ id: '16', name: 'Orc (tl heading)' }])],
       }),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'BBL',
-      listParser: makeListParser(),
-    });
+    );
+    mocks.listParser.extractRaces.mockImplementation(
+      (p) => JSON.parse(p.params.races) as BblRace[],
+    );
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    expect(upsertRace).toHaveBeenCalledTimes(1);
-    expect(upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Orc' }),
       expect.any(Array),
     );
   });
 
   it('imports a race present only on old team pages and absent from tl', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const service = makeService({
-      reader: makeReaderByType({
+    const { service, mocks } = await makeService(
+      makeReaderByType({
         tm: [page('Retired Race', '22')],
         tl: [listPage([])],
       }),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'BBL',
-      listParser: makeListParser(),
-    });
+    );
+    mocks.listParser.extractRaces.mockImplementation(
+      (p) => JSON.parse(p.params.races) as BblRace[],
+    );
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    expect(upsertRace).toHaveBeenCalledWith(
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Retired Race' }),
       expect.any(Array),
     );
   });
 
   it('records an error and continues when a tl page fails to parse', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const listParser = new RaceListPageParser(normalizeText);
-    vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
-      throw new Error('bad race list page');
-    });
-    const service = makeService({
-      reader: makeReaderByType({
+    const { service, mocks } = await makeService(
+      makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([])],
       }),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'BBL',
-      listParser,
+    );
+    mocks.listParser.extractRaces.mockImplementation(() => {
+      throw new Error('bad race list page');
     });
 
     const { result } = await service.importRaces();
 
     expect(result.imported).toBe(1);
-    expect(upsertRace).toHaveBeenCalledTimes(1);
+    expect(mocks.racesImport.upsertRace).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>
         e.message.includes('Failed to parse race list page'),
@@ -545,22 +478,15 @@ describe('BblRacesImportService', () => {
   });
 
   it('records a stringified error when a tl page throws a non-Error value', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertRace = upsertRaceOk();
-    const listParser = new RaceListPageParser(normalizeText);
-    vi.spyOn(listParser, 'extractRaces').mockImplementation(() => {
-      // eslint-disable-next-line @typescript-eslint/only-throw-error
-      throw 'bad race list page';
-    });
-    const service = makeService({
-      reader: makeReaderByType({
+    const { service, mocks } = await makeService(
+      makeReaderByType({
         tm: [page('Orc', '16')],
         tl: [listPage([])],
       }),
-      bootstrap,
-      upsertRace,
-      getBblSystemName: () => 'BBL',
-      listParser,
+    );
+    mocks.listParser.extractRaces.mockImplementation(() => {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw 'bad race list page';
     });
 
     const { result } = await service.importRaces();

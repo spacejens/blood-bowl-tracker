@@ -1,16 +1,23 @@
-import type {
+import {
   CoachesImportService,
   ExternalSystemBootstrapService,
-} from '@blood-bowl-tracker/import';
-import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
+import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TpSourceFile, TpSourceReader } from '../source/tp-source-reader';
+import {
+  asProviderMethod,
+  mockImportResultService,
+  mockNameExternalIdService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import type { TpSourceFile } from '../source/tp-source-reader';
+import { TpSourceReader } from '../source/tp-source-reader';
 import { TpCoachesImportService } from './tp-coaches-import.service';
 
 interface MakeServiceOptions {
@@ -18,23 +25,71 @@ interface MakeServiceOptions {
   bootstrap: ReturnType<typeof vi.fn>;
   upsertCoach: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
+  /**
+   * Optional override for `InscriptionsParserService.parseCoaches`, for
+   * modelling a per-file parse failure (the identity pass-through below is
+   * used for every call not covered by a `mockImplementationOnce` here).
+   */
+  parseCoaches?: ReturnType<typeof vi.fn>;
 }
 
-function makeService({
+/**
+ * `InscriptionsParserService.parseCoaches` is mocked as an identity
+ * pass-through of each `TpSourceFile.content` (already-parsed `TpCoach[]`,
+ * built directly by `inscriptionsFile()` below), rather than re-implementing
+ * its Zod-based validate/flatten/trim behaviour — that behaviour is covered
+ * by `InscriptionsParserService`'s own dedicated spec in
+ * `packages/parse-tp/src/inscriptions-parser.service.spec.ts`. Per-file parse
+ * failures are modelled with `mockImplementationOnce(() => { throw ... })`.
+ */
+async function makeService({
   files,
   bootstrap,
   upsertCoach,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpCoachesImportService(
-    { files } as unknown as TpSourceReader,
-    new InscriptionsParserService(),
-    { upsertCoach } as unknown as CoachesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
+  parseCoaches,
+}: MakeServiceOptions): Promise<TpCoachesImportService> {
+  const sourceReader = mock<TpSourceReader>();
+  sourceReader.files.mockImplementation(files);
+  const inscriptionsParser = mock<InscriptionsParserService>();
+  inscriptionsParser.parseCoaches.mockImplementation(
+    (content) => content as TpCoach[],
   );
+  if (parseCoaches) {
+    inscriptionsParser.parseCoaches.mockImplementationOnce(
+      asProviderMethod(parseCoaches),
+    );
+  }
+  const coachesImport = mock<CoachesImportService>();
+  coachesImport.upsertCoach.mockImplementation(asProviderMethod(upsertCoach));
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mockNameExternalIdService();
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpCoachesImportService,
+      { provide: TpSourceReader, useValue: sourceReader },
+      { provide: InscriptionsParserService, useValue: inscriptionsParser },
+      { provide: CoachesImportService, useValue: coachesImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpCoachesImportService);
 }
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
@@ -60,23 +115,23 @@ function makeFilesThatThrow(
   };
 }
 
-interface InscriptionPlayer {
-  id: string;
-  userNameToShow: string;
-  nafNumber?: number;
-}
-
+/**
+ * Builds a `TpSourceFile` whose `content` is already the `TpCoach[]` that
+ * `InscriptionsParserService.parseCoaches` would have produced from a real
+ * `inscriptions_<slug>_inscriptions.json` body — the mocked parser above is
+ * an identity pass-through of this `content`.
+ */
 function inscriptionsFile(
   era: string,
   competition: string,
-  players: InscriptionPlayer[],
+  coaches: TpCoach[],
 ): TpSourceFile {
   return {
     era,
     competition,
     type: 'inscriptions',
     filename: `inscriptions_${competition}_inscriptions.json`,
-    content: { '1': players.map((player) => ({ player })) },
+    content: coaches,
   };
 }
 
@@ -94,10 +149,10 @@ describe('TpCoachesImportService', () => {
   it('upserts the TP, Name and NAF external systems in order', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'a', userNameToShow: 'Alice', nafNumber: 1 },
+          { id: 'a', name: 'Alice', nafNumber: 1 },
         ]),
       ]),
       bootstrap,
@@ -116,10 +171,10 @@ describe('TpCoachesImportService', () => {
   it('gives a coach with a nafNumber three external ids', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'guid-a', userNameToShow: 'Alice ', nafNumber: 19767 },
+          { id: 'guid-a', name: 'Alice', nafNumber: 19767 },
         ]),
       ]),
       bootstrap,
@@ -147,10 +202,10 @@ describe('TpCoachesImportService', () => {
   it('gives a coach without a nafNumber only two external ids', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'guid-b', userNameToShow: 'Bob' },
+          { id: 'guid-b', name: 'Bob' },
         ]),
       ]),
       bootstrap,
@@ -174,14 +229,14 @@ describe('TpCoachesImportService', () => {
   it('dedupes a coach appearing across multiple competitions and eras', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'dup', userNameToShow: 'Alice', nafNumber: 1 },
+          { id: 'dup', name: 'Alice', nafNumber: 1 },
         ]),
         inscriptionsFile('Fifth era', 'blood-bowl-9', [
-          { id: 'dup', userNameToShow: 'Alice', nafNumber: 1 },
-          { id: 'other', userNameToShow: 'Bob' },
+          { id: 'dup', name: 'Alice', nafNumber: 1 },
+          { id: 'other', name: 'Bob' },
         ]),
       ]),
       bootstrap,
@@ -197,21 +252,24 @@ describe('TpCoachesImportService', () => {
   it('records a parse error for one bad inscriptions file but imports the rest', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         {
           era: 'Fourth era',
           competition: 'chaos-cup-8',
           type: 'inscriptions',
           filename: 'inscriptions_chaos-cup-8_inscriptions.json',
-          content: { '1': [{ player: { userNameToShow: 'No Id' } }] }, // missing id
+          content: undefined, // triggers the parseCoaches throw below
         },
         inscriptionsFile('Fourth era', 'blood-bowl-9', [
-          { id: 'good', userNameToShow: 'Alice' },
+          { id: 'good', name: 'Alice' },
         ]),
       ]),
       bootstrap,
       upsertCoach,
+      parseCoaches: vi.fn().mockImplementation(() => {
+        throw new Error('player.id: Required');
+      }),
     });
 
     const { result } = await service.importCoaches();
@@ -228,7 +286,7 @@ describe('TpCoachesImportService', () => {
   it('ignores non-inscriptions files', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         {
           era: 'Fourth era',
@@ -245,7 +303,7 @@ describe('TpCoachesImportService', () => {
           content: { '1': [] },
         },
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'good', userNameToShow: 'Alice' },
+          { id: 'good', name: 'Alice' },
         ]),
       ]),
       bootstrap,
@@ -267,10 +325,10 @@ describe('TpCoachesImportService', () => {
       },
     });
     const upsertCoach = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'a', userNameToShow: 'Alice' },
+          { id: 'a', name: 'Alice' },
         ]),
       ]),
       bootstrap,
@@ -290,11 +348,11 @@ describe('TpCoachesImportService', () => {
   it('records a diagnostic error but keeps coaches found before a scan failure', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = makeService({
+    const service = await makeService({
       files: makeFilesThatThrow(
         [
           inscriptionsFile('Fourth era', 'chaos-cup-8', [
-            { id: 'a', userNameToShow: 'Alice' },
+            { id: 'a', name: 'Alice' },
           ]),
         ],
         new Error(
@@ -327,11 +385,11 @@ describe('TpCoachesImportService', () => {
         },
       )
       .mockResolvedValue(coachRecord(11));
-    const service = makeService({
+    const service = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
-          { id: 'a', userNameToShow: 'Alice' },
-          { id: 'b', userNameToShow: 'Bob' },
+          { id: 'a', name: 'Alice' },
+          { id: 'b', name: 'Bob' },
         ]),
       ]),
       bootstrap,
@@ -347,13 +405,13 @@ describe('TpCoachesImportService', () => {
   });
 
   it('re-runs idempotently, upserting the same coach with identical data', async () => {
-    const makeRun = () => {
+    const makeRun = async () => {
       const bootstrap = makeThreeSystemUpsertMock();
       const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-      const service = makeService({
+      const service = await makeService({
         files: makeFiles([
           inscriptionsFile('Fourth era', 'chaos-cup-8', [
-            { id: 'a', userNameToShow: 'Alice', nafNumber: 1 },
+            { id: 'a', name: 'Alice', nafNumber: 1 },
           ]),
         ]),
         bootstrap,
@@ -362,9 +420,9 @@ describe('TpCoachesImportService', () => {
       return { service, upsertCoach };
     };
 
-    const first = makeRun();
+    const first = await makeRun();
     const firstResult = await first.service.importCoaches();
-    const second = makeRun();
+    const second = await makeRun();
     const secondResult = await second.service.importCoaches();
 
     expect(firstResult.result.imported).toBe(1);

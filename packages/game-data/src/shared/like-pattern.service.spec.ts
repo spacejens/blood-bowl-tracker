@@ -1,9 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { LikePatternService } from './like-pattern.service';
 
 describe('LikePatternService', () => {
-  const service = new LikePatternService();
+  let service: LikePatternService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [LikePatternService],
+    }).compile();
+    service = moduleRef.get(LikePatternService);
+  });
 
   it('leaves a plain string untouched', () => {
     expect(service.escape('Reikland')).toBe('Reikland');

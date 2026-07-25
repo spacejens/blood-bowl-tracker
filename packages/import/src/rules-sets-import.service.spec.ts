@@ -1,21 +1,33 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
-import { describe, expect, it, vi } from 'vitest';
+import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { stubImportRunner } from './import-runner.test-helpers';
 import { RulesSetsImportService } from './rules-sets-import.service';
 import type { ImportError } from './types';
 
 describe('RulesSetsImportService', () => {
-  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = {
-      rulesSets: { upsert: upsertMock },
-    } as unknown as ApiClient;
-    return new RulesSetsImportService(
-      client,
-      new ImportRunnerService(new ImportResultService()),
-    );
-  }
+  let service: RulesSetsImportService;
+  let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
+    stubImportRunner(runner);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RulesSetsImportService,
+        { provide: API_CLIENT, useValue: client },
+        { provide: ImportRunnerService, useValue: runner },
+      ],
+    }).compile();
+    service = moduleRef.get(RulesSetsImportService);
+  });
 
   it('returns the upserted rules set and calls the client with the given data', async () => {
     const response = {
@@ -24,8 +36,7 @@ describe('RulesSetsImportService', () => {
       createdAt: new Date('2026-01-01'),
       created: true,
     };
-    const upsertMock = vi.fn().mockResolvedValue(response);
-    const service = makeService(upsertMock);
+    client.rulesSets.upsert.mockResolvedValue(response);
     const errors: ImportError[] = [];
     const data = {
       name: 'BB2020',
@@ -35,13 +46,12 @@ describe('RulesSetsImportService', () => {
     const result = await service.upsertRulesSet(data, errors);
 
     expect(result).toEqual(response);
-    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(client.rulesSets.upsert).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
   it('returns undefined and records an error when the client call fails', async () => {
-    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
-    const service = makeService(upsertMock);
+    client.rulesSets.upsert.mockRejectedValue(new Error('conflict'));
     const errors: ImportError[] = [];
     const data = {
       name: 'BB2020',
@@ -57,8 +67,7 @@ describe('RulesSetsImportService', () => {
   });
 
   it('records an error using String(err) for a non-Error rejection', async () => {
-    const upsertMock = vi.fn().mockRejectedValue('boom');
-    const service = makeService(upsertMock);
+    client.rulesSets.upsert.mockRejectedValue('boom');
     const errors: ImportError[] = [];
     const data = {
       name: 'BB2020',

@@ -1,7 +1,14 @@
-import type { TeamsService } from '@blood-bowl-tracker/game-data';
+import { TeamsService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
@@ -11,14 +18,26 @@ import {
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
+import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
-function makeService(teams: TeamsService): TeamDeepdiveService {
-  return new TeamDeepdiveService(
-    teams,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+async function makeService(
+  teams: TeamsService,
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
+  leaderboard: MockProxy<LeaderboardService> = mock<LeaderboardService>(),
+): Promise<{
+  service: TeamDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
+}> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TeamDeepdiveService,
+      { provide: TeamsService, useValue: teams },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return { service: moduleRef.get(TeamDeepdiveService), leaderboard };
 }
 
 function makeTeams(options: {
@@ -53,13 +72,20 @@ const grinders = {
 
 describe('TeamDeepdiveService', () => {
   it('returns the not-found message when the team does not exist', async () => {
-    const service = makeService(makeTeams({ team: undefined }));
+    const { service } = await makeService(makeTeams({ team: undefined }));
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
   });
 
-  it('renders the race, coach, career span and top-players list', async () => {
-    const service = makeService(
+  // LeaderboardService.topRanksWithTies/buildEntityButtons themselves
+  // (ranking, tie handling, dedupe/cap/chunk) are covered by
+  // leaderboard.service.spec.ts. `passthroughLeaderboard()` cans them to
+  // simply echo their inputs, so this test asserts only what
+  // TeamDeepdiveService itself owns: joining the race/coach/career/ranked-row
+  // lines, and building the race-then-coach-then-player button-entry pool (in
+  // that order) that it hands to buildEntityButtons.
+  it('renders the race, coach, career span and top-players list, with header buttons before player buttons', async () => {
+    const { service } = await makeService(
       makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
@@ -68,6 +94,8 @@ describe('TeamDeepdiveService', () => {
           { playerId: 8, name: 'Morg', count: 11 },
         ],
       }),
+      undefined,
+      passthroughLeaderboard(),
     );
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -81,7 +109,7 @@ describe('TeamDeepdiveService', () => {
             '',
             'Top players by match events:',
             '1. Griff — 20',
-            '2. Morg — 11',
+            '1. Morg — 11',
           ].join('\n'),
         },
       ],
@@ -114,31 +142,38 @@ describe('TeamDeepdiveService', () => {
     });
   });
 
-  it('renders a tie group at the cutoff without a truncation note when within the cap', async () => {
-    const topPlayers = Array.from({ length: 10 }, (_, i) => ({
-      playerId: i + 1,
-      name: `P${i}`,
-      count: 9,
-    }));
-    const service = makeService(
+  it('appends a truncation note when the ranked rows report a truncated count', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const rankedPlayers = [{ playerId: 1, name: 'P0', count: 9, rank: 1 }];
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: rankedPlayers,
+      truncatedCount: 2,
+      tieGroupOpenEnded: false,
+    });
+    leaderboard.buildEntityButtons.mockReturnValue([]);
+    const { service } = await makeService(
       makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers,
+        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
       }),
+      undefined,
+      leaderboard,
     );
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines).toContain('1. P0 — 9');
-    expect(lines).toContain('1. P9 — 9');
-    expect(lines.every((l) => !l.startsWith('…and'))).toBe(true);
+    expect(lines).toContain('…and 2 more tied.');
   });
 
   it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach buttons', async () => {
     const teams = makeTeams({ team: grinders, span: undefined });
-    const service = makeService(teams);
+    const { service } = await makeService(
+      teams,
+      undefined,
+      passthroughLeaderboard(),
+    );
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -166,95 +201,63 @@ describe('TeamDeepdiveService', () => {
         },
       ],
     });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(teams.getTopPlayersByMatchEventCount).not.toHaveBeenCalled();
   });
 
   it('falls back to the team timeout message when the team lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockReturnValue(new Promise(() => {})),
-          getCareerSpan: vi.fn(),
-          getTopPlayersByMatchEventCount: vi.fn(),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(makeTeams({}), databaseTimeout);
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the career timeout message when the span lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue(grinders),
-          getCareerSpan: vi.fn().mockReturnValue(new Promise(() => {})),
-          getTopPlayersByMatchEventCount: vi.fn(),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeTeams({ team: grinders }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the players timeout message when the top-players lookup times out', async () => {
     await expectTimeoutFallback(
-      (teams: TeamsService) => makeService(teams).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue(grinders),
-          getCareerSpan: vi
-            .fn()
-            .mockResolvedValue({ start: '2021-09-01', end: '2023-06-10' }),
-          getTopPlayersByMatchEventCount: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as TeamsService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
     );
   });
 
-  it('renders race and coach buttons then a Primary button per listed player, keyed by id', async () => {
-    const service = makeService(
-      makeTeams({
-        team: {
-          id: 1,
-          name: 'Reikland Reavers',
-          raceName: 'Human',
-          raceId: 2,
-          coachName: 'Roze',
-          coachId: 9,
-        },
-        span: { start: '2021-09-01', end: '2023-06-10' },
-        topPlayers: [
-          { playerId: 5, name: 'Griff Oberwald', count: 30 },
-          { playerId: 8, name: 'Helmut Wulf', count: 12 },
-        ],
-      }),
-    );
-    const result = (await service.resolve(1)) as unknown as {
-      components: { components: { label: string; custom_id: string }[] }[];
-    };
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons).toEqual([
-      { type: 2, style: 1, label: 'Human', custom_id: 'deepdive:race:2' },
-      { type: 2, style: 1, label: 'Roze', custom_id: 'deepdive:coach:9' },
-      {
-        type: 2,
-        style: 1,
-        label: 'Griff Oberwald',
-        custom_id: 'deepdive:player:5',
-      },
-      {
-        type: 2,
-        style: 1,
-        label: 'Helmut Wulf',
-        custom_id: 'deepdive:player:8',
-      },
-    ]);
-  });
-
   it('still renders race and coach buttons when the team has no matches', async () => {
-    const service = makeService(
+    const { service } = await makeService(
       makeTeams({
         team: {
           id: 1,
@@ -266,6 +269,8 @@ describe('TeamDeepdiveService', () => {
         },
         span: undefined,
       }),
+      undefined,
+      passthroughLeaderboard(),
     );
     const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];

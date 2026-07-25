@@ -1,19 +1,14 @@
-import type {
-  ImportError,
-  PositionsImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { PositionsImportService } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { PositionsProcessor } from './positions.processor';
-
-function makeRefResolver(): ReferenceResolverService {
-  return new ReferenceResolverService(new ImportResultService());
-}
 
 function emptyData(): ManualDataFile {
   return {
@@ -36,29 +31,48 @@ function makeContext(
     data,
     systemIds: new Map([['Name', 2]]),
     idMap,
-    errors: [] as ImportError[],
+    errors: [],
   };
 }
 
-function makeProcessor(mocks: {
-  upsertPosition: ReturnType<typeof vi.fn>;
-  syncRaceEras: ReturnType<typeof vi.fn>;
-}) {
-  return new PositionsProcessor(
-    mocks as unknown as PositionsImportService,
-    makeRefResolver(),
-  );
-}
-
 describe('PositionsProcessor', () => {
+  let processor: PositionsProcessor;
+  let positions: MockProxy<PositionsImportService>;
+  let refResolver: MockProxy<ReferenceResolverService>;
+
+  beforeEach(async () => {
+    positions = mock<PositionsImportService>();
+    refResolver = mock<ReferenceResolverService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PositionsProcessor,
+        { provide: PositionsImportService, useValue: positions },
+        { provide: ReferenceResolverService, useValue: refResolver },
+      ],
+    }).compile();
+    processor = moduleRef.get(PositionsProcessor);
+  });
+
   it('upserts the position, records ids, and syncs resolved race-eras', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 80 });
-    const syncRaceEras = vi
-      .fn()
-      .mockResolvedValue({ positionId: 80, raceEraIds: [1] });
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:necromantic' }], 40);
-    idMap.add([{ system: 'Name', id: 'name:season-12' }], 50);
+    positions.upsertPosition.mockResolvedValue({
+      id: 80,
+      name: 'Zombie',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    positions.syncRaceEras.mockResolvedValue({
+      positionId: 80,
+      raceEraIds: [1],
+    });
+    const cannedExternalIds = [
+      { externalSystemId: 99, externalId: 'canned:zombie' },
+    ];
+    refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
+    // One resolveRef call per race-era pair: race first, then era.
+    refResolver.resolveRef
+      .mockReturnValueOnce(40) // race
+      .mockReturnValueOnce(50); // era
     const data = emptyData();
     data.positions = [
       {
@@ -73,22 +87,18 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
-    const count = await makeProcessor({ upsertPosition, syncRaceEras }).process(
-      ctx,
-    );
+    const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(upsertPosition).toHaveBeenCalledWith(
-      {
-        name: 'Zombie',
-        isStarPlayer: false,
-        externalIds: [{ externalSystemId: 2, externalId: 'name:zombie' }],
-      },
+    expect(positions.upsertPosition).toHaveBeenCalledWith(
+      { name: 'Zombie', isStarPlayer: false, externalIds: cannedExternalIds },
       ctx.errors,
     );
-    expect(syncRaceEras).toHaveBeenCalledWith(
+    // The processor must pair each pair's resolved race/era ids together
+    // in the order they were resolved, not just pass either one through.
+    expect(positions.syncRaceEras).toHaveBeenCalledWith(
       { positionId: 80, raceEras: [{ raceId: 40, eraId: 50 }] },
       ctx.errors,
     );
@@ -96,8 +106,14 @@ describe('PositionsProcessor', () => {
   });
 
   it('makes no syncRaceEras call for a position without raceEras', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 81 });
-    const syncRaceEras = vi.fn();
+    positions.upsertPosition.mockResolvedValue({
+      id: 81,
+      name: 'Blitzer',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.positions = [
       {
@@ -108,19 +124,31 @@ describe('PositionsProcessor', () => {
       },
     ];
 
-    const count = await makeProcessor({ upsertPosition, syncRaceEras }).process(
+    const count = await processor.process(
       makeContext(data, new ExternalIdMap()),
     );
 
     expect(count).toBe(1);
-    expect(syncRaceEras).not.toHaveBeenCalled();
+    expect(positions.syncRaceEras).not.toHaveBeenCalled();
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
   });
 
+  // Resolution-failure error counting is the resolver's own behaviour and is
+  // covered by reference-resolver.service.spec.ts. This test instead asserts
+  // the processor's own logic: an unresolved pair must still count the
+  // already-successful upsert but must not call syncRaceEras.
   it('records the count but skips syncRaceEras when a race-era ref is unresolved', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue({ id: 82 });
-    const syncRaceEras = vi.fn();
-    const idMap = new ExternalIdMap();
-    idMap.add([{ system: 'Name', id: 'name:necromantic' }], 40);
+    positions.upsertPosition.mockResolvedValue({
+      id: 82,
+      name: 'Zombie',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    refResolver.resolveRef
+      .mockReturnValueOnce(40) // race resolves
+      .mockReturnValueOnce(undefined); // era fails
     const data = emptyData();
     data.positions = [
       {
@@ -135,20 +163,16 @@ describe('PositionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:zombie' }],
       },
     ];
-    const ctx = makeContext(data, idMap);
+    const ctx = makeContext(data, new ExternalIdMap());
 
-    const count = await makeProcessor({ upsertPosition, syncRaceEras }).process(
-      ctx,
-    );
+    const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(syncRaceEras).not.toHaveBeenCalled();
-    expect(ctx.errors).toHaveLength(1);
+    expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
 
   it('does not sync or count when the position upsert fails', async () => {
-    const upsertPosition = vi.fn().mockResolvedValue(undefined);
-    const syncRaceEras = vi.fn();
+    positions.upsertPosition.mockResolvedValue(undefined);
     const data = emptyData();
     data.positions = [
       {
@@ -159,11 +183,11 @@ describe('PositionsProcessor', () => {
       },
     ];
 
-    const count = await makeProcessor({ upsertPosition, syncRaceEras }).process(
+    const count = await processor.process(
       makeContext(data, new ExternalIdMap()),
     );
 
     expect(count).toBe(0);
-    expect(syncRaceEras).not.toHaveBeenCalled();
+    expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
 });

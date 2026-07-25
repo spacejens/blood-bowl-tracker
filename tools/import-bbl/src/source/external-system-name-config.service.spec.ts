@@ -1,28 +1,46 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { ImportBblConfigService } from '../config/import-bbl-config.service';
+import { ImportBblConfigService } from '../config/import-bbl-config.service';
 import { ExternalSystemNameConfigService } from './external-system-name-config.service';
 
-function makeService(
-  name: string | undefined,
-): ExternalSystemNameConfigService {
-  const config = {
-    get: (_key: string) => name,
-  } as unknown as ImportBblConfigService;
-  return new ExternalSystemNameConfigService(config);
-}
-
 describe('ExternalSystemNameConfigService', () => {
+  let service: ExternalSystemNameConfigService;
+  let config: MockProxy<ImportBblConfigService>;
+
+  beforeEach(async () => {
+    config = mock<ImportBblConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ExternalSystemNameConfigService,
+        { provide: ImportBblConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(ExternalSystemNameConfigService);
+  });
+
+  function stub(name: string | undefined): void {
+    config.get.mockImplementation((key: string) =>
+      key === 'externalSystemName' ? name : undefined,
+    );
+  }
+
   it('returns "BBL" when externalSystemName is not set', () => {
-    expect(makeService(undefined).getBblSystemName()).toBe('BBL');
+    stub(undefined);
+    expect(service.getBblSystemName()).toBe('BBL');
+    expect(config.get).toHaveBeenCalledWith('externalSystemName');
   });
 
   it('returns "BBL" when externalSystemName is empty or whitespace', () => {
-    expect(makeService('').getBblSystemName()).toBe('BBL');
-    expect(makeService('   ').getBblSystemName()).toBe('BBL');
+    stub('');
+    expect(service.getBblSystemName()).toBe('BBL');
+    stub('   ');
+    expect(service.getBblSystemName()).toBe('BBL');
   });
 
   it('returns the configured value when externalSystemName is set', () => {
-    expect(makeService('MyLeague').getBblSystemName()).toBe('MyLeague');
+    stub('MyLeague');
+    expect(service.getBblSystemName()).toBe('MyLeague');
   });
 });

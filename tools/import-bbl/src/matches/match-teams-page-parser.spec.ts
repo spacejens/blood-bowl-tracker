@@ -1,17 +1,15 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 function matchPage(id: string, html: string): BblPage {
   return { type: 'm', params: { m: id }, load: () => load(html) };
 }
-
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new MatchTeamsPageParser(normalizeText);
 
 const TEAM_TABLE =
   '<table class="tblist"><tr class="trborder">' +
@@ -21,6 +19,23 @@ const TEAM_TABLE =
   '</tr></table>';
 
 describe('MatchTeamsPageParser', () => {
+  let parser: MatchTeamsPageParser;
+  let normalizeText: MockProxy<NormalizeExtractedTextService>;
+
+  beforeEach(async () => {
+    normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchTeamsPageParser,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(MatchTeamsPageParser);
+  });
+
   it('extracts home and away team ids from the first tblist trborder row', () => {
     const page = matchPage(
       '100',

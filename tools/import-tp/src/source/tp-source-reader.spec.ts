@@ -2,19 +2,32 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import type { EraDataConfig } from '../eras/era-data-config.service';
-import type { EraDataConfigService } from '../eras/era-data-config.service';
-import type { SourceConfigService } from './source-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
+import { SourceConfigService } from './source-config.service';
 import type { TpSourceFile } from './tp-source-reader';
 import { TpSourceReader } from './tp-source-reader';
 
-function makeReader(dir: string, eras: EraDataConfig[]): TpSourceReader {
-  return new TpSourceReader(
-    { getDataDir: () => dir } as unknown as SourceConfigService,
-    { getEras: () => eras } as unknown as EraDataConfigService,
-  );
+async function makeReader(
+  dir: string,
+  eras: EraDataConfig[],
+): Promise<TpSourceReader> {
+  const sourceConfig = mock<SourceConfigService>();
+  sourceConfig.getDataDir.mockReturnValue(dir);
+  const eraConfig = mock<EraDataConfigService>();
+  eraConfig.getEras.mockReturnValue(eras);
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpSourceReader,
+      { provide: SourceConfigService, useValue: sourceConfig },
+      { provide: EraDataConfigService, useValue: eraConfig },
+    ],
+  }).compile();
+  return moduleRef.get(TpSourceReader);
 }
 
 async function collect(
@@ -44,7 +57,7 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'match_566088.json'), '{"id":566088}');
     await writeFile(join(compDir, 'rosters_163386.json'), '{"id":163386}');
 
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -71,7 +84,7 @@ describe('TpSourceReader', () => {
     await mkdir(compDir, { recursive: true });
     await writeFile(join(compDir, 'match_1.json'), '{}');
 
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -89,7 +102,7 @@ describe('TpSourceReader', () => {
     await mkdir(compDir, { recursive: true });
     await writeFile(join(compDir, 'standings.json'), '{}');
 
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -108,7 +121,7 @@ describe('TpSourceReader', () => {
     await writeFile(join(compDir, 'match_1.json'), '{}');
     await writeFile(join(compDir, 'notes.txt'), 'ignore me');
 
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -130,7 +143,7 @@ describe('TpSourceReader', () => {
     await mkdir(compDir, { recursive: true });
     await writeFile(join(compDir, 'match_1.json'), '{}');
 
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -145,7 +158,7 @@ describe('TpSourceReader', () => {
   });
 
   it('throws a friendly error when an era directory is missing', async () => {
-    const reader = makeReader(dir, [
+    const reader = await makeReader(dir, [
       {
         name: 'Fourth era',
         dataSubdir: 'fourth-era',
@@ -160,7 +173,11 @@ describe('TpSourceReader', () => {
 });
 
 describe('isBaseTournamentFile', () => {
-  const reader = makeReader('/unused', []);
+  let reader: TpSourceReader;
+
+  beforeEach(async () => {
+    reader = await makeReader('/unused', []);
+  });
 
   it('accepts a base tournament file with a hyphenated slug', () => {
     expect(reader.isBaseTournamentFile('tournament_chaos-cup-8.json')).toBe(

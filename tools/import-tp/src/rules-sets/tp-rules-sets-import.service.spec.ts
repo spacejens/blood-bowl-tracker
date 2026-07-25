@@ -1,18 +1,20 @@
-import type {
-  ExternalSystemBootstrapService,
-  RulesSetsImportService,
-} from '@blood-bowl-tracker/import';
 import {
+  ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
+  RulesSetsImportService,
 } from '@blood-bowl-tracker/import';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
-import type {
-  EraDataConfig,
-  EraDataConfigService,
-} from '../eras/era-data-config.service';
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import type { EraDataConfig } from '../eras/era-data-config.service';
+import { EraDataConfigService } from '../eras/era-data-config.service';
+import {
+  asProviderMethod,
+  mockImportResultService,
+} from '../import-package.test-helpers';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpRulesSetsImportService } from './tp-rules-sets-import.service';
 
 interface MakeServiceOptions {
@@ -22,20 +24,46 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
-function makeService({
+async function makeService({
   getEras,
   bootstrap,
   upsertRulesSet,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions) {
-  return new TpRulesSetsImportService(
-    { getEras } as unknown as EraDataConfigService,
-    { upsertRulesSet } as unknown as RulesSetsImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getTpSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
+}: MakeServiceOptions): Promise<TpRulesSetsImportService> {
+  const eraDataConfig = mock<EraDataConfigService>();
+  eraDataConfig.getEras.mockImplementation(getEras);
+  const rulesSetsImport = mock<RulesSetsImportService>();
+  rulesSetsImport.upsertRulesSet.mockImplementation(
+    asProviderMethod(upsertRulesSet),
   );
+  const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
+  externalSystemBootstrap.bootstrap.mockImplementation(
+    asProviderMethod(bootstrap),
+  );
+  const externalSystemName = mock<ExternalSystemNameConfigService>();
+  externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forRulesSet.mockImplementation((name) => name);
+  const importResults = mockImportResultService();
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      TpRulesSetsImportService,
+      { provide: EraDataConfigService, useValue: eraDataConfig },
+      { provide: RulesSetsImportService, useValue: rulesSetsImport },
+      {
+        provide: ExternalSystemBootstrapService,
+        useValue: externalSystemBootstrap,
+      },
+      {
+        provide: ExternalSystemNameConfigService,
+        useValue: externalSystemName,
+      },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+  return moduleRef.get(TpRulesSetsImportService);
 }
 
 const eras: EraDataConfig[] = [
@@ -60,7 +88,7 @@ describe('TpRulesSetsImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 100, name: 'LRB6' })
       .mockResolvedValueOnce({ id: 200, name: 'BB2020' });
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       bootstrap,
       upsertRulesSet,
@@ -98,7 +126,7 @@ describe('TpRulesSetsImportService', () => {
   it('records one error and imports nothing when getEras() throws', async () => {
     const bootstrap = vi.fn();
     const upsertRulesSet = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getEras: () => {
         throw new Error('TP_ERAS is not set.');
       },
@@ -126,7 +154,7 @@ describe('TpRulesSetsImportService', () => {
       },
     });
     const upsertRulesSet = vi.fn();
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       bootstrap,
       upsertRulesSet,
@@ -153,7 +181,7 @@ describe('TpRulesSetsImportService', () => {
           return Promise.resolve(undefined);
         },
       );
-    const service = makeService({
+    const service = await makeService({
       getEras: () => eras,
       bootstrap,
       upsertRulesSet,

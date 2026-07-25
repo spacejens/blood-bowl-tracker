@@ -1,7 +1,13 @@
+import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeout,
+} from '../database-timeout-mock.test-helpers';
 import {
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -9,7 +15,24 @@ import {
 } from './leaderboard.service';
 import { LeaderboardService } from './leaderboard.service';
 
-const service = () => new LeaderboardService(new DatabaseTimeoutService());
+let databaseTimeout: MockProxy<DatabaseTimeoutService>;
+let leaderboardService: LeaderboardService;
+
+function service(): LeaderboardService {
+  return leaderboardService;
+}
+
+beforeEach(async () => {
+  databaseTimeout = mockDatabaseTimeout();
+  // Individual tests that need the timeout branch override this per-call.
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      LeaderboardService,
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+    ],
+  }).compile();
+  leaderboardService = moduleRef.get(LeaderboardService);
+});
 
 describe('TOPLIST_FETCH_LIMIT', () => {
   it('is MAX_LEADERBOARD_ENTRIES + MAX_EXACT_TIE_REMAINDER + 1', () => {
@@ -688,19 +711,17 @@ describe('resolveToplist', () => {
   });
 
   it('falls back to the timeout message when fetchRows does not settle in time', async () => {
-    vi.useFakeTimers();
-    try {
-      const promise = service().resolveToplist({
-        title: 'Teams by eras active',
-        fetchRows: () =>
-          new Promise<{ name: string; count: number }[]>(() => {}),
-        timeoutMessage: 'timeout placeholder',
-        noDataMessage: 'no-data placeholder',
-      });
-      await vi.advanceTimersByTimeAsync(2000);
-      await expect(promise).resolves.toBe('timeout placeholder');
-    } finally {
-      vi.useRealTimers();
-    }
+    // Exercises the branch where DatabaseTimeoutService's real "run" would
+    // resolve with the fallback (null) instead of the work — the actual
+    // timeout race is DatabaseTimeoutService's own responsibility and is
+    // covered by database-timeout.service.spec.ts.
+    stubDatabaseTimeout(databaseTimeout);
+    const result = await service().resolveToplist({
+      title: 'Teams by eras active',
+      fetchRows: () => new Promise<{ name: string; count: number }[]>(() => {}),
+      timeoutMessage: 'timeout placeholder',
+      noDataMessage: 'no-data placeholder',
+    });
+    expect(result).toBe('timeout placeholder');
   });
 });

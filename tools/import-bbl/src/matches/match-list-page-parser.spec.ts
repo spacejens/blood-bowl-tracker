@@ -1,5 +1,6 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BblPage } from '../source/bbl-page.types';
 import { MatchListPageParser } from './match-list-page-parser';
@@ -8,9 +9,16 @@ function matchListPage(html: string): BblPage {
   return { type: 'ma', params: { so: 's', s: '1' }, load: () => load(html) };
 }
 
-const parser = new MatchListPageParser();
-
 describe('MatchListPageParser', () => {
+  let parser: MatchListPageParser;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [MatchListPageParser],
+    }).compile();
+    parser = moduleRef.get(MatchListPageParser);
+  });
+
   it('extracts a UTC date for each "result added" match row', () => {
     const page = matchListPage(
       '<table>' +

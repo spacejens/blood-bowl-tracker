@@ -1,21 +1,27 @@
-import type { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import { describe, expect, it, vi } from 'vitest';
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
-function makeRegistry() {
-  const discordClient = {
-    registerCommands: vi.fn().mockResolvedValue(undefined),
-  };
-  const registry = new SlashCommandRegistryService(
-    discordClient as unknown as DiscordClientService,
-  );
-  return { registry, discordClient };
-}
-
 describe('SlashCommandRegistryService', () => {
+  let registry: SlashCommandRegistryService;
+  let discordClient: MockProxy<DiscordClientService>;
+
+  beforeEach(async () => {
+    discordClient = mock<DiscordClientService>();
+    discordClient.registerCommands.mockResolvedValue(undefined);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        SlashCommandRegistryService,
+        { provide: DiscordClientService, useValue: discordClient },
+      ],
+    }).compile();
+    registry = moduleRef.get(SlashCommandRegistryService);
+  });
+
   it('registers all accumulated commands in a single registerCommands call', async () => {
-    const { registry, discordClient } = makeRegistry();
     registry.register({
       name: 'insights',
       description: 'a',
@@ -35,7 +41,6 @@ describe('SlashCommandRegistryService', () => {
   });
 
   it('calls registerCommands with an empty list when nothing registered', async () => {
-    const { registry, discordClient } = makeRegistry();
     await registry.onApplicationBootstrap();
     expect(discordClient.registerCommands).toHaveBeenCalledWith([]);
   });

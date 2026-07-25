@@ -1,104 +1,122 @@
 import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { buildFactTree } from './fact-tree';
 import type { FactLeaf, FactTreeDeps } from './fact-tree.types';
 import { FactTreeUtilsService } from './fact-tree-utils.service';
-import type { CoachToplistService } from './facts/coach-toplist.service';
-import type { ErasListService } from './facts/eras-list.service';
-import type { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
-import type { PlayerToplistService } from './facts/player-toplist.service';
-import type { RaceToplistService } from './facts/race-toplist.service';
-import type { StatsSummaryFactsService } from './facts/stats-summary.service';
-import type { TeamToplistService } from './facts/team-toplist.service';
+import { CoachToplistService } from './facts/coach-toplist.service';
+import { ErasListService } from './facts/eras-list.service';
+import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { PlayerToplistService } from './facts/player-toplist.service';
+import { RaceToplistService } from './facts/race-toplist.service';
+import { StatsSummaryFactsService } from './facts/stats-summary.service';
+import { TeamToplistService } from './facts/team-toplist.service';
 
-const factTreeUtils = new FactTreeUtilsService();
+let factTreeUtils: FactTreeUtilsService;
+
+beforeAll(async () => {
+  const moduleRef = await Test.createTestingModule({
+    providers: [FactTreeUtilsService],
+  }).compile();
+  factTreeUtils = moduleRef.get(FactTreeUtilsService);
+});
 
 function deps(): FactTreeDeps {
+  const coachToplist = mock<CoachToplistService>();
+  coachToplist.resolveMatchesPlayed.mockResolvedValue('coach matches played');
+  coachToplist.resolveTeams.mockResolvedValue('coach teams');
+  coachToplist.resolveCompetitionsPlayed.mockResolvedValue(
+    'coach competitions played',
+  );
+  coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
+
+  const teamToplist = mock<TeamToplistService>();
+  teamToplist.resolveMatchesPlayed.mockResolvedValue('team matches played');
+  teamToplist.resolveCompetitionsPlayed.mockResolvedValue(
+    'team competitions played',
+  );
+  teamToplist.resolveErasActive.mockResolvedValue('team eras active');
+  teamToplist.resolveTouchdownsScored.mockResolvedValue(
+    'team touchdowns scored',
+  );
+  teamToplist.resolveCompletions.mockResolvedValue('team completions');
+  teamToplist.resolveInterceptions.mockResolvedValue('team interceptions');
+  teamToplist.resolveDeflections.mockResolvedValue('team deflections');
+  teamToplist.resolveCasualtiesCaused.mockResolvedValue(
+    'team casualties caused',
+  );
+  teamToplist.resolveCasualtiesSuffered.mockResolvedValue(
+    'team casualties suffered',
+  );
+  teamToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    'team serious injuries caused',
+  );
+  teamToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
+    'team serious injuries suffered',
+  );
+  teamToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
+    'team lasting injuries suffered',
+  );
+  teamToplist.resolveDeathsCaused.mockResolvedValue('team deaths caused');
+  teamToplist.resolveDeathsSuffered.mockResolvedValue('team deaths suffered');
+  teamToplist.resolveFoulsCommitted.mockResolvedValue('team fouls committed');
+  teamToplist.resolveTimesSentOff.mockResolvedValue('team times sent off');
+
+  const playerToplist = mock<PlayerToplistService>();
+  playerToplist.resolveMvps.mockResolvedValue('player mvps');
+  playerToplist.resolveTouchdownsScored.mockResolvedValue(
+    'player touchdowns scored',
+  );
+  playerToplist.resolveCompletions.mockResolvedValue('player completions');
+  playerToplist.resolveInterceptions.mockResolvedValue('player interceptions');
+  playerToplist.resolveDeflections.mockResolvedValue('player deflections');
+  playerToplist.resolveCasualtiesCaused.mockResolvedValue(
+    'player casualties caused',
+  );
+  playerToplist.resolveCasualtiesSuffered.mockResolvedValue(
+    'player casualties suffered',
+  );
+  playerToplist.resolveSeriousInjuriesCaused.mockResolvedValue(
+    'player serious injuries caused',
+  );
+  playerToplist.resolveSeriousInjuriesSuffered.mockResolvedValue(
+    'player serious injuries suffered',
+  );
+  playerToplist.resolveLastingInjuriesSuffered.mockResolvedValue(
+    'player lasting injuries suffered',
+  );
+  playerToplist.resolveDeathsCaused.mockResolvedValue('player deaths caused');
+  playerToplist.resolveFoulsCommitted.mockResolvedValue(
+    'player fouls committed',
+  );
+  playerToplist.resolveTimesSentOff.mockResolvedValue('player times sent off');
+
+  const raceToplist = mock<RaceToplistService>();
+  raceToplist.resolveTeams.mockResolvedValue('race teams');
+  raceToplist.resolveMatchesPlayed.mockResolvedValue('race matches played');
+
+  const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
+  expensiveMistakes.resolveTotal.mockResolvedValue('expensive mistakes total');
+  expensiveMistakes.resolveBiggest.mockResolvedValue(
+    'expensive mistakes biggest',
+  );
+
+  const erasList = mock<ErasListService>();
+  erasList.resolve.mockResolvedValue('eras list');
+
+  const statsSummary = mock<StatsSummaryFactsService>();
+  statsSummary.resolve.mockResolvedValue('stats summary');
+
   return {
-    coachToplist: {
-      resolveMatchesPlayed: vi.fn().mockResolvedValue('coach matches played'),
-      resolveTeams: vi.fn().mockResolvedValue('coach teams'),
-      resolveCompetitionsPlayed: vi
-        .fn()
-        .mockResolvedValue('coach competitions played'),
-      resolveErasActive: vi.fn().mockResolvedValue('coach eras active'),
-    } as unknown as CoachToplistService,
-    teamToplist: {
-      resolveMatchesPlayed: vi.fn().mockResolvedValue('team matches played'),
-      resolveCompetitionsPlayed: vi
-        .fn()
-        .mockResolvedValue('team competitions played'),
-      resolveErasActive: vi.fn().mockResolvedValue('team eras active'),
-      resolveTouchdownsScored: vi
-        .fn()
-        .mockResolvedValue('team touchdowns scored'),
-      resolveCompletions: vi.fn().mockResolvedValue('team completions'),
-      resolveInterceptions: vi.fn().mockResolvedValue('team interceptions'),
-      resolveDeflections: vi.fn().mockResolvedValue('team deflections'),
-      resolveCasualtiesCaused: vi
-        .fn()
-        .mockResolvedValue('team casualties caused'),
-      resolveCasualtiesSuffered: vi
-        .fn()
-        .mockResolvedValue('team casualties suffered'),
-      resolveSeriousInjuriesCaused: vi
-        .fn()
-        .mockResolvedValue('team serious injuries caused'),
-      resolveSeriousInjuriesSuffered: vi
-        .fn()
-        .mockResolvedValue('team serious injuries suffered'),
-      resolveLastingInjuriesSuffered: vi
-        .fn()
-        .mockResolvedValue('team lasting injuries suffered'),
-      resolveDeathsCaused: vi.fn().mockResolvedValue('team deaths caused'),
-      resolveDeathsSuffered: vi.fn().mockResolvedValue('team deaths suffered'),
-      resolveFoulsCommitted: vi.fn().mockResolvedValue('team fouls committed'),
-      resolveTimesSentOff: vi.fn().mockResolvedValue('team times sent off'),
-    } as unknown as TeamToplistService,
-    playerToplist: {
-      resolveMvps: vi.fn().mockResolvedValue('player mvps'),
-      resolveTouchdownsScored: vi
-        .fn()
-        .mockResolvedValue('player touchdowns scored'),
-      resolveCompletions: vi.fn().mockResolvedValue('player completions'),
-      resolveInterceptions: vi.fn().mockResolvedValue('player interceptions'),
-      resolveDeflections: vi.fn().mockResolvedValue('player deflections'),
-      resolveCasualtiesCaused: vi
-        .fn()
-        .mockResolvedValue('player casualties caused'),
-      resolveCasualtiesSuffered: vi
-        .fn()
-        .mockResolvedValue('player casualties suffered'),
-      resolveSeriousInjuriesCaused: vi
-        .fn()
-        .mockResolvedValue('player serious injuries caused'),
-      resolveSeriousInjuriesSuffered: vi
-        .fn()
-        .mockResolvedValue('player serious injuries suffered'),
-      resolveLastingInjuriesSuffered: vi
-        .fn()
-        .mockResolvedValue('player lasting injuries suffered'),
-      resolveDeathsCaused: vi.fn().mockResolvedValue('player deaths caused'),
-      resolveFoulsCommitted: vi
-        .fn()
-        .mockResolvedValue('player fouls committed'),
-      resolveTimesSentOff: vi.fn().mockResolvedValue('player times sent off'),
-    } as unknown as PlayerToplistService,
-    raceToplist: {
-      resolveTeams: vi.fn().mockResolvedValue('race teams'),
-      resolveMatchesPlayed: vi.fn().mockResolvedValue('race matches played'),
-    } as unknown as RaceToplistService,
-    expensiveMistakes: {
-      resolveTotal: vi.fn().mockResolvedValue('expensive mistakes total'),
-      resolveBiggest: vi.fn().mockResolvedValue('expensive mistakes biggest'),
-    } as unknown as ExpensiveMistakesToplistService,
-    erasList: {
-      resolve: vi.fn().mockResolvedValue('eras list'),
-    } as unknown as ErasListService,
-    statsSummary: {
-      resolve: vi.fn().mockResolvedValue('stats summary'),
-    } as unknown as StatsSummaryFactsService,
+    coachToplist,
+    teamToplist,
+    playerToplist,
+    raceToplist,
+    expensiveMistakes,
+    erasList,
+    statsSummary,
   };
 }
 
@@ -114,7 +132,6 @@ describe('buildFactTree', () => {
       'coach.toplist.matches.played',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -125,7 +142,6 @@ describe('buildFactTree', () => {
       'coach.toplist.teams',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.coachToplist.resolveTeams).toHaveBeenCalled();
   });
 
@@ -136,7 +152,6 @@ describe('buildFactTree', () => {
       'coach.toplist.competitions.played',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.coachToplist.resolveCompetitionsPlayed).toHaveBeenCalled();
   });
 
@@ -147,7 +162,6 @@ describe('buildFactTree', () => {
       'coach.toplist.eras.active',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.coachToplist.resolveErasActive).toHaveBeenCalled();
   });
 
@@ -158,7 +172,6 @@ describe('buildFactTree', () => {
       'team.toplist.matches.played',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -169,7 +182,6 @@ describe('buildFactTree', () => {
       'team.toplist.competitions.played',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveCompetitionsPlayed).toHaveBeenCalled();
   });
 
@@ -180,7 +192,6 @@ describe('buildFactTree', () => {
       'team.toplist.eras.active',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveErasActive).toHaveBeenCalled();
   });
 
@@ -191,7 +202,6 @@ describe('buildFactTree', () => {
       'team.toplist.touchdowns.scored',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveTouchdownsScored).toHaveBeenCalled();
   });
 
@@ -202,7 +212,6 @@ describe('buildFactTree', () => {
       'team.toplist.completions',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveCompletions).toHaveBeenCalled();
   });
 
@@ -213,7 +222,6 @@ describe('buildFactTree', () => {
       'team.toplist.interceptions',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveInterceptions).toHaveBeenCalled();
   });
 
@@ -224,7 +232,6 @@ describe('buildFactTree', () => {
       'team.toplist.deflections',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveDeflections).toHaveBeenCalled();
   });
 
@@ -235,7 +242,6 @@ describe('buildFactTree', () => {
       'player.toplist.mvps',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveMvps).toHaveBeenCalled();
   });
 
@@ -246,7 +252,6 @@ describe('buildFactTree', () => {
       'player.toplist.touchdowns.scored',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveTouchdownsScored).toHaveBeenCalled();
   });
 
@@ -257,7 +262,6 @@ describe('buildFactTree', () => {
       'player.toplist.completions',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveCompletions).toHaveBeenCalled();
   });
 
@@ -268,7 +272,6 @@ describe('buildFactTree', () => {
       'player.toplist.interceptions',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveInterceptions).toHaveBeenCalled();
   });
 
@@ -279,7 +282,6 @@ describe('buildFactTree', () => {
       'player.toplist.deflections',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveDeflections).toHaveBeenCalled();
   });
 
@@ -290,7 +292,6 @@ describe('buildFactTree', () => {
       'team.toplist.casualties.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveCasualtiesCaused).toHaveBeenCalled();
   });
 
@@ -301,7 +302,6 @@ describe('buildFactTree', () => {
       'team.toplist.injuries.serious.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveSeriousInjuriesCaused).toHaveBeenCalled();
   });
 
@@ -312,7 +312,6 @@ describe('buildFactTree', () => {
       'team.toplist.deaths.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveDeathsCaused).toHaveBeenCalled();
   });
 
@@ -323,7 +322,6 @@ describe('buildFactTree', () => {
       'team.toplist.casualties.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveCasualtiesSuffered).toHaveBeenCalled();
   });
 
@@ -334,7 +332,6 @@ describe('buildFactTree', () => {
       'team.toplist.injuries.serious.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveSeriousInjuriesSuffered).toHaveBeenCalled();
   });
 
@@ -345,7 +342,6 @@ describe('buildFactTree', () => {
       'team.toplist.injuries.lasting.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveLastingInjuriesSuffered).toHaveBeenCalled();
   });
 
@@ -356,7 +352,6 @@ describe('buildFactTree', () => {
       'team.toplist.deaths.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveDeathsSuffered).toHaveBeenCalled();
   });
 
@@ -367,7 +362,6 @@ describe('buildFactTree', () => {
       'team.toplist.fouls.committed',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveFoulsCommitted).toHaveBeenCalled();
   });
 
@@ -378,7 +372,6 @@ describe('buildFactTree', () => {
       'team.toplist.sent_off',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveTimesSentOff).toHaveBeenCalled();
   });
 
@@ -389,7 +382,6 @@ describe('buildFactTree', () => {
       'team.toplist.expensiveMistakes.total',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.expensiveMistakes.resolveTotal).toHaveBeenCalled();
   });
 
@@ -400,7 +392,6 @@ describe('buildFactTree', () => {
       'team.toplist.expensiveMistakes.biggest',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.expensiveMistakes.resolveBiggest).toHaveBeenCalled();
   });
 
@@ -411,7 +402,6 @@ describe('buildFactTree', () => {
       'player.toplist.casualties.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveCasualtiesCaused).toHaveBeenCalled();
   });
 
@@ -422,7 +412,6 @@ describe('buildFactTree', () => {
       'player.toplist.injuries.serious.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveSeriousInjuriesCaused).toHaveBeenCalled();
   });
 
@@ -433,7 +422,6 @@ describe('buildFactTree', () => {
       'player.toplist.deaths.caused',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveDeathsCaused).toHaveBeenCalled();
   });
 
@@ -444,7 +432,6 @@ describe('buildFactTree', () => {
       'player.toplist.casualties.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveCasualtiesSuffered).toHaveBeenCalled();
   });
 
@@ -455,7 +442,6 @@ describe('buildFactTree', () => {
       'player.toplist.injuries.serious.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveSeriousInjuriesSuffered).toHaveBeenCalled();
   });
 
@@ -466,7 +452,6 @@ describe('buildFactTree', () => {
       'player.toplist.injuries.lasting.suffered',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveLastingInjuriesSuffered).toHaveBeenCalled();
   });
 
@@ -477,7 +462,6 @@ describe('buildFactTree', () => {
       'player.toplist.fouls.committed',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveFoulsCommitted).toHaveBeenCalled();
   });
 
@@ -488,7 +472,6 @@ describe('buildFactTree', () => {
       'player.toplist.sent_off',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveTimesSentOff).toHaveBeenCalled();
   });
 
@@ -499,7 +482,6 @@ describe('buildFactTree', () => {
       'race.toplist.teams',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.raceToplist.resolveTeams).toHaveBeenCalled();
   });
 
@@ -510,7 +492,6 @@ describe('buildFactTree', () => {
       'race.toplist.matches.played',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.raceToplist.resolveMatchesPlayed).toHaveBeenCalled();
   });
 
@@ -518,7 +499,6 @@ describe('buildFactTree', () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(buildFactTree(d), 'stats');
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.statsSummary.resolve).toHaveBeenCalled();
   });
 
@@ -526,7 +506,6 @@ describe('buildFactTree', () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(buildFactTree(d), 'eras.list');
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.erasList.resolve).toHaveBeenCalled();
   });
 });
@@ -632,7 +611,6 @@ describe('buildFactTree competition capabilities', () => {
       'team.toplist.touchdowns.scored',
     );
     await (leaf as FactLeaf).resolve({ competitionId: 30 });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.teamToplist.resolveTouchdownsScored).toHaveBeenCalledWith({
       competitionId: 30,
     });
@@ -645,7 +623,6 @@ describe('buildFactTree competition capabilities', () => {
       'player.toplist.mvps',
     );
     await (leaf as FactLeaf).resolve({ competitionId: 30 });
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
     expect(d.playerToplist.resolveMvps).toHaveBeenCalledWith({
       competitionId: 30,
     });

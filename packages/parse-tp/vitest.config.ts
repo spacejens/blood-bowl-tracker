@@ -11,7 +11,11 @@ export default defineConfig({
       provider: 'v8',
       all: true,
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.spec.ts', 'src/**/*.module.ts'],
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/**/*.test-helpers.ts',
+        'src/**/*.module.ts',
+      ],
       thresholds: {
         lines: 90,
         functions: 90,

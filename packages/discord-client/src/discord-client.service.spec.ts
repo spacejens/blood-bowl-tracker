@@ -43,7 +43,11 @@ vi.mock('discord.js', () => ({
   GatewayIntentBits: { Guilds: 1 },
 }));
 
-import { DiscordClientModule, DiscordClientService } from './index';
+import {
+  DISCORD_BOT_TOKEN,
+  DiscordClientModule,
+  DiscordClientService,
+} from './index';
 
 describe('DiscordClientService', () => {
   let service: DiscordClientService;
@@ -58,7 +62,7 @@ describe('DiscordClientService', () => {
     return call[1] as (interaction: unknown) => void;
   }
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     mockClient.guilds.cache = new Map();
     mockClient.once.mockImplementation((event: string, cb: () => void) => {
@@ -68,7 +72,13 @@ describe('DiscordClientService', () => {
     mockClient.login.mockResolvedValue('my-token');
     mockClient.destroy.mockResolvedValue(undefined);
     mockChannel.isSendable.mockReturnValue(true);
-    service = new DiscordClientService('my-token');
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        DiscordClientService,
+        { provide: DISCORD_BOT_TOKEN, useValue: 'my-token' },
+      ],
+    }).compile();
+    service = moduleRef.get(DiscordClientService);
   });
 
   it('logs in with the provided token on module init', async () => {

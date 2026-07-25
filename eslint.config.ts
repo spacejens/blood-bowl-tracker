@@ -6,6 +6,8 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 import { maxFunctionParams } from './tools/eslint-rules/src/max-function-params.ts';
+import { noDirectServiceInstantiation } from './tools/eslint-rules/src/no-direct-service-instantiation.ts';
+import { noTestHelperImports } from './tools/eslint-rules/src/no-test-helper-imports.ts';
 
 export default tseslint.config(
   {
@@ -40,7 +42,13 @@ export default tseslint.config(
   {
     plugins: {
       'simple-import-sort': simpleImportSort,
-      local: { rules: { 'max-function-params': maxFunctionParams } },
+      local: {
+        rules: {
+          'max-function-params': maxFunctionParams,
+          'no-direct-service-instantiation': noDirectServiceInstantiation,
+          'no-test-helper-imports': noTestHelperImports,
+        },
+      },
     },
     rules: {
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
@@ -51,6 +59,7 @@ export default tseslint.config(
       'simple-import-sort/imports': 'error',
       'simple-import-sort/exports': 'error',
       'local/max-function-params': ['error', { max: 3 }],
+      'local/no-test-helper-imports': 'error',
     },
   },
   {
@@ -74,6 +83,16 @@ export default tseslint.config(
         'error',
         { max: 1000, skipBlankLines: true, skipComments: true },
       ],
+    },
+  },
+  {
+    files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/*.test-helpers.ts'],
+    rules: {
+      'local/no-direct-service-instantiation': 'error',
+      // Asserting on a mock method reference (e.g.
+      // `expect(mock.method).toHaveBeenCalledWith(...)`) trips unbound-method,
+      // which only matters for real, `this`-bound methods — never for mocks.
+      '@typescript-eslint/unbound-method': 'off',
     },
   },
 );

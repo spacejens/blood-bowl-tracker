@@ -1,0 +1,68 @@
+import type { Db } from '@blood-bowl-tracker/db';
+import type { Mock } from 'vitest';
+import { mock } from 'vitest-mock-extended';
+
+/**
+ * A stand-in for a drizzle fluent query builder. Every builder method
+ * (`from`, `innerJoin`, `where`, `groupBy`, `orderBy`, `limit`, `values`,
+ * `set`, `onConflictDoUpdate`, `returning`, ...) is auto-created on demand as a
+ * `vi.fn()` that returns the same chain, so specs never have to enumerate them.
+ * Tests read `chain.where.mock.calls` (usually via the `query-assertions`
+ * helpers) to assert on the captured drizzle condition objects.
+ *
+ * `then` is defined explicitly rather than auto-created: drizzle builders are
+ * thenables, and awaiting an auto-created `then` mock never settles, so the
+ * await would hang forever. Test-only; excluded from coverage.
+ */
+export type QueryChain = Record<string, Mock> & {
+  then: <TResult1 = unknown, TResult2 = never>(
+    resolve?: (value: unknown) => TResult1 | PromiseLike<TResult1>,
+    reject?: (reason: unknown) => TResult2 | PromiseLike<TResult2>,
+  ) => Promise<TResult1 | TResult2>;
+};
+
+export interface MockDbResult {
+  /** Cast to `Db` so it can be supplied as `{ provide: DB, useValue: db }`. */
+  db: Db;
+  /** One entry per issued query, in call order. */
+  chains: QueryChain[];
+}
+
+function makeChain(rows: unknown[]): QueryChain {
+  // `mock()`'s `mockImplementation` parameter type does not loosen a
+  // Mock-typed property (here `then`, via the QueryChain index signature)
+  // down to a plain function the way ts-essentials' real `DeepPartial` does,
+  // so the object literal is typed explicitly and passed through an
+  // intentional cast; the `chain` variable itself keeps its real `QueryChain`
+  // type, so callers still get full type safety.
+  const thenImpl: QueryChain['then'] = (resolve, reject) =>
+    Promise.resolve(rows).then(resolve as never, reject as never) as never;
+  const chain: QueryChain = mock<QueryChain>({ then: thenImpl } as never, {
+    fallbackMockImplementation: () => chain,
+  });
+  return chain;
+}
+
+/**
+ * Build a mock drizzle `Db`.
+ *
+ * Each `select` / `selectDistinct` / `insert` / `update` / `delete` call returns
+ * a fresh chain; awaiting the nth chain resolves to `rowsPerQuery[n]`, or `[]`
+ * when fewer row sets are supplied than queries issued.
+ *
+ * The `as unknown as Db` cast lives here, once, because drizzle's `select()`
+ * return type varies with the field selection and cannot be faithfully mocked.
+ */
+export function mockDb(...rowsPerQuery: unknown[][]): MockDbResult {
+  const chains: QueryChain[] = [];
+  const next = (): QueryChain => {
+    const chain = makeChain(rowsPerQuery[chains.length] ?? []);
+    chains.push(chain);
+    return chain;
+  };
+  const db = mock<Record<string, Mock>>(
+    {},
+    { fallbackMockImplementation: () => next() },
+  );
+  return { db: db as unknown as Db, chains };
+}

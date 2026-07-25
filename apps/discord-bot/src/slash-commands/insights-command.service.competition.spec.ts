@@ -5,7 +5,6 @@ import {
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
-import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard.service';
 import {
   chatInput,
   makeService,
@@ -17,7 +16,7 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a request that supplies both an era and a competition', async () => {
-    const { service, eras, competitions } = makeService();
+    const { service, eras, competitions } = await makeService();
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', {
         era: '20',
@@ -26,28 +25,23 @@ describe('InsightsCommandService — competition scoping', () => {
     );
     expect(result).toBe(INSIGHTS_SCOPE_CONFLICT_MESSAGE);
     // mutual exclusion is checked before any lookup
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(eras.findById).not.toHaveBeenCalled();
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(competitions.findById).not.toHaveBeenCalled();
   });
 
   it('rejects a competition id that does not resolve to a real competition', async () => {
-    const { service, competitions } = makeService();
-    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue(
-      undefined,
-    );
+    const { service, competitions } = await makeService();
+    competitions.findById.mockResolvedValue(undefined);
     const result = await service.execute(
       chatInput('team.toplist.competitions.played', { competition: '999' }),
     );
     expect(result).toBe(INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE);
-    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(competitions.findById).toHaveBeenCalledWith(999);
   });
 
   it('scopes an in-scope category to the resolved competition and names it in the title', async () => {
-    const { service, teams, competitions } = makeService();
-    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+    const { service, factTreeDeps, competitions } = await makeService();
+    competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
       type: 'season',
@@ -56,27 +50,27 @@ describe('InsightsCommandService — competition scoping', () => {
     const result = await service.execute(
       chatInput('team.toplist.touchdowns.scored', { competition: '30' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(teams.countTouchdownsScoredByTeam).toHaveBeenCalledWith(
-      { eraId: undefined, competitionId: 30 },
-      TOPLIST_FETCH_LIMIT,
-    );
-    expect(result).toEqual(
-      expect.objectContaining({
-        embeds: [
-          {
-            title: 'Teams by touchdowns scored — Major Season 24',
-            description: '1. 40 grinders — 15',
-          },
-        ],
-        components: expect.any(Array) as unknown,
-      }),
-    );
+    expect(
+      factTreeDeps.teamToplist.resolveTouchdownsScored,
+    ).toHaveBeenCalledWith({
+      leagueId: undefined,
+      eraId: undefined,
+      competitionId: 30,
+    });
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Teams by touchdowns scored — Major Season 24',
+          description: '1. 40 grinders — 15',
+        },
+      ],
+      components: [],
+    });
   });
 
   it('rejects a competition on a category that does not support it (coach.toplist.competitions.played)', async () => {
-    const { service, competitions } = makeService();
-    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+    const { service, competitions } = await makeService();
+    competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
       type: 'season',
@@ -89,8 +83,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('rejects a competition on eras.list (not competition-supporting)', async () => {
-    const { service, competitions } = makeService();
-    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+    const { service, competitions } = await makeService();
+    competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
       type: 'season',
@@ -103,8 +97,8 @@ describe('InsightsCommandService — competition scoping', () => {
   });
 
   it('restricts the random pick to competition-supporting leaves when a competition but no category is given', async () => {
-    const { service, competitions } = makeService();
-    (competitions.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
+    const { service, competitions } = await makeService();
+    competitions.findById.mockResolvedValue({
       id: 30,
       name: 'Major Season 24',
       type: 'season',

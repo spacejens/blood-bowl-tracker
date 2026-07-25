@@ -1,22 +1,37 @@
-import type { FactScope, PlayersService } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import {
+  FACT_SCOPE_ALL_TIME,
+  PlayersService,
+} from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { PLAYER_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { PLAYER_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
 import { PlayerToplistService } from './player-toplist.service';
-import { expectTimeoutFallback } from './toplist.test-helpers';
 
-function makeService(players: PlayersService): PlayerToplistService {
-  return new PlayerToplistService(
-    players,
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+interface MadeService {
+  service: PlayerToplistService;
+  leaderboard: MockProxy<LeaderboardService>;
+}
+
+async function makeService(players: PlayersService): Promise<MadeService> {
+  const leaderboard = mock<LeaderboardService>();
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      PlayerToplistService,
+      { provide: PlayersService, useValue: players },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return { service: moduleRef.get(PlayerToplistService), leaderboard };
 }
 
 interface PlayerCase {
@@ -30,7 +45,6 @@ interface PlayerCase {
   eraRows: { playerId: number; name: string; count: number }[];
   competitionRows?: { playerId: number; name: string; count: number }[];
   expectedTitle: string;
-  expectedDescription: string;
 }
 
 const cases: PlayerCase[] = [
@@ -46,8 +60,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by MVP awards',
-    expectedDescription:
-      '1. Griff Oberwald — 7\n1. Morg n Thorg — 7\n2. Zug — 3',
   },
   {
     describeName: 'resolveTouchdownsScored',
@@ -61,8 +73,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by touchdowns scored',
-    expectedDescription:
-      '1. Griff Oberwald — 9\n1. Zug — 9\n2. Morg n Thorg — 4',
   },
   {
     describeName: 'resolveCompletions',
@@ -72,7 +82,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by completions',
-    expectedDescription: '1. Griff Oberwald — 6',
   },
   {
     describeName: 'resolveInterceptions',
@@ -82,7 +91,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by interceptions',
-    expectedDescription: '1. Griff Oberwald — 5',
   },
   {
     describeName: 'resolveDeflections',
@@ -92,7 +100,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by deflections',
-    expectedDescription: '1. Griff Oberwald — 4',
   },
   {
     describeName: 'resolveCasualtiesCaused',
@@ -106,8 +113,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 3 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     expectedTitle: 'Players by casualties inflicted',
-    expectedDescription:
-      '1. Morg n Thorg — 11\n1. Grashnak Blackhoof — 11\n2. Griff Oberwald — 4',
   },
   {
     describeName: 'resolveSeriousInjuriesCaused',
@@ -117,7 +122,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     expectedTitle: 'Players by serious injuries inflicted',
-    expectedDescription: '1. Morg n Thorg — 3',
   },
   {
     describeName: 'resolveDeathsCaused',
@@ -127,7 +131,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     expectedTitle: 'Players by opponents killed',
-    expectedDescription: '1. Morg n Thorg — 2',
   },
   {
     describeName: 'resolveFoulsCommitted',
@@ -137,7 +140,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     expectedTitle: 'Players by fouls committed',
-    expectedDescription: '1. Morg n Thorg — 6',
   },
   {
     describeName: 'resolveTimesSentOff',
@@ -147,7 +149,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Morg n Thorg', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Morg n Thorg', count: 1 }],
     expectedTitle: 'Players by times sent off',
-    expectedDescription: '1. Morg n Thorg — 5',
   },
   {
     describeName: 'resolveCasualtiesSuffered',
@@ -161,8 +162,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 3 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     expectedTitle: 'Players by casualties suffered',
-    expectedDescription:
-      '1. Griff Oberwald — 12\n1. Zug — 12\n2. Morg n Thorg — 3',
   },
   {
     describeName: 'resolveSeriousInjuriesSuffered',
@@ -172,7 +171,6 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by serious injuries suffered',
-    expectedDescription: '1. Griff Oberwald — 5',
   },
   {
     describeName: 'resolveLastingInjuriesSuffered',
@@ -182,46 +180,45 @@ const cases: PlayerCase[] = [
     eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 2 }],
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by lasting injuries suffered',
-    expectedDescription: '1. Griff Oberwald — 4',
   },
 ];
 
 describe.each(cases)(
   'PlayerToplistService.$describeName',
-  ({
-    method,
-    resolve,
-    rows,
-    expectedTitle,
-    expectedDescription,
-    eraRows,
-    competitionRows,
-  }) => {
-    it('returns a leaderboard embed with one deepdive button per player row', async () => {
+  ({ method, resolve, rows, expectedTitle, eraRows, competitionRows }) => {
+    // LeaderboardService.resolveToplist itself (ranking, ties, embed/button
+    // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
+    // is a mock returning a canned reply, so this test only asserts what
+    // PlayerToplistService itself owns: the embed title it configures, and the
+    // per-row deepdive button id its own buildCustomId closure produces.
+    it('wires the embed title and per-row deepdive button id', async () => {
       const players = {
         [method]: vi.fn().mockResolvedValue(rows),
       } as unknown as PlayersService;
-      const result = (await resolve(
-        makeService(players),
-        FACT_SCOPE_ALL_TIME,
-      )) as {
-        embeds: { title: string; description: string }[];
-        components: { components: { label: string; custom_id: string }[] }[];
+      const { service, leaderboard } = await makeService(players);
+      const canned = {
+        embeds: [{ title: 'canned', description: 'canned' }],
       };
-      expect(result.embeds).toEqual([
-        { title: expectedTitle, description: expectedDescription },
-      ]);
-      const buttons = result.components.flatMap((row) => row.components);
-      expect(buttons.map((b) => b.custom_id)).toEqual(
-        rows.map((r) => `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${r.playerId}`),
+      leaderboard.resolveToplist.mockResolvedValueOnce(canned);
+      const result = await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(result).toBe(canned);
+      const options = leaderboard.resolveToplist.mock
+        .calls[0][0] as unknown as ResolveToplistOptions<(typeof rows)[number]>;
+      expect(options.title).toBe(expectedTitle);
+      expect(options.buildCustomId?.(rows[0])).toBe(
+        `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${rows[0].playerId}`,
       );
-      expect(buttons.map((b) => b.label)).toEqual(rows.map((r) => r.name));
     });
 
     it('passes the era id through to the query', async () => {
       const queryFn = vi.fn().mockResolvedValue(eraRows);
       const players = { [method]: queryFn } as unknown as PlayersService;
-      await resolve(makeService(players), { eraId: 20 });
+      const { service, leaderboard } = await makeService(players);
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'canned';
+      });
+      await resolve(service, { eraId: 20 });
       expect(queryFn).toHaveBeenCalledWith({ eraId: 20 }, TOPLIST_FETCH_LIMIT);
     });
 
@@ -229,7 +226,12 @@ describe.each(cases)(
       it('passes the competition id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const players = { [method]: queryFn } as unknown as PlayersService;
-        await resolve(makeService(players), { competitionId: 30 });
+        const { service, leaderboard } = await makeService(players);
+        leaderboard.resolveToplist.mockImplementation(async (options) => {
+          await options.fetchRows(TOPLIST_FETCH_LIMIT);
+          return 'canned';
+        });
+        await resolve(service, { competitionId: 30 });
         expect(queryFn).toHaveBeenCalledWith(
           { competitionId: 30 },
           TOPLIST_FETCH_LIMIT,
@@ -237,15 +239,20 @@ describe.each(cases)(
       });
     }
 
-    it('falls back to the timeout message when the query does not respond in time', async () => {
-      await expectTimeoutFallback(
-        (players: PlayersService) =>
-          resolve(makeService(players), FACT_SCOPE_ALL_TIME),
-        () =>
-          ({
-            [method]: vi.fn().mockReturnValue(new Promise(() => {})),
-          }) as unknown as PlayersService,
+    it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
+      const players = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as PlayersService;
+      const { service, leaderboard } = await makeService(players);
+      leaderboard.resolveToplist.mockResolvedValueOnce(
         PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+      );
+      const result = await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(result).toBe(PLAYER_TOPLIST_TIMEOUT_MESSAGE);
+      expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
+        }),
       );
     });
   },

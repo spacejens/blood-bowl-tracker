@@ -1,28 +1,47 @@
 import { resolve } from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
-import type { ImportTpConfigService } from '../config/import-tp-config.service';
+import { ImportTpConfigService } from '../config/import-tp-config.service';
 import { SourceConfigService } from './source-config.service';
 
-function makeService(dataDir: unknown): SourceConfigService {
-  const config = {
-    get: (key: string) => (key === 'dataDir' ? dataDir : undefined),
-  } as unknown as ImportTpConfigService;
-  return new SourceConfigService(config);
-}
-
 describe('SourceConfigService', () => {
+  let config: MockProxy<ImportTpConfigService>;
+  let service: SourceConfigService;
+
+  beforeEach(async () => {
+    config = mock<ImportTpConfigService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        SourceConfigService,
+        { provide: ImportTpConfigService, useValue: config },
+      ],
+    }).compile();
+    service = moduleRef.get(SourceConfigService);
+  });
+
+  function withDataDir(dataDir: unknown): void {
+    config.get.mockImplementation((key: string) =>
+      key === 'dataDir' ? dataDir : undefined,
+    );
+  }
+
   it('resolves a relative dataDir against the current working directory', () => {
-    expect(makeService('data').getDataDir()).toBe(resolve('data'));
+    withDataDir('data');
+    expect(service.getDataDir()).toBe(resolve('data'));
   });
 
   it('returns an absolute dataDir unchanged', () => {
-    expect(makeService('/abs/data').getDataDir()).toBe('/abs/data');
+    withDataDir('/abs/data');
+    expect(service.getDataDir()).toBe('/abs/data');
   });
 
   it('throws when dataDir is not set', () => {
-    expect(() => makeService(undefined).getDataDir()).toThrow(
+    withDataDir(undefined);
+    expect(() => service.getDataDir()).toThrow(
       'dataDir is not set in import-tp-config.json5',
     );
   });

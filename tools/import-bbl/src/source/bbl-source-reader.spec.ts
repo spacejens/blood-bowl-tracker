@@ -2,18 +2,43 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { BblPageService } from './bbl-page.service';
 import type { BblPage } from './bbl-page.types';
 import { BblSourceReader } from './bbl-source-reader';
-import type { SourceConfigService } from './source-config.service';
+import { SourceConfigService } from './source-config.service';
 
-function makeReader(dir: string): BblSourceReader {
-  return new BblSourceReader(
-    { getDataDir: () => dir } as unknown as SourceConfigService,
-    new BblPageService(),
+type ParsedFilename = { type: string; params: Record<string, string> };
+
+/**
+ * Builds a reader wired to a mocked `BblPageService` whose `parseFilename`
+ * returns canned, per-filename results from `parseResults` (or `null` for
+ * any filename not listed). This keeps the collaborator's parsing algorithm
+ * out of the test entirely: only the reader's own filtering/mapping/
+ * iteration logic is exercised.
+ */
+async function makeReader(
+  dir: string,
+  parseResults: Record<string, ParsedFilename | null> = {},
+): Promise<BblSourceReader> {
+  const config = mock<SourceConfigService>();
+  config.getDataDir.mockReturnValue(dir);
+  const bblPage = mock<BblPageService>();
+  bblPage.parseFilename.mockImplementation(
+    (filename) => parseResults[filename] ?? null,
   );
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblSourceReader,
+      { provide: SourceConfigService, useValue: config },
+      { provide: BblPageService, useValue: bblPage },
+    ],
+  }).compile();
+  return moduleRef.get(BblSourceReader);
 }
 
 async function collect(iterable: AsyncIterable<BblPage>): Promise<BblPage[]> {
@@ -36,12 +61,17 @@ describe('BblSourceReader', () => {
   });
 
   it('yields only pages of the requested type', async () => {
-    await writeFile(join(dir, 'default.asp?p=tm&t=knu'), '<html></html>');
-    await writeFile(join(dir, 'default.asp?p=tm&t=vor'), '<html></html>');
-    await writeFile(join(dir, 'default.asp?p=pl&pid=1'), '<html></html>');
-    await writeFile(join(dir, 'index.html'), '<html></html>');
+    await writeFile(join(dir, 'file-tm-knu'), '<html></html>');
+    await writeFile(join(dir, 'file-tm-vor'), '<html></html>');
+    await writeFile(join(dir, 'file-pl-1'), '<html></html>');
+    await writeFile(join(dir, 'file-unparseable'), '<html></html>');
 
-    const reader = makeReader(dir);
+    const reader = await makeReader(dir, {
+      'file-tm-knu': { type: 'tm', params: { t: 'knu' } },
+      'file-tm-vor': { type: 'tm', params: { t: 'vor' } },
+      'file-pl-1': { type: 'pl', params: { pid: '1' } },
+      'file-unparseable': null,
+    });
     const pages = await collect(reader.pages('tm'));
 
     expect(pages).toHaveLength(2);
@@ -58,9 +88,11 @@ describe('BblSourceReader', () => {
       0xc5,
       ...Buffer.from('ke</td></tr></table></body></html>'),
     ]);
-    await writeFile(join(dir, 'default.asp?p=tm&t=abc'), bytes);
+    await writeFile(join(dir, 'page-file'), bytes);
 
-    const reader = makeReader(dir);
+    const reader = await makeReader(dir, {
+      'page-file': { type: 'tm', params: { t: 'abc' } },
+    });
     const [page] = await collect(reader.pages('tm'));
     const $ = page.load();
 
@@ -68,22 +100,27 @@ describe('BblSourceReader', () => {
     expect($('td').text()).toContain('Åke');
   });
 
-  it('does not read the directory until iteration begins (lazy)', () => {
-    const reader = makeReader('/no/such/bbl/dir');
+  it('does not read the directory until iteration begins (lazy)', async () => {
+    const reader = await makeReader('/no/such/bbl/dir');
     // Obtaining the iterable must not throw synchronously.
     expect(() => reader.pages('tm')).not.toThrow();
   });
 
   it('throws when the data directory does not exist', async () => {
-    const reader = makeReader('/no/such/bbl/dir');
+    const reader = await makeReader('/no/such/bbl/dir');
     await expect(collect(reader.pages('tm'))).rejects.toThrow();
   });
 
   it('skips directory entries even when their name matches the page pattern', async () => {
-    await mkdir(join(dir, 'default.asp?p=tm&t=subdir'));
-    await writeFile(join(dir, 'default.asp?p=tm&t=knu'), '<html></html>');
+    await mkdir(join(dir, 'dir-entry'));
+    await writeFile(join(dir, 'file-entry'), '<html></html>');
 
-    const reader = makeReader(dir);
+    // Both names would parse as a matching 'tm' page; only the directory
+    // entry must be excluded, and only because it isn't a file.
+    const reader = await makeReader(dir, {
+      'dir-entry': { type: 'tm', params: { t: 'subdir' } },
+      'file-entry': { type: 'tm', params: { t: 'knu' } },
+    });
     const pages = await collect(reader.pages('tm'));
 
     expect(pages).toHaveLength(1);

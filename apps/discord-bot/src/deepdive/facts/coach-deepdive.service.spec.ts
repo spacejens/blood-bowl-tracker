@@ -1,7 +1,14 @@
-import type { CoachesService } from '@blood-bowl-tracker/game-data';
+import { CoachesService } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -13,41 +20,86 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { CoachDeepdiveService } from './coach-deepdive.service';
 
-function makeService(options: {
+async function makeService(
+  coaches: CoachesService,
+  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
+  leaderboard: MockProxy<LeaderboardService> = mock<LeaderboardService>(),
+): Promise<{
+  service: CoachDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
+}> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      CoachDeepdiveService,
+      { provide: CoachesService, useValue: coaches },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return { service: moduleRef.get(CoachDeepdiveService), leaderboard };
+}
+
+function makeCoaches(options: {
   coach?: { id: number; name: string };
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
-}): CoachDeepdiveService {
-  const coaches = {
+}): CoachesService {
+  return {
     findById: vi.fn().mockResolvedValue(options.coach),
     getCareerSpan: vi.fn().mockResolvedValue(options.span),
     getTopTeamsByMatchesPlayed: vi
       .fn()
       .mockResolvedValue(options.topTeams ?? []),
   } as unknown as CoachesService;
-  return new CoachDeepdiveService(
-    coaches,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
 }
 
 describe('CoachDeepdiveService', () => {
   it('returns the not-found message when the coach does not exist', async () => {
-    const service = makeService({ coach: undefined });
+    const { service } = await makeService(makeCoaches({ coach: undefined }));
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COACH_NOT_FOUND_MESSAGE);
   });
 
-  it('renders the career span and top-teams list', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams: [
-        { id: 11, name: 'Reikland Reavers', count: 12 },
-        { id: 22, name: 'Gouged Eye', count: 5 },
-      ],
+  // LeaderboardService.topRanksWithTies/buildEntityButtons themselves
+  // (ranking, tie handling, dedupe/cap/chunk) are covered by
+  // leaderboard.service.spec.ts. Here `leaderboard` is a mock returning canned
+  // rank/button output, so this test asserts only what CoachDeepdiveService
+  // itself owns: joining the career-span and ranked-row lines into the embed
+  // description, and building the button-entry list (id/label closures) it
+  // hands to buildEntityButtons.
+  it('renders the career span and top-teams list from the ranked rows', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const rankedTeams = [
+      { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+      { id: 22, name: 'Gouged Eye', count: 5, rank: 2 },
+    ];
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: rankedTeams,
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
     });
+    const cannedButtons = [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+        ],
+      },
+    ];
+    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
+    const rawTopTeams = [
+      { id: 11, name: 'Reikland Reavers', count: 12 },
+      { id: 22, name: 'Gouged Eye', count: 5 },
+    ];
+    const { service } = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: rawTopTeams,
+      }),
+      undefined,
+      leaderboard,
+    );
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -62,101 +114,82 @@ describe('CoachDeepdiveService', () => {
           ].join('\n'),
         },
       ],
-      components: [
-        {
-          type: 1,
-          components: [
-            {
-              type: 2,
-              style: 1,
-              label: 'Reikland Reavers',
-              custom_id: 'deepdive:team:11',
-            },
-            {
-              type: 2,
-              style: 1,
-              label: 'Gouged Eye',
-              custom_id: 'deepdive:team:22',
-            },
-          ],
-        },
-      ],
+      components: cannedButtons,
     });
+    // The 5 here is TOP_TEAMS_TOP_ENTRIES: CoachDeepdiveService's own choice
+    // of where the top-teams tie boundary opens.
+    expect(leaderboard.topRanksWithTies).toHaveBeenCalledWith(rawTopTeams, 5);
+    const [entries, buildCustomId, label] =
+      leaderboard.buildEntityButtons.mock.calls[0];
+    expect(entries).toBe(rankedTeams);
+    expect(buildCustomId(rankedTeams[0])).toBe('deepdive:team:11');
+    expect(label(rankedTeams[0])).toBe('Reikland Reavers');
   });
 
-  it('renders a Primary button per listed team, keyed by team id', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams: [
-        { id: 11, name: 'Reikland Reavers', count: 12 },
-        { id: 22, name: 'Gouged Eye', count: 5 },
-      ],
+  it('appends a truncation note when the ranked rows report a truncated count', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const rankedTeams = [{ id: 1, name: 'A', count: 9, rank: 1 }];
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: rankedTeams,
+      truncatedCount: 3,
+      tieGroupOpenEnded: false,
     });
-    const result = (await service.resolve(1)) as unknown as {
-      components: { components: { label: string; custom_id: string }[] }[];
-    };
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons).toEqual([
-      {
-        type: 2,
-        style: 1,
-        label: 'Reikland Reavers',
-        custom_id: 'deepdive:team:11',
-      },
-      { type: 2, style: 1, label: 'Gouged Eye', custom_id: 'deepdive:team:22' },
-    ]);
-  });
-
-  it('omits components when the coach has no matches', async () => {
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: undefined,
-    });
-    const result = await service.resolve(1);
-    expect(result).not.toHaveProperty('components');
-  });
-
-  it('renders a tie group at the cutoff with a truncation note', async () => {
-    const topTeams = [
-      { id: 1, name: 'A', count: 9 },
-      { id: 2, name: 'B', count: 9 },
-      { id: 3, name: 'C', count: 9 },
-      { id: 4, name: 'D', count: 9 },
-      { id: 5, name: 'E', count: 9 },
-      { id: 6, name: 'F', count: 9 },
-      { id: 7, name: 'G', count: 9 },
-      { id: 8, name: 'H', count: 9 },
-      { id: 9, name: 'I', count: 9 },
-      { id: 10, name: 'J', count: 9 },
-    ];
-    const service = makeService({
-      coach: { id: 1, name: 'Roze Madder' },
-      span: { start: '2021-09-01', end: '2023-06-10' },
-      topTeams,
-    });
+    leaderboard.buildEntityButtons.mockReturnValue([]);
+    const { service } = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [{ id: 1, name: 'A', count: 9 }],
+      }),
+      undefined,
+      leaderboard,
+    );
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    // All ten fetched rows tie at rank 1; the resolver caps rendered entries at
-    // MAX_LEADERBOARD_ENTRIES (10), so all ten show and no remainder is noted.
-    expect(lines).toContain('1. A — 9');
-    expect(lines).toContain('1. J — 9');
-    expect(lines.every((l) => !l.startsWith('…and'))).toBe(true);
+    expect(lines).toContain('…and 3 more tied.');
+  });
+
+  it('omits components when the coach has no matches', async () => {
+    const { service } = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: undefined,
+      }),
+    );
+    const result = await service.resolve(1);
+    expect(result).not.toHaveProperty('components');
+  });
+
+  it('omits components when the coach has a career span but no top teams', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: [],
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
+    });
+    leaderboard.buildEntityButtons.mockReturnValue([]);
+    const { service } = await makeService(
+      makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [],
+      }),
+      undefined,
+      leaderboard,
+    );
+    const result = await service.resolve(1);
+    expect(result).not.toHaveProperty('components');
   });
 
   it('shows the no-matches message and skips the top-teams section', async () => {
-    const coaches = {
-      findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-      getCareerSpan: vi.fn().mockResolvedValue(undefined),
-      getTopTeamsByMatchesPlayed: vi.fn().mockResolvedValue([]),
-    } as unknown as CoachesService;
-    const service = new CoachDeepdiveService(
-      coaches,
-      new DatabaseTimeoutService(),
-      new LeaderboardService(new DatabaseTimeoutService()),
-    );
+    const coaches = makeCoaches({
+      coach: { id: 1, name: 'Roze Madder' },
+      span: undefined,
+      topTeams: [],
+    });
+    const { service } = await makeService(coaches);
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -167,64 +200,57 @@ describe('CoachDeepdiveService', () => {
       ],
     });
     // Top-teams lookup must not run for a coach with no matches.
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
     expect(coaches.getTopTeamsByMatchesPlayed).not.toHaveBeenCalled();
   });
 
   it('falls back to the coach timeout message when the coach lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockReturnValue(new Promise(() => {})),
-          getCareerSpan: vi.fn(),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(makeCoaches({}), databaseTimeout);
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the career timeout message when the span lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-          getCareerSpan: vi.fn().mockReturnValue(new Promise(() => {})),
-          getTopTeamsByMatchesPlayed: vi.fn(),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeCoaches({ coach: { id: 1, name: 'Roze Madder' } }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the teams timeout message when the top-teams lookup times out', async () => {
     await expectTimeoutFallback(
-      (coaches: CoachesService) =>
-        new CoachDeepdiveService(
-          coaches,
-          new DatabaseTimeoutService(),
-          new LeaderboardService(new DatabaseTimeoutService()),
-        ).resolve(1),
-      () =>
-        ({
-          findById: vi.fn().mockResolvedValue({ id: 1, name: 'Roze Madder' }),
-          getCareerSpan: vi
-            .fn()
-            .mockResolvedValue({ start: '2021-09-01', end: '2023-06-10' }),
-          getTopTeamsByMatchesPlayed: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        }) as unknown as CoachesService,
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService(
+          makeCoaches({
+            coach: { id: 1, name: 'Roze Madder' },
+            span: { start: '2021-09-01', end: '2023-06-10' },
+          }),
+          databaseTimeout,
+        );
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
     );
   });

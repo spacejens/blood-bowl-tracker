@@ -1,25 +1,38 @@
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
-import type { ExternalSystemsImportService } from './external-systems-import.service';
+import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportResultService } from './import-result.service';
 
-function makeService(upsertExternalSystem: ReturnType<typeof vi.fn>) {
-  return new ExternalSystemBootstrapService(
-    {
-      upsertExternalSystem,
-    } as unknown as ExternalSystemsImportService,
-    new ImportResultService(),
-  );
-}
-
 describe('ExternalSystemBootstrapService', () => {
+  let service: ExternalSystemBootstrapService;
+  let externalSystemsImport: MockProxy<ExternalSystemsImportService>;
+  let importResults: MockProxy<ImportResultService>;
+
+  beforeEach(async () => {
+    externalSystemsImport = mock<ExternalSystemsImportService>();
+    importResults = mock<ImportResultService>();
+    importResults.error.mockImplementation((args) => args);
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ExternalSystemBootstrapService,
+        {
+          provide: ExternalSystemsImportService,
+          useValue: externalSystemsImport,
+        },
+        { provide: ImportResultService, useValue: importResults },
+      ],
+    }).compile();
+    service = moduleRef.get(ExternalSystemBootstrapService);
+  });
+
   it('upserts every entry and returns ok with the ids in the same order', async () => {
-    const upsertExternalSystem = vi
-      .fn()
+    externalSystemsImport.upsertExternalSystem
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2);
-    const service = makeService(upsertExternalSystem);
 
     await expect(
       service.bootstrap([
@@ -27,12 +40,12 @@ describe('ExternalSystemBootstrapService', () => {
         { name: 'Name', category: 'bookkeeping' },
       ]),
     ).resolves.toEqual({ ok: true, ids: [1, 2] });
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenNthCalledWith(
       1,
       'BBL',
       'imported_data_source',
     );
-    expect(upsertExternalSystem).toHaveBeenNthCalledWith(
+    expect(externalSystemsImport.upsertExternalSystem).toHaveBeenNthCalledWith(
       2,
       'Name',
       'bookkeeping',
@@ -40,8 +53,8 @@ describe('ExternalSystemBootstrapService', () => {
   });
 
   it('returns a not-ok result recording the names and message on failure', async () => {
-    const service = makeService(
-      vi.fn().mockRejectedValue(new Error('api down')),
+    externalSystemsImport.upsertExternalSystem.mockRejectedValue(
+      new Error('api down'),
     );
 
     await expect(
@@ -59,8 +72,8 @@ describe('ExternalSystemBootstrapService', () => {
   });
 
   it('applies a caller-supplied prefix to the failure message', async () => {
-    const service = makeService(
-      vi.fn().mockRejectedValue(new Error('api down')),
+    externalSystemsImport.upsertExternalSystem.mockRejectedValue(
+      new Error('api down'),
     );
 
     await expect(
@@ -78,7 +91,7 @@ describe('ExternalSystemBootstrapService', () => {
   });
 
   it('stringifies a non-Error throw', async () => {
-    const service = makeService(vi.fn().mockRejectedValue('weird'));
+    externalSystemsImport.upsertExternalSystem.mockRejectedValue('weird');
 
     await expect(
       service.bootstrap([{ name: 'BBL', category: 'imported_data_source' }]),

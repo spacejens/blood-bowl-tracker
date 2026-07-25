@@ -1,89 +1,115 @@
-import type {
+import {
   CoachesService,
+  CoachUpsertConflictError,
   CompetitionsService,
+  CompetitionUpsertConflictError,
   ErasService,
+  EraUpsertConflictError,
   ExternalSystemsService,
   LeaguesService,
+  LeagueUpsertConflictError,
   MatchesService,
   MatchEventsService,
-  PlayersService,
-  PositionsService,
-  RacesService,
-  RulesSetsService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
-import {
-  CoachUpsertConflictError,
-  CompetitionUpsertConflictError,
-  EraUpsertConflictError,
-  LeagueUpsertConflictError,
   MatchEventUpsertConflictError,
   MatchUpsertConflictError,
+  PlayersService,
   PlayerUpsertConflictError,
+  PositionsService,
   PositionUpsertConflictError,
+  RacesService,
   RaceUpsertConflictError,
+  RulesSetsService,
   RulesSetUpsertConflictError,
+  TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { call } from '@orpc/server';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
+import type { ConflictErrors } from './upsert-handler.service';
 import { UpsertHandlerService } from './upsert-handler.service';
 
-function makeServices() {
-  return {
-    coachesService: { upsert: vi.fn() } as unknown as CoachesService,
-    externalSystemsService: {
-      upsert: vi.fn(),
-    } as unknown as ExternalSystemsService,
-    leaguesService: { upsert: vi.fn() } as unknown as LeaguesService,
-    racesService: { upsert: vi.fn() } as unknown as RacesService,
-    rulesSetsService: { upsert: vi.fn() } as unknown as RulesSetsService,
-    erasService: { upsert: vi.fn() } as unknown as ErasService,
-    positionsService: {
-      upsert: vi.fn(),
-      syncRaceEras: vi.fn(),
-    } as unknown as PositionsService,
-    teamsService: { upsert: vi.fn() } as unknown as TeamsService,
-    competitionsService: {
-      upsert: vi.fn(),
-    } as unknown as CompetitionsService,
-    matchesService: { upsert: vi.fn() } as unknown as MatchesService,
-    playersService: { upsert: vi.fn() } as unknown as PlayersService,
-    matchEventsService: {
-      upsert: vi.fn(),
-    } as unknown as MatchEventsService,
-  };
-}
-
-function buildRouter(services: ReturnType<typeof makeServices>) {
-  return new RpcRouterFactoryService(
-    services.coachesService,
-    services.externalSystemsService,
-    services.leaguesService,
-    services.racesService,
-    services.rulesSetsService,
-    services.erasService,
-    services.positionsService,
-    services.teamsService,
-    services.competitionsService,
-    services.matchesService,
-    services.playersService,
-    services.matchEventsService,
-    new UpsertHandlerService(),
-  ).build();
-}
-
 describe('RpcRouterFactoryService', () => {
+  let router: ReturnType<RpcRouterFactoryService['build']>;
+  let coachesService: MockProxy<CoachesService>;
+  let externalSystemsService: MockProxy<ExternalSystemsService>;
+  let leaguesService: MockProxy<LeaguesService>;
+  let racesService: MockProxy<RacesService>;
+  let rulesSetsService: MockProxy<RulesSetsService>;
+  let erasService: MockProxy<ErasService>;
+  let positionsService: MockProxy<PositionsService>;
+  let teamsService: MockProxy<TeamsService>;
+  let competitionsService: MockProxy<CompetitionsService>;
+  let matchesService: MockProxy<MatchesService>;
+  let playersService: MockProxy<PlayersService>;
+  let matchEventsService: MockProxy<MatchEventsService>;
+  let upsertHandler: MockProxy<UpsertHandlerService>;
+
+  beforeEach(async () => {
+    coachesService = mock<CoachesService>();
+    externalSystemsService = mock<ExternalSystemsService>();
+    leaguesService = mock<LeaguesService>();
+    racesService = mock<RacesService>();
+    rulesSetsService = mock<RulesSetsService>();
+    erasService = mock<ErasService>();
+    positionsService = mock<PositionsService>();
+    teamsService = mock<TeamsService>();
+    competitionsService = mock<CompetitionsService>();
+    matchesService = mock<MatchesService>();
+    playersService = mock<PlayersService>();
+    matchEventsService = mock<MatchEventsService>();
+    upsertHandler = mock<UpsertHandlerService>();
+    // Mirrors UpsertHandlerService's real implementation (see
+    // upsert-handler.service.ts / its own spec for coverage of this logic in
+    // isolation) so these tests keep verifying how RpcRouterFactoryService
+    // wires each entity service and conflict-error class into the handler,
+    // rather than degrading into an assertion on a hardcoded stub value.
+    upsertHandler.run.mockImplementation(
+      async (errors: ConflictErrors, conflictErrorClass, runUpsert) => {
+        try {
+          const { entity, created } = (await runUpsert()) as {
+            entity: Record<string, unknown>;
+            created: boolean;
+          };
+          return { ...entity, created };
+        } catch (err) {
+          if (err instanceof conflictErrorClass) {
+            throw errors.CONFLICT({ message: err.message });
+          }
+          throw err;
+        }
+      },
+    );
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RpcRouterFactoryService,
+        { provide: CoachesService, useValue: coachesService },
+        { provide: ExternalSystemsService, useValue: externalSystemsService },
+        { provide: LeaguesService, useValue: leaguesService },
+        { provide: RacesService, useValue: racesService },
+        { provide: RulesSetsService, useValue: rulesSetsService },
+        { provide: ErasService, useValue: erasService },
+        { provide: PositionsService, useValue: positionsService },
+        { provide: TeamsService, useValue: teamsService },
+        { provide: CompetitionsService, useValue: competitionsService },
+        { provide: MatchesService, useValue: matchesService },
+        { provide: PlayersService, useValue: playersService },
+        { provide: MatchEventsService, useValue: matchEventsService },
+        { provide: UpsertHandlerService, useValue: upsertHandler },
+      ],
+    }).compile();
+    router = moduleRef.get(RpcRouterFactoryService).build();
+  });
+
   it('coaches.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    const { coachesService } = services;
-    (coachesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+    coachesService.upsert.mockResolvedValue({
       coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<CoachesService['upsert']>>);
 
     const result = await call(router.coaches.upsert, {
       name: 'Roze Madder',
@@ -99,14 +125,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('coaches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    const { coachesService } = services;
-    (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+    coachesService.upsert.mockRejectedValue(
       new CoachUpsertConflictError(
         'External IDs matched multiple existing coaches: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.coaches.upsert, {
@@ -120,12 +143,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('coaches.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    const { coachesService } = services;
-    (coachesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('db unavailable'),
-    );
-    const router = buildRouter(services);
+    coachesService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.coaches.upsert, {
@@ -136,11 +154,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('externalSystems.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    const { externalSystemsService } = services;
-    (
-      externalSystemsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    externalSystemsService.upsert.mockResolvedValue({
       system: {
         id: 1,
         name: 'BBL',
@@ -148,8 +162,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: false,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<ExternalSystemsService['upsert']>>);
 
     const result = await call(router.externalSystems.upsert, {
       name: 'BBL',
@@ -166,17 +179,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    const { leaguesService } = services;
-    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+    leaguesService.upsert.mockResolvedValue({
       league: {
         id: 1,
         name: 'Test League',
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<LeaguesService['upsert']>>);
 
     const result = await call(router.leagues.upsert, {
       name: 'Test League',
@@ -192,14 +202,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    const { leaguesService } = services;
-    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+    leaguesService.upsert.mockRejectedValue(
       new LeagueUpsertConflictError(
         'External IDs matched multiple existing leagues: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.leagues.upsert, {
@@ -213,12 +220,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('leagues.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    const { leaguesService } = services;
-    (leaguesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('db unavailable'),
-    );
-    const router = buildRouter(services);
+    leaguesService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.leagues.upsert, {
@@ -229,9 +231,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    const { racesService } = services;
-    (racesService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+    racesService.upsert.mockResolvedValue({
       race: {
         id: 1,
         name: 'Orc',
@@ -239,8 +239,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<RacesService['upsert']>>);
 
     const result = await call(router.races.upsert, {
       name: 'Orc',
@@ -258,14 +257,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    const { racesService } = services;
-    (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+    racesService.upsert.mockRejectedValue(
       new RaceUpsertConflictError(
         'External IDs matched multiple existing races: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.races.upsert, {
@@ -279,12 +275,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('races.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    const { racesService } = services;
-    (racesService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('db unavailable'),
-    );
-    const router = buildRouter(services);
+    racesService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.races.upsert, {
@@ -295,18 +286,14 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    rulesSetsService.upsert.mockResolvedValue({
       rulesSet: {
         id: 1,
         name: 'BB2020',
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<RulesSetsService['upsert']>>);
 
     const result = await call(router.rulesSets.upsert, {
       name: 'BB2020',
@@ -322,15 +309,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    rulesSetsService.upsert.mockRejectedValue(
       new RulesSetUpsertConflictError(
         'External IDs matched multiple existing rules sets: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.rulesSets.upsert, {
@@ -344,11 +327,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('rulesSets.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.rulesSetsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    rulesSetsService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.rulesSets.upsert, {
@@ -359,22 +338,18 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue(
-      {
-        era: {
-          id: 1,
-          name: 'BB2020',
-          leagueId: 10,
-          rulesSetIds: [20],
-          startDate: '2021-09-01',
-          endDate: '2023-06-10',
-          createdAt: new Date('2026-01-01'),
-        },
-        created: true,
+    erasService.upsert.mockResolvedValue({
+      era: {
+        id: 1,
+        name: 'BB2020',
+        leagueId: 10,
+        rulesSetIds: [20],
+        startDate: '2021-09-01',
+        endDate: '2023-06-10',
+        createdAt: new Date('2026-01-01'),
       },
-    );
-    const router = buildRouter(services);
+      created: true,
+    } as Awaited<ReturnType<ErasService['upsert']>>);
 
     const result = await call(router.eras.upsert, {
       name: 'BB2020',
@@ -398,13 +373,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+    erasService.upsert.mockRejectedValue(
       new EraUpsertConflictError(
         'External IDs matched multiple existing eras: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.eras.upsert, {
@@ -421,11 +394,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('eras.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (services.erasService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
-      new Error('db unavailable'),
-    );
-    const router = buildRouter(services);
+    erasService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.eras.upsert, {
@@ -439,10 +408,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.positionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    positionsService.upsert.mockResolvedValue({
       position: {
         id: 1,
         name: 'Lineman',
@@ -450,8 +416,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<PositionsService['upsert']>>);
 
     const result = await call(router.positions.upsert, {
       name: 'Lineman',
@@ -469,14 +434,10 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.syncRaceEras forwards input and returns the service result unchanged', async () => {
-    const services = makeServices();
-    (
-      services.positionsService.syncRaceEras as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    positionsService.syncRaceEras.mockResolvedValue({
       positionId: 1,
       raceEraIds: [10, 11],
     });
-    const router = buildRouter(services);
 
     const input = {
       positionId: 1,
@@ -487,8 +448,7 @@ describe('RpcRouterFactoryService', () => {
     };
     const result = await call(router.positions.syncRaceEras, input);
 
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock, not a real bound method
-    expect(services.positionsService.syncRaceEras).toHaveBeenCalledWith(input);
+    expect(positionsService.syncRaceEras).toHaveBeenCalledWith(input);
     expect(result).toEqual({
       positionId: 1,
       raceEraIds: [10, 11],
@@ -496,15 +456,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.positionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    positionsService.upsert.mockRejectedValue(
       new PositionUpsertConflictError(
         'External IDs matched multiple existing positions: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.positions.upsert, {
@@ -519,11 +475,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('positions.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.positionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    positionsService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.positions.upsert, {
@@ -535,10 +487,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.teamsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    teamsService.upsert.mockResolvedValue({
       team: {
         id: 1,
         name: '40 grinders',
@@ -548,8 +497,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as unknown as Awaited<ReturnType<TeamsService['upsert']>>);
 
     const result = await call(router.teams.upsert, {
       name: '40 grinders',
@@ -570,15 +518,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.teamsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    teamsService.upsert.mockRejectedValue(
       new TeamUpsertConflictError(
         'External IDs matched multiple existing teams: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.teams.upsert, {
@@ -594,11 +538,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('teams.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.teamsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    teamsService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.teams.upsert, {
@@ -611,10 +551,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.competitionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    competitionsService.upsert.mockResolvedValue({
       competition: {
         id: 1,
         name: 'Major Season 24',
@@ -624,8 +561,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as unknown as Awaited<ReturnType<CompetitionsService['upsert']>>);
 
     const result = await call(router.competitions.upsert, {
       name: 'Major Season 24',
@@ -646,15 +582,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.competitionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    competitionsService.upsert.mockRejectedValue(
       new CompetitionUpsertConflictError(
         'External IDs matched multiple existing competitions: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.competitions.upsert, {
@@ -670,11 +602,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('competitions.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.competitionsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    competitionsService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.competitions.upsert, {
@@ -687,10 +615,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.matchesService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    matchesService.upsert.mockResolvedValue({
       match: {
         id: 1,
         competitionId: 20,
@@ -700,8 +625,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<MatchesService['upsert']>>);
 
     const result = await call(router.matches.upsert, {
       competitionId: 20,
@@ -722,15 +646,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.matchesService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    matchesService.upsert.mockRejectedValue(
       new MatchUpsertConflictError(
         'External IDs matched multiple existing matches: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.matches.upsert, {
@@ -746,11 +666,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matches.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.matchesService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    matchesService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.matches.upsert, {
@@ -763,9 +679,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('players.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    const { playersService } = services;
-    (playersService.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({
+    playersService.upsert.mockResolvedValue({
       player: {
         id: 1,
         name: 'Griff Oberwald',
@@ -774,8 +688,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<PlayersService['upsert']>>);
 
     const result = await call(router.players.upsert, {
       name: 'Griff Oberwald',
@@ -795,14 +708,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('players.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    const { playersService } = services;
-    (playersService.upsert as ReturnType<typeof vi.fn>).mockRejectedValue(
+    playersService.upsert.mockRejectedValue(
       new PlayerUpsertConflictError(
         'External IDs matched multiple existing players: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.players.upsert, {
@@ -815,10 +725,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert returns the flat entity with a created flag', async () => {
-    const services = makeServices();
-    (
-      services.matchEventsService.upsert as ReturnType<typeof vi.fn>
-    ).mockResolvedValue({
+    matchEventsService.upsert.mockResolvedValue({
       matchEvent: {
         id: 1,
         matchId: 10,
@@ -831,8 +738,7 @@ describe('RpcRouterFactoryService', () => {
         createdAt: new Date('2026-01-01'),
       },
       created: true,
-    });
-    const router = buildRouter(services);
+    } as Awaited<ReturnType<MatchEventsService['upsert']>>);
 
     const result = await call(router.matchEvents.upsert, {
       matchId: 10,
@@ -850,15 +756,11 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert throws CONFLICT when the service reports a conflict', async () => {
-    const services = makeServices();
-    (
-      services.matchEventsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(
+    matchEventsService.upsert.mockRejectedValue(
       new MatchEventUpsertConflictError(
         'External IDs matched multiple existing match events: 1, 2',
       ),
     );
-    const router = buildRouter(services);
 
     await expect(
       call(router.matchEvents.upsert, {
@@ -875,11 +777,7 @@ describe('RpcRouterFactoryService', () => {
   });
 
   it('matchEvents.upsert rethrows errors that are not a conflict', async () => {
-    const services = makeServices();
-    (
-      services.matchEventsService.upsert as ReturnType<typeof vi.fn>
-    ).mockRejectedValue(new Error('db unavailable'));
-    const router = buildRouter(services);
+    matchEventsService.upsert.mockRejectedValue(new Error('db unavailable'));
 
     await expect(
       call(router.matchEvents.upsert, {

@@ -25,6 +25,7 @@ export default defineConfig({
       // threshold still count toward the global aggregate.
       exclude: [
         'src/**/*.spec.ts',
+        'src/**/*.test-helpers.ts',
         'src/**/*.module.ts',
         'src/api-client-config.service.ts',
       ],

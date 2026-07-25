@@ -1,9 +1,10 @@
-import type {
+import type { FactScope } from '@blood-bowl-tracker/game-data';
+import {
   CoachesService,
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
-  FactScope,
+  FACT_SCOPE_ALL_TIME,
   LeaguesService,
   MatchesService,
   PlayersService,
@@ -12,10 +13,15 @@ import type {
   RulesSetsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
-import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   STATS_SUMMARY_ALL_TIME_TIMEOUT_MESSAGE,
   STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE,
@@ -40,28 +46,72 @@ interface ServiceOverrides {
   matches?: Partial<Record<string, unknown>>;
 }
 
-function makeService(
+let databaseTimeout: MockProxy<DatabaseTimeoutService>;
+
+beforeEach(() => {
+  databaseTimeout = mockDatabaseTimeout();
+  // Tests that need the timeout branch override this per-call.
+});
+
+async function makeService(
   overrides: ServiceOverrides = {},
-): StatsSummaryFactsService {
-  return new StatsSummaryFactsService(
-    (overrides.leagues ?? {}) as unknown as LeaguesService,
-    (overrides.externalSystems ?? {}) as unknown as ExternalSystemsService,
-    (overrides.rulesSets ?? {}) as unknown as RulesSetsService,
-    (overrides.races ?? {}) as unknown as RacesService,
-    (overrides.positions ?? {}) as unknown as PositionsService,
-    (overrides.coaches ?? {}) as unknown as CoachesService,
-    (overrides.eras ?? {}) as unknown as ErasService,
-    (overrides.competitions ?? {}) as unknown as CompetitionsService,
-    (overrides.teams ?? {}) as unknown as TeamsService,
-    (overrides.players ?? {}) as unknown as PlayersService,
-    (overrides.matches ?? {}) as unknown as MatchesService,
-    new DatabaseTimeoutService(),
-  );
+): Promise<StatsSummaryFactsService> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      StatsSummaryFactsService,
+      {
+        provide: LeaguesService,
+        useValue: overrides.leagues ?? {},
+      },
+      {
+        provide: ExternalSystemsService,
+        useValue: overrides.externalSystems ?? {},
+      },
+      {
+        provide: RulesSetsService,
+        useValue: overrides.rulesSets ?? {},
+      },
+      {
+        provide: RacesService,
+        useValue: overrides.races ?? {},
+      },
+      {
+        provide: PositionsService,
+        useValue: overrides.positions ?? {},
+      },
+      {
+        provide: CoachesService,
+        useValue: overrides.coaches ?? {},
+      },
+      {
+        provide: ErasService,
+        useValue: overrides.eras ?? {},
+      },
+      {
+        provide: CompetitionsService,
+        useValue: overrides.competitions ?? {},
+      },
+      {
+        provide: TeamsService,
+        useValue: overrides.teams ?? {},
+      },
+      {
+        provide: PlayersService,
+        useValue: overrides.players ?? {},
+      },
+      {
+        provide: MatchesService,
+        useValue: overrides.matches ?? {},
+      },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+    ],
+  }).compile();
+  return moduleRef.get(StatsSummaryFactsService);
 }
 
 function makeAllTimeService(
   overrides: ServiceOverrides = {},
-): StatsSummaryFactsService {
+): Promise<StatsSummaryFactsService> {
   return makeService({
     leagues: { countAll: vi.fn().mockResolvedValue(3) },
     externalSystems: { countAll: vi.fn().mockResolvedValue(2) },
@@ -88,7 +138,8 @@ function makeAllTimeService(
 
 describe('StatsSummaryFactsService.resolve', () => {
   it('renders one embed row per entity type in the specified order with thousands separators', async () => {
-    const result = await makeAllTimeService().resolve(FACT_SCOPE_ALL_TIME);
+    const service = await makeAllTimeService();
+    const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
         {
@@ -113,9 +164,14 @@ describe('StatsSummaryFactsService.resolve', () => {
   });
 
   it('falls back to the all-time timeout message when a count does not respond in time', async () => {
+    // The real timeout race is DatabaseTimeoutService's own responsibility
+    // (covered by database-timeout.service.spec.ts); here databaseTimeout is a
+    // mock, so this stubs its timeout branch directly rather than waiting on a
+    // real timer.
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      (service: StatsSummaryFactsService) =>
-        service.resolve(FACT_SCOPE_ALL_TIME),
+      (service: Promise<StatsSummaryFactsService>) =>
+        service.then((s) => s.resolve(FACT_SCOPE_ALL_TIME)),
       () =>
         makeAllTimeService({
           matches: {
@@ -130,7 +186,7 @@ describe('StatsSummaryFactsService.resolve', () => {
 
 function makeEraService(
   overrides: ServiceOverrides = {},
-): StatsSummaryFactsService {
+): Promise<StatsSummaryFactsService> {
   return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByEra: vi.fn().mockResolvedValue(2) },
@@ -158,7 +214,8 @@ function makeEraService(
 describe('StatsSummaryFactsService.resolve era-filtered', () => {
   it('renders the era-scoped lines, showing leagues/eras as 1 and replacing external systems and rules sets', async () => {
     const scope: FactScope = { eraId: 5 };
-    const result = await makeEraService().resolve(scope);
+    const service = await makeEraService();
+    const result = await service.resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -184,9 +241,10 @@ describe('StatsSummaryFactsService.resolve era-filtered', () => {
 
   it('renders "0" for the rules sets line when the era has no rules sets', async () => {
     const scope: FactScope = { eraId: 5 };
-    const result = await makeEraService({
+    const service = await makeEraService({
       eras: { getRulesSetNames: vi.fn().mockResolvedValue([]) },
-    }).resolve(scope);
+    });
+    const result = await service.resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Rules sets: 0');
@@ -195,14 +253,17 @@ describe('StatsSummaryFactsService.resolve era-filtered', () => {
   it('scopes external systems by era (excluding the Name system via countByEra)', async () => {
     const countByEra = vi.fn().mockResolvedValue(2);
     const scope: FactScope = { eraId: 5 };
-    await makeEraService({ externalSystems: { countByEra } }).resolve(scope);
+    const service = await makeEraService({ externalSystems: { countByEra } });
+    await service.resolve(scope);
     expect(countByEra).toHaveBeenCalledWith(5);
   });
 
   it('falls back to the stunned message when an era count times out', async () => {
     const scope: FactScope = { eraId: 5 };
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      (service: StatsSummaryFactsService) => service.resolve(scope),
+      (service: Promise<StatsSummaryFactsService>) =>
+        service.then((s) => s.resolve(scope)),
       () =>
         makeEraService({
           matches: {
@@ -217,7 +278,7 @@ describe('StatsSummaryFactsService.resolve era-filtered', () => {
 
 function makeCompetitionService(
   overrides: ServiceOverrides = {},
-): StatsSummaryFactsService {
+): Promise<StatsSummaryFactsService> {
   return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByCompetition: vi.fn().mockResolvedValue(2) },
@@ -247,7 +308,8 @@ function makeCompetitionService(
 describe('StatsSummaryFactsService.resolve competition-filtered', () => {
   it('renders competition-scoped lines with leagues/eras/competitions as 1 and a season breakdown', async () => {
     const scope: FactScope = { competitionId: 7 };
-    const result = await makeCompetitionService().resolve(scope);
+    const service = await makeCompetitionService();
+    const result = await service.resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -273,7 +335,7 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
 
   it('shows a cup breakdown when the competition type is cup', async () => {
     const scope: FactScope = { competitionId: 8 };
-    const result = await makeCompetitionService({
+    const service = await makeCompetitionService({
       competitions: {
         findById: vi.fn().mockResolvedValue({
           id: 8,
@@ -282,7 +344,8 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
           eraId: 5,
         }),
       },
-    }).resolve(scope);
+    });
+    const result = await service.resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Competitions: 1 (0 seasons, 1 cups)');
@@ -291,24 +354,28 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
   it('reuses the era rules-set names keyed by the competition era', async () => {
     const getRulesSetNames = vi.fn().mockResolvedValue(['BB2020']);
     const scope: FactScope = { competitionId: 7 };
-    await makeCompetitionService({
+    const service = await makeCompetitionService({
       eras: { getRulesSetNames },
-    }).resolve(scope);
+    });
+    await service.resolve(scope);
     expect(getRulesSetNames).toHaveBeenCalledWith(5);
   });
 
   it('returns the fallback message when the competition cannot be found', async () => {
     const scope: FactScope = { competitionId: 999 };
-    const result = await makeCompetitionService({
+    const service = await makeCompetitionService({
       competitions: { findById: vi.fn().mockResolvedValue(undefined) },
-    }).resolve(scope);
+    });
+    const result = await service.resolve(scope);
     expect(result).toBe(STATS_SUMMARY_COMPETITION_NOT_FOUND_MESSAGE);
   });
 
   it('falls back to the stunned message when a competition count times out', async () => {
     const scope: FactScope = { competitionId: 7 };
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      (service: StatsSummaryFactsService) => service.resolve(scope),
+      (service: Promise<StatsSummaryFactsService>) =>
+        service.then((s) => s.resolve(scope)),
       () =>
         makeCompetitionService({
           matches: {
@@ -323,7 +390,7 @@ describe('StatsSummaryFactsService.resolve competition-filtered', () => {
 
 function makeLeagueService(
   overrides: ServiceOverrides = {},
-): StatsSummaryFactsService {
+): Promise<StatsSummaryFactsService> {
   return makeService({
     leagues: { countAll: vi.fn() },
     externalSystems: { countByLeague: vi.fn().mockResolvedValue(3) },
@@ -354,7 +421,8 @@ function makeLeagueService(
 describe('StatsSummaryFactsService.resolve league-filtered', () => {
   it('renders the league-scoped lines, showing leagues as 1 and the league era count', async () => {
     const scope: FactScope = { leagueId: 9 };
-    const result = await makeLeagueService().resolve(scope);
+    const service = await makeLeagueService();
+    const result = await service.resolve(scope);
     expect(result).toEqual({
       embeds: [
         {
@@ -380,12 +448,13 @@ describe('StatsSummaryFactsService.resolve league-filtered', () => {
 
   it('renders "0" for the rules sets line when the league has no rules sets', async () => {
     const scope: FactScope = { leagueId: 9 };
-    const result = await makeLeagueService({
+    const service = await makeLeagueService({
       eras: {
         countByLeague: vi.fn().mockResolvedValue(0),
         getRulesSetNamesByLeague: vi.fn().mockResolvedValue([]),
       },
-    }).resolve(scope);
+    });
+    const result = await service.resolve(scope);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('Rules sets: 0');
@@ -394,16 +463,19 @@ describe('StatsSummaryFactsService.resolve league-filtered', () => {
   it('scopes external systems by league (excluding the Name system via countByLeague)', async () => {
     const countByLeague = vi.fn().mockResolvedValue(3);
     const scope: FactScope = { leagueId: 9 };
-    await makeLeagueService({ externalSystems: { countByLeague } }).resolve(
-      scope,
-    );
+    const service = await makeLeagueService({
+      externalSystems: { countByLeague },
+    });
+    await service.resolve(scope);
     expect(countByLeague).toHaveBeenCalledWith(9);
   });
 
   it('falls back to the stunned message when a league count times out', async () => {
     const scope: FactScope = { leagueId: 9 };
+    stubDatabaseTimeoutOnce(databaseTimeout);
     await expectTimeoutFallback(
-      (service: StatsSummaryFactsService) => service.resolve(scope),
+      (service: Promise<StatsSummaryFactsService>) =>
+        service.then((s) => s.resolve(scope)),
       () =>
         makeLeagueService({
           matches: {

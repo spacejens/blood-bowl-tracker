@@ -1,19 +1,34 @@
+import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
+import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
 import { PlayerPageParser } from './player-page-parser';
 
 function playerPage(html: string, pid = '5'): BblPage {
   return { type: 'pl', params: { pid }, load: () => load(html) };
 }
 
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
-
-const normalizeText = new NormalizeExtractedTextService();
-const parser = new PlayerPageParser(normalizeText);
-
 describe('PlayerPageParser', () => {
+  let parser: PlayerPageParser;
+  let normalizeText: MockProxy<NormalizeExtractedTextService>;
+
+  beforeEach(async () => {
+    normalizeText = mock<NormalizeExtractedTextService>();
+    normalizeText.normalize.mockImplementation((s: string) =>
+      s.replace(/\s+/g, ' ').trim(),
+    );
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PlayerPageParser,
+        { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      ],
+    }).compile();
+    parser = moduleRef.get(PlayerPageParser);
+  });
+
   it('extracts the pid, name, position typId and team code', () => {
     const page = playerPage(
       '<h1>Griff Oberwald</h1>' +

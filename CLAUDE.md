@@ -124,6 +124,107 @@ A function that takes an already-injected NestJS provider as a parameter and
 simply calls it is the clearest violation and must become a service (or a method
 folded into an existing service, or a thin injectable wrapper).
 
+See "Testing services" below for how services are tested.
+
+## Testing services
+
+Every `*.spec.ts` that tests a NestJS service builds it through a
+`Test.createTestingModule`, with the service under test as the **only** real
+provider and every injected dependency supplied as a `vitest-mock-extended`
+mock. Each test gets a freshly-compiled module and fresh mocks, so no state
+leaks between test cases. Direct instantiation (`new XService(...)`) is
+forbidden in spec files and enforced by the custom
+`local/no-direct-service-instantiation` ESLint rule (in `tools/eslint-rules`,
+scoped to `*.spec.ts`, `*.e2e-spec.ts`, and `*.test-helpers.ts`). The rule
+matches by class-name suffix and covers every suffix `@Injectable()` classes
+in this repo actually use — `*Service`, `*Parser`, `*Processor`, `*Reader`,
+and `*Middleware`. A future `@Injectable()` class named with a suffix outside
+that list would not be caught by it — the rule is a suffix heuristic, not
+decorator-aware — and would rely on review, not lint, to stay on the pattern.
+
+```ts
+describe('CoachesImportService', () => {
+  let service: CoachesImportService;
+  let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        CoachesImportService,
+        { provide: API_CLIENT, useValue: client },
+        { provide: ImportRunnerService, useValue: runner },
+      ],
+    }).compile();
+    service = moduleRef.get(CoachesImportService);
+  });
+
+  it('returns the upsert result on success', async () => {
+    client.coaches.upsert.mockResolvedValue(upsertResult);
+    // ...
+  });
+});
+```
+
+**Two idioms for compiling the module, chosen by fit — not two conventions.**
+Both build the same `Test.createTestingModule` shape; they differ only in where
+the compile happens:
+
+- **`beforeEach` (above)** when the subject is the same across the suite and each
+  test only varies stubbed *return values* after construction
+  (`client.coaches.upsert.mockResolvedValue(...)`). This is the default.
+- **A per-test `makeService(...)` factory** when the subject must be
+  *constructed differently per test* — where a collaborator's behavior is an
+  *input* that has to exist before the service is built, not a value stubbed
+  afterward (e.g. a reader seeded with specific source pages, or a dependency
+  mock returning a specific entity vs. `undefined`). Each test calls
+  `makeService(seed)` with just the collaborator it cares about; give the
+  factory's parameters sensible mock defaults so a test overrides only what it
+  needs. This reads better than building a default subject in `beforeEach` and
+  reconfiguring it in most tests. See e.g.
+  `tools/import-bbl/src/coaches/bbl-coaches-import.service.spec.ts` and
+  `apps/discord-bot/src/deepdive/facts/coach-deepdive.service.spec.ts`.
+
+  Prefer `beforeEach` when it fits; reach for the factory only when per-test
+  construction genuinely earns it. Either way, compile a fresh module per test.
+
+- **Services with no injected dependencies use the identical shape**, with
+  `providers: [TheService]` only. There is no exception and no per-file judgment
+  call — the same rationale this file gives for making every piece of logic a
+  service.
+- `mock<T>()` for flat dependencies; `mockDeep<T>()` where the test reaches
+  through nested properties (e.g. `client.coaches.upsert`).
+- Mocks are built fresh per test — never module-level — and each test stubs only
+  the methods it needs. Never pass a *real* collaborator: a test about one
+  service must not silently exercise another service's concrete behavior.
+- **A mock returns the canned responses the test expects — it never
+  reimplements the collaborator's real logic.** Copying a collaborator's
+  algorithm into its mock (so the mock "computes" the right answer) just
+  smuggles the real implementation back in: the test then exercises a *copy* of
+  the collaborator, drifts from it, and stops isolating the service under test.
+  Stub the specific value each test needs and assert what the service under test
+  *does* with it. The collaborator's own algorithm is tested in the
+  collaborator's own spec, not re-derived here. (Test-helper modules are
+  test-only: `local/no-test-helper-imports` forbids production code from
+  importing a `*.test-helpers.ts`.)
+- `moduleRef.get(TheService)` means every test also verifies the service's own DI
+  metadata.
+
+**drizzle queries.** `packages/game-data` services build fluent drizzle chains,
+and an auto-mock cannot self-chain builder methods. Use
+`mockDb(...rowsPerQuery)` from
+`packages/game-data/src/shared/db-mock.test-helpers.ts` — see that file for the
+exact shape it returns and how to assert on captured query calls.
+
+**Module composition is the one deliberate exception.** A handful of
+`*.module.spec.ts` files (e.g. `packages/import/src/import.module.spec.ts` and
+each `tools/import-*/src/app.module.spec.ts`) compile the *real* module with its
+*real* providers, on purpose — their job is to verify the whole dependency graph
+wires together, which mocking would defeat. This is the only place a real
+collaborator is intentionally constructed in a test.
+
 ## Function parameter limit
 
 Functions and methods take at most 3 parameters — enforced repo-wide by the

@@ -1,19 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import { MatchEventDecodersService } from './match-event-decoders.service';
+import type { TpMatchEvent } from './match-event-parser.service';
 import { MatchEventParserService } from './match-event-parser.service';
 import { MatchParserService } from './match-parser.service';
-import { SecretObjectiveService } from './secret-objective.service';
-import { WeatherTypeService } from './weather-type.service';
-
-const service = new MatchParserService(
-  new MatchEventParserService(
-    new MatchEventDecodersService(
-      new SecretObjectiveService(),
-      new WeatherTypeService(),
-    ),
-  ),
-);
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,
@@ -33,6 +24,28 @@ function matchBody(overrides: Record<string, unknown> = {}) {
 }
 
 describe('MatchParserService', () => {
+  let service: MatchParserService;
+  let matchEventParser: MockProxy<MatchEventParserService>;
+
+  beforeEach(async () => {
+    matchEventParser = mock<MatchEventParserService>();
+    // MatchEventParserService.parse is a genuine mock here, returning a
+    // canned empty array by default. `MatchParserService` only needs to know
+    // that whatever `matchEventParser.parse` returns ends up, unmodified, in
+    // `result.matchEvents` -- the decode logic itself is
+    // MatchEventParserService's (and, in turn, MatchEventDecodersService's)
+    // own concern, covered by their dedicated specs.
+    matchEventParser.parse.mockReturnValue([]);
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        MatchParserService,
+        { provide: MatchEventParserService, useValue: matchEventParser },
+      ],
+    }).compile();
+    service = moduleRef.get(MatchParserService);
+  });
+
   it('maps matchId to id, prefers scoreResume.startInstant, builds name, and parses home/away roster ids', () => {
     const result = service.parse(
       matchBody({
@@ -190,22 +203,18 @@ describe('MatchParserService', () => {
     ]);
   });
 
-  it('decodes a populated matchEvents array end-to-end', () => {
-    const result = service.parse(
-      matchBody({
-        matchEvents: [
-          {
-            id: 7150327,
-            matchEventType: 4,
-            instant: '2026-01-17T18:50:14Z',
-            lineUpId: 2442075,
-            rosterId: 164868,
-            extraData: { scoreLocal: 1, scoreVisitor: 1 },
-          },
-        ],
-      }),
-    );
-    expect(result.matchEvents).toEqual([
+  it('passes the raw matchEvents array to MatchEventParserService.parse and returns its output unmodified as matchEvents', () => {
+    const rawMatchEvents = [
+      {
+        id: 7150327,
+        matchEventType: 4,
+        instant: '2026-01-17T18:50:14Z',
+        lineUpId: 2442075,
+        rosterId: 164868,
+        extraData: { scoreLocal: 1, scoreVisitor: 1 },
+      },
+    ];
+    const decodedEvents: TpMatchEvent[] = [
       {
         type: 'touchdown',
         tpEventId: 7150327,
@@ -213,7 +222,18 @@ describe('MatchParserService', () => {
         lineUpId: 2442075,
         rosterId: 164868,
       },
-    ]);
+    ];
+    matchEventParser.parse.mockReturnValue(decodedEvents);
+
+    const result = service.parse(matchBody({ matchEvents: rawMatchEvents }));
+
+    expect(matchEventParser.parse).toHaveBeenCalledWith(rawMatchEvents);
+    expect(result.matchEvents).toBe(decodedEvents);
+  });
+
+  it('passes an empty array to MatchEventParserService.parse when matchEvents is absent', () => {
+    service.parse(matchBody());
+    expect(matchEventParser.parse).toHaveBeenCalledWith([]);
   });
 
   it('parses distinct home and away roster ids from inscriptionLocal/inscriptionVisitor', () => {

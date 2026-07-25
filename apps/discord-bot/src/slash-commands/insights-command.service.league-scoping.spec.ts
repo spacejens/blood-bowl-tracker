@@ -5,7 +5,6 @@ import {
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
   INSIGHTS_SCOPE_CONFLICT_MESSAGE,
 } from '../error-messages';
-import { TOPLIST_FETCH_LIMIT } from '../insights/leaderboard.service';
 import {
   autocompleteInteraction,
   chatInput,
@@ -18,44 +17,35 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('scopes a league-supporting category to the league and names it in the title', async () => {
-    const { service, coaches, leagues } = makeService();
-    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 5,
-      name: 'GBBL',
-    });
+    const { service, factTreeDeps, leagues } = await makeService();
+    leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { league: '5' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(coaches.countMatchesPlayedByCoach).toHaveBeenCalledWith(
-      { leagueId: 5 },
-      TOPLIST_FETCH_LIMIT,
+    expect(factTreeDeps.coachToplist.resolveMatchesPlayed).toHaveBeenCalledWith(
+      { leagueId: 5, eraId: undefined, competitionId: undefined },
     );
-    expect(result).toEqual(
-      expect.objectContaining({
-        embeds: [
-          {
-            title: 'Coaches by matches played — GBBL',
-            description: '1. Roze Madder — 9',
-          },
-        ],
-        components: expect.any(Array) as unknown,
-      }),
-    );
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Coaches by matches played — GBBL',
+          description: '1. Roze Madder — 9',
+        },
+      ],
+      components: [],
+    });
   });
 
   it('scopes eras.list to the league and names it in the title', async () => {
-    const { service, eras, leagues } = makeService();
-    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 5,
-      name: 'GBBL',
-    });
+    const { service, factTreeDeps, leagues } = await makeService();
+    leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('eras.list', { league: '5' }),
     );
-    // eslint-disable-next-line @typescript-eslint/unbound-method -- vi.fn() mock
-    expect(eras.listErasWithLeague).toHaveBeenCalledWith({
+    expect(factTreeDeps.erasList.resolve).toHaveBeenCalledWith({
       leagueId: 5,
+      eraId: undefined,
+      competitionId: undefined,
     });
     expect(result).toEqual(
       expect.objectContaining({
@@ -70,11 +60,8 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('restricts the random pick to league-supporting leaves', async () => {
-    const { service, leagues } = makeService();
-    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 5,
-      name: 'GBBL',
-    });
+    const { service, leagues } = await makeService();
+    leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     vi.spyOn(Math, 'random').mockReturnValue(0); // deterministic pick
     const result = await service.execute(chatInput(null, { league: '5' }));
     // pick lands on a supportsLeague leaf; title carries the league name
@@ -84,11 +71,8 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('rejects a league on a non-league-supporting category (coach.toplist.eras.active)', async () => {
-    const { service, leagues } = makeService();
-    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue({
-      id: 5,
-      name: 'GBBL',
-    });
+    const { service, leagues } = await makeService();
+    leagues.findById.mockResolvedValue({ id: 5, name: 'GBBL' });
     const result = await service.execute(
       chatInput('coach.toplist.eras.active', { league: '5' }),
     );
@@ -96,8 +80,8 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('rejects a league id that resolves to no league', async () => {
-    const { service, leagues } = makeService();
-    (leagues.findById as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    const { service, leagues } = await makeService();
+    leagues.findById.mockResolvedValue(undefined);
     const result = await service.execute(
       chatInput('coach.toplist.matches.played', { league: '999' }),
     );
@@ -105,8 +89,8 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it('autocompletes leagues with name-only labels and id values', async () => {
-    const { service, leagues } = makeService();
-    (leagues.searchByNamePrefix as ReturnType<typeof vi.fn>).mockResolvedValue([
+    const { service, leagues } = await makeService();
+    leagues.searchByNamePrefix.mockResolvedValue([
       { id: 5, name: 'GBBL' },
       { id: 6, name: 'GBBL North' },
     ]);
@@ -120,29 +104,14 @@ describe('InsightsCommandService — league scoping and rejection', () => {
   });
 
   it.each([
-    [
-      'era+league',
-      chatInput('coach.toplist.matches.played', { era: '1', league: '5' }),
-    ],
-    [
-      'competition+league',
-      chatInput('coach.toplist.matches.played', {
-        competition: '2',
-        league: '5',
-      }),
-    ],
-    [
-      'all three',
-      chatInput('coach.toplist.matches.played', {
-        era: '1',
-        competition: '2',
-        league: '5',
-      }),
-    ],
-  ])('rejects %s with the conflict message', async (_label, interaction) => {
-    const { service } = makeService();
-    expect(await service.execute(interaction)).toBe(
-      INSIGHTS_SCOPE_CONFLICT_MESSAGE,
+    ['era+league', { era: '1', league: '5' }],
+    ['competition+league', { competition: '2', league: '5' }],
+    ['all three', { era: '1', competition: '2', league: '5' }],
+  ])('rejects %s with the conflict message', async (_label, scope) => {
+    const { service } = await makeService();
+    const result = await service.execute(
+      chatInput('coach.toplist.matches.played', scope),
     );
+    expect(result).toBe(INSIGHTS_SCOPE_CONFLICT_MESSAGE);
   });
 });

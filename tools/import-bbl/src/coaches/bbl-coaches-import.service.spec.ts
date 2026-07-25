@@ -1,28 +1,20 @@
-import type {
+import {
   CoachesImportService,
   ExternalSystemBootstrapService,
-  ImportError,
-} from '@blood-bowl-tracker/import';
-import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
-import type { BblSourceReader } from '../source/bbl-source-reader';
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-/** A fake team page carrying its coach name in params for the stub parser. */
-import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import { BblSourceReader } from '../source/bbl-source-reader';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
-import {
-  makeCoachRecord,
-  makeTwoSystemUpsertMock,
-} from './bbl-coaches-import.test-helpers';
+import { makeCoachRecord } from './bbl-coaches-import.test-helpers';
 import { CoachPageParser } from './coach-page-parser';
-
-const normalizeText = new NormalizeExtractedTextService();
 
 function page(coachName: string | null): BblPage {
   return {
@@ -46,89 +38,122 @@ function makeReader(pages: BblPage[]): BblSourceReader {
   } as unknown as BblSourceReader;
 }
 
-/** A parser that reads the coach name straight from params.coach. */
-function makeParser(): CoachPageParser {
-  const parser = new CoachPageParser(normalizeText);
-  vi.spyOn(parser, 'extractCoach').mockImplementation((p) =>
+interface Mocks {
+  parser: MockProxy<CoachPageParser>;
+  coachesImport: MockProxy<CoachesImportService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  nameConfig: MockProxy<ExternalSystemNameConfigService>;
+  nameExternalId: MockProxy<NameExternalIdService>;
+  pageParseError: MockProxy<PageParseErrorService>;
+}
+
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. Mocks that gate assertions elsewhere in this file
+ * (name resolution, error building) mirror the real, deterministic
+ * production logic so a regression in the service under test still fails
+ * these tests.
+ */
+async function makeService(
+  reader: BblSourceReader,
+): Promise<{ service: BblCoachesImportService; mocks: Mocks }> {
+  const parser = mock<CoachPageParser>();
+  parser.extractCoach.mockImplementation((p) =>
     p.params.coach ? { name: p.params.coach } : null,
   );
-  return parser;
-}
 
-interface MakeServiceOptions {
-  reader: BblSourceReader;
-  bootstrap: ReturnType<typeof vi.fn>;
-  upsertCoach: ReturnType<typeof vi.fn>;
-  getBblSystemName?: () => string;
-}
+  const coachesImport = mock<CoachesImportService>();
+  coachesImport.upsertCoach.mockResolvedValue(makeCoachRecord());
 
-function makeService({
-  reader,
-  bootstrap,
-  upsertCoach,
-  getBblSystemName = () => 'BBL',
-}: MakeServiceOptions) {
-  return new BblCoachesImportService(
-    reader,
-    makeParser(),
-    { upsertCoach } as unknown as CoachesImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
-    new PageParseErrorService(new ImportResultService()),
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forCoach.mockImplementation((name) => name);
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockImplementation(
+    (pageParams, pageDescription, error) =>
+      importResults.error({
+        item: { page: pageParams },
+        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      }),
   );
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblCoachesImportService,
+      { provide: BblSourceReader, useValue: reader },
+      { provide: CoachPageParser, useValue: parser },
+      { provide: CoachesImportService, useValue: coachesImport },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+      { provide: PageParseErrorService, useValue: pageParseError },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblCoachesImportService),
+    mocks: {
+      parser,
+      coachesImport,
+      bootstrap,
+      nameConfig,
+      nameExternalId,
+      pageParseError,
+    },
+  };
 }
 
 describe('BblCoachesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const service = makeService({
-      reader: makeReader([page('Hugo E')]),
-      bootstrap,
-      upsertCoach,
-    });
+    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
 
     await service.importCoaches();
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const service = makeService({
-      reader: makeReader([page('Hugo E')]),
-      bootstrap,
-      upsertCoach,
-      getBblSystemName: () => 'MyLeague',
-    });
+    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
 
     await service.importCoaches();
 
-    expect(bootstrap).toHaveBeenCalledWith([
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'MyLeague', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
   });
 
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const service = makeService({
-      reader: makeReader([page('Hugo E')]),
-      bootstrap,
-      upsertCoach,
-    });
+    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
 
     const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
-    expect(upsertCoach).toHaveBeenCalledWith(
+    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledWith(
       {
         name: 'Hugo E',
         externalIds: [
@@ -141,48 +166,34 @@ describe('BblCoachesImportService', () => {
   });
 
   it('deduplicates a coach appearing on multiple team pages', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const service = makeService({
-      reader: makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
-      bootstrap,
-      upsertCoach,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
+    );
 
     const { result } = await service.importCoaches();
 
-    expect(upsertCoach).toHaveBeenCalledTimes(2);
+    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(2);
     expect(result.imported).toBe(2);
   });
 
   it('skips team pages that have no coach', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const service = makeService({
-      reader: makeReader([page(null), page('Tommy')]),
-      bootstrap,
-      upsertCoach,
-    });
+    const { service, mocks } = await makeService(
+      makeReader([page(null), page('Tommy')]),
+    );
 
     const { result } = await service.importCoaches();
 
-    expect(upsertCoach).toHaveBeenCalledTimes(1);
+    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
     expect(result.imported).toBe(1);
   });
 
   it('records an error and continues when a coach upsert fails', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi
-      .fn()
-      .mockImplementationOnce((_data: unknown, errors: ImportError[]) => {
-        errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
-        return Promise.resolve(undefined);
-      })
-      .mockResolvedValue(makeCoachRecord({ id: 6, name: 'Tommy' }));
-    const service = makeService({
-      reader: makeReader([page('Hugo E'), page('Tommy')]),
-      bootstrap,
-      upsertCoach,
+    const { service, mocks } = await makeService(
+      makeReader([page('Hugo E'), page('Tommy')]),
+    );
+    mocks.coachesImport.upsertCoach.mockImplementationOnce((_data, errors) => {
+      errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
+      return Promise.resolve(undefined);
     });
 
     const { result } = await service.importCoaches();
@@ -193,33 +204,17 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const parser = new CoachPageParser(normalizeText);
-    vi.spyOn(parser, 'extractCoach')
-      .mockImplementationOnce(() => {
-        throw new Error('bad page');
-      })
-      .mockImplementationOnce((p) =>
-        p.params.coach ? { name: p.params.coach } : null,
-      );
-    const service = new BblCoachesImportService(
+    const { service, mocks } = await makeService(
       makeReader([page('Hugo E'), page('Tommy')]),
-      parser,
-      { upsertCoach } as unknown as CoachesImportService,
-      { bootstrap } as unknown as ExternalSystemBootstrapService,
-      {
-        getBblSystemName: () => 'BBL',
-      } as unknown as ExternalSystemNameConfigService,
-      new NameExternalIdService(),
-      new ImportResultService(),
-      new PageParseErrorService(new ImportResultService()),
     );
+    mocks.parser.extractCoach.mockImplementationOnce(() => {
+      throw new Error('bad page');
+    });
 
     const { result } = await service.importCoaches();
 
     expect(result.imported).toBe(1);
-    expect(upsertCoach).toHaveBeenCalledTimes(1);
+    expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some((e) =>
         e.message.includes('Failed to parse team page'),
@@ -228,25 +223,11 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records a stringified error when a team page throws a non-Error value', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi.fn().mockResolvedValue(makeCoachRecord());
-    const parser = new CoachPageParser(normalizeText);
-    vi.spyOn(parser, 'extractCoach').mockImplementationOnce(() => {
+    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    mocks.parser.extractCoach.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
     });
-    const service = new BblCoachesImportService(
-      makeReader([page('Hugo E')]),
-      parser,
-      { upsertCoach } as unknown as CoachesImportService,
-      { bootstrap } as unknown as ExternalSystemBootstrapService,
-      {
-        getBblSystemName: () => 'BBL',
-      } as unknown as ExternalSystemNameConfigService,
-      new NameExternalIdService(),
-      new ImportResultService(),
-      new PageParseErrorService(new ImportResultService()),
-    );
 
     const { result } = await service.importCoaches();
 
@@ -257,18 +238,13 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records one error and skips coaches when an external system upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({
+    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
         item: { externalSystems: ['BBL', 'Name'] },
         message: 'network timeout',
       },
-    });
-    const upsertCoach = vi.fn();
-    const service = makeService({
-      reader: makeReader([page('Hugo E')]),
-      bootstrap,
-      upsertCoach,
     });
 
     const { result } = await service.importCoaches();
@@ -282,20 +258,16 @@ describe('BblCoachesImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(upsertCoach).not.toHaveBeenCalled();
+    expect(mocks.coachesImport.upsertCoach).not.toHaveBeenCalled();
   });
 
   it('returns a coachIdsByName map from coach name to upserted db id', async () => {
-    const bootstrap = makeTwoSystemUpsertMock();
-    const upsertCoach = vi
-      .fn()
+    const { service, mocks } = await makeService(
+      makeReader([page('Hugo E'), page('Roze Madder')]),
+    );
+    mocks.coachesImport.upsertCoach
       .mockResolvedValueOnce(makeCoachRecord())
       .mockResolvedValueOnce(makeCoachRecord({ id: 200, name: 'Roze Madder' }));
-    const service = makeService({
-      reader: makeReader([page('Hugo E'), page('Roze Madder')]),
-      bootstrap,
-      upsertCoach,
-    });
 
     const { coachIdsByName } = await service.importCoaches();
 

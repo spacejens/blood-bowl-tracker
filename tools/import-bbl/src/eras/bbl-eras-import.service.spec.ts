@@ -1,38 +1,91 @@
-import type {
+import {
   ErasImportService,
   ExternalSystemBootstrapService,
-} from '@blood-bowl-tracker/import';
-import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { BblErasImportService } from './bbl-eras-import.service';
-import type { EraConfig, EraConfigService } from './era-config.service';
+import { type EraConfig, EraConfigService } from './era-config.service';
 
-interface MakeServiceOptions {
-  getEras: () => EraConfig[];
-  bootstrap: ReturnType<typeof vi.fn>;
-  upsertEra: ReturnType<typeof vi.fn>;
-  getBblSystemName?: () => string;
+interface Mocks {
+  eraConfig: MockProxy<EraConfigService>;
+  erasImport: MockProxy<ErasImportService>;
+  bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  nameConfig: MockProxy<ExternalSystemNameConfigService>;
 }
 
-function makeService({
-  getEras,
-  bootstrap,
-  upsertEra,
-  getBblSystemName = () => 'BBL',
-}: MakeServiceOptions) {
-  return new BblErasImportService(
-    { getEras } as unknown as EraConfigService,
-    { upsertEra } as unknown as ErasImportService,
-    { bootstrap } as unknown as ExternalSystemBootstrapService,
-    { getBblSystemName } as unknown as ExternalSystemNameConfigService,
-    new NameExternalIdService(),
-    new ImportResultService(),
-  );
+/**
+ * The full upsertEra result record (ErasImportService.upsertEra resolves the
+ * API's Era + created shape). Pass overrides for the fields each test cares
+ * about; the rest are filled with unremarkable defaults.
+ */
+function makeEraRecord(overrides: { id: number; name: string }) {
+  return {
+    leagueId: 10,
+    rulesSetIds: [100],
+    startDate: '2011-09-09',
+    endDate: null,
+    createdAt: new Date('2026-01-01'),
+    created: true,
+    ...overrides,
+  };
+}
+
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. Deterministic collaborators (name resolution, error
+ * building) mirror the real production logic so a regression in the service
+ * under test still fails these tests.
+ */
+async function makeService(): Promise<{
+  service: BblErasImportService;
+  mocks: Mocks;
+}> {
+  const eraConfig = mock<EraConfigService>();
+
+  const erasImport = mock<ErasImportService>();
+
+  const bootstrap = mock<ExternalSystemBootstrapService>();
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+
+  const nameConfig = mock<ExternalSystemNameConfigService>();
+  nameConfig.getBblSystemName.mockReturnValue('BBL');
+
+  const nameExternalId = mock<NameExternalIdService>();
+  nameExternalId.forEra.mockImplementation((name) => name);
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblErasImportService,
+      { provide: EraConfigService, useValue: eraConfig },
+      { provide: ErasImportService, useValue: erasImport },
+      { provide: ExternalSystemBootstrapService, useValue: bootstrap },
+      { provide: ExternalSystemNameConfigService, useValue: nameConfig },
+      { provide: NameExternalIdService, useValue: nameExternalId },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblErasImportService),
+    mocks: { eraConfig, erasImport, bootstrap, nameConfig },
+  };
 }
 
 const eras: EraConfig[] = [
@@ -63,16 +116,13 @@ const leagueIds = new Map<string, number>([['tLoEG', 10]]);
 
 describe('BblErasImportService', () => {
   it('upserts each era referencing the league id and its rules set id', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi
-      .fn()
-      .mockResolvedValueOnce({ id: 500, name: 'Living rulebook' })
-      .mockResolvedValueOnce({ id: 600, name: 'BB2020' });
-    const service = makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertEra,
-    });
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.erasImport.upsertEra
+      .mockResolvedValueOnce(
+        makeEraRecord({ id: 500, name: 'Living rulebook' }),
+      )
+      .mockResolvedValueOnce(makeEraRecord({ id: 600, name: 'BB2020' }));
 
     const { result, eraIdsByName } = await service.importEras(
       leagueIds,
@@ -81,7 +131,7 @@ describe('BblErasImportService', () => {
 
     expect(result.imported).toBe(2);
     expect(result.success).toBe(true);
-    expect(bootstrap).toHaveBeenCalledWith([
+    expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
@@ -91,7 +141,7 @@ describe('BblErasImportService', () => {
         ['BB2020', 600],
       ]),
     );
-    expect(upsertEra).toHaveBeenNthCalledWith(
+    expect(mocks.erasImport.upsertEra).toHaveBeenNthCalledWith(
       1,
       {
         name: 'Living rulebook',
@@ -106,7 +156,7 @@ describe('BblErasImportService', () => {
       },
       expect.any(Array),
     );
-    expect(upsertEra).toHaveBeenNthCalledWith(
+    expect(mocks.erasImport.upsertEra).toHaveBeenNthCalledWith(
       2,
       {
         name: 'BB2020',
@@ -124,21 +174,22 @@ describe('BblErasImportService', () => {
   });
 
   it("resolves each era's league id from the map by its stamped name", async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'x' });
-    const service = makeService({ getEras: () => eras, bootstrap, upsertEra });
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.erasImport.upsertEra.mockResolvedValue(
+      makeEraRecord({ id: 500, name: 'x' }),
+    );
 
     await service.importEras(leagueIds, rulesSetIds);
 
-    expect(upsertEra).toHaveBeenCalledWith(
+    expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
       expect.objectContaining({ leagueId: 10 }),
       expect.anything(),
     );
   });
 
   it('records an error and skips an era whose league was not imported', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 700, name: 'GBBL 1' });
+    const { service, mocks } = await makeService();
     const gbblEra: EraConfig[] = [
       {
         leagueName: 'GBBL',
@@ -152,11 +203,10 @@ describe('BblErasImportService', () => {
         teams: { teamCodeOverrides: ['fes2'] },
       },
     ];
-    const service = makeService({
-      getEras: () => gbblEra,
-      bootstrap,
-      upsertEra,
-    });
+    mocks.eraConfig.getEras.mockReturnValue(gbblEra);
+    mocks.erasImport.upsertEra.mockResolvedValue(
+      makeEraRecord({ id: 700, name: 'GBBL 1' }),
+    );
 
     // leagueIds only has tLoEG, not GBBL.
     const { result } = await service.importEras(
@@ -164,7 +214,7 @@ describe('BblErasImportService', () => {
       new Map([['BB2016', 300]]),
     );
 
-    expect(upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
     expect(result.success).toBe(false);
     expect(
       result.errors.some(
@@ -174,20 +224,18 @@ describe('BblErasImportService', () => {
   });
 
   it('skips an era whose rules set was not imported, recording an error', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'x' });
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.erasImport.upsertEra.mockResolvedValue(
+      makeEraRecord({ id: 1, name: 'x' }),
+    );
     const partialIds = new Map<string, number>([['Living rulebook', 100]]);
-    const service = makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertEra,
-    });
 
     const { result } = await service.importEras(leagueIds, partialIds);
 
     expect(result.imported).toBe(1);
     expect(result.success).toBe(false);
-    expect(upsertEra).toHaveBeenCalledTimes(1);
+    expect(mocks.erasImport.upsertEra).toHaveBeenCalledTimes(1);
     expect(
       result.errors.some(
         (e) => e.message.includes('BB2020') && e.message.includes('rules set'),
@@ -196,17 +244,11 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error when an era upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi
-      .fn()
-      .mockImplementation((_data: unknown, errors: { message: string }[]) => {
-        errors.push({ message: 'era boom' });
-        return Promise.resolve(undefined);
-      });
-    const service = makeService({
-      getEras: () => [eras[1]],
-      bootstrap,
-      upsertEra,
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue([eras[1]]);
+    mocks.erasImport.upsertEra.mockImplementation((_data, errors) => {
+      errors.push({ item: {}, message: 'era boom' });
+      return Promise.resolve(undefined);
     });
 
     const { result } = await service.importEras(leagueIds, rulesSetIds);
@@ -216,8 +258,7 @@ describe('BblErasImportService', () => {
   });
 
   it('records an error and skips an era whose rules-set name does not resolve', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn();
+    const { service, mocks } = await makeService();
     const multiRulesSetEras: EraConfig[] = [
       {
         leagueName: 'tLoEG',
@@ -226,24 +267,19 @@ describe('BblErasImportService', () => {
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
-    const service = makeService({
-      getEras: () => multiRulesSetEras,
-      bootstrap,
-      upsertEra,
-    });
+    mocks.eraConfig.getEras.mockReturnValue(multiRulesSetEras);
 
     const { result } = await service.importEras(
       leagueIds,
       new Map([['CRP', 20]]),
     );
 
-    expect(upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
     expect(result.errors[0].message).toMatch(/MISSING/);
   });
 
   it('resolves all rules-set names to ids and passes the array', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
-    const upsertEra = vi.fn().mockResolvedValue({ id: 1, name: 'CRP era' });
+    const { service, mocks } = await makeService();
     const multiRulesSetEras: EraConfig[] = [
       {
         leagueName: 'tLoEG',
@@ -252,11 +288,10 @@ describe('BblErasImportService', () => {
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
       },
     ];
-    const service = makeService({
-      getEras: () => multiRulesSetEras,
-      bootstrap,
-      upsertEra,
-    });
+    mocks.eraConfig.getEras.mockReturnValue(multiRulesSetEras);
+    mocks.erasImport.upsertEra.mockResolvedValue(
+      makeEraRecord({ id: 1, name: 'CRP era' }),
+    );
 
     await service.importEras(
       leagueIds,
@@ -266,21 +301,16 @@ describe('BblErasImportService', () => {
       ]),
     );
 
-    expect(upsertEra).toHaveBeenCalledWith(
+    expect(mocks.erasImport.upsertEra).toHaveBeenCalledWith(
       expect.objectContaining({ rulesSetIds: [20, 21] }),
       expect.anything(),
     );
   });
 
   it('records one error and imports nothing when BBL_ERAS is unset', async () => {
-    const bootstrap = vi.fn();
-    const upsertEra = vi.fn();
-    const service = makeService({
-      getEras: () => {
-        throw new Error('BBL_ERAS is not set.');
-      },
-      bootstrap,
-      upsertEra,
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockImplementation(() => {
+      throw new Error('BBL_ERAS is not set.');
     });
 
     const { result } = await service.importEras(leagueIds, rulesSetIds);
@@ -289,22 +319,18 @@ describe('BblErasImportService', () => {
     expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
       true,
     );
-    expect(upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
   });
 
   it('records one error and imports nothing when an external system upsert fails', async () => {
-    const bootstrap = vi.fn().mockResolvedValue({
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
         item: { externalSystems: ['BBL', 'Name'] },
         message: 'network timeout',
       },
-    });
-    const upsertEra = vi.fn();
-    const service = makeService({
-      getEras: () => eras,
-      bootstrap,
-      upsertEra,
     });
 
     const { result } = await service.importEras(leagueIds, rulesSetIds);
@@ -318,6 +344,6 @@ describe('BblErasImportService', () => {
     expect(result.errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
-    expect(upsertEra).not.toHaveBeenCalled();
+    expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
   });
 });

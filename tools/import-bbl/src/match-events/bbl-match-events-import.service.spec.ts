@@ -1,111 +1,138 @@
 import type {
-  UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type {
+import {
+  ImportResultService,
   MatchEventsImportService,
   TeamsImportService,
 } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
-import { describe, expect, it, vi } from 'vitest';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
+import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
-import type {
-  MatchMergeConfigService,
-  MatchMergePair,
-} from '../matches/match-merge-config.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
+import {
+  AWAY_TEAM_ERA_ID,
+  awayTeam,
+  BBL_SYSTEM_ID,
+  competition,
+  HOME_TEAM_ERA_ID,
+  homeTeam,
+  makeEvents,
+  makeTeamRecord,
+  MATCH_BBL_ID,
+  MATCH_DB_ID,
+} from './bbl-match-events-import.test-helpers';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
+import type {
+  CombinedOccurrences,
+  EmittedEvent,
+} from './match-event-correlation.service';
 import { MatchEventCorrelationService } from './match-event-correlation.service';
 
-const importResults = new ImportResultService();
-
-function makeMergeService(
-  matchesById: Record<string, { bblId: string; date: Date }[]>,
-  merges: MatchMergePair[] = [],
-): MatchMergeService {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
-    new Map(Object.entries(matchesById)),
-  );
-  const mergeConfig = { getMerges: () => merges } as MatchMergeConfigService;
-  return new MatchMergeService(reader, mergeConfig, importResults);
-}
-
-const MATCH_BBL_ID = '89';
-const MATCH_DB_ID = 42;
-const HOME_TEAM_ERA_ID = 1000;
-const AWAY_TEAM_ERA_ID = 2000;
-const BBL_SYSTEM_ID = 1;
-
-const competition: UpsertCompetition = {
-  name: 'Major Season 3',
-  type: 'season',
-  eraId: 200,
-  teamEraIds: [],
-  externalIds: [{ externalSystemId: BBL_SYSTEM_ID, externalId: '3' }],
-};
-
-const homeTeam: UpsertTeam = {
-  name: 'Home',
-  raceId: 70,
-  coachId: 9,
-  eras: [],
-  externalIds: [],
-};
-const awayTeam: UpsertTeam = {
-  name: 'Away',
-  raceId: 71,
-  coachId: 10,
-  eras: [],
-  externalIds: [],
-};
-
-function makeEvents(
-  parts: Partial<
-    Pick<BblMatchEvents, 'actions' | 'consequences' | 'journeymenCount'>
-  >,
-): BblMatchEvents {
+/** A resolution with no merged pairs: every match imports independently. */
+function noMergeResolution(): MatchMergeResolution {
   return {
-    bblId: MATCH_BBL_ID,
-    homeTeamId: 'hme',
-    awayTeamId: 'awy',
-    actions: parts.actions ?? [],
-    consequences: parts.consequences ?? [],
-    journeymenCount: parts.journeymenCount,
+    primaryBblIdByBblId: new Map(),
+    partnerBblId: () => undefined,
+    isPrimary: () => false,
+    isSecondary: () => false,
+    effectivePlayedAt: (_bblId, rawDate) => rawDate,
   };
 }
 
-function makeMatchListReader() {
-  const reader = new BblMatchListReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchesByCompetitionId').mockResolvedValue(
-    new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
-  );
-  return reader;
+/** The default two-team-code combine result used by most single-match tests. */
+function defaultCombined(): CombinedOccurrences {
+  return {
+    teamCodes: ['hme', 'awy'],
+    actions: [],
+    consequences: [],
+    journeymenSignings: [],
+  };
 }
 
-function makeEventsReader(events: BblMatchEvents) {
-  const reader = new BblMatchEventsReaderService(
-    {} as never,
-    {} as never,
-    {} as never,
-  );
-  vi.spyOn(reader, 'getMatchEventsByBblId').mockResolvedValue(
-    new Map([[events.bblId, events]]),
-  );
-  return reader;
+interface Mocks {
+  matchListReader: MockProxy<BblMatchListReaderService>;
+  eventsReader: MockProxy<BblMatchEventsReaderService>;
+  teamsImport: MockProxy<TeamsImportService>;
+  matchEventsImport: MockProxy<MatchEventsImportService>;
+  matchMerge: MockProxy<MatchMergeService>;
+  correlation: MockProxy<MatchEventCorrelationService>;
 }
+
+/**
+ * Builds the service under test through a TestingModule with every
+ * collaborator mocked. `MatchEventCorrelationService.combineOccurrences` and
+ * `.correlateEvents` are stubbed to return canned, per-test results (never a
+ * copy of the real algorithm) — the algorithm itself has its own dedicated
+ * spec (match-event-correlation.service.spec.ts). These tests exercise only
+ * what BblMatchEventsImportService does with those correlation results: team
+ * era resolution, external id synthesis, player id resolution, and upserts.
+ */
+async function makeService(): Promise<{
+  service: BblMatchEventsImportService;
+  mocks: Mocks;
+}> {
+  const matchListReader = mock<BblMatchListReaderService>();
+
+  const eventsReader = mock<BblMatchEventsReaderService>();
+
+  const teamsImport = mock<TeamsImportService>();
+
+  const matchEventsImport = mock<MatchEventsImportService>();
+
+  const matchMerge = mock<MatchMergeService>();
+  matchMerge.resolve.mockResolvedValue(noMergeResolution());
+
+  const correlation = mock<MatchEventCorrelationService>();
+  correlation.combineOccurrences.mockReturnValue(defaultCombined());
+  correlation.correlateEvents.mockReturnValue([]);
+
+  const importResults = mock<ImportResultService>();
+  importResults.error.mockImplementation((args) => ({
+    item: args.item,
+    message: args.message,
+  }));
+  importResults.result.mockImplementation((args) => ({
+    success: args.errors.length === 0,
+    imported: args.imported,
+    errors: args.errors,
+  }));
+
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      BblMatchEventsImportService,
+      { provide: BblMatchListReaderService, useValue: matchListReader },
+      { provide: BblMatchEventsReaderService, useValue: eventsReader },
+      { provide: TeamsImportService, useValue: teamsImport },
+      { provide: MatchEventsImportService, useValue: matchEventsImport },
+      { provide: MatchMergeService, useValue: matchMerge },
+      { provide: MatchEventCorrelationService, useValue: correlation },
+      { provide: ImportResultService, useValue: importResults },
+    ],
+  }).compile();
+
+  return {
+    service: moduleRef.get(BblMatchEventsImportService),
+    mocks: {
+      matchListReader,
+      eventsReader,
+      teamsImport,
+      matchEventsImport,
+      matchMerge,
+      correlation,
+    },
+  };
+}
+
+type UpsertTeamImpl = (
+  data: UpsertTeam,
+) => Promise<ReturnType<typeof makeTeamRecord> | undefined>;
 
 async function runImport(
   events: BblMatchEvents,
@@ -113,29 +140,36 @@ async function runImport(
   overrides: {
     matchIdsByBblId?: Map<string, number>;
     teamsByCode?: Map<string, UpsertTeam>;
-    upsertTeam?: ReturnType<typeof vi.fn>;
+    upsertTeam?: UpsertTeamImpl;
+    correlatedEvents?: EmittedEvent[];
   } = {},
 ) {
+  const { service, mocks } = await makeService();
+  mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+    new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
+  );
+  mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
+    new Map([[events.bblId, events]]),
+  );
+  if (overrides.correlatedEvents !== undefined) {
+    mocks.correlation.correlateEvents.mockReturnValue(
+      overrides.correlatedEvents,
+    );
+  }
+
   const captured: UpsertMatchEvent[] = [];
-  const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+  mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
     captured.push(data);
     return Promise.resolve(true);
   });
-  const upsertTeam =
+  mocks.teamsImport.upsertTeam.mockImplementation(
     overrides.upsertTeam ??
-    vi.fn((data: UpsertTeam) => {
-      const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;
-      return Promise.resolve({ eras: [{ id, eraId: data.eras?.[0] }] });
-    });
-
-  const service = new BblMatchEventsImportService(
-    makeMatchListReader(),
-    makeEventsReader(events),
-    { upsertTeam } as unknown as TeamsImportService,
-    { upsertMatchEvent } as unknown as MatchEventsImportService,
-    makeMergeService({ '3': [{ bblId: MATCH_BBL_ID, date: new Date(0) }] }, []),
-    new MatchEventCorrelationService(),
-    importResults,
+      ((data) => {
+        const id = data.name === 'Home' ? HOME_TEAM_ERA_ID : AWAY_TEAM_ERA_ID;
+        return Promise.resolve(
+          makeTeamRecord([{ id, eraId: data.eras?.[0] ?? 0 }]),
+        );
+      }),
   );
 
   const { result } = await service.importMatchEvents({
@@ -151,7 +185,7 @@ async function runImport(
     playerIdsByPid: new Map(Object.entries(playerIds)),
   });
 
-  return { captured, result, upsertTeam, upsertMatchEvent };
+  return { captured, result, mocks };
 }
 
 function externalIds(captured: UpsertMatchEvent[]): string[] {
@@ -161,14 +195,30 @@ function externalIds(captured: UpsertMatchEvent[]): string[] {
 describe('BblMatchEventsImportService', () => {
   it('scenario 1: a home hattrick yields td-0, td-1, td-2 occurrence ids', async () => {
     const { captured } = await runImport(
-      makeEvents({
-        actions: [
-          { actionType: 'touchdown', side: 'home', pid: 'p1' },
-          { actionType: 'touchdown', side: 'home', pid: 'p2' },
-          { actionType: 'touchdown', side: 'home', pid: 'p3' },
-        ],
-      }),
+      makeEvents({}),
       { p1: 11, p2: 12, p3: 13 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p1',
+          },
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p2',
+          },
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p3',
+          },
+        ],
+      },
     );
 
     expect(externalIds(captured)).toEqual([
@@ -186,15 +236,24 @@ describe('BblMatchEventsImportService', () => {
     expect(captured[2].actingPlayerId).toBe(13);
   });
 
-  it('scenario 2: one death action + one death consequence merge into a single event', async () => {
+  it('scenario 2: a merged action+consequence event maps both sides to their team eras and players', async () => {
     const { captured } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
-        consequences: [
-          { consequenceType: 'death', side: 'away', pid: 'victim' },
-        ],
-      }),
+      makeEvents({}),
       { killer: 7, victim: 8 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'death',
+            consequenceType: 'death',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'killer',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: 'victim',
+          },
+        ],
+      },
     );
 
     expect(captured).toHaveLength(1);
@@ -212,18 +271,32 @@ describe('BblMatchEventsImportService', () => {
     });
   });
 
-  it('scenario 3: two serious_injury actions + one matching consequence do not merge', async () => {
+  it('scenario 3: independent action-only and consequence-only events each get their own per-team-and-category counter', async () => {
     const { captured } = await runImport(
-      makeEvents({
-        actions: [
-          { actionType: 'serious_injury', side: 'home', pid: 'a1' },
-          { actionType: 'serious_injury', side: 'home', pid: 'a2' },
-        ],
-        consequences: [
-          { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
-        ],
-      }),
+      makeEvents({}),
       { a1: 1, a2: 2, v1: 3 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'serious_injury',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'a1',
+          },
+          {
+            actionType: 'serious_injury',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'a2',
+          },
+          {
+            consequenceType: 'miss_next_game',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: 'v1',
+          },
+        ],
+      },
     );
 
     expect(captured).toHaveLength(3);
@@ -252,12 +325,20 @@ describe('BblMatchEventsImportService', () => {
     ]);
   });
 
-  it('scenario 4: a foul with no consequence yields one action-only event', async () => {
+  it('scenario 4: an action-only event maps its team and player, with no consequence fields', async () => {
     const { captured } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'foul', side: 'home', pid: 'f1' }],
-      }),
+      makeEvents({}),
       { f1: 5 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'foul',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'f1',
+          },
+        ],
+      },
     );
 
     expect(captured).toHaveLength(1);
@@ -272,11 +353,20 @@ describe('BblMatchEventsImportService', () => {
     });
   });
 
-  it('scenario 5: a consequence-only event with a null pid still gets an external id', async () => {
+  it('scenario 5: a consequence-only event with a null pid still gets an external id and no player id', async () => {
     const { captured } = await runImport(
-      makeEvents({
-        consequences: [{ consequenceType: 'death', side: 'away', pid: null }],
-      }),
+      makeEvents({}),
+      {},
+      {
+        correlatedEvents: [
+          {
+            consequenceType: 'death',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: null,
+          },
+        ],
+      },
     );
 
     expect(captured).toHaveLength(1);
@@ -291,30 +381,20 @@ describe('BblMatchEventsImportService', () => {
     expect(captured[0].consequencePlayerId).toBeUndefined();
   });
 
-  it('scenario 6: re-running produces identical, deterministic external ids', async () => {
-    const events = makeEvents({
-      actions: [
-        { actionType: 'touchdown', side: 'home', pid: 'p1' },
-        { actionType: 'foul', side: 'away', pid: 'p2' },
-      ],
-      consequences: [{ consequenceType: 'sent_off', side: 'away', pid: 'p2' }],
-    });
-    const first = await runImport(events, { p1: 1, p2: 2 });
-    const second = await runImport(events, { p1: 1, p2: 2 });
-
-    expect(externalIds(first.captured)).toEqual(externalIds(second.captured));
-    expect(externalIds(first.captured)).toEqual([
-      '89-hme-td-0',
-      '89-awy-foul-0',
-      '89-awy-sent-off-0',
-    ]);
-  });
-
   it('records a non-fatal error but still emits the event when a pid has no imported id', async () => {
     const { captured, result } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'touchdown', side: 'home', pid: 'ghost' }],
-      }),
+      makeEvents({}),
+      {},
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'ghost',
+          },
+        ],
+      },
     );
 
     expect(captured).toHaveLength(1);
@@ -325,13 +405,24 @@ describe('BblMatchEventsImportService', () => {
 
   it('counts each emitted event as imported', async () => {
     const { result } = await runImport(
-      makeEvents({
-        actions: [
-          { actionType: 'touchdown', side: 'home', pid: 'p1' },
-          { actionType: 'touchdown', side: 'home', pid: 'p2' },
-        ],
-      }),
+      makeEvents({}),
       { p1: 1, p2: 2 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p1',
+          },
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p2',
+          },
+        ],
+      },
     );
 
     expect(result.imported).toBe(2);
@@ -339,44 +430,42 @@ describe('BblMatchEventsImportService', () => {
   });
 
   it('records an error and skips a match with no imported id', async () => {
-    const { captured, result, upsertMatchEvent } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
-      }),
+    const { captured, result, mocks } = await runImport(
+      makeEvents({}),
       { p1: 1 },
       { matchIdsByBblId: new Map() },
     );
 
     expect(captured).toHaveLength(0);
-    expect(upsertMatchEvent).not.toHaveBeenCalled();
+    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].message).toContain('no imported match id');
+    // The match is skipped before correlation is even consulted.
+    expect(mocks.correlation.combineOccurrences).not.toHaveBeenCalled();
   });
 
   it('records an error and skips a match whose team code does not resolve', async () => {
-    const { captured, result, upsertMatchEvent } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
-      }),
+    const { captured, result, mocks } = await runImport(
+      makeEvents({}),
       { p1: 1 },
       { teamsByCode: new Map([['hme', homeTeam]]) },
     );
 
     expect(captured).toHaveLength(0);
-    expect(upsertMatchEvent).not.toHaveBeenCalled();
+    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(
       result.errors.some((e) => e.message.includes('could not resolve all')),
     ).toBe(true);
     expect(result.errors.some((e) => e.message.includes('"awy"'))).toBe(true);
+    // The unresolved team short-circuits before events are correlated.
+    expect(mocks.correlation.correlateEvents).not.toHaveBeenCalled();
   });
 
   it('records an error and skips a match when a team upsert resolves to no era', async () => {
     const { captured, result } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
-      }),
+      makeEvents({}),
       { p1: 1 },
-      { upsertTeam: vi.fn().mockResolvedValue(undefined) },
+      { upsertTeam: () => Promise.resolve(undefined) },
     );
 
     expect(captured).toHaveLength(0);
@@ -385,7 +474,7 @@ describe('BblMatchEventsImportService', () => {
     ).toBe(true);
   });
 
-  it('scenario merge: a casualty action in source A pairs with a Sustained-Injury consequence in source B', async () => {
+  it('scenario merge: an event pairing a primary-source action with a secondary-source consequence resolves each side to its own team era', async () => {
     const PRIMARY = '1061';
     const SECONDARY = '1062';
 
@@ -420,26 +509,24 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
 
+    const { service, mocks } = await makeService();
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        makeTeamRecord([
+          {
+            id: eraIdByName[data.name.toLowerCase()],
+            eraId: data.eras?.[0] ?? 0,
+          },
+        ]),
+      ),
+    );
     const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
       captured.push(data);
       return Promise.resolve(true);
     });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
           '32',
@@ -450,36 +537,45 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
     );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
       new Map([
         [PRIMARY, eventsA],
         [SECONDARY, eventsB],
       ]),
     );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '32': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        [PRIMARY, PRIMARY],
+        [SECONDARY, PRIMARY],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === PRIMARY
+          ? SECONDARY
+          : bblId === SECONDARY
+            ? PRIMARY
+            : undefined,
+      isPrimary: (bblId) => bblId === PRIMARY,
+      isSecondary: (bblId) => bblId === SECONDARY,
+      effectivePlayedAt: (_bblId, rawDate) => rawDate,
+    });
+    mocks.correlation.combineOccurrences.mockReturnValue({
+      teamCodes: ['a1', 'a2', 'b1', 'b2'],
+      actions: [],
+      consequences: [],
+      journeymenSignings: [],
+    });
+    mocks.correlation.correlateEvents.mockReturnValue([
+      {
+        actionType: 'serious_injury',
+        consequenceType: 'miss_next_game',
+        actingTeamCode: 'a1',
+        actingSourceBblId: PRIMARY,
+        actingPid: 'attacker',
+        consequenceTeamCode: 'b1',
+        consequenceSourceBblId: SECONDARY,
+        consequencePid: 'victim',
+      },
+    ]);
 
     const { result } = await service.importMatchEvents({
       competitionsByBblId: new Map([
@@ -505,13 +601,15 @@ describe('BblMatchEventsImportService', () => {
       ]),
     });
 
-    expect(result.success).toBe(true);
-    // Exactly one merged event: action from A (team a1) + consequence from B (team b1).
-    const merged = captured.filter(
-      (c) => c.actionType !== undefined && c.consequenceType !== undefined,
+    // Both source pages' occurrences are combined into a single pass for the
+    // merged pair.
+    expect(mocks.correlation.combineOccurrences).toHaveBeenCalledWith(
+      eventsA,
+      eventsB,
     );
-    expect(merged).toHaveLength(1);
-    expect(merged[0]).toMatchObject({
+    expect(result.success).toBe(true);
+    expect(captured).toHaveLength(1);
+    expect(captured[0]).toMatchObject({
       matchId: MATCH_DB_ID,
       actionType: 'serious_injury',
       consequenceType: 'miss_next_game',
@@ -521,12 +619,12 @@ describe('BblMatchEventsImportService', () => {
       consequencePlayerId: 901,
     });
     // External id uses the ACTION's source bblId + team code.
-    expect(merged[0].externalIds[0].externalId).toBe('1061-a1-serious-0');
+    expect(captured[0].externalIds[0].externalId).toBe('1061-a1-serious-0');
     // The secondary match is not processed on its own (no standalone events).
     expect(captured).toHaveLength(1);
   });
 
-  it('scenario merge: primary events page missing still imports the secondary partner occurrences', async () => {
+  it('scenario merge: primary events page missing still combines and imports the secondary partner occurrences', async () => {
     const PRIMARY = '1061';
     const SECONDARY = '1062';
 
@@ -552,26 +650,24 @@ describe('BblMatchEventsImportService', () => {
       b1: 103,
       b2: 104,
     };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
 
+    const { service, mocks } = await makeService();
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        makeTeamRecord([
+          {
+            id: eraIdByName[data.name.toLowerCase()],
+            eraId: data.eras?.[0] ?? 0,
+          },
+        ]),
+      ),
+    );
     const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
+    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
       captured.push(data);
       return Promise.resolve(true);
     });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
           '32',
@@ -582,35 +678,40 @@ describe('BblMatchEventsImportService', () => {
         ],
       ]),
     );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
     // PRIMARY's own events page is missing (e.g. failed to fetch/parse); only
     // SECONDARY's page is present in the map.
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
       new Map([[SECONDARY, eventsB]]),
     );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '32': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2016, 8, 25)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2016, 8, 24)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        [PRIMARY, PRIMARY],
+        [SECONDARY, PRIMARY],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === PRIMARY
+          ? SECONDARY
+          : bblId === SECONDARY
+            ? PRIMARY
+            : undefined,
+      isPrimary: (bblId) => bblId === PRIMARY,
+      isSecondary: (bblId) => bblId === SECONDARY,
+      effectivePlayedAt: (_bblId, rawDate) => rawDate,
+    });
+    mocks.correlation.combineOccurrences.mockReturnValue({
+      teamCodes: ['b1', 'b2'],
+      actions: [],
+      consequences: [],
+      journeymenSignings: [],
+    });
+    mocks.correlation.correlateEvents.mockReturnValue([
+      {
+        consequenceType: 'miss_next_game',
+        consequenceTeamCode: 'b1',
+        consequenceSourceBblId: SECONDARY,
+        consequencePid: 'victim',
+      },
+    ]);
 
     const { result } = await service.importMatchEvents({
       competitionsByBblId: new Map([
@@ -634,6 +735,9 @@ describe('BblMatchEventsImportService', () => {
       playerIdsByPid: new Map([['victim', 901]]),
     });
 
+    // Only the present source page is combined; the missing primary page is
+    // filtered out rather than passed through as undefined.
+    expect(mocks.correlation.combineOccurrences).toHaveBeenCalledWith(eventsB);
     expect(result.success).toBe(true);
     // The secondary partner's occurrence must not be silently dropped just
     // because the primary's own events page is missing.
@@ -650,140 +754,21 @@ describe('BblMatchEventsImportService', () => {
     );
   });
 
-  it('scenario merge ambiguous: two candidate victims across the pair fall through to independent events', async () => {
-    const PRIMARY = '1518';
-    const SECONDARY = '1519';
-
-    const eventsA: BblMatchEvents = {
-      bblId: PRIMARY,
-      homeTeamId: 'a1',
-      awayTeamId: 'a2',
-      actions: [
-        { actionType: 'serious_injury', side: 'home', pid: 'attacker' },
-      ],
-      consequences: [
-        { consequenceType: 'miss_next_game', side: 'away', pid: 'victim1' },
-      ],
-    };
-    const eventsB: BblMatchEvents = {
-      bblId: SECONDARY,
-      homeTeamId: 'b1',
-      awayTeamId: 'b2',
-      actions: [],
-      consequences: [
-        { consequenceType: 'miss_next_game', side: 'home', pid: 'victim2' },
-      ],
-    };
-
-    const teamsByCode = new Map<string, UpsertTeam>([
-      ['a1', { name: 'A1', raceId: 1, coachId: 1, eras: [], externalIds: [] }],
-      ['a2', { name: 'A2', raceId: 2, coachId: 1, eras: [], externalIds: [] }],
-      ['b1', { name: 'B1', raceId: 3, coachId: 1, eras: [], externalIds: [] }],
-      ['b2', { name: 'B2', raceId: 4, coachId: 1, eras: [], externalIds: [] }],
-    ]);
-    const eraIdByName: Record<string, number> = {
-      a1: 101,
-      a2: 102,
-      b1: 103,
-      b2: 104,
-    };
-    const upsertTeam = vi.fn((data: UpsertTeam) =>
-      Promise.resolve({
-        eras: [
-          { id: eraIdByName[data.name.toLowerCase()], eraId: data.eras?.[0] },
-        ],
-      }),
-    );
-
-    const captured: UpsertMatchEvent[] = [];
-    const upsertMatchEvent = vi.fn((data: UpsertMatchEvent) => {
-      captured.push(data);
-      return Promise.resolve(true);
-    });
-
-    const matchListReader = new BblMatchListReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(matchListReader, 'getMatchesByCompetitionId').mockResolvedValue(
-      new Map([
-        [
-          '46',
-          [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2018, 8, 22)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
-          ],
-        ],
-      ]),
-    );
-
-    const eventsReader = new BblMatchEventsReaderService(
-      {} as never,
-      {} as never,
-      {} as never,
-    );
-    vi.spyOn(eventsReader, 'getMatchEventsByBblId').mockResolvedValue(
-      new Map([
-        [PRIMARY, eventsA],
-        [SECONDARY, eventsB],
-      ]),
-    );
-
-    const service = new BblMatchEventsImportService(
-      matchListReader,
-      eventsReader,
-      { upsertTeam } as unknown as TeamsImportService,
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      makeMergeService(
-        {
-          '46': [
-            { bblId: PRIMARY, date: new Date(Date.UTC(2018, 8, 22)) },
-            { bblId: SECONDARY, date: new Date(Date.UTC(2018, 8, 22)) },
-          ],
-        },
-        [{ firstMatchId: PRIMARY, secondMatchId: SECONDARY }],
-      ),
-      new MatchEventCorrelationService(),
-      importResults,
-    );
-
-    await service.importMatchEvents({
-      competitionsByBblId: new Map([
-        [
-          '46',
+  it('emits a journeymen_signings event with the count and team, and no player id for its null pid', async () => {
+    const { captured } = await runImport(
+      makeEvents({}),
+      {},
+      {
+        correlatedEvents: [
           {
-            ...competition,
-            externalIds: [
-              { externalSystemId: BBL_SYSTEM_ID, externalId: '46' },
-            ],
+            actionType: 'journeymen_signings',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: null,
+            journeymenCount: 2,
           },
         ],
-      ]),
-      teamsByCode,
-      matchIdsByBblId: new Map([
-        [PRIMARY, MATCH_DB_ID],
-        [SECONDARY, MATCH_DB_ID],
-      ]),
-      playerIdsByPid: new Map([
-        ['attacker', 900],
-        ['victim1', 901],
-        ['victim2', 902],
-      ]),
-    });
-
-    // One serious_injury action + two candidate miss_next_game consequences =>
-    // ambiguous, so NO merge: one action-only + two consequence-only events.
-    const merged = captured.filter(
-      (c) => c.actionType !== undefined && c.consequenceType !== undefined,
-    );
-    expect(merged).toHaveLength(0);
-    expect(captured).toHaveLength(3);
-  });
-
-  it('emits a journeymen_signings event with the count and team, none for a zero side', async () => {
-    const { captured } = await runImport(
-      makeEvents({ journeymenCount: { home: 2, away: 0 } }),
+      },
     );
 
     const journeyman = captured.filter(
@@ -800,19 +785,5 @@ describe('BblMatchEventsImportService', () => {
       ],
     });
     expect(journeyman[0].actingPlayerId).toBeUndefined();
-  });
-
-  it('emits no journeymen_signings event when both counts are zero', async () => {
-    const { captured } = await runImport(
-      makeEvents({
-        actions: [{ actionType: 'touchdown', side: 'home', pid: 'p1' }],
-        journeymenCount: { home: 0, away: 0 },
-      }),
-      { p1: 1 },
-    );
-
-    expect(captured.some((c) => c.actionType === 'journeymen_signings')).toBe(
-      false,
-    );
   });
 });

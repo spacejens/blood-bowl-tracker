@@ -1,23 +1,36 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { DeepMockProxy } from 'vitest-mock-extended';
+import { mock, mockDeep } from 'vitest-mock-extended';
 
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import { stubImportRunner } from './import-runner.test-helpers';
 import { MatchesImportService } from './matches-import.service';
 import type { ImportError } from './types';
 
+async function makeModule() {
+  const client = mockDeep<ApiClient>();
+  const runner = mock<ImportRunnerService>();
+  stubImportRunner(runner);
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      MatchesImportService,
+      { provide: API_CLIENT, useValue: client },
+      { provide: ImportRunnerService, useValue: runner },
+    ],
+  }).compile();
+  return { service: moduleRef.get(MatchesImportService), client };
+}
+
 describe('MatchesImportService', () => {
-  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = {
-      matches: { upsert: upsertMock },
-    } as unknown as ApiClient;
-    return new MatchesImportService(
-      client,
-      new ImportRunnerService(new ImportResultService()),
-    );
-  }
+  let service: MatchesImportService;
+  let client: DeepMockProxy<ApiClient>;
+
+  beforeEach(async () => {
+    ({ service, client } = await makeModule());
+  });
 
   const data = {
     competitionId: 20,
@@ -28,26 +41,26 @@ describe('MatchesImportService', () => {
   };
 
   it('returns true and calls the client with the given data on success', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
+    client.matches.upsert.mockResolvedValue({
       id: 1,
       competitionId: 20,
+      teamEraIds: [],
+      name: 'Test Match',
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatch(data, errors);
 
     expect(result).toBe(true);
-    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(client.matches.upsert).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
   it('returns false and records an error when the client call fails', async () => {
-    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
-    const service = makeService(upsertMock);
+    client.matches.upsert.mockRejectedValue(new Error('conflict'));
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatch(data, errors);
@@ -59,8 +72,7 @@ describe('MatchesImportService', () => {
   });
 
   it('records an error using String(err) for a non-Error rejection', async () => {
-    const upsertMock = vi.fn().mockRejectedValue('boom');
-    const service = makeService(upsertMock);
+    client.matches.upsert.mockRejectedValue('boom');
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatch(data, errors);
@@ -70,48 +82,15 @@ describe('MatchesImportService', () => {
       { item: data, message: 'Failed to import match "89": boom' },
     ]);
   });
-
-  it('resolves via real NestJS dependency injection, including the implicit-token ImportRunnerService', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
-      id: 1,
-      competitionId: 20,
-      playedAt: new Date('2021-09-25'),
-      createdAt: new Date('2026-01-01'),
-      created: true,
-    });
-    const client = {
-      matches: { upsert: upsertMock },
-    } as unknown as ApiClient;
-
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        MatchesImportService,
-        ImportResultService,
-        ImportRunnerService,
-        { provide: API_CLIENT, useValue: client },
-      ],
-    }).compile();
-
-    const service = moduleRef.get(MatchesImportService);
-    const errors: ImportError[] = [];
-
-    const result = await service.upsertMatch(data, errors);
-
-    expect(result).toBe(true);
-    expect(upsertMock).toHaveBeenCalledWith(data);
-  });
 });
 
 describe('MatchesImportService.upsertMatchResult', () => {
-  function makeService(upsertMock: ReturnType<typeof vi.fn>) {
-    const client = {
-      matches: { upsert: upsertMock },
-    } as unknown as ApiClient;
-    return new MatchesImportService(
-      client,
-      new ImportRunnerService(new ImportResultService()),
-    );
-  }
+  let service: MatchesImportService;
+  let client: DeepMockProxy<ApiClient>;
+
+  beforeEach(async () => {
+    ({ service, client } = await makeModule());
+  });
 
   const data = {
     competitionId: 20,
@@ -122,26 +101,26 @@ describe('MatchesImportService.upsertMatchResult', () => {
   };
 
   it('resolves to the upserted match, including its DB id, on success', async () => {
-    const upsertMock = vi.fn().mockResolvedValue({
+    client.matches.upsert.mockResolvedValue({
       id: 42,
       competitionId: 20,
+      teamEraIds: [],
+      name: 'Test Match',
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
       created: true,
     });
-    const service = makeService(upsertMock);
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchResult(data, errors);
 
     expect(result).toEqual(expect.objectContaining({ id: 42 }));
-    expect(upsertMock).toHaveBeenCalledWith(data);
+    expect(client.matches.upsert).toHaveBeenCalledWith(data);
     expect(errors).toHaveLength(0);
   });
 
   it('resolves to undefined and records an error when the client call fails', async () => {
-    const upsertMock = vi.fn().mockRejectedValue(new Error('conflict'));
-    const service = makeService(upsertMock);
+    client.matches.upsert.mockRejectedValue(new Error('conflict'));
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchResult(data, errors);
@@ -153,8 +132,7 @@ describe('MatchesImportService.upsertMatchResult', () => {
   });
 
   it('records an error using String(err) for a non-Error rejection', async () => {
-    const upsertMock = vi.fn().mockRejectedValue('boom');
-    const service = makeService(upsertMock);
+    client.matches.upsert.mockRejectedValue('boom');
     const errors: ImportError[] = [];
 
     const result = await service.upsertMatchResult(data, errors);

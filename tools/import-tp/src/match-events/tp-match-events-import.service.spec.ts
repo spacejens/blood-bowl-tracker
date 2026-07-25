@@ -1,15 +1,5 @@
-import type {
-  ExternalSystemBootstrapService,
-  MatchEventsImportService,
-} from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
-import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
-import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
-import { TpMatchEventsImportService } from './tp-match-events-import.service';
 import {
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
@@ -34,23 +24,12 @@ import {
 describe('TpMatchEventsImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchEvent = vi.fn();
-    const service = new TpMatchEventsImportService(
-      { upsertMatchEvent } as unknown as MatchEventsImportService,
-      {
-        bootstrap: vi.fn().mockResolvedValue({
-          ok: false,
-          error: { item: { externalSystems: ['TP'] }, message: 'boom' },
-        }),
-      } as unknown as ExternalSystemBootstrapService,
-      {
-        getTpSystemName: () => 'TP',
-      } as unknown as ExternalSystemNameConfigService,
-      new TpMatchEventsBuilderService(
-        new TpMatchEventKindBuildersService(new ImportResultService()),
-      ),
-      new TpMatchEventsCorrelationService(),
-      new ImportResultService(),
-    );
+    const service = await makeService(upsertMatchEvent, {
+      bootstrapResult: {
+        ok: false,
+        error: { item: { externalSystems: ['TP'] }, message: 'boom' },
+      },
+    });
 
     const { result } = await service.importMatchEvents({
       matchesByCompetitionId: new Map([
@@ -91,7 +70,7 @@ describe('TpMatchEventsImportService', () => {
 
   it('records a non-fatal error and skips a competition whose era cannot be resolved', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = makeService(upsertMatchEvent);
+    const service = await makeService(upsertMatchEvent);
 
     const { result } = await service.importMatchEvents({
       matchesByCompetitionId: new Map([
@@ -126,7 +105,7 @@ describe('TpMatchEventsImportService', () => {
 
   it('records a non-fatal error and skips a match with no imported match id', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = makeService(upsertMatchEvent);
+    const service = await makeService(upsertMatchEvent);
 
     const { result } = await service.importMatchEvents({
       matchesByCompetitionId: new Map([

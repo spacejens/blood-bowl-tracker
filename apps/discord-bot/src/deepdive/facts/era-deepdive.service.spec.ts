@@ -1,11 +1,18 @@
-import type {
+import {
   CompetitionsService,
   ErasService,
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import {
+  mockDatabaseTimeout,
+  stubDatabaseTimeoutOnce,
+} from '../../database-timeout-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
@@ -26,18 +33,49 @@ type EraHeader = {
   endDate: string | null;
 };
 
-function makeService(
-  eras: ErasService,
-  competitions: CompetitionsService,
-  externalSystems: ExternalSystemsService,
-): EraDeepdiveService {
-  return new EraDeepdiveService(
-    eras,
-    competitions,
-    externalSystems,
-    new DatabaseTimeoutService(),
-    new LeaderboardService(new DatabaseTimeoutService()),
-  );
+interface MakeServiceOptions {
+  eras: ErasService;
+  competitions: CompetitionsService;
+  externalSystems: ExternalSystemsService;
+  databaseTimeout?: MockProxy<DatabaseTimeoutService>;
+  leaderboard?: MockProxy<LeaderboardService>;
+}
+
+/**
+ * Defaults `buildEntityButtons` to return no components. LeaderboardService's
+ * own button-building logic is covered by leaderboard.service.spec.ts; this
+ * default exists only so tests that don't care about the exact button
+ * composition (most of them - the description-rendering tests below) don't
+ * need to configure a mock return value just to avoid the service's
+ * unconditional call to it.
+ */
+function defaultLeaderboard(): MockProxy<LeaderboardService> {
+  const leaderboard = mock<LeaderboardService>();
+  leaderboard.buildEntityButtons.mockReturnValue([]);
+  return leaderboard;
+}
+
+async function makeService({
+  eras,
+  competitions,
+  externalSystems,
+  databaseTimeout = mockDatabaseTimeout(),
+  leaderboard = defaultLeaderboard(),
+}: MakeServiceOptions): Promise<{
+  service: EraDeepdiveService;
+  leaderboard: MockProxy<LeaderboardService>;
+}> {
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      EraDeepdiveService,
+      { provide: ErasService, useValue: eras },
+      { provide: CompetitionsService, useValue: competitions },
+      { provide: ExternalSystemsService, useValue: externalSystems },
+      { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: LeaderboardService, useValue: leaderboard },
+    ],
+  }).compile();
+  return { service: moduleRef.get(EraDeepdiveService), leaderboard };
 }
 
 function makeServices(options: {
@@ -72,7 +110,11 @@ describe('EraDeepdiveService', () => {
     const { eras, competitions, externalSystems } = makeServices({
       era: undefined,
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
@@ -93,7 +135,11 @@ describe('EraDeepdiveService', () => {
         { id: 11, name: 'Winter Cup', type: 'cup' },
       ],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -125,7 +171,11 @@ describe('EraDeepdiveService', () => {
       rulesSetNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
       embeds: [
@@ -159,7 +209,11 @@ describe('EraDeepdiveService', () => {
         { id: 12, name: 'Unplayed Cup', type: 'cup' },
       ],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
@@ -182,7 +236,11 @@ describe('EraDeepdiveService', () => {
       },
       competitions: [],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -213,14 +271,33 @@ describe('EraDeepdiveService', () => {
       externalSystemNames: [],
       competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     expect(description).toContain('External systems: None recorded');
   });
 
-  it('renders a Primary button per competition, keyed by competition id', async () => {
+  // LeaderboardService.buildEntityButtons itself (dedupe/cap/chunk) is
+  // covered by leaderboard.service.spec.ts. Here `leaderboard` is a mock
+  // returning a canned button list, so this test asserts only what
+  // EraDeepdiveService itself owns: the per-competition button-entry pool
+  // (id/label pairs, one per competition) it hands to buildEntityButtons.
+  it('builds one button entry per competition, keyed by competition id', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const cannedButtons = [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+        ],
+      },
+    ];
+    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
     const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
@@ -234,25 +311,23 @@ describe('EraDeepdiveService', () => {
         { id: 11, name: 'Spike Cup', type: 'cup' },
       ],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+      leaderboard,
+    });
     const result = (await service.resolve(1)) as unknown as {
-      components: { components: { label: string; custom_id: string }[] }[];
+      components: unknown;
     };
-    const buttons = result.components.flatMap((row) => row.components);
-    expect(buttons).toEqual([
-      {
-        type: 2,
-        style: 1,
-        label: 'Season 1',
-        custom_id: 'deepdive:competition:10',
-      },
-      {
-        type: 2,
-        style: 1,
-        label: 'Spike Cup',
-        custom_id: 'deepdive:competition:11',
-      },
+    expect(result.components).toBe(cannedButtons);
+    const [entries, buildCustomId, label] =
+      leaderboard.buildEntityButtons.mock.calls[0];
+    expect(entries.map(buildCustomId)).toEqual([
+      'deepdive:competition:10',
+      'deepdive:competition:11',
     ]);
+    expect(entries.map(label)).toEqual(['Season 1', 'Spike Cup']);
   });
 
   it('omits components when the era has no competitions', async () => {
@@ -266,139 +341,122 @@ describe('EraDeepdiveService', () => {
       },
       competitions: [],
     });
-    const service = makeService(eras, competitions, externalSystems);
+    const { service } = await makeService({
+      eras,
+      competitions,
+      externalSystems,
+    });
     const result = await service.resolve(1);
     expect(result).not.toHaveProperty('components');
   });
 
   it('falls back to the era timeout message when the era lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: {
-        eras: ErasService;
-        competitions: CompetitionsService;
-        externalSystems: ExternalSystemsService;
-      }) =>
-        makeService(
-          services.eras,
-          services.competitions,
-          services.externalSystems,
-        ).resolve(1),
-      () => ({
-        eras: {
-          findByIdWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
-          getRulesSetNames: vi.fn(),
-        } as unknown as ErasService,
-        competitions: {
-          listByEraChronological: vi.fn(),
-        } as unknown as CompetitionsService,
-        externalSystems: {
-          listNamesByEra: vi.fn(),
-        } as unknown as ExternalSystemsService,
-      }),
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { eras, competitions, externalSystems } = makeServices({});
+        const { service } = await makeService({
+          eras,
+          competitions,
+          externalSystems,
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_ERA_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the rules-set timeout message when the rules lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: {
-        eras: ErasService;
-        competitions: CompetitionsService;
-        externalSystems: ExternalSystemsService;
-      }) =>
-        makeService(
-          services.eras,
-          services.competitions,
-          services.externalSystems,
-        ).resolve(1),
-      () => ({
-        eras: {
-          findByIdWithLeague: vi.fn().mockResolvedValue({
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { eras, competitions, externalSystems } = makeServices({
+          era: {
             id: 1,
             name: 'BB2020',
             leagueName: 'Premier',
             startDate: '2021-09-01',
             endDate: null,
-          }),
-          getRulesSetNames: vi.fn().mockReturnValue(new Promise(() => {})),
-        } as unknown as ErasService,
-        competitions: {
-          listByEraChronological: vi.fn(),
-        } as unknown as CompetitionsService,
-        externalSystems: {
-          listNamesByEra: vi.fn(),
-        } as unknown as ExternalSystemsService,
-      }),
+          },
+        });
+        const { service } = await makeService({
+          eras,
+          competitions,
+          externalSystems,
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the competitions timeout message when the competition lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: {
-        eras: ErasService;
-        competitions: CompetitionsService;
-        externalSystems: ExternalSystemsService;
-      }) =>
-        makeService(
-          services.eras,
-          services.competitions,
-          services.externalSystems,
-        ).resolve(1),
-      () => ({
-        eras: {
-          findByIdWithLeague: vi.fn().mockResolvedValue({
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { eras, competitions, externalSystems } = makeServices({
+          era: {
             id: 1,
             name: 'BB2020',
             leagueName: 'Premier',
             startDate: '2021-09-01',
             endDate: null,
-          }),
-          getRulesSetNames: vi.fn().mockResolvedValue([]),
-        } as unknown as ErasService,
-        competitions: {
-          listByEraChronological: vi
-            .fn()
-            .mockReturnValue(new Promise(() => {})),
-        } as unknown as CompetitionsService,
-        externalSystems: {
-          listNamesByEra: vi.fn(),
-        } as unknown as ExternalSystemsService,
-      }),
+          },
+          rulesSetNames: [],
+        });
+        const { service } = await makeService({
+          eras,
+          competitions,
+          externalSystems,
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
     );
   });
 
   it('falls back to the external-systems timeout message when that lookup times out', async () => {
     await expectTimeoutFallback(
-      (services: {
-        eras: ErasService;
-        competitions: CompetitionsService;
-        externalSystems: ExternalSystemsService;
-      }) =>
-        makeService(
-          services.eras,
-          services.competitions,
-          services.externalSystems,
-        ).resolve(1),
-      () => ({
-        eras: {
-          findByIdWithLeague: vi.fn().mockResolvedValue({
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { eras, competitions, externalSystems } = makeServices({
+          era: {
             id: 1,
             name: 'BB2020',
             leagueName: 'Premier',
             startDate: '2021-09-01',
             endDate: null,
-          }),
-          getRulesSetNames: vi.fn().mockResolvedValue([]),
-        } as unknown as ErasService,
-        competitions: {
-          listByEraChronological: vi.fn().mockResolvedValue([]),
-        } as unknown as CompetitionsService,
-        externalSystems: {
-          listNamesByEra: vi.fn().mockReturnValue(new Promise(() => {})),
-        } as unknown as ExternalSystemsService,
-      }),
+          },
+          rulesSetNames: [],
+          competitions: [],
+        });
+        const { service } = await makeService({
+          eras,
+          competitions,
+          externalSystems,
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
       DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE,
     );
   });

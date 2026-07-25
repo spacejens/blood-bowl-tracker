@@ -7,6 +7,9 @@ settings:
 overrides:
   '@discordjs/rest>undici': ^6.27.0
 
+patchedDependencies:
+  vitest-mock-extended@5.1.0: 1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2
+
 importers:
 
   .:
@@ -114,6 +117,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/api-client:
     dependencies:
@@ -154,6 +160,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/api-contract:
     dependencies:
@@ -201,6 +210,9 @@ importers:
         specifier: ^7.8.2
         version: 7.8.2
     devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.28
+        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
       '@swc/core':
         specifier: ^1.15.46
         version: 1.15.46
@@ -222,6 +234,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/db:
     dependencies:
@@ -299,6 +314,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/game-data:
     dependencies:
@@ -336,6 +354,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/import:
     dependencies:
@@ -370,6 +391,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/parse-tp:
     dependencies:
@@ -383,6 +407,9 @@ importers:
         specifier: ^4.4.3
         version: 4.4.3
     devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.28
+        version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.28)(@nestjs/platform-express@11.1.28)
       '@types/node':
         specifier: ^26.1.0
         version: 26.1.0
@@ -398,6 +425,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   tools/eslint-rules:
     devDependencies:
@@ -474,6 +504,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   tools/import-manual:
     dependencies:
@@ -529,6 +562,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   tools/import-tp:
     dependencies:
@@ -584,6 +620,9 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.0
+        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
 packages:
 
@@ -3914,6 +3953,14 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4'
 
+  ts-essentials@10.2.1:
+    resolution: {integrity: sha512-+Id1fRkuir+CsgK2x04/icS2b4V1hQmq7ObzIrDjhN0ozfRYivnP7aaKMVJfLApQm0trjR39A6NIMVchiB9Erw==}
+    peerDependencies:
+      typescript: '>=4.5.0'
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
   ts-graphviz@2.1.6:
     resolution: {integrity: sha512-XyLVuhBVvdJTJr2FJJV2L1pc4MwSjMhcunRVgDE9k4wbb2ee7ORYnPewxMWUav12vxyfUM686MSGsqnVRIInuw==}
     engines: {node: '>=18'}
@@ -4066,6 +4113,12 @@ packages:
         optional: true
       yaml:
         optional: true
+
+  vitest-mock-extended@5.1.0:
+    resolution: {integrity: sha512-xW28qmo6CbEROzwFRKw+fhLQcwoxBbUHdezDtBJXiHinthfyYZ3pwt4ez4r+XPdimTbXJcFetjzKBJqMw1A6Jw==}
+    peerDependencies:
+      typescript: 3.x || 4.x || 5.x || 6.x || 7.x
+      vitest: '>=4.0.0'
 
   vitest@4.1.10:
     resolution: {integrity: sha512-R9jUTe5S4Qb0HCd4TNqpC7oGcrMssMRGXLW80ubjWsW9VH5GF8y1Y0SFLY9AbqSk6nt0PnOx4H4WNJYZ13GUPw==}
@@ -7359,6 +7412,10 @@ snapshots:
     dependencies:
       typescript: 5.9.3
 
+  ts-essentials@10.2.1(typescript@6.0.3):
+    optionalDependencies:
+      typescript: 6.0.3
+
   ts-graphviz@2.1.6:
     dependencies:
       '@ts-graphviz/adapter': 2.0.6
@@ -7480,6 +7537,12 @@ snapshots:
       jiti: 2.7.0
       terser: 5.48.0
       yaml: 2.9.0
+
+  vitest-mock-extended@5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10):
+    dependencies:
+      ts-essentials: 10.2.1(typescript@6.0.3)
+      typescript: 6.0.3
+      vitest: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
 
   vitest@4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)):
     dependencies:

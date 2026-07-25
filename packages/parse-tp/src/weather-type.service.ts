@@ -29,9 +29,9 @@ export type WeatherType =
   | 'unknown';
 
 /**
- * Exported for `match-event-parser.service.spec.ts`, so its weather-code
- * decode tests are driven directly off this map (every known code gets a
- * test case, with no risk of the two lists drifting apart).
+ * Exported for `weather-type.service.spec.ts`, so its decode tests are
+ * driven directly off this map (every known code gets a test case, with no
+ * risk of the two lists drifting apart).
  */
 export const weatherTypeByCode: Record<number, WeatherType> = {
   0: 'dungeon',
