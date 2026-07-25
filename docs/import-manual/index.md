@@ -177,18 +177,15 @@ systems could not supply:
   from Ogretoberfest, Chaos Cup and Dungeon Bowl entries; each track's
   unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`; and
   BBL's three identically-named `Reserves Rumble` events become
-  `Reserves Rumble 1`–`3`, which only became possible once competitions
-  stopped carrying a `Name` external id and therefore stopped merging onto one
-  row, issue #285).
+  `Reserves Rumble 1`–`3`).
   Because a
   competition upsert has no partial-update support (issue #174) and would
   otherwise overwrite `eraId` with nothing, the file also redeclares the five
   eras it references — plus their league and rules sets — matching the existing
   rows exactly, purely so this run's `ExternalIdMap` can resolve them. Entries
-  match their existing rows by the source system's numeric ID alone —
-  competitions carry no `Name` external ID, so supplying one would be a dead
-  lookup key. (The redeclared eras, league and rules sets _do_ still match by
-  `Name`, which those entity kinds still carry.)
+  match their existing rows by the source system's numeric ID alone. (The
+  redeclared eras, league and rules sets _do_ still match by `Name`, which
+  those entity kinds still carry.)
 
 ## Data layout
 

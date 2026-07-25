@@ -124,11 +124,9 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   `eraIdsByName` map from `TpErasImportService`, with no date-range matching —
   unlike BBL). Uses `MatchParserService` and `TournamentParserService` from
   `packages/parse-tp`. Each competition carries a TP external id (the
-  stringified tournament id) and no `Name` external id — a shared `Name` id
-  would merge distinct same-named competitions onto one row (issue #285), and
-  no competition is ever imported from two source systems. Competitions missing
-  a base tournament file, with an unparsable one, with no dated matches, or
-  whose era has no known id are skipped with a recorded error.
+  stringified tournament id). Competitions missing a base tournament file,
+  with an unparsable one, with no dated matches, or whose era has no known id
+  are skipped with a recorded error.
 - **TpMatchesImportService** — upserts each match as a `Match` row linked to its
   competition. Match files carry no tournament id, so matches are linked via the
   directory scan `TpCompetitionsImportService` already performs: it exposes a

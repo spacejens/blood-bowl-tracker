@@ -62,11 +62,8 @@ export class TpCompetitionsImportService {
    * files give the dates whose span classifies it (span <= 3 days => cup, else
    * season). Its era is the directory's own era, looked up in `eraIdsByName`
    * (produced by TpErasImportService) — no date-range matching is needed,
-   * unlike BBL. Each competition is keyed *only* by its numeric TP id
-   * (stringified) under the TP external system — deliberately no Name external
-   * id: a shared Name id merges distinct same-named competitions onto one row
-   * (issue #285), and no competition is ever imported from two source systems,
-   * so Name is not needed for cross-system dedup here.
+   * unlike BBL. Each competition is keyed by its numeric TP id (stringified)
+   * under the TP external system.
    * Competitions with no base tournament file, an unparsable one, no dated
    * matches, or an era with no known id are skipped with a recorded error.
    * Idempotent.

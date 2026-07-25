@@ -51,12 +51,8 @@ export class BblCompetitionsImportService {
    * A competition's type (season/cup) and era are derived from its match dates
    * (from its p=ma&so=s&s=<id> page): span <= 3 days => cup, else season; the
    * earliest match date, matched against the configured era date ranges, gives
-   * the era. Each competition is keyed *only* by its numeric BBL id (the `s`
-   * value) under the configured BBL external system — deliberately no Name
-   * external id: BBL has three distinct same-named "Reserves Rumble" events,
-   * and a shared Name id would merge them onto one row (issue #285). No
-   * competition is ever imported from two source systems, so Name is not
-   * needed for cross-system dedup here (unlike coaches/teams/leagues/eras).
+   * the era. Each competition is keyed by its numeric BBL id (the `s` value)
+   * under the configured BBL external system.
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
    *
