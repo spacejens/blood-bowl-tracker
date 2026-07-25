@@ -14,6 +14,7 @@ import type {
   Interaction,
   InteractionReplyOptions,
   MessageCreateOptions,
+  StringSelectMenuInteraction,
 } from 'discord.js';
 import { Client, GatewayIntentBits } from 'discord.js';
 
@@ -37,6 +38,10 @@ export type ButtonHandler = (
   interaction: ButtonInteraction,
 ) => Promise<string | InteractionReplyOptions>;
 
+export type SelectMenuHandler = (
+  interaction: StringSelectMenuInteraction,
+) => Promise<string | InteractionReplyOptions>;
+
 @Injectable()
 export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DiscordClientService.name);
@@ -50,6 +55,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     NonNullable<SlashCommandDefinition['autocomplete']>
   >();
   private readonly buttonHandlers = new Map<string, ButtonHandler>();
+  private readonly selectMenuHandlers = new Map<string, SelectMenuHandler>();
 
   constructor(@Inject(DISCORD_BOT_TOKEN) private readonly token: string) {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -136,6 +142,17 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.buttonHandlers.set(prefix, handler);
   }
 
+  /**
+   * Registers a handler for string-select-menu interactions whose `customId`
+   * starts with `prefix`. Matched exactly like `registerButtonHandler`, and
+   * deliberately using the same prefixes: a menu's customId is
+   * `<prefix>menu:<index>`, so one feature's buttons and menus route to the
+   * same place without a second prefix scheme.
+   */
+  registerSelectMenuHandler(prefix: string, handler: SelectMenuHandler): void {
+    this.selectMenuHandlers.set(prefix, handler);
+  }
+
   private async handleInteraction(interaction: Interaction): Promise<void> {
     if (interaction.isAutocomplete()) {
       const autocomplete = this.autocompleteHandlers.get(
@@ -149,29 +166,30 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     if (interaction.isButton()) {
-      const entry = [...this.buttonHandlers.entries()].find(([prefix]) =>
-        interaction.customId.startsWith(prefix),
+      const handler = this.matchHandler(
+        this.buttonHandlers,
+        interaction.customId,
       );
-      if (!entry) {
-        return;
+      if (handler) {
+        await this.replyWithHandler(
+          interaction,
+          () => handler(interaction),
+          `button ${interaction.customId}`,
+        );
       }
-      const [, handler] = entry;
-      try {
-        const content = await handler(interaction);
-        const channelName =
-          interaction.channel && 'name' in interaction.channel
-            ? interaction.channel.name
-            : 'unknown channel';
-        this.logger.log(
-          `Handled button ${interaction.customId} from ${interaction.user.tag} (${interaction.user.id}) in ${channelName} (${interaction.channelId})`,
+      return;
+    }
+    if (interaction.isStringSelectMenu()) {
+      const handler = this.matchHandler(
+        this.selectMenuHandlers,
+        interaction.customId,
+      );
+      if (handler) {
+        await this.replyWithHandler(
+          interaction,
+          () => handler(interaction),
+          `select menu ${interaction.customId} (${interaction.values.join(', ')})`,
         );
-        await interaction.reply(content);
-      } catch (error) {
-        this.logger.error(
-          `Failed to handle button ${interaction.customId}`,
-          error,
-        );
-        await interaction.reply('I am badly hurt');
       }
       return;
     }
@@ -184,12 +202,8 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     }
     try {
       const content = await handler(interaction);
-      const channelName =
-        interaction.channel && 'name' in interaction.channel
-          ? interaction.channel.name
-          : 'unknown channel';
       this.logger.log(
-        `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${channelName} (${interaction.channelId})`,
+        `Handled /${interaction.commandName} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
       );
       await interaction.reply(content);
     } catch (error) {
@@ -199,5 +213,45 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       );
       await interaction.reply('I am badly hurt');
     }
+  }
+
+  /** First registered prefix that `customId` starts with, if any. */
+  private matchHandler<T>(
+    handlers: Map<string, T>,
+    customId: string,
+  ): T | undefined {
+    const entry = [...handlers.entries()].find(([prefix]) =>
+      customId.startsWith(prefix),
+    );
+    return entry?.[1];
+  }
+
+  /**
+   * Runs a component handler and replies with its output, logging the handled
+   * component (described by `description`) or falling back to the hurt message
+   * when the handler throws. Shared by the button and select-menu branches.
+   */
+  private async replyWithHandler(
+    interaction: ButtonInteraction | StringSelectMenuInteraction,
+    handle: () => Promise<string | InteractionReplyOptions>,
+    description: string,
+  ): Promise<void> {
+    try {
+      const content = await handle();
+      this.logger.log(
+        `Handled ${description} from ${interaction.user.tag} (${interaction.user.id}) in ${this.describeChannel(interaction)} (${interaction.channelId})`,
+      );
+      await interaction.reply(content);
+    } catch (error) {
+      this.logger.error(`Failed to handle ${description}`, error);
+      await interaction.reply('I am badly hurt');
+    }
+  }
+
+  private describeChannel(interaction: Interaction): string {
+    if (interaction.channel && 'name' in interaction.channel) {
+      return interaction.channel.name ?? 'unknown channel';
+    }
+    return 'unknown channel';
   }
 }
