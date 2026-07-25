@@ -4,9 +4,6 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
-  NAME_EXTERNAL_SYSTEM,
-  NAME_EXTERNAL_SYSTEM_NAME,
-  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -45,7 +42,6 @@ export class BblCompetitionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly eraConfig: EraConfigService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
-    private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
   ) {}
@@ -55,8 +51,12 @@ export class BblCompetitionsImportService {
    * A competition's type (season/cup) and era are derived from its match dates
    * (from its p=ma&so=s&s=<id> page): span <= 3 days => cup, else season; the
    * earliest match date, matched against the configured era date ranges, gives
-   * the era. Each competition is keyed by its numeric BBL id (the `s` value)
-   * under the configured BBL external system and by its exact name under Name.
+   * the era. Each competition is keyed *only* by its numeric BBL id (the `s`
+   * value) under the configured BBL external system — deliberately no Name
+   * external id: BBL has three distinct same-named "Reserves Rumble" events,
+   * and a shared Name id would merge them onto one row (issue #285). No
+   * competition is ever imported from two source systems, so Name is not
+   * needed for cross-system dedup here (unlike coaches/teams/leagues/eras).
    * Competitions with no dated matches, or whose earliest date is outside every
    * configured era, are skipped with a recorded error. Idempotent.
    *
@@ -83,7 +83,7 @@ export class BblCompetitionsImportService {
     } catch (error) {
       errors.push(
         this.importResults.error({
-          item: { externalSystems: [bblSystemName, NAME_EXTERNAL_SYSTEM_NAME] },
+          item: { externalSystems: [bblSystemName] },
           message: error instanceof Error ? error.message : String(error),
         }),
       );
@@ -96,7 +96,6 @@ export class BblCompetitionsImportService {
 
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: bblSystemName, category: 'imported_data_source' },
-      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -106,7 +105,7 @@ export class BblCompetitionsImportService {
         competitionIdsByBblId,
       };
     }
-    const [bblSystemId, nameSystemId] = bootstrap.ids;
+    const [bblSystemId] = bootstrap.ids;
 
     const datesByCompetitionId = await this.collectMatchDates(errors);
     const competitions = await this.readCompetitionList(errors);
@@ -147,10 +146,6 @@ export class BblCompetitionsImportService {
         teamEraIds: [],
         externalIds: [
           { externalSystemId: bblSystemId, externalId: competition.bblId },
-          {
-            externalSystemId: nameSystemId,
-            externalId: this.nameExternalId.forCompetition(competition.name),
-          },
         ],
       };
       const upserted = await this.competitionsImport.upsertCompetitionResult(
