@@ -11,37 +11,35 @@ import { RosterCollectionService } from './roster-collection.service';
 import type { TpSourceFile } from './tp-source-reader';
 import { TpSourceReader } from './tp-source-reader';
 
-interface RosterFileContent {
-  id: number;
-  teamName: string;
-  teamRace: string;
-  player?: { applicationUserId: string };
-  rosterMaster?: { name: string };
-}
-
 /**
- * Mirrors the real RosterParserService's contract closely enough for
- * RosterCollectionService's own logic to be exercised: a content body
- * missing rosterMaster fails to parse (as it does for the real, Zod-backed
- * parser), and a valid body maps id/teamRace/rosterMaster.name through to
- * the resulting TpRoster's id/teamRaceCode/raceName.
+ * Canned TpRosters the mocked RosterParserService.parse returns, one per file
+ * a test feeds in. RosterParserService's own Zod-backed field mapping and
+ * validation are covered by its dedicated spec in packages/parse-tp;
+ * RosterCollectionService only tags parse()'s return value with the era and
+ * competition it was found under, so these values just need to be
+ * distinguishable.
  */
-function defaultParse(content: unknown): TpRoster {
-  const c = content as RosterFileContent;
-  if (!c.rosterMaster) {
-    throw new Error('rosterMaster is required');
-  }
-  return {
-    id: c.id,
-    teamName: c.teamName,
-    teamRaceCode: c.teamRace,
-    raceName: c.rosterMaster.name,
-    coachTpId: c.player?.applicationUserId ?? '',
-    positions: [],
-    starPositions: [],
-    players: [],
-  };
-}
+const ORC_ROSTER: TpRoster = {
+  id: 1,
+  teamName: 'Team 1',
+  teamRaceCode: 'Orc',
+  raceName: 'Orc',
+  coachTpId: 'coach-1',
+  positions: [],
+  starPositions: [],
+  players: [],
+};
+
+const DWARF_ROSTER: TpRoster = {
+  id: 2,
+  teamName: 'Team 2',
+  teamRaceCode: 'Dwarf',
+  raceName: 'Dwarf',
+  coachTpId: 'coach-1',
+  positions: [],
+  starPositions: [],
+  players: [],
+};
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
   return async function* () {
@@ -67,34 +65,17 @@ function makeFilesThatThrow(
   };
 }
 
-interface RosterOpts {
-  id: number;
-  teamRace: string;
-  raceName: string;
-}
-
 function rosterFile(
   era: string,
   competition: string,
-  opts: RosterOpts,
+  opts: { id: number },
 ): TpSourceFile {
   return {
     era,
     competition,
     type: 'rosters',
     filename: `rosters_${opts.id}.json`,
-    content: {
-      id: opts.id,
-      teamName: `Team ${opts.id}`,
-      teamRace: opts.teamRace,
-      player: { applicationUserId: 'coach-1' },
-      lineUps: [],
-      rosterMaster: {
-        name: opts.raceName,
-        starPlayersMasters: [],
-        lineUpMasters: [],
-      },
-    },
+    content: { rosterFile: opts.id },
   };
 }
 
@@ -107,8 +88,11 @@ describe('RosterCollectionService', () => {
   beforeEach(async () => {
     sourceReader = mock<TpSourceReader>();
     rosterParser = mock<RosterParserService>();
-    rosterParser.parse.mockImplementation(defaultParse);
     importResults = mock<ImportResultService>();
+    // Recipe F: importResults.error() is a plain identity echo of the args
+    // the service passes in — not a reimplementation of any collaborator
+    // logic — so it is exempt from the "canned response" rule and stays a
+    // passthrough mock.
     importResults.error.mockImplementation((args) => ({
       item: args.item,
       message: args.message,
@@ -127,18 +111,13 @@ describe('RosterCollectionService', () => {
 
   describe('collect', () => {
     it('collects every rosters file, tagging each roster with its era', async () => {
+      rosterParser.parse
+        .mockReturnValueOnce(ORC_ROSTER)
+        .mockReturnValueOnce(DWARF_ROSTER);
       sourceReader.files.mockImplementation(
         makeFiles([
-          rosterFile('Fourth era', 'comp-a', {
-            id: 1,
-            teamRace: 'Orc',
-            raceName: 'Orc',
-          }),
-          rosterFile('Fifth era', 'comp-b', {
-            id: 2,
-            teamRace: 'Dwarf',
-            raceName: 'Dwarf',
-          }),
+          rosterFile('Fourth era', 'comp-a', { id: 1 }),
+          rosterFile('Fifth era', 'comp-b', { id: 2 }),
         ]),
       );
 
@@ -146,18 +125,16 @@ describe('RosterCollectionService', () => {
       const rosters = await service.collect(errors);
 
       expect(errors).toHaveLength(0);
-      expect(rosters).toHaveLength(2);
-      expect(rosters[0].era).toBe('Fourth era');
-      expect(rosters[0].competition).toBe('comp-a');
-      expect(rosters[0].roster.id).toBe(1);
-      expect(rosters[0].roster.raceName).toBe('Orc');
-      expect(rosters[1].era).toBe('Fifth era');
-      expect(rosters[1].competition).toBe('comp-b');
-      expect(rosters[1].roster.id).toBe(2);
-      expect(rosters[1].roster.raceName).toBe('Dwarf');
+      expect(rosters).toEqual([
+        { roster: ORC_ROSTER, era: 'Fourth era', competition: 'comp-a' },
+        { roster: DWARF_ROSTER, era: 'Fifth era', competition: 'comp-b' },
+      ]);
+      expect(rosterParser.parse).toHaveBeenNthCalledWith(1, { rosterFile: 1 });
+      expect(rosterParser.parse).toHaveBeenNthCalledWith(2, { rosterFile: 2 });
     });
 
     it('ignores non-rosters files', async () => {
+      rosterParser.parse.mockReturnValue(ORC_ROSTER);
       sourceReader.files.mockImplementation(
         makeFiles([
           {
@@ -167,11 +144,7 @@ describe('RosterCollectionService', () => {
             filename: 'tournament_comp.json',
             content: { id: 1, name: 'X', ruleSet: 20 },
           },
-          rosterFile('Fourth era', 'comp', {
-            id: 1,
-            teamRace: 'Orc',
-            raceName: 'Orc',
-          }),
+          rosterFile('Fourth era', 'comp', { id: 1 }),
         ]),
       );
 
@@ -179,9 +152,15 @@ describe('RosterCollectionService', () => {
       const rosters = await service.collect(errors);
 
       expect(rosters).toHaveLength(1);
+      expect(rosterParser.parse).toHaveBeenCalledTimes(1);
     });
 
     it('records a parse error for one bad roster file but keeps the rest', async () => {
+      rosterParser.parse
+        .mockImplementationOnce(() => {
+          throw new Error('rosterMaster is required');
+        })
+        .mockReturnValueOnce(ORC_ROSTER);
       sourceReader.files.mockImplementation(
         makeFiles([
           {
@@ -189,20 +168,18 @@ describe('RosterCollectionService', () => {
             competition: 'comp',
             type: 'rosters',
             filename: 'rosters_bad.json',
-            content: { id: 9, teamName: 'T', teamRace: 'Orc' }, // no rosterMaster
+            content: { rosterFile: 'bad' },
           },
-          rosterFile('Fourth era', 'comp', {
-            id: 1,
-            teamRace: 'Orc',
-            raceName: 'Orc',
-          }),
+          rosterFile('Fourth era', 'comp', { id: 1 }),
         ]),
       );
 
       const errors: ImportError[] = [];
       const rosters = await service.collect(errors);
 
-      expect(rosters).toHaveLength(1);
+      expect(rosters).toEqual([
+        { roster: ORC_ROSTER, era: 'Fourth era', competition: 'comp' },
+      ]);
       expect(errors.some((e) => e.message.includes('rosters_bad.json'))).toBe(
         true,
       );
@@ -214,13 +191,7 @@ describe('RosterCollectionService', () => {
         throw 'a string error';
       });
       sourceReader.files.mockImplementation(
-        makeFiles([
-          rosterFile('Fourth era', 'comp', {
-            id: 1,
-            teamRace: 'Orc',
-            raceName: 'Orc',
-          }),
-        ]),
+        makeFiles([rosterFile('Fourth era', 'comp', { id: 1 })]),
       );
 
       const errors: ImportError[] = [];
@@ -234,13 +205,7 @@ describe('RosterCollectionService', () => {
     it('records a diagnostic error but keeps rosters found before a scan failure', async () => {
       sourceReader.files.mockImplementation(
         makeFilesThatThrow(
-          [
-            rosterFile('Fourth era', 'comp', {
-              id: 1,
-              teamRace: 'Orc',
-              raceName: 'Orc',
-            }),
-          ],
+          [rosterFile('Fourth era', 'comp', { id: 1 })],
           new Error(
             'Era data directory not found: /data/fifth-era (configured for era "Fifth era").',
           ),
