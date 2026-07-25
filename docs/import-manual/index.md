@@ -167,10 +167,12 @@ have created their records, to fix up names or attach external IDs the source
 systems could not supply:
 
 - `coaches.json5` — TP usernames replaced with the coach's real name.
-- `competitions.json5` — normalizes the 29 recurring numbered competitions the
+- `competitions.json5` — normalizes the 32 recurring numbered competitions the
   two source systems named inconsistently (`Season N` / `Major Season N` /
   `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
-  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries). Because a
+  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries, and each track's
+  unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`).
+  Because a
   competition upsert has no partial-update support (issue #174) and would
   otherwise overwrite `eraId` with nothing, the file also redeclares the five
   eras it references — plus their league and rules sets — matching the existing
