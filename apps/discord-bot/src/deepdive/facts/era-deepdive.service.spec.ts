@@ -15,6 +15,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
+import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
@@ -43,27 +44,12 @@ interface MakeServiceOptions {
   entityComponents?: MockProxy<EntityComponentsService>;
 }
 
-/**
- * Defaults `buildEntityComponents` to "no components, nothing dropped".
- * EntityComponentsService's own dedupe/cap/chunk logic is covered by
- * entity-components.service.spec.ts; this default exists only so the
- * description-rendering tests don't have to configure a return value.
- */
-function defaultEntityComponents(): MockProxy<EntityComponentsService> {
-  const entityComponents = mock<EntityComponentsService>();
-  entityComponents.buildEntityComponents.mockReturnValue({
-    components: [],
-    overflowNote: null,
-  });
-  return entityComponents;
-}
-
 async function makeService({
   eras,
   competitions,
   externalSystems,
   databaseTimeout = mockDatabaseTimeout(),
-  entityComponents = defaultEntityComponents(),
+  entityComponents = nullEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: EraDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;

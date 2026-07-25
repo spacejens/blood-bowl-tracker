@@ -11,6 +11,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
+import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -30,26 +31,11 @@ interface MakeServiceOptions {
   entityComponents?: MockProxy<EntityComponentsService>;
 }
 
-/**
- * Defaults `buildEntityComponents` to "no components, nothing dropped".
- * EntityComponentsService's own dedupe/cap/chunk/select logic is covered by
- * entity-components.service.spec.ts; this default exists only so the
- * description-rendering tests don't have to configure a return value.
- */
-function defaultEntityComponents(): MockProxy<EntityComponentsService> {
-  const entityComponents = mock<EntityComponentsService>();
-  entityComponents.buildEntityComponents.mockReturnValue({
-    components: [],
-    overflowNote: null,
-  });
-  return entityComponents;
-}
-
 async function makeService({
   coaches,
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = mock<LeaderboardService>(),
-  entityComponents = defaultEntityComponents(),
+  entityComponents = nullEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: CoachDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;

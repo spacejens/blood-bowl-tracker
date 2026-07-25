@@ -10,6 +10,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
+import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -23,19 +24,10 @@ import {
 } from '../button-custom-ids';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-function defaultEntityComponents(): MockProxy<EntityComponentsService> {
-  const entityComponents = mock<EntityComponentsService>();
-  entityComponents.buildEntityComponents.mockReturnValue({
-    components: [],
-    overflowNote: null,
-  });
-  return entityComponents;
-}
-
 async function makeService(
   competitions: CompetitionsService,
   databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  entityComponents: MockProxy<EntityComponentsService> = defaultEntityComponents(),
+  entityComponents: MockProxy<EntityComponentsService> = nullEntityComponents(),
 ): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;

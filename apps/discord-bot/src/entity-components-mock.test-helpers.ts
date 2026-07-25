@@ -35,3 +35,21 @@ export function passthroughEntityComponents(): MockProxy<EntityComponentsService
   }));
   return entityComponents;
 }
+
+/**
+ * An `EntityComponentsService` mock canned to always return no components and
+ * no overflow note, regardless of the entries it's given. This is the default
+ * stub for specs whose description-rendering tests don't need to configure a
+ * component return value at all — they just need `buildEntityComponents` to
+ * resolve to something.
+ *
+ * Test-only. Do not import from production code.
+ */
+export function nullEntityComponents(): MockProxy<EntityComponentsService> {
+  const entityComponents = mock<EntityComponentsService>();
+  entityComponents.buildEntityComponents.mockReturnValue({
+    components: [],
+    overflowNote: null,
+  });
+  return entityComponents;
+}

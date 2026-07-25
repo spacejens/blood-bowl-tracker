@@ -10,6 +10,7 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
+import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
@@ -33,19 +34,10 @@ const griff = {
   positionName: 'Blitzer',
 };
 
-function defaultEntityComponents(): MockProxy<EntityComponentsService> {
-  const entityComponents = mock<EntityComponentsService>();
-  entityComponents.buildEntityComponents.mockReturnValue({
-    components: [],
-    overflowNote: null,
-  });
-  return entityComponents;
-}
-
 async function makeService(
   players: PlayersService,
   databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  entityComponents: MockProxy<EntityComponentsService> = defaultEntityComponents(),
+  entityComponents: MockProxy<EntityComponentsService> = nullEntityComponents(),
 ): Promise<{
   service: PlayerDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
