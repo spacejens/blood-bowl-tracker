@@ -123,9 +123,12 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   season), and its era is the directory's own era (looked up in the
   `eraIdsByName` map from `TpErasImportService`, with no date-range matching —
   unlike BBL). Uses `MatchParserService` and `TournamentParserService` from
-  `packages/parse-tp`. Competitions missing a base tournament file, with an
-  unparsable one, with no dated matches, or whose era has no known id are
-  skipped with a recorded error.
+  `packages/parse-tp`. Each competition carries a TP external id (the
+  stringified tournament id) and no `Name` external id — a shared `Name` id
+  would merge distinct same-named competitions onto one row (issue #285), and
+  no competition is ever imported from two source systems. Competitions missing
+  a base tournament file, with an unparsable one, with no dated matches, or
+  whose era has no known id are skipped with a recorded error.
 - **TpMatchesImportService** — upserts each match as a `Match` row linked to its
   competition. Match files carry no tournament id, so matches are linked via the
   directory scan `TpCompetitionsImportService` already performs: it exposes a
@@ -157,7 +160,7 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   for merge semantics). Carries TP external ids only (one per `tpPositionId`);
   after each upsert, records race/era availability via `syncRaceEras`. Star
   players permanently embedded in a roster's line-up (`rosterMaster.
-  starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
+starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   grouped by name only — not race, since the same named star player is the
   same entity regardless of team — then upserted with `isStarPlayer: true` and
   a bare-name TP external id (matching the convention the hired-star-player

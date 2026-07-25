@@ -92,44 +92,48 @@ are tracked separately as issue #174).
 ### Worked example
 
 `data/before-other-importers/necromantic-2020.json5`:
+
 ```jsonc
 {
-  leagues: [
-    { name: "My League", externalIds: [{ system: "Name", id: "name:my-league" }] },
-  ],
-  rulesSets: [
-    { name: "CRP", externalIds: [{ system: "Name", id: "name:crp" }] },
-  ],
-  eras: [
+  "leagues": [
     {
-      name: "Season 12",
-      league: { system: "Name", id: "name:my-league" },
-      rulesSets: [{ system: "Name", id: "name:crp" }],
-      startDate: "2024-01-01",
-      externalIds: [{ system: "Name", id: "name:season-12" }],
+      "name": "My League",
+      "externalIds": [{ "system": "Name", "id": "name:my-league" }],
     },
   ],
-  races: [
+  "rulesSets": [
+    { "name": "CRP", "externalIds": [{ "system": "Name", "id": "name:crp" }] },
+  ],
+  "eras": [
     {
-      name: "Necromantic Horror",
-      eras: [{ system: "Name", id: "name:season-12" }],
-      externalIds: [
-        { system: "BBL", id: "id:47" },
-        { system: "Name", id: "name:necromantic-horror" },
+      "name": "Season 12",
+      "league": { "system": "Name", "id": "name:my-league" },
+      "rulesSets": [{ "system": "Name", "id": "name:crp" }],
+      "startDate": "2024-01-01",
+      "externalIds": [{ "system": "Name", "id": "name:season-12" }],
+    },
+  ],
+  "races": [
+    {
+      "name": "Necromantic Horror",
+      "eras": [{ "system": "Name", "id": "name:season-12" }],
+      "externalIds": [
+        { "system": "BBL", "id": "id:47" },
+        { "system": "Name", "id": "name:necromantic-horror" },
       ],
     },
   ],
-  positions: [
+  "positions": [
     {
-      name: "Zombie",
-      isStarPlayer: false,
-      raceEras: [
+      "name": "Zombie",
+      "isStarPlayer": false,
+      "raceEras": [
         {
-          race: { system: "Name", id: "name:necromantic-horror" },
-          era: { system: "Name", id: "name:season-12" },
+          "race": { "system": "Name", "id": "name:necromantic-horror" },
+          "era": { "system": "Name", "id": "name:season-12" },
         },
       ],
-      externalIds: [{ system: "Name", id: "name:zombie" }],
+      "externalIds": [{ "system": "Name", "id": "name:zombie" }],
     },
   ],
 }
@@ -167,18 +171,24 @@ have created their records, to fix up names or attach external IDs the source
 systems could not supply:
 
 - `coaches.json5` — TP usernames replaced with the coach's real name.
-- `competitions.json5` — normalizes the 32 recurring numbered competitions the
+- `competitions.json5` — normalizes the 35 recurring numbered competitions the
   two source systems named inconsistently (`Season N` / `Major Season N` /
   `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
-  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries, and each track's
-  unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`).
+  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries; each track's
+  unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`; and
+  BBL's three identically-named `Reserves Rumble` events become
+  `Reserves Rumble 1`–`3`, which only became possible once competitions
+  stopped carrying a `Name` external id and therefore stopped merging onto one
+  row, issue #285).
   Because a
   competition upsert has no partial-update support (issue #174) and would
   otherwise overwrite `eraId` with nothing, the file also redeclares the five
   eras it references — plus their league and rules sets — matching the existing
   rows exactly, purely so this run's `ExternalIdMap` can resolve them. Entries
-  match their existing rows by the source system's numeric ID plus a `Name`
-  external ID equal to the competition's *current* (pre-rename) name.
+  match their existing rows by the source system's numeric ID alone —
+  competitions carry no `Name` external ID, so supplying one would be a dead
+  lookup key. (The redeclared eras, league and rules sets _do_ still match by
+  `Name`, which those entity kinds still carry.)
 
 ## Data layout
 
