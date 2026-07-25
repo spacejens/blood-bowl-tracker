@@ -19,6 +19,8 @@ import { and, countDistinct, desc, eq, ilike, sql } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { countMatchEventsByCoach } from '../shared/match-event-counts';
+import { FOUL_TYPES } from '../shared/match-event-types';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -235,6 +237,21 @@ export class CoachesService {
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(teamEras.eraId)))
       .limit(limit);
+  }
+
+  countFoulsCommittedByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    // Deliberately does not forward scope.competitionId: coach toplists are
+    // league/era-scoped only, matching every other coach.toplist.* fact.
+    return countMatchEventsByCoach({
+      db: this.db,
+      selector: { role: 'acting', types: FOUL_TYPES },
+      leagueId: scope.leagueId,
+      eraId: scope.eraId,
+      limit,
+    });
   }
 
   countAll(): Promise<number> {

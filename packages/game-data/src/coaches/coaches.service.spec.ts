@@ -11,6 +11,7 @@ import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -240,6 +241,54 @@ describe('CoachesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
       ).toEqual(['teams.id', 'team_eras.team_id']);
       expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('countFoulsCommittedByCoach returns the rows the query resolves to', async () => {
+      const rows = [
+        { coachId: 1, name: 'Roze Madder', count: 13 },
+        { coachId: 2, name: 'Grashnak', count: 4 },
+      ];
+      const { db } = await build(rows);
+      await expect(
+        service.countFoulsCommittedByCoach(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('countFoulsCommittedByCoach filters on foul events and forwards league, era and limit', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach({ leagueId: 9, eraId: 20 }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'foul',
+        9,
+        20,
+      ]);
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('countFoulsCommittedByCoach ignores a competition scope', async () => {
+      // Coach toplists are league/era-scoped only (see the design doc): the
+      // competitionId must not reach the query even though the shared helper
+      // would accept it.
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach(
+        { eraId: 20, competitionId: 30 },
+        21,
+      );
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'foul',
+        20,
+      ]);
+    });
+
+    it('countFoulsCommittedByCoach joins coaches through teams', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach(FACT_SCOPE_ALL_TIME, 21);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1)),
+      ).toEqual(['coaches.id', 'teams.coach_id']);
     });
   });
 
