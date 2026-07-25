@@ -85,4 +85,23 @@ describe('ManualDataReader', () => {
   it('rejects when the directory does not exist', async () => {
     await expect(reader.read(join(dir, 'nope'))).rejects.toThrow();
   });
+
+  it('pools the competitions section across files', async () => {
+    write(
+      'a.json5',
+      `{ competitions: [{ name: 'A', type: 'cup',
+         era: { system: 'Name', id: 'name:e' },
+         externalIds: [{ system: 'Name', id: 'name:a' }] }] }`,
+    );
+    write(
+      'b.json5',
+      `{ competitions: [{ name: 'B', type: 'season',
+         era: { system: 'Name', id: 'name:e' },
+         externalIds: [{ system: 'Name', id: 'name:b' }] }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.competitions.map((c) => c.name)).toEqual(['A', 'B']);
+  });
 });

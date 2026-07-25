@@ -27,6 +27,7 @@ function emptyData(): ManualDataFile {
     positions: [],
     coaches: [],
     teams: [],
+    competitions: [],
   };
 }
 

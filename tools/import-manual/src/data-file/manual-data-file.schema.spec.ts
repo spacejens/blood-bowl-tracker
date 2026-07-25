@@ -14,6 +14,7 @@ describe('ManualDataFileSchema', () => {
       positions: [],
       coaches: [],
       teams: [],
+      competitions: [],
     });
   });
 
@@ -121,6 +122,57 @@ describe('ManualDataFileSchema', () => {
             name: 'T',
             coach: { system: 'Name', id: 'name:c' },
             externalIds: [{ system: 'Name', id: 'name:t' }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts a competition with its era reference and type', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitions: [
+        {
+          name: 'Major Season 12',
+          type: 'season',
+          era: { system: 'Name', id: 'name:season-12' },
+          externalIds: [
+            { system: 'BBL', id: 'id:35' },
+            { system: 'Name', id: 'name:season-12-comp' },
+          ],
+        },
+      ],
+    });
+    expect(parsed.competitions[0].type).toBe('season');
+    expect(parsed.competitions[0].era).toEqual({
+      system: 'Name',
+      id: 'name:season-12',
+    });
+    expect(parsed.competitions[0].externalIds).toHaveLength(2);
+  });
+
+  it('rejects a competition with an unknown type', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        competitions: [
+          {
+            name: 'C',
+            type: 'tournament',
+            era: { system: 'Name', id: 'name:e' },
+            externalIds: [{ system: 'Name', id: 'name:c' }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects a competition missing its era reference', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        competitions: [
+          {
+            name: 'C',
+            type: 'cup',
+            externalIds: [{ system: 'Name', id: 'name:c' }],
           },
         ],
       }),

@@ -46,6 +46,7 @@ races
 positions
 coaches
 teams
+competitions
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -75,8 +76,9 @@ pairs, where `system` is an external-system name and `id` follows the
 ```
 
 Fields that point at another entity (an era's `league` and `rulesSets`; a
-race's or team's `eras`; a position's `raceEras`; a team's `race` and `coach`)
-are written as external-id pairs pointing at the target — never a numeric
+race's or team's `eras`; a position's `raceEras`; a team's `race` and `coach`;
+a competition's `era`) are written as external-id pairs pointing at the target
+— never a numeric
 database ID. A reference resolves against the records processed earlier in the
 same run (across all files in the directory), by any pair the target declared.
 A reference to something not present anywhere in the directory being imported is
