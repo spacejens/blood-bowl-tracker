@@ -17,6 +17,7 @@ function emptyData(): ManualDataFile {
     positions: [],
     coaches: [],
     teams: [],
+    competitions: [],
   };
 }
 
@@ -235,5 +236,30 @@ describe('ExternalSystemsProcessor', () => {
     ];
 
     await expect(processor.bootstrap(data)).rejects.toThrow('api down');
+  });
+
+  it('bootstraps the systems a competition references', async () => {
+    const seen: string[] = [];
+    externalSystemsImport.upsertExternalSystem.mockImplementation((name) => {
+      seen.push(name);
+      return Promise.resolve(seen.length);
+    });
+    const data = emptyData();
+    data.externalSystems = [
+      { name: 'CompSys', category: 'imported_data_source' },
+      { name: 'CompEraSys', category: 'imported_data_source' },
+    ];
+    data.competitions = [
+      {
+        name: 'Major Season 12',
+        type: 'season',
+        era: { system: 'CompEraSys', id: 'era:1' },
+        externalIds: [{ system: 'CompSys', id: 'comp:1' }],
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()].sort()).toEqual(['CompEraSys', 'CompSys']);
   });
 });

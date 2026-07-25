@@ -31,6 +31,7 @@ export class ManualDataReader {
       positions: [],
       coaches: [],
       teams: [],
+      competitions: [],
     };
 
     for (const name of filenames) {
@@ -44,6 +45,7 @@ export class ManualDataReader {
       pooled.positions.push(...file.positions);
       pooled.coaches.push(...file.coaches);
       pooled.teams.push(...file.teams);
+      pooled.competitions.push(...file.competitions);
     }
 
     return pooled;

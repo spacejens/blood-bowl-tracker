@@ -70,6 +70,16 @@ const TeamEntrySchema = z.object({
   externalIds,
 });
 
+/** A competition belonging to exactly one era. `type` is not changed by manual
+ * data today (BBL/TP already classify correctly) but must be re-supplied
+ * because the upsert has no partial-update support (issue #174). */
+const CompetitionEntrySchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(['season', 'cup']),
+  era: ExternalRefSchema,
+  externalIds,
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -80,6 +90,7 @@ export const ManualDataFileSchema = z
     positions: z.array(PositionEntrySchema).default([]),
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),
+    competitions: z.array(CompetitionEntrySchema).default([]),
   })
   .strict();
 

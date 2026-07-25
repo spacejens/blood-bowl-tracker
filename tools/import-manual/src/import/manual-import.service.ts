@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
 import { CoachesProcessor } from '../entities/coaches.processor';
+import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
@@ -26,6 +27,7 @@ export class ManualImportService {
     private readonly positions: PositionsProcessor,
     private readonly coaches: CoachesProcessor,
     private readonly teams: TeamsProcessor,
+    private readonly competitions: CompetitionsProcessor,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -57,6 +59,7 @@ export class ManualImportService {
     imported += await this.positions.process(ctx);
     imported += await this.coaches.process(ctx);
     imported += await this.teams.process(ctx);
+    imported += await this.competitions.process(ctx);
 
     return this.importResults.result({ imported, errors });
   }
