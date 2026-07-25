@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
   ExternalSystemBootstrapService,
@@ -12,11 +13,35 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 import { BblErasImportService } from './bbl-eras-import.service';
 import { type EraConfig, EraConfigService } from './era-config.service';
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 interface Mocks {
   eraConfig: MockProxy<EraConfigService>;
   erasImport: MockProxy<ErasImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
+  importResults: MockProxy<ImportResultService>;
 }
 
 /**
@@ -57,18 +82,20 @@ async function makeService(): Promise<{
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // `forEra` is a pure identity passthrough with no branching or formatting,
+  // so there is no algorithm here that can drift out of sync with the real
+  // NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forEra.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -84,7 +111,7 @@ async function makeService(): Promise<{
 
   return {
     service: moduleRef.get(BblErasImportService),
-    mocks: { eraConfig, erasImport, bootstrap, nameConfig },
+    mocks: { eraConfig, erasImport, bootstrap, nameConfig, importResults },
   };
 }
 
@@ -124,13 +151,9 @@ describe('BblErasImportService', () => {
       )
       .mockResolvedValueOnce(makeEraRecord({ id: 600, name: 'BB2020' }));
 
-    const { result, eraIdsByName } = await service.importEras(
-      leagueIds,
-      rulesSetIds,
-    );
+    const { eraIdsByName } = await service.importEras(leagueIds, rulesSetIds);
 
-    expect(result.imported).toBe(2);
-    expect(result.success).toBe(true);
+    expect(resultArgs(mocks.importResults).imported).toBe(2);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
@@ -209,15 +232,12 @@ describe('BblErasImportService', () => {
     );
 
     // leagueIds only has tLoEG, not GBBL.
-    const { result } = await service.importEras(
-      leagueIds,
-      new Map([['BB2016', 300]]),
-    );
+    await service.importEras(leagueIds, new Map([['BB2016', 300]]));
 
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
+    const { errors } = resultArgs(mocks.importResults);
     expect(
-      result.errors.some(
+      errors.some(
         (e) => e.message.includes('GBBL 1') && e.message.includes('league'),
       ),
     ).toBe(true);
@@ -231,13 +251,13 @@ describe('BblErasImportService', () => {
     );
     const partialIds = new Map<string, number>([['Living rulebook', 100]]);
 
-    const { result } = await service.importEras(leagueIds, partialIds);
+    await service.importEras(leagueIds, partialIds);
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
     expect(mocks.erasImport.upsertEra).toHaveBeenCalledTimes(1);
     expect(
-      result.errors.some(
+      errors.some(
         (e) => e.message.includes('BB2020') && e.message.includes('rules set'),
       ),
     ).toBe(true);
@@ -251,10 +271,9 @@ describe('BblErasImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const { result } = await service.importEras(leagueIds, rulesSetIds);
+    await service.importEras(leagueIds, rulesSetIds);
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(false);
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
   });
 
   it('records an error and skips an era whose rules-set name does not resolve', async () => {
@@ -269,13 +288,12 @@ describe('BblErasImportService', () => {
     ];
     mocks.eraConfig.getEras.mockReturnValue(multiRulesSetEras);
 
-    const { result } = await service.importEras(
-      leagueIds,
-      new Map([['CRP', 20]]),
-    );
+    await service.importEras(leagueIds, new Map([['CRP', 20]]));
 
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
-    expect(result.errors[0].message).toMatch(/MISSING/);
+    expect(resultArgs(mocks.importResults).errors[0].message).toMatch(
+      /MISSING/,
+    );
   });
 
   it('resolves all rules-set names to ids and passes the array', async () => {
@@ -313,12 +331,13 @@ describe('BblErasImportService', () => {
       throw new Error('BBL_ERAS is not set.');
     });
 
-    const { result } = await service.importEras(leagueIds, rulesSetIds);
+    await service.importEras(leagueIds, rulesSetIds);
 
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('BBL_ERAS'))).toBe(
-      true,
-    );
+    expect(
+      resultArgs(mocks.importResults).errors.some((e) =>
+        e.message.includes('BBL_ERAS'),
+      ),
+    ).toBe(true);
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
   });
 
@@ -333,17 +352,31 @@ describe('BblErasImportService', () => {
       },
     });
 
-    const { result } = await service.importEras(leagueIds, rulesSetIds);
+    await service.importEras(leagueIds, rulesSetIds);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
     // Message is passed through unchanged (this caller adds no prefix): the
     // assertion now fails if production stops surfacing the real error text.
-    expect(result.errors[0].message).toBe('network timeout');
+    expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
-    expect(result.errors[0].item).toEqual({
+    expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
     expect(mocks.erasImport.upsertEra).not.toHaveBeenCalled();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service, mocks } = await makeService();
+    mocks.eraConfig.getEras.mockReturnValue(eras);
+    mocks.erasImport.upsertEra
+      .mockResolvedValueOnce(
+        makeEraRecord({ id: 500, name: 'Living rulebook' }),
+      )
+      .mockResolvedValueOnce(makeEraRecord({ id: 600, name: 'BB2020' }));
+
+    const { result } = await service.importEras(leagueIds, rulesSetIds);
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
