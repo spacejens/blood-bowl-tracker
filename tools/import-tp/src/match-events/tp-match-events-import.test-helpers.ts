@@ -126,8 +126,9 @@ function mockTpMatchEventsCorrelationService(
  * workspace for the latter's trivial pure construction — so mocking them here
  * drops no coverage, unlike the Builder/KindBuilders chain above.
  *
- * `mockImportResultService()`'s `result()` is then overridden here to return
- * a fixed `CANNED_RESULT` rather than recomputing the real `success`
+ * `mockImportResultService()` only provides the exempt `error` identity
+ * mock; `result()` is stubbed here to return a fixed `CANNED_RESULT` rather
+ * than recomputing the real `success`
  * derivation — a mock must return the canned response a test expects, not
  * reimplement the collaborator's own logic (that derivation is
  * `ImportResultService`'s own job, covered by its dedicated spec). Callers
