@@ -160,6 +160,24 @@ real-world entity differently:
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
 
+## Known after-other-importers cleanup files
+
+`data/after-other-importers/*.json5` files run once the BBL and TP importers
+have created their records, to fix up names or attach external IDs the source
+systems could not supply:
+
+- `coaches.json5` — TP usernames replaced with the coach's real name.
+- `competitions.json5` — normalizes the 29 recurring numbered competitions the
+  two source systems named inconsistently (`Season N` / `Major Season N` /
+  `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
+  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries). Because a
+  competition upsert has no partial-update support (issue #174) and would
+  otherwise overwrite `eraId` with nothing, the file also redeclares the five
+  eras it references — plus their league and rules sets — matching the existing
+  rows exactly, purely so this run's `ExternalIdMap` can resolve them. Entries
+  match their existing rows by the source system's numeric ID plus a `Name`
+  external ID equal to the competition's *current* (pre-rename) name.
+
 ## Data layout
 
 The tool works from two well-known subdirectories:
