@@ -1,4 +1,5 @@
 import type { UpsertPosition } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -8,7 +9,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -27,12 +28,36 @@ interface MakeServiceOptions {
   upsertPosition?: ReturnType<typeof vi.fn>;
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   upsertPlayerResult,
   bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] }),
   getTpSystemName = () => 'TP',
   upsertPosition = vi.fn(),
-}: MakeServiceOptions): Promise<TpPlayersImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpPlayersImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const playersImport = mock<PlayersImportService>();
   playersImport.upsertPlayerResult.mockImplementation(
     asProviderMethod(upsertPlayerResult),
@@ -54,6 +79,10 @@ async function makeService({
     message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
   }));
   const importResults = mockImportResultService();
+  // Overrides the shared helper's mirrored `result` with a canned value (a
+  // later stub wins). ImportResultService.result's own success derivation is
+  // covered by packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -73,7 +102,10 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpPlayersImportService);
+  return {
+    service: moduleRef.get(TpPlayersImportService),
+    importResults,
+  };
 }
 
 const rosters: RosterEntry[] = [
@@ -106,16 +138,18 @@ const rosters: RosterEntry[] = [
 describe('TpPlayersImportService', () => {
   it('imports a resolvable roster player and maps its lineUpId to the DB id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
     expect(playerIdsByLineUpId.get(2412443)).toBe(900);
     expect(upsertPlayerResult).toHaveBeenCalledWith(
       {
@@ -130,9 +164,11 @@ describe('TpPlayersImportService', () => {
 
   it('imports a player present only in matchEmbeddedPlayersByRosterId (absent from roster.players), filling the departed-player gap', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -155,7 +191,7 @@ describe('TpPlayersImportService', () => {
       ]),
     });
 
-    expect(result.imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(2);
     expect(playerIdsByLineUpId.get(9999999)).toBe(901);
     expect(upsertPlayerResult).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -168,7 +204,7 @@ describe('TpPlayersImportService', () => {
 
   it('prefers roster.players data over matchEmbeddedPlayersByRosterId for the same player id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service } = await makeService({ upsertPlayerResult });
 
     await service.importPlayers({
       rosters,
@@ -205,9 +241,11 @@ describe('TpPlayersImportService', () => {
 
   it('records an unknown-era error and skips a player whose roster era is not imported', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map(),
@@ -216,16 +254,20 @@ describe('TpPlayersImportService', () => {
 
     expect(playerIdsByLineUpId.size).toBe(0);
     expect(
-      result.errors.some((e) => e.message.toLowerCase().includes('era')),
+      resultArgs(importResults).errors.some((e) =>
+        e.message.toLowerCase().includes('era'),
+      ),
     ).toBe(true);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('records a non-fatal error and skips a player whose team era cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map(),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -233,15 +275,17 @@ describe('TpPlayersImportService', () => {
     });
 
     expect(playerIdsByLineUpId.size).toBe(0);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('records a non-fatal error and skips a player whose position cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -249,13 +293,13 @@ describe('TpPlayersImportService', () => {
     });
 
     expect(playerIdsByLineUpId.size).toBe(0);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertPlayerResult = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       upsertPlayerResult,
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
@@ -263,14 +307,14 @@ describe('TpPlayersImportService', () => {
       }),
     });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[952, 200]]),
     });
 
-    expect(result.errors).toHaveLength(1);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
     expect(playerIdsByLineUpId.size).toBe(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
@@ -278,7 +322,10 @@ describe('TpPlayersImportService', () => {
   it('imports a hired star player as an isStarPlayer position + a player on the hiring team-era', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -314,27 +361,29 @@ describe('TpPlayersImportService', () => {
   it('records a non-fatal error and skips a star player whose hiring team-era cannot be resolved', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
-    const { result, starPlayerIdsByRosterAndMaster } =
-      await service.importPlayers({
-        rosters,
-        teamErasByRosterId: new Map(),
-        eraIdsByName: new Map([['Third Era', 500]]),
-        positionIdsByTpPositionId: new Map(),
-        inducedStarPlayerHireGroups: [
-          {
-            rosterId: 168446,
-            eraId: 500,
-            starPlayers: [
-              { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
-            ],
-          },
-        ],
-      });
+    const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map(),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 168446,
+          eraId: 500,
+          starPlayers: [
+            { name: 'Fungus the Loon', lineUpMasterId: 1122, number: 11 },
+          ],
+        },
+      ],
+    });
 
     expect(starPlayerIdsByRosterAndMaster.size).toBe(0);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
     expect(upsertPosition).not.toHaveBeenCalled();
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
@@ -342,7 +391,10 @@ describe('TpPlayersImportService', () => {
   it('does not redundantly re-import the same hired star player within one run', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -369,7 +421,10 @@ describe('TpPlayersImportService', () => {
   it('skips a star player without creating a player when the position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const { starPlayerIdsByRosterAndMaster } = await service.importPlayers({
       rosters,
@@ -394,7 +449,10 @@ describe('TpPlayersImportService', () => {
   it('attaches a Name-system bare-name external id to hired star positions', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     await service.importPlayers({
       rosters,
@@ -424,7 +482,10 @@ describe('TpPlayersImportService', () => {
   it('disambiguates a hiring team-era spanning multiple eras via the hire group real eraId', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 700 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     // Two RosterEntry rows share rosterId 168446 across different eras, so
     // teamErasByRosterId.get(168446) returns two genuinely ambiguous
@@ -502,7 +563,9 @@ describe('TpPlayersImportService', () => {
 
   it('imports an embedded star player from a standalone roster whose lineUpMasterId resolves via a star catalog id', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
     // A permanently-rostered star player: its lineUps entry references a star
     // catalog id (5002), which positionIdsByTpPositionId now maps (Task 2).
@@ -533,14 +596,14 @@ describe('TpPlayersImportService', () => {
       },
     ];
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: starRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map([[5002, 700]]),
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
     expect(playerIdsByLineUpId.get(3000001)).toBe(950);
     expect(upsertPlayerResult).toHaveBeenCalledWith(
       {
@@ -555,9 +618,11 @@ describe('TpPlayersImportService', () => {
 
   it('imports an embedded star player present only in a match-embedded snapshot', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 951 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -585,7 +650,7 @@ describe('TpPlayersImportService', () => {
 
     // Two players: the standalone roster's regular player plus the
     // match-embedded star player.
-    expect(result.imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(2);
     expect(playerIdsByLineUpId.get(3000002)).toBe(951);
     expect(upsertPlayerResult).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -600,7 +665,10 @@ describe('TpPlayersImportService', () => {
   it('imports a mercenary Big Guy (isBigGuy: true, unresolvable lineUpMasterId) via its fallbackPositionName as an isStarPlayer position', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -629,7 +697,7 @@ describe('TpPlayersImportService', () => {
       },
     ];
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -637,7 +705,7 @@ describe('TpPlayersImportService', () => {
       positionIdsByTpPositionId: new Map(),
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
     expect(playerIdsByLineUpId.get(1399322)).toBe(960);
     expect(upsertPosition).toHaveBeenCalledWith(
       {
@@ -667,7 +735,10 @@ describe('TpPlayersImportService', () => {
       .mockResolvedValueOnce({ id: 960 })
       .mockResolvedValueOnce({ id: 961 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -705,21 +776,24 @@ describe('TpPlayersImportService', () => {
       },
     ];
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
       positionIdsByTpPositionId: new Map(),
     });
 
-    expect(result.imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(2);
     expect(upsertPosition).toHaveBeenCalledTimes(1);
   });
 
   it('skips a mercenary Big Guy without creating a player when the fallback position upsert fails', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 960 });
     const upsertPosition = vi.fn().mockResolvedValue(undefined);
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const mercenaryRosters: RosterEntry[] = [
       {
@@ -748,7 +822,7 @@ describe('TpPlayersImportService', () => {
       },
     ];
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters: mercenaryRosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -756,16 +830,19 @@ describe('TpPlayersImportService', () => {
     });
 
     expect(playerIdsByLineUpId.size).toBe(0);
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
     expect(upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('does not fall back to fallbackPositionName for a non-isBigGuy player, and still skips it with an error', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 800 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service, importResults } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
-    const { result, playerIdsByLineUpId } = await service.importPlayers({
+    const { playerIdsByLineUpId } = await service.importPlayers({
       rosters,
       teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
       eraIdsByName: new Map([['Third Era', 500]]),
@@ -776,7 +853,7 @@ describe('TpPlayersImportService', () => {
 
     expect(playerIdsByLineUpId.size).toBe(0);
     expect(
-      result.errors.some((e) =>
+      resultArgs(importResults).errors.some((e) =>
         e.message.includes('could not resolve position'),
       ),
     ).toBe(true);
@@ -786,7 +863,7 @@ describe('TpPlayersImportService', () => {
 
   it('emits no starPositionUsages for a regular (non-star) roster player', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service } = await makeService({ upsertPlayerResult });
 
     const { starPositionUsages } = await service.importPlayers({
       rosters,
@@ -801,7 +878,7 @@ describe('TpPlayersImportService', () => {
 
   it('emits a starPositionUsage for an embedded roster player whose position is a star position', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
-    const service = await makeService({ upsertPlayerResult });
+    const { service } = await makeService({ upsertPlayerResult });
     const embeddedStarRosters: RosterEntry[] = [
       {
         era: 'Third Era',
@@ -845,7 +922,10 @@ describe('TpPlayersImportService', () => {
   it('emits a starPositionUsage for a mercenary Big Guy resolved via the fallback position name', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 902 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 820 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
     const mercRosters: RosterEntry[] = [
       {
         era: 'Third Era',
@@ -888,7 +968,10 @@ describe('TpPlayersImportService', () => {
   it('emits a starPositionUsage for an inducements-hired star player', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 901 });
     const upsertPosition = vi.fn().mockResolvedValue({ id: 810 });
-    const service = await makeService({ upsertPlayerResult, upsertPosition });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
 
     const { starPositionUsages } = await service.importPlayers({
       rosters, // roster 123 -> teamRaceCode 'Dwarf', era 'Third Era'
@@ -914,5 +997,19 @@ describe('TpPlayersImportService', () => {
       era: 'Third Era',
     });
     expect(starPositionUsages).toHaveLength(1);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+
+    const { result } = await service.importPlayers({
+      rosters,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+    });
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
