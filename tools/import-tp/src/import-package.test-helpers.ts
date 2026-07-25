@@ -25,7 +25,7 @@ export function mockImportResultService(): MockProxy<ImportResultService> {
 }
 
 /**
- * A `MockProxy<NameExternalIdService>` whose eight `forX(name)` methods return
+ * A `MockProxy<NameExternalIdService>` whose seven `forX(name)` methods return
  * the name they were given. Those are pure identity passthroughs with nothing
  * computed or formatted, so there is no algorithm to drift out of sync with
  * the real NameExternalIdService (see
@@ -39,7 +39,6 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
   nameExternalId.forCoach.mockImplementation((name) => name);
   nameExternalId.forEra.mockImplementation((name) => name);
   nameExternalId.forLeague.mockImplementation((name) => name);
-  nameExternalId.forCompetition.mockImplementation((name) => name);
   nameExternalId.forRulesSet.mockImplementation((name) => name);
   nameExternalId.forTeam.mockImplementation((name) => name);
   nameExternalId.forRace.mockImplementation((name) => name);

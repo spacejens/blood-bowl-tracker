@@ -4,8 +4,6 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
-  NAME_EXTERNAL_SYSTEM,
-  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -34,7 +32,7 @@ interface CompetitionGroup {
 interface ImportGroupOptions {
   group: CompetitionGroup;
   eraIdsByName: Map<string, number>;
-  systemIds: { tp: number; name: number };
+  systemIds: { tp: number };
   errors: ImportError[];
 }
 
@@ -54,7 +52,6 @@ export class TpCompetitionsImportService {
     private readonly competitionsImport: CompetitionsImportService,
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
-    private readonly nameExternalId: NameExternalIdService,
     private readonly importResults: ImportResultService,
   ) {}
 
@@ -65,8 +62,11 @@ export class TpCompetitionsImportService {
    * files give the dates whose span classifies it (span <= 3 days => cup, else
    * season). Its era is the directory's own era, looked up in `eraIdsByName`
    * (produced by TpErasImportService) — no date-range matching is needed,
-   * unlike BBL. Each competition is keyed by its numeric TP id (stringified)
-   * under the TP external system and by its exact name under Name.
+   * unlike BBL. Each competition is keyed *only* by its numeric TP id
+   * (stringified) under the TP external system — deliberately no Name external
+   * id: a shared Name id merges distinct same-named competitions onto one row
+   * (issue #285), and no competition is ever imported from two source systems,
+   * so Name is not needed for cross-system dedup here.
    * Competitions with no base tournament file, an unparsable one, no dated
    * matches, or an era with no known id are skipped with a recorded error.
    * Idempotent.
@@ -105,7 +105,6 @@ export class TpCompetitionsImportService {
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: tpSystemName, category: 'imported_data_source' },
-      NAME_EXTERNAL_SYSTEM,
     ]);
     if (!bootstrap.ok) {
       errors.push(bootstrap.error);
@@ -116,14 +115,14 @@ export class TpCompetitionsImportService {
         competitionsByTpId,
       };
     }
-    const [tpSystemId, nameSystemId] = bootstrap.ids;
+    const [tpSystemId] = bootstrap.ids;
 
     const groups = await this.collectGroups(errors);
     for (const group of groups.values()) {
       const upserted = await this.importGroup({
         group,
         eraIdsByName,
-        systemIds: { tp: tpSystemId, name: nameSystemId },
+        systemIds: { tp: tpSystemId },
         errors,
       });
       if (upserted !== undefined) {
@@ -135,8 +134,8 @@ export class TpCompetitionsImportService {
         });
         // Accumulate rather than overwrite: two distinct TP tournament
         // directories could in principle dedupe onto the same DB competition
-        // (e.g. a Name-external-id collision), and losing the earlier
-        // group's matches in that case would be a silent data-loss bug.
+        // (e.g. two directories carrying the same TP tournament id), and
+        // losing the earlier group's matches would be a silent data-loss bug.
         matchesByCompetitionId.set(upserted.id, [
           ...(matchesByCompetitionId.get(upserted.id) ?? []),
           ...group.matches,
@@ -300,10 +299,6 @@ export class TpCompetitionsImportService {
       teamEraIds: [],
       externalIds: [
         { externalSystemId: systemIds.tp, externalId: String(tournament.id) },
-        {
-          externalSystemId: systemIds.name,
-          externalId: this.nameExternalId.forCompetition(tournament.name),
-        },
       ],
     };
     const upserted = await this.competitionsImport.upsertCompetitionResult(
