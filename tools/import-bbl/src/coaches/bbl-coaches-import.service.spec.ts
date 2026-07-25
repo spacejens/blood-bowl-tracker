@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
   ExternalSystemBootstrapService,
@@ -15,6 +16,42 @@ import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCoachesImportService } from './bbl-coaches-import.service';
 import { makeCoachRecord } from './bbl-coaches-import.test-helpers';
 import { CoachPageParser } from './coach-page-parser';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+/**
+ * The canned ImportError the mocked PageParseErrorService.build returns.
+ * PageParseErrorService's own message template — including the
+ * `error instanceof Error ? error.message : String(error)` branch — is
+ * covered by ../source/page-parse-error.service.spec.ts. This spec asserts
+ * only what BblCoachesImportService hands to build() and that it pushes
+ * build()'s return value onto the errors list.
+ */
+const CANNED_PAGE_PARSE_ERROR: ImportError = {
+  item: { page: 'canned' },
+  message: 'canned page parse error',
+};
 
 function page(coachName: string | null): BblPage {
   return {
@@ -44,15 +81,15 @@ interface Mocks {
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
   nameExternalId: MockProxy<NameExternalIdService>;
+  importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
 }
 
 /**
  * Builds the service under test through a TestingModule with every
- * collaborator mocked. Mocks that gate assertions elsewhere in this file
- * (name resolution, error building) mirror the real, deterministic
- * production logic so a regression in the service under test still fails
- * these tests.
+ * collaborator mocked. ImportResultService.result and
+ * PageParseErrorService.build return canned values (see the constants above);
+ * tests assert what this service passes to them, not what they compute.
  */
 async function makeService(
   reader: BblSourceReader,
@@ -72,29 +109,23 @@ async function makeService(
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // `forCoach` is a pure identity passthrough with no branching or
+  // formatting, so there is no algorithm here that can drift out of sync with
+  // the real NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forCoach.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockImplementation(
-    (pageParams, pageDescription, error) =>
-      importResults.error({
-        item: { page: pageParams },
-        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }),
-  );
+  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -118,6 +149,7 @@ async function makeService(
       bootstrap,
       nameConfig,
       nameExternalId,
+      importResults,
       pageParseError,
     },
   };
@@ -150,9 +182,9 @@ describe('BblCoachesImportService', () => {
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {
     const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledWith(
       {
         name: 'Hugo E',
@@ -170,10 +202,10 @@ describe('BblCoachesImportService', () => {
       makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
     );
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(2);
-    expect(result.imported).toBe(2);
+    expect(resultArgs(mocks.importResults).imported).toBe(2);
   });
 
   it('skips team pages that have no coach', async () => {
@@ -181,10 +213,10 @@ describe('BblCoachesImportService', () => {
       makeReader([page(null), page('Tommy')]),
     );
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
   it('records an error and continues when a coach upsert fails', async () => {
@@ -196,11 +228,11 @@ describe('BblCoachesImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.success).toBe(false);
-    expect(result.imported).toBe(1);
-    expect(result.errors.some((e) => e.message.includes('Hugo E'))).toBe(true);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
+    expect(errors.some((e) => e.message.includes('Hugo E'))).toBe(true);
   });
 
   it('records an error and continues when a team page fails to parse', async () => {
@@ -211,29 +243,35 @@ describe('BblCoachesImportService', () => {
       throw new Error('bad page');
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.imported).toBe(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
     expect(mocks.coachesImport.upsertCoach).toHaveBeenCalledTimes(1);
-    expect(
-      result.errors.some((e) =>
-        e.message.includes('Failed to parse team page'),
-      ),
-    ).toBe(true);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { coach: 'Hugo E' },
+      'team',
+      new Error('bad page'),
+    );
   });
 
-  it('records a stringified error when a team page throws a non-Error value', async () => {
+  it('passes a non-Error thrown team-page value straight through to PageParseErrorService', async () => {
     const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
     mocks.parser.extractCoach.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.imported).toBe(0);
-    expect(result.errors.some((e) => e.message.includes('bad page'))).toBe(
-      true,
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { coach: 'Hugo E' },
+      'team',
+      'bad page',
     );
   });
 
@@ -247,17 +285,15 @@ describe('BblCoachesImportService', () => {
       },
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
     // Message is passed through unchanged (this caller adds no prefix): the
     // assertion now fails if production stops surfacing the real error text.
-    expect(result.errors[0].message).toBe('network timeout');
+    expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
-    expect(result.errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
-    });
+    expect(errors[0].item).toEqual({ externalSystems: ['BBL', 'Name'] });
     expect(mocks.coachesImport.upsertCoach).not.toHaveBeenCalled();
   });
 
@@ -273,5 +309,13 @@ describe('BblCoachesImportService', () => {
 
     expect(coachIdsByName.get('Hugo E')).toBe(100);
     expect(coachIdsByName.get('Roze Madder')).toBe(200);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService(makeReader([page('Hugo E')]));
+
+    const { result } = await service.importCoaches();
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
