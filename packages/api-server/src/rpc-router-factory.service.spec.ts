@@ -107,9 +107,16 @@ describe('RpcRouterFactoryService', () => {
 
   it('coaches.upsert returns the flat entity with a created flag', async () => {
     coachesService.upsert.mockResolvedValue({
-      coach: { id: 1, name: 'Roze Madder', createdAt: new Date('2026-01-01') },
+      coach: {
+        id: 1,
+        name: 'Roze Madder',
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
+      },
       created: true,
-    } as Awaited<ReturnType<CoachesService['upsert']>>);
+    });
 
     const result = await call(router.coaches.upsert, {
       name: 'Roze Madder',
@@ -160,9 +167,12 @@ describe('RpcRouterFactoryService', () => {
         name: 'BBL',
         category: 'imported_data_source',
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: false,
-    } as Awaited<ReturnType<ExternalSystemsService['upsert']>>);
+    });
 
     const result = await call(router.externalSystems.upsert, {
       name: 'BBL',
@@ -184,9 +194,12 @@ describe('RpcRouterFactoryService', () => {
         id: 1,
         name: 'Test League',
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<LeaguesService['upsert']>>);
+    });
 
     const result = await call(router.leagues.upsert, {
       name: 'Test League',
@@ -237,9 +250,12 @@ describe('RpcRouterFactoryService', () => {
         name: 'Orc',
         eras: [5],
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<RacesService['upsert']>>);
+    });
 
     const result = await call(router.races.upsert, {
       name: 'Orc',
@@ -291,9 +307,12 @@ describe('RpcRouterFactoryService', () => {
         id: 1,
         name: 'BB2020',
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<RulesSetsService['upsert']>>);
+    });
 
     const result = await call(router.rulesSets.upsert, {
       name: 'BB2020',
@@ -347,9 +366,12 @@ describe('RpcRouterFactoryService', () => {
         startDate: '2021-09-01',
         endDate: '2023-06-10',
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<ErasService['upsert']>>);
+    });
 
     const result = await call(router.eras.upsert, {
       name: 'BB2020',
@@ -414,9 +436,12 @@ describe('RpcRouterFactoryService', () => {
         name: 'Lineman',
         isStarPlayer: false,
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<PositionsService['upsert']>>);
+    });
 
     const result = await call(router.positions.upsert, {
       name: 'Lineman',
@@ -495,9 +520,12 @@ describe('RpcRouterFactoryService', () => {
         coachId: 9,
         eras: [],
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as unknown as Awaited<ReturnType<TeamsService['upsert']>>);
+    });
 
     const result = await call(router.teams.upsert, {
       name: '40 grinders',
@@ -559,9 +587,12 @@ describe('RpcRouterFactoryService', () => {
         eraId: 20,
         teamEraIds: [],
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as unknown as Awaited<ReturnType<CompetitionsService['upsert']>>);
+    });
 
     const result = await call(router.competitions.upsert, {
       name: 'Major Season 24',
@@ -623,9 +654,12 @@ describe('RpcRouterFactoryService', () => {
         name: 'Final',
         playedAt: new Date('2021-09-25'),
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<MatchesService['upsert']>>);
+    });
 
     const result = await call(router.matches.upsert, {
       competitionId: 20,
@@ -686,9 +720,12 @@ describe('RpcRouterFactoryService', () => {
         teamEraId: 10,
         positionId: 20,
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<PlayersService['upsert']>>);
+    });
 
     const result = await call(router.players.upsert, {
       name: 'Griff Oberwald',
