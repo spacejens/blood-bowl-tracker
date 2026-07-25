@@ -258,9 +258,9 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL
   external system (`BBL` by default). `type` is `cup` when the match dates
   span 3 days or fewer, else `season`; `eraId` is the era whose configured
-  date range contains the earliest
-  match date, considering only eras with `autoAssignByDate: true` — an era
-  with `autoAssignByDate: false` is reached only through its
+  date range contains the earliest match date, considering only eras with
+  `autoAssignByDate: true` — an era with `autoAssignByDate: false` is reached
+  only through its
   `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides`. A competition
   listed in an era's `seasonCompetitionIdOverrides`
   or `cupCompetitionIdOverrides` is instead hard-assigned that era and forced
