@@ -477,8 +477,6 @@ describe('BblCompetitionsImportService', () => {
     expect(imported).toBe(0);
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toBe('era config is malformed');
-    // The Name system is no longer touched by this importer at all, so it
-    // must not appear in the error's externalSystems label.
     expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(mocks.bootstrap.bootstrap).not.toHaveBeenCalled();
     expect(
