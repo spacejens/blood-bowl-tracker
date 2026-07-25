@@ -84,6 +84,16 @@ const cases: ToplistCase[] = [
     rows: [{ coachId: 1, name: 'Roze Madder', count: 3 }],
     expectedTitle: 'Coaches by eras active',
   },
+  {
+    describeName: 'resolveFoulsCommitted',
+    method: 'countFoulsCommittedByCoach',
+    resolve: (service) => service.resolveFoulsCommitted(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 13 },
+      { coachId: 2, name: 'Grashnak', count: 4 },
+    ],
+    expectedTitle: 'Coaches by fouls committed',
+  },
 ];
 
 describe.each(cases)(
@@ -180,5 +190,29 @@ describe('CoachToplistService.resolveErasActive', () => {
     });
     await service.resolveErasActive();
     expect(countErasByCoach).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
+  });
+});
+
+describe('CoachToplistService.resolveFoulsCommitted', () => {
+  it('passes the whole scope and the fetch limit through to the query', async () => {
+    // The competitionId is forwarded verbatim here on purpose: dropping it is
+    // CoachesService.countFoulsCommittedByCoach's responsibility, covered in
+    // its own spec.
+    const countFoulsCommittedByCoach = vi
+      .fn()
+      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 13 }]);
+    const coaches = {
+      countFoulsCommittedByCoach,
+    } as unknown as CoachesService;
+    const { service, leaderboard } = await makeService(coaches);
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
+    await service.resolveFoulsCommitted({ leagueId: 9, eraId: 20 });
+    expect(countFoulsCommittedByCoach).toHaveBeenCalledWith(
+      { leagueId: 9, eraId: 20 },
+      TOPLIST_FETCH_LIMIT,
+    );
   });
 });

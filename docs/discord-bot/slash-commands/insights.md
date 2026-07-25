@@ -44,8 +44,12 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.eras.active` — coaches ranked by number of distinct eras their
   teams have existed across. Does not support era filtering (scoping to a single
   era would always yield 0 or 1), so it is excluded from era-filtered runs.
+- `coach.toplist.fouls.committed` — coaches ranked by fouls committed. Counts
+  `foul` match events credited to the acting team, attributed to that team's
+  coach. Supports league and era filtering, but not competition filtering (like
+  the other `coach.toplist.*` facts).
 
-Each coach listed by the four `coach.toplist.*` facts above also gets a
+Each coach listed by the five `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 

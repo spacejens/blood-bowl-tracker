@@ -1,12 +1,12 @@
 # Match event counts
 
-Counts of [match events](../glossary.md#match-event) grouped by player or by team, backing the
-`/insights` top lists.
+Counts of [match events](../glossary.md#match-event) grouped by player, by team, or by coach,
+backing the `/insights` top lists.
 
 Every such count is the same query shaped by three inputs: the **role** the counted entity played in
 the event (the acting side or the consequence side), the **set of event types** that count, and the
-**grouping entity** (player or team). Role and join columns co-vary: an acting-role count joins
-through the acting columns, a consequence-role count through the consequence columns.
+**grouping entity** (player, team, or coach). Role and join columns co-vary: an acting-role count
+joins through the acting columns, a consequence-role count through the consequence columns.
 
 ## The player/team grid is deliberately incomplete
 
@@ -16,6 +16,11 @@ Not every count exists for both grouping entities, and that is by design — not
   top list of deaths suffered would be a list of ones.
 - MVP awards are counted by player but not by team. The award is a per-player honour; totalling it
   per team measures matches played, not merit.
+- Fouls committed are additionally counted by **coach** (`countMatchEventsByCoach`, the per-team join
+  graph plus a `teams.coachId -> coaches.id` hop). It is the only coach-grouped count today: coaches
+  are ranked on fouls because someone wanted to read that list, not because every player/team count
+  needs a coach twin. The coach grouping is also league/era-scoped only — coach toplists take no
+  competition scope.
 
 The shared count helper makes filling in the grid mechanically trivial. Do not. A count exists
 because someone wants to read it, not because the grid has a hole.

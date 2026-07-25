@@ -9,16 +9,52 @@ import {
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { LeaderboardService } from '../leaderboard.service';
+import type { ToplistResolver } from './toplist-factory';
+import { makeToplistResolvers } from './toplist-factory';
 
 @Injectable()
 export class CoachToplistService {
+  /**
+   * `resolveMatchesPlayed`, `resolveTeams`, and `resolveCompetitionsPlayed`
+   * already have the `(scope, limit) -> counted rows` shape this factory
+   * requires and could be migrated onto it too; they're left hand-written for
+   * now, with that migration tracked as a follow-up issue (see the "Follow-up"
+   * section of `docs/plans/2026-07-25-coach-toplist-fouls-committed-design.md`).
+   * Only `resolveErasActive` (backed by `countErasByCoach`, which takes no
+   * scope at all) is structurally incompatible with the factory.
+   */
+  private readonly resolvers: Record<
+    'countFoulsCommittedByCoach',
+    ToplistResolver<CoachesService>
+  >;
+
   constructor(
     private readonly coaches: CoachesService,
     private readonly leaderboard: LeaderboardService,
-  ) {}
+  ) {
+    this.resolvers = makeToplistResolvers<
+      'countFoulsCommittedByCoach',
+      CoachesService,
+      { coachId: number; name: string; count: number }
+    >({
+      titles: {
+        countFoulsCommittedByCoach: 'Coaches by fouls committed',
+      },
+      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+      buildCustomId: (row) => this.coachButtonId(row),
+      leaderboard: this.leaderboard,
+    });
+  }
 
   private coachButtonId(row: { coachId: number }): string {
     return `${COACH_BUTTON_CUSTOM_ID_PREFIX}${row.coachId}`;
+  }
+
+  resolveFoulsCommitted(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countFoulsCommittedByCoach(this.coaches, scope);
   }
 
   resolveMatchesPlayed(

@@ -40,6 +40,14 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: () => deps.coachToplist.resolveErasActive(),
           },
         },
+        fouls: {
+          committed: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            resolve: (scope) => deps.coachToplist.resolveFoulsCommitted(scope),
+          },
+        },
       },
     },
     team: {
