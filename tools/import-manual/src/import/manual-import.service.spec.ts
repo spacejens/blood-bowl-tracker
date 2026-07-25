@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
 import { CoachesProcessor } from '../entities/coaches.processor';
+import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
 import { LeaguesProcessor } from '../entities/leagues.processor';
@@ -46,6 +47,7 @@ interface ProcessorMocks {
   positions: MockProxy<PositionsProcessor>;
   coaches: MockProxy<CoachesProcessor>;
   teams: MockProxy<TeamsProcessor>;
+  competitions: MockProxy<CompetitionsProcessor>;
 }
 
 function processImpl(name: string, overrides: Overrides) {
@@ -81,6 +83,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
     positions: mock<PositionsProcessor>(),
     coaches: mock<CoachesProcessor>(),
     teams: mock<TeamsProcessor>(),
+    competitions: mock<CompetitionsProcessor>(),
   };
   procs.rulesSets.process.mockImplementation(
     processImpl('rulesSets', overrides),
@@ -93,6 +96,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   );
   procs.coaches.process.mockImplementation(processImpl('coaches', overrides));
   procs.teams.process.mockImplementation(processImpl('teams', overrides));
+  procs.competitions.process.mockImplementation(
+    processImpl('competitions', overrides),
+  );
 
   const importResults = mock<ImportResultService>();
   importResults.result.mockImplementation(({ imported, errors }) => ({
@@ -113,6 +119,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
       { provide: PositionsProcessor, useValue: procs.positions },
       { provide: CoachesProcessor, useValue: procs.coaches },
       { provide: TeamsProcessor, useValue: procs.teams },
+      { provide: CompetitionsProcessor, useValue: procs.competitions },
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
@@ -135,12 +142,13 @@ describe('ManualImportService', () => {
         races: 1,
         coaches: 1,
         teams: 1,
+        competitions: 1,
       },
     });
 
     const result = await service.run('/data/dir');
 
-    expect(result.imported).toBe(7);
+    expect(result.imported).toBe(8);
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -189,6 +197,10 @@ describe('ManualImportService', () => {
       order.push('teams');
       return Promise.resolve(0);
     });
+    procs.competitions.process.mockImplementation(() => {
+      order.push('competitions');
+      return Promise.resolve(0);
+    });
 
     await service.run('/data/dir');
 
@@ -200,6 +212,7 @@ describe('ManualImportService', () => {
       'positions',
       'coaches',
       'teams',
+      'competitions',
     ]);
   });
 

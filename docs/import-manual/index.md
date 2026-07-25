@@ -216,10 +216,13 @@ point the tool at any other directory by passing its path.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
-  teams) — each resolves its references, calls the shared `*ImportService` from
-  `packages/import`, and records the upserted record's external ids for later
-  references. The positions processor additionally calls `syncRaceEras` to set
-  race/era availability.
+  teams, competitions) — each resolves its references, calls the shared
+  `*ImportService` from `packages/import`, and records the upserted record's
+  external ids for later references. The positions processor additionally calls
+  `syncRaceEras` to set race/era availability. The competitions processor runs
+  last (it depends on eras) and always sends an empty `teamEraIds` list, which
+  the API treats additively and so never detaches an imported competition's
+  teams.
 - **ManualImportService** — orchestrates the reader, the bootstrap, and the
   entity processors in dependency order, aggregating one `ImportResult`.
 
