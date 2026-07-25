@@ -12,19 +12,16 @@ import { LeaderboardService } from '../leaderboard.service';
 import type { ToplistResolver } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
+type CoachToplistMethod =
+  | 'countFoulsCommittedByCoach'
+  | 'countMatchesPlayedByCoach'
+  | 'countTeamsByCoach'
+  | 'countCompetitionsByCoach';
+
 @Injectable()
 export class CoachToplistService {
-  /**
-   * `resolveMatchesPlayed`, `resolveTeams`, and `resolveCompetitionsPlayed`
-   * already have the `(scope, limit) -> counted rows` shape this factory
-   * requires and could be migrated onto it too; they're left hand-written for
-   * now, with that migration tracked as a follow-up issue (see the "Follow-up"
-   * section of `docs/plans/2026-07-25-coach-toplist-fouls-committed-design.md`).
-   * Only `resolveErasActive` (backed by `countErasByCoach`, which takes no
-   * scope at all) is structurally incompatible with the factory.
-   */
   private readonly resolvers: Record<
-    'countFoulsCommittedByCoach',
+    CoachToplistMethod,
     ToplistResolver<CoachesService>
   >;
 
@@ -33,12 +30,15 @@ export class CoachToplistService {
     private readonly leaderboard: LeaderboardService,
   ) {
     this.resolvers = makeToplistResolvers<
-      'countFoulsCommittedByCoach',
+      CoachToplistMethod,
       CoachesService,
       { coachId: number; name: string; count: number }
     >({
       titles: {
         countFoulsCommittedByCoach: 'Coaches by fouls committed',
+        countMatchesPlayedByCoach: 'Coaches by matches played',
+        countTeamsByCoach: 'Coaches by teams coached',
+        countCompetitionsByCoach: 'Coaches by competitions played',
       },
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
@@ -51,47 +51,28 @@ export class CoachToplistService {
     return `${COACH_BUTTON_CUSTOM_ID_PREFIX}${row.coachId}`;
   }
 
-  resolveFoulsCommitted(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
+  resolveFoulsCommitted(scope: FactScope) {
     return this.resolvers.countFoulsCommittedByCoach(this.coaches, scope);
   }
 
-  resolveMatchesPlayed(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
-      title: 'Coaches by matches played',
-      fetchRows: (limit) =>
-        this.coaches.countMatchesPlayedByCoach(scope, limit),
-      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
-      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
-    });
+  resolveMatchesPlayed(scope: FactScope) {
+    return this.resolvers.countMatchesPlayedByCoach(this.coaches, scope);
   }
 
-  resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
-      title: 'Coaches by teams coached',
-      fetchRows: (limit) => this.coaches.countTeamsByCoach(scope, limit),
-      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
-      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
-    });
+  resolveTeams(scope: FactScope) {
+    return this.resolvers.countTeamsByCoach(this.coaches, scope);
   }
 
-  resolveCompetitionsPlayed(
-    scope: FactScope,
-  ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
-      title: 'Coaches by competitions played',
-      fetchRows: (limit) => this.coaches.countCompetitionsByCoach(scope, limit),
-      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
-      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
-    });
+  resolveCompetitionsPlayed(scope: FactScope) {
+    return this.resolvers.countCompetitionsByCoach(this.coaches, scope);
   }
 
+  /**
+   * Backed by `countErasByCoach`, which takes no `FactScope` at all (eras
+   * active is inherently unscoped), so it does not fit the factory's
+   * `(scope, limit)` shape and stays hand-written rather than widening its
+   * query signature to accept a scope it would ignore.
+   */
   resolveErasActive(): Promise<string | InteractionReplyOptions> {
     return this.leaderboard.resolveToplist({
       title: 'Coaches by eras active',
