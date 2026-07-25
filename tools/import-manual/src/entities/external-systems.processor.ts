@@ -49,6 +49,10 @@ function collectSystemNames(data: ManualDataFile): string[] {
     add(entry.coach);
     addAll(entry.eras);
   }
+  for (const entry of data.competitions) {
+    addAll(entry.externalIds);
+    add(entry.era);
+  }
   return [...names];
 }
 

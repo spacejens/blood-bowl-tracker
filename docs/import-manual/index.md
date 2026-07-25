@@ -46,6 +46,7 @@ races
 positions
 coaches
 teams
+competitions
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -75,8 +76,9 @@ pairs, where `system` is an external-system name and `id` follows the
 ```
 
 Fields that point at another entity (an era's `league` and `rulesSets`; a
-race's or team's `eras`; a position's `raceEras`; a team's `race` and `coach`)
-are written as external-id pairs pointing at the target — never a numeric
+race's or team's `eras`; a position's `raceEras`; a team's `race` and `coach`;
+a competition's `era`) are written as external-id pairs pointing at the target
+— never a numeric
 database ID. A reference resolves against the records processed earlier in the
 same run (across all files in the directory), by any pair the target declared.
 A reference to something not present anywhere in the directory being imported is
@@ -158,6 +160,26 @@ real-world entity differently:
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
 
+## Known after-other-importers cleanup files
+
+`data/after-other-importers/*.json5` files run once the BBL and TP importers
+have created their records, to fix up names or attach external IDs the source
+systems could not supply:
+
+- `coaches.json5` — TP usernames replaced with the coach's real name.
+- `competitions.json5` — normalizes the 32 recurring numbered competitions the
+  two source systems named inconsistently (`Season N` / `Major Season N` /
+  `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
+  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries, and each track's
+  unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`).
+  Because a
+  competition upsert has no partial-update support (issue #174) and would
+  otherwise overwrite `eraId` with nothing, the file also redeclares the five
+  eras it references — plus their league and rules sets — matching the existing
+  rows exactly, purely so this run's `ExternalIdMap` can resolve them. Entries
+  match their existing rows by the source system's numeric ID plus a `Name`
+  external ID equal to the competition's *current* (pre-rename) name.
+
 ## Data layout
 
 The tool works from two well-known subdirectories:
@@ -214,10 +236,13 @@ point the tool at any other directory by passing its path.
 - **ExternalSystemsProcessor** — bootstraps every external system referenced in
   the pooled data, building a name → id map.
 - **Entity processors** (rules sets, leagues, eras, races, positions, coaches,
-  teams) — each resolves its references, calls the shared `*ImportService` from
-  `packages/import`, and records the upserted record's external ids for later
-  references. The positions processor additionally calls `syncRaceEras` to set
-  race/era availability.
+  teams, competitions) — each resolves its references, calls the shared
+  `*ImportService` from `packages/import`, and records the upserted record's
+  external ids for later references. The positions processor additionally calls
+  `syncRaceEras` to set race/era availability. The competitions processor runs
+  last (it depends on eras) and always sends an empty `teamEraIds` list, which
+  the API treats additively and so never detaches an imported competition's
+  teams.
 - **ManualImportService** — orchestrates the reader, the bootstrap, and the
   entity processors in dependency order, aggregating one `ImportResult`.
 
