@@ -9,6 +9,8 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { EntityComponentsService } from '../../entity-components.service';
+import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
@@ -21,13 +23,22 @@ import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
-async function makeService(
-  teams: TeamsService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  leaderboard: MockProxy<LeaderboardService> = mock<LeaderboardService>(),
-): Promise<{
+interface MakeServiceOptions {
+  teams: TeamsService;
+  databaseTimeout?: MockProxy<DatabaseTimeoutService>;
+  leaderboard?: MockProxy<LeaderboardService>;
+  entityComponents?: MockProxy<EntityComponentsService>;
+}
+
+async function makeService({
+  teams,
+  databaseTimeout = mockDatabaseTimeout(),
+  leaderboard = mock<LeaderboardService>(),
+  entityComponents = passthroughEntityComponents(),
+}: MakeServiceOptions): Promise<{
   service: TeamDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
+  entityComponents: MockProxy<EntityComponentsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -35,9 +46,14 @@ async function makeService(
       { provide: TeamsService, useValue: teams },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
+      { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
-  return { service: moduleRef.get(TeamDeepdiveService), leaderboard };
+  return {
+    service: moduleRef.get(TeamDeepdiveService),
+    leaderboard,
+    entityComponents,
+  };
 }
 
 function makeTeams(options: {
@@ -72,21 +88,23 @@ const grinders = {
 
 describe('TeamDeepdiveService', () => {
   it('returns the not-found message when the team does not exist', async () => {
-    const { service } = await makeService(makeTeams({ team: undefined }));
+    const { service } = await makeService({
+      teams: makeTeams({ team: undefined }),
+    });
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_TEAM_NOT_FOUND_MESSAGE);
   });
 
-  // LeaderboardService.topRanksWithTies/buildEntityButtons themselves
-  // (ranking, tie handling, dedupe/cap/chunk) are covered by
-  // leaderboard.service.spec.ts. `passthroughLeaderboard()` cans them to
-  // simply echo their inputs, so this test asserts only what
-  // TeamDeepdiveService itself owns: joining the race/coach/career/ranked-row
-  // lines, and building the race-then-coach-then-player button-entry pool (in
-  // that order) that it hands to buildEntityButtons.
-  it('renders the race, coach, career span and top-players list, with header buttons before player buttons', async () => {
-    const { service } = await makeService(
-      makeTeams({
+  // LeaderboardService.topRanksWithTies (ranking, tie handling) is covered by
+  // leaderboard.service.spec.ts. `passthroughLeaderboard()` cans it to simply
+  // echo its inputs, and `passthroughEntityComponents()` cans component
+  // building the same way, so this test asserts only what TeamDeepdiveService
+  // itself owns: joining the race/coach/career/ranked-row lines, and building
+  // the race-then-coach-then-player component-entry pool (in that order) that
+  // it hands to buildEntityComponents.
+  it('renders the race, coach, career span and top-players list, with header components before player components', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [
@@ -94,9 +112,8 @@ describe('TeamDeepdiveService', () => {
           { playerId: 8, name: 'Morg', count: 11 },
         ],
       }),
-      undefined,
-      passthroughLeaderboard(),
-    );
+      leaderboard: passthroughLeaderboard(),
+    });
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -150,16 +167,14 @@ describe('TeamDeepdiveService', () => {
       truncatedCount: 2,
       tieGroupOpenEnded: false,
     });
-    leaderboard.buildEntityButtons.mockReturnValue([]);
-    const { service } = await makeService(
-      makeTeams({
+    const { service } = await makeService({
+      teams: makeTeams({
         team: grinders,
         span: { start: '2021-09-01', end: '2023-06-10' },
         topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
       }),
-      undefined,
       leaderboard,
-    );
+    });
     const result = (await service.resolve(1)) as {
       embeds: { description: string }[];
     };
@@ -167,13 +182,35 @@ describe('TeamDeepdiveService', () => {
     expect(lines).toContain('…and 2 more tied.');
   });
 
-  it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach buttons', async () => {
+  it('appends the overflow note when components report entries without a link', async () => {
+    const leaderboard = passthroughLeaderboard();
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 5 more without a link.',
+    });
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [{ playerId: 1, name: 'P0', count: 9 }],
+      }),
+      leaderboard,
+      entityComponents,
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('…and 5 more without a link.');
+  });
+
+  it('shows race, coach and the no-matches message, skipping the top-players section, but still renders race/coach components', async () => {
     const teams = makeTeams({ team: grinders, span: undefined });
-    const { service } = await makeService(
+    const { service } = await makeService({
       teams,
-      undefined,
-      passthroughLeaderboard(),
-    );
+      leaderboard: passthroughLeaderboard(),
+    });
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -209,7 +246,10 @@ describe('TeamDeepdiveService', () => {
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(makeTeams({}), databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({}),
+          databaseTimeout,
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -223,10 +263,10 @@ describe('TeamDeepdiveService', () => {
         const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run.mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(
-          makeTeams({ team: grinders }),
+        const { service } = await makeService({
+          teams: makeTeams({ team: grinders }),
           databaseTimeout,
-        );
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -242,13 +282,13 @@ describe('TeamDeepdiveService', () => {
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(
-          makeTeams({
+        const { service } = await makeService({
+          teams: makeTeams({
             team: grinders,
             span: { start: '2021-09-01', end: '2023-06-10' },
           }),
           databaseTimeout,
-        );
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -256,9 +296,9 @@ describe('TeamDeepdiveService', () => {
     );
   });
 
-  it('still renders race and coach buttons when the team has no matches', async () => {
-    const { service } = await makeService(
-      makeTeams({
+  it('still renders race and coach components when the team has no matches', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
         team: {
           id: 1,
           name: 'Reikland Reavers',
@@ -269,9 +309,8 @@ describe('TeamDeepdiveService', () => {
         },
         span: undefined,
       }),
-      undefined,
-      passthroughLeaderboard(),
-    );
+      leaderboard: passthroughLeaderboard(),
+    });
     const result = (await service.resolve(1)) as unknown as {
       components: { components: { label: string; custom_id: string }[] }[];
     };

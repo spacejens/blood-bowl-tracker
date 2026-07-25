@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
@@ -36,6 +37,7 @@ export class CoachDeepdiveService {
     private readonly coaches: CoachesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(coachId: number): Promise<string | InteractionReplyOptions> {
@@ -84,18 +86,22 @@ export class CoachDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(
+        ranked.map((row) => ({
+          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(row.id),
+          label: row.name,
+        })),
+      );
+
     const description = [
       `Career: ${span.start} – ${span.end}`,
       '',
       'Top teams by matches played:',
       ...teamLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
-
-    const components = this.leaderboard.buildEntityButtons(
-      ranked,
-      (row) => `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.id}`,
-      (row) => row.name,
-    );
 
     return {
       embeds: [{ title: coach.name, description }],
