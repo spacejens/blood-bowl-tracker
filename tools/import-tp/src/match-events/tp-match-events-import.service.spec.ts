@@ -1,5 +1,8 @@
+import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
+import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
+import type { BuildEventDataOptions } from './tp-match-events-builder.service';
 import {
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
@@ -11,20 +14,41 @@ import {
   MATCH_DB_ID,
   matchWithEvents,
   runImport,
-  runImportWithErrors,
+  runImportRaw,
+  SCORER_PLAYER_ID,
   TP_SYSTEM_ID,
+  VICTIM_PLAYER_ID,
 } from './tp-match-events-import.test-helpers';
 
+const TOUCHDOWN = {
+  type: 'touchdown',
+  tpEventId: 1,
+  instant: 'x',
+  lineUpId: 2442075,
+  rosterId: HOME_ROSTER_ID,
+} as const;
+
+function upsertEvent(externalId: string): UpsertMatchEvent {
+  return {
+    matchId: MATCH_DB_ID,
+    actionType: 'touchdown',
+    externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId }],
+  };
+}
+
 /**
- * Administrative TP match events and error-handling paths. Gameplay events
- * (touchdown, mvp_award, the other simple actions, sent_off,
- * injury/casualty) are covered in `tp-match-events-gameplay.spec.ts` — split
- * out to stay under this repo's 1000-line spec file ceiling.
+ * `TpMatchEventsImportService` owns iteration, per-match options assembly,
+ * delegation to `TpMatchEventsBuilderService`, upserting whatever comes
+ * back, and error threading — not event content. Its loop is identical for
+ * every event kind, so this suite is deliberately kind-agnostic; the
+ * per-kind construction is covered by
+ * `tp-match-events-builder.service.spec.ts` (dispatch) and
+ * `tp-match-event-kind-builders-{gameplay,admin}.spec.ts` (content).
  */
 describe('TpMatchEventsImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchEvent = vi.fn();
-    const service = await makeService(upsertMatchEvent, {
+    const { service } = await makeService(upsertMatchEvent, {
       bootstrapResult: {
         ok: false,
         error: { item: { externalSystems: ['TP'] }, message: 'boom' },
@@ -47,49 +71,15 @@ describe('TpMatchEventsImportService', () => {
     expect(result.success).toBe(false);
   });
 
-  it('emits a null-player event and records a non-fatal error for an unresolvable lineUpId', async () => {
-    const { errors, captured } = await runImportWithErrors({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'touchdown',
-              tpEventId: 5,
-              instant: 'x',
-              lineUpId: 999999,
-              rosterId: HOME_ROSTER_ID,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured[0].actingPlayerId).toBeUndefined();
-    expect(errors.length).toBeGreaterThan(0);
-  });
-
   it('records a non-fatal error and skips a competition whose era cannot be resolved', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = await makeService(upsertMatchEvent);
+    const { service } = await makeService(upsertMatchEvent);
 
     const { result } = await service.importMatchEvents({
       matchesByCompetitionId: new Map([
         [
           COMPETITION_DB_ID,
-          [
-            matchWithEvents({
-              id: 566088,
-              events: [
-                {
-                  type: 'touchdown',
-                  tpEventId: 1,
-                  instant: 'x',
-                  lineUpId: 2442075,
-                  rosterId: HOME_ROSTER_ID,
-                },
-              ],
-            }),
-          ],
+          [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
         ],
       ]),
       eraIdByCompetitionId: new Map(),
@@ -105,26 +95,13 @@ describe('TpMatchEventsImportService', () => {
 
   it('records a non-fatal error and skips a match with no imported match id', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = await makeService(upsertMatchEvent);
+    const { service } = await makeService(upsertMatchEvent);
 
     const { result } = await service.importMatchEvents({
       matchesByCompetitionId: new Map([
         [
           COMPETITION_DB_ID,
-          [
-            matchWithEvents({
-              id: 566088,
-              events: [
-                {
-                  type: 'touchdown',
-                  tpEventId: 1,
-                  instant: 'x',
-                  lineUpId: 2442075,
-                  rosterId: HOME_ROSTER_ID,
-                },
-              ],
-            }),
-          ],
+          [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
         ],
       ]),
       eraIdByCompetitionId: new Map([[COMPETITION_DB_ID, ERA_ID]]),
@@ -138,433 +115,145 @@ describe('TpMatchEventsImportService', () => {
     expect(result.errors.length).toBeGreaterThan(0);
   });
 
-  it('emits a neutral eventType weather event with the weatherType payload', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'weather_roll',
-              tpEventId: 10,
-              instant: 'x',
-              weatherType: 'perfect_conditions',
-            },
-          ],
-        }),
-      ],
+  it('iterates every match of every competition, resolving each competition against its own era', async () => {
+    const upsertMatchEvent = vi.fn().mockResolvedValue(true);
+    const { service, eventsBuilder } = await makeService(upsertMatchEvent);
+    const matchA = matchWithEvents({ id: 1, events: [TOUCHDOWN] });
+    const matchB = matchWithEvents({ id: 2, events: [TOUCHDOWN] });
+    const matchC = matchWithEvents({ id: 3, events: [TOUCHDOWN] });
+
+    const { result } = await service.importMatchEvents({
+      matchesByCompetitionId: new Map<number, TpMatch[]>([
+        [900, [matchA, matchB]],
+        [901, [matchC]],
+      ]),
+      eraIdByCompetitionId: new Map([
+        [900, ERA_ID],
+        [901, 600],
+      ]),
+      matchIdsByTpId: new Map([
+        [1, 11],
+        [2, 12],
+        [3, 13],
+      ]),
+      teamErasByRosterId: new Map(),
+      playerIdsByLineUpId: new Map(),
+      starPlayerIdsByRosterAndMaster: new Map(),
     });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        matchId: MATCH_DB_ID,
-        eventType: 'weather',
-        weatherType: 'perfect_conditions',
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-10' }],
-      }),
+
+    expect(eventsBuilder.buildEventData).toHaveBeenCalledTimes(3);
+    const calls = eventsBuilder.buildEventData.mock.calls.map(
+      ([options]) => options,
     );
-    expect(captured[0].actionType).toBeUndefined();
-    expect(captured[0].actingTeamEraId).toBeUndefined();
+    expect(calls.map((o) => o.matchId)).toEqual([11, 12, 13]);
+    expect(calls.map((o) => o.eraId)).toEqual([ERA_ID, ERA_ID, 600]);
+    expect(result.imported).toBe(3);
+    expect(result.errors).toEqual([]);
   });
 
-  it('emits an acting inducements event with inducementsCost', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'inducements_roll',
-              tpEventId: 11,
-              instant: 'x',
-              rosterId: HOME_ROSTER_ID,
-              totalCost: 80,
-              starPlayers: [],
-            },
-          ],
-        }),
-      ],
+  it('passes the fully assembled per-match options to buildEventData for every event', async () => {
+    const eventA = { ...TOUCHDOWN, tpEventId: 100 };
+    const eventB = { ...TOUCHDOWN, tpEventId: 101, rosterId: AWAY_ROSTER_ID };
+    const correlationResult = {
+      casualtyByInjuryEventId: new Map(),
+      pairedCasualtyEventIds: new Set([777]),
+    };
+    const { eventsBuilder } = await runImportRaw({
+      matches: [matchWithEvents({ id: 566088, events: [eventA, eventB] })],
+      correlationResult,
     });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'inducements',
-        actingTeamEraId: HOME_TEAM_ERA_ID,
-        inducementsCost: 80,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-11' }],
-      }),
+
+    expect(eventsBuilder.buildEventData).toHaveBeenCalledTimes(2);
+    const [first, second] = eventsBuilder.buildEventData.mock.calls.map(
+      ([options]) => options,
     );
-    expect(captured[0].inducementsFromTreasury).toBeUndefined();
+    expect(first).toEqual({
+      event: eventA,
+      matchId: MATCH_DB_ID,
+      eraId: ERA_ID,
+      tpSystemId: TP_SYSTEM_ID,
+      teamErasByRosterId: new Map([
+        [HOME_ROSTER_ID, [{ id: HOME_TEAM_ERA_ID, eraId: ERA_ID }]],
+        [AWAY_ROSTER_ID, [{ id: AWAY_TEAM_ERA_ID, eraId: ERA_ID }]],
+      ]),
+      playerIdsByLineUpId: new Map([
+        [2442075, SCORER_PLAYER_ID],
+        [2459782, VICTIM_PLAYER_ID],
+      ]),
+      homeTeamEraId: HOME_TEAM_ERA_ID,
+      awayTeamEraId: AWAY_TEAM_ERA_ID,
+      errors: [],
+      casualtyPairing: correlationResult,
+    });
+    expect(second.event).toBe(eventB);
   });
 
-  it('emits an acting inducements event with inducementsFromTreasury when present', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'inducements_roll',
-              tpEventId: 24,
-              instant: 'x',
-              rosterId: HOME_ROSTER_ID,
-              totalCost: 80,
-              starPlayers: [],
-              fromTreasury: 50,
-            },
-          ],
-        }),
-      ],
+  it('resolves the home and away team eras once per match, from the match roster ids', async () => {
+    const { eventsBuilder } = await runImportRaw({
+      matches: [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
     });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'inducements',
-        inducementsCost: 80,
-        inducementsFromTreasury: 50,
-      }),
-    );
-  });
 
-  it('emits an acting journeymen_signings event with journeymenCount', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'journeyman_signing',
-              tpEventId: 15,
-              instant: 'x',
-              rosterId: AWAY_ROSTER_ID,
-              journeymenCount: 2,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'journeymen_signings',
-        actingTeamEraId: AWAY_TEAM_ERA_ID,
-        journeymenCount: 2,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-15' }],
-      }),
+    expect(eventsBuilder.resolveTeamEraId).toHaveBeenCalledTimes(2);
+    expect(eventsBuilder.resolveTeamEraId).toHaveBeenCalledWith(
+      expect.objectContaining({ rosterId: HOME_ROSTER_ID, eraId: ERA_ID }),
+    );
+    expect(eventsBuilder.resolveTeamEraId).toHaveBeenCalledWith(
+      expect.objectContaining({ rosterId: AWAY_ROSTER_ID, eraId: ERA_ID }),
     );
   });
 
-  it('emits an acting secret_objective with secretObjective', async () => {
+  it('upserts one event per item returned by buildEventData, in order', async () => {
     const captured = await runImport({
       matches: [
         matchWithEvents({
           id: 566088,
           events: [
-            {
-              type: 'secret_objective',
-              tpEventId: 42,
-              instant: 'x',
-              rosterId: HOME_ROSTER_ID,
-              secretObjective: 'going_alone',
-            },
+            { ...TOUCHDOWN, tpEventId: 1 },
+            { ...TOUCHDOWN, tpEventId: 2 },
           ],
         }),
       ],
+      buildEventData: (options: BuildEventDataOptions) =>
+        options.event.tpEventId === 1
+          ? [upsertEvent('a'), upsertEvent('b')]
+          : [upsertEvent('c')],
     });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'secret_objective',
-        actingTeamEraId: HOME_TEAM_ERA_ID,
-        secretObjective: 'going_alone',
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-42' }],
-      }),
-    );
-  });
 
-  it('emits an expensive_mistake consequence for the acting roster', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'expensive_mistake',
-              tpEventId: 14,
-              instant: 'x',
-              rosterId: AWAY_ROSTER_ID,
-              expensiveMistake: 5,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        consequenceType: 'expensive_mistake',
-        consequenceTeamEraId: AWAY_TEAM_ERA_ID,
-        expensiveMistake: 5,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-14' }],
-      }),
-    );
-  });
-
-  it('emits two winnings events, one per side, with distinct external ids', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'winnings_roll',
-              tpEventId: 12,
-              instant: 'x',
-              localWinnings: 30000,
-              visitorWinnings: 10000,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
-      'tp-12-away',
-      'tp-12-home',
-    ]);
-    expect(
-      captured.find((c) => c.actingTeamEraId === HOME_TEAM_ERA_ID)?.winnings,
-    ).toBe(30000);
-    expect(
-      captured.find((c) => c.actingTeamEraId === AWAY_TEAM_ERA_ID)?.winnings,
-    ).toBe(10000);
-    expect(captured.every((c) => c.actionType === 'winnings')).toBe(true);
-  });
-
-  it('emits two fan_factor events, one per side', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'fan_factor_roll',
-              tpEventId: 13,
-              instant: 'x',
-              newFanFactorLocal: 7,
-              newFanFactorVisitor: 9,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
-      'tp-13-away',
-      'tp-13-home',
-    ]);
-    expect(
-      captured.find((c) => c.actingTeamEraId === HOME_TEAM_ERA_ID)?.fanFactor,
-    ).toBe(7);
-    expect(
-      captured.find((c) => c.actingTeamEraId === AWAY_TEAM_ERA_ID)?.fanFactor,
-    ).toBe(9);
-    expect(captured.every((c) => c.actionType === 'fan_factor')).toBe(true);
-  });
-
-  it('emits two dedicated_fans consequence events, one per side, as consequences', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'dedicated_fans_roll',
-              tpEventId: 26,
-              instant: 'x',
-              dedicatedFansModifierLocal: 1,
-              dedicatedFansModifierVisitor: -1,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured.map((c) => c.externalIds[0].externalId).sort()).toEqual([
-      'tp-26-away',
-      'tp-26-home',
-    ]);
-    expect(
-      captured.find((c) => c.consequenceTeamEraId === HOME_TEAM_ERA_ID)
-        ?.dedicatedFans,
-    ).toBe(1);
-    expect(
-      captured.find((c) => c.consequenceTeamEraId === AWAY_TEAM_ERA_ID)
-        ?.dedicatedFans,
-    ).toBe(-1);
-    expect(captured.every((c) => c.consequenceType === 'dedicated_fans')).toBe(
-      true,
-    );
-    expect(captured.every((c) => c.actionType === undefined)).toBe(true);
-  });
-
-  it('skips a dedicated_fans side whose modifier is 0', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'dedicated_fans_roll',
-              tpEventId: 27,
-              instant: 'x',
-              dedicatedFansModifierLocal: 0,
-              dedicatedFansModifierVisitor: -1,
-            },
-          ],
-        }),
-      ],
-    });
     expect(captured.map((c) => c.externalIds[0].externalId)).toEqual([
-      'tp-27-away',
+      'a',
+      'b',
+      'c',
     ]);
   });
 
-  it('emits no dedicated_fans event when both sides are unchanged', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'dedicated_fans_roll',
-              tpEventId: 28,
-              instant: 'x',
-              dedicatedFansModifierLocal: 0,
-              dedicatedFansModifierVisitor: 0,
-            },
-          ],
-        }),
-      ],
+  it('upserts nothing for an event whose buildEventData returns no items', async () => {
+    const { captured, errors } = await runImportRaw({
+      matches: [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
+      buildEventData: () => [],
     });
+
     expect(captured).toEqual([]);
+    expect(errors).toEqual([]);
   });
 
-  it('emits a neutral prayers_to_nuffle with the prayersToNuffle payload', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'prayers_to_nuffle',
-              tpEventId: 23,
-              instant: 'x',
-              prayersToNuffle: 4,
-            },
-          ],
-        }),
-      ],
+  it('surfaces an error that buildEventData pushed onto the shared errors array', async () => {
+    const { errors, captured } = await runImportRaw({
+      matches: [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
+      buildEventData: (options: BuildEventDataOptions) => {
+        options.errors.push({
+          item: { match: options.matchId },
+          message: 'Player lineUpId "999999" has no imported id.',
+        });
+        return [upsertEvent('tp-1')];
+      },
     });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'prayers_to_nuffle',
-        prayersToNuffle: 4,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-23' }],
-      }),
-    );
-    expect(captured[0].actingTeamEraId).toBeUndefined();
-  });
 
-  it('emits a concession consequence for the conceding side (home)', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'concession',
-              tpEventId: 20,
-              instant: 'x',
-              concedeLocal: true,
-              concedeVisitor: false,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        consequenceType: 'concession',
-        consequenceTeamEraId: HOME_TEAM_ERA_ID,
-        externalIds: [{ externalSystemId: TP_SYSTEM_ID, externalId: 'tp-20' }],
-      }),
-    );
-  });
-
-  it('emits a concession consequence for the conceding side (away)', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'concession',
-              tpEventId: 21,
-              instant: 'x',
-              concedeLocal: false,
-              concedeVisitor: true,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        consequenceType: 'concession',
-        consequenceTeamEraId: AWAY_TEAM_ERA_ID,
-      }),
-    );
-  });
-
-  it('omits consequenceTeamEraId for a concession where neither side conceded', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'concession',
-              tpEventId: 22,
-              instant: 'x',
-              concedeLocal: false,
-              concedeVisitor: false,
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({ consequenceType: 'concession' }),
-    );
-    expect(captured[0].consequenceTeamEraId).toBeUndefined();
-  });
-
-  it('omits actingTeamEraId for an inducements event with an unresolvable rosterId', async () => {
-    const captured = await runImport({
-      matches: [
-        matchWithEvents({
-          id: 566088,
-          events: [
-            {
-              type: 'inducements_roll',
-              tpEventId: 25,
-              instant: 'x',
-              rosterId: 999999,
-              totalCost: 40,
-              starPlayers: [],
-            },
-          ],
-        }),
-      ],
-    });
-    expect(captured).toContainEqual(
-      expect.objectContaining({
-        actionType: 'inducements',
-        inducementsCost: 40,
-      }),
-    );
-    expect(captured[0].actingTeamEraId).toBeUndefined();
+    expect(captured).toHaveLength(1);
+    expect(errors).toEqual([
+      {
+        item: { match: MATCH_DB_ID },
+        message: 'Player lineUpId "999999" has no imported id.',
+      },
+    ]);
   });
 });
