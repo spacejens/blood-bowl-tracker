@@ -1,4 +1,5 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -7,7 +8,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -25,11 +26,35 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   bootstrap,
   upsertTeam,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions): Promise<TpTeamsImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpTeamsImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const teamsImport = mock<TeamsImportService>();
   teamsImport.upsertTeam.mockImplementation(asProviderMethod(upsertTeam));
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
@@ -45,6 +70,10 @@ async function makeService({
     message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
   }));
   const importResults = mockImportResultService();
+  // Overrides the shared helper's mirrored `result` with a canned value (a
+  // later stub wins). ImportResultService.result's own success derivation is
+  // covered by packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -63,7 +92,10 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpTeamsImportService);
+  return {
+    service: moduleRef.get(TpTeamsImportService),
+    importResults,
+  };
 }
 
 interface RosterOpts {
@@ -111,12 +143,12 @@ describe('TpTeamsImportService', () => {
   it('upserts a team with resolved race, coach, eras and external ids', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
     const bootstrap = twoSystemUpsertMock();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap,
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
+    await service.importTeams(
       [
         rosterEntry('Fourth era', {
           id: 5,
@@ -136,8 +168,9 @@ describe('TpTeamsImportService', () => {
       { name: 'TP', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toEqual([]);
     expect(upsertTeam).toHaveBeenCalledWith(
       {
         name: 'Da Boyz',
@@ -155,7 +188,7 @@ describe('TpTeamsImportService', () => {
 
   it('accumulates eras for one team seen under multiple eras', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
-    const service = await makeService({
+    const { service } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
@@ -194,7 +227,7 @@ describe('TpTeamsImportService', () => {
 
   it('keeps the first-seen name/race/coach when a roster id recurs', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
-    const service = await makeService({
+    const { service } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
@@ -238,12 +271,12 @@ describe('TpTeamsImportService', () => {
 
   it('skips and records an error when the race cannot be resolved', async () => {
     const upsertTeam = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
+    await service.importTeams(
       [
         rosterEntry('Fourth era', {
           id: 5,
@@ -260,20 +293,20 @@ describe('TpTeamsImportService', () => {
     );
 
     expect(upsertTeam).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
+    const { errors } = resultArgs(importResults);
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve race')),
+      errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
   });
 
   it('skips and records an error when the coach cannot be resolved', async () => {
     const upsertTeam = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
+    await service.importTeams(
       [
         rosterEntry('Fourth era', {
           id: 5,
@@ -290,19 +323,20 @@ describe('TpTeamsImportService', () => {
     );
 
     expect(upsertTeam).not.toHaveBeenCalled();
+    const { errors } = resultArgs(importResults);
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve coach')),
+      errors.some((e) => e.message.includes('could not resolve coach')),
     ).toBe(true);
   });
 
   it('records an error for a roster under an unknown era but still upserts the team', async () => {
     const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
+    await service.importTeams(
       [
         rosterEntry('Fourth era', {
           id: 5,
@@ -326,15 +360,13 @@ describe('TpTeamsImportService', () => {
 
     expect(upsertTeam).toHaveBeenCalledTimes(1);
     expect((upsertTeam.mock.calls[0][0] as UpsertTeam).eras).toEqual([100]);
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('Ghost era'))).toBe(
-      true,
-    );
+    const { errors } = resultArgs(importResults);
+    expect(errors.some((e) => e.message.includes('Ghost era'))).toBe(true);
   });
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertTeam = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
         error: {
@@ -345,7 +377,7 @@ describe('TpTeamsImportService', () => {
       upsertTeam,
     });
 
-    const { result } = await service.importTeams(
+    await service.importTeams(
       [
         rosterEntry('Fourth era', {
           id: 5,
@@ -360,8 +392,9 @@ describe('TpTeamsImportService', () => {
       },
     );
 
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
     expect(upsertTeam).not.toHaveBeenCalled();
   });
 
@@ -370,7 +403,7 @@ describe('TpTeamsImportService', () => {
       ...teamRecord(70),
       eras: [{ id: 700, eraId: 100 }],
     });
-    const service = await makeService({
+    const { service } = await makeService({
       bootstrap: twoSystemUpsertMock(),
       upsertTeam,
     });
@@ -392,5 +425,31 @@ describe('TpTeamsImportService', () => {
     );
 
     expect(teamErasByRosterId.get(5)).toEqual([{ id: 700, eraId: 100 }]);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const upsertTeam = vi.fn().mockResolvedValue(teamRecord(70));
+    const { service } = await makeService({
+      bootstrap: twoSystemUpsertMock(),
+      upsertTeam,
+    });
+
+    const { result } = await service.importTeams(
+      [
+        rosterEntry('Fourth era', {
+          id: 5,
+          teamName: 'Da Boyz',
+          teamRace: 'Orc',
+          coachTpId: 'guid-c',
+        }),
+      ],
+      {
+        raceIdsByTeamRaceCode: new Map([['Orc', 50]]),
+        coachIdsByTpId: new Map([['guid-c', 900]]),
+        eraIdsByName: new Map([['Fourth era', 100]]),
+      },
+    );
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
