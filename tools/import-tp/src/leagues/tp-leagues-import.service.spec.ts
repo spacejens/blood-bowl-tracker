@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -6,7 +7,7 @@ import {
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -24,12 +25,36 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   getLeagueName,
   bootstrap,
   upsertLeague,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions): Promise<TpLeaguesImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpLeaguesImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const leagueConfig = mock<LeagueConfigService>();
   leagueConfig.getLeagueName.mockImplementation(getLeagueName);
   const leaguesImport = mock<LeaguesImportService>();
@@ -42,6 +67,10 @@ async function makeService({
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
+  // Overrides the shared helper's mirrored `result` with a canned value (a
+  // later stub wins). ImportResultService.result's own success derivation is
+  // covered by packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -60,7 +89,10 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpLeaguesImportService);
+  return {
+    service: moduleRef.get(TpLeaguesImportService),
+    importResults,
+  };
 }
 
 describe('TpLeaguesImportService', () => {
@@ -69,16 +101,17 @@ describe('TpLeaguesImportService', () => {
     const upsertLeague = vi
       .fn()
       .mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,
     });
 
-    const { result, leagueId } = await service.importLeague();
+    const { leagueId } = await service.importLeague();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toEqual([]);
     expect(leagueId).toBe(10);
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
@@ -99,7 +132,7 @@ describe('TpLeaguesImportService', () => {
   it('records one error and no leagueId when the league name is unset', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertLeague = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getLeagueName: () => {
         throw new Error('league.name is not set in import-tp-config.json5');
       },
@@ -107,9 +140,9 @@ describe('TpLeaguesImportService', () => {
       upsertLeague,
     });
 
-    const { result, leagueId } = await service.importLeague();
+    const { leagueId } = await service.importLeague();
 
-    expect(result.success).toBe(false);
+    expect(resultArgs(importResults).errors).toHaveLength(1);
     expect(leagueId).toBeUndefined();
     expect(upsertLeague).not.toHaveBeenCalled();
   });
@@ -123,18 +156,18 @@ describe('TpLeaguesImportService', () => {
       },
     });
     const upsertLeague = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,
     });
 
-    const { result } = await service.importLeague();
+    await service.importLeague();
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toBe('network timeout');
-    expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe('network timeout');
+    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
     expect(upsertLeague).not.toHaveBeenCalled();
   });
 
@@ -146,16 +179,33 @@ describe('TpLeaguesImportService', () => {
         errors.push({ message: 'league boom' });
         return Promise.resolve(undefined);
       });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getLeagueName: () => 'tLoEGBBL',
       bootstrap,
       upsertLeague,
     });
 
-    const { result, leagueId } = await service.importLeague();
+    const { leagueId } = await service.importLeague();
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
     expect(leagueId).toBeUndefined();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertLeague = vi
+      .fn()
+      .mockResolvedValue({ id: 10, name: 'tLoEGBBL' });
+    const { service } = await makeService({
+      getLeagueName: () => 'tLoEGBBL',
+      bootstrap,
+      upsertLeague,
+    });
+
+    const { result } = await service.importLeague();
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

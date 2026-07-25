@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -6,7 +7,7 @@ import {
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -23,11 +24,35 @@ interface MakeServiceOptions {
   getTpSystemName?: () => string;
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   bootstrap,
   upsertMatchResult,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions): Promise<TpMatchesImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpMatchesImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const matchesImport = mock<MatchesImportService>();
   matchesImport.upsertMatchResult.mockImplementation(
     asProviderMethod(upsertMatchResult),
@@ -39,6 +64,10 @@ async function makeService({
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const importResults = mockImportResultService();
+  // Overrides the shared helper's mirrored `result` with a canned value (a
+  // later stub wins). ImportResultService.result's own success derivation is
+  // covered by packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -55,7 +84,10 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpMatchesImportService);
+  return {
+    service: moduleRef.get(TpMatchesImportService),
+    importResults,
+  };
 }
 
 function tpMatch(id: number, name: string): TpMatch {
@@ -74,20 +106,21 @@ function tpMatch(id: number, name: string): TpMatch {
 describe('TpMatchesImportService', () => {
   it('upserts every match across competitions with its competitionId, name and TP external id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
-    const { result } = await service.importMatches(
+    await service.importMatches(
       new Map([
         [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
         [20, [tpMatch(200, 'Day 1')]],
       ]),
     );
 
-    expect(result.imported).toBe(3);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(3);
+    expect(errors).toEqual([]);
     expect(upsertMatchResult).toHaveBeenCalledTimes(3);
     expect(upsertMatchResult).toHaveBeenNthCalledWith(
       1,
@@ -123,42 +156,41 @@ describe('TpMatchesImportService', () => {
         },
       )
       .mockResolvedValue({ id: 7 });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
-    const { result } = await service.importMatches(
+    await service.importMatches(
       new Map([[10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]]]),
     );
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(
-      result.errors.some((e) =>
-        e.message.includes('match 100 failed to upsert'),
-      ),
+      errors.some((e) => e.message.includes('match 100 failed to upsert')),
     ).toBe(true);
     expect(upsertMatchResult).toHaveBeenCalledTimes(2);
   });
 
   it('imports nothing for a competition with an empty match list', async () => {
     const upsertMatchResult = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
-    const { result } = await service.importMatches(new Map([[10, []]]));
+    await service.importMatches(new Map([[10, []]]));
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toEqual([]);
     expect(upsertMatchResult).not.toHaveBeenCalled();
   });
 
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchResult = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({
         ok: false,
         error: {
@@ -169,19 +201,17 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    const { result } = await service.importMatches(
-      new Map([[10, [tpMatch(100, 'Round 1')]]]),
-    );
+    await service.importMatches(new Map([[10, [tpMatch(100, 'Round 1')]]]));
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].item).toEqual({ externalSystems: ['TP'] });
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({ externalSystems: ['TP'] });
     expect(upsertMatchResult).not.toHaveBeenCalled();
   });
 
   it('returns a matchIdsByTpId map keyed by TP match id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: MATCH_DB_ID });
-    const service = await makeService({
+    const { service } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
@@ -191,5 +221,19 @@ describe('TpMatchesImportService', () => {
     );
 
     expect(matchIdsByTpId.get(566088)).toBe(MATCH_DB_ID);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
+    const { service } = await makeService({
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+      upsertMatchResult,
+    });
+
+    const { result } = await service.importMatches(
+      new Map([[10, [tpMatch(100, 'Round 1')]]]),
+    );
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
