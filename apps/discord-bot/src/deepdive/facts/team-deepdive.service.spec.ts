@@ -18,6 +18,7 @@ import {
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
+import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
 async function makeService(
@@ -37,38 +38,6 @@ async function makeService(
     ],
   }).compile();
   return { service: moduleRef.get(TeamDeepdiveService), leaderboard };
-}
-
-/** A `LeaderboardService` mock canned to echo its ranking/button inputs back
- * unchanged (rows through as-is with a placeholder rank, no truncation; button
- * entries through as one action row). LeaderboardService's own ranking/button
- * logic is covered by leaderboard.service.spec.ts; this stand-in exists only
- * so TeamDeepdiveService's own description/button-composition logic can be
- * exercised without crashing on an unconfigured mock. */
-function passthroughLeaderboard(): MockProxy<LeaderboardService> {
-  const leaderboard = mock<LeaderboardService>();
-  leaderboard.topRanksWithTies.mockImplementation((rows) => ({
-    rows: rows.map((row) => ({ ...row, rank: 1 })),
-    truncatedCount: 0,
-    tieGroupOpenEnded: false,
-  }));
-  leaderboard.buildEntityButtons.mockImplementation(
-    (rows, buildCustomId, label) =>
-      rows.length === 0
-        ? []
-        : [
-            {
-              type: 1,
-              components: rows.map((row) => ({
-                type: 2,
-                style: 1,
-                label: label(row),
-                custom_id: buildCustomId(row),
-              })),
-            },
-          ],
-  );
-  return leaderboard;
 }
 
 function makeTeams(options: {
