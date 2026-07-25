@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   countAllMatchEventsByPlayerForTeam,
+  countMatchEventsByCoach,
   countMatchEventsByPlayer,
   countMatchEventsByTeam,
   countMatchEventsForPlayer,
@@ -154,6 +155,99 @@ describe('countMatchEventsByTeam', () => {
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'touchdown',
       9,
+    ]);
+    expect(
+      extractJoinColumns(firstCallArg(builder.where)).filter(
+        (column) => column === 'eras.league_id',
+      ),
+    ).toHaveLength(1);
+  });
+});
+
+describe('countMatchEventsByCoach', () => {
+  it('returns the rows the query resolves to', async () => {
+    const rows = [{ coachId: 1, name: 'Roze Madder', count: 13 }];
+    const select = vi.fn(() => makeQueryBuilder(rows));
+    const db = { select } as unknown as Db;
+    await expect(
+      countMatchEventsByCoach({
+        db,
+        selector: { role: 'acting', types: ['foul'] },
+        limit: 21,
+      }),
+    ).resolves.toEqual(rows);
+    expect(select).toHaveBeenCalledTimes(1);
+  });
+
+  it('joins six tables for the acting role, reaching coaches through teams', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByCoach({
+      db,
+      selector: { role: 'acting', types: ['foul'] },
+      limit: 21,
+    });
+    // One more join than countMatchEventsByTeam: teams -> coaches.
+    expect(builder.innerJoin).toHaveBeenCalledTimes(6);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'match_teams.id',
+      'match_events.acting_match_team_id',
+    ]);
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 5, 1))).toEqual([
+      'coaches.id',
+      'teams.coach_id',
+    ]);
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'foul',
+    ]);
+  });
+
+  it('joins the consequence side when the selector role is consequence', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByCoach({
+      db,
+      selector: { role: 'consequence', types: ['death'] },
+      limit: 21,
+    });
+    expect(extractJoinColumns(firstCallArg(builder.innerJoin, 0, 1))).toEqual([
+      'match_teams.id',
+      'match_events.consequence_match_team_id',
+    ]);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'death',
+    ]);
+  });
+
+  it('applies the SQL limit to the query', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByCoach({
+      db,
+      selector: { role: 'acting', types: ['foul'] },
+      limit: 21,
+    });
+    expect(builder.limit).toHaveBeenCalledWith(21);
+  });
+
+  it('filters by league, era and competition when the scope is given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByCoach({
+      db,
+      selector: { role: 'acting', types: ['foul'] },
+      leagueId: 9,
+      eraId: 20,
+      competitionId: 30,
+      limit: 21,
+    });
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'foul',
+      9,
+      20,
+      30,
     ]);
     expect(
       extractJoinColumns(firstCallArg(builder.where)).filter(

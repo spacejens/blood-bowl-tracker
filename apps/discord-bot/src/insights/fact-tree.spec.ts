@@ -31,6 +31,7 @@ function deps(): FactTreeDeps {
     'coach competitions played',
   );
   coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
+  coachToplist.resolveFoulsCommitted.mockResolvedValue('coach fouls committed');
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue('team matches played');
@@ -121,8 +122,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly thirty-nine leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(39);
+  it('exposes exactly forty leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(40);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -163,6 +164,16 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.coachToplist.resolveErasActive).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.fouls.committed to CoachToplistService.resolveFoulsCommitted', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.fouls.committed',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.coachToplist.resolveFoulsCommitted).toHaveBeenCalled();
   });
 
   it('wires team.toplist.matches.played to TeamToplistService.resolveMatchesPlayed', async () => {
@@ -602,6 +613,17 @@ describe('buildFactTree competition capabilities', () => {
       ]),
     );
     expect(supported).toHaveLength(29);
+  });
+
+  it('excludes the coach fouls toplist from competition filtering', () => {
+    const tree = buildFactTree(deps());
+    const leaf = factTreeUtils.resolvePath(
+      tree,
+      'coach.toplist.fouls.committed',
+    ) as FactLeaf;
+    expect(leaf.supportsCompetition).toBe(false);
+    expect(leaf.supportsLeague).toBe(true);
+    expect(leaf.supportsEra).toBe(true);
   });
 
   it('forwards competitionId to an in-scope team leaf', async () => {

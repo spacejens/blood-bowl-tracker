@@ -1,5 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  coaches,
   eras,
   matches,
   matchEvents,
@@ -138,6 +139,45 @@ export async function countMatchEventsByTeam(
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
     .groupBy(teams.id, teams.name)
+    .orderBy(desc(count(matchEvents.id)))
+    .limit(limit);
+}
+
+/**
+ * Match events matching the given selector, counted per coach and ordered
+ * most-first. Extends countMatchEventsByTeam's join graph by one hop —
+ * `teams.coachId -> coaches.id` — so a coach's total spans every team they
+ * have coached. Accepts the shared options (including `competitionId`) for
+ * consistency with its siblings; the coach toplists that call it simply do
+ * not pass a competition scope.
+ */
+export async function countMatchEventsByCoach(
+  options: CountMatchEventsOptions,
+): Promise<{ coachId: number; name: string; count: number }[]> {
+  const { db, selector, leagueId, eraId, competitionId, limit } = options;
+  return db
+    .select({
+      coachId: coaches.id,
+      name: coaches.name,
+      count: count(matchEvents.id),
+    })
+    .from(matchEvents)
+    .innerJoin(
+      matchTeams,
+      eq(
+        matchTeams.id,
+        selector.role === 'acting'
+          ? matchEvents.actingMatchTeamId
+          : matchEvents.consequenceMatchTeamId,
+      ),
+    )
+    .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+    .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+    .innerJoin(eras, eq(eras.id, teamEras.eraId))
+    .innerJoin(teams, eq(teams.id, teamEras.teamId))
+    .innerJoin(coaches, eq(coaches.id, teams.coachId))
+    .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
+    .groupBy(coaches.id, coaches.name)
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);
 }

@@ -149,6 +149,9 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveErasActive.mockResolvedValue(
     sampleEmbedReply('Coaches by eras active', '1. Roze Madder — 3'),
   );
+  coachToplist.resolveFoulsCommitted.mockResolvedValue(
+    sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
+  );
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue(
