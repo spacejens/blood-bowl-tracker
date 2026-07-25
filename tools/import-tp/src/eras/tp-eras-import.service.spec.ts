@@ -1,19 +1,20 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ErasImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
+import type { TpTournament } from '@blood-bowl-tracker/parse-tp';
 import { TournamentParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
   mockImportResultService,
   mockNameExternalIdService,
-  mockTournamentParserService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import type { TpSourceFile } from '../source/tp-source-reader';
@@ -31,21 +32,46 @@ interface MakeServiceOptions {
 }
 
 /**
- * `TournamentParserService.parse` is mocked as an identity pass-through of
- * each `TpSourceFile.content` (already-parsed `TpTournament`, built directly
- * by `tournamentFile()` below) that throws when `ruleSet` is missing —
- * mirroring the one validation rule these specs exercise, without
- * re-implementing the real Zod schema. Full validation behaviour is covered
- * by `TournamentParserService`'s own dedicated spec in
- * `packages/parse-tp/src/tournament-parser.service.spec.ts`.
+ * The canned TpTournament the mocked TournamentParserService.parse returns.
+ * The real Zod validation (including which fields are required and the
+ * message it produces) is covered by
+ * packages/parse-tp/src/tournament-parser.service.spec.ts; this spec only
+ * needs parse() to succeed or fail on demand.
  */
+const CANNED_TOURNAMENT: TpTournament = { id: 1, name: 'T', ruleSet: 20 };
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   getEras,
   files,
   bootstrap,
   upsertEra,
   getTpSystemName = () => 'TP',
-}: MakeServiceOptions): Promise<TpErasImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpErasImportService;
+  importResults: MockProxy<ImportResultService>;
+  tournamentParser: MockProxy<TournamentParserService>;
+}> {
   const eraDataConfig = mock<EraDataConfigService>();
   eraDataConfig.getEras.mockImplementation(getEras);
   const erasImport = mock<ErasImportService>();
@@ -61,9 +87,14 @@ async function makeService({
   );
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
-  const tournamentParser = mockTournamentParserService();
+  const tournamentParser = mock<TournamentParserService>();
+  tournamentParser.parse.mockReturnValue(CANNED_TOURNAMENT);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
+  // Overrides the shared helper's mirrored `result` with a canned value (a
+  // later stub wins). ImportResultService.result's own success derivation is
+  // covered by packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -84,7 +115,11 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpErasImportService);
+  return {
+    service: moduleRef.get(TpErasImportService),
+    importResults,
+    tournamentParser,
+  };
 }
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
@@ -155,7 +190,7 @@ describe('TpErasImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
       .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFiles([
         tournamentFile('Third era', 'tournament_third-cup.json', 20),
@@ -165,14 +200,15 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
+    const { eraIdsByName } = await service.importEras(10, rulesSetIds);
 
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(result.imported).toBe(2);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(2);
+    expect(errors).toEqual([]);
     expect(eraIdsByName).toEqual(
       new Map([
         ['Third era', 500],
@@ -214,18 +250,18 @@ describe('TpErasImportService', () => {
   it('records one error and imports nothing when the league id is missing', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
       upsertEra,
     });
 
-    const { result } = await service.importEras(undefined, rulesSetIds);
+    await service.importEras(undefined, rulesSetIds);
 
-    expect(result.success).toBe(false);
-    expect(result.imported).toBe(0);
-    expect(result.errors.some((e) => e.message.includes('league'))).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors.some((e) => e.message.includes('league'))).toBe(true);
     expect(upsertEra).not.toHaveBeenCalled();
   });
 
@@ -233,21 +269,21 @@ describe('TpErasImportService', () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
     const partialIds = new Map<string, number>([['LRB6', 100]]);
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, partialIds);
+    await service.importEras(10, partialIds);
 
     // Third era resolves (LRB6), Fourth era does not (BB2020 missing).
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(upsertEra).toHaveBeenCalledTimes(1);
     expect(
-      result.errors.some(
+      errors.some(
         (e) => e.message.includes('Fourth era') && e.message.includes('BB2020'),
       ),
     ).toBe(true);
@@ -256,7 +292,7 @@ describe('TpErasImportService', () => {
   it('passes silently when one era directory reports a single rule-set code', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         tournamentFile('Third era', 'tournament_a.json', 20),
@@ -268,17 +304,17 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, new Map([['LRB6', 100]]));
+    await service.importEras(10, new Map([['LRB6', 100]]));
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
   });
 
   it('records an error but still upserts when an era directory reports mismatched codes', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = await makeService({
+    const { service, importResults, tournamentParser } = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         tournamentFile('Third era', 'tournament_a.json', 20),
@@ -287,8 +323,11 @@ describe('TpErasImportService', () => {
       bootstrap,
       upsertEra,
     });
+    tournamentParser.parse
+      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 20 })
+      .mockReturnValueOnce({ id: 1, name: 'T', ruleSet: 21 });
 
-    const { result, eraIdsByName } = await service.importEras(
+    const { eraIdsByName } = await service.importEras(
       10,
       new Map([['LRB6', 100]]),
     );
@@ -296,10 +335,10 @@ describe('TpErasImportService', () => {
     expect(upsertEra).toHaveBeenCalledTimes(1);
     expect(eraIdsByName).toEqual(new Map([['Third era', 500]]));
     // Diagnostic error recorded, but the era still imported.
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(
-      result.errors.some(
+      errors.some(
         (e) => e.message.includes('Third era') && /20|21/.test(e.message),
       ),
     ).toBe(true);
@@ -308,7 +347,7 @@ describe('TpErasImportService', () => {
   it('records a diagnostic error but still upserts when a tournament file fails to parse', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = await makeService({
+    const { service, importResults, tournamentParser } = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         {
@@ -316,20 +355,21 @@ describe('TpErasImportService', () => {
           competition: 'comp',
           type: 'tournament',
           filename: 'tournament_broken.json',
-          content: { id: 1, name: 'T' }, // missing ruleSet
+          content: { file: 'tournament_broken.json' },
         },
       ]),
       bootstrap,
       upsertEra,
     });
+    tournamentParser.parse.mockImplementationOnce(() => {
+      throw new Error('Invalid TP tournament JSON: missing ruleSet');
+    });
 
-    const { result } = await service.importEras(10, new Map([['LRB6', 100]]));
+    await service.importEras(10, new Map([['LRB6', 100]]));
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('Third era'))).toBe(
-      true,
-    );
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors.some((e) => e.message.includes('Third era'))).toBe(true);
   });
 
   it('records one error but still upserts every era when the rule-set scan throws partway through', async () => {
@@ -338,7 +378,7 @@ describe('TpErasImportService', () => {
       .fn()
       .mockResolvedValueOnce({ id: 500, name: 'Third era' })
       .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => eras,
       files: makeFilesThatThrow(
         [tournamentFile('Third era', 'tournament_third-cup.json', 20)],
@@ -350,7 +390,7 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { result, eraIdsByName } = await service.importEras(10, rulesSetIds);
+    const { eraIdsByName } = await service.importEras(10, rulesSetIds);
 
     // Both eras are still upserted from config even though the shared scan
     // aborted after the first era's files, since it errored on the second.
@@ -361,10 +401,10 @@ describe('TpErasImportService', () => {
         ['Fourth era', 600],
       ]),
     );
-    expect(result.imported).toBe(2);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(2);
     expect(
-      result.errors.some(
+      errors.some(
         (e) =>
           e.message.includes('rule-set') &&
           e.message.includes('Era data directory not found'),
@@ -375,7 +415,7 @@ describe('TpErasImportService', () => {
   it('accumulates every parse failure for an era, not just the last one', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi.fn().mockResolvedValue({ id: 500, name: 'Third era' });
-    const service = await makeService({
+    const { service, importResults, tournamentParser } = await makeService({
       getEras: () => [eras[0]],
       files: makeFiles([
         {
@@ -383,26 +423,34 @@ describe('TpErasImportService', () => {
           competition: 'comp',
           type: 'tournament',
           filename: 'tournament_broken1.json',
-          content: { id: 1, name: 'T1' }, // missing ruleSet
+          content: { file: 'tournament_broken1.json' },
         },
         {
           era: 'Third era',
           competition: 'comp',
           type: 'tournament',
           filename: 'tournament_broken2.json',
-          content: { id: 2, name: 'T2' }, // missing ruleSet
+          content: { file: 'tournament_broken2.json' },
         },
       ]),
       bootstrap,
       upsertEra,
     });
+    tournamentParser.parse
+      .mockImplementationOnce(() => {
+        throw new Error('Invalid TP tournament JSON: missing ruleSet');
+      })
+      .mockImplementationOnce(() => {
+        throw new Error('Invalid TP tournament JSON: missing ruleSet');
+      })
+      .mockReturnValue(CANNED_TOURNAMENT);
 
-    const { result } = await service.importEras(10, new Map([['LRB6', 100]]));
+    await service.importEras(10, new Map([['LRB6', 100]]));
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(
-      result.errors.some(
+      errors.some(
         (e) =>
           e.message.includes('tournament_broken1.json') &&
           e.message.includes('tournament_broken2.json'),
@@ -413,7 +461,7 @@ describe('TpErasImportService', () => {
   it('records one error and imports nothing when the era config cannot be read', async () => {
     const bootstrap = vi.fn();
     const upsertEra = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       getEras: () => {
         throw new Error('TP_ERAS is not set.');
       },
@@ -422,11 +470,11 @@ describe('TpErasImportService', () => {
       upsertEra,
     });
 
-    const { result } = await service.importEras(10, rulesSetIds);
+    await service.importEras(10, rulesSetIds);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('TP_ERAS');
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('TP_ERAS');
     expect(bootstrap).not.toHaveBeenCalled();
     expect(upsertEra).not.toHaveBeenCalled();
   });
@@ -440,7 +488,28 @@ describe('TpErasImportService', () => {
       },
     });
     const upsertEra = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
+      getEras: () => eras,
+      files: makeFiles([]),
+      bootstrap,
+      upsertEra,
+    });
+
+    await service.importEras(10, rulesSetIds);
+
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
+    expect(upsertEra).not.toHaveBeenCalled();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertEra = vi
+      .fn()
+      .mockResolvedValueOnce({ id: 500, name: 'Third era' })
+      .mockResolvedValueOnce({ id: 600, name: 'Fourth era' });
+    const { service } = await makeService({
       getEras: () => eras,
       files: makeFiles([]),
       bootstrap,
@@ -449,9 +518,6 @@ describe('TpErasImportService', () => {
 
     const { result } = await service.importEras(10, rulesSetIds);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].item).toEqual({ externalSystems: ['TP', 'Name'] });
-    expect(upsertEra).not.toHaveBeenCalled();
+    expect(result).toBe(CANNED_RESULT);
   });
 });
