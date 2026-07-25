@@ -772,10 +772,24 @@ describe('RpcRouterFactoryService', () => {
         consequencePlayerId: null,
         actionType: 'touchdown',
         consequenceType: null,
+        eventType: null,
+        weatherType: null,
+        inducementsCost: null,
+        inducementsFromTreasury: null,
+        winnings: null,
+        fanFactor: null,
+        journeymenCount: null,
+        prayersToNuffle: null,
+        dedicatedFans: null,
+        secretObjective: null,
+        expensiveMistake: null,
         createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
       },
       created: true,
-    } as Awaited<ReturnType<MatchEventsService['upsert']>>);
+    });
 
     const result = await call(router.matchEvents.upsert, {
       matchId: 10,
