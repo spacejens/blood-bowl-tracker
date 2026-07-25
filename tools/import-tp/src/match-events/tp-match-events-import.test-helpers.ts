@@ -1,5 +1,5 @@
 import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
-import type { ImportError } from '@blood-bowl-tracker/import';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -145,11 +145,35 @@ function mockTpMatchEventsBuilderService(
   return eventsBuilder;
 }
 
+/**
+ * `mockImportResultService()` only provides the exempt `error` identity
+ * mock; `result()` is stubbed here to return a fixed `CANNED_RESULT` rather
+ * than recomputing the real `success` derivation — a mock must return the
+ * canned response a test expects, not reimplement the collaborator's own
+ * logic (that derivation is `ImportResultService`'s own job, covered by its
+ * dedicated spec). Callers that need the errors `TpMatchEventsImportService`
+ * actually collected use `resultArgs()` to read them back from the recorded
+ * `result()` call arguments instead of trusting the canned return value.
+ */
+export const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+export function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 export async function makeService(
   upsertMatchEvent: ReturnType<typeof vi.fn>,
   options?: MakeServiceOptions,
 ): Promise<{
   service: TpMatchEventsImportService;
+  importResults: MockProxy<ImportResultService>;
   eventsBuilder: MockProxy<TpMatchEventsBuilderService>;
 }> {
   const matchEventsImport = mock<MatchEventsImportService>();
@@ -169,6 +193,7 @@ export async function makeService(
     options?.buildEventData ?? syntheticBuildEventData,
   );
   const importResults = mockImportResultService();
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -190,7 +215,11 @@ export async function makeService(
       },
     ],
   }).compile();
-  return { service: moduleRef.get(TpMatchEventsImportService), eventsBuilder };
+  return {
+    service: moduleRef.get(TpMatchEventsImportService),
+    importResults,
+    eventsBuilder,
+  };
 }
 
 export async function runImportRaw({
@@ -209,12 +238,12 @@ export async function runImportRaw({
       return Promise.resolve(true);
     },
   );
-  const { service, eventsBuilder } = await makeService(
+  const { service, importResults, eventsBuilder } = await makeService(
     upsertMatchEvent,
     serviceOptions,
   );
 
-  const { result } = await service.importMatchEvents({
+  await service.importMatchEvents({
     matchesByCompetitionId: new Map([[COMPETITION_DB_ID, matches]]),
     eraIdByCompetitionId: new Map([[COMPETITION_DB_ID, ERA_ID]]),
     matchIdsByTpId: new Map([[566088, MATCH_DB_ID]]),
@@ -229,7 +258,11 @@ export async function runImportRaw({
     starPlayerIdsByRosterAndMaster: new Map(),
   });
 
-  return { captured, errors: result.errors, eventsBuilder };
+  return {
+    captured,
+    errors: resultArgs(importResults).errors,
+    eventsBuilder,
+  };
 }
 
 export async function runImport(

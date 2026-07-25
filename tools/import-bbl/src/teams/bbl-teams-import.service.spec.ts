@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -16,6 +17,42 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblTeamsImportService } from './bbl-teams-import.service';
 import { TeamPageParser } from './team-page-parser';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+/**
+ * The canned ImportError the mocked PageParseErrorService.build returns.
+ * PageParseErrorService's own message template — including the
+ * `error instanceof Error ? error.message : String(error)` branch — is
+ * covered by ../source/page-parse-error.service.spec.ts. This spec asserts
+ * only what BblTeamsImportService hands to build() and that it pushes
+ * build()'s return value onto the errors list.
+ */
+const CANNED_PAGE_PARSE_ERROR: ImportError = {
+  item: { page: 'canned' },
+  message: 'canned page parse error',
+};
 
 /**
  * A fake team page carrying the team id/name, the race's BBL id, and the coach
@@ -60,6 +97,9 @@ interface Mocks {
   teamsImport: MockProxy<TeamsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
+  nameExternalId: MockProxy<NameExternalIdService>;
+  importResults: MockProxy<ImportResultService>;
+  pageParseError: MockProxy<PageParseErrorService>;
 }
 
 /**
@@ -81,9 +121,9 @@ function makeTeamRecord() {
 
 /**
  * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (name resolution, error
- * building) mirror the real production logic so a regression in the service
- * under test still fails these tests.
+ * collaborator mocked. ImportResultService.result and
+ * PageParseErrorService.build return canned values (see the constants above);
+ * tests assert what this service passes to them, not what they compute.
  */
 async function makeService(
   reader: BblSourceReader,
@@ -113,29 +153,23 @@ async function makeService(
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // `forTeam` is a pure identity passthrough with no branching or formatting,
+  // so there is no algorithm here that can drift out of sync with the real
+  // NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forTeam.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockImplementation(
-    (pageParams, pageDescription, error) =>
-      importResults.error({
-        item: { page: pageParams },
-        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }),
-  );
+  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -162,6 +196,9 @@ async function makeService(
       teamsImport,
       bootstrap,
       nameConfig,
+      nameExternalId,
+      importResults,
+      pageParseError,
     },
   };
 }
@@ -223,12 +260,9 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result, teamsByName } = await service.importTeams(
-      raceIds,
-      coachIds,
-    );
+    const { teamsByName } = await service.importTeams(raceIds, coachIds);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       {
         name: '40 grinders',
@@ -272,10 +306,10 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledTimes(1);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
   });
 
   it('skips pages with no team', async () => {
@@ -283,10 +317,10 @@ describe('BblTeamsImportService', () => {
       makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
-    expect(result.imported).toBe(0);
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
   });
 
   it('records an error and skips a team whose race id is not in the map', async () => {
@@ -301,12 +335,12 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
+    const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
-    expect(result.success).toBe(false);
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve race')),
+      errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
   });
 
@@ -317,11 +351,12 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
+    const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve race')),
+      errors.some((e) => e.message.includes('could not resolve race')),
     ).toBe(true);
   });
 
@@ -337,11 +372,12 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
+    const { errors } = resultArgs(mocks.importResults);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve coach')),
+      errors.some((e) => e.message.includes('could not resolve coach')),
     ).toBe(true);
   });
 
@@ -364,13 +400,11 @@ describe('BblTeamsImportService', () => {
       return Promise.resolve(undefined);
     });
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
-    expect(result.success).toBe(false);
-    expect(result.imported).toBe(0);
-    expect(result.errors.some((e) => e.message.includes('40 grinders'))).toBe(
-      true,
-    );
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors.some((e) => e.message.includes('40 grinders'))).toBe(true);
   });
 
   it('records an error and continues when a page fails to parse', async () => {
@@ -381,17 +415,19 @@ describe('BblTeamsImportService', () => {
       throw new Error('bad page');
     });
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
-    expect(result.imported).toBe(0);
-    expect(
-      result.errors.some((e) =>
-        e.message.includes('Failed to parse team page'),
-      ),
-    ).toBe(true);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { t: '40g', teamName: '40 grinders', raceBblId: '', coachName: '' },
+      'team',
+      new Error('bad page'),
+    );
   });
 
-  it('records a stringified error when a page throws a non-Error value', async () => {
+  it('passes a non-Error thrown team-page value straight through to PageParseErrorService', async () => {
     const { service, mocks } = await makeService(
       makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
     );
@@ -400,11 +436,15 @@ describe('BblTeamsImportService', () => {
       throw 'bad page';
     });
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
-    expect(result.imported).toBe(0);
-    expect(result.errors.some((e) => e.message.includes('bad page'))).toBe(
-      true,
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { t: '40g', teamName: '40 grinders', raceBblId: '', coachName: '' },
+      'team',
+      'bad page',
     );
   });
 
@@ -427,15 +467,15 @@ describe('BblTeamsImportService', () => {
       },
     });
 
-    const { result } = await service.importTeams(raceIds, coachIds);
+    await service.importTeams(raceIds, coachIds);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
     // Message is passed through unchanged (this caller adds no prefix): the
     // assertion now fails if production stops surfacing the real error text.
-    expect(result.errors[0].message).toBe('network timeout');
+    expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
-    expect(result.errors[0].item).toEqual({
+    expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
@@ -470,15 +510,31 @@ describe('BblTeamsImportService', () => {
       ]),
     );
 
-    const { result, teamsByName, teamsByCode } = await service.importTeams(
+    const { teamsByName, teamsByCode } = await service.importTeams(
       raceIds,
       coachIds,
     );
 
-    expect(result.success).toBe(true);
     // same UpsertTeam object is indexed under both name and code
     const code = '40g';
     const name = '40 grinders';
     expect(teamsByCode.get(code)).toEqual(teamsByName.get(name));
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService(
+      makeReader([
+        page({
+          teamId: '40g',
+          teamName: '40 grinders',
+          raceBblId: '16',
+          coachName: 'Hugo E',
+        }),
+      ]),
+    );
+
+    const { result } = await service.importTeams(raceIds, coachIds);
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

@@ -2,6 +2,7 @@ import type {
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchEventsImportService,
@@ -35,6 +36,29 @@ import type {
 } from './match-event-correlation.service';
 import { MatchEventCorrelationService } from './match-event-correlation.service';
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 /** A resolution with no merged pairs: every match imports independently. */
 function noMergeResolution(): MatchMergeResolution {
   return {
@@ -63,6 +87,7 @@ interface Mocks {
   matchEventsImport: MockProxy<MatchEventsImportService>;
   matchMerge: MockProxy<MatchMergeService>;
   correlation: MockProxy<MatchEventCorrelationService>;
+  importResults: MockProxy<ImportResultService>;
 }
 
 /**
@@ -94,15 +119,14 @@ async function makeService(): Promise<{
   correlation.correlateEvents.mockReturnValue([]);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -126,6 +150,7 @@ async function makeService(): Promise<{
       matchEventsImport,
       matchMerge,
       correlation,
+      importResults,
     },
   };
 }
@@ -172,7 +197,7 @@ async function runImport(
       }),
   );
 
-  const { result } = await service.importMatchEvents({
+  await service.importMatchEvents({
     competitionsByBblId: new Map([['3', competition]]),
     teamsByCode:
       overrides.teamsByCode ??
@@ -185,7 +210,7 @@ async function runImport(
     playerIdsByPid: new Map(Object.entries(playerIds)),
   });
 
-  return { captured, result, mocks };
+  return { captured, resultArgs: resultArgs(mocks.importResults), mocks };
 }
 
 function externalIds(captured: UpsertMatchEvent[]): string[] {
@@ -382,7 +407,7 @@ describe('BblMatchEventsImportService', () => {
   });
 
   it('records a non-fatal error but still emits the event when a pid has no imported id', async () => {
-    const { captured, result } = await runImport(
+    const { captured, resultArgs } = await runImport(
       makeEvents({}),
       {},
       {
@@ -400,11 +425,11 @@ describe('BblMatchEventsImportService', () => {
     expect(captured).toHaveLength(1);
     expect(captured[0].actingPlayerId).toBeUndefined();
     expect(captured[0].externalIds[0].externalId).toBe('89-hme-td-0');
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs.errors.length).toBeGreaterThan(0);
   });
 
   it('counts each emitted event as imported', async () => {
-    const { result } = await runImport(
+    const { resultArgs } = await runImport(
       makeEvents({}),
       { p1: 1, p2: 2 },
       {
@@ -425,12 +450,12 @@ describe('BblMatchEventsImportService', () => {
       },
     );
 
-    expect(result.imported).toBe(2);
-    expect(result.success).toBe(true);
+    expect(resultArgs.imported).toBe(2);
+    expect(resultArgs.errors).toEqual([]);
   });
 
   it('records an error and skips a match with no imported id', async () => {
-    const { captured, result, mocks } = await runImport(
+    const { captured, resultArgs, mocks } = await runImport(
       makeEvents({}),
       { p1: 1 },
       { matchIdsByBblId: new Map() },
@@ -438,14 +463,14 @@ describe('BblMatchEventsImportService', () => {
 
     expect(captured).toHaveLength(0);
     expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('no imported match id');
+    expect(resultArgs.errors).toHaveLength(1);
+    expect(resultArgs.errors[0].message).toContain('no imported match id');
     // The match is skipped before correlation is even consulted.
     expect(mocks.correlation.combineOccurrences).not.toHaveBeenCalled();
   });
 
   it('records an error and skips a match whose team code does not resolve', async () => {
-    const { captured, result, mocks } = await runImport(
+    const { captured, resultArgs, mocks } = await runImport(
       makeEvents({}),
       { p1: 1 },
       { teamsByCode: new Map([['hme', homeTeam]]) },
@@ -454,15 +479,19 @@ describe('BblMatchEventsImportService', () => {
     expect(captured).toHaveLength(0);
     expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve all')),
+      resultArgs.errors.some((e) =>
+        e.message.includes('could not resolve all'),
+      ),
     ).toBe(true);
-    expect(result.errors.some((e) => e.message.includes('"awy"'))).toBe(true);
+    expect(resultArgs.errors.some((e) => e.message.includes('"awy"'))).toBe(
+      true,
+    );
     // The unresolved team short-circuits before events are correlated.
     expect(mocks.correlation.correlateEvents).not.toHaveBeenCalled();
   });
 
   it('records an error and skips a match when a team upsert resolves to no era', async () => {
-    const { captured, result } = await runImport(
+    const { captured, resultArgs } = await runImport(
       makeEvents({}),
       { p1: 1 },
       { upsertTeam: () => Promise.resolve(undefined) },
@@ -470,7 +499,9 @@ describe('BblMatchEventsImportService', () => {
 
     expect(captured).toHaveLength(0);
     expect(
-      result.errors.some((e) => e.message.includes('could not resolve all')),
+      resultArgs.errors.some((e) =>
+        e.message.includes('could not resolve all'),
+      ),
     ).toBe(true);
   });
 
@@ -577,7 +608,7 @@ describe('BblMatchEventsImportService', () => {
       },
     ]);
 
-    const { result } = await service.importMatchEvents({
+    await service.importMatchEvents({
       competitionsByBblId: new Map([
         [
           '32',
@@ -607,7 +638,7 @@ describe('BblMatchEventsImportService', () => {
       eventsA,
       eventsB,
     );
-    expect(result.success).toBe(true);
+    expect(resultArgs(mocks.importResults).errors).toEqual([]);
     expect(captured).toHaveLength(1);
     expect(captured[0]).toMatchObject({
       matchId: MATCH_DB_ID,
@@ -713,7 +744,7 @@ describe('BblMatchEventsImportService', () => {
       },
     ]);
 
-    const { result } = await service.importMatchEvents({
+    await service.importMatchEvents({
       competitionsByBblId: new Map([
         [
           '32',
@@ -738,7 +769,7 @@ describe('BblMatchEventsImportService', () => {
     // Only the present source page is combined; the missing primary page is
     // filtered out rather than passed through as undefined.
     expect(mocks.correlation.combineOccurrences).toHaveBeenCalledWith(eventsB);
-    expect(result.success).toBe(true);
+    expect(resultArgs(mocks.importResults).errors).toEqual([]);
     // The secondary partner's occurrence must not be silently dropped just
     // because the primary's own events page is missing.
     expect(captured).toHaveLength(1);
@@ -785,5 +816,27 @@ describe('BblMatchEventsImportService', () => {
       ],
     });
     expect(journeyman[0].actingPlayerId).toBeUndefined();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service, mocks } = await makeService();
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      new Map([['3', [{ bblId: MATCH_BBL_ID, date: new Date(0) }]]]),
+    );
+    mocks.eventsReader.getMatchEventsByBblId.mockResolvedValue(
+      new Map([[MATCH_BBL_ID, makeEvents({})]]),
+    );
+
+    const { result } = await service.importMatchEvents({
+      competitionsByBblId: new Map([['3', competition]]),
+      teamsByCode: new Map([
+        ['hme', homeTeam],
+        ['awy', awayTeam],
+      ]),
+      matchIdsByBblId: new Map([[MATCH_BBL_ID, MATCH_DB_ID]]),
+      playerIdsByPid: new Map(),
+    });
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
