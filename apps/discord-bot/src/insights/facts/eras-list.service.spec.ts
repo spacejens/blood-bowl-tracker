@@ -7,6 +7,7 @@ import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import {
@@ -14,6 +15,8 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { EntityComponentsService } from '../../entity-components.service';
+import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
@@ -38,22 +41,27 @@ beforeEach(() => {
 
 async function makeServiceFromEras(
   eras: ErasService,
+  entityComponents: MockProxy<EntityComponentsService> = passthroughEntityComponents(),
 ): Promise<ErasListService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       ErasListService,
       { provide: ErasService, useValue: eras },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
   return moduleRef.get(ErasListService);
 }
 
-async function makeService(rows: EraRow[]): Promise<ErasListService> {
+async function makeService(
+  rows: EraRow[],
+  entityComponents?: MockProxy<EntityComponentsService>,
+): Promise<ErasListService> {
   const eras = {
     listErasWithLeague: vi.fn().mockResolvedValue(rows),
   } as unknown as ErasService;
-  return makeServiceFromEras(eras);
+  return makeServiceFromEras(eras, entityComponents);
 }
 
 describe('ErasListService.resolve', () => {
@@ -214,6 +222,9 @@ describe('ErasListService.resolve', () => {
           ].join('\n'),
         },
       ],
+      // passthroughEntityComponents() collapses everything into one action
+      // row (real cap/chunk/select behavior is covered by
+      // entity-components.service.spec.ts).
       components: [
         {
           type: ComponentType.ActionRow,
@@ -248,11 +259,6 @@ describe('ErasListService.resolve', () => {
               label: 'Zeta',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}5`,
             },
-          ],
-        },
-        {
-          type: ComponentType.ActionRow,
-          components: [
             {
               type: ComponentType.Button,
               style: ButtonStyle.Primary,
@@ -294,25 +300,75 @@ describe('ErasListService.resolve', () => {
     );
   });
 
-  it('caps deepdive buttons at 25 even when more eras are listed', async () => {
-    const rows = Array.from({ length: 30 }, (_, i) => ({
-      id: i + 1,
-      name: `Era ${i + 1}`,
-      leagueName: 'League',
-      startDate: `2020-01-${String((i % 28) + 1).padStart(2, '0')}`,
-      endDate: null,
-    }));
-    const service = await makeService(rows);
-    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as unknown as {
-      embeds: unknown[];
-      components: { components: unknown[] }[];
-    };
-    const totalButtons = result.components.reduce(
-      (sum, row) => sum + row.components.length,
-      0,
+  // LeaderboardService.topRanksWithTies and the deepdive facts each have their
+  // own version of this test; the underlying cap/chunk/select logic itself is
+  // exercised in entity-components.service.spec.ts. Here we only assert that
+  // ErasListService hands EntityComponentsService one entry per era, in the
+  // same chronological order used for the embed text.
+  it('hands one entry per era to EntityComponentsService, in chronological order', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    const service = await makeService(
+      [
+        {
+          id: 2,
+          name: 'Second',
+          leagueName: 'tLoEG',
+          startDate: '2016-01-01',
+          endDate: null,
+        },
+        {
+          id: 1,
+          name: 'First',
+          leagueName: 'tLoEG',
+          startDate: '2015-01-01',
+          endDate: '2015-12-31',
+        },
+      ],
+      entityComponents,
     );
-    expect(result.components).toHaveLength(5); // 5 rows
-    expect(totalButtons).toBe(25); // 5 per row
+    await service.resolve(FACT_SCOPE_ALL_TIME);
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'First',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '2',
+        label: 'Second',
+      },
+    ]);
+  });
+
+  it('appends the overflow note when some eras got no link', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 3 more without a link.',
+    });
+    const service = await makeService(
+      [
+        {
+          id: 1,
+          name: 'First',
+          leagueName: 'tLoEG',
+          startDate: '2015-01-01',
+          endDate: null,
+        },
+      ],
+      entityComponents,
+    );
+    const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description).toBe(
+      'First (tLoEG): 2015-01-01 – present\n…and 3 more without a link.',
+    );
   });
 
   it('passes the league scope through to the query', async () => {

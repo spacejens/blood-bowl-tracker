@@ -175,8 +175,10 @@ button, in the same order as the list, that opens that player's
   name). Each line reads `<era> (<league>): <start> – <end>`
   (an ongoing era shows `present`). Each listed era also gets a button that
   opens that era's [`/deepdive`](deepdive.md) detail view (which is where a
-  rules-set breakdown now lives, rather than inline on this list). Buttons are
-  capped at Discord's per-message limit of 25. Does not support the `era`
+  rules-set breakdown now lives, rather than inline on this list). Up to 25
+  eras get one button each; past that the links switch to dropdown menus
+  (see [`/deepdive`](deepdive.md)), and past 125 the description ends with a
+  note counting the eras left without a link. Does not support the `era`
   filter option (it exists to list all eras), so it is excluded from
   era-filtered runs.
 

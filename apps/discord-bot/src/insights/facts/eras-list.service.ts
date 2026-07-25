@@ -2,10 +2,10 @@ import type { FactScope } from '@blood-bowl-tracker/game-data';
 import { ErasService } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
-import { ButtonStyle, ComponentType } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
@@ -19,16 +19,12 @@ interface EraEntry {
   endDate: string | null;
 }
 
-/** Discord allows at most 5 buttons per action row and 5 rows per message. */
-const MAX_BUTTONS_PER_ROW = 5;
-const MAX_BUTTON_ROWS = 5;
-const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
-
 @Injectable()
 export class ErasListService {
   constructor(
     private readonly eras: ErasService,
     private readonly databaseTimeout: DatabaseTimeoutService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -59,22 +55,16 @@ export class ErasListService {
       return `${era.name} (${era.leagueName}): ${era.startDate} – ${end}`;
     });
 
-    const buttons = ordered.slice(0, MAX_BUTTONS).map((era) => ({
-      type: ComponentType.Button as const,
-      style: ButtonStyle.Primary as const,
-      label: era.name,
-      custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${era.id}`,
-    }));
-
-    const components: {
-      type: ComponentType.ActionRow;
-      components: typeof buttons;
-    }[] = [];
-    for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
-      components.push({
-        type: ComponentType.ActionRow as const,
-        components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
-      });
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(
+        ordered.map((era) => ({
+          customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(era.id),
+          label: era.name,
+        })),
+      );
+    if (overflowNote !== null) {
+      lines.push(overflowNote);
     }
 
     return {
