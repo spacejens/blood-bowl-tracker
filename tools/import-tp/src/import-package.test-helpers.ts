@@ -2,20 +2,18 @@ import {
   ImportResultService,
   NameExternalIdService,
 } from '@blood-bowl-tracker/import';
-import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
-import {
-  MatchParserService,
-  TournamentParserService,
-} from '@blood-bowl-tracker/parse-tp';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 /**
- * A `MockProxy<ImportResultService>` wired to mirror the real (pure)
- * `ImportResultService`'s `error`/`result` construction (see
- * `packages/import/src/import-result.service.ts`), so specs that mock it
- * still exercise the caller's item/message/success-derivation behaviour
- * instead of asserting against opaque mock return values.
+ * A `MockProxy<ImportResultService>` whose `error` returns the item/message it
+ * was given. That method is a pure identity field copy with no branching or
+ * formatting, so there is no algorithm here that can drift out of sync with
+ * the real ImportResultService (see
+ * `packages/import/src/import-result.service.ts`) — it is exempt from the
+ * canned-response rule. `result`, which derives `success`, is deliberately
+ * *not* stubbed here: each spec cans its own ImportResult and asserts what it
+ * passed to `result`.
  */
 export function mockImportResultService(): MockProxy<ImportResultService> {
   const importResults = mock<ImportResultService>();
@@ -23,20 +21,18 @@ export function mockImportResultService(): MockProxy<ImportResultService> {
     item,
     message,
   }));
-  importResults.result.mockImplementation(({ imported, errors }) => ({
-    success: errors.length === 0,
-    imported,
-    errors,
-  }));
   return importResults;
 }
 
 /**
- * A `MockProxy<NameExternalIdService>` wired to mirror the real (pure)
- * `NameExternalIdService`'s identity/template methods (see
- * `packages/import/src/name-external-id.service.ts`), so specs that mock it
- * still exercise the caller's exact-value-passed-through behaviour instead of
- * asserting against opaque mock return values.
+ * A `MockProxy<NameExternalIdService>` whose eight `forX(name)` methods return
+ * the name they were given. Those are pure identity passthroughs with nothing
+ * computed or formatted, so there is no algorithm to drift out of sync with
+ * the real NameExternalIdService (see
+ * `packages/import/src/name-external-id.service.ts`) — they are exempt from
+ * the canned-response rule. `forPosition`, which concatenates a
+ * `"raceName: positionName"` template, is deliberately *not* stubbed here:
+ * the one spec that needs it cans a value per test.
  */
 export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
   const nameExternalId = mock<NameExternalIdService>();
@@ -48,64 +44,7 @@ export function mockNameExternalIdService(): MockProxy<NameExternalIdService> {
   nameExternalId.forTeam.mockImplementation((name) => name);
   nameExternalId.forRace.mockImplementation((name) => name);
   nameExternalId.forStarPosition.mockImplementation((name) => name);
-  nameExternalId.forPosition.mockImplementation(
-    (raceName, positionName) => `${raceName}: ${positionName}`,
-  );
   return nameExternalId;
-}
-
-/**
- * A `MockProxy<TournamentParserService>` that treats each `TpSourceFile`'s
- * `content` as an already-parsed `TpTournament` (per the fixture, which
- * builds the typed shape directly), passing it through unchanged — except it
- * throws when `id`, `name` or `ruleSet` is missing, mirroring the one
- * validation rule these specs exercise without re-implementing the real Zod
- * schema. Full validation behaviour is covered by
- * `TournamentParserService`'s own dedicated spec in
- * `packages/parse-tp/src/tournament-parser.service.spec.ts`.
- */
-export function mockTournamentParserService(): MockProxy<TournamentParserService> {
-  const tournamentParser = mock<TournamentParserService>();
-  tournamentParser.parse.mockImplementation((content) => {
-    const tournament = content as Partial<TpTournament>;
-    if (
-      tournament.id === undefined ||
-      tournament.name === undefined ||
-      tournament.ruleSet === undefined
-    ) {
-      throw new Error(
-        `Invalid TP tournament JSON: missing a required field ` +
-          `(id/name/ruleSet) on ${JSON.stringify(tournament)}`,
-      );
-    }
-    return tournament as TpTournament;
-  });
-  return tournamentParser;
-}
-
-/**
- * A `MockProxy<MatchParserService>` that treats each `TpSourceFile`'s
- * `content` as an already-parsed `TpMatch` (per the fixture, which builds the
- * typed shape directly), passing it through unchanged — except it throws when
- * `id` or `playedDate` is missing, mirroring the one validation rule these
- * specs exercise without re-implementing the real Zod schema and the nested
- * `MatchEventParserService`/`MatchEventDecodersService` chain. Full
- * validation behaviour is covered by `MatchParserService`'s own dedicated
- * spec in `packages/parse-tp/src/match-parser.service.spec.ts`.
- */
-export function mockMatchParserService(): MockProxy<MatchParserService> {
-  const matchParser = mock<MatchParserService>();
-  matchParser.parse.mockImplementation((content) => {
-    const match = content as Partial<TpMatch>;
-    if (match.id === undefined || match.playedDate === undefined) {
-      throw new Error(
-        `Invalid TP match JSON: missing a required field (id/playedDate) ` +
-          `on ${JSON.stringify(match)}`,
-      );
-    }
-    return match as TpMatch;
-  });
-  return matchParser;
 }
 
 /**
