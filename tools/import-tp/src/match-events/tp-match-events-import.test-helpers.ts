@@ -28,8 +28,8 @@ export const COMPETITION_DB_ID = 900;
 export const MATCH_DB_ID = 7;
 export const HOME_TEAM_ERA_ID = 501;
 export const AWAY_TEAM_ERA_ID = 502;
-export const SCORER_PLAYER_ID = 8001;
-export const VICTIM_PLAYER_ID = 8002;
+export const HOME_PLAYER_ID = 8001;
+export const AWAY_PLAYER_ID = 8002;
 export const HOME_ROSTER_ID = 164868;
 export const AWAY_ROSTER_ID = 167242;
 export const ERA_ID = 500;
@@ -223,8 +223,8 @@ export async function runImportRaw({
       [AWAY_ROSTER_ID, [{ id: AWAY_TEAM_ERA_ID, eraId: ERA_ID }]],
     ]),
     playerIdsByLineUpId: new Map([
-      [2442075, SCORER_PLAYER_ID],
-      [2459782, VICTIM_PLAYER_ID],
+      [2442075, HOME_PLAYER_ID],
+      [2459782, AWAY_PLAYER_ID],
     ]),
     starPlayerIdsByRosterAndMaster: new Map(),
   });
@@ -237,12 +237,4 @@ export async function runImport(
 ): Promise<UpsertMatchEvent[]> {
   const { captured } = await runImportRaw(options);
   return captured;
-}
-
-export async function runImportWithErrors(options: RunImportOptions): Promise<{
-  captured: UpsertMatchEvent[];
-  errors: ImportError[];
-  eventsBuilder: MockProxy<TpMatchEventsBuilderService>;
-}> {
-  return runImportRaw(options);
 }

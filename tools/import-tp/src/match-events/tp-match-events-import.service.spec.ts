@@ -4,10 +4,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import type { BuildEventDataOptions } from './tp-match-events-builder.service';
 import {
+  AWAY_PLAYER_ID,
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
   COMPETITION_DB_ID,
   ERA_ID,
+  HOME_PLAYER_ID,
   HOME_ROSTER_ID,
   HOME_TEAM_ERA_ID,
   makeService,
@@ -15,9 +17,7 @@ import {
   matchWithEvents,
   runImport,
   runImportRaw,
-  SCORER_PLAYER_ID,
   TP_SYSTEM_ID,
-  VICTIM_PLAYER_ID,
 } from './tp-match-events-import.test-helpers';
 
 const TOUCHDOWN = {
@@ -177,8 +177,8 @@ describe('TpMatchEventsImportService', () => {
         [AWAY_ROSTER_ID, [{ id: AWAY_TEAM_ERA_ID, eraId: ERA_ID }]],
       ]),
       playerIdsByLineUpId: new Map([
-        [2442075, SCORER_PLAYER_ID],
-        [2459782, VICTIM_PLAYER_ID],
+        [2442075, HOME_PLAYER_ID],
+        [2459782, AWAY_PLAYER_ID],
       ]),
       homeTeamEraId: HOME_TEAM_ERA_ID,
       awayTeamEraId: AWAY_TEAM_ERA_ID,
@@ -190,7 +190,15 @@ describe('TpMatchEventsImportService', () => {
 
   it('resolves the home and away team eras once per match, from the match roster ids', async () => {
     const { eventsBuilder } = await runImportRaw({
-      matches: [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
+      matches: [
+        matchWithEvents({
+          id: 566088,
+          events: [
+            { ...TOUCHDOWN, tpEventId: 1 },
+            { ...TOUCHDOWN, tpEventId: 2 },
+          ],
+        }),
+      ],
     });
 
     expect(eventsBuilder.resolveTeamEraId).toHaveBeenCalledTimes(2);
@@ -255,5 +263,27 @@ describe('TpMatchEventsImportService', () => {
         message: 'Player lineUpId "999999" has no imported id.',
       },
     ]);
+  });
+
+  it('does not count an event toward imported when upsertMatchEvent resolves false', async () => {
+    const upsertMatchEvent = vi.fn().mockResolvedValue(false);
+    const { service } = await makeService(upsertMatchEvent);
+
+    const { result } = await service.importMatchEvents({
+      matchesByCompetitionId: new Map([
+        [
+          COMPETITION_DB_ID,
+          [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
+        ],
+      ]),
+      eraIdByCompetitionId: new Map([[COMPETITION_DB_ID, ERA_ID]]),
+      matchIdsByTpId: new Map([[566088, MATCH_DB_ID]]),
+      teamErasByRosterId: new Map(),
+      playerIdsByLineUpId: new Map(),
+      starPlayerIdsByRosterAndMaster: new Map(),
+    });
+
+    expect(upsertMatchEvent).toHaveBeenCalledTimes(1);
+    expect(result.imported).toBe(0);
   });
 });

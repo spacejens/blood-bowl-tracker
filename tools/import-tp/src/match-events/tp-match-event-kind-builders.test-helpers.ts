@@ -48,7 +48,7 @@ export async function makeKindBuilders(): Promise<TpMatchEventKindBuildersServic
 }
 
 /** "Nothing paired" — the default for every test that isn't about pairing. */
-export function emptyCasualtyPairing(): CasualtyPairing {
+function emptyCasualtyPairing(): CasualtyPairing {
   return {
     casualtyByInjuryEventId: new Map(),
     pairedCasualtyEventIds: new Set(),
