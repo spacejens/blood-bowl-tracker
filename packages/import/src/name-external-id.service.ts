@@ -21,10 +21,6 @@ export class NameExternalIdService {
     return name;
   }
 
-  forCompetition(name: string): string {
-    return name;
-  }
-
   forRulesSet(name: string): string {
     return name;
   }

@@ -247,7 +247,7 @@ Re-running is always safe and fills any gaps left by transient failures.
   `playerIdOverrides` list, then by falling back to each era's
   `firstPlayerId`/`lastPlayerId` range — that range fallback only considers
   eras with `autoAssignByPlayerId: true`; an era with `autoAssignByPlayerId:
-  false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
+false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   team era and position are resolved to local ids from the teams and
   positions imports. A
   player whose pid matches no configured era range, whose team code was not
@@ -256,11 +256,11 @@ Re-running is always safe and fills any gaps left by transient failures.
 - **Competitions** — from the master competition dropdown on the `se`/`sr`
   pages (id/name) plus each competition's `p=ma&so=s&s=<id>` match-list page
   (dates). Keyed by the numeric BBL id (`s` param) under the configured BBL
-  external system (`BBL` by default) and by exact name under the `Name` external
-  system. `type` is `cup` when the match dates span 3 days or fewer, else
-  `season`; `eraId` is the era whose configured date range contains the earliest
-  match date, considering only eras with `autoAssignByDate: true` — an era
-  with `autoAssignByDate: false` is reached only through its
+  external system (`BBL` by default). `type` is `cup` when the match dates
+  span 3 days or fewer, else `season`; `eraId` is the era whose configured
+  date range contains the earliest match date, considering only eras with
+  `autoAssignByDate: true` — an era with `autoAssignByDate: false` is reached
+  only through its
   `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides`. A competition
   listed in an era's `seasonCompetitionIdOverrides`
   or `cupCompetitionIdOverrides` is instead hard-assigned that era and forced

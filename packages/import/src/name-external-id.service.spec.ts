@@ -25,10 +25,6 @@ describe('NameExternalIdService', () => {
     expect(service.forLeague('My League')).toBe('My League');
   });
 
-  it('returns the bare name for a competition', () => {
-    expect(service.forCompetition('Spike Cup')).toBe('Spike Cup');
-  });
-
   it('returns the bare name for a rules set', () => {
     expect(service.forRulesSet('CRP')).toBe('CRP');
   });

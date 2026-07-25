@@ -83,10 +83,7 @@ function competition(
     type: 'cup',
     eraId: 100,
     teamEraIds: [],
-    externalIds: [
-      { externalSystemId: 1, externalId: '111' },
-      { externalSystemId: 2, externalId: 'Chaos Cup 8' },
-    ],
+    externalIds: [{ externalSystemId: 1, externalId: '111' }],
     ...overrides,
   };
 }

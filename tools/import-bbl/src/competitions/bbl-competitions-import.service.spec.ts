@@ -3,7 +3,6 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
-  NameExternalIdService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -139,19 +138,13 @@ async function makeService(
   const competitionsImport = mock<CompetitionsImportService>();
 
   const bootstrap = mock<ExternalSystemBootstrapService>();
-  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1, 2] });
+  bootstrap.bootstrap.mockResolvedValue({ ok: true, ids: [1] });
 
   const eraConfig = mock<EraConfigService>();
   eraConfig.getEras.mockReturnValue(erasConfig);
 
   const nameConfig = mock<ExternalSystemNameConfigService>();
   nameConfig.getBblSystemName.mockReturnValue('BBL');
-
-  const nameExternalId = mock<NameExternalIdService>();
-  // Identity passthroughs (name in, same name out): nothing computed or
-  // formatted, so nothing can drift out of sync with the real
-  // NameExternalIdService — exempt from the canned-response rule.
-  nameExternalId.forCompetition.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
   // `error` is a pure identity field copy with no branching or formatting, so
@@ -176,7 +169,6 @@ async function makeService(
       { provide: ExternalSystemBootstrapService, useValue: bootstrap },
       { provide: EraConfigService, useValue: eraConfig },
       { provide: ExternalSystemNameConfigService, useValue: nameConfig },
-      { provide: NameExternalIdService, useValue: nameExternalId },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
     ],
@@ -221,7 +213,6 @@ describe('BblCompetitionsImportService', () => {
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
-      { name: 'Name', category: 'bookkeeping' },
     ]);
     expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
@@ -232,10 +223,7 @@ describe('BblCompetitionsImportService', () => {
         type: 'season',
         eraId: 100,
         teamEraIds: [],
-        externalIds: [
-          { externalSystemId: 1, externalId: '1' },
-          { externalSystemId: 2, externalId: 'Major Season 1' },
-        ],
+        externalIds: [{ externalSystemId: 1, externalId: '1' }],
       },
       expect.any(Array),
     );
@@ -244,10 +232,7 @@ describe('BblCompetitionsImportService', () => {
       type: 'season',
       eraId: 100,
       teamEraIds: [],
-      externalIds: [
-        { externalSystemId: 1, externalId: '1' },
-        { externalSystemId: 2, externalId: 'Major Season 1' },
-      ],
+      externalIds: [{ externalSystemId: 1, externalId: '1' }],
     });
     expect(competitionIdsByBblId.get('1')).toBe(42);
   });
@@ -456,7 +441,7 @@ describe('BblCompetitionsImportService', () => {
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
-        item: { externalSystems: ['BBL', 'Name'] },
+        item: { externalSystems: ['BBL'] },
         message: 'network timeout',
       },
     });
@@ -470,11 +455,35 @@ describe('BblCompetitionsImportService', () => {
     expect(errors[0].message).toBe('network timeout');
     // And the error names the external systems the bootstrap tried to upsert.
     expect(errors[0].item).toEqual({
-      externalSystems: ['BBL', 'Name'],
+      externalSystems: ['BBL'],
     });
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
+  });
+
+  it('records one error naming only the BBL system when the era config cannot be read', async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.eraConfig.getEras.mockImplementation(() => {
+      throw new Error('era config is malformed');
+    });
+
+    const { competitionsByBblId, competitionIdsByBblId } =
+      await service.importCompetitions(eraIdsByName);
+
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe('era config is malformed');
+    expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
+    expect(mocks.bootstrap.bootstrap).not.toHaveBeenCalled();
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).not.toHaveBeenCalled();
+    expect(competitionsByBblId.size).toBe(0);
+    expect(competitionIdsByBblId.size).toBe(0);
   });
 
   it('records an error and reports zero imports when the master list page fails to parse', async () => {
@@ -549,10 +558,7 @@ describe('BblCompetitionsImportService', () => {
         type: 'season',
         eraId: 200,
         teamEraIds: [],
-        externalIds: [
-          { externalSystemId: 1, externalId: '74' },
-          { externalSystemId: 2, externalId: 'Minor Season 25' },
-        ],
+        externalIds: [{ externalSystemId: 1, externalId: '74' }],
       },
       expect.any(Array),
     );
