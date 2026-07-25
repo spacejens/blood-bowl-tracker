@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
@@ -17,6 +18,42 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionsImportService } from './bbl-competitions-import.service';
 import { CompetitionListPageParser } from './competition-list-page-parser';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+/**
+ * The canned ImportError the mocked PageParseErrorService.build returns.
+ * PageParseErrorService's own message template — including the
+ * `error instanceof Error ? error.message : String(error)` branch — is
+ * covered by ../source/page-parse-error.service.spec.ts. This spec asserts
+ * only what BblCompetitionsImportService hands to build() and that it pushes
+ * build()'s return value onto the errors list.
+ */
+const CANNED_PAGE_PARSE_ERROR: ImportError = {
+  item: { page: 'canned' },
+  message: 'canned page parse error',
+};
 
 const erasConfig: EraConfig[] = [
   {
@@ -81,13 +118,15 @@ interface Mocks {
   competitionsImport: MockProxy<CompetitionsImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   eraConfig: MockProxy<EraConfigService>;
+  importResults: MockProxy<ImportResultService>;
+  pageParseError: MockProxy<PageParseErrorService>;
 }
 
 /**
  * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (name resolution, error
- * building) mirror the real production logic so a regression in the service
- * under test still fails these tests.
+ * collaborator mocked. ImportResultService.result and
+ * PageParseErrorService.build return canned values (see the constants above);
+ * tests assert what this service passes to them, not what they compute.
  */
 async function makeService(
   reader: BblSourceReader,
@@ -109,29 +148,23 @@ async function makeService(
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // Identity passthroughs (name in, same name out): nothing computed or
+  // formatted, so nothing can drift out of sync with the real
+  // NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forCompetition.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockImplementation(
-    (pageParams, pageDescription, error) =>
-      importResults.error({
-        item: { page: pageParams },
-        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }),
-  );
+  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -157,6 +190,8 @@ async function makeService(
       competitionsImport,
       bootstrap,
       eraConfig,
+      importResults,
+      pageParseError,
     },
   };
 }
@@ -181,14 +216,14 @@ describe('BblCompetitionsImportService', () => {
       id: 42,
     });
 
-    const { result, competitionsByBblId, competitionIdsByBblId } =
+    const { competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
       { name: 'Name', category: 'bookkeeping' },
     ]);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -233,9 +268,9 @@ describe('BblCompetitionsImportService', () => {
       id: 7,
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -252,16 +287,16 @@ describe('BblCompetitionsImportService', () => {
       { bblId: '9', name: 'In Progress' },
     ]);
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
-    expect(
-      result.errors.some((e) => e.message.includes('no dated matches')),
-    ).toBe(true);
+    expect(errors.some((e) => e.message.includes('no dated matches'))).toBe(
+      true,
+    );
   });
 
   it('skips and records an error when no configured era contains the earliest match date', async () => {
@@ -277,15 +312,16 @@ describe('BblCompetitionsImportService', () => {
       }),
     );
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
-    expect(
-      result.errors.some((e) => e.message.includes('no configured era')),
-    ).toBe(true);
+    expect(errors.some((e) => e.message.includes('no configured era'))).toBe(
+      true,
+    );
   });
 
   it('skips and records a distinct error when the matched era has no known database id', async () => {
@@ -306,22 +342,23 @@ describe('BblCompetitionsImportService', () => {
     // "Living rulebook" matches by date, but is absent from eraIdsByName,
     // simulating its rules set having failed to import earlier in the run.
 
-    const { result } = await service.importCompetitions(new Map());
+    await service.importCompetitions(new Map());
 
-    expect(result.imported).toBe(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
-      result.errors.some(
+      errors.some(
         (e) =>
           e.message.includes('"Living rulebook"') &&
           e.message.includes('no known database id'),
       ),
     ).toBe(true);
-    expect(
-      result.errors.some((e) => e.message.includes('no configured era')),
-    ).toBe(false);
+    expect(errors.some((e) => e.message.includes('no configured era'))).toBe(
+      false,
+    );
   });
 
   it('skips and records a distinct error when the override era has no known database id', async () => {
@@ -343,22 +380,23 @@ describe('BblCompetitionsImportService', () => {
     // eraIdsByName, simulating its rules set having failed to import
     // earlier in the run.
 
-    const { result } = await service.importCompetitions(new Map());
+    await service.importCompetitions(new Map());
 
-    expect(result.imported).toBe(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
     expect(
-      result.errors.some(
+      errors.some(
         (e) =>
           e.message.includes('"BB2020"') &&
           e.message.includes('no known database id'),
       ),
     ).toBe(true);
-    expect(
-      result.errors.some((e) => e.message.includes('no dated matches')),
-    ).toBe(false);
+    expect(errors.some((e) => e.message.includes('no dated matches'))).toBe(
+      false,
+    );
   });
 
   it('falls back to an sr page for the master list when no se page exists', async () => {
@@ -377,9 +415,9 @@ describe('BblCompetitionsImportService', () => {
       id: 1,
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
   });
 
@@ -402,9 +440,9 @@ describe('BblCompetitionsImportService', () => {
       id: 1,
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.competitionsImport.upsertCompetitionResult).toHaveBeenCalled();
   });
 
@@ -423,12 +461,15 @@ describe('BblCompetitionsImportService', () => {
       },
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toBe('network timeout');
-    expect(result.errors[0].item).toEqual({
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
+    // Message is passed through unchanged (this caller adds no prefix): the
+    // assertion now fails if production stops surfacing the real error text.
+    expect(errors[0].message).toBe('network timeout');
+    // And the error names the external systems the bootstrap tried to upsert.
+    expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
     expect(
@@ -444,20 +485,26 @@ describe('BblCompetitionsImportService', () => {
       throw new Error('bad se page');
     });
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(0);
+    // readCompetitionList returns null on a parse failure, and the caller
+    // treats a null result the same as "no se or sr page was found" — so a
+    // parse failure records *two* errors: the page-parse error itself, and
+    // the caller's fallback "no se or sr page" error.
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).not.toHaveBeenCalled();
-    expect(
-      result.errors.some((e) =>
-        e.message.includes('Failed to parse master competition list page'),
-      ),
-    ).toBe(true);
-    expect(
-      result.errors.some((e) => e.message.includes('no se or sr page')),
-    ).toBe(true);
+    expect(errors).toContainEqual(CANNED_PAGE_PARSE_ERROR);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { s: '66' },
+      'master competition list',
+      new Error('bad se page'),
+    );
+    expect(errors.some((e) => e.message.includes('no se or sr page'))).toBe(
+      true,
+    );
   });
 
   it('imports a zero-match competition via its era override as type season', async () => {
@@ -488,11 +535,12 @@ describe('BblCompetitionsImportService', () => {
       },
     ]);
 
-    const { result, competitionsByBblId, competitionIdsByBblId } =
+    const { competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
-    expect(result.errors).toHaveLength(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -547,9 +595,9 @@ describe('BblCompetitionsImportService', () => {
       },
     ]);
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -596,9 +644,9 @@ describe('BblCompetitionsImportService', () => {
       },
     ]);
 
-    const { result } = await service.importCompetitions(eraIdsByName);
+    await service.importCompetitions(eraIdsByName);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -653,9 +701,9 @@ describe('BblCompetitionsImportService', () => {
       ['Living rulebook', 100],
       ['Stunty', 300],
     ]);
-    const { result } = await service.importCompetitions(overlapEraIds);
+    await service.importCompetitions(overlapEraIds);
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(
       mocks.competitionsImport.upsertCompetitionResult,
     ).toHaveBeenCalledWith(
@@ -764,5 +812,16 @@ describe('BblCompetitionsImportService', () => {
       expect.objectContaining({ eraId: 900, type: 'season' }),
       expect.anything(),
     );
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([]);
+
+    const { result } = await service.importCompetitions(eraIdsByName);
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

@@ -1,10 +1,11 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -13,14 +14,41 @@ import {
 import type { StarPositionUsage } from '../players/tp-players-import.service';
 import { TpPositionRaceErasImportService } from './tp-position-race-eras-import.service';
 
-async function makeService(
-  syncRaceEras: ReturnType<typeof vi.fn>,
-): Promise<TpPositionRaceErasImportService> {
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+async function makeService(syncRaceEras: ReturnType<typeof vi.fn>): Promise<{
+  service: TpPositionRaceErasImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const positionsImport = mock<PositionsImportService>();
   positionsImport.syncRaceEras.mockImplementation(
     asProviderMethod(syncRaceEras),
   );
   const importResults = mockImportResultService();
+  // The shared helper's mockImportResultService() only provides the exempt
+  // `error` identity mock; `result` is stubbed with a canned value here.
+  // ImportResultService.result's own success derivation is covered by
+  // packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -29,7 +57,10 @@ async function makeService(
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpPositionRaceErasImportService);
+  return {
+    service: moduleRef.get(TpPositionRaceErasImportService),
+    importResults,
+  };
 }
 
 const raceIdsByTeamRaceCode = new Map<string, number>([
@@ -46,13 +77,13 @@ describe('TpPositionRaceErasImportService', () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
-    const service = await makeService(syncRaceEras);
+    const { service, importResults } = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Human', era: 'Fourth era' },
     ];
 
-    const { result } = await service.syncStarPositionRaceEras({
+    await service.syncStarPositionRaceEras({
       starPositionUsages,
       raceIdsByTeamRaceCode,
       eraIdsByName,
@@ -69,15 +100,16 @@ describe('TpPositionRaceErasImportService', () => {
       },
       expect.any(Array),
     );
-    expect(result.imported).toBe(1);
-    expect(result.errors).toHaveLength(0);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
   });
 
   it('dedupes repeated usages of the same (race, era) pair for a position', async () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
-    const service = await makeService(syncRaceEras);
+    const { service } = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
@@ -97,30 +129,31 @@ describe('TpPositionRaceErasImportService', () => {
 
   it('makes no syncRaceEras call when there are no star position usages', async () => {
     const syncRaceEras = vi.fn();
-    const service = await makeService(syncRaceEras);
+    const { service, importResults } = await makeService(syncRaceEras);
 
-    const { result } = await service.syncStarPositionRaceEras({
+    await service.syncStarPositionRaceEras({
       starPositionUsages: [],
       raceIdsByTeamRaceCode,
       eraIdsByName,
     });
 
     expect(syncRaceEras).not.toHaveBeenCalled();
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(0);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(0);
   });
 
   it('groups usages per position into separate syncRaceEras calls', async () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 0, raceEraIds: [1] });
-    const service = await makeService(syncRaceEras);
+    const { service, importResults } = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
       { positionId: 810, teamRaceCode: 'Human', era: 'Fourth era' },
     ];
 
-    const { result } = await service.syncStarPositionRaceEras({
+    await service.syncStarPositionRaceEras({
       starPositionUsages,
       raceIdsByTeamRaceCode,
       eraIdsByName,
@@ -135,16 +168,60 @@ describe('TpPositionRaceErasImportService', () => {
       { positionId: 810, raceEras: [{ raceId: 60, eraId: 600 }] },
       expect.any(Array),
     );
-    expect(result.imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(2);
   });
 
   it('records an ImportError and skips a usage whose race code cannot be resolved, still processing the rest', async () => {
     const syncRaceEras = vi
       .fn()
       .mockResolvedValue({ positionId: 800, raceEraIds: [1] });
-    const service = await makeService(syncRaceEras);
+    const { service, importResults } = await makeService(syncRaceEras);
     const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'UnknownRace', era: 'Third Era' },
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
+    ];
+
+    await service.syncStarPositionRaceEras({
+      starPositionUsages,
+      raceIdsByTeamRaceCode,
+      eraIdsByName,
+    });
+
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('UnknownRace');
+    expect(syncRaceEras).toHaveBeenCalledWith(
+      { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
+      expect.any(Array),
+    );
+  });
+
+  it('records an ImportError and skips a usage whose era cannot be resolved', async () => {
+    const syncRaceEras = vi.fn();
+    const { service, importResults } = await makeService(syncRaceEras);
+    const starPositionUsages: StarPositionUsage[] = [
+      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Unknown Era' },
+    ];
+
+    await service.syncStarPositionRaceEras({
+      starPositionUsages,
+      raceIdsByTeamRaceCode,
+      eraIdsByName,
+    });
+
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('Unknown Era');
+    // The only usage errored out, so no position had any resolvable pair.
+    expect(syncRaceEras).not.toHaveBeenCalled();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const syncRaceEras = vi
+      .fn()
+      .mockResolvedValue({ positionId: 800, raceEraIds: [1, 2] });
+    const { service } = await makeService(syncRaceEras);
+    const starPositionUsages: StarPositionUsage[] = [
       { positionId: 800, teamRaceCode: 'Dwarf', era: 'Third Era' },
     ];
 
@@ -154,30 +231,6 @@ describe('TpPositionRaceErasImportService', () => {
       eraIdsByName,
     });
 
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('UnknownRace');
-    expect(syncRaceEras).toHaveBeenCalledWith(
-      { positionId: 800, raceEras: [{ raceId: 50, eraId: 500 }] },
-      expect.any(Array),
-    );
-  });
-
-  it('records an ImportError and skips a usage whose era cannot be resolved', async () => {
-    const syncRaceEras = vi.fn();
-    const service = await makeService(syncRaceEras);
-    const starPositionUsages: StarPositionUsage[] = [
-      { positionId: 800, teamRaceCode: 'Dwarf', era: 'Unknown Era' },
-    ];
-
-    const { result } = await service.syncStarPositionRaceEras({
-      starPositionUsages,
-      raceIdsByTeamRaceCode,
-      eraIdsByName,
-    });
-
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('Unknown Era');
-    // The only usage errored out, so no position had any resolvable pair.
-    expect(syncRaceEras).not.toHaveBeenCalled();
+    expect(result).toBe(CANNED_RESULT);
   });
 });

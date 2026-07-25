@@ -13,6 +13,9 @@ describe('ImportRunnerService', () => {
 
   beforeEach(async () => {
     importResults = mock<ImportResultService>();
+    // Identity field copy (`{ item, message }` in, the same out): no branching,
+    // no formatting, nothing that can drift out of sync with the real
+    // ImportResultService — exempt from the canned-response rule.
     importResults.error.mockImplementation((args) => args);
     const moduleRef = await Test.createTestingModule({
       providers: [

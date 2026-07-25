@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   CoachesImportService,
   ExternalSystemBootstrapService,
@@ -8,7 +9,7 @@ import type { TpCoach } from '@blood-bowl-tracker/parse-tp';
 import { InscriptionsParserService } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import {
   asProviderMethod,
@@ -42,13 +43,38 @@ interface MakeServiceOptions {
  * `packages/parse-tp/src/inscriptions-parser.service.spec.ts`. Per-file parse
  * failures are modelled with `mockImplementationOnce(() => { throw ... })`.
  */
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 async function makeService({
   files,
   bootstrap,
   upsertCoach,
   getTpSystemName = () => 'TP',
   parseCoaches,
-}: MakeServiceOptions): Promise<TpCoachesImportService> {
+}: MakeServiceOptions): Promise<{
+  service: TpCoachesImportService;
+  importResults: MockProxy<ImportResultService>;
+}> {
   const sourceReader = mock<TpSourceReader>();
   sourceReader.files.mockImplementation(files);
   const inscriptionsParser = mock<InscriptionsParserService>();
@@ -70,6 +96,11 @@ async function makeService({
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
+  // The shared helper's mockImportResultService() only provides the exempt
+  // `error` identity mock; `result` is stubbed with a canned value here.
+  // ImportResultService.result's own success derivation is covered by
+  // packages/import/src/import-result.service.spec.ts.
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -89,7 +120,10 @@ async function makeService({
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
-  return moduleRef.get(TpCoachesImportService);
+  return {
+    service: moduleRef.get(TpCoachesImportService),
+    importResults,
+  };
 }
 
 function makeFiles(entries: TpSourceFile[]): () => AsyncIterable<TpSourceFile> {
@@ -149,7 +183,7 @@ describe('TpCoachesImportService', () => {
   it('upserts the TP, Name and NAF external systems in order', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'a', name: 'Alice', nafNumber: 1 },
@@ -171,7 +205,7 @@ describe('TpCoachesImportService', () => {
   it('gives a coach with a nafNumber three external ids', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'guid-a', name: 'Alice', nafNumber: 19767 },
@@ -181,10 +215,11 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result, coachIdsByTpId } = await service.importCoaches();
+    const { coachIdsByTpId } = await service.importCoaches();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(true);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(errors).toEqual([]);
     expect(upsertCoach).toHaveBeenCalledWith(
       {
         name: 'Alice',
@@ -202,7 +237,7 @@ describe('TpCoachesImportService', () => {
   it('gives a coach without a nafNumber only two external ids', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'guid-b', name: 'Bob' },
@@ -229,7 +264,7 @@ describe('TpCoachesImportService', () => {
   it('dedupes a coach appearing across multiple competitions and eras', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'dup', name: 'Alice', nafNumber: 1 },
@@ -243,16 +278,16 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
     expect(upsertCoach).toHaveBeenCalledTimes(2);
-    expect(result.imported).toBe(2);
+    expect(resultArgs(importResults).imported).toBe(2);
   });
 
   it('records a parse error for one bad inscriptions file but imports the rest', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         {
           era: 'Fourth era',
@@ -272,12 +307,12 @@ describe('TpCoachesImportService', () => {
       }),
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(
-      result.errors.some((e) =>
+      errors.some((e) =>
         e.message.includes('inscriptions_chaos-cup-8_inscriptions.json'),
       ),
     ).toBe(true);
@@ -286,7 +321,7 @@ describe('TpCoachesImportService', () => {
   it('ignores non-inscriptions files', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         {
           era: 'Fourth era',
@@ -310,10 +345,10 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
     expect(upsertCoach).toHaveBeenCalledTimes(1);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
   });
 
   it('records one error and imports nothing when external system bootstrap fails', async () => {
@@ -325,7 +360,7 @@ describe('TpCoachesImportService', () => {
       },
     });
     const upsertCoach = vi.fn();
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'a', name: 'Alice' },
@@ -335,11 +370,11 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].item).toEqual({
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({
       externalSystems: ['TP', 'Name', 'NAF'],
     });
     expect(upsertCoach).not.toHaveBeenCalled();
@@ -348,7 +383,7 @@ describe('TpCoachesImportService', () => {
   it('records a diagnostic error but keeps coaches found before a scan failure', async () => {
     const bootstrap = makeThreeSystemUpsertMock();
     const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFilesThatThrow(
         [
           inscriptionsFile('Fourth era', 'chaos-cup-8', [
@@ -363,14 +398,12 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result } = await service.importCoaches();
+    await service.importCoaches();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
     expect(
-      result.errors.some((e) =>
-        e.message.includes('Era data directory not found'),
-      ),
+      errors.some((e) => e.message.includes('Era data directory not found')),
     ).toBe(true);
   });
 
@@ -385,7 +418,7 @@ describe('TpCoachesImportService', () => {
         },
       )
       .mockResolvedValue(coachRecord(11));
-    const service = await makeService({
+    const { service, importResults } = await makeService({
       files: makeFiles([
         inscriptionsFile('Fourth era', 'chaos-cup-8', [
           { id: 'a', name: 'Alice' },
@@ -396,10 +429,9 @@ describe('TpCoachesImportService', () => {
       upsertCoach,
     });
 
-    const { result, coachIdsByTpId } = await service.importCoaches();
+    const { coachIdsByTpId } = await service.importCoaches();
 
-    expect(result.success).toBe(false);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(importResults).imported).toBe(1);
     expect(coachIdsByTpId.has('a')).toBe(false);
     expect(coachIdsByTpId.get('b')).toBe(11);
   });
@@ -408,7 +440,7 @@ describe('TpCoachesImportService', () => {
     const makeRun = async () => {
       const bootstrap = makeThreeSystemUpsertMock();
       const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
-      const service = await makeService({
+      const { service, importResults } = await makeService({
         files: makeFiles([
           inscriptionsFile('Fourth era', 'chaos-cup-8', [
             { id: 'a', name: 'Alice', nafNumber: 1 },
@@ -417,18 +449,36 @@ describe('TpCoachesImportService', () => {
         bootstrap,
         upsertCoach,
       });
-      return { service, upsertCoach };
+      return { service, importResults, upsertCoach };
     };
 
     const first = await makeRun();
-    const firstResult = await first.service.importCoaches();
+    await first.service.importCoaches();
     const second = await makeRun();
-    const secondResult = await second.service.importCoaches();
+    await second.service.importCoaches();
 
-    expect(firstResult.result.imported).toBe(1);
-    expect(secondResult.result.imported).toBe(1);
+    expect(resultArgs(first.importResults).imported).toBe(1);
+    expect(resultArgs(second.importResults).imported).toBe(1);
     expect(first.upsertCoach.mock.calls[0][0]).toEqual(
       second.upsertCoach.mock.calls[0][0],
     );
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const bootstrap = makeThreeSystemUpsertMock();
+    const upsertCoach = vi.fn().mockResolvedValue(coachRecord(10));
+    const { service } = await makeService({
+      files: makeFiles([
+        inscriptionsFile('Fourth era', 'chaos-cup-8', [
+          { id: 'a', name: 'Alice' },
+        ]),
+      ]),
+      bootstrap,
+      upsertCoach,
+    });
+
+    const { result } = await service.importCoaches();
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

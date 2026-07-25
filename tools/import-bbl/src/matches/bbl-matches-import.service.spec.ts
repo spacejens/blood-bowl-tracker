@@ -1,4 +1,5 @@
 import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchesImportService,
@@ -14,6 +15,29 @@ import type { BblMatch } from './match-list-page-parser';
 import type { MatchMergeResolution } from './match-merge.service';
 import { MatchMergeService } from './match-merge.service';
 import type { BblMatchDetails } from './match-teams-page-parser';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
 
 const detail = (bblId: string, name: string): BblMatchDetails => ({
   bblId,
@@ -38,6 +62,7 @@ interface Mocks {
   matchesImport: MockProxy<MatchesImportService>;
   matchMerge: MockProxy<MatchMergeService>;
   matchDetailReader: MockProxy<BblMatchDetailReaderService>;
+  importResults: MockProxy<ImportResultService>;
 }
 
 async function makeService(
@@ -60,15 +85,14 @@ async function makeService(
   );
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -83,7 +107,13 @@ async function makeService(
 
   return {
     service: moduleRef.get(BblMatchesImportService),
-    mocks: { matchListReader, matchesImport, matchMerge, matchDetailReader },
+    mocks: {
+      matchListReader,
+      matchesImport,
+      matchMerge,
+      matchDetailReader,
+      importResults,
+    },
   };
 }
 
@@ -108,12 +138,12 @@ describe('BblMatchesImportService', () => {
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 7 });
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(matchIdsByBblId.get('89')).toBe(7);
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
@@ -133,15 +163,15 @@ describe('BblMatchesImportService', () => {
       {},
     );
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map(),
       new Map(),
     );
 
-    expect(result.imported).toBe(0);
-    expect(result.success).toBe(false);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
-    expect(result.errors).toHaveLength(1);
+    expect(errors).toHaveLength(1);
     expect(matchIdsByBblId.size).toBe(0);
   });
 
@@ -152,12 +182,12 @@ describe('BblMatchesImportService', () => {
     );
     mocks.matchesImport.upsertMatchResult.mockResolvedValue(undefined);
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
-    expect(result.imported).toBe(0);
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
   });
@@ -189,7 +219,7 @@ describe('BblMatchesImportService', () => {
         bblId === '1061' || bblId === '1062' ? secondary.date : rawDate,
     });
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map([
         [
           '32',
@@ -202,7 +232,7 @@ describe('BblMatchesImportService', () => {
       new Map([['32', 99]]),
     );
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledTimes(1);
     expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
       {
@@ -244,7 +274,7 @@ describe('BblMatchesImportService', () => {
       return Promise.resolve(noMergeResolution());
     });
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map([
         [
           '32',
@@ -271,20 +301,33 @@ describe('BblMatchesImportService', () => {
     expect(matchIdsByBblId.get('1061')).toBe(500);
     expect(matchIdsByBblId.get('1062')).toBe(600);
     // The unresolved-pair error is recorded by MatchMergeService.resolve().
-    expect(result.errors.some((e) => e.message.includes('1061'))).toBe(true);
+    expect(
+      resultArgs(mocks.importResults).errors.some((e) =>
+        e.message.includes('1061'),
+      ),
+    ).toBe(true);
   });
 
   it('records an error and skips a match with no detail-page entry', async () => {
     const { service, mocks } = await makeService({ '3': [match] }, {});
 
-    const { result, matchIdsByBblId } = await service.importMatches(
+    const { matchIdsByBblId } = await service.importMatches(
       new Map([['3', competition]]),
       new Map([['3', 42]]),
     );
 
     expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
-    expect(result.imported).toBe(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(matchIdsByBblId.size).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    expect(errors).toHaveLength(1);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService({ '3': [match] }, {});
+
+    const { result } = await service.importMatches(new Map(), new Map());
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

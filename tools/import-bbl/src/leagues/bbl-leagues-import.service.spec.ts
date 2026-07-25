@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -12,11 +13,35 @@ import { ExternalSystemNameConfigService } from '../source/external-system-name-
 import { BblLeaguesImportService } from './bbl-leagues-import.service';
 import { LeagueConfigService } from './league-config.service';
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 interface Mocks {
   config: MockProxy<LeagueConfigService>;
   leaguesImport: MockProxy<LeaguesImportService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   nameConfig: MockProxy<ExternalSystemNameConfigService>;
+  importResults: MockProxy<ImportResultService>;
 }
 
 /**
@@ -40,18 +65,20 @@ async function makeService(): Promise<{
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const nameExternalId = mock<NameExternalIdService>();
+  // `forLeague` is a pure identity passthrough with no branching or
+  // formatting, so there is no algorithm here that can drift out of sync with
+  // the real NameExternalIdService — exempt from the canned-response rule.
   nameExternalId.forLeague.mockImplementation((name) => name);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -67,7 +94,7 @@ async function makeService(): Promise<{
 
   return {
     service: moduleRef.get(BblLeaguesImportService),
-    mocks: { config, leaguesImport, bootstrap, nameConfig },
+    mocks: { config, leaguesImport, bootstrap, nameConfig, importResults },
   };
 }
 
@@ -127,10 +154,9 @@ describe('BblLeaguesImportService', () => {
         created: true,
       });
 
-    const { result, leagueIdsByName } = await service.importLeagues();
+    const { leagueIdsByName } = await service.importLeagues();
 
-    expect(result.imported).toBe(2);
-    expect(result.success).toBe(true);
+    expect(resultArgs(mocks.importResults).imported).toBe(2);
     expect(leagueIdsByName).toEqual(
       new Map([
         ['tLoEG', 42],
@@ -176,10 +202,9 @@ describe('BblLeaguesImportService', () => {
         return Promise.resolve(undefined);
       });
 
-    const { result, leagueIdsByName } = await service.importLeagues();
+    const { leagueIdsByName } = await service.importLeagues();
 
-    expect(result.imported).toBe(1);
-    expect(result.success).toBe(false);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(leagueIdsByName.get('tLoEG')).toBe(42);
     expect(leagueIdsByName.has('GBBL')).toBe(false);
   });
@@ -190,10 +215,13 @@ describe('BblLeaguesImportService', () => {
       throw new Error('leagues is not set in import-bbl-config.json5');
     });
 
-    const { result } = await service.importLeagues();
+    await service.importLeagues();
 
-    expect(result.success).toBe(false);
-    expect(result.errors.some((e) => e.message.includes('leagues'))).toBe(true);
+    expect(
+      resultArgs(mocks.importResults).errors.some((e) =>
+        e.message.includes('leagues'),
+      ),
+    ).toBe(true);
     expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
   });
 
@@ -208,14 +236,29 @@ describe('BblLeaguesImportService', () => {
       },
     });
 
-    const { result } = await service.importLeagues();
+    await service.importLeagues();
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toBe('network timeout');
-    expect(result.errors[0].item).toEqual({
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toBe('network timeout');
+    expect(errors[0].item).toEqual({
       externalSystems: ['BBL', 'Name'],
     });
     expect(mocks.leaguesImport.upsertLeague).not.toHaveBeenCalled();
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service, mocks } = await makeService();
+    mocks.config.getLeagueNames.mockReturnValue(['tLoEG']);
+    mocks.leaguesImport.upsertLeague.mockResolvedValue({
+      id: 42,
+      name: 'tLoEG',
+      createdAt: new Date('2026-01-01'),
+      created: true,
+    });
+
+    const { result } = await service.importLeagues();
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

@@ -1,4 +1,5 @@
 import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -17,6 +18,41 @@ import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblPlayersImportService } from './bbl-players-import.service';
 import type { BblPlayer } from './player-page-parser';
 import { PlayerPageParser } from './player-page-parser';
+
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
+/**
+ * The canned ImportError the mocked PageParseErrorService.build returns. No
+ * test in this file exercises BblPlayersImportService's `pageParseError.build`
+ * call path, so this constant only backs the mock's default return value —
+ * build()'s own message-template algorithm is covered by
+ * ../source/page-parse-error.service.spec.ts.
+ */
+const CANNED_PAGE_PARSE_ERROR: ImportError = {
+  item: { page: 'canned' },
+  message: 'canned page parse error',
+};
 
 function plPage(player: BblPlayer | null, pid = '388'): BblPage {
   return {
@@ -72,6 +108,8 @@ interface Mocks {
   teamsImport: MockProxy<TeamsImportService>;
   eraConfig: MockProxy<EraConfigService>;
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
+  importResults: MockProxy<ImportResultService>;
+  pageParseError: MockProxy<PageParseErrorService>;
 }
 
 /**
@@ -93,10 +131,11 @@ function makeTeamRecord(eras: { id: number; eraId: number }[]) {
 
 /**
  * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (error building) mirror
- * the real production logic so a regression in the service under test still
- * fails these tests. `eras` seeds the EraConfigService mock since every test
- * needs its own era set.
+ * collaborator mocked. ImportResultService.result and
+ * PageParseErrorService.build return canned values (see the constants above);
+ * tests assert what this service passes to them, not what they compute.
+ * `eras` seeds the EraConfigService mock since every test needs its own era
+ * set.
  */
 async function makeService(
   reader: BblSourceReader,
@@ -125,26 +164,17 @@ async function makeService(
   nameConfig.getBblSystemName.mockReturnValue('BBL');
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockImplementation(
-    (pageParams, pageDescription, error) =>
-      importResults.error({
-        item: { page: pageParams },
-        message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
-      }),
-  );
+  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -163,7 +193,15 @@ async function makeService(
 
   return {
     service: moduleRef.get(BblPlayersImportService),
-    mocks: { parser, playersImport, teamsImport, eraConfig, bootstrap },
+    mocks: {
+      parser,
+      playersImport,
+      teamsImport,
+      eraConfig,
+      bootstrap,
+      importResults,
+      pageParseError,
+    },
   };
 }
 
@@ -180,7 +218,7 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
     );
 
-    const { result, playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
+    const { playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
       await service.importPlayers({
         teamsByCode,
         positionIdsByBblId,
@@ -188,8 +226,7 @@ describe('BblPlayersImportService', () => {
         eraIdsByName,
       });
 
-    expect(result.success).toBe(true);
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith(
       [{ name: 'BBL', category: 'imported_data_source' }],
       'Failed to upsert external system: ',
@@ -239,14 +276,14 @@ describe('BblPlayersImportService', () => {
       ],
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
@@ -334,14 +371,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
@@ -387,14 +424,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 7000, eraId: 700 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Pinned to the GBBL era's team era (eraId 700), not the tLoEG pid-range
     // era (500).
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
@@ -440,14 +477,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 6000, eraId: 600 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [600] },
       expect.any(Array),
@@ -490,14 +527,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Pinned to Side (eraId 500), not Main, via team code.
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
@@ -543,14 +580,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     // Lands in "Enabled" (eraId 500), proving "Disabled" was genuinely
     // skipped by the range scan rather than merely checked-and-not-matching.
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
@@ -581,14 +618,14 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 5000, eraId: 500 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName: overrideEraIds,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.teamsImport.upsertTeam).toHaveBeenCalledWith(
       { ...team, eras: [500] },
       expect.any(Array),
@@ -607,14 +644,14 @@ describe('BblPlayersImportService', () => {
       ],
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalled();
   });
 
@@ -634,15 +671,16 @@ describe('BblPlayersImportService', () => {
       ],
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -651,32 +689,34 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
   it('skips and records an error when no position matches the composite key', async () => {
-    const { service } = await makeService(
+    const { service, mocks } = await makeService(
       makeReader([plPage({ ...goodPlayer, typId: '99' })]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
   });
 
   it('records an error and returns early when external systems fail', async () => {
@@ -691,22 +731,22 @@ describe('BblPlayersImportService', () => {
       },
     });
 
-    const { result, playerIdsByPid } = await service.importPlayers({
+    const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
     // Message is passed through with this caller's prefix: the assertion now
     // fails if production stops surfacing the real error text.
-    expect(result.errors[0].message).toBe(
+    expect(errors[0].message).toBe(
       'Failed to upsert external system: network timeout',
     );
     // Players bootstraps only the BBL external system (no Name system).
-    expect(result.errors[0].item).toEqual({ externalSystems: ['BBL'] });
+    expect(errors[0].item).toEqual({ externalSystems: ['BBL'] });
     expect(playerIdsByPid.size).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
@@ -716,18 +756,19 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(null, '388')]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('388');
-    expect(result.errors[0]?.item).toEqual({ pid: '388' });
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('388');
+    expect(errors[0]?.item).toEqual({ pid: '388' });
   });
 
   it('imports a player whose name is empty and maps its pid', async () => {
@@ -741,14 +782,14 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(namelessPlayer)]),
     );
 
-    const { result, playerIdsByPid } = await service.importPlayers({
+    const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(1);
+    expect(resultArgs(mocks.importResults).imported).toBe(1);
     expect(playerIdsByPid.get('388')).toBe(900);
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalledWith(
       {
@@ -777,15 +818,16 @@ describe('BblPlayersImportService', () => {
       ],
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
     expect(mocks.teamsImport.upsertTeam).not.toHaveBeenCalled();
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
@@ -796,14 +838,14 @@ describe('BblPlayersImportService', () => {
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(undefined);
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -815,15 +857,16 @@ describe('BblPlayersImportService', () => {
       makeTeamRecord([{ id: 5000, eraId: 999 }]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -836,16 +879,17 @@ describe('BblPlayersImportService', () => {
       makeReader([plPage(goodPlayer)]),
     );
 
-    const { result } = await service.importPlayers({
+    await service.importPlayers({
       teamsByCode: localTeamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('33-?');
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('33-?');
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
@@ -855,14 +899,14 @@ describe('BblPlayersImportService', () => {
     );
     mocks.playersImport.upsertPlayerResult.mockResolvedValue(undefined);
 
-    const { result, playerIdsByPid } = await service.importPlayers({
+    const { playerIdsByPid } = await service.importPlayers({
       teamsByCode,
       positionIdsByBblId,
       racesByBblId,
       eraIdsByName,
     });
 
-    expect(result.imported).toBe(0);
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
     expect(playerIdsByPid.size).toBe(0);
     expect(mocks.playersImport.upsertPlayerResult).toHaveBeenCalled();
   });
@@ -882,5 +926,18 @@ describe('BblPlayersImportService', () => {
 
     expect(positionsUsedByEra.size).toBe(0);
     expect(racesActiveByEra.size).toBe(0);
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService(makeReader([plPage(goodPlayer)]));
+
+    const { result } = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    });
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });

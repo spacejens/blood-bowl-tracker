@@ -42,6 +42,9 @@ function makeParser(
   return parser;
 }
 
+// `error` is a pure identity field copy with no branching or formatting, so
+// there is no algorithm here that can drift out of sync with the real
+// ImportResultService — exempt from the canned-response rule.
 function makeImportResults(): MockProxy<ImportResultService> {
   const importResults = mock<ImportResultService>();
   importResults.error.mockImplementation((args) => ({
@@ -51,33 +54,41 @@ function makeImportResults(): MockProxy<ImportResultService> {
   return importResults;
 }
 
-function makePageParseError(): MockProxy<PageParseErrorService> {
-  const pageParseError = mock<PageParseErrorService>();
-  pageParseError.build.mockImplementation(
-    (pageParams, pageDescription, error) => ({
-      item: { page: pageParams },
-      message: `Failed to parse ${pageDescription} page ${JSON.stringify(pageParams)}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    }),
-  );
-  return pageParseError;
-}
+/**
+ * The canned ImportError the mocked PageParseErrorService.build returns.
+ * PageParseErrorService's own message template — including the
+ * `error instanceof Error ? error.message : String(error)` branch — is covered
+ * by ../source/page-parse-error.service.spec.ts. This spec asserts only what
+ * BblMatchDetailReaderService hands to build() and that it pushes build()'s
+ * return value onto the errors list.
+ */
+const CANNED_PAGE_PARSE_ERROR: ImportError = {
+  item: { page: 'canned' },
+  message: 'canned page parse error',
+};
 
 async function makeService(options: {
   reader: BblSourceReader;
   parser: MockProxy<MatchTeamsPageParser>;
-}): Promise<BblMatchDetailReaderService> {
+}): Promise<{
+  service: BblMatchDetailReaderService;
+  pageParseError: MockProxy<PageParseErrorService>;
+}> {
+  const pageParseError = mock<PageParseErrorService>();
+  pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblMatchDetailReaderService,
       { provide: BblSourceReader, useValue: options.reader },
       { provide: MatchTeamsPageParser, useValue: options.parser },
       { provide: ImportResultService, useValue: makeImportResults() },
-      { provide: PageParseErrorService, useValue: makePageParseError() },
+      { provide: PageParseErrorService, useValue: pageParseError },
     ],
   }).compile();
-  return moduleRef.get(BblMatchDetailReaderService);
+  return {
+    service: moduleRef.get(BblMatchDetailReaderService),
+    pageParseError,
+  };
 }
 
 const teamsOne: BblMatchDetails = {
@@ -90,7 +101,7 @@ const teamsOne: BblMatchDetails = {
 describe('BblMatchDetailReaderService', () => {
   it('keys parsed match teams by bblId in a single pass', async () => {
     const parser = makeParser({ '100': teamsOne });
-    const service = await makeService({
+    const { service } = await makeService({
       reader: makeReader([page({ m: '100' })]),
       parser,
     });
@@ -105,7 +116,7 @@ describe('BblMatchDetailReaderService', () => {
   it('memoizes: a second call does not re-read the source', async () => {
     const reader = makeReader([page({ m: '100' })]);
     const pagesSpy = vi.spyOn(reader, 'pages');
-    const service = await makeService({
+    const { service } = await makeService({
       reader,
       parser: makeParser({ '100': teamsOne }),
     });
@@ -118,7 +129,7 @@ describe('BblMatchDetailReaderService', () => {
   });
 
   it('records an error and skips a page the parser returns null for', async () => {
-    const service = await makeService({
+    const { service } = await makeService({
       reader: makeReader([page({ m: '100' }), page({ m: '101' })]),
       parser: makeParser({ '100': teamsOne, '101': null }),
     });
@@ -140,7 +151,7 @@ describe('BblMatchDetailReaderService', () => {
     parser.extractMatchTeams.mockImplementation(() => {
       throw new Error('bad m page');
     });
-    const service = await makeService({
+    const { service, pageParseError } = await makeService({
       reader: makeReader([page({ m: '100' })]),
       parser,
     });
@@ -149,16 +160,21 @@ describe('BblMatchDetailReaderService', () => {
     const result = await service.getMatchTeamsByBblId(errors);
 
     expect(result.size).toBe(0);
-    expect(errors.some((e) => e.message.includes('bad m page'))).toBe(true);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(pageParseError.build).toHaveBeenCalledWith(
+      { m: '100' },
+      'match detail',
+      new Error('bad m page'),
+    );
   });
 
-  it('handles non-Error throws with String coercion in catch block', async () => {
+  it('passes a non-Error thrown value straight through to PageParseErrorService', async () => {
     const parser = mock<MatchTeamsPageParser>();
     parser.extractMatchTeams.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'boom';
     });
-    const service = await makeService({
+    const { service, pageParseError } = await makeService({
       reader: makeReader([page({ m: '100' })]),
       parser,
     });
@@ -167,6 +183,11 @@ describe('BblMatchDetailReaderService', () => {
     const result = await service.getMatchTeamsByBblId(errors);
 
     expect(result.size).toBe(0);
-    expect(errors.some((e) => e.message.includes('boom'))).toBe(true);
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(pageParseError.build).toHaveBeenCalledWith(
+      { m: '100' },
+      'match detail',
+      'boom',
+    );
   });
 });
