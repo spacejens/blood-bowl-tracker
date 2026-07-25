@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
-import { ButtonStyle, ComponentType } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
+import { EntityComponentsService } from '../entity-components.service';
 
 /**
  * A tie group can be far larger than the top-N cutoff (e.g. most teams sharing
@@ -44,10 +44,11 @@ export const TOPLIST_FETCH_LIMIT =
 export type TieRemainder =
   { type: 'exact'; count: number } | { type: 'approximate' };
 
-/** Discord allows at most 5 buttons per action row and 5 rows per message. */
-const MAX_BUTTONS_PER_ROW = 5;
-const MAX_BUTTON_ROWS = 5;
-const MAX_BUTTONS = MAX_BUTTONS_PER_ROW * MAX_BUTTON_ROWS;
+/** How a leaderboard row turns into a drill-down link: routing prefix plus the row's entity id. */
+export interface EntityLink<T> {
+  customIdPrefix: string;
+  entityId: (row: T) => number | string;
+}
 
 export interface RankedRows<T> {
   rows: (T & { rank: number })[];
@@ -60,20 +61,8 @@ export interface FormatLeaderboardEmbedOptions<T> {
   rankedRows: T[];
   noDataMessage: string;
   tieRemainder?: TieRemainder;
-  buildCustomId?: (row: T) => string;
+  entityLink?: EntityLink<T>;
   formatRow?: (row: T) => string;
-}
-
-export interface EntityButton {
-  type: ComponentType.Button;
-  style: ButtonStyle.Primary;
-  label: string;
-  custom_id: string;
-}
-
-export interface EntityButtonRow {
-  type: ComponentType.ActionRow;
-  components: EntityButton[];
 }
 
 /**
@@ -87,13 +76,16 @@ export interface ResolveToplistOptions<T> {
   fetchRows: (limit: number) => Promise<T[]>;
   timeoutMessage: string;
   noDataMessage: string;
-  buildCustomId?: (row: T) => string;
+  entityLink?: EntityLink<T>;
   formatRow?: (row: T & { rank: number }) => string;
 }
 
 @Injectable()
 export class LeaderboardService {
-  constructor(private readonly databaseTimeout: DatabaseTimeoutService) {}
+  constructor(
+    private readonly databaseTimeout: DatabaseTimeoutService,
+    private readonly entityComponents: EntityComponentsService,
+  ) {}
 
   topRanksWithTies<T extends { count: number }>(
     rows: T[],
@@ -130,45 +122,6 @@ export class LeaderboardService {
     return { rows: ranked, truncatedCount, tieGroupOpenEnded };
   }
 
-  /**
-   * Turns a list of entities into Discord action rows of link-through buttons:
-   * dedupe by custom_id (keep first occurrence — Discord rejects duplicate
-   * custom_ids), hard-cap at MAX_BUTTONS (Discord's 5×5 ceiling), then chunk
-   * into rows of MAX_BUTTONS_PER_ROW. Shared by the leaderboard embeds and every
-   * deepdive fact so the cap/dedupe/chunk rules live in exactly one place.
-   */
-  buildEntityButtons<T>(
-    rows: T[],
-    buildCustomId: (row: T) => string,
-    label: (row: T) => string,
-  ): EntityButtonRow[] {
-    const seen = new Set<string>();
-    const buttons: EntityButton[] = rows
-      .filter((row) => {
-        const customId = buildCustomId(row);
-        if (seen.has(customId)) {
-          return false;
-        }
-        seen.add(customId);
-        return true;
-      })
-      .slice(0, MAX_BUTTONS)
-      .map((row) => ({
-        type: ComponentType.Button as const,
-        style: ButtonStyle.Primary as const,
-        label: label(row),
-        custom_id: buildCustomId(row),
-      }));
-    const actionRows: EntityButtonRow[] = [];
-    for (let i = 0; i < buttons.length; i += MAX_BUTTONS_PER_ROW) {
-      actionRows.push({
-        type: ComponentType.ActionRow as const,
-        components: buttons.slice(i, i + MAX_BUTTONS_PER_ROW),
-      });
-    }
-    return actionRows;
-  }
-
   formatLeaderboardEmbed<
     T extends { name: string; count: number; rank: number },
   >({
@@ -176,7 +129,7 @@ export class LeaderboardService {
     rankedRows,
     noDataMessage,
     tieRemainder = { type: 'exact', count: 0 },
-    buildCustomId,
+    entityLink,
     formatRow = (row) => `${row.rank}. ${row.name} — ${row.count}`,
   }: FormatLeaderboardEmbedOptions<T>): InteractionReplyOptions {
     if (rankedRows.length === 0) {
@@ -188,16 +141,24 @@ export class LeaderboardService {
     } else if (tieRemainder.count > 0) {
       lines.push(`…and ${tieRemainder.count} more tied.`);
     }
-    const embed = { embeds: [{ title, description: lines.join('\n') }] };
-    if (buildCustomId === undefined) {
-      return embed;
+    if (entityLink === undefined) {
+      return { embeds: [{ title, description: lines.join('\n') }] };
     }
-    const components = this.buildEntityButtons(
-      rankedRows,
-      buildCustomId,
-      (row) => row.name,
-    );
-    return { ...embed, components };
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(
+        rankedRows.map((row) => ({
+          customIdPrefix: entityLink.customIdPrefix,
+          entityId: String(entityLink.entityId(row)),
+          label: row.name,
+        })),
+      );
+    if (overflowNote !== null) {
+      lines.push(overflowNote);
+    }
+    return {
+      embeds: [{ title, description: lines.join('\n') }],
+      components,
+    };
   }
 
   async resolveToplist<T extends { name: string; count: number }>({
@@ -205,7 +166,7 @@ export class LeaderboardService {
     fetchRows,
     timeoutMessage,
     noDataMessage,
-    buildCustomId,
+    entityLink,
     formatRow,
   }: ResolveToplistOptions<T>): Promise<string | InteractionReplyOptions> {
     const rows = await this.databaseTimeout.run<T[] | null>(
@@ -241,7 +202,7 @@ export class LeaderboardService {
       rankedRows: ranked,
       noDataMessage,
       tieRemainder,
-      buildCustomId,
+      entityLink,
       formatRow,
     });
   }

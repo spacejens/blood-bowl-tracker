@@ -1,13 +1,15 @@
 import { Test } from '@nestjs/testing';
-import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import {
   mockDatabaseTimeout,
   stubDatabaseTimeout,
 } from '../database-timeout-mock.test-helpers';
+import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../deepdive/button-custom-ids';
+import { EntityComponentsService } from '../entity-components.service';
 import {
   MAX_EXACT_TIE_REMAINDER,
   MAX_LEADERBOARD_ENTRIES,
@@ -16,22 +18,41 @@ import {
 import { LeaderboardService } from './leaderboard.service';
 
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
+let entityComponents: MockProxy<EntityComponentsService>;
 let leaderboardService: LeaderboardService;
 
 function service(): LeaderboardService {
   return leaderboardService;
 }
 
-beforeEach(async () => {
-  databaseTimeout = mockDatabaseTimeout();
-  // Individual tests that need the timeout branch override this per-call.
+/**
+ * Compiles a fresh LeaderboardService, optionally with a caller-supplied
+ * EntityComponentsService mock (defaulting to one whose buildEntityComponents
+ * returns an empty, non-overflowing result).
+ */
+async function makeService(
+  components: MockProxy<EntityComponentsService> = mock<EntityComponentsService>(),
+): Promise<LeaderboardService> {
+  entityComponents = components;
   const moduleRef = await Test.createTestingModule({
     providers: [
       LeaderboardService,
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
+      { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
-  leaderboardService = moduleRef.get(LeaderboardService);
+  return moduleRef.get(LeaderboardService);
+}
+
+beforeEach(async () => {
+  databaseTimeout = mockDatabaseTimeout();
+  entityComponents = mock<EntityComponentsService>();
+  entityComponents.buildEntityComponents.mockReturnValue({
+    components: [],
+    overflowNote: null,
+  });
+  // Individual tests that need the timeout branch override this per-call.
+  leaderboardService = await makeService(entityComponents);
 });
 
 describe('TOPLIST_FETCH_LIMIT', () => {
@@ -342,75 +363,78 @@ describe('formatLeaderboardEmbed', () => {
     });
   });
 
-  it('omits components entirely when no buildCustomId is supplied', () => {
+  it('omits components entirely when no entityLink is configured', () => {
     const result = service().formatLeaderboardEmbed({
-      title: 'Coaches by matches',
-      rankedRows: [{ name: 'a', count: 9, rank: 1 }],
-      noDataMessage: 'No data placeholder',
+      title: 'Coaches',
+      rankedRows: [{ coachId: 7, name: 'Roze Madder', count: 9, rank: 1 }],
+      noDataMessage: 'no data',
     });
+    expect(entityComponents.buildEntityComponents).not.toHaveBeenCalled();
     expect(result).not.toHaveProperty('components');
   });
 
-  it('emits one Primary button per ranked row when buildCustomId is supplied', () => {
-    const result = service().formatLeaderboardEmbed({
-      title: 'Coaches by matches',
-      rankedRows: [
-        { name: 'a', count: 9, rank: 1, coachId: 1 },
-        { name: 'b', count: 4, rank: 2, coachId: 2 },
-      ],
-      noDataMessage: 'No data placeholder',
-      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
+  it('hands one entry per ranked row to EntityComponentsService and returns its components', async () => {
+    const cannedComponents = [{ type: 1, components: [] }];
+    const components = mock<EntityComponentsService>();
+    components.buildEntityComponents.mockReturnValue({
+      components: cannedComponents,
+      overflowNote: null,
     });
-    expect(result.components).toEqual([
+    const localService = await makeService(components);
+    const result = localService.formatLeaderboardEmbed({
+      title: 'Coaches by matches played',
+      rankedRows: [
+        { coachId: 7, name: 'Roze Madder', count: 9, rank: 1 },
+        { coachId: 8, name: 'Grashnak', count: 4, rank: 2 },
+      ],
+      noDataMessage: 'no data',
+      entityLink: {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: (row) => row.coachId,
+      },
+    });
+    expect(components.buildEntityComponents).toHaveBeenCalledWith([
       {
-        type: ComponentType.ActionRow,
-        components: [
-          {
-            type: ComponentType.Button,
-            style: ButtonStyle.Primary,
-            label: 'a',
-            custom_id: 'deepdive:coach:1',
-          },
-          {
-            type: ComponentType.Button,
-            style: ButtonStyle.Primary,
-            label: 'b',
-            custom_id: 'deepdive:coach:2',
-          },
-        ],
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '7',
+        label: 'Roze Madder',
+      },
+      {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '8',
+        label: 'Grashnak',
       },
     ]);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Coaches by matches played',
+          description: '1. Roze Madder — 9\n2. Grashnak — 4',
+        },
+      ],
+      components: cannedComponents,
+    });
   });
 
-  it('chunks buttons into action rows of at most five', () => {
-    const rankedRows = Array.from({ length: 7 }, (_, i) => ({
-      name: `c${i}`,
-      count: 10 - i,
-      rank: i + 1,
-      coachId: i + 1,
-    }));
-    const result = service().formatLeaderboardEmbed({
-      title: 'Coaches by matches',
-      rankedRows,
-      noDataMessage: 'No data placeholder',
-      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
+  it('appends the overflow note to the description when entries did not fit', async () => {
+    const components = mock<EntityComponentsService>();
+    components.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 2 more without a link.',
     });
-    const components = result.components as
-      { components: unknown[] }[] | undefined;
-    expect(components).toHaveLength(2);
-    expect(components?.[0].components).toHaveLength(5);
-    expect(components?.[1].components).toHaveLength(2);
-  });
-
-  it('adds no components for an empty result even with buildCustomId', () => {
-    const result = service().formatLeaderboardEmbed({
-      title: 'Coaches by matches',
-      rankedRows: [],
-      noDataMessage: 'Nobody yet.',
-      buildCustomId: (row: { name: string; count: number; rank: number }) =>
-        `deepdive:coach:${row.name}`,
-    });
-    expect(result).not.toHaveProperty('components');
+    const localService = await makeService(components);
+    const result = localService.formatLeaderboardEmbed({
+      title: 'Coaches',
+      rankedRows: [{ coachId: 7, name: 'Roze Madder', count: 9, rank: 1 }],
+      noDataMessage: 'no data',
+      entityLink: {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: (row) => row.coachId,
+      },
+    }) as { embeds: { description: string }[] };
+    expect(result.embeds[0].description).toBe(
+      '1. Roze Madder — 9\n…and 2 more without a link.',
+    );
   });
 
   it('renders each line via a supplied formatRow', () => {
@@ -432,100 +456,6 @@ describe('formatLeaderboardEmbed', () => {
         },
       ],
     });
-  });
-
-  it('builds at most one button per distinct custom_id', () => {
-    const result = service().formatLeaderboardEmbed({
-      title: 'Biggest expensive mistakes',
-      rankedRows: [
-        { name: 'a', count: 90000, rank: 1, teamId: 1 },
-        { name: 'a', count: 60000, rank: 2, teamId: 1 },
-        { name: 'b', count: 50000, rank: 3, teamId: 2 },
-      ],
-      noDataMessage: 'No data placeholder',
-      buildCustomId: (row) => `deepdive:team:${row.teamId}`,
-    });
-    const buttons = (
-      result.components as unknown as { components: { custom_id: string }[] }[]
-    ).flatMap((r) => r.components);
-    expect(buttons.map((b) => b.custom_id)).toEqual([
-      'deepdive:team:1',
-      'deepdive:team:2',
-    ]);
-  });
-});
-
-describe('buildEntityButtons', () => {
-  it('builds one Primary button per row with label and custom_id', () => {
-    const rows = [
-      { id: 1, name: 'Alpha' },
-      { id: 2, name: 'Beta' },
-    ];
-    const result = service().buildEntityButtons(
-      rows,
-      (row) => `deepdive:team:${row.id}`,
-      (row) => row.name,
-    );
-    expect(result).toEqual([
-      {
-        type: ComponentType.ActionRow,
-        components: [
-          {
-            type: ComponentType.Button,
-            style: ButtonStyle.Primary,
-            label: 'Alpha',
-            custom_id: 'deepdive:team:1',
-          },
-          {
-            type: ComponentType.Button,
-            style: ButtonStyle.Primary,
-            label: 'Beta',
-            custom_id: 'deepdive:team:2',
-          },
-        ],
-      },
-    ]);
-  });
-
-  it('drops rows whose custom_id duplicates an earlier one', () => {
-    const rows = [
-      { id: 1, name: 'Alpha' },
-      { id: 1, name: 'Alpha again' },
-      { id: 2, name: 'Beta' },
-    ];
-    const result = service().buildEntityButtons(
-      rows,
-      (row) => `deepdive:team:${row.id}`,
-      (row) => row.name,
-    );
-    const ids = result.flatMap((r) => r.components.map((b) => b.custom_id));
-    expect(ids).toEqual(['deepdive:team:1', 'deepdive:team:2']);
-  });
-
-  it('caps at 25 buttons and chunks into rows of 5', () => {
-    const rows = Array.from({ length: 30 }, (_, i) => ({
-      id: i,
-      name: `T${i}`,
-    }));
-    const result = service().buildEntityButtons(
-      rows,
-      (row) => `deepdive:team:${row.id}`,
-      (row) => row.name,
-    );
-    expect(result).toHaveLength(5);
-    expect(result.every((r) => r.components.length === 5)).toBe(true);
-    const total = result.reduce((n, r) => n + r.components.length, 0);
-    expect(total).toBe(25);
-  });
-
-  it('returns an empty array for no rows', () => {
-    expect(
-      service().buildEntityButtons(
-        [],
-        () => 'x',
-        () => 'y',
-      ),
-    ).toEqual([]);
   });
 });
 
@@ -555,24 +485,33 @@ describe('resolveToplist', () => {
     });
   });
 
-  it('threads buildCustomId through to per-row buttons', async () => {
+  it('threads entityLink through to EntityComponentsService', async () => {
     const rows = [
       { coachId: 1, name: 'a', count: 9 },
       { coachId: 2, name: 'b', count: 4 },
     ];
-    const result = (await service().resolveToplist({
+    await service().resolveToplist({
       title: 'Coaches by matches',
       fetchRows: () => Promise.resolve(rows),
       timeoutMessage: 'timeout placeholder',
       noDataMessage: 'no-data placeholder',
-      buildCustomId: (row) => `deepdive:coach:${row.coachId}`,
-    })) as unknown as {
-      components: { components: { custom_id: string }[] }[];
-    };
-    const customIds = result.components.flatMap((r) =>
-      r.components.map((b) => b.custom_id),
-    );
-    expect(customIds).toEqual(['deepdive:coach:1', 'deepdive:coach:2']);
+      entityLink: {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: (row) => row.coachId,
+      },
+    });
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'a',
+      },
+      {
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '2',
+        label: 'b',
+      },
+    ]);
   });
 
   it('threads formatRow through to the embed lines', async () => {

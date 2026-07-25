@@ -190,7 +190,7 @@ describe.each(cases)(
     // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
     // is a mock returning a canned reply, so this test only asserts what
     // PlayerToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive button id its own buildCustomId closure produces.
+    // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
       const players = {
         [method]: vi.fn().mockResolvedValue(rows),
@@ -205,9 +205,10 @@ describe.each(cases)(
       const options = leaderboard.resolveToplist.mock
         .calls[0][0] as unknown as ResolveToplistOptions<(typeof rows)[number]>;
       expect(options.title).toBe(expectedTitle);
-      expect(options.buildCustomId?.(rows[0])).toBe(
-        `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${rows[0].playerId}`,
+      expect(options.entityLink?.customIdPrefix).toBe(
+        PLAYER_BUTTON_CUSTOM_ID_PREFIX,
       );
+      expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].playerId);
     });
 
     it('passes the era id through to the query', async () => {

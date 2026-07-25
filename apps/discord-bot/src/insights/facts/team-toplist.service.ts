@@ -46,6 +46,11 @@ export class TeamToplistService {
     ToplistResolver<TeamsService>
   >;
 
+  private readonly teamLink = {
+    customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+    entityId: (row: { teamId: number }) => row.teamId,
+  };
+
   constructor(
     private readonly teams: TeamsService,
     private readonly leaderboard: LeaderboardService,
@@ -74,13 +79,9 @@ export class TeamToplistService {
       },
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
       leaderboard: this.leaderboard,
     });
-  }
-
-  teamButtonId(row: { teamId: number }): string {
-    return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
   }
 
   resolveTouchdownsScored(scope: FactScope) {
@@ -144,34 +145,46 @@ export class TeamToplistService {
   resolveMatchesPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Teams by matches played',
       fetchRows: (limit) => this.teams.countMatchesPlayedByTeam(scope, limit),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
     });
   }
 
   resolveCompetitionsPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Teams by competitions played',
       fetchRows: (limit) => this.teams.countCompetitionsByTeam(scope, limit),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
     });
   }
 
   resolveErasActive(): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Teams by eras active',
       fetchRows: (limit) => this.teams.countErasByTeam(limit),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
     });
   }
 }

@@ -24,6 +24,11 @@ export class PlayerToplistService {
     ToplistResolver<PlayersService>
   >;
 
+  private readonly playerLink = {
+    customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+    entityId: (row: { playerId: number }) => row.playerId,
+  };
+
   constructor(
     private readonly players: PlayersService,
     private readonly leaderboard: LeaderboardService,
@@ -53,13 +58,9 @@ export class PlayerToplistService {
       },
       timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.playerButtonId(row),
+      entityLink: this.playerLink,
       leaderboard: this.leaderboard,
     });
-  }
-
-  private playerButtonId(row: { playerId: number }): string {
-    return `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`;
   }
 
   resolveMvps(scope: FactScope) {

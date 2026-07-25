@@ -28,6 +28,11 @@ export class CoachToplistService {
     ToplistResolver<CoachesService>
   >;
 
+  private readonly coachLink = {
+    customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+    entityId: (row: { coachId: number }) => row.coachId,
+  };
+
   constructor(
     private readonly coaches: CoachesService,
     private readonly leaderboard: LeaderboardService,
@@ -42,13 +47,9 @@ export class CoachToplistService {
       },
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
+      entityLink: this.coachLink,
       leaderboard: this.leaderboard,
     });
-  }
-
-  private coachButtonId(row: { coachId: number }): string {
-    return `${COACH_BUTTON_CUSTOM_ID_PREFIX}${row.coachId}`;
   }
 
   resolveFoulsCommitted(
@@ -60,45 +61,61 @@ export class CoachToplistService {
   resolveMatchesPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      coachId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Coaches by matches played',
       fetchRows: (limit) =>
         this.coaches.countMatchesPlayedByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
+      entityLink: this.coachLink,
     });
   }
 
   resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      coachId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Coaches by teams coached',
       fetchRows: (limit) => this.coaches.countTeamsByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
+      entityLink: this.coachLink,
     });
   }
 
   resolveCompetitionsPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      coachId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Coaches by competitions played',
       fetchRows: (limit) => this.coaches.countCompetitionsByCoach(scope, limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
+      entityLink: this.coachLink,
     });
   }
 
   resolveErasActive(): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      coachId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Coaches by eras active',
       fetchRows: (limit) => this.coaches.countErasByCoach(limit),
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.coachButtonId(row),
+      entityLink: this.coachLink,
     });
   }
 }
