@@ -298,7 +298,6 @@ describe('TpCompetitionsImportService', () => {
     const { competitionIdsByTpId, matchesByCompetitionId } =
       await service.importCompetitions(eraIdsByName);
 
-    // Only the TP system is bootstrapped: competitions carry no Name id.
     expect(bootstrap).toHaveBeenCalledWith([
       { name: 'TP', category: 'imported_data_source' },
     ]);

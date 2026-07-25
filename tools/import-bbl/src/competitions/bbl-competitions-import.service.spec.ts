@@ -211,7 +211,6 @@ describe('BblCompetitionsImportService', () => {
     const { competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
 
-    // Only the BBL system is bootstrapped: competitions carry no Name id.
     expect(mocks.bootstrap.bootstrap).toHaveBeenCalledWith([
       { name: 'BBL', category: 'imported_data_source' },
     ]);
