@@ -134,16 +134,4 @@ describe('makeToplistResolvers', () => {
       );
     });
   });
-
-  // A previous version of this suite also exercised the resolvers against a
-  // mock `leaderboard.resolveToplist` that reimplemented dense-rank/tie/button
-  // rendering, and asserted on the fully rendered embed/button output. That
-  // re-tested LeaderboardService's own ranking and rendering logic (a
-  // tautology against a mirrored copy of it) rather than anything
-  // `makeToplistResolvers` itself does. `LeaderboardService.resolveToplist` -
-  // title, no-data fallback, and buildCustomId threading all included - is
-  // covered directly by leaderboard.service.spec.ts, and the wiring tests
-  // above already confirm makeToplistResolvers passes title/messages/
-  // buildCustomId/fetchRows through correctly, so those tests were dropped
-  // rather than reworked.
 });
