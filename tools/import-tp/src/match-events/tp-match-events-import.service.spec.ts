@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   AWAY_ROSTER_ID,
   AWAY_TEAM_ERA_ID,
+  CANNED_RESULT,
   COMPETITION_DB_ID,
   ERA_ID,
   HOME_ROSTER_ID,
@@ -10,6 +11,7 @@ import {
   makeService,
   MATCH_DB_ID,
   matchWithEvents,
+  resultArgs,
   runImport,
   runImportWithErrors,
   TP_SYSTEM_ID,
@@ -24,14 +26,14 @@ import {
 describe('TpMatchEventsImportService', () => {
   it('imports nothing and records one error when external system bootstrap fails', async () => {
     const upsertMatchEvent = vi.fn();
-    const service = await makeService(upsertMatchEvent, {
+    const { service, importResults } = await makeService(upsertMatchEvent, {
       bootstrapResult: {
         ok: false,
         error: { item: { externalSystems: ['TP'] }, message: 'boom' },
       },
     });
 
-    const { result } = await service.importMatchEvents({
+    await service.importMatchEvents({
       matchesByCompetitionId: new Map([
         [COMPETITION_DB_ID, [matchWithEvents({ id: 566088, events: [] })]],
       ]),
@@ -43,8 +45,9 @@ describe('TpMatchEventsImportService', () => {
     });
 
     expect(upsertMatchEvent).not.toHaveBeenCalled();
-    expect(result.errors).toHaveLength(1);
-    expect(result.success).toBe(false);
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors.length).toBeGreaterThan(0);
   });
 
   it('emits a null-player event and records a non-fatal error for an unresolvable lineUpId', async () => {
@@ -70,9 +73,9 @@ describe('TpMatchEventsImportService', () => {
 
   it('records a non-fatal error and skips a competition whose era cannot be resolved', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = await makeService(upsertMatchEvent);
+    const { service, importResults } = await makeService(upsertMatchEvent);
 
-    const { result } = await service.importMatchEvents({
+    await service.importMatchEvents({
       matchesByCompetitionId: new Map([
         [
           COMPETITION_DB_ID,
@@ -100,14 +103,14 @@ describe('TpMatchEventsImportService', () => {
     });
 
     expect(upsertMatchEvent).not.toHaveBeenCalled();
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
   });
 
   it('records a non-fatal error and skips a match with no imported match id', async () => {
     const upsertMatchEvent = vi.fn().mockResolvedValue(true);
-    const service = await makeService(upsertMatchEvent);
+    const { service, importResults } = await makeService(upsertMatchEvent);
 
-    const { result } = await service.importMatchEvents({
+    await service.importMatchEvents({
       matchesByCompetitionId: new Map([
         [
           COMPETITION_DB_ID,
@@ -135,7 +138,7 @@ describe('TpMatchEventsImportService', () => {
     });
 
     expect(upsertMatchEvent).not.toHaveBeenCalled();
-    expect(result.errors.length).toBeGreaterThan(0);
+    expect(resultArgs(importResults).errors.length).toBeGreaterThan(0);
   });
 
   it('emits a neutral eventType weather event with the weatherType payload', async () => {
@@ -566,5 +569,23 @@ describe('TpMatchEventsImportService', () => {
       }),
     );
     expect(captured[0].actingTeamEraId).toBeUndefined();
+  });
+
+  it('returns the ImportResultService.result() return value unchanged', async () => {
+    const upsertMatchEvent = vi.fn().mockResolvedValue(true);
+    const { service } = await makeService(upsertMatchEvent);
+
+    const { result } = await service.importMatchEvents({
+      matchesByCompetitionId: new Map([
+        [COMPETITION_DB_ID, [matchWithEvents({ id: 566088, events: [] })]],
+      ]),
+      eraIdByCompetitionId: new Map([[COMPETITION_DB_ID, ERA_ID]]),
+      matchIdsByTpId: new Map([[566088, MATCH_DB_ID]]),
+      teamErasByRosterId: new Map(),
+      playerIdsByLineUpId: new Map(),
+      starPlayerIdsByRosterAndMaster: new Map(),
+    });
+
+    expect(result).toBe(CANNED_RESULT);
   });
 });
