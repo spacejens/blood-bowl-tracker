@@ -16,21 +16,6 @@ describe('ExternalSystemsImportService', () => {
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
     runner = mock<ImportRunnerService>();
-    // Mirrors the real ImportRunnerService.upsertExternalSystem implementation
-    // (see import-runner.service.ts), so these tests still exercise
-    // ExternalSystemsImportService's own upsert-argument/error behaviour
-    // instead of asserting against opaque mock return values.
-    runner.upsertExternalSystem.mockImplementation(async (upsert, name) => {
-      try {
-        const result = await upsert();
-        return result.id;
-      } catch (err) {
-        throw new Error(
-          `Failed to upsert external system "${name}": ${err instanceof Error ? err.message : String(err)}`,
-          { cause: err },
-        );
-      }
-    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         ExternalSystemsImportService,
@@ -41,7 +26,23 @@ describe('ExternalSystemsImportService', () => {
     service = moduleRef.get(ExternalSystemsImportService);
   });
 
-  it('returns the id from the client on success', async () => {
+  it('delegates to the import runner and returns the id it resolves', async () => {
+    runner.upsertExternalSystem.mockResolvedValue(1);
+
+    const id = await service.upsertExternalSystem(
+      'BBL',
+      'imported_data_source',
+    );
+
+    expect(id).toBe(1);
+    expect(runner.upsertExternalSystem).toHaveBeenCalledWith(
+      expect.any(Function),
+      'BBL',
+    );
+  });
+
+  it('hands the runner an upsert closure that posts the name and category', async () => {
+    runner.upsertExternalSystem.mockResolvedValue(1);
     client.externalSystems.upsert.mockResolvedValue({
       id: 1,
       name: 'BBL',
@@ -50,21 +51,19 @@ describe('ExternalSystemsImportService', () => {
       created: true,
     });
 
-    const id = await service.upsertExternalSystem(
-      'BBL',
-      'imported_data_source',
-    );
+    await service.upsertExternalSystem('BBL', 'imported_data_source');
 
-    expect(id).toBe(1);
+    const [upsert] = runner.upsertExternalSystem.mock.calls[0];
+    await upsert();
     expect(client.externalSystems.upsert).toHaveBeenCalledWith({
       name: 'BBL',
       category: 'imported_data_source',
     });
   });
 
-  it('throws a descriptive error when the client call fails', async () => {
-    client.externalSystems.upsert.mockRejectedValue(
-      new Error('internal error'),
+  it('propagates the error the import runner throws', async () => {
+    runner.upsertExternalSystem.mockRejectedValue(
+      new Error('Failed to upsert external system "BBL": internal error'),
     );
 
     await expect(
