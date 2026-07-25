@@ -13,17 +13,14 @@ import { mock } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
+import type { BuildEventDataOptions } from './tp-match-events-builder.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
 import type { CasualtyPairing } from './tp-match-events-correlation.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
 
 /**
- * Shared fixtures and helpers for `tp-match-events-import.service.spec.ts`
- * and `tp-match-events-gameplay.spec.ts` — split by functionality under
- * test (administrative events + error handling vs. gameplay events) to stay
- * under the repo's 1000-line spec file ceiling.
+ * Shared fixtures and helpers for `tp-match-events-import.service.spec.ts`.
  */
 
 export const TP_SYSTEM_ID = 1;
@@ -31,8 +28,8 @@ export const COMPETITION_DB_ID = 900;
 export const MATCH_DB_ID = 7;
 export const HOME_TEAM_ERA_ID = 501;
 export const AWAY_TEAM_ERA_ID = 502;
-export const SCORER_PLAYER_ID = 8001;
-export const VICTIM_PLAYER_ID = 8002;
+export const HOME_PLAYER_ID = 8001;
+export const AWAY_PLAYER_ID = 8002;
 export const HOME_ROSTER_ID = 164868;
 export const AWAY_ROSTER_ID = 167242;
 export const ERA_ID = 500;
@@ -53,22 +50,24 @@ export function matchWithEvents(options: {
   };
 }
 
-interface RunImportOptions {
-  matches: TpMatch[];
-  /**
-   * Canned `TpMatchEventsCorrelationService.correlateCasualties` return
-   * value for this run. Defaults to "nothing paired" (empty map/set) — the
-   * common case for every test that doesn't exercise casualty/injury
-   * pairing. A test that DOES care about pairing supplies the exact
-   * `CasualtyPairing` it wants `TpMatchEventsImportService` to receive; the
-   * real pairing algorithm (turnNumber equality, opposing-side direction,
-   * nearest-`instant`-within-120s tiebreak, async-registration-order
-   * robustness) is verified independently by
-   * `TpMatchEventsCorrelationService`'s own dedicated spec
-   * (`tp-match-events-correlation.service.spec.ts`); this helper must not
-   * reimplement it.
-   */
+interface MakeServiceOptions {
+  /** Override for a failed external-system bootstrap (defaults to success). */
+  bootstrapResult?: Awaited<
+    ReturnType<ExternalSystemBootstrapService['bootstrap']>
+  >;
+  /** Canned `correlateCasualties` result (defaults to "nothing paired"). */
   correlationResult?: CasualtyPairing;
+  /**
+   * Override for the mocked `TpMatchEventsBuilderService.buildEventData`
+   * (defaults to {@link syntheticBuildEventData}). Supply this to control
+   * how many `UpsertMatchEvent`s each event yields, or to push an error
+   * onto the shared `errors` array.
+   */
+  buildEventData?: TpMatchEventsBuilderService['buildEventData'];
+}
+
+interface RunImportOptions extends MakeServiceOptions {
+  matches: TpMatch[];
 }
 
 function emptyCasualtyPairing(): CasualtyPairing {
@@ -94,49 +93,65 @@ function mockTpMatchEventsCorrelationService(
 }
 
 /**
- * `TpMatchEventsImportService` is built through a real `Test.
- * createTestingModule`, but — deliberately, unlike every other migrated spec
- * in this workspace — `TpMatchEventsBuilderService` and
- * `TpMatchEventKindBuildersService` are registered as REAL providers, not
- * mocks.
- *
- * Reason: `TpMatchEventsBuilderService` and `TpMatchEventKindBuildersService`
- * (the per-event-kind construction logic — touchdown, mvp_award, sent_off,
- * injury/casualty pairing, every administrative event) have NO dedicated spec
- * of their own anywhere in this workspace; their only coverage comes
- * incidentally through this shared helper, consumed by both this file's
- * `tp-match-events-import.service.spec.ts` (administrative events/error
- * handling) and the sibling `tp-match-events-gameplay.spec.ts` (gameplay
- * events) — which is explicitly OUT of scope for this migration task (it has
- * no direct `new XService(...)` call of its own to convert). Mocking these
- * collaborators here would silently drop their only coverage and would also
- * require rewriting `tp-match-events-gameplay.spec.ts`'s ~30 gameplay-event
- * assertions to work off canned mock return values instead of exercising the
- * real per-event-kind logic they exist to test — out of scope for a
- * test-setup-only migration. Per the migration conventions' remedy for this
- * exact situation ("if mocking would drop a collaborator's coverage, add a
- * dedicated spec instead"), the correct long-term fix is a dedicated spec for
- * `TpMatchEventKindBuildersService`/`TpMatchEventsBuilderService` — flagged
- * as a follow-up in this task's report, not attempted here.
- *
- * `TpMatchEventsCorrelationService` and `ImportResultService`, by contrast,
- * ARE mocked below (`mockTpMatchEventsCorrelationService()` and
- * `mockImportResultService()`): each already has coverage elsewhere — its
- * own dedicated spec for the former, every other consuming spec in this
- * workspace for the latter's trivial pure construction — so mocking them here
- * drops no coverage, unlike the Builder/KindBuilders chain above.
+ * The default canned `buildEventData` response: one synthetic
+ * `UpsertMatchEvent` per call, whose external id is derived from the
+ * event's `tpEventId` so a test can tell which event produced it. The
+ * `actionType` is an arbitrary placeholder —
+ * `TpMatchEventsImportService` never inspects the built event, it only
+ * forwards it to `MatchEventsImportService.upsertMatchEvent`. This is a
+ * canned response, NOT a reimplementation of the real per-kind
+ * construction logic (that lives in `TpMatchEventKindBuildersService` and
+ * is covered by its own dedicated specs).
  */
+function syntheticBuildEventData(
+  options: BuildEventDataOptions,
+): UpsertMatchEvent[] {
+  return [
+    {
+      matchId: options.matchId,
+      actionType: 'touchdown',
+      externalIds: [
+        {
+          externalSystemId: options.tpSystemId,
+          externalId: `tp-${options.event.tpEventId}`,
+        },
+      ],
+    },
+  ];
+}
+
+/**
+ * A `MockProxy<TpMatchEventsBuilderService>` returning canned responses:
+ * `resolveTeamEraId` answers for the two roster ids these tests use and
+ * `undefined` for anything else, and `buildEventData` returns one synthetic
+ * event per call. Neither reimplements the real logic — the real
+ * array-scanning resolution and per-kind construction belong to
+ * `TpMatchEventKindBuildersService`, and the dispatch belongs to
+ * `TpMatchEventsBuilderService`; both have their own dedicated specs
+ * (`tp-match-events-builder.service.spec.ts`,
+ * `tp-match-event-kind-builders-gameplay.spec.ts`,
+ * `tp-match-event-kind-builders-admin.spec.ts`).
+ */
+function mockTpMatchEventsBuilderService(
+  buildEventData: TpMatchEventsBuilderService['buildEventData'],
+): MockProxy<TpMatchEventsBuilderService> {
+  const eventsBuilder = mock<TpMatchEventsBuilderService>();
+  eventsBuilder.resolveTeamEraId.mockImplementation(({ rosterId }) => {
+    if (rosterId === HOME_ROSTER_ID) return HOME_TEAM_ERA_ID;
+    if (rosterId === AWAY_ROSTER_ID) return AWAY_TEAM_ERA_ID;
+    return undefined;
+  });
+  eventsBuilder.buildEventData.mockImplementation(buildEventData);
+  return eventsBuilder;
+}
+
 export async function makeService(
   upsertMatchEvent: ReturnType<typeof vi.fn>,
-  options?: {
-    /** Override for a failed external-system bootstrap (defaults to success). */
-    bootstrapResult?: Awaited<
-      ReturnType<ExternalSystemBootstrapService['bootstrap']>
-    >;
-    /** Canned `correlateCasualties` result (defaults to "nothing paired"). */
-    correlationResult?: CasualtyPairing;
-  },
-): Promise<TpMatchEventsImportService> {
+  options?: MakeServiceOptions,
+): Promise<{
+  service: TpMatchEventsImportService;
+  eventsBuilder: MockProxy<TpMatchEventsBuilderService>;
+}> {
   const matchEventsImport = mock<MatchEventsImportService>();
   matchEventsImport.upsertMatchEvent.mockImplementation(
     upsertMatchEvent as MatchEventsImportService['upsertMatchEvent'],
@@ -150,13 +165,15 @@ export async function makeService(
   const eventsCorrelation = mockTpMatchEventsCorrelationService(
     options?.correlationResult ?? emptyCasualtyPairing(),
   );
+  const eventsBuilder = mockTpMatchEventsBuilderService(
+    options?.buildEventData ?? syntheticBuildEventData,
+  );
   const importResults = mockImportResultService();
 
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpMatchEventsImportService,
-      TpMatchEventsBuilderService,
-      TpMatchEventKindBuildersService,
+      { provide: TpMatchEventsBuilderService, useValue: eventsBuilder },
       {
         provide: TpMatchEventsCorrelationService,
         useValue: eventsCorrelation,
@@ -173,15 +190,16 @@ export async function makeService(
       },
     ],
   }).compile();
-  return moduleRef.get(TpMatchEventsImportService);
+  return { service: moduleRef.get(TpMatchEventsImportService), eventsBuilder };
 }
 
 export async function runImportRaw({
   matches,
-  correlationResult,
+  ...serviceOptions
 }: RunImportOptions): Promise<{
   captured: UpsertMatchEvent[];
   errors: ImportError[];
+  eventsBuilder: MockProxy<TpMatchEventsBuilderService>;
 }> {
   const captured: UpsertMatchEvent[] = [];
   const upsertMatchEvent = vi.fn(
@@ -191,7 +209,10 @@ export async function runImportRaw({
       return Promise.resolve(true);
     },
   );
-  const service = await makeService(upsertMatchEvent, { correlationResult });
+  const { service, eventsBuilder } = await makeService(
+    upsertMatchEvent,
+    serviceOptions,
+  );
 
   const { result } = await service.importMatchEvents({
     matchesByCompetitionId: new Map([[COMPETITION_DB_ID, matches]]),
@@ -202,13 +223,13 @@ export async function runImportRaw({
       [AWAY_ROSTER_ID, [{ id: AWAY_TEAM_ERA_ID, eraId: ERA_ID }]],
     ]),
     playerIdsByLineUpId: new Map([
-      [2442075, SCORER_PLAYER_ID],
-      [2459782, VICTIM_PLAYER_ID],
+      [2442075, HOME_PLAYER_ID],
+      [2459782, AWAY_PLAYER_ID],
     ]),
     starPlayerIdsByRosterAndMaster: new Map(),
   });
 
-  return { captured, errors: result.errors };
+  return { captured, errors: result.errors, eventsBuilder };
 }
 
 export async function runImport(
@@ -216,10 +237,4 @@ export async function runImport(
 ): Promise<UpsertMatchEvent[]> {
   const { captured } = await runImportRaw(options);
   return captured;
-}
-
-export async function runImportWithErrors(
-  options: RunImportOptions,
-): Promise<{ captured: UpsertMatchEvent[]; errors: ImportError[] }> {
-  return runImportRaw(options);
 }
