@@ -25,8 +25,12 @@ describe('NameExternalIdService', () => {
     expect(service.forLeague('My League')).toBe('My League');
   });
 
-  it('returns the bare name for a competition', () => {
-    expect(service.forCompetition('Spike Cup')).toBe('Spike Cup');
+  // Competitions deliberately have no Name id: a shared Name external id makes
+  // distinct same-named competitions dedupe onto one row via
+  // resolveExistingByExternalIds (issue #285), and no competition is ever
+  // imported from two source systems, so there is nothing to dedupe across.
+  it('exposes no competition method', () => {
+    expect('forCompetition' in service).toBe(false);
   });
 
   it('returns the bare name for a rules set', () => {
