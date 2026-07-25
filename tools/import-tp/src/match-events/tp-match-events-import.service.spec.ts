@@ -47,7 +47,7 @@ describe('TpMatchEventsImportService', () => {
     expect(upsertMatchEvent).not.toHaveBeenCalled();
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
-    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].item).toEqual({ externalSystems: ['TP'] });
   });
 
   it('emits a null-player event and records a non-fatal error for an unresolvable lineUpId', async () => {

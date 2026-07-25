@@ -67,9 +67,10 @@ async function makeService({
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
-  // Overrides the shared helper's mirrored `result` with a canned value (a
-  // later stub wins). ImportResultService.result's own success derivation is
-  // covered by packages/import/src/import-result.service.spec.ts.
+  // The shared helper's mockImportResultService() only provides the exempt
+  // `error` identity mock; `result` is stubbed with a canned value here.
+  // ImportResultService.result's own success derivation is covered by
+  // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({

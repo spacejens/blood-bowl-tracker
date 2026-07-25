@@ -42,9 +42,9 @@ function makeParser(
   return parser;
 }
 
-// Recipe F: importResults.error() is a plain identity echo of the args the
-// service passes in — not a reimplementation of any collaborator logic — so
-// it is exempt from the "canned response" rule and stays a passthrough mock.
+// `error` is a pure identity field copy with no branching or formatting, so
+// there is no algorithm here that can drift out of sync with the real
+// ImportResultService — exempt from the canned-response rule.
 function makeImportResults(): MockProxy<ImportResultService> {
   const importResults = mock<ImportResultService>();
   importResults.error.mockImplementation((args) => ({

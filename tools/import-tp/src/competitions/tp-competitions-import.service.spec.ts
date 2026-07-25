@@ -112,9 +112,10 @@ async function makeService({
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
   const nameExternalId = mockNameExternalIdService();
   const importResults = mockImportResultService();
-  // Overrides the shared helper's mirrored `result` with a canned value (a
-  // later stub wins). ImportResultService.result's own success derivation is
-  // covered by packages/import/src/import-result.service.spec.ts.
+  // The shared helper's mockImportResultService() only provides the exempt
+  // `error` identity mock; `result` is stubbed with a canned value here.
+  // ImportResultService.result's own success derivation is covered by
+  // packages/import/src/import-result.service.spec.ts.
   importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
@@ -673,7 +674,7 @@ describe('TpCompetitionsImportService', () => {
       id: 111,
       name: 'Chaos Cup 8',
     });
-    const { service, tournamentParser } = await makeService({
+    const { service, tournamentParser, importResults } = await makeService({
       files: makeFiles([
         chaosTournament.file,
         matchFile({
@@ -693,6 +694,7 @@ describe('TpCompetitionsImportService', () => {
 
     expect(competitionIdsByTpId.has(111)).toBe(false);
     expect(upsertCompetitionResult).toHaveBeenCalledTimes(1);
+    expect(resultArgs(importResults).imported).toBe(0);
   });
 
   it('ignores a non-base tournament variant file, still importing using the base file', async () => {
