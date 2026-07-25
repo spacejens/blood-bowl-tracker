@@ -1,3 +1,4 @@
+import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   PositionsImportService,
@@ -18,16 +19,40 @@ function makeEra(overrides: Partial<EraConfig> = {}): EraConfig {
   };
 }
 
+/**
+ * The canned ImportResult the mocked ImportResultService.result returns.
+ * ImportResultService's own `success: errors.length === 0` derivation is
+ * covered by packages/import/src/import-result.service.spec.ts; this spec
+ * asserts what the service under test *passes to* result() (via
+ * `resultArgs()`) and that it returns result()'s value unchanged. The
+ * deliberately impossible field values make any leftover assertion that reads
+ * the returned object instead of the recorded call arguments fail loudly.
+ */
+const CANNED_RESULT: ImportResult = {
+  success: false,
+  imported: -1,
+  errors: [{ item: { canned: true }, message: 'canned import result' }],
+};
+
+/** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
+function resultArgs(importResults: MockProxy<ImportResultService>): {
+  imported: number;
+  errors: ImportError[];
+} {
+  return importResults.result.mock.calls[0][0];
+}
+
 interface Mocks {
   positionsImport: MockProxy<PositionsImportService>;
   eraConfig: MockProxy<EraConfigService>;
+  importResults: MockProxy<ImportResultService>;
 }
 
 /**
  * Builds the service under test through a TestingModule with every
- * collaborator mocked. Deterministic collaborators (error building) mirror
- * the real production logic so a regression in the service under test still
- * fails these tests.
+ * collaborator mocked. ImportResultService.result returns a canned value
+ * (see CANNED_RESULT above); tests assert what this service passes to it,
+ * not what it computes.
  */
 async function makeService(
   eras: EraConfig[],
@@ -38,15 +63,14 @@ async function makeService(
   eraConfig.getEras.mockReturnValue(eras);
 
   const importResults = mock<ImportResultService>();
+  // `error` is a pure identity field copy with no branching or formatting, so
+  // there is no algorithm here that can drift out of sync with the real
+  // ImportResultService — exempt from the canned-response rule.
   importResults.error.mockImplementation((args) => ({
     item: args.item,
     message: args.message,
   }));
-  importResults.result.mockImplementation((args) => ({
-    success: args.errors.length === 0,
-    imported: args.imported,
-    errors: args.errors,
-  }));
+  importResults.result.mockReturnValue(CANNED_RESULT);
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -59,7 +83,7 @@ async function makeService(
 
   return {
     service: moduleRef.get(BblPositionRaceErasImportService),
-    mocks: { positionsImport, eraConfig },
+    mocks: { positionsImport, eraConfig, importResults },
   };
 }
 
@@ -84,7 +108,7 @@ describe('BblPositionRaceErasImportService', () => {
       raceEraIds: [1, 2],
     });
 
-    const { result } = await service.syncPositionRaceEras({
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -104,8 +128,9 @@ describe('BblPositionRaceErasImportService', () => {
       },
       expect.any(Array),
     );
-    expect(result.imported).toBe(1);
-    expect(result.errors).toHaveLength(0);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
   });
 
   it('includes a star player position in an era where the race was active but the position went unused', async () => {
@@ -308,7 +333,7 @@ describe('BblPositionRaceErasImportService', () => {
       raceEraIds: [],
     });
 
-    const { result } = await service.syncPositionRaceEras({
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -318,8 +343,9 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra: new Set(),
     });
 
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('999');
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('999');
   });
 
   it('records an ImportError when an override race bblId does not resolve', async () => {
@@ -340,7 +366,7 @@ describe('BblPositionRaceErasImportService', () => {
       raceEraIds: [],
     });
 
-    const { result } = await service.syncPositionRaceEras({
+    await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
       racesByBblId,
@@ -350,8 +376,9 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra: new Set(),
     });
 
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('unknown-race');
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('unknown-race');
   });
 
   it('records an ImportError when an override containing era name does not resolve', async () => {
@@ -371,6 +398,28 @@ describe('BblPositionRaceErasImportService', () => {
       raceEraIds: [],
     });
 
+    await service.syncPositionRaceEras({
+      positionRaceCandidates,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+      eraIdsByRaceId,
+      positionsUsedByEra: new Set(),
+      racesActiveByEra: new Set(),
+    });
+
+    const { errors } = resultArgs(mocks.importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]?.message).toContain('Unknown era');
+  });
+
+  it('returns the ImportResult built by ImportResultService unchanged', async () => {
+    const { service } = await makeService([]);
+    const positionRaceCandidates = new Map([
+      [100, { isStarPlayer: true, raceDbIds: new Set([7]) }],
+    ]);
+    const eraIdsByRaceId = new Map<number, Set<number>>([[7, new Set([500])]]);
+
     const { result } = await service.syncPositionRaceEras({
       positionRaceCandidates,
       positionIdsByBblId,
@@ -381,7 +430,6 @@ describe('BblPositionRaceErasImportService', () => {
       racesActiveByEra: new Set(),
     });
 
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0]?.message).toContain('Unknown era');
+    expect(result).toBe(CANNED_RESULT);
   });
 });
