@@ -160,7 +160,7 @@ function makeFactTreeMocks(): FactTreeMocks {
   );
   coachToplist.resolveShortestTimeBetweenMatches.mockResolvedValue(
     sampleEmbedReply(
-      'Coaches by shortest longest time between matches',
+      'Coaches by shortest time between matches',
       '1. Roze Madder — 12 days',
     ),
   );
