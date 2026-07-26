@@ -65,7 +65,21 @@ export type TpMatchEvent =
   | (TpMatchEventBase & {
       type: 'foul';
       lineUpId: number;
+      /** The fouling player's own team roster id. */
       rosterId: number;
+      /**
+       * The game turn this foul happened on, when present (absent on some
+       * older events). The hard, order-independent key used to pair this
+       * foul with the `injury` it caused — see `correlateFouls` in
+       * tools/import-tp, mirroring `casualty_caused.turnNumber`.
+       */
+      turnNumber?: number;
+      /**
+       * The acting team's roster id as TP records it on the event, when
+       * present. For a foul this is the fouler's own team, so it normally
+       * equals `rosterId`; carried for symmetry with `injury.turnRosterId`.
+       */
+      turnRosterId?: number;
     })
   | (TpMatchEventBase & {
       type: 'sent_off';

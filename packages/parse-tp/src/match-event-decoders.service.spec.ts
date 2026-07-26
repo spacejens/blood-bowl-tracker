@@ -471,21 +471,56 @@ describe('MatchEventDecodersService', () => {
     });
   });
 
-  it('decodes a foul (code 31)', () => {
+  it('decodes a foul (code 31) with its turnNumber and turnRosterId (real payload shape)', () => {
     expect(
       decode(31, {
-        id: 7150324,
-        instant: '2026-01-17T18:49:40Z',
-        lineUpId: 2442079,
-        rosterId: 164868,
+        id: 7149125,
+        lineUpId: 2477487,
+        matchEventType: 31,
+        instant: '2026-01-17T17:50:25.1365072+00:00',
+        rosterId: 165280,
+        turnNumber: 10,
+        turnRosterId: 165280,
       }),
     ).toEqual({
+      type: 'foul',
+      tpEventId: 7149125,
+      instant: '2026-01-17T17:50:25.1365072+00:00',
+      lineUpId: 2477487,
+      rosterId: 165280,
+      turnNumber: 10,
+      turnRosterId: 165280,
+    });
+  });
+
+  it('decodes a foul (code 31) without turn fields, omitting the optional properties', () => {
+    const event = decode(31, {
+      id: 7150324,
+      instant: '2026-01-17T18:49:40Z',
+      lineUpId: 2442079,
+      rosterId: 164868,
+    });
+    expect(event).toEqual({
       type: 'foul',
       tpEventId: 7150324,
       instant: '2026-01-17T18:49:40Z',
       lineUpId: 2442079,
       rosterId: 164868,
     });
+    expect(event).not.toHaveProperty('turnNumber');
+    expect(event).not.toHaveProperty('turnRosterId');
+  });
+
+  it('rejects a foul (code 31) whose turnNumber is not a number', () => {
+    expect(() =>
+      decode(31, {
+        id: 1,
+        instant: 'x',
+        lineUpId: 2,
+        rosterId: 3,
+        turnNumber: 'ten',
+      }),
+    ).toThrow(/code 31/);
   });
 
   it('decodes a sent off (code 32)', () => {

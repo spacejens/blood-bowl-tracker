@@ -52,6 +52,21 @@ const casualtyCausedRaw = z.object({
   rosterId: z.number(),
   turnNumber: z.number().nullish(),
 });
+/**
+ * Code 31 (`foul`) carries turn fields that the previously-shared
+ * `touchdownRaw` schema silently dropped. They are what lets a foul be paired
+ * with the `injury` it caused (see `tools/import-tp`'s `correlateFouls`).
+ * `rosterId` is already the fouler's own team, so `turnRosterId` is expected
+ * to equal it; it is decoded anyway for symmetry with `injury.turnRosterId`.
+ */
+const foulRaw = z.object({
+  id: z.number(),
+  instant: z.string(),
+  lineUpId: z.number(),
+  rosterId: z.number(),
+  turnNumber: z.number().nullish(),
+  turnRosterId: z.number().nullish(),
+});
 const weatherRaw = z.object({
   id: z.number(),
   instant: z.string(),
@@ -328,12 +343,14 @@ export class MatchEventDecodersService {
       ],
       [
         31,
-        this.decode(touchdownRaw, 31, (v) => ({
+        this.decode(foulRaw, 31, (v) => ({
           type: 'foul',
           tpEventId: v.id,
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
+          ...(v.turnRosterId != null ? { turnRosterId: v.turnRosterId } : {}),
         })),
       ],
       [
