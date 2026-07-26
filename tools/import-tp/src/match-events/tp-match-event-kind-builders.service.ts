@@ -316,11 +316,17 @@ export class TpMatchEventKindBuildersService {
    * 1. Paired via `casualtyPairing` (a specific code-6 event correlated by
    *    turnNumber) — full credit: the specific acting player and their team,
    *    with the severity bucketed via {@link INJURY_ACTION_SEVERITY_BY_TYPE}.
-   * 2. Not paired, but `turnRosterId` differs from the victim's roster —
+   * 2. Paired via `foulPairing` (a specific code-31 foul correlated by
+   *    turnNumber) — full credit to the fouler and their team, but with
+   *    `actionType: 'foul'` rather than a severity bucket: Blood Bowl awards
+   *    no casualty credit for a foul, and this one row is what makes a
+   *    foul-caused casualty mean the same thing here as it does in the BBL
+   *    importer.
+   * 3. Not paired, but `turnRosterId` differs from the victim's roster —
    *    opponent-caused per TP's turn-owner field, but the specific player
    *    couldn't be pinned down (e.g. a cross-turn logging quirk); falls back
    *    to team-only credit with the same severity bucketing.
-   * 3. Neither — self-inflicted or otherwise unattributable (a player falling
+   * 4. Neither — self-inflicted or otherwise unattributable (a player falling
    *    on their own, or a random event); consequence-only, exactly as before.
    */
   buildInjuryEvent(
@@ -337,6 +343,7 @@ export class TpMatchEventKindBuildersService {
       playerIdsByLineUpId,
       errors,
       casualtyPairing,
+      foulPairing,
     } = options;
     const data: UpsertMatchEvent = {
       matchId,
@@ -363,17 +370,26 @@ export class TpMatchEventKindBuildersService {
       }),
     );
 
+    // A paired casualty (code 6) and a paired foul (code 31) credit the acting
+    // side identically — same team, same player, same code path — and differ
+    // only in the action type emitted. `correlateFouls` only ever considers
+    // injuries `correlateCasualties` left unattributed, so both can never be
+    // set at once; the casualty is preferred if that ever changes.
     const pairedCasualty = casualtyPairing.casualtyByInjuryEventId.get(
       event.tpEventId,
     );
-    if (pairedCasualty) {
-      data.actionType = INJURY_ACTION_SEVERITY_BY_TYPE[event.injuryType];
+    const pairedFoul = foulPairing.foulByInjuryEventId.get(event.tpEventId);
+    const pairedActor = pairedCasualty ?? pairedFoul;
+    if (pairedActor) {
+      data.actionType = pairedCasualty
+        ? INJURY_ACTION_SEVERITY_BY_TYPE[event.injuryType]
+        : 'foul';
       this.setIfDefined(
         data,
         'actingTeamEraId',
         this.resolveTeamEraId({
           teamErasByRosterId,
-          rosterId: pairedCasualty.rosterId,
+          rosterId: pairedActor.rosterId,
           eraId,
         }),
       );
@@ -381,7 +397,7 @@ export class TpMatchEventKindBuildersService {
         data,
         'actingPlayerId',
         this.resolvePlayer({
-          lineUpId: pairedCasualty.lineUpId,
+          lineUpId: pairedActor.lineUpId,
           matchId,
           playerIdsByLineUpId,
           errors,

@@ -83,7 +83,6 @@ describe('TpMatchEventsBuilderService', () => {
       'completion',
       'interception',
       'deflection',
-      'foul',
       'successful_landing',
     ] as const)(
       'dispatches a %s event to buildSimpleActionEvent with its own type as the action type',
@@ -106,6 +105,46 @@ describe('TpMatchEventsBuilderService', () => {
         );
       },
     );
+
+    it('dispatches an UNpaired foul event to buildSimpleActionEvent with the foul action type', () => {
+      eventBuilders.buildSimpleActionEvent.mockReturnValue(BUILT);
+      const options = buildOptions({
+        event: {
+          type: 'foul',
+          tpEventId: 8,
+          instant: 'x',
+          lineUpId: ACTOR_LINE_UP_ID,
+          rosterId: HOME_ROSTER_ID,
+          turnNumber: 5,
+        },
+      });
+
+      expect(service.buildEventData(options)).toBe(BUILT);
+      expect(eventBuilders.buildSimpleActionEvent).toHaveBeenCalledWith(
+        options,
+        'foul',
+      );
+    });
+
+    it('returns no events for a foul already paired into an injury row, without calling the kind builders', () => {
+      const options = buildOptions({
+        event: {
+          type: 'foul',
+          tpEventId: 9,
+          instant: 'x',
+          lineUpId: ACTOR_LINE_UP_ID,
+          rosterId: HOME_ROSTER_ID,
+          turnNumber: 5,
+        },
+        foulPairing: {
+          foulByInjuryEventId: new Map(),
+          pairedFoulEventIds: new Set([9]),
+        },
+      });
+
+      expect(service.buildEventData(options)).toEqual([]);
+      expect(eventBuilders.buildSimpleActionEvent).not.toHaveBeenCalled();
+    });
 
     it('dispatches an mvp_award event to buildSimpleActionEvent with the mvp_award action type', () => {
       eventBuilders.buildSimpleActionEvent.mockReturnValue(BUILT);
