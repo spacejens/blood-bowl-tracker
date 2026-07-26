@@ -15,6 +15,10 @@ export class ErasProcessor {
     let imported = 0;
     for (const entry of ctx.data.eras) {
       const label = `Cannot import era "${entry.name}"`;
+      if (entry.league === undefined) {
+        // Placeholder until the conditional-resolve rework lands.
+        continue;
+      }
       const leagueId = this.refResolver.resolveRef({
         ref: entry.league,
         idMap: ctx.idMap,

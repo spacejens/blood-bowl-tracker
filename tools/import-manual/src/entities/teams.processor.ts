@@ -15,6 +15,10 @@ export class TeamsProcessor {
     let imported = 0;
     for (const entry of ctx.data.teams) {
       const label = `Cannot import team "${entry.name}"`;
+      if (entry.race === undefined || entry.coach === undefined) {
+        // Placeholder until the conditional-resolve rework lands.
+        continue;
+      }
       const raceId = this.refResolver.resolveRef({
         ref: entry.race,
         idMap: ctx.idMap,

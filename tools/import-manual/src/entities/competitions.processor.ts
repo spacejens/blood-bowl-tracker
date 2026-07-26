@@ -22,6 +22,10 @@ export class CompetitionsProcessor {
     let imported = 0;
     for (const entry of ctx.data.competitions) {
       const label = `Cannot import competition "${entry.name}"`;
+      if (entry.era === undefined) {
+        // Placeholder until the conditional-resolve rework lands.
+        continue;
+      }
       const eraId = this.refResolver.resolveRef({
         ref: entry.era,
         idMap: ctx.idMap,

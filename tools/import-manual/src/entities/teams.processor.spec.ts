@@ -162,4 +162,25 @@ describe('TeamsProcessor', () => {
     expect(teams.upsertTeam).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
+
+  // Placeholder scaffolding until the conditional-resolve rework (issue #174
+  // tasks 6-8) lands: a rename-only entry with no race or coach must be
+  // skipped rather than passed into resolveRef, which requires a definite ref.
+  it('skips a rename-only team entry with no race or coach', async () => {
+    const data = emptyData();
+    data.teams = [
+      {
+        name: 'Renamed Only',
+        eras: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-only' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(0);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(teams.upsertTeam).not.toHaveBeenCalled();
+  });
 });

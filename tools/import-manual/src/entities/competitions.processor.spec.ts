@@ -141,6 +141,26 @@ describe('CompetitionsProcessor', () => {
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
+  // Placeholder scaffolding until the conditional-resolve rework (issue #174
+  // tasks 6-8) lands: a rename-only entry with no era must be skipped rather
+  // than passed into resolveRef, which requires a definite ref.
+  it('skips a rename-only competition entry with no era', async () => {
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Renamed Only',
+        externalIds: [{ system: 'Name', id: 'name:renamed-only' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(0);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
+  });
+
   it('does not count or record an id when the upsert fails', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue(undefined);
     refResolver.resolveRef.mockReturnValue(3);

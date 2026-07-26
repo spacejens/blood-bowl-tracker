@@ -14,6 +14,11 @@ function collectSystemNames(data: ManualDataFile): string[] {
     names.add(ref.system);
   };
   const addAll = (refs: readonly ExternalRef[]): void => refs.forEach(add);
+  const addIfPresent = (ref: ExternalRef | undefined): void => {
+    if (ref !== undefined) {
+      add(ref);
+    }
+  };
 
   for (const entry of data.externalSystems) {
     names.add(entry.name);
@@ -26,7 +31,7 @@ function collectSystemNames(data: ManualDataFile): string[] {
   }
   for (const entry of data.eras) {
     addAll(entry.externalIds);
-    add(entry.league);
+    addIfPresent(entry.league);
     addAll(entry.rulesSets);
   }
   for (const entry of data.races) {
@@ -45,13 +50,13 @@ function collectSystemNames(data: ManualDataFile): string[] {
   }
   for (const entry of data.teams) {
     addAll(entry.externalIds);
-    add(entry.race);
-    add(entry.coach);
+    addIfPresent(entry.race);
+    addIfPresent(entry.coach);
     addAll(entry.eras);
   }
   for (const entry of data.competitions) {
     addAll(entry.externalIds);
-    add(entry.era);
+    addIfPresent(entry.era);
   }
   return [...names];
 }

@@ -262,4 +262,38 @@ describe('ExternalSystemsProcessor', () => {
 
     expect([...systemIds.keys()].sort()).toEqual(['CompEraSys', 'CompSys']);
   });
+
+  // Placeholder scaffolding until the conditional-resolve rework (issue #174
+  // tasks 6-8) lands: rename-only era, team and competition entries omit
+  // league/race/coach/era, so collectSystemNames must skip the absent ref
+  // instead of dereferencing it.
+  it('skips absent cross-reference fields when collecting system names', async () => {
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
+    data.eras = [
+      {
+        name: 'Renamed Era',
+        rulesSets: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-era' }],
+      },
+    ];
+    data.teams = [
+      {
+        name: 'Renamed Team',
+        eras: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-team' }],
+      },
+    ];
+    data.competitions = [
+      {
+        name: 'Renamed Competition',
+        externalIds: [{ system: 'Name', id: 'name:renamed-competition' }],
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()]).toEqual(['Name']);
+  });
 });

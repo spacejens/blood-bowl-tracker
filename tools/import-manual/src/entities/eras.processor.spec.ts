@@ -169,4 +169,25 @@ describe('ErasProcessor', () => {
     expect(eras.upsertEra).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
+
+  // Placeholder scaffolding until the conditional-resolve rework (issue #174
+  // tasks 6-8) lands: a rename-only entry with no league must be skipped
+  // rather than passed into resolveRef, which requires a definite ref.
+  it('skips a rename-only era entry with no league', async () => {
+    const data = emptyData();
+    data.eras = [
+      {
+        name: 'Renamed Only',
+        rulesSets: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-only' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(0);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(eras.upsertEra).not.toHaveBeenCalled();
+  });
 });

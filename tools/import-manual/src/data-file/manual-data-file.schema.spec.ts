@@ -114,20 +114,6 @@ describe('ManualDataFileSchema', () => {
     expect(() => ManualDataFileSchema.parse({ players: [] })).toThrow();
   });
 
-  it('rejects a team missing its race reference', () => {
-    expect(() =>
-      ManualDataFileSchema.parse({
-        teams: [
-          {
-            name: 'T',
-            coach: { system: 'Name', id: 'name:c' },
-            externalIds: [{ system: 'Name', id: 'name:t' }],
-          },
-        ],
-      }),
-    ).toThrow();
-  });
-
   it('accepts a competition with its era reference and type', () => {
     const parsed = ManualDataFileSchema.parse({
       competitions: [
@@ -165,16 +151,69 @@ describe('ManualDataFileSchema', () => {
     ).toThrow();
   });
 
-  it('rejects a competition missing its era reference', () => {
+  it('accepts a rename-only competition entry with no era and no type', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitions: [
+        {
+          name: 'Major Season 12',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
+        },
+      ],
+    });
+    expect(parsed.competitions[0].era).toBeUndefined();
+    expect(parsed.competitions[0].type).toBeUndefined();
+  });
+
+  it('accepts a rename-only era entry with no league, rules sets or dates', () => {
+    const parsed = ManualDataFileSchema.parse({
+      eras: [
+        {
+          name: 'First era',
+          externalIds: [{ system: 'Name', id: 'First era' }],
+        },
+      ],
+    });
+    expect(parsed.eras[0].league).toBeUndefined();
+    expect(parsed.eras[0].startDate).toBeUndefined();
+    expect(parsed.eras[0].rulesSets).toEqual([]);
+  });
+
+  it('accepts an explicit null endDate on an era, to clear a stored end date', () => {
+    const parsed = ManualDataFileSchema.parse({
+      eras: [
+        {
+          name: 'Reopened era',
+          endDate: null,
+          externalIds: [{ system: 'Name', id: 'Reopened era' }],
+        },
+      ],
+    });
+    expect(parsed.eras[0].endDate).toBeNull();
+  });
+
+  it('accepts a rename-only team entry with no race or coach', () => {
+    const parsed = ManualDataFileSchema.parse({
+      teams: [
+        { name: 'Renamed Team', externalIds: [{ system: 'Name', id: 'rt' }] },
+      ],
+    });
+    expect(parsed.teams[0].race).toBeUndefined();
+    expect(parsed.teams[0].coach).toBeUndefined();
+  });
+
+  it('accepts a position entry with no isStarPlayer flag', () => {
+    const parsed = ManualDataFileSchema.parse({
+      positions: [
+        { name: 'Blitzer', externalIds: [{ system: 'Name', id: 'blitzer' }] },
+      ],
+    });
+    expect(parsed.positions[0].isStarPlayer).toBeUndefined();
+  });
+
+  it('still requires a name on every entry — it is the entry label used in errors', () => {
     expect(() =>
       ManualDataFileSchema.parse({
-        competitions: [
-          {
-            name: 'C',
-            type: 'cup',
-            externalIds: [{ system: 'Name', id: 'name:c' }],
-          },
-        ],
+        coaches: [{ externalIds: [{ system: 'Name', id: 'bob' }] }],
       }),
     ).toThrow();
   });
