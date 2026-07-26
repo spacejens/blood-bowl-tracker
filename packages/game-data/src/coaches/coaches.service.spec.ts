@@ -587,5 +587,47 @@ describe('CoachesService', () => {
       ).toEqual(['eras.id', 'team_eras.era_id']);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
     });
+
+    it('getAverageGapBetweenMatchesByCoach returns the rows the outer query resolves to', async () => {
+      const averageRows = [
+        { coachId: 2, name: 'Grashnak', count: 7 },
+        { coachId: 1, name: 'Roze Madder', count: 30 },
+      ];
+      const { db, chains } = await build([], [], averageRows);
+      await expect(
+        service.getAverageGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21),
+      ).resolves.toEqual(averageRows);
+      expect(db.selectDistinct).toHaveBeenCalledTimes(1);
+      expect(db.select).toHaveBeenCalledTimes(2);
+      expect(chains[2].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('ranks the smallest average gap first, rounded to whole days', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getAverageGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      const orderBy = sqlText(firstCallArg(chains[2].orderBy));
+      expect(orderBy).toContain('avg(');
+      expect(orderBy).toContain('round(');
+      expect(orderBy).toContain(' asc');
+      expect(orderBy).not.toContain(' desc');
+    });
+
+    it('averages only real gaps, excluding each coach first match', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getAverageGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      expect(sqlText(firstCallArg(chains[2].where))).toContain('is not null');
+    });
+
+    it('filters the average by era when an eraId is given', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getAverageGapBetweenMatchesByCoach({ eraId: 20 }, 21);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
+    });
+
+    it('filters the average by league when a leagueId is given', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getAverageGapBetweenMatchesByCoach({ leagueId: 9 }, 21);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
+    });
   });
 });

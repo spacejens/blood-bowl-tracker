@@ -256,6 +256,25 @@ export class CoachesService {
     return this.rankByLongestGap(scope, limit, 'asc');
   }
 
+  /**
+   * Coaches ranked by the mean gap across all of their consecutive in-scope
+   * matches, rounded half-up to whole days, smallest first.
+   */
+  getAverageGapBetweenMatchesByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    const gaps = this.gapsByCoach(scope);
+    const average = sql<number>`round(avg(${gaps.gapDays})::numeric)::int`;
+    return this.db
+      .select({ coachId: gaps.coachId, name: gaps.name, count: average })
+      .from(gaps)
+      .where(isNotNull(gaps.gapDays))
+      .groupBy(gaps.coachId, gaps.name)
+      .orderBy(asc(average))
+      .limit(limit);
+  }
+
   async countCompetitionsByCoach(
     scope: FactScope,
     limit: number,
