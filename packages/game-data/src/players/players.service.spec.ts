@@ -140,6 +140,22 @@ describe('PlayersService', () => {
         { playerId: 1, externalSystemId: 2, externalId: 'Griff Oberwald' },
       ]);
     });
+
+    it('updates only the supplied column, leaving teamEraId and positionId alone', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '12345' }],
+        [fakePlayer],
+      );
+
+      await service.upsert({
+        name: 'Griff Oberwald II',
+        externalIds: [{ externalSystemId: 1, externalId: '12345' }],
+      });
+
+      expect(firstCallArg(chains[1].set)).toEqual({
+        name: 'Griff Oberwald II',
+      });
+    });
   });
 
   describe('findById', () => {

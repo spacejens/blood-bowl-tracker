@@ -119,6 +119,23 @@ describe('LeaguesService', () => {
         { leagueId: 1, externalSystemId: 2, externalId: 'Test League' },
       ]);
     });
+
+    it('re-selects instead of updating when the payload carries no fields', async () => {
+      // query 0: the external-id lookup matches league 1; query 1: the
+      // re-select of the untouched row (no update is issued at all).
+      const { db, chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Test League' }],
+        [fakeLeague],
+      );
+
+      const result = await service.upsert({
+        externalIds: [{ externalSystemId: 1, externalId: 'Test League' }],
+      });
+
+      expect(db.update).not.toHaveBeenCalled();
+      expect(result).toEqual({ league: fakeLeague, created: false });
+      expect(chains).toHaveLength(2);
+    });
   });
 
   describe('countAll', () => {

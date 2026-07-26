@@ -154,6 +154,26 @@ describe('RacesService', () => {
       expect(db.insert).not.toHaveBeenCalled();
       expect(db.update).not.toHaveBeenCalled();
     });
+
+    it('re-selects instead of updating when the payload names no entity fields', async () => {
+      // The lookup matches race 1, so the update is skipped and the row is
+      // re-selected instead; the additive era sync still issues its own
+      // queries (existing race_eras lookup, then the new link insert).
+      const { db } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'Orc' }],
+        [fakeRace],
+        [],
+        [],
+      );
+
+      const result = await service.upsert({
+        eras: [5],
+        externalIds: [{ externalSystemId: 1, externalId: 'Orc' }],
+      });
+
+      expect(db.update).not.toHaveBeenCalled();
+      expect(result.race).toEqual({ ...fakeRace, eras: [5] });
+    });
   });
 
   describe('countAll', () => {

@@ -177,6 +177,21 @@ describe('MatchesService', () => {
       expect(db.insert).not.toHaveBeenCalledWith(matchTeams);
       expect(result.match.teamEraIds).toEqual([100, 101]);
     });
+
+    it('updates only the supplied column, leaving competitionId and playedAt alone', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '89' }],
+        [fakeMatch],
+      );
+
+      await service.upsert({
+        name: 'Semi-final',
+        teamEraIds: [],
+        externalIds: [{ externalSystemId: 1, externalId: '89' }],
+      });
+
+      expect(firstCallArg(chains[1].set)).toEqual({ name: 'Semi-final' });
+    });
   });
 
   describe('countAll', () => {
