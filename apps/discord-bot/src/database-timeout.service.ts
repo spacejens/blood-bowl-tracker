@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common';
  * under Discord's ~3 second interaction-acknowledgement window so a slash
  * command can always reply in time.
  */
-export const DATABASE_TIMEOUT_MS = 2_000;
+const DATABASE_TIMEOUT_MS = 2_000;
 
 @Injectable()
 export class DatabaseTimeoutService {

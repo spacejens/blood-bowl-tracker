@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { TpMatchEvent } from './match-event-parser.service';
+import type { Decoder, TpMatchEvent } from './match-event.types';
 import { SecretObjectiveService } from './secret-objective.service';
 import { WeatherTypeService } from './weather-type.service';
 
-export const injuryTypeSchema = z.enum([
+const injuryTypeSchema = z.enum([
   'None',
   'MissNextGame',
   'NigglingInjury',
@@ -17,26 +17,26 @@ export const injuryTypeSchema = z.enum([
   'AG',
 ]);
 
-export const starPlayerRaw = z.object({
+const starPlayerRaw = z.object({
   name: z.string(),
   lineUpMasterId: z.number(),
   number: z.number(),
 });
 
 // One raw schema per modeled code. Extra fields are dropped by non-strict parse.
-export const touchdownRaw = z.object({
+const touchdownRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
   rosterId: z.number(),
 });
-export const mvpAwardRaw = z.object({
+const mvpAwardRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
   rosterId: z.number(),
 });
-export const injuryRaw = z.object({
+const injuryRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
@@ -45,19 +45,19 @@ export const injuryRaw = z.object({
   turnNumber: z.number().nullish(),
   injuryType: injuryTypeSchema,
 });
-export const casualtyCausedRaw = z.object({
+const casualtyCausedRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
   rosterId: z.number(),
   turnNumber: z.number().nullish(),
 });
-export const weatherRaw = z.object({
+const weatherRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({ weatherType: z.number() }),
 });
-export const inducementsRaw = z.object({
+const inducementsRaw = z.object({
   id: z.number(),
   instant: z.string(),
   rosterId: z.number(),
@@ -67,7 +67,7 @@ export const inducementsRaw = z.object({
     fromTreasury: z.number().nullish(),
   }),
 });
-export const winningsRaw = z.object({
+const winningsRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
@@ -75,7 +75,7 @@ export const winningsRaw = z.object({
     visitorWinnings: z.number(),
   }),
 });
-export const fanFactorRaw = z.object({
+const fanFactorRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
@@ -83,7 +83,7 @@ export const fanFactorRaw = z.object({
     newFanFactorVisitor: z.number(),
   }),
 });
-export const journeymanSigningRaw = z.object({
+const journeymanSigningRaw = z.object({
   id: z.number(),
   instant: z.string(),
   rosterId: z.number(),
@@ -94,13 +94,13 @@ export const journeymanSigningRaw = z.object({
  * table was rolled (1 = no cost, 2 = a partial-treasury cost, 3 = half the
  * treasury), not the money lost — `extraData.totalCost` carries that.
  */
-export const expensiveMistakeRaw = z.object({
+const expensiveMistakeRaw = z.object({
   id: z.number(),
   instant: z.string(),
   rosterId: z.number(),
   extraData: z.object({ totalCost: z.number() }),
 });
-export const dedicatedFansRaw = z.object({
+const dedicatedFansRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
@@ -108,18 +108,18 @@ export const dedicatedFansRaw = z.object({
     dedicatedFansModifierVisitor: z.number(),
   }),
 });
-export const secretObjectiveRaw = z.object({
+const secretObjectiveRaw = z.object({
   id: z.number(),
   instant: z.string(),
   rosterId: z.number(),
   extraData: z.object({ secretObjective: z.number() }),
 });
-export const prayersToNuffleRaw = z.object({
+const prayersToNuffleRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({ prayersToNuffle: z.number() }),
 });
-export const concessionRaw = z.object({
+const concessionRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
@@ -127,8 +127,6 @@ export const concessionRaw = z.object({
     concedeVisitor: z.boolean(),
   }),
 });
-
-export type Decoder = (raw: unknown) => TpMatchEvent;
 
 @Injectable()
 export class MatchEventDecodersService {

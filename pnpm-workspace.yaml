@@ -7,10 +7,6 @@ allowBuilds:
   esbuild: true
   unrs-resolver: true
 minimumReleaseAge: 1440
-minimumReleaseAgeExclude:
-  - undici@6.27.0
-  - brace-expansion@1.1.16 || 5.0.7
-  - fast-uri@3.1.4
 overrides:
   '@discordjs/rest>undici': ^6.27.0
 patchedDependencies:

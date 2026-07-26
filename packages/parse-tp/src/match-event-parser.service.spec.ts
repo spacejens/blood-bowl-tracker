@@ -2,9 +2,8 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { Decoder } from './match-event-decoders.service';
+import type { Decoder, TpMatchEvent } from './match-event.types';
 import { MatchEventDecodersService } from './match-event-decoders.service';
-import type { TpMatchEvent } from './match-event-parser.service';
 import { MatchEventParserService } from './match-event-parser.service';
 
 /**

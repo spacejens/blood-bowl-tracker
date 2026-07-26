@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
-import type { Decoder } from './match-event-decoders.service';
+import type { Decoder } from './match-event.types';
 import { MatchEventDecodersService } from './match-event-decoders.service';
 import { SecretObjectiveService } from './secret-objective.service';
 import { WeatherTypeService } from './weather-type.service';

@@ -5,7 +5,7 @@ import { Test } from '@nestjs/testing';
 
 import { mockImportResultService } from '../import-package.test-helpers';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
-import type { BuildEventDataOptions } from './tp-match-events-builder.service';
+import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 import type { CasualtyPairing } from './tp-match-events-correlation.service';
 
 /**

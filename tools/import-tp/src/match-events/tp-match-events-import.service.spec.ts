@@ -2,7 +2,7 @@ import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
 import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { BuildEventDataOptions } from './tp-match-events-builder.service';
+import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 import {
   AWAY_PLAYER_ID,
   AWAY_ROSTER_ID,

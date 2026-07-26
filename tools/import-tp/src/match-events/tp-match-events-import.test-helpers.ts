@@ -13,8 +13,8 @@ import { mock } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { BuildEventDataOptions } from './tp-match-events-builder.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import type { BuildEventDataOptions } from './tp-match-events-builder.types';
 import type { CasualtyPairing } from './tp-match-events-correlation.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
