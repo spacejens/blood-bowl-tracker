@@ -19,13 +19,15 @@ Takes no arguments.
 
 0. Ask the developer which action(s) to perform. There are six actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **two `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees both in sequence and answers once. Ask exactly these two questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
-   **Question 1 — "Which to run?"** (`multiSelect: true`):
+   Both questions are one decision split in two, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what` and `Run what 2`.
+
+   **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the manual import (before other importers)** — run `tools/import-manual/` against `data/before-other-importers` to seed hand-authored data before the system-specific importers.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
 
-   **Question 2 — "Anything else?"** (`multiSelect: true`):
+   **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the manual import (after other importers)** — run `tools/import-manual/` against `data/after-other-importers` to clean up names or attach external IDs after the system-specific importers.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
