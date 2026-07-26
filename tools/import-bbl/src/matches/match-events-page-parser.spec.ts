@@ -198,6 +198,99 @@ describe('MatchEventsPageParser', () => {
       pid: '2200',
     });
   });
+
+  it('tags a "foul by" causer occurrence with viaFoul', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          "Badly Hurt'ers",
+          'foul by <a href="default.asp?p=pl&pid=3938">journeyman</a>',
+          '',
+        ),
+      ),
+    )!;
+    const badlyHurt = result.actions.filter(
+      (a) => a.actionType === 'badly_hurt',
+    );
+    expect(badlyHurt).toEqual([
+      { actionType: 'badly_hurt', side: 'home', pid: '3938', viaFoul: true },
+    ]);
+  });
+
+  it('keeps an ordinary causer occurrence free of viaFoul', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          "Badly Hurt'ers",
+          '<a href="default.asp?p=pl&pid=3875">Veno Moose</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'badly_hurt', side: 'home', pid: '3875' },
+    ]);
+  });
+
+  it('tags each occurrence independently in a cell mixing ordinary and foul causers (m=1830 shape)', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          "Badly Hurt'ers",
+          '<a href="default.asp?p=pl&pid=3875">Veno Moose</a><br>' +
+            'foul by <a href="default.asp?p=pl&pid=3938">journeyman</a><br>' +
+            '<a href="default.asp?p=pl&pid=3878">Jävel-Bocken</a><br>' +
+            'foul by <a href="default.asp?p=pl&pid=3881">Eeeh-Gor</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'badly_hurt', side: 'home', pid: '3875' },
+      { actionType: 'badly_hurt', side: 'home', pid: '3938', viaFoul: true },
+      { actionType: 'badly_hurt', side: 'home', pid: '3878' },
+      { actionType: 'badly_hurt', side: 'home', pid: '3881', viaFoul: true },
+    ]);
+  });
+
+  it('matches the foul marker case-insensitively and ignores surrounding whitespace/nbsp', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          '&nbsp;Foul&nbsp;By <a href="default.asp?p=pl&pid=77">Killer</a>&nbsp;',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '77', viaFoul: true },
+    ]);
+  });
+
+  it('does not tag an occurrence whose segment text is unrelated prose', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'assisted by <a href="default.asp?p=pl&pid=88">X</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '88' },
+    ]);
+  });
+
+  it('does not tag consequence occurrences, and a link-less cell still yields one anonymous occurrence', () => {
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Miss Next Game', 'victim healed by apoth', '')),
+    )!;
+    expect(result.consequences).toEqual([
+      { consequenceType: 'miss_next_game', side: 'home', pid: null },
+    ]);
+  });
 });
 
 describe('MatchEventsPageParser journeyman counting', () => {

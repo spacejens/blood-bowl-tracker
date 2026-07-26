@@ -14,6 +14,16 @@ interface BblActionOccurrence {
   actionType: ActionType;
   side: BblEventSide;
   pid: string | null;
+  /**
+   * Set (and only set) when this occurrence's `<br>`-delimited cell segment
+   * carried the literal "foul by " marker before the causer's player link —
+   * i.e. this casualty was caused by a foul rather than a block. The
+   * occurrence's `actionType` still holds the row's severity tier, which is
+   * what the correlation step matches on; the foul-ness only changes the
+   * action type actually emitted. Omitted (rather than `false`) so ordinary
+   * occurrences keep their existing exact shape.
+   */
+  viaFoul?: boolean;
 }
 
 interface BblConsequenceOccurrence {
@@ -32,6 +42,21 @@ export interface BblMatchEvents {
 }
 
 const PID_LINK = /[?&]p=pl&pid=([^&#"']+)/;
+
+/**
+ * The literal text BBL puts before a causer's player link when the casualty
+ * came from a foul, e.g. `foul by <a href="...">Eeeh-Gor</a>` (confirmed on
+ * real mirrored pages, e.g. match 1830's "Badly Hurt'ers" cell). Matched
+ * against the segment's text with player links and spacer images stripped and
+ * whitespace normalized.
+ */
+const FOUL_MARKER = /^foul by$/i;
+
+/** One player occurrence read out of a single side cell. */
+interface CellOccurrence {
+  pid: string | null;
+  viaFoul?: boolean;
+}
 
 const ACTION_LABELS: { test: RegExp; actionType: ActionType }[] = [
   { test: /^TD Scorers$/i, actionType: 'touchdown' },
@@ -125,12 +150,17 @@ export class MatchEventsPageParser {
 
       const action = ACTION_LABELS.find((a) => a.test.test(label));
       if (action) {
-        for (const { side, pid } of this.sideOccurrences(
+        for (const { side, pid, viaFoul } of this.sideOccurrences(
           $,
           homeCell,
           awayCell,
         )) {
-          actions.push({ actionType: action.actionType, side, pid });
+          actions.push({
+            actionType: action.actionType,
+            side,
+            pid,
+            ...(viaFoul ? { viaFoul: true } : {}),
+          });
         }
         return;
       }
@@ -176,52 +206,70 @@ export class MatchEventsPageParser {
   }
 
   /**
-   * Player pids in a side cell, one entry per occurrence. A cell whose only
-   * content is a category-label divider or spacer image yields nothing; a
-   * cell with descriptive text but no player link yields a single `null` (an
-   * unidentifiable victim). A cell with N player links yields N pids.
-   */
-  /**
-   * Every (side, pid) occurrence across the two side cells of a row, in home-
-   * then-away order. The three event kinds a row can carry all walk the cells
-   * the same way and differ only in what they push.
+   * Every (side, pid, viaFoul) occurrence across the two side cells of a row,
+   * in home-then-away order. The three event kinds a row can carry all walk
+   * the cells the same way and differ only in what they push.
    */
   private sideOccurrences(
     $: ReturnType<BblPage['load']>,
     homeCell: ReturnType<ReturnType<BblPage['load']>>,
     awayCell: ReturnType<ReturnType<BblPage['load']>>,
-  ): { side: BblEventSide; pid: string | null }[] {
-    const result: { side: BblEventSide; pid: string | null }[] = [];
+  ): (CellOccurrence & { side: BblEventSide })[] {
+    const result: (CellOccurrence & { side: BblEventSide })[] = [];
     for (const side of ['home', 'away'] as const) {
-      for (const pid of this.occurrences(
+      for (const occurrence of this.occurrences(
         $,
         side === 'home' ? homeCell : awayCell,
       )) {
-        result.push({ side, pid });
+        result.push({ side, ...occurrence });
       }
     }
     return result;
   }
 
+  /**
+   * Player occurrences in a side cell, one entry per occurrence, walking the
+   * cell's `<br>`-delimited segments so each link can be tagged with its own
+   * segment's "foul by" marker. A cell whose only content is a category-label
+   * divider or spacer image yields nothing; a cell with descriptive text but
+   * no player link anywhere yields a single anonymous occurrence (an
+   * unidentifiable victim); a cell with N player links yields N occurrences.
+   */
   private occurrences(
     $: ReturnType<BblPage['load']>,
     cell: ReturnType<ReturnType<BblPage['load']>>,
-  ): (string | null)[] {
-    const links = cell.find('a');
-    const pids: (string | null)[] = [];
-    links.each((_i, a) => {
-      const href = $(a).attr('href') ?? '';
-      const m = PID_LINK.exec(href);
-      pids.push(m ? m[1] : null);
-    });
-    if (pids.length > 0) {
-      return pids;
+  ): CellOccurrence[] {
+    const result: CellOccurrence[] = [];
+    for (const segment of (cell.html() ?? '').split(/<br\s*\/?>/i)) {
+      const fragment = $(`<div>${segment}</div>`);
+      const links = fragment.find('a');
+      if (links.length === 0) {
+        continue;
+      }
+      const marker = this.normalizeText.normalize(
+        fragment.clone().find('a, img').remove().end().text(),
+      );
+      const viaFoul = FOUL_MARKER.test(marker);
+      links.each((_i, a) => {
+        const href = $(a).attr('href') ?? '';
+        const m = PID_LINK.exec(href);
+        result.push({
+          pid: m ? m[1] : null,
+          ...(viaFoul ? { viaFoul: true } : {}),
+        });
+      });
     }
-    // No links: a non-empty, non-spacer text node means one anonymous victim.
+    if (result.length > 0) {
+      return result;
+    }
+    // No links anywhere: a non-empty, non-spacer text node means one
+    // anonymous victim. Deliberately evaluated over the WHOLE cell, not
+    // per segment, so a multi-segment link-less cell still yields exactly
+    // one anonymous occurrence, exactly as before this change.
     const text = this.normalizeText.normalize(
       cell.clone().find('img').remove().end().text(),
     );
-    return text.length > 0 ? [null] : [];
+    return text.length > 0 ? [{ pid: null }] : [];
   }
 
   /**
