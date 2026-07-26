@@ -32,6 +32,15 @@ function deps(): FactTreeDeps {
   );
   coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
   coachToplist.resolveFoulsCommitted.mockResolvedValue('coach fouls committed');
+  coachToplist.resolveLongestTimeBetweenMatches.mockResolvedValue(
+    'coach longest time between matches',
+  );
+  coachToplist.resolveShortestTimeBetweenMatches.mockResolvedValue(
+    'coach shortest time between matches',
+  );
+  coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
+    'coach average time between matches',
+  );
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue('team matches played');
@@ -122,8 +131,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly forty leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(40);
+  it('exposes exactly forty-three leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(43);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -174,6 +183,36 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.coachToplist.resolveFoulsCommitted).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.timeBetweenMatches.longest to CoachToplistService.resolveLongestTimeBetweenMatches', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.timeBetweenMatches.longest',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.coachToplist.resolveLongestTimeBetweenMatches).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.timeBetweenMatches.shortest to CoachToplistService.resolveShortestTimeBetweenMatches', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.timeBetweenMatches.shortest',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.coachToplist.resolveShortestTimeBetweenMatches).toHaveBeenCalled();
+  });
+
+  it('wires coach.toplist.timeBetweenMatches.average to CoachToplistService.resolveAverageTimeBetweenMatches', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.timeBetweenMatches.average',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.coachToplist.resolveAverageTimeBetweenMatches).toHaveBeenCalled();
   });
 
   it('wires team.toplist.matches.played to TeamToplistService.resolveMatchesPlayed', async () => {
@@ -626,6 +665,20 @@ describe('buildFactTree competition capabilities', () => {
     expect(leaf.supportsEra).toBe(true);
   });
 
+  it('scopes the time-between-matches toplists to league and era but not competition', () => {
+    const tree = buildFactTree(deps());
+    for (const path of [
+      'coach.toplist.timeBetweenMatches.longest',
+      'coach.toplist.timeBetweenMatches.shortest',
+      'coach.toplist.timeBetweenMatches.average',
+    ]) {
+      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsLeague).toBe(true);
+      expect(leaf.supportsEra).toBe(true);
+      expect(leaf.supportsCompetition).toBe(false);
+    }
+  });
+
   it('forwards competitionId to an in-scope team leaf', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
@@ -648,5 +701,17 @@ describe('buildFactTree competition capabilities', () => {
     expect(d.playerToplist.resolveMvps).toHaveBeenCalledWith({
       competitionId: 30,
     });
+  });
+
+  it('forwards the league and era scope to a time-between-matches leaf', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'coach.toplist.timeBetweenMatches.average',
+    );
+    await (leaf as FactLeaf).resolve({ leagueId: 9, eraId: 20 });
+    expect(
+      d.coachToplist.resolveAverageTimeBetweenMatches,
+    ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
   });
 });

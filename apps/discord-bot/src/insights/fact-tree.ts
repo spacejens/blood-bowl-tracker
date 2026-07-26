@@ -48,6 +48,29 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
             resolve: (scope) => deps.coachToplist.resolveFoulsCommitted(scope),
           },
         },
+        timeBetweenMatches: {
+          longest: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            resolve: (scope) =>
+              deps.coachToplist.resolveLongestTimeBetweenMatches(scope),
+          },
+          shortest: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            resolve: (scope) =>
+              deps.coachToplist.resolveShortestTimeBetweenMatches(scope),
+          },
+          average: {
+            supportsLeague: true,
+            supportsEra: true,
+            supportsCompetition: false,
+            resolve: (scope) =>
+              deps.coachToplist.resolveAverageTimeBetweenMatches(scope),
+          },
+        },
       },
     },
     team: {
