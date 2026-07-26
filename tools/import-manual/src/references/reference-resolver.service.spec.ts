@@ -128,4 +128,55 @@ describe('ReferenceResolverService', () => {
       expect(errors).toHaveLength(2);
     });
   });
+
+  describe('resolveOptionalRef', () => {
+    it('reports ok with no id when the entry supplied no ref', () => {
+      const errors: ImportError[] = [];
+      const idMap = new ExternalIdMap();
+
+      const result = service.resolveOptionalRef({
+        ref: undefined,
+        idMap,
+        errors,
+        item: {},
+        label: 'Cannot import thing "X"',
+      });
+
+      expect(result).toEqual({ ok: true, id: undefined });
+      expect(errors).toEqual([]);
+    });
+
+    it('reports ok with the resolved id when the ref resolves', () => {
+      const errors: ImportError[] = [];
+      const idMap = new ExternalIdMap();
+      idMap.add([{ system: 'Name', id: 'first-era' }], 3);
+
+      const result = service.resolveOptionalRef({
+        ref: { system: 'Name', id: 'first-era' },
+        idMap,
+        errors,
+        item: {},
+        label: 'Cannot import thing "X"',
+      });
+
+      expect(result).toEqual({ ok: true, id: 3 });
+      expect(errors).toEqual([]);
+    });
+
+    it('reports not-ok and records an error when a supplied ref cannot be resolved', () => {
+      importResults.error.mockReturnValue({ item: {}, message: 'boom' });
+      const errors: ImportError[] = [];
+
+      const result = service.resolveOptionalRef({
+        ref: { system: 'Name', id: 'missing' },
+        idMap: new ExternalIdMap(),
+        errors,
+        item: {},
+        label: 'Cannot import thing "X"',
+      });
+
+      expect(result).toEqual({ ok: false });
+      expect(errors).toHaveLength(1);
+    });
+  });
 });

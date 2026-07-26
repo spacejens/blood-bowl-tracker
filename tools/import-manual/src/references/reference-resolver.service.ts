@@ -21,6 +21,23 @@ export interface ResolveRefsOptions {
   label: string;
 }
 
+export interface ResolveOptionalRefOptions {
+  ref: ExternalRef | undefined;
+  idMap: ExternalIdMap;
+  errors: ImportError[];
+  item: unknown;
+  label: string;
+}
+
+/**
+ * Three outcomes, because "the entry said nothing about this reference" and
+ * "the entry named a reference that does not exist" must be handled
+ * differently: the first passes `undefined` through so the upsert leaves the
+ * stored value alone, the second is an authoring error that skips the entry.
+ */
+export type OptionalRefResult =
+  { ok: true; id: number | undefined } | { ok: false };
+
 @Injectable()
 export class ReferenceResolverService {
   constructor(private readonly importResults: ImportResultService) {}
@@ -85,5 +102,26 @@ export class ReferenceResolverService {
       }
     }
     return ok ? ids : undefined;
+  }
+
+  /**
+   * Resolve a cross-reference the entry may legitimately have omitted.
+   * Omitted refs resolve to `{ ok: true, id: undefined }` with no error — the
+   * upsert simply leaves that field alone (issue #174). A ref that is present
+   * but unresolvable records one ImportError and reports `{ ok: false }`, so
+   * the caller skips the entry exactly as before.
+   */
+  resolveOptionalRef(options: ResolveOptionalRefOptions): OptionalRefResult {
+    if (options.ref === undefined) {
+      return { ok: true, id: undefined };
+    }
+    const id = this.resolveRef({
+      ref: options.ref,
+      idMap: options.idMap,
+      errors: options.errors,
+      item: options.item,
+      label: options.label,
+    });
+    return id === undefined ? { ok: false } : { ok: true, id };
   }
 }
