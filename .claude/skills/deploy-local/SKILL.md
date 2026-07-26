@@ -35,7 +35,7 @@ Takes no arguments.
 
 ### Deploy the stack
 
-Run this section only if "Deploy the stack" was selected above.
+Run this section only if "Deploy the stack" was selected in step 0 above.
 
 1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, fill in what's missing from the main checkout before building:
    ```bash
