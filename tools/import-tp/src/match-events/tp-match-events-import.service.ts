@@ -8,8 +8,8 @@ import type { TpMatch } from '@blood-bowl-tracker/parse-tp';
 import { Injectable } from '@nestjs/common';
 
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
-import type { TeamEra } from './tp-match-events-builder.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
+import type { TeamEra } from './tp-match-events-builder.types';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 
 /**

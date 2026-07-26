@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { z } from 'zod';
 
-import type { TpMatchEvent } from './match-event-parser.service';
+import type { Decoder, TpMatchEvent } from './match-event.types';
 import { SecretObjectiveService } from './secret-objective.service';
 import { WeatherTypeService } from './weather-type.service';
 
@@ -127,8 +127,6 @@ const concessionRaw = z.object({
     concedeVisitor: z.boolean(),
   }),
 });
-
-export type Decoder = (raw: unknown) => TpMatchEvent;
 
 @Injectable()
 export class MatchEventDecodersService {

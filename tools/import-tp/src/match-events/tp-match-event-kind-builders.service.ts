@@ -11,7 +11,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   BuildEventDataOptions,
   TeamEra,
-} from './tp-match-events-builder.service';
+} from './tp-match-events-builder.types';
 
 interface ResolveTeamEraOptions {
   teamErasByRosterId: Map<number, TeamEra[]>;
