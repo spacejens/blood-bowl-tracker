@@ -9,6 +9,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import { EraConfigService } from '../eras/era-config.service';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -35,6 +36,7 @@ export class BblPlayersImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
+    private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
   ) {}
 
   /**
@@ -173,7 +175,9 @@ export class BblPlayersImportService {
           continue;
         }
 
-        const raceBblId = raceBblIdByDbId.get(team.raceId);
+        const raceBblId = raceBblIdByDbId.get(
+          this.upsertFieldNarrowing.resolveDefiniteRaceId(team),
+        );
         const positionId =
           raceBblId !== undefined
             ? positionIdsByBblId.get(`${player.typId}-${raceBblId}`)

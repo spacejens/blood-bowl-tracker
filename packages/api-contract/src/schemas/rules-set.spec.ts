@@ -27,4 +27,11 @@ describe('rules set schemas', () => {
       UpsertRulesSetSchema.parse({ name: 'X', externalIds: [] }),
     ).toThrow();
   });
+
+  it('UpsertRulesSetSchema accepts an externalIds-only payload', () => {
+    const parsed = UpsertRulesSetSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.name).toBeUndefined();
+  });
 });

@@ -65,7 +65,7 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
     refResolver.resolveRefs.mockReturnValue([7]);
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:season-12' },
@@ -86,7 +86,7 @@ describe('ErasProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: data.eras[0].league }),
     );
     expect(refResolver.resolveRefs).toHaveBeenCalledWith(
@@ -121,7 +121,7 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
     refResolver.resolveRefs.mockReturnValue([7]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -149,7 +149,7 @@ describe('ErasProcessor', () => {
   // call signals failure it must skip the entry (no upsert) and never reach
   // toExternalIds.
   it('skips the era and never upserts when a reference is unresolved', async () => {
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
     refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.eras = [
@@ -168,5 +168,46 @@ describe('ErasProcessor', () => {
     expect(count).toBe(0);
     expect(eras.upsertEra).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
+  });
+
+  it('passes leagueId, dates and an empty rules-set list through for a rename-only entry', async () => {
+    eras.upsertEra.mockResolvedValue({
+      id: 55,
+      name: 'First era',
+      leagueId: 0,
+      rulesSetIds: [],
+      startDate: '',
+      endDate: null,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.eras = [
+      {
+        name: 'First era',
+        rulesSets: [],
+        externalIds: [{ system: 'Name', id: 'First era' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(1);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(eras.upsertEra).toHaveBeenCalledWith(
+      {
+        name: 'First era',
+        leagueId: undefined,
+        rulesSetIds: [],
+        startDate: undefined,
+        endDate: undefined,
+        externalIds: [],
+      },
+      ctx.errors,
+    );
   });
 });

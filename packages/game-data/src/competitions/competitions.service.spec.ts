@@ -149,6 +149,21 @@ describe('CompetitionsService', () => {
       expect(db.insert).not.toHaveBeenCalledWith(competitionTeams);
       expect(result.competition.teamEraIds).toEqual([100, 101]);
     });
+
+    it('updates only the supplied column, leaving eraId and type alone', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '35' }],
+        [fakeCompetition],
+      );
+
+      await service.upsert({
+        name: 'Major Season 12',
+        teamEraIds: [],
+        externalIds: [{ externalSystemId: 1, externalId: '35' }],
+      });
+
+      expect(firstCallArg(chains[1].set)).toEqual({ name: 'Major Season 12' });
+    });
   });
 
   describe('countAll', () => {

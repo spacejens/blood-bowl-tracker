@@ -17,11 +17,17 @@ export const EraSchema = z.object({
 });
 
 export const UpsertEraSchema = z.object({
-  name: z.string().min(1),
-  leagueId: z.number().int(),
-  rulesSetIds: z.array(z.number().int()).min(1),
-  startDate: IsoDate,
-  endDate: IsoDate.optional(),
+  name: z.string().min(1).optional(),
+  leagueId: z.number().int().optional(),
+  // Additive: syncRulesSets only ever inserts missing links, so an omitted
+  // list (parsed to []) is a no-op that leaves existing links alone. The
+  // former .min(1) would have forced a rename-only payload to redeclare the
+  // whole list.
+  rulesSetIds: z.array(z.number().int()).default([]),
+  startDate: IsoDate.optional(),
+  // Nullable AND optional: omitting it leaves a stored end date alone, while
+  // an explicit null clears it.
+  endDate: IsoDate.nullable().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

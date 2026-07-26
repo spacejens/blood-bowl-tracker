@@ -136,4 +136,33 @@ describe('UpsertMatchEventSchema', () => {
     });
     expect(parsed.inducementsFromTreasury).toBe(50);
   });
+
+  it('accepts an explicit null for a nullable column field', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actionType: 'touchdown',
+      actingPlayerId: null,
+    });
+    expect(parsed.actingPlayerId).toBeNull();
+  });
+
+  it('treats a null eventType as absent when validating the classification triple', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      eventType: null,
+      actionType: 'foul',
+    });
+    expect(parsed.eventType).toBeNull();
+    expect(parsed.actionType).toBe('foul');
+  });
+
+  it('rejects a null actingTeamEraId — it is a resolution input, not a column', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        actionType: 'foul',
+        actingTeamEraId: null,
+      }),
+    ).toThrow();
+  });
 });

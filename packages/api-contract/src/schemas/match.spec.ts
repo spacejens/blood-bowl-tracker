@@ -16,10 +16,21 @@ describe('UpsertMatchSchema', () => {
     expect(parsed.teamEraIds).toEqual([]);
   });
 
-  it('rejects a match with no name', () => {
+  it('accepts a match with no name', () => {
     const { name, ...withoutName } = valid;
     void name;
-    expect(() => UpsertMatchSchema.parse(withoutName)).toThrow();
+    const parsed = UpsertMatchSchema.parse(withoutName);
+    expect(parsed.name).toBeUndefined();
+  });
+
+  it('UpsertMatchSchema accepts an externalIds-only payload', () => {
+    const parsed = UpsertMatchSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: '89' }],
+    });
+    expect(parsed.name).toBeUndefined();
+    expect(parsed.competitionId).toBeUndefined();
+    expect(parsed.playedAt).toBeUndefined();
+    expect(parsed.teamEraIds).toEqual([]);
   });
 });
 

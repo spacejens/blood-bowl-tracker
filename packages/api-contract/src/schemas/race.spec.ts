@@ -20,4 +20,12 @@ describe('race schemas', () => {
     });
     expect(parsed.eras).toEqual([]);
   });
+
+  it('UpsertRaceSchema accepts an externalIds-only payload', () => {
+    const parsed = UpsertRaceSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'Ogre' }],
+    });
+    expect(parsed.name).toBeUndefined();
+    expect(parsed.eras).toEqual([]);
+  });
 });

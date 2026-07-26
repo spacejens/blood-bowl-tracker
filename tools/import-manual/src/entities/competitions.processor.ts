@@ -12,31 +12,32 @@ export class CompetitionsProcessor {
   ) {}
 
   /**
-   * Upsert every declared competition, resolving its era reference against the
-   * run's ExternalIdMap first. `teamEraIds` is always `[]`: manual data never
-   * declares competition/team links, and the API's team-era sync is additive
-   * (it never removes existing links), so an empty list leaves the
-   * competition's imported teams untouched.
+   * Upsert every declared competition. An entry that names an era has it
+   * resolved against the run's ExternalIdMap; an entry that omits one passes
+   * `eraId: undefined` through, so the upsert leaves the competition's stored
+   * era alone — which is what a rename-only entry wants.
+   * `teamEraIds` is always `[]`: manual data never declares competition/team
+   * links, and the API's team-era sync is additive (it never removes existing
+   * links), so an empty list leaves the competition's imported teams untouched.
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.competitions) {
-      const label = `Cannot import competition "${entry.name}"`;
-      const eraId = this.refResolver.resolveRef({
+      const era = this.refResolver.resolveOptionalRef({
         ref: entry.era,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
-        label,
+        label: `Cannot import competition "${entry.name}"`,
       });
-      if (eraId === undefined) {
+      if (!era.ok) {
         continue;
       }
       const upserted = await this.competitionsImport.upsertCompetitionResult(
         {
           name: entry.name,
           type: entry.type,
-          eraId,
+          eraId: era.id,
           teamEraIds: [],
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,

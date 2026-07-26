@@ -65,9 +65,9 @@ describe('TeamsProcessor', () => {
       created: true,
     });
     // Calls happen in the order the processor makes them: race, then coach.
-    refResolver.resolveRef
-      .mockReturnValueOnce(40) // race
-      .mockReturnValueOnce(12); // coach
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 40 }) // race
+      .mockReturnValueOnce({ ok: true, id: 12 }); // coach
     refResolver.resolveRefs.mockReturnValue([50]);
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:grave-diggers' },
@@ -115,7 +115,9 @@ describe('TeamsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRef.mockReturnValueOnce(40).mockReturnValueOnce(12);
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 40 })
+      .mockReturnValueOnce({ ok: true, id: 12 });
     refResolver.resolveRefs.mockReturnValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -142,7 +144,7 @@ describe('TeamsProcessor', () => {
   // the processor's own logic: it must skip the entry (no upsert) and never
   // reach toExternalIds when any reference fails to resolve.
   it('skips the team and never upserts when references are unresolved', async () => {
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
     refResolver.resolveRefs.mockReturnValue(undefined);
     const data = emptyData();
     data.teams = [
@@ -161,5 +163,67 @@ describe('TeamsProcessor', () => {
     expect(count).toBe(0);
     expect(teams.upsertTeam).not.toHaveBeenCalled();
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
+  });
+
+  it('passes raceId and coachId through as undefined for a rename-only entry', async () => {
+    teams.upsertTeam.mockResolvedValue({
+      id: 42,
+      name: 'Gyttjevrålarna FC',
+      raceId: 0,
+      coachId: 0,
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.teams = [
+      {
+        name: 'Gyttjevrålarna FC',
+        eras: [],
+        externalIds: [{ system: 'Name', id: 'gyttjevralarna' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(1);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(teams.upsertTeam).toHaveBeenCalledWith(
+      {
+        name: 'Gyttjevrålarna FC',
+        raceId: undefined,
+        coachId: undefined,
+        eras: [],
+        externalIds: [],
+      },
+      ctx.errors,
+    );
+  });
+
+  it('still skips the entry when a supplied race ref cannot be resolved', async () => {
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: false })
+      .mockReturnValueOnce({ ok: true, id: 8 });
+    refResolver.resolveRefs.mockReturnValue([]);
+    const data = emptyData();
+    data.teams = [
+      {
+        name: 'Orphan Team',
+        race: { system: 'Name', id: 'missing-race' },
+        coach: { system: 'Name', id: 'bob' },
+        eras: [],
+        externalIds: [{ system: 'Name', id: 'orphan' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(0);
+    expect(teams.upsertTeam).not.toHaveBeenCalled();
   });
 });

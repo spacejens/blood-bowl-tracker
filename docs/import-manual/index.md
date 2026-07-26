@@ -84,10 +84,20 @@ same run (across all files in the directory), by any pair the target declared.
 A reference to something not present anywhere in the directory being imported is
 a hard error (one per unresolved reference).
 
-Because none of the `Upsert<Entity>` API schemas support partial updates, a
-manual entry must supply the entire required field set for its entity even when
-the goal is only to attach one new external ID (genuine partial-field updates
-are tracked separately as issue #174).
+An entry only has to supply the fields it actually changes. Every
+`Upsert<Entity>` API schema overlays: a field the entry omits is left exactly
+as the database has it, so a rename-only entry carries just `name` and the
+`externalIds` that match the existing row — no redeclaring the entity's era,
+league or race purely to have something to reference. `externalIds` is the one
+always-required field, since it is how the row is matched (or, failing that,
+created). A field written as explicit `null` is different from an omitted one:
+it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
+
+If an entry's `externalIds` match no existing row, the API creates one — and
+then the entry must carry everything the entity genuinely requires, or the
+upsert fails with a "missing required field(s)" error naming the entity and
+the fields. That error almost always means a typo in `externalIds` rather than
+a genuinely new entity.
 
 ### Worked example
 
@@ -178,14 +188,13 @@ systems could not supply:
   unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`; and
   BBL's three identically-named `Reserves Rumble` events become
   `Reserves Rumble 1`–`3`).
-  Because a
-  competition upsert has no partial-update support (issue #174) and would
-  otherwise overwrite `eraId` with nothing, the file also redeclares the five
-  eras it references — plus their league and rules sets — matching the existing
-  rows exactly, purely so this run's `ExternalIdMap` can resolve them. Entries
-  match their existing rows by the source system's numeric ID alone. (The
-  redeclared eras, league and rules sets _do_ still match by `Name`, which
-  those entity kinds still carry.)
+  Each entry is a pure rename: a `name` plus the `externalIds` that match the
+  existing row, which for competitions is the source system's numeric ID alone
+  (competitions carry no `Name` external id — issue #285 removed it, because a
+  shared `Name` id deduped genuinely distinct same-named competitions onto one
+  row). The file declares no eras, league or rules sets: since upserts overlay,
+  omitting a competition's `era` leaves its stored era alone, so there is
+  nothing to resolve a reference against and nothing to redeclare.
 
 ## Data layout
 

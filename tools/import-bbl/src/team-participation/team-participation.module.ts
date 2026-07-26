@@ -2,6 +2,7 @@ import { ImportModule } from '@blood-bowl-tracker/import';
 import { Module } from '@nestjs/common';
 
 import { MatchesModule } from '../matches/matches.module';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { SourceModule } from '../source/source.module';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
@@ -13,6 +14,7 @@ import { CompetitionStandingsPageParser } from './competition-standings-page-par
     BblTeamParticipationImportService,
     BblCompetitionStandingsReaderService,
     CompetitionStandingsPageParser,
+    UpsertFieldNarrowingService,
   ],
   exports: [BblTeamParticipationImportService],
 })

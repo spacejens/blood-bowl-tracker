@@ -19,6 +19,7 @@ import type { BblMatch } from '../matches/match-list-page-parser';
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 
 export interface ImportTeamParticipationOptions {
@@ -59,6 +60,7 @@ export class BblTeamParticipationImportService {
     private readonly matchMerge: MatchMergeService,
     private readonly competitionStandingsReader: BblCompetitionStandingsReaderService,
     private readonly importResults: ImportResultService,
+    private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
   ) {}
 
   /**
@@ -148,8 +150,10 @@ export class BblTeamParticipationImportService {
           continue;
         }
 
+        const competitionEraId =
+          this.upsertFieldNarrowing.resolveDefiniteEraId(competition);
         const upsertedTeam = await this.teamsImport.upsertTeam(
-          { ...team, eras: [competition.eraId] },
+          { ...team, eras: [competitionEraId] },
           errors,
         );
         if (!upsertedTeam) {
@@ -157,16 +161,18 @@ export class BblTeamParticipationImportService {
         }
 
         const teamEra = upsertedTeam.eras.find(
-          (e) => e.eraId === competition.eraId,
+          (e) => e.eraId === competitionEraId,
         );
         if (teamEra) {
           teamEraIds.push(teamEra.id);
           teamEraIdByTeamId.set(id, teamEra.id);
         }
 
-        const eras = eraIdsByRaceId.get(team.raceId) ?? new Set<number>();
-        eras.add(competition.eraId);
-        eraIdsByRaceId.set(team.raceId, eras);
+        const teamRaceId =
+          this.upsertFieldNarrowing.resolveDefiniteRaceId(team);
+        const eras = eraIdsByRaceId.get(teamRaceId) ?? new Set<number>();
+        eras.add(competitionEraId);
+        eraIdsByRaceId.set(teamRaceId, eras);
       }
 
       if (teamEraIds.length > 0) {

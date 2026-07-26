@@ -9,7 +9,7 @@ export const CoachSchema = z.object({
 });
 
 export const UpsertCoachSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

@@ -102,10 +102,18 @@ async function run(): Promise<ImportResult> {
       const competitionEntry =
         competitionOutcome.competitionsByTpId.get(tpCompetitionId);
       if (competitionEntry) {
-        eraIdByCompetitionId.set(
-          dbCompetitionId,
-          competitionEntry.upsert.eraId,
-        );
+        // UpsertCompetitionSchema.eraId is optional to support
+        // partial-upsert payloads from other callers, but
+        // TpCompetitionsImportService always resolves eraId from the era
+        // name before building this upsert -- skipping and recording an
+        // error otherwise -- so every entry reaching this map has one.
+        const { eraId } = competitionEntry.upsert;
+        if (eraId === undefined) {
+          throw new Error(
+            `Competition "${competitionEntry.upsert.name}" has no eraId; import-tp always resolves eraId before building its upsert.`,
+          );
+        }
+        eraIdByCompetitionId.set(dbCompetitionId, eraId);
       }
     }
 

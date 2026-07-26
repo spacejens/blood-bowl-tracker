@@ -10,7 +10,7 @@ export const RaceSchema = z.object({
 });
 
 export const UpsertRaceSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   eras: z.array(z.number().int()).default([]),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

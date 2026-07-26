@@ -109,7 +109,7 @@ function makeReaderByType(
   } as unknown as BblSourceReader;
 }
 
-function upsertRaceOk(): (data: { name: string }) => Promise<{
+function upsertRaceOk(): (data: { name?: string }) => Promise<{
   id: number;
   name: string;
   eras: number[];
@@ -120,7 +120,10 @@ function upsertRaceOk(): (data: { name: string }) => Promise<{
   return (data) =>
     Promise.resolve({
       id: nextId++,
-      name: data.name,
+      // UpsertRaceSchema.name is optional to support partial-upsert
+      // payloads, but this test's own fixtures always supply a race name,
+      // so it is safe to assert non-null here.
+      name: data.name!,
       eras: [],
       createdAt: new Date('2026-01-01'),
       created: true,
@@ -365,7 +368,7 @@ describe('BblRacesImportService', () => {
     mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
-        name: data.name,
+        name: data.name!, // fixtures always supply a race name
         eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,
@@ -385,7 +388,7 @@ describe('BblRacesImportService', () => {
     mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
-        name: data.name,
+        name: data.name!, // fixtures always supply a race name
         eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,
@@ -405,7 +408,7 @@ describe('BblRacesImportService', () => {
     mocks.racesImport.upsertRace.mockImplementation((data) =>
       Promise.resolve({
         id: data.name === 'Orc' ? 100 : 200,
-        name: data.name,
+        name: data.name!, // fixtures always supply a race name
         eras: [],
         createdAt: new Date('2026-01-01'),
         created: true,

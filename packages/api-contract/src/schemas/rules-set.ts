@@ -9,7 +9,7 @@ export const RulesSetSchema = z.object({
 });
 
 export const UpsertRulesSetSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

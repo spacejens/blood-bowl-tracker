@@ -136,6 +136,23 @@ export class TpTeamParticipationImportService {
   }
 
   /**
+   * Narrow a competition upsert's eraId back to a definite number.
+   * UpsertCompetitionSchema.eraId is optional to support partial-upsert
+   * payloads from other callers, but TpCompetitionsImportService always
+   * resolves eraId from the era name before building this upsert -- skipping
+   * and recording an error otherwise -- so every CompetitionEntry reaching
+   * this service has one.
+   */
+  private resolveDefiniteEraId(upsert: UpsertCompetition): number {
+    if (upsert.eraId === undefined) {
+      throw new Error(
+        `Competition "${upsert.name}" has no eraId; import-tp always resolves eraId before building its upsert.`,
+      );
+    }
+    return upsert.eraId;
+  }
+
+  /**
    * Re-upsert one competition with the team_eras of the rosters found under its
    * own directory. Returns true only if it was re-upserted successfully with a
    * non-empty teamEraIds (a competition with no matching/resolvable rosters is
@@ -159,7 +176,7 @@ export class TpTeamParticipationImportService {
       const teamEraId = this.resolveTeamEraId({
         teamErasByRosterId,
         rosterId,
-        eraId: upsert.eraId,
+        eraId: this.resolveDefiniteEraId(upsert),
       });
       if (teamEraId === undefined) {
         errors.push(
@@ -216,12 +233,12 @@ export class TpTeamParticipationImportService {
       const homeTeamEraId = this.resolveTeamEraId({
         teamErasByRosterId,
         rosterId: match.homeTeamTpId,
-        eraId: upsert.eraId,
+        eraId: this.resolveDefiniteEraId(upsert),
       });
       const awayTeamEraId = this.resolveTeamEraId({
         teamErasByRosterId,
         rosterId: match.awayTeamTpId,
-        eraId: upsert.eraId,
+        eraId: this.resolveDefiniteEraId(upsert),
       });
       if (homeTeamEraId === undefined || awayTeamEraId === undefined) {
         errors.push(

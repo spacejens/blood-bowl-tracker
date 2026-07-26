@@ -9,7 +9,7 @@ export const LeagueSchema = z.object({
 });
 
 export const UpsertLeagueSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

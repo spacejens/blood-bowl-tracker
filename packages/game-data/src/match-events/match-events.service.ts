@@ -32,25 +32,28 @@ export class MatchEventsService {
       data.consequenceTeamEraId,
     );
 
+    // Every field is passed through exactly as supplied: `undefined` means the
+    // payload said nothing about that column and upsertByExternalIds strips it,
+    // while an explicit `null` writes null.
     const values = {
       matchId: data.matchId,
-      actingMatchTeamId: actingMatchTeamId ?? null,
-      consequenceMatchTeamId: consequenceMatchTeamId ?? null,
-      actingPlayerId: data.actingPlayerId ?? null,
-      consequencePlayerId: data.consequencePlayerId ?? null,
-      actionType: data.actionType ?? null,
-      consequenceType: data.consequenceType ?? null,
-      eventType: data.eventType ?? null,
-      weatherType: data.weatherType ?? null,
-      inducementsCost: data.inducementsCost ?? null,
-      inducementsFromTreasury: data.inducementsFromTreasury ?? null,
-      winnings: data.winnings ?? null,
-      fanFactor: data.fanFactor ?? null,
-      journeymenCount: data.journeymenCount ?? null,
-      prayersToNuffle: data.prayersToNuffle ?? null,
-      dedicatedFans: data.dedicatedFans ?? null,
-      secretObjective: data.secretObjective ?? null,
-      expensiveMistake: data.expensiveMistake ?? null,
+      actingMatchTeamId,
+      consequenceMatchTeamId,
+      actingPlayerId: data.actingPlayerId,
+      consequencePlayerId: data.consequencePlayerId,
+      actionType: data.actionType,
+      consequenceType: data.consequenceType,
+      eventType: data.eventType,
+      weatherType: data.weatherType,
+      inducementsCost: data.inducementsCost,
+      inducementsFromTreasury: data.inducementsFromTreasury,
+      winnings: data.winnings,
+      fanFactor: data.fanFactor,
+      journeymenCount: data.journeymenCount,
+      prayersToNuffle: data.prayersToNuffle,
+      dedicatedFans: data.dedicatedFans,
+      secretObjective: data.secretObjective,
+      expensiveMistake: data.expensiveMistake,
     };
 
     const { row: matchEvent, created } = await upsertByExternalIds<

@@ -20,6 +20,7 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 import { BblTeamParticipationImportService } from './bbl-team-participation-import.service';
 
@@ -69,6 +70,7 @@ interface Mocks {
   matchMerge: MockProxy<MatchMergeService>;
   standingsReader: MockProxy<BblCompetitionStandingsReaderService>;
   importResults: MockProxy<ImportResultService>;
+  upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
 }
 
 /**
@@ -156,6 +158,18 @@ async function makeService(opts: {
   }));
   importResults.result.mockReturnValue(CANNED_RESULT);
 
+  const upsertFieldNarrowing = mock<UpsertFieldNarrowingService>();
+  // Every competition/team fixture in this spec has a defined eraId/raceId,
+  // so the mock simply passes the value through rather than re-deriving the
+  // throw-if-undefined invariant, which is covered by the real service's own
+  // spec.
+  upsertFieldNarrowing.resolveDefiniteEraId.mockImplementation(
+    (c) => c.eraId as number,
+  );
+  upsertFieldNarrowing.resolveDefiniteRaceId.mockImplementation(
+    (t) => t.raceId as number,
+  );
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblTeamParticipationImportService,
@@ -171,6 +185,10 @@ async function makeService(opts: {
         useValue: standingsReader,
       },
       { provide: ImportResultService, useValue: importResults },
+      {
+        provide: UpsertFieldNarrowingService,
+        useValue: upsertFieldNarrowing,
+      },
     ],
   }).compile();
 
@@ -186,6 +204,7 @@ async function makeService(opts: {
       matchMerge,
       standingsReader,
       importResults,
+      upsertFieldNarrowing,
     },
   };
 }

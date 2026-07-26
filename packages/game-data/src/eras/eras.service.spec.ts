@@ -83,12 +83,43 @@ describe('ErasService', () => {
       expect(db.update).not.toHaveBeenCalled();
     });
 
-    it('stores null for an omitted endDate', async () => {
+    it('omits endDate from the insert when the payload omits it', async () => {
       const { chains } = await build([], [fakeEra]);
 
       await service.upsert({ ...baseData, endDate: undefined });
 
-      expect(firstCallArg(chains[1].values)).toMatchObject({ endDate: null });
+      expect(firstCallArg(chains[1].values)).toEqual({
+        name: 'BB2020',
+        leagueId: 10,
+        startDate: '2021-09-01',
+      });
+    });
+
+    it('leaves a stored endDate alone on update when the payload omits it', async () => {
+      // query 0: the external-id lookup matches era 1; query 1: the update.
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'BB2020' }],
+        [fakeEra],
+      );
+
+      await service.upsert({ ...baseData, endDate: undefined });
+
+      expect(firstCallArg(chains[1].set)).toEqual({
+        name: 'BB2020',
+        leagueId: 10,
+        startDate: '2021-09-01',
+      });
+    });
+
+    it('writes null on update when the payload explicitly clears endDate', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'BB2020' }],
+        [fakeEra],
+      );
+
+      await service.upsert({ ...baseData, endDate: null });
+
+      expect(firstCallArg(chains[1].set)).toMatchObject({ endDate: null });
     });
 
     it('updates the matching era when exactly one external ID matches', async () => {

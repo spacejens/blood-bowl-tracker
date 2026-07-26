@@ -16,6 +16,7 @@ import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.serv
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblMatchEventsImportService } from './bbl-match-events-import.service';
 import {
   AWAY_TEAM_ERA_ID,
@@ -88,6 +89,7 @@ interface Mocks {
   matchMerge: MockProxy<MatchMergeService>;
   correlation: MockProxy<MatchEventCorrelationService>;
   importResults: MockProxy<ImportResultService>;
+  upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
 }
 
 /**
@@ -128,6 +130,14 @@ async function makeService(): Promise<{
   }));
   importResults.result.mockReturnValue(CANNED_RESULT);
 
+  const upsertFieldNarrowing = mock<UpsertFieldNarrowingService>();
+  // Every competition fixture in this spec has a defined eraId, so the mock
+  // simply passes it through rather than re-deriving the throw-if-undefined
+  // invariant, which is covered by the real service's own spec.
+  upsertFieldNarrowing.resolveDefiniteEraId.mockImplementation(
+    (c) => c.eraId as number,
+  );
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblMatchEventsImportService,
@@ -138,6 +148,10 @@ async function makeService(): Promise<{
       { provide: MatchMergeService, useValue: matchMerge },
       { provide: MatchEventCorrelationService, useValue: correlation },
       { provide: ImportResultService, useValue: importResults },
+      {
+        provide: UpsertFieldNarrowingService,
+        useValue: upsertFieldNarrowing,
+      },
     ],
   }).compile();
 
@@ -151,6 +165,7 @@ async function makeService(): Promise<{
       matchMerge,
       correlation,
       importResults,
+      upsertFieldNarrowing,
     },
   };
 }
@@ -546,7 +561,7 @@ describe('BblMatchEventsImportService', () => {
       Promise.resolve(
         makeTeamRecord([
           {
-            id: eraIdByName[data.name.toLowerCase()],
+            id: eraIdByName[data.name!.toLowerCase()],
             eraId: data.eras?.[0] ?? 0,
           },
         ]),
@@ -687,7 +702,7 @@ describe('BblMatchEventsImportService', () => {
       Promise.resolve(
         makeTeamRecord([
           {
-            id: eraIdByName[data.name.toLowerCase()],
+            id: eraIdByName[data.name!.toLowerCase()],
             eraId: data.eras?.[0] ?? 0,
           },
         ]),

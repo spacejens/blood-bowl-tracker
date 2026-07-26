@@ -15,13 +15,18 @@ export class ErasProcessor {
     let imported = 0;
     for (const entry of ctx.data.eras) {
       const label = `Cannot import era "${entry.name}"`;
-      const leagueId = this.refResolver.resolveRef({
+      // Both are resolved before either is checked, so one entry with two bad
+      // references still records both errors -- the behaviour the old code had.
+      const league = this.refResolver.resolveOptionalRef({
         ref: entry.league,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
+      // The rules-set list defaults to [], and the API's sync is additive, so
+      // an omitted list resolves to [] and changes nothing -- no conditional
+      // needed here, unlike the single-ref league above.
       const rulesSetIds = this.refResolver.resolveRefs({
         refs: entry.rulesSets,
         idMap: ctx.idMap,
@@ -29,13 +34,13 @@ export class ErasProcessor {
         item: entry,
         label,
       });
-      if (leagueId === undefined || rulesSetIds === undefined) {
+      if (!league.ok || rulesSetIds === undefined) {
         continue;
       }
       const upserted = await this.erasImport.upsertEra(
         {
           name: entry.name,
-          leagueId,
+          leagueId: league.id,
           rulesSetIds,
           startDate: entry.startDate,
           endDate: entry.endDate,

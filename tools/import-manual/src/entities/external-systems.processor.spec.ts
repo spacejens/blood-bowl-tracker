@@ -262,4 +262,40 @@ describe('ExternalSystemsProcessor', () => {
 
     expect([...systemIds.keys()].sort()).toEqual(['CompEraSys', 'CompSys']);
   });
+
+  // A rename-only overlay (see "Upserts overlay, they do not replace" in
+  // docs/api/imports.md) legitimately omits a cross-reference field like
+  // league/race/coach/era, since the payload only renames a row rather than
+  // relinking it. An absent ref has nothing to resolve against another
+  // entity, so it simply contributes no system name to collect — it must be
+  // skipped by `addIfPresent`, not dereferenced.
+  it('skips absent cross-reference fields when collecting system names', async () => {
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [{ name: 'Name', category: 'bookkeeping' }];
+    data.eras = [
+      {
+        name: 'Renamed Era',
+        rulesSets: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-era' }],
+      },
+    ];
+    data.teams = [
+      {
+        name: 'Renamed Team',
+        eras: [],
+        externalIds: [{ system: 'Name', id: 'name:renamed-team' }],
+      },
+    ];
+    data.competitions = [
+      {
+        name: 'Renamed Competition',
+        externalIds: [{ system: 'Name', id: 'name:renamed-competition' }],
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()]).toEqual(['Name']);
+  });
 });

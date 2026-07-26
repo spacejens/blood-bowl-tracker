@@ -66,13 +66,33 @@ describe('era schemas', () => {
     ).toThrow();
   });
 
-  it('UpsertEraSchema rejects an empty rulesSetIds array', () => {
+  it('UpsertEraSchema accepts an externalIds-only rename payload', () => {
+    const parsed = UpsertEraSchema.parse({
+      name: 'Renamed era',
+      externalIds: [{ externalSystemId: 1, externalId: 'Renamed era' }],
+    });
+    expect(parsed.leagueId).toBeUndefined();
+    expect(parsed.startDate).toBeUndefined();
+    expect(parsed.endDate).toBeUndefined();
+    expect(parsed.rulesSetIds).toEqual([]);
+  });
+
+  it('UpsertEraSchema distinguishes an explicit null endDate from an omitted one', () => {
+    const cleared = UpsertEraSchema.parse({
+      endDate: null,
+      externalIds: [{ externalSystemId: 1, externalId: 'X' }],
+    });
+    const omitted = UpsertEraSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'X' }],
+    });
+    expect(cleared.endDate).toBeNull();
+    expect(omitted.endDate).toBeUndefined();
+  });
+
+  it('UpsertEraSchema still rejects a null name — there is no era with no name', () => {
     expect(() =>
       UpsertEraSchema.parse({
-        name: 'X',
-        leagueId: 1,
-        rulesSetIds: [],
-        startDate: '2011-09-09',
+        name: null,
         externalIds: [{ externalSystemId: 1, externalId: 'X' }],
       }),
     ).toThrow();

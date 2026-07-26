@@ -1,3 +1,4 @@
+import { MissingRequiredFieldError } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -6,6 +7,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
 
 class TestConflictError extends Error {}
 class ConflictReply extends Error {}
+class BadRequestReply extends Error {}
 
 describe('UpsertHandlerService', () => {
   let handler: UpsertHandlerService;
@@ -15,6 +17,9 @@ describe('UpsertHandlerService', () => {
     errors = {
       CONFLICT: vi.fn(
         ({ message }: { message: string }) => new ConflictReply(message),
+      ),
+      BAD_REQUEST: vi.fn(
+        ({ message }: { message: string }) => new BadRequestReply(message),
       ),
     };
     const moduleRef = await Test.createTestingModule({
@@ -38,6 +43,19 @@ describe('UpsertHandlerService', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictReply);
     expect(errors.CONFLICT).toHaveBeenCalledWith({ message: 'two matches' });
+  });
+
+  it('translates a missing-required-field error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new MissingRequiredFieldError(
+          'Cannot create new eras: missing required field(s): leagueId',
+        );
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message: 'Cannot create new eras: missing required field(s): leagueId',
+    });
   });
 
   it('rethrows any other error untouched', async () => {

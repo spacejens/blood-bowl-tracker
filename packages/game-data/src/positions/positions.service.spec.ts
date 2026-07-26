@@ -103,6 +103,42 @@ describe('PositionsService', () => {
     expect(db.update).not.toHaveBeenCalled();
   });
 
+  it('updates only the supplied column, leaving isStarPlayer alone', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }],
+      [fakePosition],
+    );
+
+    await service.upsert({
+      name: 'Blitzer',
+      externalIds: [
+        { externalSystemId: 1, externalId: '10-7' },
+        { externalSystemId: 2, externalId: 'Orc: Lineman' },
+      ],
+    });
+
+    expect(firstCallArg(chains[1].set)).toEqual({ name: 'Blitzer' });
+  });
+
+  it('updates only isStarPlayer when it is the sole supplied column, even when false', async () => {
+    // false is falsy: this proves the strip logic checks `!== undefined`,
+    // not truthiness, so a deliberate false still reaches .set().
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }],
+      [fakePosition],
+    );
+
+    await service.upsert({
+      isStarPlayer: false,
+      externalIds: [
+        { externalSystemId: 1, externalId: '10-7' },
+        { externalSystemId: 2, externalId: 'Orc: Lineman' },
+      ],
+    });
+
+    expect(firstCallArg(chains[1].set)).toEqual({ isStarPlayer: false });
+  });
+
   it('inserts only the external IDs that are new for an existing position', async () => {
     const { chains } = await build(
       [{ ownerId: 1, externalSystemId: 1, externalId: '10-7' }],

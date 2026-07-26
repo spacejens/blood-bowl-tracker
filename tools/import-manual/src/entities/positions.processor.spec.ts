@@ -191,4 +191,31 @@ describe('PositionsProcessor', () => {
     expect(count).toBe(0);
     expect(positions.syncRaceEras).not.toHaveBeenCalled();
   });
+
+  it('passes isStarPlayer through as undefined when the entry omits it', async () => {
+    positions.upsertPosition.mockResolvedValue({
+      id: 12,
+      name: 'Blitzer',
+      isStarPlayer: false,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.positions = [
+      {
+        name: 'Blitzer',
+        raceEras: [],
+        externalIds: [{ system: 'Name', id: 'blitzer' }],
+      },
+    ];
+
+    await processor.process(makeContext(data, new ExternalIdMap()));
+
+    expect(positions.upsertPosition.mock.calls[0][0]).toEqual({
+      name: 'Blitzer',
+      isStarPlayer: undefined,
+      externalIds: [],
+    });
+  });
 });

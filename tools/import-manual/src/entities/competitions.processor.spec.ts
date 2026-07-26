@@ -56,7 +56,7 @@ describe('CompetitionsProcessor', () => {
 
   it('resolves the era ref, upserts, and records the id', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue({ id: 77 });
-    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:major-season-12' },
     ];
@@ -75,7 +75,7 @@ describe('CompetitionsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(1);
-    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: data.competitions[0].era }),
     );
     // The processor must wire each canned resolver output into the exact field
@@ -97,7 +97,7 @@ describe('CompetitionsProcessor', () => {
 
   it('passes a cup type through unchanged', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue({ id: 78 });
-    refResolver.resolveRef.mockReturnValue(4);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -122,7 +122,7 @@ describe('CompetitionsProcessor', () => {
   // processor's own logic: an unresolved era must skip the entry (no upsert)
   // and never reach toExternalIds.
   it('skips the competition and never upserts when the era is unresolved', async () => {
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
     const data = emptyData();
     data.competitions = [
       {
@@ -141,9 +141,40 @@ describe('CompetitionsProcessor', () => {
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
+  it('passes eraId and type through as undefined for a rename-only entry', async () => {
+    competitions.upsertCompetitionResult.mockResolvedValue({ id: 77 });
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Major Season 12',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    const count = await processor.process(ctx);
+
+    expect(count).toBe(1);
+    // resolveRef is the non-optional variant: a rename-only entry must never
+    // reach it.
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+    expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
+      {
+        name: 'Major Season 12',
+        type: undefined,
+        eraId: undefined,
+        teamEraIds: [],
+        externalIds: [],
+      },
+      ctx.errors,
+    );
+  });
+
   it('does not count or record an id when the upsert fails', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue(undefined);
-    refResolver.resolveRef.mockReturnValue(3);
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [

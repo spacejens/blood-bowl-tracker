@@ -32,10 +32,10 @@ const LeagueEntrySchema = z.object({
 
 const EraEntrySchema = z.object({
   name: z.string().min(1),
-  league: ExternalRefSchema,
-  rulesSets: z.array(ExternalRefSchema).min(1),
-  startDate: IsoDate,
-  endDate: IsoDate.optional(),
+  league: ExternalRefSchema.optional(),
+  rulesSets: z.array(ExternalRefSchema).default([]),
+  startDate: IsoDate.optional(),
+  endDate: IsoDate.nullable().optional(),
   externalIds,
 });
 
@@ -52,7 +52,7 @@ const RaceEraRefSchema = z.object({
 
 const PositionEntrySchema = z.object({
   name: z.string().min(1),
-  isStarPlayer: z.boolean(),
+  isStarPlayer: z.boolean().optional(),
   raceEras: z.array(RaceEraRefSchema).default([]),
   externalIds,
 });
@@ -64,19 +64,22 @@ const CoachEntrySchema = z.object({
 
 const TeamEntrySchema = z.object({
   name: z.string().min(1),
-  race: ExternalRefSchema,
-  coach: ExternalRefSchema,
+  race: ExternalRefSchema.optional(),
+  coach: ExternalRefSchema.optional(),
   eras: z.array(ExternalRefSchema).default([]),
   externalIds,
 });
 
-/** A competition belonging to exactly one era. `type` is not changed by manual
- * data today (BBL/TP already classify correctly) but must be re-supplied
- * because the upsert has no partial-update support (issue #174). */
+/**
+ * A competition belonging to at most one era. Every field except `name` and
+ * `externalIds` is optional: the upsert overlays only what an entry supplies,
+ * so a rename-only entry carries just the new name and the external ids that
+ * match the existing row.
+ */
 const CompetitionEntrySchema = z.object({
   name: z.string().min(1),
-  type: z.enum(['season', 'cup']),
-  era: ExternalRefSchema,
+  type: z.enum(['season', 'cup']).optional(),
+  era: ExternalRefSchema.optional(),
   externalIds,
 });
 

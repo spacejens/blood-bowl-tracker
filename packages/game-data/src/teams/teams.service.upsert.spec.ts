@@ -194,6 +194,22 @@ describe('TeamsService', () => {
     expect(result.team.eras).toEqual([{ eraId: 20 }]);
   });
 
+  it('updates only the supplied column, leaving raceId and coachId alone', async () => {
+    const { chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: '40g' }],
+      [fakeTeam],
+      [],
+    );
+
+    await service.upsert({
+      name: '40 Grinders II',
+      eras: [],
+      externalIds: [{ externalSystemId: 1, externalId: '40g' }],
+    });
+
+    expect(firstCallArg(chains[1].set)).toEqual({ name: '40 Grinders II' });
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const { db } = await build([{ count: 5 }]);

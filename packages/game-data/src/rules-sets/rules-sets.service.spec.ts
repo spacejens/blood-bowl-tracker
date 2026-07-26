@@ -77,6 +77,23 @@ describe('RulesSetsService', () => {
     expect(db.update).not.toHaveBeenCalled();
   });
 
+  it('re-selects instead of updating when the payload carries no fields', async () => {
+    // query 0: the external-id lookup matches rules set 1; query 1: the
+    // re-select of the untouched row (no update is issued at all).
+    const { db, chains } = await build(
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'BB2020' }],
+      [fakeRulesSet],
+    );
+
+    const result = await service.upsert({
+      externalIds: [{ externalSystemId: 1, externalId: 'BB2020' }],
+    });
+
+    expect(db.update).not.toHaveBeenCalled();
+    expect(result).toEqual({ rulesSet: fakeRulesSet, created: false });
+    expect(chains).toHaveLength(2);
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const { chains } = await build([{ count: 5 }]);

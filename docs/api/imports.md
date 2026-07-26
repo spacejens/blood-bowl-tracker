@@ -27,6 +27,36 @@ An upsert procedure's response includes a `created` boolean field
 distinguishing the two outcomes: `true` when a new record was created,
 `false` when an existing one was found and updated.
 
+### Upserts overlay, they do not replace
+
+An upsert writes only the fields the payload actually contains. A field left
+out is not mentioned to the database at all, so the stored value survives — a
+payload carrying just `name` and `externalIds` renames a row and touches
+nothing else. A field sent as `null` is a real write of `null`, which is how a
+caller clears a nullable value; the two are deliberately distinguishable.
+`externalIds` is always required, because it addresses the row rather than
+describing it.
+
+When the supplied external IDs match no existing row the API creates one, and
+only then must the payload carry every field that entity requires. A create
+missing a required field is rejected up front with a `BAD_REQUEST` error naming
+the entity and the missing fields, returned to the caller through the API
+itself (not just logged server-side), rather than surfacing a database
+constraint violation.
+
+Link-list fields (`rulesSetIds`, `teamEraIds`, `eras`, `raceEras`) work the
+same way by being additive: they only ever insert missing links, so an omitted
+or empty list leaves existing links intact.
+
+Match events are a partial exception to "an upsert writes only the fields the
+payload actually contains": `matchId` is always required, but it identifies
+which match the event belongs to rather than describing the event itself, so
+it does not count as row data written by the overlay. A match event payload
+must also always classify the event by including at least one of `eventType`,
+`actionType`, or `consequenceType` — an `externalIds`-only payload is rejected
+by validation before it reaches the upsert at all, since there would be
+nothing to classify the event as.
+
 ## External IDs
 
 To find a previous record across import runs — and across different import

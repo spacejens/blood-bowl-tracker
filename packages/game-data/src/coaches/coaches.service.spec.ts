@@ -160,6 +160,23 @@ describe('CoachesService', () => {
         { coachId: 1, externalSystemId: 1, externalId: 'name:roze madder' },
       ]);
     });
+
+    it('re-selects instead of updating when the payload carries no fields', async () => {
+      // query 0: the external-id lookup matches coach 1; query 1: the
+      // re-select of the untouched row (no update is issued at all).
+      const { db, chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: 'id:47' }],
+        [fakeCoach],
+      );
+
+      const result = await service.upsert({
+        externalIds: [{ externalSystemId: 1, externalId: 'id:47' }],
+      });
+
+      expect(db.update).not.toHaveBeenCalled();
+      expect(result).toEqual({ coach: fakeCoach, created: false });
+      expect(chains).toHaveLength(2);
+    });
   });
 
   describe('toplist queries', () => {

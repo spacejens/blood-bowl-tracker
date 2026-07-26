@@ -15,20 +15,25 @@ export class TeamsProcessor {
     let imported = 0;
     for (const entry of ctx.data.teams) {
       const label = `Cannot import team "${entry.name}"`;
-      const raceId = this.refResolver.resolveRef({
+      // All three are resolved before any is checked, so a single entry with
+      // several bad references still records one error each -- the behaviour
+      // the previous code had.
+      const race = this.refResolver.resolveOptionalRef({
         ref: entry.race,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
-      const coachId = this.refResolver.resolveRef({
+      const coach = this.refResolver.resolveOptionalRef({
         ref: entry.coach,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
         label,
       });
+      // eras defaults to [] and the API's era sync is additive, so an omitted
+      // list resolves to [] and leaves the team's existing eras alone.
       const eras = this.refResolver.resolveRefs({
         refs: entry.eras,
         idMap: ctx.idMap,
@@ -36,14 +41,14 @@ export class TeamsProcessor {
         item: entry,
         label,
       });
-      if (raceId === undefined || coachId === undefined || eras === undefined) {
+      if (!race.ok || !coach.ok || eras === undefined) {
         continue;
       }
       const upserted = await this.teamsImport.upsertTeam(
         {
           name: entry.name,
-          raceId,
-          coachId,
+          raceId: race.id,
+          coachId: coach.id,
           eras,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,

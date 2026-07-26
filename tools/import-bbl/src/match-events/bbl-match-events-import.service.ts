@@ -16,6 +16,7 @@ import { Injectable } from '@nestjs/common';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchMergeService } from '../matches/match-merge.service';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 import type { CombinedOccurrences } from './match-event-correlation.service';
 import {
@@ -65,6 +66,7 @@ export class BblMatchEventsImportService {
     private readonly matchMerge: MatchMergeService,
     private readonly matchEventCorrelation: MatchEventCorrelationService,
     private readonly importResults: ImportResultService,
+    private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
   ) {}
 
   /**
@@ -305,7 +307,10 @@ export class BblMatchEventsImportService {
     }
 
     const upsertedTeam = await this.teamsImport.upsertTeam(
-      { ...team, eras: [competition.eraId] },
+      {
+        ...team,
+        eras: [this.upsertFieldNarrowing.resolveDefiniteEraId(competition)],
+      },
       errors,
     );
     const teamEra = upsertedTeam?.eras.find(

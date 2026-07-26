@@ -10,8 +10,8 @@ export const PositionSchema = z.object({
 });
 
 export const UpsertPositionSchema = z.object({
-  name: z.string().min(1),
-  isStarPlayer: z.boolean(),
+  name: z.string().min(1).optional(),
+  isStarPlayer: z.boolean().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

@@ -27,4 +27,11 @@ describe('league schemas', () => {
       UpsertLeagueSchema.parse({ name: 'X', externalIds: [] }),
     ).toThrow();
   });
+
+  it('UpsertLeagueSchema accepts an externalIds-only payload', () => {
+    const parsed = UpsertLeagueSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.name).toBeUndefined();
+  });
 });

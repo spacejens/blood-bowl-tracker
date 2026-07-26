@@ -44,7 +44,7 @@ export class ErasService {
         name: data.name,
         leagueId: data.leagueId,
         startDate: data.startDate,
-        endDate: data.endDate ?? null,
+        endDate: data.endDate,
       },
       externalIdTable: eraExternalIds,
       ownerIdColumn: eraExternalIds.eraId,
