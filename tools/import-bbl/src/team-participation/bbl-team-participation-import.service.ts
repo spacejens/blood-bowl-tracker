@@ -19,10 +19,7 @@ import type { BblMatch } from '../matches/match-list-page-parser';
 import type { MatchMergeResolution } from '../matches/match-merge.service';
 import { MatchMergeService } from '../matches/match-merge.service';
 import type { BblMatchDetails } from '../matches/match-teams-page-parser';
-import {
-  resolveDefiniteEraId,
-  resolveDefiniteRaceId,
-} from '../shared/resolve-definite';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import { BblCompetitionStandingsReaderService } from './bbl-competition-standings-reader.service';
 
 export interface ImportTeamParticipationOptions {
@@ -63,6 +60,7 @@ export class BblTeamParticipationImportService {
     private readonly matchMerge: MatchMergeService,
     private readonly competitionStandingsReader: BblCompetitionStandingsReaderService,
     private readonly importResults: ImportResultService,
+    private readonly upsertFieldNarrowing: UpsertFieldNarrowingService,
   ) {}
 
   /**
@@ -152,7 +150,8 @@ export class BblTeamParticipationImportService {
           continue;
         }
 
-        const competitionEraId = resolveDefiniteEraId(competition);
+        const competitionEraId =
+          this.upsertFieldNarrowing.resolveDefiniteEraId(competition);
         const upsertedTeam = await this.teamsImport.upsertTeam(
           { ...team, eras: [competitionEraId] },
           errors,
@@ -169,7 +168,8 @@ export class BblTeamParticipationImportService {
           teamEraIdByTeamId.set(id, teamEra.id);
         }
 
-        const teamRaceId = resolveDefiniteRaceId(team);
+        const teamRaceId =
+          this.upsertFieldNarrowing.resolveDefiniteRaceId(team);
         const eras = eraIdsByRaceId.get(teamRaceId) ?? new Set<number>();
         eras.add(competitionEraId);
         eraIdsByRaceId.set(teamRaceId, eras);

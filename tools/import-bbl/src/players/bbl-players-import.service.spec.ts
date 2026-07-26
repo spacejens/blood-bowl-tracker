@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -110,6 +111,7 @@ interface Mocks {
   bootstrap: MockProxy<ExternalSystemBootstrapService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
+  upsertFieldNarrowing: MockProxy<UpsertFieldNarrowingService>;
 }
 
 /**
@@ -176,6 +178,14 @@ async function makeService(
   const pageParseError = mock<PageParseErrorService>();
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
+  const upsertFieldNarrowing = mock<UpsertFieldNarrowingService>();
+  // Every team fixture in this spec has a defined raceId, so the mock simply
+  // passes it through rather than re-deriving the throw-if-undefined
+  // invariant, which is covered by the real service's own spec.
+  upsertFieldNarrowing.resolveDefiniteRaceId.mockImplementation(
+    (t) => t.raceId as number,
+  );
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblPlayersImportService,
@@ -188,6 +198,10 @@ async function makeService(
       { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
+      {
+        provide: UpsertFieldNarrowingService,
+        useValue: upsertFieldNarrowing,
+      },
     ],
   }).compile();
 
@@ -201,6 +215,7 @@ async function makeService(
       bootstrap,
       importResults,
       pageParseError,
+      upsertFieldNarrowing,
     },
   };
 }
