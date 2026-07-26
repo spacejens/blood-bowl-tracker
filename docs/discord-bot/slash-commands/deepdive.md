@@ -86,8 +86,8 @@ identical. Likewise, each of the eight coach toplists
 (`coach.toplist.matches.played`, `coach.toplist.teams`,
 `coach.toplist.competitions.played`, `coach.toplist.eras.active`,
 `coach.toplist.fouls.committed`,
-`coach.toplist.timeBetweenMatches.longest`,
-`coach.toplist.timeBetweenMatches.shortest`,
+`coach.toplist.timeBetweenMatches.longest.descending`,
+`coach.toplist.timeBetweenMatches.longest.ascending`,
 `coach.toplist.timeBetweenMatches.average`) attaches one button per listed
 coach, opening the same `/deepdive coach:<coach>` view. See
 [`/insights`](insights.md).

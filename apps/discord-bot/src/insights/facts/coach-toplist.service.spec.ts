@@ -102,23 +102,23 @@ const cases: ToplistCase[] = [
     expectedTitle: 'Coaches by fouls committed',
   },
   {
-    describeName: 'resolveLongestTimeBetweenMatches',
-    method: 'getLongestGapBetweenMatchesByCoach',
+    describeName: 'resolveTimeBetweenMatchesDescending',
+    method: 'getGapBetweenMatchesByCoachDescending',
     resolve: (service) =>
-      service.resolveLongestTimeBetweenMatches(FACT_SCOPE_ALL_TIME),
+      service.resolveTimeBetweenMatchesDescending(FACT_SCOPE_ALL_TIME),
     rows: [
       { coachId: 1, name: 'Roze Madder', count: 91 },
       { coachId: 2, name: 'Grashnak', count: 34 },
     ],
-    expectedTitle: 'Coaches by longest time between matches',
+    expectedTitle: 'Coaches by longest time between matches (descending)',
   },
   {
-    describeName: 'resolveShortestTimeBetweenMatches',
-    method: 'getMostConsistentGapBetweenMatchesByCoach',
+    describeName: 'resolveTimeBetweenMatchesAscending',
+    method: 'getGapBetweenMatchesByCoachAscending',
     resolve: (service) =>
-      service.resolveShortestTimeBetweenMatches(FACT_SCOPE_ALL_TIME),
+      service.resolveTimeBetweenMatchesAscending(FACT_SCOPE_ALL_TIME),
     rows: [{ coachId: 3, name: 'Skabsquik', count: 6 }],
-    expectedTitle: 'Coaches by shortest time between matches',
+    expectedTitle: 'Coaches by longest time between matches (ascending)',
   },
   {
     describeName: 'resolveAverageTimeBetweenMatches',
@@ -258,12 +258,12 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 describe('CoachToplistService time-between-matches rendering', () => {
   it('renders each row through the day-count formatter', async () => {
     const coaches = {
-      getLongestGapBetweenMatchesByCoach: vi.fn().mockResolvedValue([]),
+      getGapBetweenMatchesByCoachDescending: vi.fn().mockResolvedValue([]),
     } as unknown as CoachesService;
     const { service, leaderboard, dayCount } = await makeService(coaches);
     dayCount.format.mockReturnValue('91 days');
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
-    await service.resolveLongestTimeBetweenMatches(FACT_SCOPE_ALL_TIME);
+    await service.resolveTimeBetweenMatchesDescending(FACT_SCOPE_ALL_TIME);
     const options = leaderboard.resolveToplist.mock
       .calls[0][0] as unknown as ResolveToplistOptions<CoachRow>;
     expect(
@@ -297,20 +297,21 @@ describe('CoachToplistService time-between-matches rendering', () => {
     ).toBe('2. Skabsquik — 1 day');
   });
 
-  it('passes the league and era scope through to the shortest-gap query', async () => {
-    const getMostConsistentGapBetweenMatchesByCoach = vi
-      .fn()
-      .mockResolvedValue([]);
+  it('passes the league and era scope through to the ascending-gap query', async () => {
+    const getGapBetweenMatchesByCoachAscending = vi.fn().mockResolvedValue([]);
     const coaches = {
-      getMostConsistentGapBetweenMatchesByCoach,
+      getGapBetweenMatchesByCoachAscending,
     } as unknown as CoachesService;
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
     });
-    await service.resolveShortestTimeBetweenMatches({ leagueId: 9, eraId: 20 });
-    expect(getMostConsistentGapBetweenMatchesByCoach).toHaveBeenCalledWith(
+    await service.resolveTimeBetweenMatchesAscending({
+      leagueId: 9,
+      eraId: 20,
+    });
+    expect(getGapBetweenMatchesByCoachAscending).toHaveBeenCalledWith(
       { leagueId: 9, eraId: 20 },
       TOPLIST_FETCH_LIMIT,
     );

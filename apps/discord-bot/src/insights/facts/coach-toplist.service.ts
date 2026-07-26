@@ -123,13 +123,13 @@ export class CoachToplistService {
     });
   }
 
-  resolveLongestTimeBetweenMatches(
+  resolveTimeBetweenMatchesDescending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveGapToplist({
-      title: 'Coaches by longest time between matches',
+      title: 'Coaches by longest time between matches (descending)',
       fetchRows: (limit) =>
-        this.coaches.getLongestGapBetweenMatchesByCoach(scope, limit),
+        this.coaches.getGapBetweenMatchesByCoachDescending(scope, limit),
     });
   }
 
@@ -137,13 +137,13 @@ export class CoachToplistService {
    * Ranks the same single-longest-gap metric ascending: the coaches whose
    * worst gap is smallest, i.e. the most consistently active ones.
    */
-  resolveShortestTimeBetweenMatches(
+  resolveTimeBetweenMatchesAscending(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolveGapToplist({
-      title: 'Coaches by shortest time between matches',
+      title: 'Coaches by longest time between matches (ascending)',
       fetchRows: (limit) =>
-        this.coaches.getMostConsistentGapBetweenMatchesByCoach(scope, limit),
+        this.coaches.getGapBetweenMatchesByCoachAscending(scope, limit),
     });
   }
 

@@ -501,10 +501,10 @@ describe('CoachesService', () => {
 
     // Three builders are issued per call: the distinct match list, the
     // LAG() gap subquery, and the outer aggregate that is awaited.
-    it('getLongestGapBetweenMatchesByCoach returns the rows the outer query resolves to', async () => {
+    it('getGapBetweenMatchesByCoachDescending returns the rows the outer query resolves to', async () => {
       const { db, chains } = await build([], [], gapRows);
       await expect(
-        service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21),
+        service.getGapBetweenMatchesByCoachDescending(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(gapRows);
       expect(db.selectDistinct).toHaveBeenCalledTimes(1);
       expect(db.select).toHaveBeenCalledTimes(2);
@@ -513,7 +513,10 @@ describe('CoachesService', () => {
 
     it('computes each gap with a LAG window function partitioned by coach and ordered by match date', async () => {
       const { db } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       const gapFields = firstCallArg(db.select, 0, 0) as { gapDays: unknown };
       const text = sqlText(gapFields.gapDays);
       expect(text).toContain('lag(');
@@ -523,7 +526,10 @@ describe('CoachesService', () => {
 
     it('deduplicates a coach match list so a coach with two teams in one match is not double-counted', async () => {
       const { db } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       const matchFields = firstCallArg(db.selectDistinct, 0, 0) as {
         coachId: unknown;
         name: unknown;
@@ -534,26 +540,29 @@ describe('CoachesService', () => {
 
     it('excludes a coach first match, so coaches with fewer than two matches in scope drop out', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       expect(sqlText(firstCallArg(chains[2].where))).toContain('is not null');
     });
 
     it('ranks the largest gap first, rounded to whole days', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       const orderBy = sqlText(firstCallArg(chains[2].orderBy));
       expect(orderBy).toContain('max(');
       expect(orderBy).toContain('round(');
       expect(orderBy).toContain(' desc');
     });
 
-    it('getMostConsistentGapBetweenMatchesByCoach ranks the same longest-gap metric ascending', async () => {
+    it('getGapBetweenMatchesByCoachAscending ranks the same longest-gap metric ascending', async () => {
       const { chains } = await build([], [], gapRows);
       await expect(
-        service.getMostConsistentGapBetweenMatchesByCoach(
-          FACT_SCOPE_ALL_TIME,
-          21,
-        ),
+        service.getGapBetweenMatchesByCoachAscending(FACT_SCOPE_ALL_TIME, 21),
       ).resolves.toEqual(gapRows);
       const orderBy = sqlText(firstCallArg(chains[2].orderBy));
       expect(orderBy).toContain('max(');
@@ -561,9 +570,9 @@ describe('CoachesService', () => {
       expect(orderBy).not.toContain(' desc');
     });
 
-    it('getMostConsistentGapBetweenMatchesByCoach requires at least 4 gaps (5 matches)', async () => {
+    it('getGapBetweenMatchesByCoachAscending requires at least 4 gaps (5 matches)', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getMostConsistentGapBetweenMatchesByCoach(
+      await service.getGapBetweenMatchesByCoachAscending(
         FACT_SCOPE_ALL_TIME,
         21,
       );
@@ -572,21 +581,27 @@ describe('CoachesService', () => {
       expect(having).toContain('>= 4');
     });
 
-    it('getLongestGapBetweenMatchesByCoach does not apply a minimum-matches floor', async () => {
+    it('getGapBetweenMatchesByCoachDescending does not apply a minimum-matches floor', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       expect(chains[2].having).not.toHaveBeenCalled();
     });
 
     it('applies no filter when the scope is all-time', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      await service.getGapBetweenMatchesByCoachDescending(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
       expect(firstCallArg(chains[0].where)).toBeUndefined();
     });
 
     it('filters the match list by era when an eraId is given', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getLongestGapBetweenMatchesByCoach({ eraId: 20 }, 21);
+      await service.getGapBetweenMatchesByCoachDescending({ eraId: 20 }, 21);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
       ).toEqual(['match_teams.match_id', 'matches.id']);
@@ -595,10 +610,7 @@ describe('CoachesService', () => {
 
     it('filters the match list by league via the eras join', async () => {
       const { chains } = await build([], [], gapRows);
-      await service.getMostConsistentGapBetweenMatchesByCoach(
-        { leagueId: 9 },
-        21,
-      );
+      await service.getGapBetweenMatchesByCoachAscending({ leagueId: 9 }, 21);
       expect(
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 2, 1)),
       ).toEqual(['eras.id', 'team_eras.era_id']);

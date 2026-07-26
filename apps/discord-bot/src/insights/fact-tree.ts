@@ -50,18 +50,20 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
         },
         timeBetweenMatches: {
           longest: {
-            supportsLeague: true,
-            supportsEra: true,
-            supportsCompetition: false,
-            resolve: (scope) =>
-              deps.coachToplist.resolveLongestTimeBetweenMatches(scope),
-          },
-          shortest: {
-            supportsLeague: true,
-            supportsEra: true,
-            supportsCompetition: false,
-            resolve: (scope) =>
-              deps.coachToplist.resolveShortestTimeBetweenMatches(scope),
+            descending: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              resolve: (scope) =>
+                deps.coachToplist.resolveTimeBetweenMatchesDescending(scope),
+            },
+            ascending: {
+              supportsLeague: true,
+              supportsEra: true,
+              supportsCompetition: false,
+              resolve: (scope) =>
+                deps.coachToplist.resolveTimeBetweenMatchesAscending(scope),
+            },
           },
           average: {
             supportsLeague: true,

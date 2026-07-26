@@ -242,7 +242,7 @@ export class CoachesService {
       .limit(limit);
   }
 
-  getLongestGapBetweenMatchesByCoach(
+  getGapBetweenMatchesByCoachDescending(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
@@ -253,7 +253,7 @@ export class CoachesService {
    * The same longest-gap metric ascending: the coaches whose *worst* gap is
    * smallest, i.e. the most consistently active ones.
    */
-  getMostConsistentGapBetweenMatchesByCoach(
+  getGapBetweenMatchesByCoachAscending(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {

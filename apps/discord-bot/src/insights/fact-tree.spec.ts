@@ -32,10 +32,10 @@ function deps(): FactTreeDeps {
   );
   coachToplist.resolveErasActive.mockResolvedValue('coach eras active');
   coachToplist.resolveFoulsCommitted.mockResolvedValue('coach fouls committed');
-  coachToplist.resolveLongestTimeBetweenMatches.mockResolvedValue(
+  coachToplist.resolveTimeBetweenMatchesDescending.mockResolvedValue(
     'coach longest time between matches',
   );
-  coachToplist.resolveShortestTimeBetweenMatches.mockResolvedValue(
+  coachToplist.resolveTimeBetweenMatchesAscending.mockResolvedValue(
     'coach shortest time between matches',
   );
   coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
@@ -185,24 +185,28 @@ describe('buildFactTree', () => {
     expect(d.coachToplist.resolveFoulsCommitted).toHaveBeenCalled();
   });
 
-  it('wires coach.toplist.timeBetweenMatches.longest to CoachToplistService.resolveLongestTimeBetweenMatches', async () => {
+  it('wires coach.toplist.timeBetweenMatches.longest.descending to CoachToplistService.resolveTimeBetweenMatchesDescending', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
       buildFactTree(d),
-      'coach.toplist.timeBetweenMatches.longest',
+      'coach.toplist.timeBetweenMatches.longest.descending',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    expect(d.coachToplist.resolveLongestTimeBetweenMatches).toHaveBeenCalled();
+    expect(
+      d.coachToplist.resolveTimeBetweenMatchesDescending,
+    ).toHaveBeenCalled();
   });
 
-  it('wires coach.toplist.timeBetweenMatches.shortest to CoachToplistService.resolveShortestTimeBetweenMatches', async () => {
+  it('wires coach.toplist.timeBetweenMatches.longest.ascending to CoachToplistService.resolveTimeBetweenMatchesAscending', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
       buildFactTree(d),
-      'coach.toplist.timeBetweenMatches.shortest',
+      'coach.toplist.timeBetweenMatches.longest.ascending',
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
-    expect(d.coachToplist.resolveShortestTimeBetweenMatches).toHaveBeenCalled();
+    expect(
+      d.coachToplist.resolveTimeBetweenMatchesAscending,
+    ).toHaveBeenCalled();
   });
 
   it('wires coach.toplist.timeBetweenMatches.average to CoachToplistService.resolveAverageTimeBetweenMatches', async () => {
@@ -668,8 +672,8 @@ describe('buildFactTree competition capabilities', () => {
   it('scopes the time-between-matches toplists to league and era but not competition', () => {
     const tree = buildFactTree(deps());
     for (const path of [
-      'coach.toplist.timeBetweenMatches.longest',
-      'coach.toplist.timeBetweenMatches.shortest',
+      'coach.toplist.timeBetweenMatches.longest.descending',
+      'coach.toplist.timeBetweenMatches.longest.ascending',
       'coach.toplist.timeBetweenMatches.average',
     ]) {
       const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
