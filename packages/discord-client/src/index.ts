@@ -5,6 +5,7 @@ export type {
 export { DiscordClientModule } from './discord-client.module';
 export type {
   ButtonHandler,
+  SelectMenuHandler,
   SlashCommandDefinition,
 } from './discord-client.service';
 export {

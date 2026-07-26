@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import type { EntityComponentEntry } from '../../entity-components.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
@@ -30,7 +32,6 @@ type Team = {
 };
 type CareerSpan = { start: string; end: string };
 type TopPlayer = { playerId: number; name: string; count: number };
-type ButtonEntry = { customId: string; label: string };
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -48,6 +49,7 @@ export class TeamDeepdiveService {
     private readonly teams: TeamsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
@@ -63,13 +65,15 @@ export class TeamDeepdiveService {
     }
 
     const header = [`Race: ${team.raceName}`, `Coach: ${team.coachName}`];
-    const headerButtonEntries: ButtonEntry[] = [
+    const headerEntries: EntityComponentEntry[] = [
       {
-        customId: `${RACE_BUTTON_CUSTOM_ID_PREFIX}${team.raceId}`,
+        customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(team.raceId),
         label: team.raceName,
       },
       {
-        customId: `${COACH_BUTTON_CUSTOM_ID_PREFIX}${team.coachId}`,
+        customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(team.coachId),
         label: team.coachName,
       },
     ];
@@ -82,6 +86,8 @@ export class TeamDeepdiveService {
       return DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE;
     }
     if (span === undefined) {
+      const { components } =
+        this.entityComponents.buildEntityComponents(headerEntries);
       return {
         embeds: [
           {
@@ -91,11 +97,7 @@ export class TeamDeepdiveService {
             ),
           },
         ],
-        components: this.leaderboard.buildEntityButtons(
-          headerButtonEntries,
-          (entry) => entry.customId,
-          (entry) => entry.label,
-        ),
+        components,
       };
     }
 
@@ -121,26 +123,24 @@ export class TeamDeepdiveService {
       playerLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents([
+        ...headerEntries,
+        ...ranked.map((row) => ({
+          customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(row.playerId),
+          label: row.name,
+        })),
+      ]);
+
     const description = [
       ...header,
       `Career: ${span.start} – ${span.end}`,
       '',
       'Top players by match events:',
       ...playerLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
-
-    const buttonEntries: ButtonEntry[] = [
-      ...headerButtonEntries,
-      ...ranked.map((row) => ({
-        customId: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}${row.playerId}`,
-        label: row.name,
-      })),
-    ];
-    const components = this.leaderboard.buildEntityButtons(
-      buttonEntries,
-      (entry) => entry.customId,
-      (entry) => entry.label,
-    );
 
     return {
       embeds: [{ title: team.name, description }],

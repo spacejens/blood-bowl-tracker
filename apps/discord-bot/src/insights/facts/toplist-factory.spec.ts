@@ -102,7 +102,7 @@ describe('makeToplistResolvers', () => {
       expect(reply).toBe('no data');
     });
 
-    it('threads buildCustomId through to leaderboard.resolveToplist', async () => {
+    it('threads entityLink through to leaderboard.resolveToplist', async () => {
       const leaderboard = mock<LeaderboardService>();
       leaderboard.resolveToplist.mockResolvedValue('placeholder reply');
       interface TeamStub {
@@ -111,11 +111,11 @@ describe('makeToplistResolvers', () => {
           limit: number,
         ) => Promise<{ teamId: number; name: string; count: number }[]>;
       }
-      const buildCustomId = (row: {
-        teamId: number;
-        name: string;
-        count: number;
-      }) => `deepdive:team:${row.teamId}`;
+      const entityLink = {
+        customIdPrefix: 'deepdive:team:',
+        entityId: (row: { teamId: number; name: string; count: number }) =>
+          row.teamId,
+      };
       const resolvers = makeToplistResolvers<
         'gamma',
         TeamStub,
@@ -124,13 +124,13 @@ describe('makeToplistResolvers', () => {
         titles: { gamma: 'G title' },
         timeoutMessage: 'timed out',
         noDataMessage: 'no data',
-        buildCustomId,
+        entityLink,
         leaderboard,
       });
       const gamma = vi.fn().mockResolvedValue([]);
       await resolvers.gamma({ gamma }, FACT_SCOPE_ALL_TIME);
       expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
-        expect.objectContaining({ buildCustomId }),
+        expect.objectContaining({ entityLink }),
       );
     });
   });

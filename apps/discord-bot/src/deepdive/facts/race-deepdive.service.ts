@@ -3,6 +3,8 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import type { EntityComponentEntry } from '../../entity-components.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
@@ -40,6 +42,7 @@ export class RaceDeepdiveService {
     private readonly races: RacesService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
@@ -87,29 +90,28 @@ export class RaceDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    const entries: EntityComponentEntry[] = [
+      ...eraRows.map((era) => ({
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(era.id),
+        label: era.name,
+      })),
+      ...ranked.map((team) => ({
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(team.id),
+        label: team.name,
+      })),
+    ];
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents(entries);
+
     const description = [
       `Eras: ${eras}`,
       '',
       'Top teams by matches played:',
       ...teamLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
-
-    type ButtonEntry = { customId: string; label: string };
-    const buttonEntries: ButtonEntry[] = [
-      ...eraRows.map((era) => ({
-        customId: `${ERA_BUTTON_CUSTOM_ID_PREFIX}${era.id}`,
-        label: era.name,
-      })),
-      ...ranked.map((team) => ({
-        customId: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${team.id}`,
-        label: team.name,
-      })),
-    ];
-    const components = this.leaderboard.buildEntityButtons(
-      buttonEntries,
-      (entry) => entry.customId,
-      (entry) => entry.label,
-    );
 
     return {
       embeds: [{ title: race.name, description }],

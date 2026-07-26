@@ -23,34 +23,44 @@ function gp(amount: number): string {
  */
 @Injectable()
 export class ExpensiveMistakesToplistService {
+  private readonly teamLink = {
+    customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+    entityId: (row: { teamId: number }) => row.teamId,
+  };
+
   constructor(
     private readonly teams: TeamsService,
     private readonly leaderboard: LeaderboardService,
   ) {}
 
-  private teamButtonId(row: { teamId: number }): string {
-    return `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${row.teamId}`;
-  }
-
   resolveTotal(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+    }>({
       title: 'Teams by money lost to expensive mistakes',
       fetchRows: (limit) => this.teams.sumExpensiveMistakesByTeam(scope, limit),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
       formatRow: (row) => `${row.rank}. ${row.name} — ${gp(row.count)}`,
     });
   }
 
   resolveBiggest(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist({
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+      date: string;
+    }>({
       title: 'Biggest expensive mistakes',
       fetchRows: (limit) =>
         this.teams.listBiggestExpensiveMistakes(scope, limit),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      buildCustomId: (row) => this.teamButtonId(row),
+      entityLink: this.teamLink,
       formatRow: (row) =>
         `${row.rank}. ${row.name} — ${gp(row.count)} (${row.date})`,
     });

@@ -254,6 +254,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'testuser#0001', id: '123' },
@@ -279,6 +280,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -305,6 +307,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -334,6 +337,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'spacejens#0001', id: '111' },
@@ -353,6 +357,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'unknown',
       reply,
@@ -367,6 +372,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       reply,
     });
@@ -418,6 +424,7 @@ describe('DiscordClientService', () => {
     const interaction = {
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       user: { tag: 'testuser#0001', id: '123' },
@@ -443,6 +450,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => true,
       commandName: 'stats',
       reply,
@@ -467,6 +475,8 @@ describe('DiscordClientService', () => {
     const respond = vi.fn().mockResolvedValue(undefined);
     const interaction = {
       isAutocomplete: () => true,
+      isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       commandName: 'insights',
       respond,
@@ -485,6 +495,8 @@ describe('DiscordClientService', () => {
     const respond = vi.fn();
     interactionHandler()({
       isAutocomplete: () => true,
+      isButton: () => false,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       commandName: 'stats',
       respond,
@@ -501,6 +513,7 @@ describe('DiscordClientService', () => {
     const interaction = {
       isAutocomplete: () => false,
       isButton: () => true,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       customId: 'deepdive:era:7',
       user: { tag: 'testuser#0001', id: '123' },
@@ -521,6 +534,7 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => true,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       customId: 'something:else:1',
       reply,
@@ -539,8 +553,119 @@ describe('DiscordClientService', () => {
     interactionHandler()({
       isAutocomplete: () => false,
       isButton: () => true,
+      isStringSelectMenu: () => false,
       isChatInputCommand: () => false,
       customId: 'deepdive:era:7',
+      user: { tag: 'u#1', id: '1' },
+      channelId: '2',
+      channel: { name: 'c' },
+      reply,
+    });
+    await flush();
+    expect(reply).toHaveBeenCalledWith('I am badly hurt');
+  });
+
+  it('dispatches a select menu interaction to the handler whose prefix matches its customId', async () => {
+    await service.onModuleInit();
+    const handler = vi.fn().mockResolvedValue('era details');
+    service.registerSelectMenuHandler('deepdive:era:', handler);
+    const reply = vi.fn().mockResolvedValue(undefined);
+    const interaction = {
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:menu:0',
+      values: ['7'],
+      user: { tag: 'testuser#0001', id: '123' },
+      channelId: '456',
+      channel: { name: 'test-channel' },
+      reply,
+    };
+    interactionHandler()(interaction);
+    await flush();
+    expect(handler).toHaveBeenCalledWith(interaction);
+    expect(reply).toHaveBeenCalledWith('era details');
+  });
+
+  it('ignores a select menu interaction whose customId matches no registered prefix', async () => {
+    await service.onModuleInit();
+    service.registerSelectMenuHandler('deepdive:era:', vi.fn());
+    const reply = vi.fn();
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      isChatInputCommand: () => false,
+      customId: 'something:else:menu:0',
+      values: ['7'],
+      reply,
+    });
+    await flush();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('does not route a select menu interaction to a button handler', async () => {
+    await service.onModuleInit();
+    const buttonHandler = vi.fn();
+    service.registerButtonHandler('deepdive:era:', buttonHandler);
+    const reply = vi.fn();
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:menu:0',
+      values: ['7'],
+      reply,
+    });
+    await flush();
+    expect(buttonHandler).not.toHaveBeenCalled();
+    expect(reply).not.toHaveBeenCalled();
+  });
+
+  it('logs the handled select menu, chosen value, user, and channel on success', async () => {
+    const logSpy = vi
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    await service.onModuleInit();
+    service.registerSelectMenuHandler(
+      'deepdive:era:',
+      vi.fn().mockResolvedValue('era details'),
+    );
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:menu:0',
+      values: ['7'],
+      user: { tag: 'spacejens#0001', id: '111' },
+      channelId: '222',
+      channel: { name: 'general' },
+      reply,
+    });
+    await flush();
+    expect(logSpy).toHaveBeenCalledWith(
+      'Handled select menu deepdive:era:menu:0 (7) from spacejens#0001 (111) in general (222)',
+    );
+  });
+
+  it('replies with an error when a select menu handler throws', async () => {
+    await service.onModuleInit();
+    service.registerSelectMenuHandler(
+      'deepdive:era:',
+      vi.fn().mockRejectedValue(new Error('boom')),
+    );
+    const reply = vi.fn().mockResolvedValue(undefined);
+    interactionHandler()({
+      isAutocomplete: () => false,
+      isButton: () => false,
+      isStringSelectMenu: () => true,
+      isChatInputCommand: () => false,
+      customId: 'deepdive:era:menu:0',
+      values: ['7'],
       user: { tag: 'u#1', id: '1' },
       channelId: '2',
       channel: { name: 'c' },

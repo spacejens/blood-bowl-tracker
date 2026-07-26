@@ -61,9 +61,16 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     const options = leaderboard.resolveToplist.mock
       .calls[0][0] as unknown as ResolveToplistOptions<MistakeRow>;
     expect(options.title).toBe('Teams by money lost to expensive mistakes');
+    expect(options.entityLink?.customIdPrefix).toBe(
+      TEAM_BUTTON_CUSTOM_ID_PREFIX,
+    );
     expect(
-      options.buildCustomId?.({ teamId: 1, name: '40 grinders', count: 0 }),
-    ).toBe(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`);
+      options.entityLink?.entityId({
+        teamId: 1,
+        name: '40 grinders',
+        count: 0,
+      }),
+    ).toBe(1);
     expect(
       options.formatRow?.({
         teamId: 1,
@@ -129,14 +136,17 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     const options = leaderboard.resolveToplist.mock
       .calls[0][0] as unknown as ResolveToplistOptions<BiggestMistakeRow>;
     expect(options.title).toBe('Biggest expensive mistakes');
+    expect(options.entityLink?.customIdPrefix).toBe(
+      TEAM_BUTTON_CUSTOM_ID_PREFIX,
+    );
     expect(
-      options.buildCustomId?.({
+      options.entityLink?.entityId({
         teamId: 1,
         name: '40 grinders',
         count: 0,
         date: '2026-03-04',
       }),
-    ).toBe(`${TEAM_BUTTON_CUSTOM_ID_PREFIX}1`);
+    ).toBe(1);
     expect(
       options.formatRow?.({
         teamId: 1,

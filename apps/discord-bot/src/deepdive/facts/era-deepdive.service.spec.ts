@@ -4,6 +4,7 @@ import {
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
+import { ButtonStyle, ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -13,6 +14,8 @@ import {
   mockDatabaseTimeout,
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
+import { EntityComponentsService } from '../../entity-components.service';
+import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITIONS_TIMEOUT_MESSAGE,
   DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
@@ -22,7 +25,7 @@ import {
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
-import { LeaderboardService } from '../../insights/leaderboard.service';
+import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { EraDeepdiveService } from './era-deepdive.service';
 
 type EraHeader = {
@@ -38,21 +41,7 @@ interface MakeServiceOptions {
   competitions: CompetitionsService;
   externalSystems: ExternalSystemsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
-  leaderboard?: MockProxy<LeaderboardService>;
-}
-
-/**
- * Defaults `buildEntityButtons` to return no components. LeaderboardService's
- * own button-building logic is covered by leaderboard.service.spec.ts; this
- * default exists only so tests that don't care about the exact button
- * composition (most of them - the description-rendering tests below) don't
- * need to configure a mock return value just to avoid the service's
- * unconditional call to it.
- */
-function defaultLeaderboard(): MockProxy<LeaderboardService> {
-  const leaderboard = mock<LeaderboardService>();
-  leaderboard.buildEntityButtons.mockReturnValue([]);
-  return leaderboard;
+  entityComponents?: MockProxy<EntityComponentsService>;
 }
 
 async function makeService({
@@ -60,10 +49,10 @@ async function makeService({
   competitions,
   externalSystems,
   databaseTimeout = mockDatabaseTimeout(),
-  leaderboard = defaultLeaderboard(),
+  entityComponents = nullEntityComponents(),
 }: MakeServiceOptions): Promise<{
   service: EraDeepdiveService;
-  leaderboard: MockProxy<LeaderboardService>;
+  entityComponents: MockProxy<EntityComponentsService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -72,10 +61,10 @@ async function makeService({
       { provide: CompetitionsService, useValue: competitions },
       { provide: ExternalSystemsService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
-      { provide: LeaderboardService, useValue: leaderboard },
+      { provide: EntityComponentsService, useValue: entityComponents },
     ],
   }).compile();
-  return { service: moduleRef.get(EraDeepdiveService), leaderboard };
+  return { service: moduleRef.get(EraDeepdiveService), entityComponents };
 }
 
 function makeServices(options: {
@@ -282,22 +271,30 @@ describe('EraDeepdiveService', () => {
     expect(description).toContain('External systems: None recorded');
   });
 
-  // LeaderboardService.buildEntityButtons itself (dedupe/cap/chunk) is
-  // covered by leaderboard.service.spec.ts. Here `leaderboard` is a mock
-  // returning a canned button list, so this test asserts only what
-  // EraDeepdiveService itself owns: the per-competition button-entry pool
-  // (id/label pairs, one per competition) it hands to buildEntityButtons.
-  it('builds one button entry per competition, keyed by competition id', async () => {
-    const leaderboard = mock<LeaderboardService>();
-    const cannedButtons = [
+  // EntityComponentsService's own dedupe/cap/chunk/select logic is covered
+  // by entity-components.service.spec.ts. Here `entityComponents` is a mock
+  // returning a canned component list, so this test asserts only what
+  // EraDeepdiveService itself owns: the per-competition entry pool (id/label
+  // pairs, one per competition) it hands to buildEntityComponents.
+  it('builds one component entry per competition, keyed by competition id', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    const cannedComponents = [
       {
-        type: 1,
+        type: ComponentType.ActionRow as const,
         components: [
-          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+          {
+            type: ComponentType.Button as const,
+            style: ButtonStyle.Primary as const,
+            label: 'canned',
+            custom_id: 'canned',
+          },
         ],
       },
     ];
-    leaderboard.buildEntityButtons.mockReturnValue(cannedButtons);
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: cannedComponents,
+      overflowNote: null,
+    });
     const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
@@ -315,19 +312,25 @@ describe('EraDeepdiveService', () => {
       eras,
       competitions,
       externalSystems,
-      leaderboard,
+      entityComponents,
     });
     const result = (await service.resolve(1)) as unknown as {
       components: unknown;
     };
-    expect(result.components).toBe(cannedButtons);
-    const [entries, buildCustomId, label] =
-      leaderboard.buildEntityButtons.mock.calls[0];
-    expect(entries.map(buildCustomId)).toEqual([
-      'deepdive:competition:10',
-      'deepdive:competition:11',
+    expect(result.components).toBe(cannedComponents);
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '10',
+        label: 'Season 1',
+      },
+      {
+        customIdPrefix: COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '11',
+        label: 'Spike Cup',
+      },
     ]);
-    expect(entries.map(label)).toEqual(['Season 1', 'Spike Cup']);
   });
 
   it('omits components when the era has no competitions', async () => {

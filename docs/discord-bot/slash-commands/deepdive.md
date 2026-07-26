@@ -108,6 +108,16 @@ targets, most `/insights` views that list items of a supported target type are
 expected to gain a button per listed item, opening that item's deepdive the
 same way `eras.list`, the coach toplists, and the team toplists do today.
 
+Drill-down links render as buttons while a view lists at most 25 items —
+Discord's per-message button ceiling. A longer list switches entirely to
+dropdown menus instead (one menu per linked entity type, 25 entries per menu,
+at most five menus per message), which raises the ceiling to 125 links.
+Choosing an entry opens the same deepdive its button would have. If even that
+is not enough, the remaining items are still listed in the embed text and the
+description ends with a note counting the ones left without a link — the cap
+is visible rather than silent. See
+`apps/discord-bot/src/entity-components.service.ts`.
+
 See the implementation in `apps/discord-bot/src/slash-commands/deepdive-command.service.ts`
 and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.ts`,
 `apps/discord-bot/src/deepdive/facts/coach-deepdive.ts`,

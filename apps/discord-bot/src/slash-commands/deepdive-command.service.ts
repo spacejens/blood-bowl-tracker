@@ -14,6 +14,7 @@ import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
   InteractionReplyOptions,
+  StringSelectMenuInteraction,
 } from 'discord.js';
 import { ApplicationCommandOptionType } from 'discord.js';
 
@@ -99,6 +100,36 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleCompetitionButton(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      ERA_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleEraSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      COACH_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleCoachSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      TEAM_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleTeamSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handlePlayerSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      RACE_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleRaceSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleCompetitionSelect(interaction),
     );
   }
 
@@ -243,6 +274,66 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolveCompetition(idPart);
+  }
+
+  async handleEraSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_ERA_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveEra(value);
+  }
+
+  async handleCoachSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_COACH_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveCoach(value);
+  }
+
+  async handleTeamSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_TEAM_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveTeam(value);
+  }
+
+  async handlePlayerSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE;
+    }
+    return this.resolvePlayer(value);
+  }
+
+  async handleRaceSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_RACE_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveRace(value);
+  }
+
+  async handleCompetitionSelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveCompetition(value);
   }
 
   async autocomplete(

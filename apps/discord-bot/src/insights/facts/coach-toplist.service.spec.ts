@@ -103,7 +103,7 @@ describe.each(cases)(
     // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
     // is a mock returning a canned reply, so this test only asserts what
     // CoachToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive button id its own buildCustomId closure produces.
+    // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
       const coaches = {
         [method]: vi.fn().mockResolvedValue(rows),
@@ -118,9 +118,10 @@ describe.each(cases)(
       const options = leaderboard.resolveToplist.mock
         .calls[0][0] as unknown as ResolveToplistOptions<CoachRow>;
       expect(options.title).toBe(expectedTitle);
-      expect(options.buildCustomId?.(rows[0])).toBe(
-        `${COACH_BUTTON_CUSTOM_ID_PREFIX}${rows[0].coachId}`,
+      expect(options.entityLink?.customIdPrefix).toBe(
+        COACH_BUTTON_CUSTOM_ID_PREFIX,
       );
+      expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].coachId);
     });
 
     it('binds fetchRows to a call passing the fetch limit', async () => {

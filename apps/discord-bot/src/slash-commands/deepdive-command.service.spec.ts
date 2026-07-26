@@ -13,6 +13,7 @@ import type {
   ButtonInteraction,
   ChatInputCommandInteraction,
   InteractionReplyOptions,
+  StringSelectMenuInteraction,
 } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -268,6 +269,30 @@ describe('DeepdiveCommandService', () => {
     );
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       RACE_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      ERA_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      COACH_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      TEAM_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      RACE_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
   });
@@ -591,3 +616,87 @@ describe('DeepdiveCommandService', () => {
     expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
   });
 });
+
+interface SelectCase {
+  name: string;
+  invoke: (
+    service: DeepdiveCommandService,
+    interaction: StringSelectMenuInteraction,
+  ) => Promise<string | InteractionReplyOptions>;
+  deepdive: (made: MadeService) => { resolve: ReturnType<typeof vi.fn> };
+  notFoundMessage: string;
+}
+
+function selectInteraction(values: string[]): StringSelectMenuInteraction {
+  return { values } as unknown as StringSelectMenuInteraction;
+}
+
+const selectCases: SelectCase[] = [
+  {
+    name: 'era',
+    invoke: (service, interaction) => service.handleEraSelect(interaction),
+    deepdive: (made) => made.eraDeepdive,
+    notFoundMessage: DEEPDIVE_ERA_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'coach',
+    invoke: (service, interaction) => service.handleCoachSelect(interaction),
+    deepdive: (made) => made.coachDeepdive,
+    notFoundMessage: DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'team',
+    invoke: (service, interaction) => service.handleTeamSelect(interaction),
+    deepdive: (made) => made.teamDeepdive,
+    notFoundMessage: DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'player',
+    invoke: (service, interaction) => service.handlePlayerSelect(interaction),
+    deepdive: (made) => made.playerDeepdive,
+    notFoundMessage: DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'race',
+    invoke: (service, interaction) => service.handleRaceSelect(interaction),
+    deepdive: (made) => made.raceDeepdive,
+    notFoundMessage: DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'competition',
+    invoke: (service, interaction) =>
+      service.handleCompetitionSelect(interaction),
+    deepdive: (made) => made.competitionDeepdive,
+    notFoundMessage: DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+  },
+];
+
+describe.each(selectCases)(
+  'DeepdiveCommandService.handle$name Select',
+  ({ invoke, deepdive, notFoundMessage }) => {
+    it('resolves the deepdive for the selected value', async () => {
+      const made = await makeService();
+      const resolver = deepdive(made);
+      resolver.resolve.mockResolvedValue('the deepdive');
+      const result = await invoke(made.service, selectInteraction(['42']));
+      expect(resolver.resolve).toHaveBeenCalledWith(42);
+      expect(result).toBe('the deepdive');
+    });
+
+    it('returns the not-found message when nothing was selected', async () => {
+      const made = await makeService();
+      const resolver = deepdive(made);
+      const result = await invoke(made.service, selectInteraction([]));
+      expect(resolver.resolve).not.toHaveBeenCalled();
+      expect(result).toBe(notFoundMessage);
+    });
+
+    it('returns the not-found message for a non-integer value', async () => {
+      const made = await makeService();
+      const resolver = deepdive(made);
+      const result = await invoke(made.service, selectInteraction(['nope']));
+      expect(resolver.resolve).not.toHaveBeenCalled();
+      expect(result).toBe(notFoundMessage);
+    });
+  },
+);

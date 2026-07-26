@@ -219,7 +219,7 @@ describe.each(cases)(
     // rendering) is covered by leaderboard.service.spec.ts. Here `leaderboard`
     // is a mock returning a canned reply, so this test only asserts what
     // TeamToplistService itself owns: the embed title it configures, and the
-    // per-row deepdive button id its own buildCustomId closure produces.
+    // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
       const teams = {
         [method]: vi.fn().mockResolvedValue(rows),
@@ -234,9 +234,10 @@ describe.each(cases)(
       const options = leaderboard.resolveToplist.mock
         .calls[0][0] as unknown as ResolveToplistOptions<(typeof rows)[number]>;
       expect(options.title).toBe(expectedTitle);
-      expect(options.buildCustomId?.(rows[0])).toBe(
-        `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${rows[0].teamId}`,
+      expect(options.entityLink?.customIdPrefix).toBe(
+        TEAM_BUTTON_CUSTOM_ID_PREFIX,
       );
+      expect(options.entityLink?.entityId(rows[0])).toBe(rows[0].teamId);
     });
 
     if (eraRows) {
@@ -303,15 +304,5 @@ describe('TeamToplistService.resolveErasActive', () => {
     });
     await service.resolveErasActive();
     expect(queryFn).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
-  });
-});
-
-describe('TeamToplistService.teamButtonId', () => {
-  it('formats the deepdive team button customId', async () => {
-    const teams = {} as unknown as TeamsService;
-    const { service } = await makeService(teams);
-    expect(service.teamButtonId({ teamId: 42 })).toBe(
-      `${TEAM_BUTTON_CUSTOM_ID_PREFIX}42`,
-    );
   });
 });

@@ -3,13 +3,13 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../../database-timeout.service';
+import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
-import { LeaderboardService } from '../../insights/leaderboard.service';
 import {
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -39,7 +39,7 @@ export class PlayerDeepdiveService {
   constructor(
     private readonly players: PlayersService,
     private readonly databaseTimeout: DatabaseTimeoutService,
-    private readonly leaderboard: LeaderboardService,
+    private readonly entityComponents: EntityComponentsService,
   ) {}
 
   async resolve(playerId: number): Promise<string | InteractionReplyOptions> {
@@ -74,22 +74,26 @@ export class PlayerDeepdiveService {
         ? [DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE]
         : nonZero.map((category) => `${category.label}: ${category.count}`);
 
-    const description = [...header, '', ...categoryLines].join('\n');
-
-    const components = this.leaderboard.buildEntityButtons(
-      [
+    const { components, overflowNote } =
+      this.entityComponents.buildEntityComponents([
         {
-          customId: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}${player.teamId}`,
+          customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(player.teamId),
           label: player.teamName,
         },
         {
-          customId: `${RACE_BUTTON_CUSTOM_ID_PREFIX}${player.raceId}`,
+          customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(player.raceId),
           label: player.raceName,
         },
-      ],
-      (entry) => entry.customId,
-      (entry) => entry.label,
-    );
+      ]);
+
+    const description = [
+      ...header,
+      '',
+      ...categoryLines,
+      ...(overflowNote === null ? [] : [overflowNote]),
+    ].join('\n');
 
     return { embeds: [{ title: player.name, description }], components };
   }
