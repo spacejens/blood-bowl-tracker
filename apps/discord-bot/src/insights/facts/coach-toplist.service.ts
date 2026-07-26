@@ -8,6 +8,7 @@ import {
   COACH_TOPLIST_NO_DATA_MESSAGE,
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { DayCountFormatterService } from '../day-count-formatter.service';
 import { LeaderboardService } from '../leaderboard.service';
 import type { ToplistResolver } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
@@ -17,6 +18,12 @@ type CoachToplistMethod =
   | 'countMatchesPlayedByCoach'
   | 'countTeamsByCoach'
   | 'countCompetitionsByCoach';
+
+interface CoachCountRow {
+  coachId: number;
+  name: string;
+  count: number;
+}
 
 @Injectable()
 export class CoachToplistService {
@@ -33,6 +40,7 @@ export class CoachToplistService {
   constructor(
     private readonly coaches: CoachesService,
     private readonly leaderboard: LeaderboardService,
+    private readonly dayCount: DayCountFormatterService,
   ) {
     this.resolvers = makeToplistResolvers<
       CoachToplistMethod,
@@ -91,6 +99,61 @@ export class CoachToplistService {
       timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.coachLink,
+    });
+  }
+
+  /**
+   * The three time-between-matches toplists are hand-written rather than
+   * built by makeToplistResolvers because each row renders as a duration
+   * ("91 days") instead of a bare count, and the factory has no formatRow
+   * hook. Same precedent as ExpensiveMistakesToplistService's `gp` rendering.
+   */
+  private resolveGapToplist(options: {
+    title: string;
+    fetchRows: (limit: number) => Promise<CoachCountRow[]>;
+  }): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<CoachCountRow>({
+      title: options.title,
+      fetchRows: options.fetchRows,
+      timeoutMessage: COACH_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.coachLink,
+      formatRow: (row) =>
+        `${row.rank}. ${row.name} — ${this.dayCount.format(row.count)}`,
+    });
+  }
+
+  resolveLongestTimeBetweenMatches(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveGapToplist({
+      title: 'Coaches by longest time between matches',
+      fetchRows: (limit) =>
+        this.coaches.getLongestGapBetweenMatchesByCoach(scope, limit),
+    });
+  }
+
+  /**
+   * Ranks the same single-longest-gap metric ascending: the coaches whose
+   * worst gap is smallest, i.e. the most consistently active ones.
+   */
+  resolveShortestTimeBetweenMatches(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveGapToplist({
+      title: 'Coaches by shortest time between matches',
+      fetchRows: (limit) =>
+        this.coaches.getMostConsistentGapBetweenMatchesByCoach(scope, limit),
+    });
+  }
+
+  resolveAverageTimeBetweenMatches(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveGapToplist({
+      title: 'Coaches by average time between matches',
+      fetchRows: (limit) =>
+        this.coaches.getAverageGapBetweenMatchesByCoach(scope, limit),
     });
   }
 }
