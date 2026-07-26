@@ -2,6 +2,7 @@ import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { CasualtyPairing } from './tp-match-events-correlation.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 
 const HOME_ROSTER_ID = 164868;
@@ -381,5 +382,305 @@ describe('correlateCasualties', () => {
     ]);
 
     expect(pairing.casualtyByInjuryEventId.get(2)).toBe(casualtyEvent);
+  });
+});
+
+function foul(options: {
+  tpEventId: number;
+  instant: string;
+  lineUpId: number;
+  rosterId: number;
+  turnNumber?: number;
+}): Extract<TpMatchEvent, { type: 'foul' }> {
+  return { type: 'foul', ...options };
+}
+
+const NOTHING_PAIRED: CasualtyPairing = {
+  casualtyByInjuryEventId: new Map(),
+  pairedCasualtyEventIds: new Set(),
+};
+
+describe('correlateFouls', () => {
+  let service: TpMatchEventsCorrelationService;
+
+  beforeEach(async () => {
+    const moduleRef = await Test.createTestingModule({
+      providers: [TpMatchEventsCorrelationService],
+    }).compile();
+    service = moduleRef.get(TpMatchEventsCorrelationService);
+  });
+
+  it('pairs a foul with the unattributed injury sharing its turnNumber and direction', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:05Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulEvent, injuryEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.get(2)).toBe(foulEvent);
+    expect(pairing.pairedFoulEventIds.has(1)).toBe(true);
+  });
+
+  it('skips an injury already attributed to a casualty_caused event', () => {
+    const alreadyPaired = casualty({
+      tpEventId: 9,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 11,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:05Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls([foulEvent, injuryEvent], {
+      casualtyByInjuryEventId: new Map([[2, alreadyPaired]]),
+      pairedCasualtyEventIds: new Set([9]),
+    });
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+    expect(pairing.pairedFoulEventIds.size).toBe(0);
+  });
+
+  it('does NOT pair across different turnNumbers even when close in time', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:01Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 6,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulEvent, injuryEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+  });
+
+  it('does not pair a foul with no turnNumber', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:01Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulEvent, injuryEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+  });
+
+  it("does not pair when the injury happened on the victim's own turn (wrong direction)", () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:01Z',
+      lineUpId: 20,
+      rosterId: HOME_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulEvent, injuryEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+  });
+
+  it('pairs when the injury instant precedes the foul instant (async registration)', () => {
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T17:59:00Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls(
+      [injuryEvent, foulEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.get(2)).toBe(foulEvent);
+  });
+
+  it('consumes each injury by at most one foul, picking the nearest-in-time candidate', () => {
+    const foulA = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const foulB = foul({
+      tpEventId: 2,
+      instant: '2026-01-17T18:00:10Z',
+      lineUpId: 11,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryNearA = injury({
+      tpEventId: 3,
+      instant: '2026-01-17T18:00:01Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryNearB = injury({
+      tpEventId: 4,
+      instant: '2026-01-17T18:00:09Z',
+      lineUpId: 21,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulA, foulB, injuryNearA, injuryNearB],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.get(3)).toBe(foulA);
+    expect(pairing.foulByInjuryEventId.get(4)).toBe(foulB);
+    expect(pairing.pairedFoulEventIds.size).toBe(2);
+  });
+
+  it('pairs exactly at the 120s cutoff but not 1ms beyond it', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00.000Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const atCutoff = injury({
+      tpEventId: 2,
+      instant: '2026-01-17T18:02:00.000Z',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const beyondCutoff = injury({
+      tpEventId: 3,
+      instant: '2026-01-17T18:02:00.001Z',
+      lineUpId: 21,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    expect(
+      service.correlateFouls([foulEvent, atCutoff], NOTHING_PAIRED)
+        .foulByInjuryEventId.size,
+    ).toBe(1);
+    expect(
+      service.correlateFouls([foulEvent, beyondCutoff], NOTHING_PAIRED)
+        .foulByInjuryEventId.size,
+    ).toBe(0);
+  });
+
+  it('does not pair when instant is not a parseable timestamp', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: 'not-a-date',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+    const injuryEvent = injury({
+      tpEventId: 2,
+      instant: 'also-not-a-date',
+      lineUpId: 20,
+      rosterId: AWAY_ROSTER_ID,
+      turnRosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls(
+      [foulEvent, injuryEvent],
+      NOTHING_PAIRED,
+    );
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+  });
+
+  it('leaves an unpaired foul (no matching injury) unclaimed, with no crash', () => {
+    const foulEvent = foul({
+      tpEventId: 1,
+      instant: '2026-01-17T18:00:00Z',
+      lineUpId: 10,
+      rosterId: HOME_ROSTER_ID,
+      turnNumber: 5,
+    });
+
+    const pairing = service.correlateFouls([foulEvent], NOTHING_PAIRED);
+
+    expect(pairing.foulByInjuryEventId.size).toBe(0);
+    expect(pairing.pairedFoulEventIds.size).toBe(0);
   });
 });
