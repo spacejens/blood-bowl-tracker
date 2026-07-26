@@ -82,11 +82,15 @@ Discord's response window.
 `/insights`' `eras.list` view lists every era and attaches one button per era.
 Pressing a button opens the same era deepdive shown by `/deepdive era:<era>` —
 the button and the command share a single resolver, so their output is always
-identical. Likewise, each of the five coach toplists
+identical. Likewise, each of the eight coach toplists
 (`coach.toplist.matches.played`, `coach.toplist.teams`,
 `coach.toplist.competitions.played`, `coach.toplist.eras.active`,
-`coach.toplist.fouls.committed`) attaches one button per listed coach, opening
-the same `/deepdive coach:<coach>` view. See [`/insights`](insights.md).
+`coach.toplist.fouls.committed`,
+`coach.toplist.timeBetweenMatches.longest.descending`,
+`coach.toplist.timeBetweenMatches.longest.ascending`,
+`coach.toplist.timeBetweenMatches.average`) attaches one button per listed
+coach, opening the same `/deepdive coach:<coach>` view. See
+[`/insights`](insights.md).
 
 Each of the sixteen `team.toplist.*` facts attaches one button per listed team,
 opening the same `/deepdive team:<team>` view.

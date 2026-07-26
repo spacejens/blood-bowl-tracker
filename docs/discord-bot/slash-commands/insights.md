@@ -48,8 +48,23 @@ so you can navigate the tree without memorizing it.
   `foul` match events credited to the acting team, attributed to that team's
   coach. Supports league and era filtering, but not competition filtering (like
   the other `coach.toplist.*` facts).
+- `coach.toplist.timeBetweenMatches.longest.descending` — coaches ranked by the
+  longest gap between two of their consecutive matches, longest first, shown in
+  whole days. Coaches with fewer than two matches in scope are excluded (they
+  have no gap). Supports league and era filtering, but not competition
+  filtering (like the other `coach.toplist.*` facts).
+- `coach.toplist.timeBetweenMatches.longest.ascending` — the same longest-gap value,
+  ranked smallest first: the coaches whose longest break between matches is the
+  shortest, i.e. the most consistently active ones. Same exclusions and
+  filtering as above, plus a minimum of 5 matches in scope (unlike `.longest`),
+  so a coach with only a couple of closely-played matches can't dominate this
+  toplist.
+- `coach.toplist.timeBetweenMatches.average` — coaches ranked by the average gap
+  across all of their consecutive matches, smallest first, shown in whole days.
+  Same exclusions and filtering as above, plus the same minimum-5-matches floor
+  as `.longest.ascending`.
 
-Each coach listed by the five `coach.toplist.*` facts above also gets a
+Each coach listed by the eight `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 

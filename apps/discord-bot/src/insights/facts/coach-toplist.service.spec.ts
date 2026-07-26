@@ -8,7 +8,11 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { COACH_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
-import { COACH_TOPLIST_TIMEOUT_MESSAGE } from '../../error-messages';
+import {
+  COACH_TOPLIST_NO_DATA_MESSAGE,
+  COACH_TOPLIST_TIMEOUT_MESSAGE,
+} from '../../error-messages';
+import { DayCountFormatterService } from '../day-count-formatter.service';
 import type { ResolveToplistOptions } from '../leaderboard.service';
 import {
   LeaderboardService,
@@ -19,18 +23,21 @@ import { CoachToplistService } from './coach-toplist.service';
 interface MadeService {
   service: CoachToplistService;
   leaderboard: MockProxy<LeaderboardService>;
+  dayCount: MockProxy<DayCountFormatterService>;
 }
 
 async function makeService(coaches: CoachesService): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
+  const dayCount = mock<DayCountFormatterService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       CoachToplistService,
       { provide: CoachesService, useValue: coaches },
       { provide: LeaderboardService, useValue: leaderboard },
+      { provide: DayCountFormatterService, useValue: dayCount },
     ],
   }).compile();
-  return { service: moduleRef.get(CoachToplistService), leaderboard };
+  return { service: moduleRef.get(CoachToplistService), leaderboard, dayCount };
 }
 
 interface CoachRow {
@@ -93,6 +100,36 @@ const cases: ToplistCase[] = [
       { coachId: 2, name: 'Grashnak', count: 4 },
     ],
     expectedTitle: 'Coaches by fouls committed',
+  },
+  {
+    describeName: 'resolveTimeBetweenMatchesDescending',
+    method: 'getGapBetweenMatchesByCoachDescending',
+    resolve: (service) =>
+      service.resolveTimeBetweenMatchesDescending(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 91 },
+      { coachId: 2, name: 'Grashnak', count: 34 },
+    ],
+    expectedTitle: 'Coaches by longest time between matches (descending)',
+  },
+  {
+    describeName: 'resolveTimeBetweenMatchesAscending',
+    method: 'getGapBetweenMatchesByCoachAscending',
+    resolve: (service) =>
+      service.resolveTimeBetweenMatchesAscending(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 3, name: 'Skabsquik', count: 6 }],
+    expectedTitle: 'Coaches by longest time between matches (ascending)',
+  },
+  {
+    describeName: 'resolveAverageTimeBetweenMatches',
+    method: 'getAverageGapBetweenMatchesByCoach',
+    resolve: (service) =>
+      service.resolveAverageTimeBetweenMatches(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 2, name: 'Grashnak', count: 7 },
+      { coachId: 1, name: 'Roze Madder', count: 30 },
+    ],
+    expectedTitle: 'Coaches by average time between matches',
   },
 ];
 
@@ -214,6 +251,83 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
     expect(countFoulsCommittedByCoach).toHaveBeenCalledWith(
       { leagueId: 9, eraId: 20 },
       TOPLIST_FETCH_LIMIT,
+    );
+  });
+});
+
+describe('CoachToplistService time-between-matches rendering', () => {
+  it('renders each row through the day-count formatter', async () => {
+    const coaches = {
+      getGapBetweenMatchesByCoachDescending: vi.fn().mockResolvedValue([]),
+    } as unknown as CoachesService;
+    const { service, leaderboard, dayCount } = await makeService(coaches);
+    dayCount.format.mockReturnValue('91 days');
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveTimeBetweenMatchesDescending(FACT_SCOPE_ALL_TIME);
+    const options = leaderboard.resolveToplist.mock
+      .calls[0][0] as unknown as ResolveToplistOptions<CoachRow>;
+    expect(
+      options.formatRow?.({
+        coachId: 1,
+        name: 'Roze Madder',
+        count: 91,
+        rank: 1,
+      }),
+    ).toBe('1. Roze Madder — 91 days');
+    expect(dayCount.format).toHaveBeenCalledWith(91);
+  });
+
+  it('renders the average toplist rows through the same formatter', async () => {
+    const coaches = {
+      getAverageGapBetweenMatchesByCoach: vi.fn().mockResolvedValue([]),
+    } as unknown as CoachesService;
+    const { service, leaderboard, dayCount } = await makeService(coaches);
+    dayCount.format.mockReturnValue('1 day');
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveAverageTimeBetweenMatches(FACT_SCOPE_ALL_TIME);
+    const options = leaderboard.resolveToplist.mock
+      .calls[0][0] as unknown as ResolveToplistOptions<CoachRow>;
+    expect(
+      options.formatRow?.({
+        coachId: 3,
+        name: 'Skabsquik',
+        count: 1,
+        rank: 2,
+      }),
+    ).toBe('2. Skabsquik — 1 day');
+  });
+
+  it('passes the league and era scope through to the ascending-gap query', async () => {
+    const getGapBetweenMatchesByCoachAscending = vi.fn().mockResolvedValue([]);
+    const coaches = {
+      getGapBetweenMatchesByCoachAscending,
+    } as unknown as CoachesService;
+    const { service, leaderboard } = await makeService(coaches);
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
+    await service.resolveTimeBetweenMatchesAscending({
+      leagueId: 9,
+      eraId: 20,
+    });
+    expect(getGapBetweenMatchesByCoachAscending).toHaveBeenCalledWith(
+      { leagueId: 9, eraId: 20 },
+      TOPLIST_FETCH_LIMIT,
+    );
+  });
+
+  it('uses the shared coach no-data message for an empty toplist', async () => {
+    const coaches = {
+      getAverageGapBetweenMatchesByCoach: vi.fn().mockResolvedValue([]),
+    } as unknown as CoachesService;
+    const { service, leaderboard } = await makeService(coaches);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveAverageTimeBetweenMatches(FACT_SCOPE_ALL_TIME);
+    expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+      expect.objectContaining({
+        noDataMessage: COACH_TOPLIST_NO_DATA_MESSAGE,
+      }),
     );
   });
 });
