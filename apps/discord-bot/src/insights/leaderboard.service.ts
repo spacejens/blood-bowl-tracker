@@ -41,8 +41,7 @@ export const TOPLIST_FETCH_LIMIT =
  * number (0 means no remainder line); `approximate` means the fetch window was
  * saturated so the true remainder is unknown and rendered as "lots more tied".
  */
-export type TieRemainder =
-  { type: 'exact'; count: number } | { type: 'approximate' };
+type TieRemainder = { type: 'exact'; count: number } | { type: 'approximate' };
 
 /** How a leaderboard row turns into a drill-down link: routing prefix plus the row's entity id. */
 export interface EntityLink<T> {

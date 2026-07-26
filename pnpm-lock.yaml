@@ -314,9 +314,6 @@ importers:
       vitest:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
-      vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
 
   packages/game-data:
     dependencies:

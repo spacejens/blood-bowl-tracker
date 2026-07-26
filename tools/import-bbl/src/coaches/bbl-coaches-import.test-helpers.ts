@@ -1,5 +1,3 @@
-import { vi } from 'vitest';
-
 /** The upsertCoach result record repeated across the coach import specs. */
 export interface CoachRecord {
   id: number;
@@ -24,14 +22,4 @@ export function makeCoachRecord(
     created: true,
     ...overrides,
   };
-}
-
-/**
- * Test-only helper. Do not import from production code.
- *
- * Builds the bootstrap mock used by the coach import service: resolves with
- * a successful bootstrap result containing external system ids 1 and 2.
- */
-export function makeTwoSystemUpsertMock(): ReturnType<typeof vi.fn> {
-  return vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
 }

@@ -6,18 +6,10 @@ const MAX_BUTTONS_PER_ROW = 5;
 const MAX_ACTION_ROWS = 5;
 
 /** Most entries that can still be shown as one button each (5 rows × 5 buttons). */
-export const MAX_BUTTON_ENTRIES = MAX_BUTTONS_PER_ROW * MAX_ACTION_ROWS;
+const MAX_BUTTON_ENTRIES = MAX_BUTTONS_PER_ROW * MAX_ACTION_ROWS;
 
 /** Discord allows at most 25 options in a single string select menu. */
 const MAX_OPTIONS_PER_SELECT = 25;
-
-/**
- * Most entries a message can carry as select menus: 5 action rows, one select
- * menu each (an action row holds either buttons or exactly one select menu),
- * 25 options per menu. Only reachable when every entry shares one routing
- * prefix — a mixed list needs one menu per prefix group and so fits fewer.
- */
-export const MAX_SELECT_ENTRIES = MAX_OPTIONS_PER_SELECT * MAX_ACTION_ROWS;
 
 /** Infix that turns a routing prefix into a select menu's own custom id. */
 const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
@@ -29,7 +21,7 @@ export interface EntityComponentEntry {
   label: string;
 }
 
-export interface EntityButton {
+interface EntityButton {
   type: ComponentType.Button;
   style: ButtonStyle.Primary;
   label: string;
@@ -41,12 +33,12 @@ export interface EntityButtonRow {
   components: EntityButton[];
 }
 
-export interface EntitySelectOption {
+interface EntitySelectOption {
   label: string;
   value: string;
 }
 
-export interface EntitySelectMenu {
+interface EntitySelectMenu {
   type: ComponentType.StringSelect;
   custom_id: string;
   placeholder: string;
@@ -58,7 +50,7 @@ export interface EntitySelectRow {
   components: EntitySelectMenu[];
 }
 
-export type EntityComponentRow = EntityButtonRow | EntitySelectRow;
+type EntityComponentRow = EntityButtonRow | EntitySelectRow;
 
 export interface EntityComponents {
   components: EntityComponentRow[];
