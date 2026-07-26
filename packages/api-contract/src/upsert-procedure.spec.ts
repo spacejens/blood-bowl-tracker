@@ -26,9 +26,9 @@ function outputShapeKeysOf(procedure: AnyContractProcedure): string[] {
 }
 
 describe('upsertProcedure', () => {
-  it('declares exactly a CONFLICT error', () => {
+  it('declares exactly a CONFLICT and a BAD_REQUEST error', () => {
     const procedure = upsertProcedure(TestInputSchema, TestEntitySchema);
-    expect(errorCodesOf(procedure)).toEqual(['CONFLICT']);
+    expect(errorCodesOf(procedure)).toEqual(['CONFLICT', 'BAD_REQUEST']);
   });
 
   it('extends the entity output with a created flag', () => {

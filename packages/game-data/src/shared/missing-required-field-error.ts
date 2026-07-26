@@ -9,7 +9,9 @@
  * manual data entry that was meant to overlay an existing row, whose external
  * IDs failed to match, and which does not carry enough data to create one.
  *
- * Kept internal to this package (not re-exported from index.ts), like
- * upsert-conflict-error.ts and resolve-existing-by-external-ids.ts.
+ * Re-exported from index.ts (unlike upsert-conflict-error.ts's per-entity
+ * subclasses, which stay package-internal): `packages/api-server`'s
+ * `UpsertHandlerService` needs to catch it by `instanceof` to map it onto the
+ * contract's BAD_REQUEST error.
  */
 export class MissingRequiredFieldError extends Error {}

@@ -18,8 +18,11 @@ function errorCodesOf(procedure: AnyContractProcedure): string[] {
 }
 
 describe('contract', () => {
-  it('defines coaches.upsert with a CONFLICT error', () => {
-    expect(errorCodesOf(contract.coaches.upsert)).toEqual(['CONFLICT']);
+  it('defines coaches.upsert with CONFLICT and BAD_REQUEST errors', () => {
+    expect(errorCodesOf(contract.coaches.upsert)).toEqual([
+      'CONFLICT',
+      'BAD_REQUEST',
+    ]);
   });
 
   it('defines externalSystems.upsert with no declared errors', () => {
@@ -53,12 +56,18 @@ describe('contract', () => {
     ).toBe(true);
   });
 
-  it('defines positions.upsert with a CONFLICT error', () => {
-    expect(errorCodesOf(contract.positions.upsert)).toEqual(['CONFLICT']);
+  it('defines positions.upsert with CONFLICT and BAD_REQUEST errors', () => {
+    expect(errorCodesOf(contract.positions.upsert)).toEqual([
+      'CONFLICT',
+      'BAD_REQUEST',
+    ]);
   });
 
-  it('defines players.upsert with a CONFLICT error', () => {
-    expect(errorCodesOf(contract.players.upsert)).toEqual(['CONFLICT']);
+  it('defines players.upsert with CONFLICT and BAD_REQUEST errors', () => {
+    expect(errorCodesOf(contract.players.upsert)).toEqual([
+      'CONFLICT',
+      'BAD_REQUEST',
+    ]);
   });
 
   it('requires at least one external ID when upserting a coach', () => {

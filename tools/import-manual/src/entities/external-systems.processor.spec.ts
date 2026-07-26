@@ -263,10 +263,12 @@ describe('ExternalSystemsProcessor', () => {
     expect([...systemIds.keys()].sort()).toEqual(['CompEraSys', 'CompSys']);
   });
 
-  // Placeholder scaffolding until the conditional-resolve rework (issue #174
-  // tasks 6-8) lands: rename-only era, team and competition entries omit
-  // league/race/coach/era, so collectSystemNames must skip the absent ref
-  // instead of dereferencing it.
+  // A rename-only overlay (see "Upserts overlay, they do not replace" in
+  // docs/api/imports.md) legitimately omits a cross-reference field like
+  // league/race/coach/era, since the payload only renames a row rather than
+  // relinking it. An absent ref has nothing to resolve against another
+  // entity, so it simply contributes no system name to collect — it must be
+  // skipped by `addIfPresent`, not dereferenced.
   it('skips absent cross-reference fields when collecting system names', async () => {
     externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
     const data = emptyData();

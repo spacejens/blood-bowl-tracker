@@ -3,8 +3,10 @@ import { z } from 'zod';
 
 /**
  * Builds the standard upsert contract procedure: an input schema, the shared
- * CONFLICT error (thrown when two external IDs resolve to two different rows),
- * and an output that is the entity schema extended with a `created` flag.
+ * CONFLICT error (thrown when two external IDs resolve to two different rows)
+ * and BAD_REQUEST error (thrown when a payload lands on the insert path
+ * without every column the entity table requires), and an output that is the
+ * entity schema extended with a `created` flag.
  */
 export function upsertProcedure<
   TInput extends z.ZodType,
@@ -12,7 +14,10 @@ export function upsertProcedure<
 >(inputSchema: TInput, entitySchema: z.ZodObject<TShape>) {
   return oc
     .input(inputSchema)
-    .errors({ CONFLICT: { message: 'Conflicting external IDs' } })
+    .errors({
+      CONFLICT: { message: 'Conflicting external IDs' },
+      BAD_REQUEST: { message: 'Missing required field(s) for a new entity' },
+    })
     .output(entitySchema.extend({ created: z.boolean() }));
 }
 
