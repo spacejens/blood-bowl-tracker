@@ -83,6 +83,26 @@ describe('MatchEventCorrelationService', () => {
         { teamCode: 'hme', count: 2, sourceBblId: '89' },
       ]);
     });
+
+    it('carries viaFoul through onto the team-coded action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'death', side: 'home', pid: 'p1', viaFoul: true },
+          ],
+        }),
+      );
+
+      expect(combined.actions).toEqual([
+        {
+          actionType: 'death',
+          teamCode: 'hme',
+          pid: 'p1',
+          sourceBblId: '89',
+          viaFoul: true,
+        },
+      ]);
+    });
   });
 
   describe('correlateEvents', () => {
@@ -177,6 +197,123 @@ describe('MatchEventCorrelationService', () => {
           consequenceTeamCode: 'awy',
           consequenceSourceBblId: '89',
           consequencePid: 'p2',
+        },
+      ]);
+    });
+
+    it('emits a merged foul event when the single matching causer occurrence was viaFoul', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'badly_hurt',
+              side: 'home',
+              pid: 'fouler',
+              viaFoul: true,
+            },
+          ],
+          consequences: [
+            { consequenceType: 'badly_hurt', side: 'away', pid: 'victim' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'foul',
+          consequenceType: 'badly_hurt',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'fouler',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'victim',
+        },
+      ]);
+    });
+
+    it('still matches a viaFoul action by its severity tier, not by "foul"', () => {
+      // A viaFoul `death` action must still merge with a `death` consequence:
+      // the flag changes only the emitted action type, never the matching key.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'death', side: 'home', pid: 'fouler', viaFoul: true },
+          ],
+          consequences: [
+            { consequenceType: 'death', side: 'away', pid: 'victim' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        actionType: 'foul',
+        consequenceType: 'death',
+      });
+    });
+
+    it('emits an action-only foul when the casualty is ambiguous (2+ same-severity actions)', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'a1' },
+            {
+              actionType: 'serious_injury',
+              side: 'home',
+              pid: 'a2',
+              viaFoul: true,
+            },
+          ],
+          consequences: [
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a1',
+        },
+        {
+          actionType: 'foul',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a2',
+        },
+        {
+          consequenceType: 'miss_next_game',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+      ]);
+    });
+
+    it('leaves a pre-existing "Foulers (no cas)" action untouched', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'foul', side: 'home', pid: 'p1' }],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'foul',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'p1',
         },
       ]);
     });
