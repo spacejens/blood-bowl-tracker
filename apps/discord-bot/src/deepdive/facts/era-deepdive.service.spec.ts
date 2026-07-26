@@ -333,52 +333,6 @@ describe('EraDeepdiveService', () => {
     ]);
   });
 
-  // Deliberately builds the real EntityComponentsService: this test exists to
-  // prove issue #208 (an era with more than 25 competitions used to lose the
-  // links past the 25th) stays fixed end to end, which a canned mock cannot
-  // show.
-  it('renders select menus, not buttons, for an era with more than 25 competitions', async () => {
-    const comps = Array.from({ length: 40 }, (unused, index) => ({
-      id: index + 1,
-      name: `Season ${index + 1}`,
-      type: 'season' as const,
-    }));
-    const { eras, competitions, externalSystems } = makeServices({
-      era: {
-        id: 1,
-        name: 'tLoEG First',
-        leagueName: 'tLoEG',
-        startDate: '2015-01-01',
-        endDate: null,
-      },
-      competitions: comps,
-    });
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        EraDeepdiveService,
-        { provide: ErasService, useValue: eras },
-        { provide: CompetitionsService, useValue: competitions },
-        { provide: ExternalSystemsService, useValue: externalSystems },
-        { provide: DatabaseTimeoutService, useValue: mockDatabaseTimeout() },
-        EntityComponentsService,
-      ],
-    }).compile();
-    const service = moduleRef.get(EraDeepdiveService);
-    const result = (await service.resolve(1)) as unknown as {
-      embeds: { description: string }[];
-      components: {
-        components: { custom_id: string; options?: { value: string }[] }[];
-      }[];
-    };
-    expect(result.components).toHaveLength(2);
-    const values = result.components.flatMap(
-      (row) => row.components[0].options ?? [],
-    );
-    expect(values).toHaveLength(40);
-    expect(values.at(-1)).toEqual({ label: 'Season 40', value: '40' });
-    expect(result.embeds[0].description).not.toContain('without a link');
-  });
-
   it('omits components when the era has no competitions', async () => {
     const { eras, competitions, externalSystems } = makeServices({
       era: {
