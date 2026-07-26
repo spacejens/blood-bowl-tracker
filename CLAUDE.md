@@ -26,6 +26,8 @@ When a Claude Code skill needs the developer to make a choice, use `AskUserQuest
 - The tool always auto-adds a free-text "Other" entry, and this harness always also offers a "Chat about this" affordance automatically. Never add an explicit "Type something" or "Chat about this" option yourself — both are redundant with what's already provided.
 - The tool requires at least 2 explicit options per question — that's a floor, not a target: give every question as many genuine, distinct options as there are real paths forward (often exactly 2, sometimes more). Never invent a filler option (e.g. a generic "Needs changes") just to satisfy the minimum.
 - If a checkpoint genuinely has only one real path forward and no second option exists, don't force it through `AskUserQuestion` — use a plain conversational prompt instead.
+- **Option ceiling.** `AskUserQuestion` allows at most 4 options per question and at most 4 questions per call. When a skill defines more than 4 options for one decision, split them across multiple `multiSelect` questions in a **single** call — the harness presents them in sequence and submits all answers together, so the developer answers once. Preserve the skill's listed order, and set `multiSelect: true` on *every* split question, not only the first.
+- **Don't invent options.** Never add an option a skill did not define — in particular no "None", "Neither", "All", or "Both". On a multi-select, "none" is already expressed by selecting nothing and "all" by selecting everything, so such an option is redundant and makes the answer ambiguous.
 
 ## Technology stack
 
