@@ -148,8 +148,9 @@ export class BblTeamParticipationImportService {
           continue;
         }
 
+        const competitionEraId = this.resolveDefiniteEraId(competition);
         const upsertedTeam = await this.teamsImport.upsertTeam(
-          { ...team, eras: [competition.eraId] },
+          { ...team, eras: [competitionEraId] },
           errors,
         );
         if (!upsertedTeam) {
@@ -157,16 +158,17 @@ export class BblTeamParticipationImportService {
         }
 
         const teamEra = upsertedTeam.eras.find(
-          (e) => e.eraId === competition.eraId,
+          (e) => e.eraId === competitionEraId,
         );
         if (teamEra) {
           teamEraIds.push(teamEra.id);
           teamEraIdByTeamId.set(id, teamEra.id);
         }
 
-        const eras = eraIdsByRaceId.get(team.raceId) ?? new Set<number>();
-        eras.add(competition.eraId);
-        eraIdsByRaceId.set(team.raceId, eras);
+        const teamRaceId = this.resolveDefiniteRaceId(team);
+        const eras = eraIdsByRaceId.get(teamRaceId) ?? new Set<number>();
+        eras.add(competitionEraId);
+        eraIdsByRaceId.set(teamRaceId, eras);
       }
 
       if (teamEraIds.length > 0) {
@@ -203,6 +205,40 @@ export class BblTeamParticipationImportService {
       result: this.importResults.result({ imported, errors }),
       eraIdsByRaceId,
     };
+  }
+
+  /**
+   * Narrow a competition upsert's eraId back to a definite number.
+   * UpsertCompetitionSchema.eraId is optional (api-contract, issue #174) to
+   * support partial-upsert payloads from other callers, but
+   * BblCompetitionsImportService always resolves eraId before building this
+   * upsert -- skipping and recording an error otherwise -- so every
+   * UpsertCompetition reaching this service has one.
+   */
+  private resolveDefiniteEraId(competition: UpsertCompetition): number {
+    if (competition.eraId === undefined) {
+      throw new Error(
+        `Competition "${competition.name}" has no eraId; import-bbl always resolves eraId before building its upsert.`,
+      );
+    }
+    return competition.eraId;
+  }
+
+  /**
+   * Narrow a team upsert's raceId back to a definite number.
+   * UpsertTeamSchema.raceId is optional (api-contract, issue #174) to
+   * support partial-upsert payloads from other callers, but
+   * BblTeamsImportService always resolves raceId before building this
+   * upsert -- skipping and recording an error otherwise -- so every
+   * UpsertTeam reaching this service has one.
+   */
+  private resolveDefiniteRaceId(team: UpsertTeam): number {
+    if (team.raceId === undefined) {
+      throw new Error(
+        `Team "${team.name}" has no raceId; import-bbl always resolves raceId before building its upsert.`,
+      );
+    }
+    return team.raceId;
   }
 
   /**

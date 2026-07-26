@@ -173,7 +173,7 @@ export class BblPlayersImportService {
           continue;
         }
 
-        const raceBblId = raceBblIdByDbId.get(team.raceId);
+        const raceBblId = raceBblIdByDbId.get(this.resolveDefiniteRaceId(team));
         const positionId =
           raceBblId !== undefined
             ? positionIdsByBblId.get(`${player.typId}-${raceBblId}`)
@@ -221,5 +221,22 @@ export class BblPlayersImportService {
       positionsUsedByEra,
       racesActiveByEra,
     };
+  }
+
+  /**
+   * Narrow a team upsert's raceId back to a definite number.
+   * UpsertTeamSchema.raceId is optional (api-contract, issue #174) to
+   * support partial-upsert payloads from other callers, but
+   * BblTeamsImportService always resolves raceId before building this
+   * upsert -- skipping and recording an error otherwise -- so every
+   * UpsertTeam reaching this service has one.
+   */
+  private resolveDefiniteRaceId(team: UpsertTeam): number {
+    if (team.raceId === undefined) {
+      throw new Error(
+        `Team "${team.name}" has no raceId; import-bbl always resolves raceId before building its upsert.`,
+      );
+    }
+    return team.raceId;
   }
 }

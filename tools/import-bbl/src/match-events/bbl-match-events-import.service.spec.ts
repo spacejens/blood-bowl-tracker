@@ -546,7 +546,7 @@ describe('BblMatchEventsImportService', () => {
       Promise.resolve(
         makeTeamRecord([
           {
-            id: eraIdByName[data.name.toLowerCase()],
+            id: eraIdByName[data.name!.toLowerCase()],
             eraId: data.eras?.[0] ?? 0,
           },
         ]),
@@ -687,7 +687,7 @@ describe('BblMatchEventsImportService', () => {
       Promise.resolve(
         makeTeamRecord([
           {
-            id: eraIdByName[data.name.toLowerCase()],
+            id: eraIdByName[data.name!.toLowerCase()],
             eraId: data.eras?.[0] ?? 0,
           },
         ]),
