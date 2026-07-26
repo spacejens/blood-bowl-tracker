@@ -561,6 +561,23 @@ describe('CoachesService', () => {
       expect(orderBy).not.toContain(' desc');
     });
 
+    it('getMostConsistentGapBetweenMatchesByCoach requires at least 4 gaps (5 matches)', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getMostConsistentGapBetweenMatchesByCoach(
+        FACT_SCOPE_ALL_TIME,
+        21,
+      );
+      const having = sqlText(firstCallArg(chains[2].having));
+      expect(having).toContain('count(');
+      expect(having).toContain('>= 4');
+    });
+
+    it('getLongestGapBetweenMatchesByCoach does not apply a minimum-matches floor', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      expect(chains[2].having).not.toHaveBeenCalled();
+    });
+
     it('applies no filter when the scope is all-time', async () => {
       const { chains } = await build([], [], gapRows);
       await service.getLongestGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
@@ -628,6 +645,14 @@ describe('CoachesService', () => {
       const { chains } = await build([], [], gapRows);
       await service.getAverageGapBetweenMatchesByCoach({ leagueId: 9 }, 21);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(9);
+    });
+
+    it('getAverageGapBetweenMatchesByCoach requires at least 4 gaps (5 matches)', async () => {
+      const { chains } = await build([], [], gapRows);
+      await service.getAverageGapBetweenMatchesByCoach(FACT_SCOPE_ALL_TIME, 21);
+      const having = sqlText(firstCallArg(chains[2].having));
+      expect(having).toContain('count(');
+      expect(having).toContain('>= 4');
     });
   });
 });

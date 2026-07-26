@@ -225,17 +225,21 @@ export class CoachesService {
     // are never negative, so that is round-half-up); ::int matches the count
     // shape LeaderboardService expects.
     const longest = sql<number>`round(max(${gaps.gapDays})::numeric)::int`;
-    return (
-      this.db
-        .select({ coachId: gaps.coachId, name: gaps.name, count: longest })
-        .from(gaps)
-        // A null gap is a coach's first match; dropping those also drops coaches
-        // with fewer than two in-scope matches entirely.
-        .where(isNotNull(gaps.gapDays))
-        .groupBy(gaps.coachId, gaps.name)
-        .orderBy(direction === 'desc' ? desc(longest) : asc(longest))
-        .limit(limit)
-    );
+    const query = this.db
+      .select({ coachId: gaps.coachId, name: gaps.name, count: longest })
+      .from(gaps)
+      // A null gap is a coach's first match; dropping those also drops coaches
+      // with fewer than two in-scope matches entirely.
+      .where(isNotNull(gaps.gapDays))
+      .groupBy(gaps.coachId, gaps.name);
+    // "Most consistent" only means something with a real activity history, so
+    // require 4 gaps (5 matches); "longest" deliberately has no floor, since
+    // it wants a coach's single worst gap regardless of how few they've played.
+    const filtered =
+      direction === 'asc' ? query.having(sql`count(*) >= 4`) : query;
+    return filtered
+      .orderBy(direction === 'desc' ? desc(longest) : asc(longest))
+      .limit(limit);
   }
 
   getLongestGapBetweenMatchesByCoach(
@@ -266,13 +270,18 @@ export class CoachesService {
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     const gaps = this.gapsByCoach(scope);
     const average = sql<number>`round(avg(${gaps.gapDays})::numeric)::int`;
-    return this.db
-      .select({ coachId: gaps.coachId, name: gaps.name, count: average })
-      .from(gaps)
-      .where(isNotNull(gaps.gapDays))
-      .groupBy(gaps.coachId, gaps.name)
-      .orderBy(asc(average))
-      .limit(limit);
+    return (
+      this.db
+        .select({ coachId: gaps.coachId, name: gaps.name, count: average })
+        .from(gaps)
+        .where(isNotNull(gaps.gapDays))
+        .groupBy(gaps.coachId, gaps.name)
+        // Same 4-gap (5-match) floor as the "most consistent" toplist, for the
+        // same reason: an average over too few matches is not a meaningful signal.
+        .having(sql`count(*) >= 4`)
+        .orderBy(asc(average))
+        .limit(limit)
+    );
   }
 
   async countCompetitionsByCoach(

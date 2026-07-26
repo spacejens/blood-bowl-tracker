@@ -56,10 +56,13 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.timeBetweenMatches.shortest` — the same longest-gap value,
   ranked smallest first: the coaches whose longest break between matches is the
   shortest, i.e. the most consistently active ones. Same exclusions and
-  filtering as above.
+  filtering as above, plus a minimum of 5 matches in scope (unlike `.longest`),
+  so a coach with only a couple of closely-played matches can't dominate this
+  toplist.
 - `coach.toplist.timeBetweenMatches.average` — coaches ranked by the average gap
   across all of their consecutive matches, smallest first, shown in whole days.
-  Same exclusions and filtering as above.
+  Same exclusions and filtering as above, plus the same minimum-5-matches floor
+  as `.shortest`.
 
 Each coach listed by the eight `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
