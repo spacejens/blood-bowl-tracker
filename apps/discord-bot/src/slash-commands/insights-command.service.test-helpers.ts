@@ -152,6 +152,24 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveFoulsCommitted.mockResolvedValue(
     sampleEmbedReply('Coaches by fouls committed', '1. Roze Madder — 8'),
   );
+  coachToplist.resolveLongestTimeBetweenMatches.mockResolvedValue(
+    sampleEmbedReply(
+      'Coaches by longest time between matches',
+      '1. Roze Madder — 45 days',
+    ),
+  );
+  coachToplist.resolveShortestTimeBetweenMatches.mockResolvedValue(
+    sampleEmbedReply(
+      'Coaches by shortest longest time between matches',
+      '1. Roze Madder — 12 days',
+    ),
+  );
+  coachToplist.resolveAverageTimeBetweenMatches.mockResolvedValue(
+    sampleEmbedReply(
+      'Coaches by average time between matches',
+      '1. Roze Madder — 8 days',
+    ),
+  );
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue(
