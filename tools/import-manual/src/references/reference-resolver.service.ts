@@ -107,8 +107,8 @@ export class ReferenceResolverService {
   /**
    * Resolve a cross-reference the entry may legitimately have omitted.
    * Omitted refs resolve to `{ ok: true, id: undefined }` with no error — the
-   * upsert simply leaves that field alone (issue #174). A ref that is present
-   * but unresolvable records one ImportError and reports `{ ok: false }`, so
+   * upsert simply leaves that field alone. A ref that is present but
+   * unresolvable records one ImportError and reports `{ ok: false }`, so
    * the caller skips the entry exactly as before.
    */
   resolveOptionalRef(options: ResolveOptionalRefOptions): OptionalRefResult {

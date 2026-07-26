@@ -102,8 +102,8 @@ async function run(): Promise<ImportResult> {
       const competitionEntry =
         competitionOutcome.competitionsByTpId.get(tpCompetitionId);
       if (competitionEntry) {
-        // UpsertCompetitionSchema.eraId is optional (api-contract, issue
-        // #174) to support partial-upsert payloads from other callers, but
+        // UpsertCompetitionSchema.eraId is optional to support
+        // partial-upsert payloads from other callers, but
         // TpCompetitionsImportService always resolves eraId from the era
         // name before building this upsert -- skipping and recording an
         // error otherwise -- so every entry reaching this map has one.

@@ -26,7 +26,7 @@ export const UpsertEraSchema = z.object({
   rulesSetIds: z.array(z.number().int()).default([]),
   startDate: IsoDate.optional(),
   // Nullable AND optional: omitting it leaves a stored end date alone, while
-  // an explicit null clears it (issue #174).
+  // an explicit null clears it.
   endDate: IsoDate.nullable().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

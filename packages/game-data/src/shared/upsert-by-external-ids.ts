@@ -29,9 +29,9 @@ export interface UpsertByExternalIdsOptions<
    *
    * Partial by design: a key with value `undefined` means "this payload says
    * nothing about that column". Such keys are stripped before the database is
-   * touched, so an update leaves the stored value alone (overlay semantics —
-   * see issue #174). A key present with value `null` is a real write of
-   * `null`, which is how a caller actively clears a nullable column.
+   * touched, so an update leaves the stored value alone (overlay semantics).
+   * A key present with value `null` is a real write of `null`, which is how a
+   * caller actively clears a nullable column.
    */
   values: Partial<InferInsertModel<TEntityTable>>;
   /** The external-id join table (e.g. `eraExternalIds`). */
@@ -117,8 +117,8 @@ function missingRequiredColumns(
  *
  * `values` is partial: keys whose value is `undefined` are stripped before the
  * database sees them, so an update never overwrites a column the payload said
- * nothing about (issue #174). An explicit `null` still writes `null`. If every
- * key is stripped the update is skipped and the row is re-selected instead;
+ * nothing about. An explicit `null` still writes `null`. If every key is
+ * stripped the update is skipped and the row is re-selected instead;
  * on the insert path a payload missing a required column throws
  * `MissingRequiredFieldError` rather than surfacing a raw Postgres NOT NULL
  * violation naming a database column instead of the sync field.

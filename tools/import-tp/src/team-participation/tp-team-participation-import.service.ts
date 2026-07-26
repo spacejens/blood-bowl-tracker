@@ -137,11 +137,11 @@ export class TpTeamParticipationImportService {
 
   /**
    * Narrow a competition upsert's eraId back to a definite number.
-   * UpsertCompetitionSchema.eraId is optional (api-contract, issue #174) to
-   * support partial-upsert payloads from other callers, but
-   * TpCompetitionsImportService always resolves eraId from the era name
-   * before building this upsert -- skipping and recording an error
-   * otherwise -- so every CompetitionEntry reaching this service has one.
+   * UpsertCompetitionSchema.eraId is optional to support partial-upsert
+   * payloads from other callers, but TpCompetitionsImportService always
+   * resolves eraId from the era name before building this upsert -- skipping
+   * and recording an error otherwise -- so every CompetitionEntry reaching
+   * this service has one.
    */
   private resolveDefiniteEraId(upsert: UpsertCompetition): number {
     if (upsert.eraId === undefined) {

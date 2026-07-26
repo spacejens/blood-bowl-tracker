@@ -11,23 +11,23 @@ interface ResolveDefiniteFieldOptions {
 }
 
 /**
- * Narrows widened-optional upsert fields (api-contract, issue #174 relaxed
- * several upsert schema fields to optional to support partial-upsert
- * payloads from other callers) back to a definite number for the import-bbl
- * services that always resolve these fields before building their upsert --
- * skipping and recording an error otherwise -- so every upsert reaching
- * these read sites has a definite value. Each method throws if that
- * invariant is ever violated, rather than silently reading `undefined`.
+ * Narrows widened-optional upsert fields (several upsert schema fields are
+ * optional to support partial-upsert payloads from other callers) back to a
+ * definite number for the import-bbl services that always resolve these
+ * fields before building their upsert -- skipping and recording an error
+ * otherwise -- so every upsert reaching these read sites has a definite
+ * value. Each method throws if that invariant is ever violated, rather than
+ * silently reading `undefined`.
  */
 @Injectable()
 export class UpsertFieldNarrowingService {
   /**
    * Narrow a competition upsert's eraId back to a definite number.
-   * UpsertCompetitionSchema.eraId is optional (api-contract, issue #174) to
-   * support partial-upsert payloads from other callers, but
-   * BblCompetitionsImportService always resolves eraId before building this
-   * upsert -- skipping and recording an error otherwise -- so every
-   * UpsertCompetition reaching this service has one.
+   * UpsertCompetitionSchema.eraId is optional to support partial-upsert
+   * payloads from other callers, but BblCompetitionsImportService always
+   * resolves eraId before building this upsert -- skipping and recording an
+   * error otherwise -- so every UpsertCompetition reaching this service has
+   * one.
    */
   resolveDefiniteEraId(competition: UpsertCompetition): number {
     return this.resolveDefiniteField({
@@ -39,11 +39,10 @@ export class UpsertFieldNarrowingService {
 
   /**
    * Narrow a team upsert's raceId back to a definite number.
-   * UpsertTeamSchema.raceId is optional (api-contract, issue #174) to
-   * support partial-upsert payloads from other callers, but
-   * BblTeamsImportService always resolves raceId before building this
-   * upsert -- skipping and recording an error otherwise -- so every
-   * UpsertTeam reaching this service has one.
+   * UpsertTeamSchema.raceId is optional to support partial-upsert payloads
+   * from other callers, but BblTeamsImportService always resolves raceId
+   * before building this upsert -- skipping and recording an error
+   * otherwise -- so every UpsertTeam reaching this service has one.
    */
   resolveDefiniteRaceId(team: UpsertTeam): number {
     return this.resolveDefiniteField({

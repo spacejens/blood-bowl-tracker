@@ -120,9 +120,9 @@ function upsertRaceOk(): (data: { name?: string }) => Promise<{
   return (data) =>
     Promise.resolve({
       id: nextId++,
-      // UpsertRaceSchema.name is optional (api-contract, issue #174), but
-      // this test's own fixtures always supply a race name, so it is safe to
-      // assert non-null here.
+      // UpsertRaceSchema.name is optional to support partial-upsert
+      // payloads, but this test's own fixtures always supply a race name,
+      // so it is safe to assert non-null here.
       name: data.name!,
       eras: [],
       createdAt: new Date('2026-01-01'),

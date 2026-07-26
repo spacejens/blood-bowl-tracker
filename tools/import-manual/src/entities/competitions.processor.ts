@@ -15,7 +15,7 @@ export class CompetitionsProcessor {
    * Upsert every declared competition. An entry that names an era has it
    * resolved against the run's ExternalIdMap; an entry that omits one passes
    * `eraId: undefined` through, so the upsert leaves the competition's stored
-   * era alone (issue #174) — which is what a rename-only entry wants.
+   * era alone — which is what a rename-only entry wants.
    * `teamEraIds` is always `[]`: manual data never declares competition/team
    * links, and the API's team-era sync is additive (it never removes existing
    * links), so an empty list leaves the competition's imported teams untouched.

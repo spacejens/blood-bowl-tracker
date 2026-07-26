@@ -34,7 +34,7 @@ export class MatchEventsService {
 
     // Every field is passed through exactly as supplied: `undefined` means the
     // payload said nothing about that column and upsertByExternalIds strips it,
-    // while an explicit `null` writes null (issue #174).
+    // while an explicit `null` writes null.
     const values = {
       matchId: data.matchId,
       actingMatchTeamId,

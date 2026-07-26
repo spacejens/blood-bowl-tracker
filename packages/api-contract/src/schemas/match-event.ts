@@ -130,7 +130,7 @@ export const UpsertMatchEventSchema = z
     consequenceTeamEraId: z.number().int().optional(),
     // Every field below maps 1:1 onto a nullable match_events column, so all
     // three states are expressible: a value writes it, null clears it,
-    // omission leaves the stored value alone (issue #174).
+    // omission leaves the stored value alone.
     actingPlayerId: z.number().int().nullable().optional(),
     consequencePlayerId: z.number().int().nullable().optional(),
     actionType: ActionTypeSchema.nullable().optional(),
