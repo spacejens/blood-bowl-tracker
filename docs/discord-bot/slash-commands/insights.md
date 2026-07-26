@@ -62,7 +62,7 @@ so you can navigate the tree without memorizing it.
 - `coach.toplist.timeBetweenMatches.average` — coaches ranked by the average gap
   across all of their consecutive matches, smallest first, shown in whole days.
   Same exclusions and filtering as above, plus the same minimum-5-matches floor
-  as `.shortest`.
+  as `.longest.ascending`.
 
 Each coach listed by the eight `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
