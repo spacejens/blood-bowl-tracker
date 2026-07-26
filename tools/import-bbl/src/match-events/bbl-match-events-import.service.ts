@@ -16,6 +16,7 @@ import { Injectable } from '@nestjs/common';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchMergeService } from '../matches/match-merge.service';
+import { resolveDefiniteEraId } from '../shared/resolve-definite';
 import { BblMatchEventsReaderService } from './bbl-match-events-reader.service';
 import type { CombinedOccurrences } from './match-event-correlation.service';
 import {
@@ -305,7 +306,7 @@ export class BblMatchEventsImportService {
     }
 
     const upsertedTeam = await this.teamsImport.upsertTeam(
-      { ...team, eras: [this.resolveDefiniteEraId(competition)] },
+      { ...team, eras: [resolveDefiniteEraId(competition)] },
       errors,
     );
     const teamEra = upsertedTeam?.eras.find(
@@ -313,23 +314,6 @@ export class BblMatchEventsImportService {
     );
     teamEraIdByCode.set(code, teamEra?.id);
     return teamEra?.id;
-  }
-
-  /**
-   * Narrow a competition upsert's eraId back to a definite number.
-   * UpsertCompetitionSchema.eraId is optional (api-contract, issue #174) to
-   * support partial-upsert payloads from other callers, but
-   * BblCompetitionsImportService always resolves eraId before building this
-   * upsert -- skipping and recording an error otherwise -- so every
-   * UpsertCompetition reaching this service has one.
-   */
-  private resolveDefiniteEraId(competition: UpsertCompetition): number {
-    if (competition.eraId === undefined) {
-      throw new Error(
-        `Competition "${competition.name}" has no eraId; import-bbl always resolves eraId before building its upsert.`,
-      );
-    }
-    return competition.eraId;
   }
 
   /**
