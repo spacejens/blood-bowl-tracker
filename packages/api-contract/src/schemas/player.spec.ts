@@ -37,4 +37,13 @@ describe('player schemas', () => {
       }),
     ).toThrow();
   });
+
+  it('UpsertPlayerSchema accepts an externalIds-only payload', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.name).toBeUndefined();
+    expect(parsed.teamEraId).toBeUndefined();
+    expect(parsed.positionId).toBeUndefined();
+  });
 });

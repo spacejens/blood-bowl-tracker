@@ -12,9 +12,9 @@ export const MatchSchema = z.object({
 });
 
 export const UpsertMatchSchema = z.object({
-  competitionId: z.number().int(),
-  playedAt: z.date(),
-  name: z.string().min(1),
+  competitionId: z.number().int().optional(),
+  playedAt: z.date().optional(),
+  name: z.string().min(1).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
   teamEraIds: z.array(z.number().int()).default([]),
 });

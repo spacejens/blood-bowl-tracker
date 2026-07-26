@@ -17,9 +17,9 @@ export const TeamSchema = z.object({
 });
 
 export const UpsertTeamSchema = z.object({
-  name: z.string().min(1),
-  raceId: z.number().int(),
-  coachId: z.number().int(),
+  name: z.string().min(1).optional(),
+  raceId: z.number().int().optional(),
+  coachId: z.number().int().optional(),
   eras: z.array(z.number().int()).default([]),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

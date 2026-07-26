@@ -12,9 +12,9 @@ export const CompetitionSchema = z.object({
 });
 
 export const UpsertCompetitionSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(['season', 'cup']),
-  eraId: z.number().int(),
+  name: z.string().min(1).optional(),
+  type: z.enum(['season', 'cup']).optional(),
+  eraId: z.number().int().optional(),
   teamEraIds: z.array(z.number().int()).default([]),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
