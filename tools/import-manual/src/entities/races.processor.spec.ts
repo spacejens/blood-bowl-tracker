@@ -174,4 +174,31 @@ describe('RacesProcessor', () => {
       idMap.resolve({ system: 'Name', id: 'name:null-race' }),
     ).toBeUndefined();
   });
+
+  it('upserts a rename-only race with an empty, additive era list', async () => {
+    races.upsertRace.mockResolvedValue({
+      id: 21,
+      name: 'Ogre',
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.races = [
+      { name: 'Ogre', eras: [], externalIds: [{ system: 'Name', id: 'ogre' }] },
+    ];
+
+    const count = await processor.process(
+      makeContext(data, new ExternalIdMap()),
+    );
+
+    expect(count).toBe(1);
+    expect(races.upsertRace.mock.calls[0][0]).toEqual({
+      name: 'Ogre',
+      eras: [],
+      externalIds: [],
+    });
+  });
 });
