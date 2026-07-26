@@ -144,10 +144,7 @@ describe('MatchEventsService', () => {
     expect(call?.values).toMatchObject({
       matchId: 10,
       eventType: 'weather',
-      actionType: null,
       weatherType: 'perfect_conditions',
-      actingPlayerId: null,
-      consequencePlayerId: null,
     });
   });
 
@@ -165,5 +162,42 @@ describe('MatchEventsService', () => {
       actionType: 'inducements',
       inducementsFromTreasury: 50,
     });
+  });
+
+  it('omits every unsupplied optional field from the insert', async () => {
+    await service.upsert(baseData);
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    // baseData supplies matchId, actingTeamEraId, actingPlayerId, actionType
+    // and nothing else — so nothing else may reach the database.
+    expect(Object.keys(call?.values as object).sort()).toEqual([
+      'actingMatchTeamId',
+      'actingPlayerId',
+      'actionType',
+      'matchId',
+    ]);
+  });
+
+  it('leaves unsupplied fields alone on update rather than nulling them', async () => {
+    externalIdRows = [{ ownerId: 1 }];
+
+    await service.upsert(baseData);
+
+    const call = updateCalls.find((c) => c.table === matchEvents);
+    expect(Object.keys(call?.set as object).sort()).toEqual([
+      'actingMatchTeamId',
+      'actingPlayerId',
+      'actionType',
+      'matchId',
+    ]);
+  });
+
+  it('writes an explicit null through to the update so a caller can clear a field', async () => {
+    externalIdRows = [{ ownerId: 1 }];
+
+    await service.upsert({ ...baseData, winnings: null });
+
+    const call = updateCalls.find((c) => c.table === matchEvents);
+    expect(call?.set).toMatchObject({ winnings: null });
   });
 });
