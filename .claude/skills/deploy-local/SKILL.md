@@ -17,19 +17,25 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform, via a multi-select question with exactly these six options, in this order — do not add a "Both", "All", or "Neither" option of your own invention, since `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none:
+0. Ask the developer which action(s) to perform. There are six actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **two `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees both in sequence and answers once. Ask exactly these two questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+
+   Both questions are one decision split in two, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what` and `Run what 2`.
+
+   **Question 1 — `question`: "Which action(s) should I run?"** (`multiSelect: true`):
    - **Deploy the stack** (recommended) — build and start the docker-compose stack.
    - **Run the manual import (before other importers)** — run `tools/import-manual/` against `data/before-other-importers` to seed hand-authored data before the system-specific importers.
    - **Run the BBL import** — run `tools/import-bbl/` to import data into a running instance.
    - **Run the TP import** — run `tools/import-tp/` to import data into a running instance.
+
+   **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the manual import (after other importers)** — run `tools/import-manual/` against `data/after-other-importers` to clean up names or attach external IDs after the system-specific importers.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The developer may select any combination of the six options above, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If nothing is selected, report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The **union** of the two answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the six options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in either question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 
-Run this section only if "Deploy the stack" was selected above.
+Run this section only if "Deploy the stack" was selected in step 0 above.
 
 1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, fill in what's missing from the main checkout before building:
    ```bash
