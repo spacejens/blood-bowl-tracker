@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { ExternalIdSchema } from './external-id';
+import { absent } from './shared/absent';
 
 export const ActionTypeSchema = z.enum([
   'touchdown',
@@ -112,10 +113,6 @@ export const MatchEventSchema = z.object({
   consequenceType: ConsequenceTypeSchema.nullable(),
   createdAt: z.coerce.date(),
 });
-
-/** True for both "not supplied" and "explicitly cleared". */
-const absent = (value: unknown): boolean =>
-  value === undefined || value === null;
 
 export const UpsertMatchEventSchema = z
   .object({
