@@ -1,14 +1,28 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
+import {
+  eraExternalIds,
+  eras,
+  rulesSetExternalIds,
+  rulesSets,
+} from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
+import { MissingRequiredFieldError } from './missing-required-field-error';
 import { upsertByExternalIds } from './upsert-by-external-ids';
 import { UpsertConflictError } from './upsert-conflict-error';
 
 class TestConflictError extends UpsertConflictError {}
 
-function makeDb(opts: { resolveRows: unknown[]; entityRow: unknown }) {
-  const where = vi.fn().mockResolvedValue(opts.resolveRows);
+function makeDb(opts: {
+  resolveRows: unknown[];
+  entityRow: unknown;
+  reselectRows?: unknown[];
+}) {
+  // Call 0 is resolveExistingByExternalIds' external-id lookup; call 1 (only
+  // issued on the all-fields-omitted path) re-reads the untouched entity row.
+  const selectResults = [opts.resolveRows, opts.reselectRows ?? []];
+  let selectCall = 0;
+  const where = vi.fn(() => Promise.resolve(selectResults[selectCall++] ?? []));
   const from = vi.fn(() => ({ where }));
   const select = vi.fn(() => ({ from }));
 
@@ -22,7 +36,7 @@ function makeDb(opts: { resolveRows: unknown[]; entityRow: unknown }) {
   const update = vi.fn(() => ({ set: updateSet }));
 
   const db = { select, insert, update } as unknown as Db;
-  return { db, insert, insertValues, update, updateSet };
+  return { db, select, insert, insertValues, update, updateSet };
 }
 
 // Shared column wiring — rulesSets is used the same way in the other
@@ -47,6 +61,31 @@ function baseOpts(db: Db) {
         externalId: string;
       },
     ) => ({ rulesSetId, ...pair }),
+  } as const;
+}
+
+// eras is the smallest table in the schema that carries all three shapes the
+// overlay logic distinguishes: NOT NULL columns without a default (name,
+// leagueId, startDate), a nullable column (endDate), and NOT NULL columns that
+// DO have a default and so must be ignored by the required-field check
+// (id/createdAt/updatedAt/historyVersion/historyPeriod).
+function eraOpts(db: Db, values: Record<string, unknown>) {
+  return {
+    db,
+    entityTable: eras,
+    entityIdColumn: eras.id,
+    values,
+    externalIdTable: eraExternalIds,
+    ownerIdColumn: eraExternalIds.eraId,
+    externalSystemIdColumn: eraExternalIds.externalSystemId,
+    externalIdColumn: eraExternalIds.externalId,
+    externalIds: [{ externalSystemId: 1, externalId: 'a' }],
+    ConflictErrorClass: TestConflictError,
+    entityLabelPlural: 'eras',
+    buildExternalIdRow: (
+      eraId: number,
+      pair: { externalSystemId: number; externalId: string },
+    ) => ({ eraId, ...pair }),
   } as const;
 }
 
@@ -95,5 +134,92 @@ describe('upsertByExternalIds', () => {
     // resolveRows already contains {1,'a'}, so no NEW external ids to insert.
     expect(insert).not.toHaveBeenCalled();
     expect(insertValues).not.toHaveBeenCalled();
+  });
+
+  it('omits an undefined field from the update, leaving the stored value alone', async () => {
+    const { db, updateSet } = makeDb({
+      resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+      entityRow: { id: 5, name: 'Renamed', endDate: '2023-06-10' },
+    });
+
+    await upsertByExternalIds(
+      eraOpts(db, { name: 'Renamed', endDate: undefined }),
+    );
+
+    expect(updateSet).toHaveBeenCalledWith({ name: 'Renamed' });
+  });
+
+  it('passes an explicit null straight through so the caller can clear a field', async () => {
+    const { db, updateSet } = makeDb({
+      resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+      entityRow: { id: 5, name: 'Renamed', endDate: null },
+    });
+
+    await upsertByExternalIds(eraOpts(db, { name: 'Renamed', endDate: null }));
+
+    expect(updateSet).toHaveBeenCalledWith({ name: 'Renamed', endDate: null });
+  });
+
+  it('skips the update and re-selects the row when every field is omitted', async () => {
+    // .set({}) is not valid drizzle, so an externalIds-only payload must read
+    // the current row back instead of writing an empty update.
+    const { db, select, update } = makeDb({
+      resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+      entityRow: { id: 5, name: 'Untouched' },
+      reselectRows: [{ id: 5, name: 'Untouched', endDate: '2023-06-10' }],
+    });
+
+    const result = await upsertByExternalIds(
+      eraOpts(db, { name: undefined, endDate: undefined }),
+    );
+
+    expect(update).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      row: { id: 5, name: 'Untouched', endDate: '2023-06-10' },
+      created: false,
+    });
+  });
+
+  it('throws MissingRequiredFieldError naming every missing column on the insert path', async () => {
+    const { db, insert } = makeDb({
+      resolveRows: [],
+      entityRow: { id: 7, name: 'Nope' },
+    });
+
+    await expect(
+      upsertByExternalIds(eraOpts(db, { name: 'Nope' })),
+    ).rejects.toThrow(
+      new MissingRequiredFieldError(
+        'Cannot create new eras: missing required field(s): leagueId, startDate',
+      ),
+    );
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it('inserts when every no-default NOT NULL column is supplied, ignoring defaulted ones', async () => {
+    // id/createdAt/updatedAt/historyVersion/historyPeriod are NOT NULL but
+    // carry database defaults, so their absence must not trip the check.
+    const { db, insertValues } = makeDb({
+      resolveRows: [],
+      entityRow: { id: 7, name: 'New era' },
+    });
+
+    const result = await upsertByExternalIds(
+      eraOpts(db, {
+        name: 'New era',
+        leagueId: 10,
+        startDate: '2021-09-01',
+        endDate: undefined,
+      }),
+    );
+
+    expect(result.created).toBe(true);
+    // endDate was undefined, so it is stripped rather than inserted.
+    expect(insertValues).toHaveBeenNthCalledWith(1, {
+      name: 'New era',
+      leagueId: 10,
+      startDate: '2021-09-01',
+    });
   });
 });
