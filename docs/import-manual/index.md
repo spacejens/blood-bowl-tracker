@@ -192,9 +192,9 @@ systems could not supply:
   existing row, which for competitions is the source system's numeric ID alone
   (competitions carry no `Name` external id — issue #285 removed it, because a
   shared `Name` id deduped genuinely distinct same-named competitions onto one
-  row). The file declares no eras, league or rules sets: with overlay upserts
-  (issue #174), omitting a competition's `era` leaves its stored era alone, so
-  there is nothing to resolve a reference against and nothing to redeclare.
+  row). The file declares no eras, league or rules sets: since upserts overlay,
+  omitting a competition's `era` leaves its stored era alone, so there is
+  nothing to resolve a reference against and nothing to redeclare.
 
 ## Data layout
 
