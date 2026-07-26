@@ -6,7 +6,10 @@ import { Test } from '@nestjs/testing';
 import { mockImportResultService } from '../import-package.test-helpers';
 import { TpMatchEventKindBuildersService } from './tp-match-event-kind-builders.service';
 import type { BuildEventDataOptions } from './tp-match-events-builder.types';
-import type { CasualtyPairing } from './tp-match-events-correlation.service';
+import type {
+  CasualtyPairing,
+  FoulPairing,
+} from './tp-match-events-correlation.service';
 
 /**
  * Shared fixtures for `tp-match-event-kind-builders-gameplay.spec.ts` and
@@ -55,6 +58,11 @@ function emptyCasualtyPairing(): CasualtyPairing {
   };
 }
 
+/** "Nothing paired" — the default for every test that isn't about foul pairing. */
+function emptyFoulPairing(): FoulPairing {
+  return { foulByInjuryEventId: new Map(), pairedFoulEventIds: new Set() };
+}
+
 /**
  * Build a `BuildEventDataOptions` around one event, narrowed to that
  * event's own variant so the per-kind `build*Event` signatures accept it.
@@ -66,6 +74,7 @@ export function buildOptions<E extends TpMatchEvent>(options: {
   event: E;
   errors?: ImportError[];
   casualtyPairing?: CasualtyPairing;
+  foulPairing?: FoulPairing;
 }): BuildEventDataOptions & { event: E } {
   return {
     event: options.event,
@@ -84,5 +93,6 @@ export function buildOptions<E extends TpMatchEvent>(options: {
     awayTeamEraId: AWAY_TEAM_ERA_ID,
     errors: options.errors ?? [],
     casualtyPairing: options.casualtyPairing ?? emptyCasualtyPairing(),
+    foulPairing: options.foulPairing ?? emptyFoulPairing(),
   };
 }
