@@ -124,10 +124,54 @@ cell segments across that team's removal rows whose text is exactly
 team's cells (catching achievement-row-only mentions); the emitted
 `journeymenCount` is `max(floor, removalCount)`, and one `journeymen_signings`
 event is emitted per side with a positive count. This is why BBL's
-`journeymenCount` is a proven minimum, not TP's exact per-roster count. General
-multi-entry cell-parsing gaps (unlinked entries dropped when mixed with a link,
-multiple non-journeyman text-only entries collapsed) are out of scope here and
-tracked in issue #255.
+`journeymenCount` is a proven minimum, not TP's exact per-roster count.
+
+Multi-entry cells: an event cell's `<br>`-separated segments are read one by
+one. A segment with player links yields one occurrence per link; a link-less
+segment is classified against a closed vocabulary of plain-text annotations
+(the list below), so an unlinked entry survives alongside a linked one in the
+same cell and several unlinked entries stay several occurrences.
+
+The vocabulary, taken from a survey of every mirrored match-detail page:
+
+| Segment text | Meaning |
+| --- | --- |
+| `fans / random event` | unidentified participant, kind `fans_or_random_event` |
+| `mercenary / fans / random event` | unidentified participant, kind `mercenary_or_fans_or_random_event` |
+| `mercenary / star` | unidentified participant, kind `mercenary_or_star` |
+| `journeyman` | unidentified participant, kind `journeyman` |
+| `mercenary` | unidentified participant, kind `mercenary` |
+| `victim healed by apoth` | casualty prevented by an apothecary (consequence rows only) |
+| `victim regenerated` | casualty prevented by regeneration (consequence rows only) |
+| `foul` | a casualty caused by a foul whose fouler BBL does not identify (casualty action rows only) — the same construct as `foul by <player link>`, minus the link |
+| `Extra shoot-out TD after tied overtime` | a known note, deliberately not an occurrence and not an error |
+
+BBL's own ambiguity is preserved rather than resolved: `mercenary / star`
+becomes one value meaning "a mercenary or a star player, the source does not
+say which". A journeyman or mercenary is a real player BBL merely does not
+index, which is why the stored field is called *unidentified* participant kind
+rather than "non-player".
+
+A prevented casualty is stored as `consequence_type = 'casualty_avoided'` with
+the prevented severity in `consequence_avoided_severity`, never as the severity
+itself, so no casualty-suffered statistic counts it as a real casualty. It is
+never merged with a causer action — a prevented casualty cannot be attributed
+to one of several candidate causers — and the causer BBL does list still emits
+its own action-only event.
+
+Anything else in a link-less segment, and any known annotation used in a row
+kind where it cannot apply (an avoided-consequence text in an achievement row,
+a bare `foul` in an injury row), produces no occurrence and is reported as a
+non-fatal import error naming the match, the row and the text. Guessing would
+re-introduce exactly the data loss this handling exists to prevent if the
+mirror's wording ever changes.
+
+TP provides none of this and needs no equivalent handling: it has no
+apothecary or regeneration signal on a casualty (only a roster-level "team has
+an apothecary" boolean, which says nothing about a given casualty), and it
+references every participant by `lineUpId` — journeymen, mercenaries and star
+players are all imported as real player rows — so the unidentified-kind columns
+stay null for TP-sourced events.
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
