@@ -555,6 +555,37 @@ describe('MatchEventCorrelationService', () => {
       ]);
     });
 
+    it('merges a stat_reduction_pa consequence with its serious_injury causer action', () => {
+      // stat_reduction_pa is an ordinary lasting-injury consequence, so the
+      // serious_injury group must accept it exactly like the other four
+      // stat_reduction_* types.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'basher' },
+          ],
+          consequences: [
+            { consequenceType: 'stat_reduction_pa', side: 'away', pid: 'v1' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'stat_reduction_pa',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'basher',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+      ]);
+    });
+
     it('merges nothing when two avoided consequences match one action', () => {
       const combined = service.combineOccurrences(
         makeEvents({

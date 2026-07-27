@@ -79,6 +79,7 @@ const SEVERITY_GROUPS: {
       'stat_reduction_st',
       'stat_reduction_ag',
       'stat_reduction_av',
+      'stat_reduction_pa',
     ]),
   },
   { action: 'death', consequences: new Set<ConsequenceType>(['death']) },
