@@ -24,7 +24,6 @@ const match: SampledMatch = {
 function eventRow(overrides: Record<string, unknown> = {}) {
   return {
     id: 501,
-    externalId: 'bbl-1830-1',
     actionType: null,
     consequenceType: null,
     eventType: null,
@@ -68,13 +67,16 @@ async function makeService(
 
 describe('MatchEventsDbRendererService', () => {
   it('renders one row per imported event with its core fields', async () => {
-    const dbResult = mockDb([
-      eventRow({
-        actionType: 'foul',
-        actingPlayerName: 'Betong Bengt',
-        actingTeamName: 'Bräkenäs Betongbockar',
-      }),
-    ]);
+    const dbResult = mockDb(
+      [
+        eventRow({
+          actionType: 'foul',
+          actingPlayerName: 'Betong Bengt',
+          actingTeamName: 'Bräkenäs Betongbockar',
+        }),
+      ],
+      [{ matchEventId: 501, externalIds: ['bbl-1830-1'] }],
+    );
     const service = await makeService(dbResult);
 
     const html = await service.render(match);
@@ -86,6 +88,38 @@ describe('MatchEventsDbRendererService', () => {
     expect(html).toContain('<td>Bräkenäs Betongbockar</td>');
     expect(html).toContain('<td>bbl-1830-1</td>');
     expect(html).toContain('<td>501</td>');
+  });
+
+  it('stacks every external id an event has in the External ID column', async () => {
+    const dbResult = mockDb(
+      [eventRow({ id: 501, actionType: 'death', consequenceType: 'death' })],
+      [
+        {
+          matchEventId: 501,
+          externalIds: ['89-awy-death-0', '89-hme-death-0'],
+        },
+      ],
+    );
+    const service = await makeService(dbResult);
+
+    const html = await service.render(match);
+
+    // One row, both ids — not one row per id.
+    expect(html).toContain('<td>89-awy-death-0<br>89-hme-death-0</td>');
+    expect(html.match(/<tr><td>501</g) ?? []).toHaveLength(1);
+  });
+
+  it('renders an em dash when an event has no external id for this system', async () => {
+    const dbResult = mockDb(
+      [eventRow({ id: 501 })],
+      [{ matchEventId: 999, externalIds: ['bbl-1830-9'] }],
+    );
+    const service = await makeService(dbResult);
+
+    const html = await service.render(match);
+
+    expect(html).toContain('<td>501</td><td>—</td>');
+    expect(html).not.toContain('bbl-1830-9');
   });
 
   it('renders an em dash for fields the event does not have', async () => {
