@@ -40,35 +40,45 @@ export class LeaguesDownloaderService {
     frontendUrl: string,
     dirName: string,
   ): Promise<void> {
-    await this.pageViewerService.viewPage(tournamentUrl + '/news', dirName);
-    const fixturesPageResult = await this.pageViewerService.viewPage(
-      tournamentUrl + '/scores',
+    await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/news',
       dirName,
-    );
+    });
+    const fixturesPageResult = await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/scores',
+      dirName,
+    });
     await this.downloadMatches(fixturesPageResult, tournamentUrl, dirName);
-    await this.pageViewerService.viewPage(
-      tournamentUrl + '/classifications',
+    await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/classifications',
       dirName,
-    );
-    await this.pageViewerService.viewPage(tournamentUrl + '/honours', dirName, [
-      { selector: '.mat-button-toggle-button', textContent: 'Team' },
-      { selector: '.mat-button-toggle-button', textContent: 'Player' },
-      { selector: '.mat-button-toggle-button', textContent: 'Coach' },
-    ]);
-    await this.pageViewerService.viewPage(
-      tournamentUrl + '/statistics',
+    });
+    await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/honours',
       dirName,
-    );
-    const participantsPageResult = await this.pageViewerService.viewPage(
-      tournamentUrl + '/players',
+      clickableElements: [
+        { selector: '.mat-button-toggle-button', textContent: 'Team' },
+        { selector: '.mat-button-toggle-button', textContent: 'Player' },
+        { selector: '.mat-button-toggle-button', textContent: 'Coach' },
+      ],
+    });
+    await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/statistics',
       dirName,
-    );
+    });
+    const participantsPageResult = await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/players',
+      dirName,
+    });
     await this.downloadParticipants(
       participantsPageResult,
       frontendUrl,
       dirName,
     );
-    await this.pageViewerService.viewPage(tournamentUrl + '/awards', dirName);
+    await this.pageViewerService.viewPage({
+      pageUrl: tournamentUrl + '/awards',
+      dirName,
+    });
   }
 
   private async downloadMatches(
@@ -84,10 +94,10 @@ export class LeaguesDownloaderService {
       for (const round of phase.rounds) {
         for (const group of round.groups) {
           for (const match of group.matches) {
-            await this.pageViewerService.viewPage(
-              tournamentUrl + '/match/' + match.matchId,
+            await this.pageViewerService.viewPage({
+              pageUrl: tournamentUrl + '/match/' + match.matchId,
               dirName,
-            );
+            });
           }
         }
       }
@@ -105,10 +115,10 @@ export class LeaguesDownloaderService {
     ) as Record<string, TpInscription[]>;
     for (const inscriptions of Object.values(participantsListResponse)) {
       for (const inscription of inscriptions) {
-        await this.pageViewerService.viewPage(
-          frontendUrl + 'roster/' + inscription.roster.id,
+        await this.pageViewerService.viewPage({
+          pageUrl: frontendUrl + 'roster/' + inscription.roster.id,
           dirName,
-        );
+        });
       }
     }
   }

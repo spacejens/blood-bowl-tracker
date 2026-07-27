@@ -34,15 +34,15 @@ describe('LeaguesDownloaderService', () => {
     scores: Map<string, unknown>,
     players: Map<string, unknown>,
   ): void {
-    pageViewer.viewPage.mockImplementation((pageUrl: string) => {
-      if (pageUrl.endsWith('/scores')) return Promise.resolve(scores);
-      if (pageUrl.endsWith('/players')) return Promise.resolve(players);
+    pageViewer.viewPage.mockImplementation((options) => {
+      if (options.pageUrl.endsWith('/scores')) return Promise.resolve(scores);
+      if (options.pageUrl.endsWith('/players')) return Promise.resolve(players);
       return Promise.resolve(new Map<string, unknown>());
     });
   }
 
   function visitedUrls(): string[] {
-    return pageViewer.viewPage.mock.calls.map((call) => call[0]);
+    return pageViewer.viewPage.mock.calls.map((call) => call[0].pageUrl);
   }
 
   beforeEach(async () => {
@@ -108,7 +108,7 @@ describe('LeaguesDownloaderService', () => {
       `${base}/awards`,
     ]);
     for (const call of pageViewer.viewPage.mock.calls) {
-      expect(call[1]).toBe('season-30');
+      expect(call[0].dirName).toBe('season-30');
     }
   });
 
@@ -116,13 +116,15 @@ describe('LeaguesDownloaderService', () => {
     await service.downloadAllLeagues();
 
     expect(pageViewer.viewPage).toHaveBeenCalledWith(
-      `${FRONTEND}season-30/honours`,
-      'season-30',
-      [
-        { selector: '.mat-button-toggle-button', textContent: 'Team' },
-        { selector: '.mat-button-toggle-button', textContent: 'Player' },
-        { selector: '.mat-button-toggle-button', textContent: 'Coach' },
-      ],
+      expect.objectContaining({
+        pageUrl: `${FRONTEND}season-30/honours`,
+        dirName: 'season-30',
+        clickableElements: [
+          { selector: '.mat-button-toggle-button', textContent: 'Team' },
+          { selector: '.mat-button-toggle-button', textContent: 'Player' },
+          { selector: '.mat-button-toggle-button', textContent: 'Coach' },
+        ],
+      }),
     );
   });
 

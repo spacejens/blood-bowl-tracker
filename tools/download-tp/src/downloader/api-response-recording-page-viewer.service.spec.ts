@@ -280,6 +280,10 @@ describe('ApiResponseRecordingPageViewerService', () => {
         }) as never,
       );
     });
+    // The mocked evaluate signature is untyped (ReturnType<typeof vi.fn>), so
+    // its inferred parameter type is a void-returning function; the real
+    // page.evaluate is async, and this mock simulates that faithfully.
+    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     page.evaluate.mockImplementation((_fn: unknown, url: string) =>
       Promise.resolve({ round: url.endsWith('round=2') ? 2 : 3 }),
     );
