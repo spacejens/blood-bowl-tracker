@@ -167,6 +167,43 @@ describe('MatchSamplerService', () => {
     });
   });
 
+  it('does not duplicate a reason already recorded for a match', async () => {
+    const { service, config, lookup } = await makeHarness();
+    // Two distinct override ids that both resolve to the same DB match —
+    // merge() must not record the 'override' reason twice for it.
+    config.getOverrides.mockImplementation((source) =>
+      source === 'bbl' ? ['1001', '1001-alias'] : [],
+    );
+    lookup.findByExternalIds.mockImplementation((source) =>
+      Promise.resolve(
+        source === 'bbl' ? [reviewMatch('bbl', 1), reviewMatch('bbl', 1)] : [],
+      ),
+    );
+
+    const { matches } = await service.sample();
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].selectedFor).toEqual(['override']);
+  });
+
+  it('breaks a tie between same-source matches played on the same date by id', async () => {
+    const { service, stratifier } = await makeHarness();
+    stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
+      Promise.resolve(
+        source === 'bbl' && stratumId === 'foul'
+          ? [
+              reviewMatch('bbl', 2, '2021-09-25T18:00:00.000Z'),
+              reviewMatch('bbl', 1, '2021-09-25T18:00:00.000Z'),
+            ]
+          : [],
+      ),
+    );
+
+    const { matches } = await service.sample();
+
+    expect(matches.map((match) => match.matchId)).toEqual([1, 2]);
+  });
+
   it('orders matches by source, then by play date, then by id', async () => {
     const { service, stratifier } = await makeHarness();
     stratifier.sampleStratum.mockImplementation(({ source, stratumId }) =>
