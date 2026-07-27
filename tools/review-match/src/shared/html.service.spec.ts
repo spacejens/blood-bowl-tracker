@@ -67,4 +67,16 @@ describe('HtmlService', () => {
       );
     });
   });
+
+  describe('subheading', () => {
+    it('renders the text in an h5, escaped', () => {
+      expect(service.subheading('Source match 1830')).toBe(
+        '<h5>Source match 1830</h5>',
+      );
+    });
+
+    it('escapes markup in the subheading text', () => {
+      expect(service.subheading('a & <b>')).toBe('<h5>a &amp; &lt;b&gt;</h5>');
+    });
+  });
 });

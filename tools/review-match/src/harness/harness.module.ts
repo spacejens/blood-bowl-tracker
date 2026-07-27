@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { MatchEventStratificationService } from '../match-events/match-event-stratification.service';
 import { MatchEventsModule } from '../match-events/match-events.module';
 import { MatchEventsReviewerService } from '../match-events/match-events-reviewer.service';
+import { MergedMatchStratificationService } from '../match-events/merged-match-stratification.service';
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { MATCH_STRATIFIERS } from '../shared/match-stratifier';
 import { SharedModule } from '../shared/shared.module';
@@ -34,10 +35,14 @@ import { ReviewService } from './review.service';
     },
     {
       provide: MATCH_STRATIFIERS,
-      useFactory: (matchEvents: MatchEventStratificationService) => [
-        matchEvents,
+      useFactory: (
+        matchEvents: MatchEventStratificationService,
+        merged: MergedMatchStratificationService,
+      ) => [matchEvents, merged],
+      inject: [
+        MatchEventStratificationService,
+        MergedMatchStratificationService,
       ],
-      inject: [MatchEventStratificationService],
     },
   ],
   exports: [ReviewService],

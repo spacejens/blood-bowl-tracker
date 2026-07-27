@@ -61,8 +61,28 @@ describe('MatchEventsReviewerService', () => {
     await expect(service.getRawSource(match('bbl'))).resolves.toBe(
       '<p>bbl raw</p>',
     );
-    expect(bbl.render).toHaveBeenCalledWith('1830');
+    expect(bbl.render).toHaveBeenCalledWith(['1830']);
     expect(tp.render).not.toHaveBeenCalled();
+  });
+
+  it('renders both source pages for a BBL match merged from two rows', async () => {
+    const { service, bbl } = await makeHarness();
+
+    await service.getRawSource({
+      ...match('bbl'),
+      secondaryExternalId: '1831',
+      selectedFor: ['BBL four-team match merged from two source pages'],
+    });
+
+    expect(bbl.render).toHaveBeenCalledWith(['1830', '1831']);
+  });
+
+  it('renders a single source page for a BBL match with no paired row', async () => {
+    const { service, bbl } = await makeHarness();
+
+    await service.getRawSource(match('bbl'));
+
+    expect(bbl.render).toHaveBeenCalledWith(['1830']);
   });
 
   it('renders the TP raw panel for a TP match', async () => {

@@ -102,6 +102,29 @@ describe('MatchSamplerService', () => {
     ]);
   });
 
+  it('backfills secondaryExternalId when a later stratum finds it for a match already selected', async () => {
+    const { service, stratifier } = await makeHarness();
+    stratifier.sampleStratum.mockImplementation(({ source, stratumId }) => {
+      if (source !== 'bbl') {
+        return Promise.resolve([]);
+      }
+      if (stratumId === 'foul') {
+        return Promise.resolve([reviewMatch('bbl', 1)]);
+      }
+      if (stratumId === 'avoided') {
+        return Promise.resolve([
+          { ...reviewMatch('bbl', 1), secondaryExternalId: '2001' },
+        ]);
+      }
+      return Promise.resolve([]);
+    });
+
+    const { matches } = await service.sample();
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].secondaryExternalId).toBe('2001');
+  });
+
   it('records a gap for a stratum with no matching data instead of failing', async () => {
     const { service } = await makeHarness();
 

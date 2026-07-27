@@ -87,7 +87,15 @@ export class MatchEventStratificationService implements MatchStratifier {
     const rows = await this.db
       .select({
         matchId: matches.id,
-        externalId: matchExternalIds.externalId,
+        // Lowest external id, not just `matchExternalIds.externalId`: a
+        // merged BBL match has two external-id rows for the same match
+        // under the same system, and grouping by the raw column would
+        // surface it as two rows here — halving its effective sample and
+        // sometimes naming the report by the secondary id instead of the
+        // primary. `min()` (cast for numeric, not lexicographic, ordering)
+        // matches the "primary = numerically lower id" convention
+        // `MergedMatchStratificationService` establishes.
+        externalId: sql<string>`min(${matchExternalIds.externalId}::integer)::text`,
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
@@ -103,13 +111,7 @@ export class MatchEventStratificationService implements MatchStratifier {
         ),
       )
       .where(condition)
-      .groupBy(
-        matches.id,
-        matchExternalIds.externalId,
-        matches.name,
-        competitions.name,
-        matches.playedAt,
-      )
+      .groupBy(matches.id, matches.name, competitions.name, matches.playedAt)
       // Random, not newest-first: every stratum querying "the same handful
       // of most recent matches" would otherwise collapse a large sample
       // into a handful of overlapping matches, defeating the point of
