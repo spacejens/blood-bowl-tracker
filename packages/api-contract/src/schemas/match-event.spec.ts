@@ -165,4 +165,97 @@ describe('UpsertMatchEventSchema', () => {
       }),
     ).toThrow();
   });
+
+  it('accepts a casualty_avoided consequence with its avoided-by and severity', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      consequenceTeamEraId: 6,
+      consequenceType: 'casualty_avoided',
+      consequenceAvoidedBy: 'apothecary',
+      consequenceAvoidedSeverity: 'death',
+    });
+    expect(parsed.consequenceType).toBe('casualty_avoided');
+    expect(parsed.consequenceAvoidedBy).toBe('apothecary');
+    expect(parsed.consequenceAvoidedSeverity).toBe('death');
+  });
+
+  it('accepts an unidentified participant kind on both roles', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actionType: 'badly_hurt',
+      consequenceType: 'badly_hurt',
+      actingUnidentifiedKind: 'mercenary_or_star',
+      consequenceUnidentifiedKind: 'journeyman',
+    });
+    expect(parsed.actingUnidentifiedKind).toBe('mercenary_or_star');
+    expect(parsed.consequenceUnidentifiedKind).toBe('journeyman');
+  });
+
+  it('accepts every unidentified participant kind', () => {
+    for (const kind of [
+      'journeyman',
+      'mercenary',
+      'mercenary_or_star',
+      'fans_or_random_event',
+      'mercenary_or_fans_or_random_event',
+    ] as const) {
+      const parsed = UpsertMatchEventSchema.parse({
+        ...base,
+        actionType: 'foul',
+        actingUnidentifiedKind: kind,
+      });
+      expect(parsed.actingUnidentifiedKind).toBe(kind);
+    }
+  });
+
+  it('accepts regeneration as an avoided-by value', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      consequenceType: 'casualty_avoided',
+      consequenceAvoidedBy: 'regeneration',
+      consequenceAvoidedSeverity: 'miss_next_game',
+    });
+    expect(parsed.consequenceAvoidedBy).toBe('regeneration');
+  });
+
+  it('rejects an unknown unidentified participant kind', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        actionType: 'foul',
+        actingUnidentifiedKind: 'wizard',
+      }),
+    ).toThrow();
+  });
+
+  it('rejects an unknown avoided-by value', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        ...base,
+        consequenceType: 'casualty_avoided',
+        consequenceAvoidedBy: 'sheer_luck',
+      }),
+    ).toThrow();
+  });
+
+  it('accepts explicit nulls for the new nullable column fields', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      actionType: 'touchdown',
+      actingUnidentifiedKind: null,
+      consequenceUnidentifiedKind: null,
+      consequenceAvoidedBy: null,
+      consequenceAvoidedSeverity: null,
+    });
+    expect(parsed.actingUnidentifiedKind).toBeNull();
+    expect(parsed.consequenceAvoidedSeverity).toBeNull();
+  });
+
+  it('satisfies the classification refine with casualty_avoided alone', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      ...base,
+      consequenceType: 'casualty_avoided',
+    });
+    expect(parsed.consequenceType).toBe('casualty_avoided');
+  });
 });

@@ -39,6 +39,34 @@ export const ConsequenceTypeSchema = z.enum([
   'expensive_mistake',
   'concession',
   'dedicated_fans',
+  /**
+   * A casualty the source reports as prevented (by an apothecary or by
+   * regeneration). Deliberately NOT one of the real casualty consequences:
+   * the prevented severity is carried separately in
+   * `consequenceAvoidedSeverity`, so no casualty-suffered statistic counts a
+   * prevented casualty as a real one.
+   */
+  'casualty_avoided',
+]);
+
+/**
+ * What BBL says an un-indexed participant was, when it renders the
+ * participant as plain text instead of a player link. The source's own
+ * ambiguity is preserved rather than resolved — `mercenary_or_star` means
+ * "a mercenary or a star player, the source does not say which".
+ */
+export const UnidentifiedParticipantKindSchema = z.enum([
+  'journeyman',
+  'mercenary',
+  'mercenary_or_star',
+  'fans_or_random_event',
+  'mercenary_or_fans_or_random_event',
+]);
+
+/** How a casualty the source reports was prevented from taking effect. */
+export const ConsequenceAvoidedBySchema = z.enum([
+  'apothecary',
+  'regeneration',
 ]);
 
 /**
@@ -132,6 +160,23 @@ export const UpsertMatchEventSchema = z
     consequencePlayerId: z.number().int().nullable().optional(),
     actionType: ActionTypeSchema.nullable().optional(),
     consequenceType: ConsequenceTypeSchema.nullable().optional(),
+    /**
+     * Set when the acting participant was not an indexed player: what the
+     * source says it was. Independent of `actingPlayerId`, which stays null
+     * for such an occurrence.
+     */
+    actingUnidentifiedKind:
+      UnidentifiedParticipantKindSchema.nullable().optional(),
+    /** Same, for the consequence recipient. */
+    consequenceUnidentifiedKind:
+      UnidentifiedParticipantKindSchema.nullable().optional(),
+    /** Only set together with `consequenceType: 'casualty_avoided'`. */
+    consequenceAvoidedBy: ConsequenceAvoidedBySchema.nullable().optional(),
+    /**
+     * Which severity was prevented. Reuses `ConsequenceTypeSchema` because
+     * every severity it needs is already a value there.
+     */
+    consequenceAvoidedSeverity: ConsequenceTypeSchema.nullable().optional(),
     eventType: EventTypeSchema.nullable().optional(),
     weatherType: WeatherTypeSchema.nullable().optional(),
     inducementsCost: z.number().int().nullable().optional(),
@@ -170,6 +215,10 @@ export const UpsertMatchEventSchema = z
 
 export type ActionType = z.infer<typeof ActionTypeSchema>;
 export type ConsequenceType = z.infer<typeof ConsequenceTypeSchema>;
+export type UnidentifiedParticipantKind = z.infer<
+  typeof UnidentifiedParticipantKindSchema
+>;
+export type ConsequenceAvoidedBy = z.infer<typeof ConsequenceAvoidedBySchema>;
 export type EventType = z.infer<typeof EventTypeSchema>;
 export type WeatherType = z.infer<typeof WeatherTypeSchema>;
 export type SecretObjective = z.infer<typeof SecretObjectiveSchema>;
