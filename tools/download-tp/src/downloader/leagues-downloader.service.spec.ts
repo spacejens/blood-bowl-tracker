@@ -9,19 +9,14 @@ import { LeaguesDownloaderService } from './leagues-downloader.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
 
-const matchesResponse = {
-  phaseA: {
-    rounds: [
-      {
-        groups: [{ matches: [{ matchId: 'm1' }, { matchId: 'm2' }] }],
-      },
-      { groups: [{ matches: [{ matchId: 'm3' }] }] },
-    ],
-  },
+const singleRoundPhase = {
+  currentRound: 1,
+  rounds: [{ roundNumber: 1 }],
+  matches: [{ matchId: 'm1' }, { matchId: 'm2' }],
 };
 
 const inscriptionsResponse = {
-  entries: [{ roster: { id: 'r1' } }, { roster: { id: 'r2' } }],
+  '22494': [{ roster: { id: 'r1' } }, { roster: { id: 'r2' } }],
 };
 
 describe('LeaguesDownloaderService', () => {
@@ -56,10 +51,16 @@ describe('LeaguesDownloaderService', () => {
     fileSystemService = mock<FileSystemService>();
     stubPages(
       new Map<string, unknown>([
-        ['tournament_x_phases?type=COACH', matchesResponse],
+        [
+          'tournaments/18442/phases?page=0&pageSize=50&phaseId=1&type=COACH',
+          singleRoundPhase,
+        ],
       ]),
       new Map<string, unknown>([
-        ['tournament_x_inscriptions', inscriptionsResponse],
+        [
+          'tournaments/18442/category/22494/inscriptions?page=0&pageSize=75',
+          inscriptionsResponse,
+        ],
       ]),
     );
     const moduleRef = await Test.createTestingModule({
@@ -98,7 +99,6 @@ describe('LeaguesDownloaderService', () => {
       `${base}/scores`,
       `${base}/match/m1`,
       `${base}/match/m2`,
-      `${base}/match/m3`,
       `${base}/classifications`,
       `${base}/honours`,
       `${base}/statistics`,
@@ -128,21 +128,84 @@ describe('LeaguesDownloaderService', () => {
     );
   });
 
-  it('uses the last response whose URL ends with the expected suffix', async () => {
+  it('visits the matches of every phase response, not just one', async () => {
     stubPages(
       new Map<string, unknown>([
-        ['first_phases?type=COACH', { ignored: { rounds: [] } }],
         [
-          'second_phases?type=COACH',
-          { only: { rounds: [{ groups: [{ matches: [{ matchId: 'z' }] }] }] } },
+          'tournaments/18442/phases?page=0&pageSize=50&phaseId=1&type=COACH',
+          {
+            currentRound: 1,
+            rounds: [{ roundNumber: 1 }],
+            matches: [{ matchId: 'a' }],
+          },
+        ],
+        [
+          'tournaments/18442/phases?page=0&pageSize=50&phaseId=2&type=COACH',
+          {
+            currentRound: 1,
+            rounds: [{ roundNumber: 1 }],
+            matches: [{ matchId: 'b' }],
+          },
         ],
       ]),
-      new Map<string, unknown>([['x_inscriptions', { entries: [] }]]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
     );
 
     await service.downloadAllLeagues();
 
-    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/z`);
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/a`);
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/b`);
+  });
+
+  it('visits the rosters of every inscriptions response, not just one', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        [
+          'x/phases?type=COACH',
+          { currentRound: 1, rounds: [{ roundNumber: 1 }], matches: [] },
+        ],
+      ]),
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/category/1/inscriptions?page=0&pageSize=75',
+          { '1': [{ roster: { id: 'r1' } }] },
+        ],
+        [
+          'tournaments/18442/category/2/inscriptions?page=0&pageSize=75',
+          { '2': [{ roster: { id: 'r2' } }] },
+        ],
+      ]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(visitedUrls()).toContain(`${FRONTEND}roster/r1`);
+    expect(visitedUrls()).toContain(`${FRONTEND}roster/r2`);
+  });
+
+  it('ignores a response whose path merely contains, but does not end with, the suffix', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/phases/summary?x=1',
+          { matches: [{ matchId: 'nope' }] },
+        ],
+        [
+          'tournaments/18442/phases?phaseId=1&type=COACH',
+          {
+            currentRound: 1,
+            rounds: [{ roundNumber: 1 }],
+            matches: [{ matchId: 'yes' }],
+          },
+        ],
+      ]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/yes`);
+    expect(visitedUrls()).not.toContain(`${FRONTEND}season-30/match/nope`);
   });
 
   it('throws when the fixtures page has no phases response', async () => {
@@ -152,20 +215,23 @@ describe('LeaguesDownloaderService', () => {
     );
 
     await expect(service.downloadAllLeagues()).rejects.toThrow(
-      'Did not find expected response with URL suffix phases?type=COACH',
+      'Did not find any response with URL path ending in phases',
     );
   });
 
   it('throws when the players page has no inscriptions response', async () => {
     stubPages(
       new Map<string, unknown>([
-        ['x_phases?type=COACH', { p: { rounds: [] } }],
+        [
+          'x/phases?type=COACH',
+          { currentRound: 1, rounds: [{ roundNumber: 1 }], matches: [] },
+        ],
       ]),
       new Map<string, unknown>([['something-else', {}]]),
     );
 
     await expect(service.downloadAllLeagues()).rejects.toThrow(
-      'Did not find expected response with URL suffix inscriptions',
+      'Did not find any response with URL path ending in inscriptions',
     );
   });
 });

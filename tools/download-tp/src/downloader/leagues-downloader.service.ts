@@ -4,9 +4,16 @@ import { ConfigService } from '@nestjs/config';
 import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
 import { FileSystemService } from './file-system.service';
 
-/** Shape of the parts of the TP phases response this service traverses. */
+/**
+ * Shape of the parts of a TP phases response this service traverses. The live
+ * API returns one response per phase, each flat: its matches are directly on
+ * `matches` (carrying their own `group`), not nested under `rounds[].groups[]`
+ * as an older single-response API did.
+ */
 type TpPhase = {
-  rounds: { groups: { matches: { matchId: string }[] }[] }[];
+  currentRound?: number;
+  rounds?: { roundNumber: number }[];
+  matches?: { matchId: string }[];
 };
 
 /** Shape of the parts of the TP inscriptions response this service traverses. */
@@ -86,20 +93,21 @@ export class LeaguesDownloaderService {
     tournamentUrl: string,
     dirName: string,
   ): Promise<void> {
-    const matchListResponse = this.findResponse(
-      'phases?type=COACH',
+    const phases = this.findResponses(
+      'phases',
       fixturesPageResult,
-    ) as Record<string, TpPhase>;
-    for (const phase of Object.values(matchListResponse)) {
-      for (const round of phase.rounds) {
-        for (const group of round.groups) {
-          for (const match of group.matches) {
-            await this.pageViewerService.viewPage({
-              pageUrl: tournamentUrl + '/match/' + match.matchId,
-              dirName,
-            });
-          }
-        }
+    ) as TpPhase[];
+    if (phases.length === 0) {
+      throw new Error(
+        'Did not find any response with URL path ending in phases',
+      );
+    }
+    for (const phase of phases) {
+      for (const match of phase.matches ?? []) {
+        await this.pageViewerService.viewPage({
+          pageUrl: tournamentUrl + '/match/' + match.matchId,
+          dirName,
+        });
       }
     }
   }
@@ -109,35 +117,49 @@ export class LeaguesDownloaderService {
     frontendUrl: string,
     dirName: string,
   ): Promise<void> {
-    const participantsListResponse = this.findResponse(
+    // The live API paginates participants per category, so there is one
+    // response per category rather than one for the whole tournament. Each
+    // one is still keyed by category id.
+    const participantsListResponses = this.findResponses(
       'inscriptions',
       participantsPageResult,
-    ) as Record<string, TpInscription[]>;
-    for (const inscriptions of Object.values(participantsListResponse)) {
-      for (const inscription of inscriptions) {
-        await this.pageViewerService.viewPage({
-          pageUrl: frontendUrl + 'roster/' + inscription.roster.id,
-          dirName,
-        });
+    ) as Record<string, TpInscription[]>[];
+    if (participantsListResponses.length === 0) {
+      throw new Error(
+        'Did not find any response with URL path ending in inscriptions',
+      );
+    }
+    for (const participantsListResponse of participantsListResponses) {
+      for (const inscriptions of Object.values(participantsListResponse)) {
+        for (const inscription of inscriptions) {
+          await this.pageViewerService.viewPage({
+            pageUrl: frontendUrl + 'roster/' + inscription.roster.id,
+            dirName,
+          });
+        }
       }
     }
   }
 
-  private findResponse(
-    urlSuffix: string,
+  /**
+   * Finds every response whose URL path — the part before any query string —
+   * ends with the given suffix. Matching on the path is what makes this
+   * robust against TP's per-phase/per-category pagination query parameters.
+   */
+  private findResponses(
+    pathSuffix: string,
     pageResult: Map<string, unknown>,
-  ): unknown {
-    let foundResponse: unknown;
+  ): unknown[] {
+    const foundResponses: unknown[] = [];
     pageResult.forEach((response, requestUrl) => {
-      if (requestUrl.endsWith(urlSuffix)) {
-        foundResponse = response;
+      if (this.pathEndsWith(requestUrl, pathSuffix)) {
+        foundResponses.push(response);
       }
     });
-    if (foundResponse) {
-      return foundResponse;
-    }
-    throw new Error(
-      `Did not find expected response with URL suffix ${urlSuffix}`,
-    );
+    return foundResponses;
+  }
+
+  private pathEndsWith(requestUrl: string, pathSuffix: string): boolean {
+    return requestUrl.split('?')[0].endsWith(pathSuffix);
   }
 }
