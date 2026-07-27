@@ -44,7 +44,10 @@ export const awayTeam: UpsertTeam = {
  */
 export function makeEvents(
   parts: Partial<
-    Pick<BblMatchEvents, 'actions' | 'consequences' | 'journeymenCount'>
+    Pick<
+      BblMatchEvents,
+      'actions' | 'consequences' | 'journeymenCount' | 'annotationErrors'
+    >
   >,
 ): BblMatchEvents {
   return {
@@ -54,6 +57,7 @@ export function makeEvents(
     actions: parts.actions ?? [],
     consequences: parts.consequences ?? [],
     journeymenCount: parts.journeymenCount,
+    annotationErrors: parts.annotationErrors,
   };
 }
 

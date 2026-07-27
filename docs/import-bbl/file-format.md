@@ -124,10 +124,77 @@ cell segments across that team's removal rows whose text is exactly
 team's cells (catching achievement-row-only mentions); the emitted
 `journeymenCount` is `max(floor, removalCount)`, and one `journeymen_signings`
 event is emitted per side with a positive count. This is why BBL's
-`journeymenCount` is a proven minimum, not TP's exact per-roster count. General
-multi-entry cell-parsing gaps (unlinked entries dropped when mixed with a link,
-multiple non-journeyman text-only entries collapsed) are out of scope here and
-tracked in issue #255.
+`journeymenCount` is a proven minimum, not TP's exact per-roster count.
+
+Multi-entry cells: an event cell's `<br>`-separated segments are read one by
+one — `<br>` is the only separator BBL uses between entries in a cell, so a
+cell with no `<br>` is always exactly one segment. A segment is not the same
+as an occurrence, though: a segment with player links yields one occurrence
+per link, so a `<br>`-less cell can still produce several occurrences. A
+link-less segment is classified against a closed vocabulary of plain-text
+annotations (the list below), so an unlinked entry survives alongside a
+linked one in the same cell and several unlinked entries stay several
+occurrences.
+
+The vocabulary, taken from a survey of every mirrored match-detail page:
+
+| Segment text | Meaning |
+| --- | --- |
+| `fans / random event` | unidentified participant, kind `fans_or_random_event` |
+| `mercenary / fans / random event` | unidentified participant, kind `mercenary_or_fans_or_random_event` |
+| `mercenary / star` | unidentified participant, kind `mercenary_or_star` |
+| `journeyman` | unidentified participant, kind `journeyman` |
+| `mercenary` | unidentified participant, kind `mercenary` |
+| `victim healed by apoth` | casualty prevented by an apothecary (consequence rows only) |
+| `victim regenerated` | casualty prevented by regeneration (consequence rows only) |
+| `foul` | a casualty caused by a foul whose fouler BBL does not identify (casualty action rows only) — the same construct as `foul by <player link>`, minus the link |
+| `Extra shoot-out TD after tied overtime` | a known note, deliberately not an occurrence and not an error |
+
+BBL's own ambiguity is preserved rather than resolved: `mercenary / star`
+becomes one value meaning "a mercenary or a star player, the source does not
+say which". A journeyman or mercenary is a real player BBL merely does not
+index, which is why the stored field is called *unidentified* participant kind
+rather than "non-player".
+
+`Extra shoot-out TD after tied overtime` is ignored rather than treated as an
+entry, because it annotates the touchdown beside it instead of naming another
+scorer — but it is worth keeping in the vocabulary rather than dropping,
+because it is the only per-side signal of who won a match that was still drawn
+after overtime. A shoot-out touchdown decides such a match without changing the
+score the rest of the page reports, so the side whose `TD Scorers` cell carries
+this note is the winner. Nothing in the model records that today; a match
+decided this way is currently indistinguishable from a draw.
+
+Two caveats for whoever picks that up. The note is rare and not reliably
+present: three mirrored matches went to a shoot-out and only one of them
+(`m=1892`) marks the deciding touchdown this way. And the accompanying
+prose — a `colspan=3` cell reading "This match went into overtime and was
+decided on a penalty shoot-out", present on all three — is not reachable from
+here at all, since the row walk requires exactly three cells. Recording
+shoot-out results properly therefore needs a separate pass over those
+merged-cell rows, not just this annotation.
+
+A prevented casualty is stored as `consequence_type = 'casualty_avoided'` with
+the prevented severity in `consequence_avoided_severity`, never as the severity
+itself, so no casualty-suffered statistic counts it as a real casualty. It is
+never merged with a causer action — a prevented casualty cannot be attributed
+to one of several candidate causers — and the causer BBL does list still emits
+its own action-only event.
+
+Placement is validated against the row's actual resolved type, not just
+achievement-vs-injury: a bare `foul` is only valid in a casualty-severity
+action row (`badly_hurt`, `serious_injury`, `death` — e.g. rejected in `TD
+Scorers`, where it would otherwise silently turn a touchdown into a foul), and
+an avoided-consequence annotation is only valid in an injury-severity
+consequence row (`badly_hurt`, `serious_injury`, `death`, `miss_next_game`,
+`niggling_injury`, any `stat_reduction_*` — e.g. rejected in `Sent off`, which
+is a removal but not an injury and cannot sensibly be "avoided"). Anything
+else in a link-less segment, any known annotation misplaced this way, and any
+leftover unclassifiable text sitting alongside a player link in the same
+segment, produces no occurrence for that text and is reported as a non-fatal
+import error naming the match, the row and the text (the linked player's own
+occurrence is still emitted). Guessing would re-introduce exactly the data
+loss this handling exists to prevent if the mirror's wording ever changes.
 
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results

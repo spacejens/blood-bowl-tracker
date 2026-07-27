@@ -1,6 +1,8 @@
 import type {
   ActionType,
+  ConsequenceAvoidedBy,
   ConsequenceType,
+  UnidentifiedParticipantKind,
 } from '@blood-bowl-tracker/api-contract';
 import { Injectable } from '@nestjs/common';
 
@@ -50,6 +52,7 @@ export const CONSEQUENCE_CATEGORY: Record<ConsequenceType, string> = {
   expensive_mistake: 'expensive-mistake',
   concession: 'concession',
   dedicated_fans: 'dedicated-fans',
+  casualty_avoided: 'cas-avoided',
 };
 
 /**
@@ -94,12 +97,23 @@ interface TeamCodedAction {
    * is constructed, where it replaces the emitted action type with `'foul'`.
    */
   viaFoul?: boolean;
+  /** Carried verbatim from the parsed occurrence; never affects matching. */
+  unidentifiedKind?: UnidentifiedParticipantKind;
 }
 interface TeamCodedConsequence {
   consequenceType: ConsequenceType;
   teamCode: string;
   pid: string | null;
   sourceBblId: string;
+  unidentifiedKind?: UnidentifiedParticipantKind;
+  /**
+   * Set when the source said the casualty was prevented. Such a consequence
+   * never participates in action/consequence merging: a prevented casualty
+   * cannot be attributed to one of several candidate causers with any
+   * confidence, and the causer BBL does list still emits its own action-only
+   * event.
+   */
+  avoidedBy?: ConsequenceAvoidedBy;
 }
 /**
  * The combined occurrences of one match (2 team codes) or a merged pair
@@ -134,6 +148,11 @@ export interface EmittedEvent {
   actingPid?: string | null;
   consequencePid?: string | null;
   journeymenCount?: number;
+  actingUnidentifiedKind?: UnidentifiedParticipantKind;
+  consequenceUnidentifiedKind?: UnidentifiedParticipantKind;
+  consequenceAvoidedBy?: ConsequenceAvoidedBy;
+  /** The severity that was prevented; only set with `casualty_avoided`. */
+  consequenceAvoidedSeverity?: ConsequenceType;
 }
 
 /**
@@ -172,6 +191,9 @@ export class MatchEventCorrelationService {
           pid: a.pid,
           sourceBblId: source.bblId,
           ...(a.viaFoul ? { viaFoul: true } : {}),
+          ...(a.unidentifiedKind
+            ? { unidentifiedKind: a.unidentifiedKind }
+            : {}),
         });
       }
       for (const c of source.consequences) {
@@ -180,6 +202,10 @@ export class MatchEventCorrelationService {
           teamCode: codeBySide[c.side],
           pid: c.pid,
           sourceBblId: source.bblId,
+          ...(c.unidentifiedKind
+            ? { unidentifiedKind: c.unidentifiedKind }
+            : {}),
+          ...(c.avoidedBy ? { avoidedBy: c.avoidedBy } : {}),
         });
       }
 
@@ -237,6 +263,7 @@ export class MatchEventCorrelationService {
         );
         const consequenceIndices = combined.consequences.flatMap((c, i) =>
           !consequenceConsumed[i] &&
+          c.avoidedBy === undefined &&
           c.teamCode !== actingTeamCode &&
           group.consequences.has(c.consequenceType)
             ? [i]
@@ -256,6 +283,12 @@ export class MatchEventCorrelationService {
             consequenceTeamCode: consequence.teamCode,
             consequenceSourceBblId: consequence.sourceBblId,
             consequencePid: consequence.pid,
+            ...(action.unidentifiedKind
+              ? { actingUnidentifiedKind: action.unidentifiedKind }
+              : {}),
+            ...(consequence.unidentifiedKind
+              ? { consequenceUnidentifiedKind: consequence.unidentifiedKind }
+              : {}),
           });
         }
       }
@@ -268,15 +301,13 @@ export class MatchEventCorrelationService {
         actingTeamCode: a.teamCode,
         actingSourceBblId: a.sourceBblId,
         actingPid: a.pid,
+        ...(a.unidentifiedKind
+          ? { actingUnidentifiedKind: a.unidentifiedKind }
+          : {}),
       }));
     const consequenceOnly: EmittedEvent[] = combined.consequences
       .filter((_, i) => !consequenceConsumed[i])
-      .map((c) => ({
-        consequenceType: c.consequenceType,
-        consequenceTeamCode: c.teamCode,
-        consequenceSourceBblId: c.sourceBblId,
-        consequencePid: c.pid,
-      }));
+      .map((c) => this.emitConsequence(c));
 
     const journeymanEvents: EmittedEvent[] = combined.journeymenSignings.map(
       (j) => ({
@@ -289,5 +320,32 @@ export class MatchEventCorrelationService {
     );
 
     return [...merged, ...actionOnly, ...consequenceOnly, ...journeymanEvents];
+  }
+
+  /**
+   * A consequence-only event. An avoided casualty becomes
+   * `casualty_avoided` carrying the prevented severity, so no
+   * casualty-suffered statistic counts it while "deaths prevented" stays
+   * queryable.
+   */
+  private emitConsequence(consequence: TeamCodedConsequence): EmittedEvent {
+    return {
+      consequenceType:
+        consequence.avoidedBy === undefined
+          ? consequence.consequenceType
+          : 'casualty_avoided',
+      ...(consequence.avoidedBy
+        ? {
+            consequenceAvoidedBy: consequence.avoidedBy,
+            consequenceAvoidedSeverity: consequence.consequenceType,
+          }
+        : {}),
+      consequenceTeamCode: consequence.teamCode,
+      consequenceSourceBblId: consequence.sourceBblId,
+      consequencePid: consequence.pid,
+      ...(consequence.unidentifiedKind
+        ? { consequenceUnidentifiedKind: consequence.unidentifiedKind }
+        : {}),
+    };
   }
 }

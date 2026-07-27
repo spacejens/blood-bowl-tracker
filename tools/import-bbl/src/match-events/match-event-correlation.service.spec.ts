@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
-import { MatchEventCorrelationService } from './match-event-correlation.service';
+import {
+  CONSEQUENCE_CATEGORY,
+  MatchEventCorrelationService,
+} from './match-event-correlation.service';
 
 function makeEvents(overrides: Partial<BblMatchEvents> = {}): BblMatchEvents {
   return {
@@ -100,6 +103,61 @@ describe('MatchEventCorrelationService', () => {
           pid: 'p1',
           sourceBblId: '89',
           viaFoul: true,
+        },
+      ]);
+    });
+
+    it('carries an unidentified kind through onto both team-coded roles', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'death',
+              side: 'home',
+              pid: null,
+              unidentifiedKind: 'mercenary_or_star',
+            },
+          ],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              unidentifiedKind: 'journeyman',
+            },
+          ],
+        }),
+      );
+
+      expect(combined.actions[0]).toMatchObject({
+        unidentifiedKind: 'mercenary_or_star',
+      });
+      expect(combined.consequences[0]).toMatchObject({
+        unidentifiedKind: 'journeyman',
+      });
+    });
+
+    it('carries avoidedBy through onto the team-coded consequence', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      expect(combined.consequences).toEqual([
+        {
+          consequenceType: 'death',
+          teamCode: 'awy',
+          pid: null,
+          sourceBblId: '89',
+          avoidedBy: 'apothecary',
         },
       ]);
     });
@@ -317,5 +375,182 @@ describe('MatchEventCorrelationService', () => {
         },
       ]);
     });
+
+    it('emits an avoided casualty as casualty_avoided with the prevented severity', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('never merges an avoided consequence, and still emits the causer action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'regeneration',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+        },
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'regeneration',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('still merges a real casualty when an avoided one is also present', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            { consequenceType: 'death', side: 'away', pid: 'victim' },
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events[0]).toMatchObject({
+        actionType: 'death',
+        consequenceType: 'death',
+        actingPid: 'killer',
+        consequencePid: 'victim',
+      });
+      expect(events).toHaveLength(2);
+      expect(events[1]).toMatchObject({ consequenceType: 'casualty_avoided' });
+    });
+
+    it('carries unidentified kinds onto a merged event', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'death',
+              side: 'home',
+              pid: null,
+              unidentifiedKind: 'mercenary_or_star',
+            },
+          ],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              unidentifiedKind: 'journeyman',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        actingUnidentifiedKind: 'mercenary_or_star',
+        consequenceUnidentifiedKind: 'journeyman',
+      });
+    });
+
+    it('carries an unidentified kind onto an unmerged action-only event', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'touchdown',
+              side: 'home',
+              pid: null,
+              unidentifiedKind: 'fans_or_random_event',
+            },
+          ],
+        }),
+      );
+
+      expect(service.correlateEvents(combined)).toEqual([
+        {
+          actionType: 'touchdown',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: null,
+          actingUnidentifiedKind: 'fans_or_random_event',
+        },
+      ]);
+    });
+
+    it('emits a bare-foul action occurrence as a foul with a null pid', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'badly_hurt',
+              side: 'home',
+              pid: null,
+              viaFoul: true,
+            },
+          ],
+        }),
+      );
+
+      expect(service.correlateEvents(combined)).toEqual([
+        {
+          actionType: 'foul',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: null,
+        },
+      ]);
+    });
+  });
+});
+
+describe('CONSEQUENCE_CATEGORY', () => {
+  it('gives casualty_avoided its own external-id slug', () => {
+    expect(CONSEQUENCE_CATEGORY.casualty_avoided).toBe('cas-avoided');
   });
 });
