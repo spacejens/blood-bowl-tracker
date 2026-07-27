@@ -25,7 +25,7 @@ export class LeaguesDownloaderService {
       this.configService.getOrThrow<string>('TP_FRONTEND_URL');
     const tournaments = this.configService.getOrThrow<string>('TOURNAMENTS');
     for (const tournamentName of tournaments.split(',')) {
-      const dirName = `tournaments/${tournamentName}`;
+      const dirName = tournamentName;
       this.fileSystemService.mkdir(dirName);
       await this.downloadLeague(
         frontendUrl + tournamentName,

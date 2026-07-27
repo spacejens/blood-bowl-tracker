@@ -55,7 +55,7 @@ tools/import-manual/data
 tools/import-manual/import-manual-config.json5
 
 # tools/download-tp downloaded site data (never committed)
-tools/download-tp/tp-site
+tools/download-tp/data
 
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans

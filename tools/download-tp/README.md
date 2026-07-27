@@ -19,10 +19,11 @@ Copy `.env.example` to `.env` in this directory and fill in the values:
 | `TP_BACKEND_API_URL` | Base URL of the TP API, including a trailing slash — responses whose URL starts with this are recorded |
 | `HIDE_BROWSER_UI` | `true` to run the browser headless, anything else to show it |
 | `TOURNAMENTS` | Comma-separated tournament names, as they appear in the frontend path |
-| `OUTPUT_DIR` | Subdirectory of `tp-site/` to write into |
 
-Downloaded files land in `tools/download-tp/tp-site/<OUTPUT_DIR>/`, which is
-gitignored.
+Downloaded files land in `tools/download-tp/data/<tournament>/`, one folder per
+configured tournament, which is gitignored. That layout matches
+`tools/import-tp/data/<era>/<competition>/` one level down, so importing a
+downloaded tournament is a plain folder copy into the right era directory.
 
 ## Running
 

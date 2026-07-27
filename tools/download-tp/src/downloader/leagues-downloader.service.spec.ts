@@ -85,12 +85,8 @@ describe('LeaguesDownloaderService', () => {
 
     await service.downloadAllLeagues();
 
-    expect(fileSystemService.mkdir).toHaveBeenCalledWith(
-      'tournaments/season-29',
-    );
-    expect(fileSystemService.mkdir).toHaveBeenCalledWith(
-      'tournaments/season-30',
-    );
+    expect(fileSystemService.mkdir).toHaveBeenCalledWith('season-29');
+    expect(fileSystemService.mkdir).toHaveBeenCalledWith('season-30');
   });
 
   it('visits every top-level tournament page in order, into the tournament dir', async () => {
@@ -112,7 +108,7 @@ describe('LeaguesDownloaderService', () => {
       `${base}/awards`,
     ]);
     for (const call of pageViewer.viewPage.mock.calls) {
-      expect(call[1]).toBe('tournaments/season-30');
+      expect(call[1]).toBe('season-30');
     }
   });
 
@@ -121,7 +117,7 @@ describe('LeaguesDownloaderService', () => {
 
     expect(pageViewer.viewPage).toHaveBeenCalledWith(
       `${FRONTEND}season-30/honours`,
-      'tournaments/season-30',
+      'season-30',
       [
         { selector: '.mat-button-toggle-button', textContent: 'Team' },
         { selector: '.mat-button-toggle-button', textContent: 'Player' },
