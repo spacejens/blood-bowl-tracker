@@ -69,8 +69,13 @@ This applies to every subagent dispatched from any phase below while working in 
      - If it's genuinely unclear which applies, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options.
      - Apply any newly-determined label(s) with one `gh issue edit <N> --add-label "<name>"` call per label (separate from the "in progress" call above, so a failure in one doesn't mask the other). On failure, report a one-line warning and **continue**, matching the existing assign/label failure handling.
    - Record the final kind-label set (whether reused from the existing labels or newly applied) — Phase 6 reuses it when creating the PR.
-6. **Pause** — derive branch name `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped), propose it to the developer, and wait for confirmation before proceeding; they may edit the slug.
-   - Example: issue 42 "Add player stats endpoint" → propose `issue-42-add-player-stats-endpoint`
+6. **Pause** — derive **two** distinct candidate branch names of the form `issue-{N}-{kebab-slug}` from the issue title (lowercase, spaces → hyphens, punctuation stripped) and ask the developer to choose one via `AskUserQuestion` (single-select, one question, two options). Wait for the answer before proceeding; the chosen — or free-text — name is the confirmed branch name used in step 7.
+   - **Option 1** — a full slug that closely follows the issue title.
+   - **Option 2** — a shortened or rephrased variant of that same slug.
+   - If both heuristics would produce the identical string, vary option 2 further (shorten or rephrase again) so the two options are always genuinely distinct. Never collapse to a single option — `AskUserQuestion` requires at least two.
+   - Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped) and prepend the `issue-{N}-` prefix if missing, before treating it as the confirmed branch name.
+   - Example: issue 42 "Add player stats endpoint" → offer `issue-42-add-player-stats-endpoint` and `issue-42-player-stats-endpoint`
 7. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
    ```bash
    git branch -m worktree-<confirmed-name> <confirmed-name>
@@ -118,8 +123,13 @@ This applies to every subagent dispatched from any phase below while working in 
 **Ad-hoc mode:**
 1. Use the provided text as the feature description
 2. Determine the kind label — one or more of `feature`, `bug`, `development` — by judging from the provided text which clearly apply. More than one may apply; assign all that clearly do. If it's genuinely unclear, ask the developer to choose via `AskUserQuestion`, offering `feature`, `bug`, and `development` as multi-select options. Record the result — Phase 6 uses it when creating the PR. Nothing is applied to GitHub yet, since there is no issue or PR to attach a label to until Phase 6.
-3. **Pause** — derive a kebab slug from the text, propose branch name `feature-{kebab-slug}`, and wait for confirmation before proceeding; the developer may edit the slug.
-   - Example: "Add player stats endpoint" → propose `feature-add-player-stats-endpoint`
+3. **Pause** — derive **two** distinct candidate branch names of the form `feature-{kebab-slug}` from the provided text (lowercase, spaces → hyphens, punctuation stripped) and ask the developer to choose one via `AskUserQuestion` (single-select, one question, two options). Wait for the answer before proceeding; the chosen — or free-text — name is the confirmed branch name used in step 4.
+   - **Option 1** — a full slug that closely follows the provided description.
+   - **Option 2** — a shortened or rephrased variant of that same slug.
+   - If both heuristics would produce the identical string, vary option 2 further (shorten or rephrase again) so the two options are always genuinely distinct. Never collapse to a single option — `AskUserQuestion` requires at least two.
+   - Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped) and prepend the `feature-` prefix if missing, before treating it as the confirmed branch name.
+   - Example: "Add player stats endpoint" → offer `feature-add-player-stats-endpoint` and `feature-player-stats-endpoint`
 4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
    ```bash
    git branch -m worktree-<confirmed-name> <confirmed-name>
