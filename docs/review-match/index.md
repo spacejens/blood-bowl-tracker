@@ -41,11 +41,19 @@ services.
      `Source match <id>` heading, since its single imported panel holds the
      union of both. Neither panel uses the importers' interpretation logic, so
      an importer bug shows up as a difference instead of being mirrored. TP's
-     raw panel also shows a hand-written `(label)` hint next to each numeric
-     code — treat the code as the authoritative datum and the label as a
-     reading aid only; the label table necessarily describes the same meanings
-     as `packages/parse-tp`'s real decoders; it can't independently catch a
-     decoder that's simply wrong about what a code means.
+     raw panel also shows hand-written `(label)` hints next to the
+     numeric event code and, for a weather event, next to the weather code
+     (which TP only makes unique *within* its weather table, so both numbers
+     are read together) — treat the codes as the authoritative data and the
+     labels as reading aids only; the label tables necessarily describe the
+     same meanings as `packages/parse-tp`'s real decoders, so they can't
+     independently catch a decoder that's simply wrong about what a code
+     means. A `Summary` column names the player an event is about, resolved
+     from the same raw match file's own `inscription{Local,Visitor}` line-ups
+     (an id that resolves to nothing is shown as `unknown id <N>` rather than
+     blanked, so the gap is visible), or lists the star players an
+     inducements event induced. Each event's remaining raw JSON sits behind a
+     collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
 4. Writes the report under `tools/review-match/output/` (gitignored) with a
