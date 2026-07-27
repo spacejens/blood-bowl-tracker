@@ -308,6 +308,7 @@ describe('ApiResponseRecordingPageViewerService', () => {
 
   it('really calls fetch inside the page for each follow-up URL', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
       json: () => Promise.resolve({ fetched: true }),
     });
     Object.defineProperty(globalThis, 'fetch', {
@@ -330,6 +331,31 @@ describe('ApiResponseRecordingPageViewerService', () => {
     expect(result.apiResponses.get('phases?round=2')).toEqual({
       fetched: true,
     });
+  });
+
+  it('throws when a follow-up fetch response has a non-ok status', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ error: 'not found' }),
+    });
+    Object.defineProperty(globalThis, 'fetch', {
+      value: fetchMock,
+      configurable: true,
+      writable: true,
+    });
+    page.evaluate.mockImplementation(
+      (fn: (url: string) => unknown, url: string) => fn(url),
+    );
+
+    await expect(
+      service.viewPage({
+        pageUrl: 'https://tp.example/blood-bowl/x/scores',
+        followUpRequests: () => ['https://tp.example/api/phases?round=2'],
+      }),
+    ).rejects.toThrow(
+      'Follow-up request to https://tp.example/api/phases?round=2 failed with status 404',
+    );
   });
 
   it('evaluates no follow-up fetch when the resolver returns no URLs', async () => {

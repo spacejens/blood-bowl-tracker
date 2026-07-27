@@ -149,7 +149,15 @@ export class ApiResponseRecordingPageViewerService {
       for (const followUpUrl of followUpRequests(responses)) {
         console.log(`Fetching follow-up URL ${followUpUrl}`);
         const body: unknown = await page.evaluate(
-          (url: string) => fetch(url).then((r) => r.json() as Promise<unknown>),
+          (url: string) =>
+            fetch(url).then((r) => {
+              if (!r.ok) {
+                throw new Error(
+                  `Follow-up request to ${url} failed with status ${r.status}`,
+                );
+              }
+              return r.json() as Promise<unknown>;
+            }),
           followUpUrl,
         );
         responses.set(followUpUrl.substring(apiUrl.length), body);
