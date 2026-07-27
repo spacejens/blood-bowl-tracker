@@ -54,6 +54,14 @@ tools/import-manual/data
 # import-manual-config.example.json5)
 tools/import-manual/import-manual-config.json5
 
+# tools/review-match real config (the committed template is
+# review-match-config.example.json5)
+tools/review-match/review-match-config.json5
+
+# tools/review-match generated report — a developer-local artifact,
+# regenerated on demand, same convention as docs/schemaspy-output/
+tools/review-match/output/
+
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans
 docs/superpowers/

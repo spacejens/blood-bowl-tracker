@@ -1,0 +1,52 @@
+// Configuration for tools/review-match.
+//
+// Copy this file to `review-match-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/review-match/review-match-config.example.json5 tools/review-match/review-match-config.json5
+//
+// `review-match-config.json5` is git-ignored. See docs/review-match/index.md
+// for configuration details and how to run the tool.
+{
+  // The database the imported data was imported into. This tool only reads.
+  database: {
+    // Connection string for the running Postgres. The default below matches
+    // docker-compose.yml's host port mapping.
+    url: 'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+  },
+
+  // How many matches to sample per stratum, per source. Defaults to 3.
+  matchesPerStratum: 3,
+
+  // Where each source's raw downloaded data lives. Relative paths resolve
+  // against the current working directory, which is tools/review-match/ when
+  // the tool is run as documented -- so these defaults point at the same
+  // directories tools/import-bbl and tools/import-tp read.
+  bbl: {
+    // The folder that directly contains the BBL `default.asp?p=...` files.
+    dataDir: '../import-bbl/data/tloeg.bbleague.se',
+    // Name of the external system BBL records are registered under.
+    // Defaults to "BBL" if unset or empty.
+    externalSystemName: 'BBL',
+  },
+  tp: {
+    // The folder that directly contains one subdirectory per era; each era
+    // directory holds one subdirectory per competition, holding the
+    // `match_<id>.json` files.
+    dataDir: '../import-tp/data',
+    // Name of the external system TP records are registered under.
+    // Defaults to "TP" if unset or empty.
+    externalSystemName: 'TP',
+  },
+
+  // Matches always included in the report regardless of the strata sample,
+  // given as each source's own external match id (BBL: the `m=` page
+  // parameter; TP: the `match_<id>.json` number).
+  overrides: {
+    bbl: [],
+    tp: [],
+  },
+
+  // Where the generated report is written. Relative paths resolve against the
+  // current working directory. Defaults to 'output/report.html'.
+  outputPath: 'output/report.html',
+}
