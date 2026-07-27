@@ -1,6 +1,4 @@
 import type {
-  ActionType,
-  ConsequenceType,
   UpsertCompetition,
   UpsertMatchEvent,
   UpsertTeam,
@@ -76,9 +74,11 @@ export class BblMatchEventsImportService {
    * team codes (two for a normal match, four for a merged pair) to their
    * team-era ids under the competition's era, correlates casualty actions
    * with Sustained-Injury consequences (see {@link MatchEventCorrelationService.correlateEvents}),
-   * synthesizes a stable external id per event
+   * synthesizes a stable external id per event side
    * (`<matchBblId>-<teamCode>-<category>-<occurrenceIndex>` under the BBL
-   * external system), resolves each player pid to its DB id, and upserts the
+   * external system — one for a one-sided event, two for a merged event that
+   * has both an action and a consequence), resolves each player pid to its DB
+   * id, and upserts the
    * event. A match with no imported id, or whose team codes do not all
    * resolve to a team era, is recorded as an error and skipped without
    * affecting the rest. A pid with no imported id yields a null player
@@ -197,9 +197,10 @@ export class BblMatchEventsImportService {
 
   /**
    * Correlate and upsert every event for one match (or merged pair),
-   * synthesizing external ids with per-(team, category) occurrence indices under
-   * each occurrence's own source match bblId. Returns the number of events whose
-   * upsert reported success.
+   * synthesizing one external id per side present on the event (action side
+   * first, then consequence side) with per-(team, category) occurrence indices
+   * drawn from one shared counter map, under each occurrence's own source
+   * match bblId. Returns the number of events whose upsert reported success.
    */
   private async emitEvents(options: EmitEventsOptions): Promise<number> {
     const {
@@ -214,27 +215,44 @@ export class BblMatchEventsImportService {
     let imported = 0;
 
     for (const event of this.matchEventCorrelation.correlateEvents(combined)) {
-      const hasAction = event.actionType !== undefined;
-      // Every emitted event has at least one side, so teamCode/sourceBblId are
-      // always defined here (action side when present, else consequence side).
-      const teamCode = hasAction
-        ? (event.actingTeamCode as string)
-        : (event.consequenceTeamCode as string);
-      const sourceBblId = hasAction
-        ? (event.actingSourceBblId as string)
-        : (event.consequenceSourceBblId as string);
-      const category = hasAction
-        ? ACTION_CATEGORY[event.actionType as ActionType]
-        : CONSEQUENCE_CATEGORY[event.consequenceType as ConsequenceType];
+      // Each side present on the event contributes its own external id from
+      // the same shared per-(team, category) counter, so a merged event
+      // records both occurrence identities and a one-sided event is
+      // unchanged. Every emitted event has at least one side.
+      const sides: {
+        teamCode: string;
+        sourceBblId: string;
+        category: string;
+      }[] = [];
+      if (event.actionType !== undefined) {
+        sides.push({
+          teamCode: event.actingTeamCode as string,
+          sourceBblId: event.actingSourceBblId as string,
+          category: ACTION_CATEGORY[event.actionType],
+        });
+      }
+      if (event.consequenceType !== undefined) {
+        sides.push({
+          teamCode: event.consequenceTeamCode as string,
+          sourceBblId: event.consequenceSourceBblId as string,
+          category: CONSEQUENCE_CATEGORY[event.consequenceType],
+        });
+      }
+      const sourceBblId = sides[0].sourceBblId;
 
-      const counterKey = `${teamCode}-${category}`;
-      const occurrenceIndex = occurrenceCounters.get(counterKey) ?? 0;
-      occurrenceCounters.set(counterKey, occurrenceIndex + 1);
-      const externalId = `${sourceBblId}-${teamCode}-${category}-${occurrenceIndex}`;
+      const externalIds = sides.map((side) => {
+        const counterKey = `${side.teamCode}-${side.category}`;
+        const occurrenceIndex = occurrenceCounters.get(counterKey) ?? 0;
+        occurrenceCounters.set(counterKey, occurrenceIndex + 1);
+        return {
+          externalSystemId,
+          externalId: `${side.sourceBblId}-${side.teamCode}-${side.category}-${occurrenceIndex}`,
+        };
+      });
 
       const data: UpsertMatchEvent = {
         matchId,
-        externalIds: [{ externalSystemId, externalId }],
+        externalIds,
       };
       if (event.actionType !== undefined) {
         data.actionType = event.actionType;
