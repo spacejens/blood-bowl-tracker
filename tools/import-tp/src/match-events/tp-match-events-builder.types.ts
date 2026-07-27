@@ -1,7 +1,10 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
 import type { TpMatchEvent } from '@blood-bowl-tracker/parse-tp';
 
-import type { CasualtyPairing } from './tp-match-events-correlation.service';
+import type {
+  CasualtyPairing,
+  FoulPairing,
+} from './tp-match-events-correlation.service';
 
 /** One resolved team_eras row: its DB id and the era it belongs to. */
 export interface TeamEra {
@@ -21,4 +24,6 @@ export interface BuildEventDataOptions {
   errors: ImportError[];
   /** Casualty/injury pairing for this match — see {@link CasualtyPairing}. */
   casualtyPairing: CasualtyPairing;
+  /** Foul/injury pairing for this match — see {@link FoulPairing}. */
+  foulPairing: FoulPairing;
 }

@@ -87,6 +87,13 @@ interface TeamCodedAction {
   teamCode: string;
   pid: string | null;
   sourceBblId: string;
+  /**
+   * Carried verbatim from the parsed occurrence: this casualty was caused by
+   * a foul. `actionType` still holds the severity tier so `SEVERITY_GROUPS`
+   * matching is unaffected; the flag is consulted only when an `EmittedEvent`
+   * is constructed, where it replaces the emitted action type with `'foul'`.
+   */
+  viaFoul?: boolean;
 }
 interface TeamCodedConsequence {
   consequenceType: ConsequenceType;
@@ -164,6 +171,7 @@ export class MatchEventCorrelationService {
           teamCode: codeBySide[a.side],
           pid: a.pid,
           sourceBblId: source.bblId,
+          ...(a.viaFoul ? { viaFoul: true } : {}),
         });
       }
       for (const c of source.consequences) {
@@ -201,6 +209,17 @@ export class MatchEventCorrelationService {
    * so no occurrence is ever dropped. Emission order is merged events first, then
    * leftover actions in occurrence order, then leftover consequences in occurrence
    * order; that order fixes the external-id occurrence indices deterministically.
+   *
+   * A casualty occurrence marked `viaFoul` keeps matching by its severity tier
+   * like any other, but the event finally emitted for it carries
+   * `actionType: 'foul'` — so a foul that caused a casualty becomes one
+   * `'foul'` action + `<severity>` consequence row, counting as a foul and
+   * (correctly, per Blood Bowl's rules) not as a casualty caused. Under
+   * ambiguity (2+ same-severity actions on one side) that single merged row
+   * degrades to the usual action-only/consequence-only fallback — a `viaFoul`
+   * action still emits as `actionType: 'foul'`, just without a linked
+   * consequence, unlike TP where an unpaired foul stays entirely separate
+   * from its casualty rather than half-merging.
    */
   correlateEvents(combined: CombinedOccurrences): EmittedEvent[] {
     const actionConsumed = combined.actions.map(() => false);
@@ -229,7 +248,7 @@ export class MatchEventCorrelationService {
           actionConsumed[actionIndices[0]] = true;
           consequenceConsumed[consequenceIndices[0]] = true;
           merged.push({
-            actionType: action.actionType,
+            actionType: action.viaFoul ? 'foul' : action.actionType,
             consequenceType: consequence.consequenceType,
             actingTeamCode,
             actingSourceBblId: action.sourceBblId,
@@ -245,7 +264,7 @@ export class MatchEventCorrelationService {
     const actionOnly: EmittedEvent[] = combined.actions
       .filter((_, i) => !actionConsumed[i])
       .map((a) => ({
-        actionType: a.actionType,
+        actionType: a.viaFoul ? 'foul' : a.actionType,
         actingTeamCode: a.teamCode,
         actingSourceBblId: a.sourceBblId,
         actingPid: a.pid,

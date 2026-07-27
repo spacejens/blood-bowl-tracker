@@ -175,6 +175,10 @@ export class TpMatchEventsImportService {
         const casualtyPairing = this.eventsCorrelation.correlateCasualties(
           match.matchEvents,
         );
+        const foulPairing = this.eventsCorrelation.correlateFouls(
+          match.matchEvents,
+          casualtyPairing,
+        );
 
         for (const event of match.matchEvents) {
           const dataList = this.eventsBuilder.buildEventData({
@@ -188,6 +192,7 @@ export class TpMatchEventsImportService {
             awayTeamEraId,
             errors,
             casualtyPairing,
+            foulPairing,
           });
           for (const data of dataList) {
             if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {

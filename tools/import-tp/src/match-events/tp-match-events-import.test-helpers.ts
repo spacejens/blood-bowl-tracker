@@ -15,7 +15,10 @@ import { mockImportResultService } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpMatchEventsBuilderService } from './tp-match-events-builder.service';
 import type { BuildEventDataOptions } from './tp-match-events-builder.types';
-import type { CasualtyPairing } from './tp-match-events-correlation.service';
+import type {
+  CasualtyPairing,
+  FoulPairing,
+} from './tp-match-events-correlation.service';
 import { TpMatchEventsCorrelationService } from './tp-match-events-correlation.service';
 import { TpMatchEventsImportService } from './tp-match-events-import.service';
 
@@ -57,6 +60,8 @@ interface MakeServiceOptions {
   >;
   /** Canned `correlateCasualties` result (defaults to "nothing paired"). */
   correlationResult?: CasualtyPairing;
+  /** Canned `correlateFouls` result (defaults to "nothing paired"). */
+  foulCorrelationResult?: FoulPairing;
   /**
    * Override for the mocked `TpMatchEventsBuilderService.buildEventData`
    * (defaults to {@link syntheticBuildEventData}). Supply this to control
@@ -77,6 +82,10 @@ function emptyCasualtyPairing(): CasualtyPairing {
   };
 }
 
+function emptyFoulPairing(): FoulPairing {
+  return { foulByInjuryEventId: new Map(), pairedFoulEventIds: new Set() };
+}
+
 /**
  * A `MockProxy<TpMatchEventsCorrelationService>` whose `correlateCasualties`
  * returns a caller-supplied, canned `CasualtyPairing` — never a
@@ -86,9 +95,11 @@ function emptyCasualtyPairing(): CasualtyPairing {
  */
 function mockTpMatchEventsCorrelationService(
   correlationResult: CasualtyPairing,
+  foulCorrelationResult: FoulPairing,
 ): MockProxy<TpMatchEventsCorrelationService> {
   const correlation = mock<TpMatchEventsCorrelationService>();
   correlation.correlateCasualties.mockReturnValue(correlationResult);
+  correlation.correlateFouls.mockReturnValue(foulCorrelationResult);
   return correlation;
 }
 
@@ -188,6 +199,7 @@ export async function makeService(
   externalSystemName.getTpSystemName.mockReturnValue('TP');
   const eventsCorrelation = mockTpMatchEventsCorrelationService(
     options?.correlationResult ?? emptyCasualtyPairing(),
+    options?.foulCorrelationResult ?? emptyFoulPairing(),
   );
   const eventsBuilder = mockTpMatchEventsBuilderService(
     options?.buildEventData ?? syntheticBuildEventData,

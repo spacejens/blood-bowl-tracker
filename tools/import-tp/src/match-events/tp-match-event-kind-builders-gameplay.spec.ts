@@ -51,6 +51,14 @@ function casualtyCaused(options: {
   return { type: 'casualty_caused', instant: 'x', turnNumber: 5, ...options };
 }
 
+function foulEvent(options: {
+  tpEventId: number;
+  lineUpId: number;
+  rosterId: number;
+}): Extract<TpMatchEvent, { type: 'foul' }> {
+  return { type: 'foul', instant: 'x', turnNumber: 5, ...options };
+}
+
 function injury(options: {
   tpEventId: number;
   lineUpId: number;
@@ -407,5 +415,138 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
         expect(data.actionType).toBe(actionType);
       },
     );
+
+    it('emits ONE merged row with actionType foul when the injury is paired to a foul', () => {
+      const paired = foulEvent({
+        tpEventId: 50,
+        lineUpId: ACTOR_LINE_UP_ID,
+        rosterId: HOME_ROSTER_ID,
+      });
+      const events = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 51,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            turnRosterId: HOME_ROSTER_ID,
+            injuryType: 'Dead',
+          }),
+          foulPairing: {
+            foulByInjuryEventId: new Map([[51, paired]]),
+            pairedFoulEventIds: new Set([50]),
+          },
+        }),
+      );
+
+      expect(events).toEqual([
+        {
+          matchId: MATCH_DB_ID,
+          consequenceType: 'death',
+          consequenceTeamEraId: AWAY_TEAM_ERA_ID,
+          consequencePlayerId: VICTIM_PLAYER_ID,
+          actionType: 'foul',
+          actingTeamEraId: HOME_TEAM_ERA_ID,
+          actingPlayerId: ACTOR_PLAYER_ID,
+          externalIds: [
+            { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-51' },
+          ],
+        },
+      ]);
+    });
+
+    it('uses the foul action type instead of the severity bucket for every injury type', () => {
+      const paired = foulEvent({
+        tpEventId: 52,
+        lineUpId: ACTOR_LINE_UP_ID,
+        rosterId: HOME_ROSTER_ID,
+      });
+      const [data] = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 53,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            turnRosterId: HOME_ROSTER_ID,
+            injuryType: 'None',
+          }),
+          foulPairing: {
+            foulByInjuryEventId: new Map([[53, paired]]),
+            pairedFoulEventIds: new Set([52]),
+          },
+        }),
+      );
+
+      expect(data.consequenceType).toBe('badly_hurt');
+      expect(data.actionType).toBe('foul');
+    });
+
+    it('records a non-fatal error when the paired fouler lineUpId has no imported id', () => {
+      const paired = foulEvent({
+        tpEventId: 54,
+        lineUpId: UNKNOWN_LINE_UP_ID,
+        rosterId: HOME_ROSTER_ID,
+      });
+      const errors: ImportError[] = [];
+      const [data] = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 55,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            turnRosterId: HOME_ROSTER_ID,
+            injuryType: 'MissNextGame',
+          }),
+          foulPairing: {
+            foulByInjuryEventId: new Map([[55, paired]]),
+            pairedFoulEventIds: new Set([54]),
+          },
+          errors,
+        }),
+      );
+
+      expect(data.actionType).toBe('foul');
+      expect(data.actingTeamEraId).toBe(HOME_TEAM_ERA_ID);
+      expect(data.actingPlayerId).toBeUndefined();
+      expect(errors).toHaveLength(1);
+    });
+
+    it('prefers the paired casualty over a paired foul when both are somehow present', () => {
+      // Cannot happen by construction (correlateFouls only considers injuries
+      // correlateCasualties left unattributed), but the precedence is pinned
+      // so a future change to either pass cannot silently reclassify a
+      // block-caused casualty as a foul.
+      const pairedCasualty = casualtyCaused({
+        tpEventId: 56,
+        lineUpId: ACTOR_LINE_UP_ID,
+        rosterId: HOME_ROSTER_ID,
+      });
+      const pairedFoul = foulEvent({
+        tpEventId: 57,
+        lineUpId: ACTOR_LINE_UP_ID,
+        rosterId: AWAY_ROSTER_ID,
+      });
+      const [data] = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 58,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            turnRosterId: HOME_ROSTER_ID,
+            injuryType: 'NigglingInjury',
+          }),
+          casualtyPairing: {
+            casualtyByInjuryEventId: new Map([[58, pairedCasualty]]),
+            pairedCasualtyEventIds: new Set([56]),
+          },
+          foulPairing: {
+            foulByInjuryEventId: new Map([[58, pairedFoul]]),
+            pairedFoulEventIds: new Set([57]),
+          },
+        }),
+      );
+
+      expect(data.actionType).toBe('serious_injury');
+      expect(data.actingTeamEraId).toBe(HOME_TEAM_ERA_ID);
+    });
   });
 });

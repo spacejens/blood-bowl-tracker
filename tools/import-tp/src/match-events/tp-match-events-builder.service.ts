@@ -33,28 +33,37 @@ export class TpMatchEventsBuilderService {
 
   /**
    * Build zero or more `UpsertMatchEvent`s for one TP match event. Touchdown,
-   * completion, interception, deflection, foul, mvp_award, and
-   * successful_landing are all built as simple single-actor action events;
-   * sent_off is consequence-side; injury always yields at least a consequence
-   * row (including `injuryType: 'None'`, a real Badly Hurt result);
+   * completion, interception, deflection, mvp_award, and successful_landing
+   * are all built as simple single-actor action events; sent_off is
+   * consequence-side; injury always yields at least a consequence row
+   * (including `injuryType: 'None'`, a real Badly Hurt result);
    * casualty_caused yields nothing when it was paired with an injury event via
    * `casualtyPairing` (it's emitted as part of that injury's row instead), or
-   * a standalone `'casualty'`-action row otherwise. Every other modeled TP
+   * a standalone `'casualty'`-action row otherwise. A foul behaves the same
+   * way against `foulPairing`: nothing when it was paired into an injury's
+   * row, a standalone `'foul'`-action row otherwise. Every other modeled TP
    * event type is administrative and delegates to
    * {@link TpMatchEventKindBuildersService.buildAdminEvents}.
    */
   buildEventData(options: BuildEventDataOptions): UpsertMatchEvent[] {
-    const { event, casualtyPairing } = options;
+    const { event, casualtyPairing, foulPairing } = options;
     switch (event.type) {
       case 'touchdown':
       case 'completion':
       case 'interception':
       case 'deflection':
-      case 'foul':
       case 'successful_landing':
         return this.eventBuilders.buildSimpleActionEvent(
           { ...options, event },
           event.type,
+        );
+      case 'foul':
+        if (foulPairing.pairedFoulEventIds.has(event.tpEventId)) {
+          return [];
+        }
+        return this.eventBuilders.buildSimpleActionEvent(
+          { ...options, event },
+          'foul',
         );
       case 'mvp_award':
         return this.eventBuilders.buildSimpleActionEvent(

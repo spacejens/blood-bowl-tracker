@@ -16,11 +16,22 @@ export const TOUCHDOWN_TYPES: readonly ActionType[] = ['touchdown'];
 export const COMPLETION_TYPES: readonly ActionType[] = ['completion'];
 export const INTERCEPTION_TYPES: readonly ActionType[] = ['interception'];
 export const DEFLECTION_TYPES: readonly ActionType[] = ['deflection'];
+/**
+ * Fouls, counted on the acting side. A foul that CAUSED a casualty is imported
+ * (from both BBL and TP) as a single row carrying `actionType: 'foul'` plus the
+ * victim's `consequenceType`. Because acting-role counts filter on
+ * `actionType` alone, such a row counts here as a foul — and, `'foul'` being
+ * absent from {@link CASUALTY_CAUSED_TYPES}, deliberately does NOT count as a
+ * casualty caused: Blood Bowl awards no casualty credit for a foul. The
+ * victim's side of the same row still counts under
+ * {@link CASUALTY_SUFFERED_TYPES}.
+ */
 export const FOUL_TYPES: readonly ActionType[] = ['foul'];
 
 /**
  * Every action type that inflicts a casualty of any severity. A death is a
- * casualty; a serious injury is a casualty.
+ * casualty; a serious injury is a casualty. `'foul'` is intentionally excluded
+ * — see {@link FOUL_TYPES}.
  */
 export const CASUALTY_CAUSED_TYPES: readonly ActionType[] = [
   'casualty',

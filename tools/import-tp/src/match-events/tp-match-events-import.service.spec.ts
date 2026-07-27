@@ -163,9 +163,14 @@ describe('TpMatchEventsImportService', () => {
       casualtyByInjuryEventId: new Map(),
       pairedCasualtyEventIds: new Set([777]),
     };
+    const foulCorrelationResult = {
+      foulByInjuryEventId: new Map(),
+      pairedFoulEventIds: new Set([888]),
+    };
     const { eventsBuilder } = await runImportRaw({
       matches: [matchWithEvents({ id: 566088, events: [eventA, eventB] })],
       correlationResult,
+      foulCorrelationResult,
     });
 
     expect(eventsBuilder.buildEventData).toHaveBeenCalledTimes(2);
@@ -189,6 +194,7 @@ describe('TpMatchEventsImportService', () => {
       awayTeamEraId: AWAY_TEAM_ERA_ID,
       errors: [],
       casualtyPairing: correlationResult,
+      foulPairing: foulCorrelationResult,
     });
     expect(second.event).toBe(eventB);
   });
