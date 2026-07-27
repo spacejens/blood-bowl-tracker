@@ -6,7 +6,7 @@ allowBuilds:
   '@swc/core': true
   esbuild: true
   # Deliberately declined, not just unset: running puppeteer's postinstall
-  # would download Chromium on every CI install. tools/download-tp/README.md
+  # would download Chromium on every CI install. docs/download-tp/index.md
   # documents the one-off `pnpm exec puppeteer browsers install chrome` a
   # developer runs locally to actually use the tool.
   puppeteer: false

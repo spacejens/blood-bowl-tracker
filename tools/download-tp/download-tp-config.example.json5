@@ -1,0 +1,35 @@
+// Configuration for tools/download-tp.
+//
+// Copy this file to `download-tp-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download-tp-config.json5
+//
+// `download-tp-config.json5` is git-ignored. See docs/download-tp/index.md for
+// configuration details and how to run the tool.
+{
+  // Runtime settings for reaching TP. Both fields are required.
+  connection: {
+    // Base URL of the TP frontend, including a trailing slash.
+    frontendUrl: 'https://<HOSTNAME_AND_FRONTEND_PATH>/blood-bowl/',
+    // Base URL of the TP API, including a trailing slash — responses whose
+    // URL starts with this are recorded.
+    backendApiUrl: 'https://<HOSTNAME_AND_API_PATH>/api/',
+  },
+
+  // Puppeteer browser settings.
+  browser: {
+    // true to run the browser headless, false to show it. Defaults to false
+    // if omitted.
+    //
+    // TODO Hiding browser UI causes weird console errors ["A bad HTTP
+    // response code (403) was received when fetching the script.","Service
+    // worker registration failed with: JSHandle@error"]
+    headless: false,
+  },
+
+  // What to download.
+  download: {
+    // Tournament names to download, as they appear in the frontend path.
+    tournaments: ['<NAME_FROM_FRONTEND_PATH>'],
+  },
+}
