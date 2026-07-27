@@ -404,11 +404,168 @@ describe('MatchEventCorrelationService', () => {
       ]);
     });
 
-    it('never merges an avoided consequence, and still emits the causer action', () => {
+    it('merges a single avoided consequence with the single causer action', () => {
+      // BBL 1262 (apothecary) / BBL 1820 (regeneration): one kill action and
+      // one prevented casualty in the whole match is unambiguously one pair,
+      // even though BBL names the saved victim without a player link.
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
           consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'regeneration',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'regeneration',
+          consequenceAvoidedSeverity: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges neither consequence when a real and an avoided one both match one action', () => {
+      // Two consequence candidates for one action is ambiguous: nothing in the
+      // source says which of the two the action caused, so neither merges —
+      // exactly like two real consequence candidates.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            { consequenceType: 'death', side: 'away', pid: 'victim' },
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+        },
+        {
+          consequenceType: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'victim',
+        },
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges an avoided badly_hurt with its causer action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'badly_hurt', side: 'home', pid: 'basher' }],
+          consequences: [
+            {
+              consequenceType: 'badly_hurt',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'badly_hurt',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'badly_hurt',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'basher',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges an avoided lasting injury with its serious_injury causer action', () => {
+      // The serious_injury group spans every lasting-injury consequence type,
+      // and the prevented severity recorded is the specific one, not the tier.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'basher' },
+          ],
+          consequences: [
+            {
+              consequenceType: 'niggling_injury',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'niggling_injury',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'basher',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges nothing when two avoided consequences match one action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
             {
               consequenceType: 'death',
               side: 'away',
@@ -430,6 +587,14 @@ describe('MatchEventCorrelationService', () => {
         },
         {
           consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+        {
+          consequenceType: 'casualty_avoided',
           consequenceAvoidedBy: 'regeneration',
           consequenceAvoidedSeverity: 'death',
           consequenceTeamCode: 'awy',
@@ -437,34 +602,6 @@ describe('MatchEventCorrelationService', () => {
           consequencePid: null,
         },
       ]);
-    });
-
-    it('still merges a real casualty when an avoided one is also present', () => {
-      const combined = service.combineOccurrences(
-        makeEvents({
-          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
-          consequences: [
-            { consequenceType: 'death', side: 'away', pid: 'victim' },
-            {
-              consequenceType: 'death',
-              side: 'away',
-              pid: null,
-              avoidedBy: 'apothecary',
-            },
-          ],
-        }),
-      );
-
-      const events = service.correlateEvents(combined);
-
-      expect(events[0]).toMatchObject({
-        actionType: 'death',
-        consequenceType: 'death',
-        actingPid: 'killer',
-        consequencePid: 'victim',
-      });
-      expect(events).toHaveLength(2);
-      expect(events[1]).toMatchObject({ consequenceType: 'casualty_avoided' });
     });
 
     it('carries unidentified kinds onto a merged event', () => {
@@ -496,6 +633,74 @@ describe('MatchEventCorrelationService', () => {
         actingUnidentifiedKind: 'mercenary_or_star',
         consequenceUnidentifiedKind: 'journeyman',
       });
+    });
+
+    it('merges an unlinked action with a linked consequence', () => {
+      // pid is not part of the matching predicate: an action with no BBL
+      // player link still pairs with a normally linked victim.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'death',
+              side: 'home',
+              pid: null,
+              unidentifiedKind: 'fans_or_random_event',
+            },
+          ],
+          consequences: [
+            { consequenceType: 'death', side: 'away', pid: 'victim' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: null,
+          actingUnidentifiedKind: 'fans_or_random_event',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'victim',
+        },
+      ]);
+    });
+
+    it('merges a linked action with an unlinked, non-avoided consequence', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              unidentifiedKind: 'journeyman',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+          consequenceUnidentifiedKind: 'journeyman',
+        },
+      ]);
     });
 
     it('carries an unidentified kind onto an unmerged action-only event', () => {

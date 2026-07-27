@@ -437,6 +437,9 @@ importers:
       '@nestjs/core':
         specifier: ^11.1.28
         version: 11.1.28(@nestjs/common@11.1.28(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/platform-express@11.1.28)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
       puppeteer:
         specifier: ^24.34.0
         version: 24.43.1(supports-color@8.1.1)(typescript@6.0.3)

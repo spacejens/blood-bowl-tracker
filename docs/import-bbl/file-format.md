@@ -177,9 +177,15 @@ merged-cell rows, not just this annotation.
 A prevented casualty is stored as `consequence_type = 'casualty_avoided'` with
 the prevented severity in `consequence_avoided_severity`, never as the severity
 itself, so no casualty-suffered statistic counts it as a real casualty. It is
-never merged with a causer action — a prevented casualty cannot be attributed
-to one of several candidate causers — and the causer BBL does list still emits
-its own action-only event.
+correlated with a causer action on exactly the same terms as a real casualty of
+the same severity: when a severity group holds exactly one candidate action and
+exactly one candidate consequence, the two merge into a single event — and that
+merged event still records the consequence as `casualty_avoided` with the
+prevented severity, not as the severity itself. When two or more consequence
+candidates share a group (any mix of real and prevented — say one player killed
+outright and another saved by an apothecary), attribution is ambiguous and
+nothing merges: the action and each consequence are emitted as separate events,
+so no occurrence is lost.
 
 Placement is validated against the row's actual resolved type, not just
 achievement-vs-injury: a bare `foul` is only valid in a casualty-severity
