@@ -178,13 +178,6 @@ import error naming the match, the row and the text (the linked player's own
 occurrence is still emitted). Guessing would re-introduce exactly the data
 loss this handling exists to prevent if the mirror's wording ever changes.
 
-TP provides none of this and needs no equivalent handling: it has no
-apothecary or regeneration signal on a casualty (only a roster-level "team has
-an apothecary" boolean, which says nothing about a given casualty), and it
-references every participant by `lineUpId` — journeymen, mercenaries and star
-players are all imported as real player rows — so the unidentified-kind columns
-stay null for TP-sourced events.
-
 Known limitation: "result added" is when a result was entered into the
 website, not necessarily when the match was played — a season whose results
 were backfilled in one sitting (rather than entered as they happened) can show

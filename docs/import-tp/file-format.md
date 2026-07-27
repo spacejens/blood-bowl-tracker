@@ -259,6 +259,25 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   side whose modifier is `0` (no change) is skipped entirely, so this event
   can now emit zero, one, or two records instead of always exactly two.
 
+Two facts the match-event model can record are absent from TP's data, so the
+corresponding columns stay null for TP-sourced events:
+
+- **How a casualty was prevented.** There is no apothecary or regeneration
+  signal on a casualty or injury event. The only apothecary field anywhere is
+  `inscription*.roster.apothecary`, a boolean saying the team _has_ one, which
+  says nothing about whether it was used on a given casualty. An
+  apothecary-erased casualty is only inferable as an unpaired code 6 (see the
+  casualty/injury correlation section above).
+- **An unidentified participant's kind.** Every event references its
+  participant by `lineUpId`, and journeymen, mercenaries and star players are
+  all imported as real player rows, so TP has no name-only or unidentified
+  participant to describe in the first place. Journeymen appear as `lineUps`
+  entries literally named `Journeyman` (plus event code 15), and star players
+  are flagged `isStarPlayer` (plus the `starPlayers[]` array on code 11).
+
+Both are things BBL's HTML mirror does state and TP does not — the reverse of
+the usual direction, where TP is the richer source.
+
 `secretObjective`'s payload is TP's own opaque identifier code for _which_
 secret-objective card was drawn — not a count of objectives completed. The
 same roster can have multiple `secret_objective` events in one match with
