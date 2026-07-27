@@ -17,7 +17,7 @@ Takes no arguments.
 
 ## Steps
 
-0. Ask the developer which action(s) to perform. There are six actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **two `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees both in sequence and answers once. Ask exactly these two questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
+0. Ask the developer which action(s) to perform. There are seven actions, and `AskUserQuestion` allows at most 4 options per question, so they are split across **two `multiSelect: true` questions sent in a single `AskUserQuestion` call** — the developer sees both in sequence and answers once. Ask exactly these two questions, with exactly these options, in this order. Do not add, drop, reword, or reorder any option, and in particular do not add a "Both", "All", "None", or "Neither" option of your own invention — `multiSelect: true` already lets the developer pick any combination, including (by deselecting everything offered) none. See the `AskUserQuestion` option-ceiling and don't-invent-options rules in `CLAUDE.md`'s "Developer prompts" section for the rationale.
 
    Both questions are one decision split in two, so phrase them that way. The strings below are the `question` text; each also needs a short `header` of its own (`header` is capped at 12 characters, so the question text will not fit there) — e.g. `Run what` and `Run what 2`.
 
@@ -29,9 +29,10 @@ Takes no arguments.
 
    **Question 2 — `question`: "Which action(s) should I run? (continued)"** (`multiSelect: true`):
    - **Run the manual import (after other importers)** — run `tools/import-manual/` against `data/after-other-importers` to clean up names or attach external IDs after the system-specific importers.
+   - **Run the match-event review tool** — run `tools/review-match/` against the running database and the existing BBL/TP data directories, then open the report.
    - **Generate a SchemaSpy diagram** — run `pnpm run db:diagram` against a running `postgres` and open the result.
 
-   The **union** of the two answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the six options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in either question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
+   The **union** of the two answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the seven options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in either question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
 ### Deploy the stack
 
@@ -199,9 +200,47 @@ Run this section only if "Run the manual import (after other importers)" was sel
    ```
 4. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 4. No automatic rollback; never tear down containers regardless of outcome.
 
+### Run the match-event review tool
+
+Run this section only if "Run the match-event review tool" was selected in step 0 above. Runs after the "Deploy the stack" and every import section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
+
+1. `tools/review-match/review-match-config.json5` is gitignored, so a git worktree created fresh from a branch won't have it even though the main checkout might. `develop-feature` normally performs this same sync in its Phase 1, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create — same pattern as the BBL/TP config syncs above. No `data/` symlink is needed: this tool's config points at `tools/import-bbl/data` and `tools/import-tp/data`, which the BBL and TP sections above already sync.
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     if [ ! -f "$WORKTREE_ROOT/tools/review-match/review-match-config.json5" ] && [ -f "$MAIN_ROOT/tools/review-match/review-match-config.json5" ]; then
+       cp "$MAIN_ROOT/tools/review-match/review-match-config.json5" "$WORKTREE_ROOT/tools/review-match/review-match-config.json5"
+     fi
+   fi
+   ```
+   Never overwrite a `review-match-config.json5` already present in the worktree — only fill in what's missing.
+2. Check `tools/review-match/review-match-config.json5` is usable:
+   ```bash
+   cat tools/review-match/review-match-config.json5 2>/dev/null
+   ```
+   If the file doesn't exist, copy the template:
+   ```bash
+   if [ ! -f tools/review-match/review-match-config.json5 ]; then
+     cp tools/review-match/review-match-config.example.json5 tools/review-match/review-match-config.json5
+   fi
+   ```
+   Then confirm, per `docs/review-match/index.md`, that `database.url` points at the running stack (`postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl` for the docker-compose stack) and that `bbl.dataDir` and `tp.dataDir` point at directories that exist — the template's defaults (`../import-bbl/data/tloeg.bbleague.se` and `../import-tp/data`) are correct whenever the BBL/TP sections' `data` symlinks are in place. If a `dataDir` doesn't exist, ask the developer for the right path and write it into the file before running.
+3. Build and run the tool — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/review-match run build
+   ( cd tools/review-match && node dist/main.js )
+   ```
+4. On success, open the report automatically — asking for the review is a request to look at it:
+   ```bash
+   open tools/review-match/output/report.html
+   ```
+   Run this from the repo root (this worktree's root, not the main checkout's).
+5. Report the outcome to the developer. Per `tools/review-match/src/main.ts`, the tool exits `0` and prints `Reviewed <N> match(es); report written to <path>.` on stdout, preceded by one `Warning [BBL|TP]: <reason>` line per gap (a stratum with no matching data, or an override id not in the database — neither is a failure); or exits `1` printing `Review failed:` with the thrown error (most often an unreachable database or an unusable config). Report the exit code, any warnings, and the report path. The tool only reads game data, so a failure leaves nothing to clean up. Do not tear down any containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
+
 ### Generate a SchemaSpy diagram
 
-Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", both "Run the manual import" sections, "Run the BBL import", and "Run the TP import" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
+Run this section only if "Generate a SchemaSpy diagram" was selected in step 0 above. It runs **last** — after the "Deploy the stack", both "Run the manual import" sections, "Run the BBL import", "Run the TP import", and "Run the match-event review tool" sections if those were also selected — so the diagram reflects the schema after any deploy work (it does not interact with any import). It also runs standalone (no docker steps of its own) if only this was selected — e.g. the developer wants a diagram of a stack deployed in a previous session.
 
 1. Generate the diagram from the repo root:
    ```bash
