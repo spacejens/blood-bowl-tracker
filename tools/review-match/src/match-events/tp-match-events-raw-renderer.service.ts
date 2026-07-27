@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
+import type { TableCell } from '../shared/html.service';
 import { HtmlService } from '../shared/html.service';
 import { TpRawMatchFileLoaderService } from '../source/tp-raw-match-file-loader.service';
 import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
@@ -63,7 +64,7 @@ export class TpMatchEventsRawRendererService {
     return Array.isArray(events) ? events : null;
   }
 
-  private row(event: unknown, index: number): string[] {
+  private row(event: unknown, index: number): TableCell[] {
     const fields =
       typeof event === 'object' && event !== null
         ? (event as Record<string, unknown>)
@@ -84,19 +85,21 @@ export class TpMatchEventsRawRendererService {
     ];
   }
 
-  /** Everything not already in its own column, as (truncated) raw JSON. */
-  private otherFields(fields: Record<string, unknown>): string {
+  /** Everything not already in its own column, as (truncated) pretty JSON. */
+  private otherFields(fields: Record<string, unknown>): TableCell {
     const rest = Object.fromEntries(
       Object.entries(fields).filter(
         ([key]) => !OWN_COLUMN_FIELDS.includes(key),
       ),
     );
-    const json = JSON.stringify(rest);
+    const json = JSON.stringify(rest, null, 2);
     if (json === '{}') {
       return NONE;
     }
-    return json.length > MAX_FIELDS_LENGTH
-      ? `${json.slice(0, MAX_FIELDS_LENGTH)}…`
-      : json;
+    const truncated =
+      json.length > MAX_FIELDS_LENGTH
+        ? `${json.slice(0, MAX_FIELDS_LENGTH)}…`
+        : json;
+    return { pre: truncated };
   }
 }

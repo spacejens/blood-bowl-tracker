@@ -13,6 +13,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import type { TableCell } from '../shared/html.service';
 import { HtmlService } from '../shared/html.service';
 import type { SampledMatch } from '../shared/review.types';
 
@@ -29,11 +30,10 @@ const consequenceTeam = alias(teams, 'consequence_team');
 
 const NONE = '—';
 
-const HEADERS = [
+const HEADERS: TableCell[] = [
   'DB id',
   'External ID',
-  'Action',
-  'Consequence',
+  ['Action', 'Consequence'],
   'Event',
   'Acting player',
   'Acting team',
@@ -93,11 +93,10 @@ export class MatchEventsDbRendererService {
     }
     return this.html.table(
       HEADERS,
-      rows.map((row) => [
+      rows.map((row): TableCell[] => [
         String(row.id),
         row.externalId ?? NONE,
-        row.actionType ?? NONE,
-        row.consequenceType ?? NONE,
+        [row.actionType ?? NONE, row.consequenceType ?? NONE],
         row.eventType ?? NONE,
         row.actingPlayerName ?? NONE,
         row.actingTeamName ?? NONE,

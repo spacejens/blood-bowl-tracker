@@ -38,6 +38,26 @@ describe('HtmlService', () => {
     it('renders an empty-row note instead of a table when there are no rows', () => {
       expect(service.table(['A'], [])).toBe('<p class="note">No rows.</p>');
     });
+
+    it('joins a string-array cell with a line break, escaping each segment', () => {
+      const html = service.table(['A'], [[['x & y', '<z>']]]);
+
+      expect(html).toContain('<td>x &amp; y<br>&lt;z&gt;</td>');
+    });
+
+    it('joins a string-array header with a line break, escaping each segment', () => {
+      const html = service.table([['Action', 'Consequence & more']], [['x']]);
+
+      expect(html).toContain('<th>Action<br>Consequence &amp; more</th>');
+    });
+
+    it('renders a pre-formatted cell in a <pre> block, escaped', () => {
+      const html = service.table(['A'], [[{ pre: '{\n  "x": "<y>"\n}' }]]);
+
+      expect(html).toContain(
+        '<td><pre class="cell-pre">{\n  &quot;x&quot;: &quot;&lt;y&gt;&quot;\n}</pre></td>',
+      );
+    });
   });
 
   describe('note', () => {

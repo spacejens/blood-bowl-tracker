@@ -92,7 +92,7 @@ describe('BblMatchEventsRawRendererService', () => {
     expect(html).not.toContain('<td>Frostheart Raptors</td>');
   });
 
-  it("keeps the cell's <br> segmentation, which separates participants", async () => {
+  it("keeps the cell's <br> segmentation, rendered as a line break so the table stays narrow", async () => {
     const service = await makeService(
       pageWith(
         '<tr><td>Bengt<br>Gor Don</td><td>Badly Hurt&#39;ers</td><td></td></tr>',
@@ -101,7 +101,7 @@ describe('BblMatchEventsRawRendererService', () => {
 
     const html = await service.render('1830');
 
-    expect(html).toContain('<td>Bengt | Gor Don</td>');
+    expect(html).toContain('<td>Bengt<br>Gor Don</td>');
   });
 
   it("shows each player link's pid and each image's alt text", async () => {

@@ -79,7 +79,8 @@ describe('MatchEventsDbRendererService', () => {
 
     const html = await service.render(match);
 
-    expect(html).toContain('<td>foul</td>');
+    expect(html).toContain('<th>Action<br>Consequence</th>');
+    expect(html).toContain('<td>foul<br>—</td>');
     expect(html).toContain('<td>Betong Bengt</td>');
     // Non-ASCII letters are not escaped — HtmlService only escapes & < > " '.
     expect(html).toContain('<td>Bräkenäs Betongbockar</td>');

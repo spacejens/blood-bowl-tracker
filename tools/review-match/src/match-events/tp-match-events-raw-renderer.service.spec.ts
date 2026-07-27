@@ -65,8 +65,9 @@ describe('TpMatchEventsRawRendererService', () => {
 
     const html = await service.render('344820');
 
-    expect(html).toContain('&quot;lineUpId&quot;:5');
-    expect(html).toContain('&quot;injuryType&quot;:&quot;Dead&quot;');
+    expect(html).toContain('<pre class="cell-pre">');
+    expect(html).toContain('&quot;lineUpId&quot;: 5');
+    expect(html).toContain('&quot;injuryType&quot;: &quot;Dead&quot;');
   });
 
   it('truncates very long field payloads', async () => {

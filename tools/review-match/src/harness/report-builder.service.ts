@@ -36,6 +36,7 @@ const STYLES = `
   th, td { border: 1px solid #ddd; padding: 2px 4px; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; }
   .note { color: #a00; font-style: italic; }
+  .cell-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; }
 `;
 
 /**

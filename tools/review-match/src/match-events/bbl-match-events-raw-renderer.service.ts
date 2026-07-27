@@ -44,14 +44,14 @@ export class BblMatchEventsRawRendererService {
     }
 
     const $ = load(page);
-    const rows: string[][] = [];
+    const rows: (readonly string[])[][] = [];
     $('table.tblist tr').each((_index, tr) => {
       const cells = $(tr).find('td');
       if (cells.length !== 3) {
         return;
       }
       rows.push(
-        cells.map((_i, cell) => this.cellText($, $(cell).html() ?? '')).get(),
+        cells.toArray().map((cell) => this.cellText($, $(cell).html() ?? '')),
       );
     });
 
@@ -80,13 +80,12 @@ export class BblMatchEventsRawRendererService {
       : FALLBACK_HEADERS;
   }
 
-  /** One cell, `<br>`-segmented; segments joined with a visible separator. */
-  private cellText($: CheerioAPI, cellHtml: string): string {
+  /** One cell's `<br>`-separated segments, rendered as one line each. */
+  private cellText($: CheerioAPI, cellHtml: string): string[] {
     return cellHtml
       .split(/<br\s*\/?>/i)
       .map((fragment) => this.segmentText($, fragment))
-      .filter((segment) => segment !== '')
-      .join(' | ');
+      .filter((segment) => segment !== '');
   }
 
   /** One `<br>` segment: its text, its player ids, and its image alt texts. */
