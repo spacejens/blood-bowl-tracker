@@ -7,7 +7,10 @@
 // `review-match-config.json5` is git-ignored. See docs/review-match/index.md
 // for configuration details and how to run the tool.
 {
-  // The database the imported data was imported into. This tool only reads.
+  // The database the imported data was imported into. This tool only reads
+  // game data itself, but connects via packages/db's DbModule, which applies
+  // any pending migrations on connect (a no-op against a stack deployed from
+  // the same branch) -- see docs/review-match/index.md.
   database: {
     // Connection string for the running Postgres. The default below matches
     // docker-compose.yml's host port mapping.

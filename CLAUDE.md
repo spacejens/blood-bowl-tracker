@@ -220,12 +220,23 @@ and an auto-mock cannot self-chain builder methods. Use
 `packages/game-data/src/shared/db-mock.test-helpers.ts` — see that file for the
 exact shape it returns and how to assert on captured query calls.
 
-**Module composition is the one deliberate exception.** A handful of
+**Module composition is one deliberate exception.** A handful of
 `*.module.spec.ts` files (e.g. `packages/import/src/import.module.spec.ts` and
 each `tools/import-*/src/app.module.spec.ts`) compile the *real* module with its
 *real* providers, on purpose — their job is to verify the whole dependency graph
-wires together, which mocking would defeat. This is the only place a real
-collaborator is intentionally constructed in a test.
+wires together, which mocking would defeat.
+
+**A pure, dependency-free formatting service is the other.** A service whose
+only job is deterministic text/markup assembly — no injected collaborators of
+its own, no I/O, no branching on external state — may be passed as a real
+provider to a spec that asserts on its *output* (e.g.
+`tools/review-match/src/shared/html.service.ts`, injected into the renderer
+specs that build HTML fragments from it). Mocking it would leave the actual
+generated markup unasserted, which defeats the point of those tests; passing
+the real thing carries none of the coupling risk the "never pass a real
+collaborator" rule guards against, since there is no concrete *behavior* to
+drift from — only pure formatting. This does not extend to any service with
+its own dependencies or side effects, which must still be mocked as normal.
 
 ## Function parameter limit
 

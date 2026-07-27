@@ -25,7 +25,12 @@ services.
    - **Raw source** — the BBL mirror page's `table.tblist` rows as plain text,
      or the TP `match_<id>.json`'s `matchEvents[]` entries with their numeric
      codes. Neither panel uses the importers' interpretation logic, so an
-     importer bug shows up as a difference instead of being mirrored.
+     importer bug shows up as a difference instead of being mirrored. TP's raw
+     panel also shows a hand-written `(label)` hint next to each numeric code
+     — treat the code as the authoritative datum and the label as a reading
+     aid only; the label table necessarily describes the same meanings as
+     `packages/parse-tp`'s real decoders; it can't independently catch a
+     decoder that's simply wrong about what a code means.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
 4. Writes `tools/review-match/output/report.html` (gitignored) and prints
