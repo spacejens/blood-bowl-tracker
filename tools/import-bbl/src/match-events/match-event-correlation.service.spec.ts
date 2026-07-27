@@ -635,6 +635,74 @@ describe('MatchEventCorrelationService', () => {
       });
     });
 
+    it('merges an unlinked action with a linked consequence', () => {
+      // pid is not part of the matching predicate: an action BBL gives no
+      // player link for still pairs with a normally linked victim.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'death',
+              side: 'home',
+              pid: null,
+              unidentifiedKind: 'fans_or_random_event',
+            },
+          ],
+          consequences: [
+            { consequenceType: 'death', side: 'away', pid: 'victim' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: null,
+          actingUnidentifiedKind: 'fans_or_random_event',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'victim',
+        },
+      ]);
+    });
+
+    it('merges a linked action with an unlinked, non-avoided consequence', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              unidentifiedKind: 'journeyman',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+          consequenceUnidentifiedKind: 'journeyman',
+        },
+      ]);
+    });
+
     it('carries an unidentified kind onto an unmerged action-only event', () => {
       const combined = service.combineOccurrences(
         makeEvents({
