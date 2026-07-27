@@ -30,6 +30,7 @@ const consequenceTeam = alias(teams, 'consequence_team');
 const NONE = '—';
 
 const HEADERS = [
+  'DB id',
   'External ID',
   'Action',
   'Consequence',
@@ -93,6 +94,7 @@ export class MatchEventsDbRendererService {
     return this.html.table(
       HEADERS,
       rows.map((row) => [
+        String(row.id),
         row.externalId ?? NONE,
         row.actionType ?? NONE,
         row.consequenceType ?? NONE,

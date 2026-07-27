@@ -5,6 +5,9 @@ import { Injectable } from '@nestjs/common';
 
 import { ReviewMatchConfigService } from '../config/review-match-config.service';
 
+/** BBL's own external ids are always plain numbers (the `m=` page parameter). */
+const NUMERIC_EXTERNAL_ID = /^\d+$/;
+
 /**
  * Loads a single BBL match page off the wget mirror. Mirror filenames encode
  * their query string verbatim (`default.asp?p=m&m=1830`), so the file for a
@@ -18,6 +21,12 @@ export class BblRawPageLoaderService {
   constructor(private readonly config: ReviewMatchConfigService) {}
 
   async loadMatchPage(externalId: string): Promise<string | null> {
+    if (!NUMERIC_EXTERNAL_ID.test(externalId)) {
+      // Rejects anything that isn't a plain number before it reaches a path
+      // join — a `/` or `..` here (never a real BBL id) could otherwise
+      // address a file outside the configured data directory.
+      return null;
+    }
     const path = join(
       this.config.getDataDir('bbl'),
       `default.asp?p=m&m=${externalId}`,

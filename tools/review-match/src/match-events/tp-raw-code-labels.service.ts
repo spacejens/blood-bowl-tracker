@@ -17,7 +17,7 @@ import { Injectable } from '@nestjs/common';
  * 27) the importer drops.
  */
 @Injectable()
-export class TpRawCodeLabelService {
+export class TpRawCodeLabelsService {
   private readonly labels = new Map<number, string>([
     [3, 'completion'],
     [4, 'touchdown'],

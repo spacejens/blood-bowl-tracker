@@ -84,6 +84,7 @@ describe('MatchEventsDbRendererService', () => {
     // Non-ASCII letters are not escaped — HtmlService only escapes & < > " '.
     expect(html).toContain('<td>Bräkenäs Betongbockar</td>');
     expect(html).toContain('<td>bbl-1830-1</td>');
+    expect(html).toContain('<td>501</td>');
   });
 
   it('renders an em dash for fields the event does not have', async () => {

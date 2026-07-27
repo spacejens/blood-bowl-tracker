@@ -39,6 +39,59 @@ describe('BblMatchEventsRawRendererService', () => {
     expect(html).toContain('<td>Douglas Gran</td>');
   });
 
+  it('falls back to generic Home/Away headers when no team header row is found', async () => {
+    const service = await makeService(
+      pageWith(
+        '<tr><td>Betong Bengt</td><td>TD Scorers</td><td>Douglas Gran</td></tr>',
+      ),
+    );
+
+    const html = await service.render('1830');
+
+    expect(html).toContain('<th>Home</th>');
+    expect(html).toContain('<th>Away</th>');
+  });
+
+  it("uses the two teams' names as the Home/Away column headers", async () => {
+    // The page's team-name row: score summary sits in a nested table inside
+    // the middle cell, exactly as BBL's real markup does.
+    const service = await makeService(
+      pageWith(
+        '<tr>' +
+          '<td><a href="default.asp?p=tm&t=gut"><img alt="Team badge"><br>' +
+          '<b>Gutter Gunners</b></a><br></td>' +
+          '<td><table><tr><td>4</td><td>TD score</td><td>2</td></tr></table></td>' +
+          '<td><a href="default.asp?p=tm&t=fro"><img alt="Team badge"><br>' +
+          '<b>Frostheart Raptors</b></a><br></td>' +
+          '</tr>' +
+          '<tr><td>Betong Bengt</td><td>TD Scorers</td><td>Douglas Gran</td></tr>',
+      ),
+    );
+
+    const html = await service.render('1830');
+
+    expect(html).toContain('<th>Gutter Gunners</th>');
+    expect(html).toContain('<th>Frostheart Raptors</th>');
+  });
+
+  it('does not render the team header row itself as an event row', async () => {
+    const service = await makeService(
+      pageWith(
+        '<tr>' +
+          '<td><a href="default.asp?p=tm&t=gut"><b>Gutter Gunners</b></a></td>' +
+          '<td><table><tr><td>4</td><td>TD score</td><td>2</td></tr></table></td>' +
+          '<td><a href="default.asp?p=tm&t=fro"><b>Frostheart Raptors</b></a></td>' +
+          '</tr>' +
+          '<tr><td>Betong Bengt</td><td>TD Scorers</td><td>Douglas Gran</td></tr>',
+      ),
+    );
+
+    const html = await service.render('1830');
+
+    expect(html).not.toContain('<td>Gutter Gunners</td>');
+    expect(html).not.toContain('<td>Frostheart Raptors</td>');
+  });
+
   it("keeps the cell's <br> segmentation, which separates participants", async () => {
     const service = await makeService(
       pageWith(

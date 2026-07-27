@@ -33,8 +33,10 @@ services.
      decoder that's simply wrong about what a code means.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
-4. Writes `tools/review-match/output/report.html` (gitignored) and prints
-   where it landed.
+4. Writes the report under `tools/review-match/output/` (gitignored) with a
+   timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
+   so successive runs don't overwrite each other's reports, and prints where
+   it landed.
 
 Strata that match nothing, and override ids that are not in the database, are
 reported as gaps in the report (and as console warnings) — never as failures.
@@ -54,7 +56,7 @@ cp tools/review-match/review-match-config.example.json5 tools/review-match/revie
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
 | `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`) |
 | `overrides.bbl` / `overrides.tp` | External match ids always included |
-| `outputPath` | Where the report is written (default `output/report.html`) |
+| `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`, e.g. `output/report-2026-07-27T19-15-00Z.html`) |
 
 Relative paths resolve against the working directory, which is
 `tools/review-match/` when the tool is run as documented below.
@@ -67,12 +69,13 @@ which can also run this tool for you and open the report.
 ```bash
 pnpm --filter @blood-bowl-tracker/review-match run build
 ( cd tools/review-match && node dist/main.js )
-open tools/review-match/output/report.html
 ```
 
 Exit codes: `0` with `Reviewed <N> match(es); report written to <path>.` on
 success; `1` with `Review failed: <error>` when the database is unreachable or
-the config is unusable.
+the config is unusable. Open the path printed on success — each run writes
+its own timestamped file under `tools/review-match/output/`, so the most
+recent one isn't necessarily named the same as a previous run's.
 
 The tool only reads game data. It does connect through `packages/db`'s
 `DbModule`, which applies any pending migrations on connect — against a stack

@@ -90,8 +90,23 @@ describe('ReviewService', () => {
       matchCount: 1,
       gaps: [],
     });
-    expect(writer.write).toHaveBeenCalledWith('<html></html>');
+    expect(writer.write).toHaveBeenCalledWith(
+      '<html></html>',
+      expect.any(Date),
+    );
     expect(builder.build).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes the document with the same generatedAt the report body shows', async () => {
+    const { service, builder, writer } = await makeHarness();
+
+    await service.run();
+
+    const report = builder.build.mock.calls[0][0];
+    expect(writer.write).toHaveBeenCalledWith(
+      '<html></html>',
+      report.generatedAt,
+    );
   });
 
   it("passes the sampler's gaps through to the report and the outcome", async () => {

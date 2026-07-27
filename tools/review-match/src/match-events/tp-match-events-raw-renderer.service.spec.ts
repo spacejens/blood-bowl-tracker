@@ -5,10 +5,10 @@ import { mock } from 'vitest-mock-extended';
 import { HtmlService } from '../shared/html.service';
 import { TpRawMatchFileLoaderService } from '../source/tp-raw-match-file-loader.service';
 import { TpMatchEventsRawRendererService } from './tp-match-events-raw-renderer.service';
-import { TpRawCodeLabelService } from './tp-raw-code-labels.service';
+import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 
 async function makeService(
-  file: unknown,
+  file: object | null,
   loadError?: Error,
 ): Promise<TpMatchEventsRawRendererService> {
   const loader = mock<TpRawMatchFileLoaderService>();
@@ -17,13 +17,13 @@ async function makeService(
   } else {
     loader.loadMatchFile.mockResolvedValue(file);
   }
-  const labels = mock<TpRawCodeLabelService>();
+  const labels = mock<TpRawCodeLabelsService>();
   labels.describe.mockImplementation((code) => `code:${code}`);
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpMatchEventsRawRendererService,
       { provide: TpRawMatchFileLoaderService, useValue: loader },
-      { provide: TpRawCodeLabelService, useValue: labels },
+      { provide: TpRawCodeLabelsService, useValue: labels },
       HtmlService,
     ],
   }).compile();

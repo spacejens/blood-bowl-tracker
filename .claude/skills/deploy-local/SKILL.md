@@ -231,9 +231,9 @@ Run this section only if "Run the match-event review tool" was selected in step 
    pnpm --filter @blood-bowl-tracker/review-match run build
    ( cd tools/review-match && node dist/main.js )
    ```
-4. On success, open the report automatically — asking for the review is a request to look at it:
+4. On success, open the report automatically — asking for the review is a request to look at it. Each run writes its own timestamped file under `tools/review-match/output/` rather than a fixed name, so open the exact path printed by step 3's command (the line reading `Reviewed <N> match(es); report written to <path>.`) — do not assume `report.html`:
    ```bash
-   open tools/review-match/output/report.html
+   open <path from the tool's own output>
    ```
    Run this from the repo root (this worktree's root, not the main checkout's).
 5. Report the outcome to the developer. Per `tools/review-match/src/main.ts`, the tool exits `0` and prints `Reviewed <N> match(es); report written to <path>.` on stdout, preceded by one `Warning [BBL|TP]: <reason>` line per gap (a stratum with no matching data, or an override id not in the database — neither is a failure); or exits `1` printing `Review failed:` with the thrown error (most often an unreachable database or an unusable config). Report the exit code, any warnings, and the report path. The tool only reads game data itself (it connects via `packages/db`'s `DbModule`, which applies any pending migrations on connect — a no-op against a stack deployed from the same branch), so a failure leaves nothing to clean up. Do not tear down any containers regardless of the outcome — same non-goal as the "Deploy the stack" section.

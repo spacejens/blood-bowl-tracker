@@ -7,7 +7,7 @@ import { MatchEventStratificationService } from './match-event-stratification.se
 import { MatchEventsDbRendererService } from './match-events-db-renderer.service';
 import { MatchEventsReviewerService } from './match-events-reviewer.service';
 import { TpMatchEventsRawRendererService } from './tp-match-events-raw-renderer.service';
-import { TpRawCodeLabelService } from './tp-raw-code-labels.service';
+import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 
 /**
  * The only data-type module in v1. It exports exactly the two contract
@@ -21,7 +21,7 @@ import { TpRawCodeLabelService } from './tp-raw-code-labels.service';
     MatchEventsDbRendererService,
     MatchEventsReviewerService,
     TpMatchEventsRawRendererService,
-    TpRawCodeLabelService,
+    TpRawCodeLabelsService,
   ],
   exports: [MatchEventsReviewerService, MatchEventStratificationService],
 })

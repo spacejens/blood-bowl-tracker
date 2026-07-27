@@ -48,12 +48,9 @@ export class ReviewService {
       reviewed.push({ match, panels });
     }
 
-    const html = this.builder.build({
-      matches: reviewed,
-      gaps,
-      generatedAt: new Date(),
-    });
-    const reportPath = await this.writer.write(html);
+    const generatedAt = new Date();
+    const html = this.builder.build({ matches: reviewed, gaps, generatedAt });
+    const reportPath = await this.writer.write(html, generatedAt);
     return { reportPath, matchCount: reviewed.length, gaps };
   }
 

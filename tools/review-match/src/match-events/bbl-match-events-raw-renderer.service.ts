@@ -8,12 +8,18 @@ import { BblRawPageLoaderService } from '../source/bbl-raw-page-loader.service';
 /** BBL's player-page links carry the player id as `pid`. */
 const PID_LINK = /[?&]pid=([^&#"']+)/;
 
-const HEADERS = ['Home', 'Label', 'Away'];
+const FALLBACK_HEADERS = ['Home', 'Label', 'Away'];
 
 /**
  * Shows a BBL match page's event table as close to the raw scrape as is
  * readable: every three-cell `table.tblist` row, each cell split on `<br>`
  * exactly as BBL wrote it, with player ids and image alt texts spelled out.
+ * Any row with exactly three `<td>`s is shown — deliberately dumb structural
+ * matching rather than an event-row allowlist, since the point is to expose
+ * whatever is really in the table, not to pre-decide what counts as an
+ * event. In every BBL match page examined, the only three-`<td>` rows under
+ * `table.tblist` are the team-name header row (identified and pulled out
+ * separately below) and the actual action/consequence rows.
  *
  * Deliberately does NOT match labels against any action/consequence
  * vocabulary and shares no code with `tools/import-bbl`'s page parser —
@@ -52,7 +58,26 @@ export class BblMatchEventsRawRendererService {
     if (rows.length === 0) {
       return this.html.note('No table.tblist rows found on the raw BBL page.');
     }
-    return this.html.table(HEADERS, rows);
+    return this.html.table(this.headers($), rows);
+  }
+
+  /**
+   * "Home"/"Away" replaced with the two teams' names, read from the page's
+   * team-header row (the row whose middle cell holds the nested TD/cas-score
+   * table) — falls back to the generic labels when that row, or a team name
+   * inside it, isn't found.
+   */
+  private headers($: CheerioAPI): string[] {
+    const headerRow = $('table.tblist').first().find('tr').first();
+    const cells = headerRow.children('td');
+    if (cells.length !== 3) {
+      return FALLBACK_HEADERS;
+    }
+    const home = cells.eq(0).find('b').first().text().trim();
+    const away = cells.eq(2).find('b').first().text().trim();
+    return home !== '' && away !== ''
+      ? [home, 'Label', away]
+      : FALLBACK_HEADERS;
   }
 
   /** One cell, `<br>`-segmented; segments joined with a visible separator. */

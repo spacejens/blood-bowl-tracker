@@ -23,16 +23,20 @@ export class TpRawMatchFileLoaderService {
 
   constructor(private readonly config: ReviewMatchConfigService) {}
 
-  /** The raw parsed body of the match file, or null when there is none. */
-  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-  async loadMatchFile(externalId: string): Promise<unknown | null> {
+  /**
+   * The raw parsed body of the match file, or null when there is none. TP's
+   * match files are always JSON objects, never a bare primitive, so `object`
+   * expresses the contract without the `unknown | null` redundancy a bare
+   * `unknown` would need suppressing.
+   */
+  async loadMatchFile(externalId: string): Promise<object | null> {
     const path = (await this.matchFilePaths()).get(externalId);
     if (path === undefined) {
       return null;
     }
     const raw = await readFile(path, 'utf8');
     try {
-      return JSON.parse(raw) as unknown;
+      return JSON.parse(raw) as object;
     } catch (error) {
       throw new Error(
         `Failed to parse TP match file ${path}: ${error instanceof Error ? error.message : String(error)}`,

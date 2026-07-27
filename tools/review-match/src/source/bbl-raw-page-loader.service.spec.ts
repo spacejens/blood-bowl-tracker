@@ -72,4 +72,10 @@ describe('BblRawPageLoaderService', () => {
 
     await expect(service.loadMatchPage('999')).rejects.toThrow(/EISDIR/);
   });
+
+  it('returns null for a non-numeric external id instead of joining it into a path', async () => {
+    const service = await makeService();
+
+    await expect(service.loadMatchPage('../../etc/passwd')).resolves.toBeNull();
+  });
 });

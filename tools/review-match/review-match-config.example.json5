@@ -49,7 +49,10 @@
     tp: [],
   },
 
-  // Where the generated report is written. Relative paths resolve against the
-  // current working directory. Defaults to 'output/report.html'.
+  // Base path each generated report is written next to -- a timestamp is
+  // inserted before the extension (e.g. 'output/report-2026-07-27T19-15-00Z.html')
+  // so successive runs don't overwrite each other's reports. Relative paths
+  // resolve against the current working directory. Defaults to
+  // 'output/report.html'.
   outputPath: 'output/report.html',
 }

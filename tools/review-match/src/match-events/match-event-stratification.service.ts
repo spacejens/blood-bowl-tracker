@@ -8,7 +8,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 import type { SQL } from 'drizzle-orm';
-import { and, desc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type {
@@ -80,8 +80,12 @@ export class MatchEventStratificationService implements MatchStratifier {
   }: StratumSampleRequest): Promise<ReviewMatch[]> {
     const condition = this.condition(stratumId);
     const externalSystemId = await this.externalSystems.getSystemId(source);
+    // GROUP BY, not SELECT DISTINCT: one row per match (matching event rows
+    // never differ across these columns), but unlike DISTINCT it doesn't
+    // require ORDER BY expressions to appear in the select list, so `random()`
+    // is allowed directly here.
     const rows = await this.db
-      .selectDistinct({
+      .select({
         matchId: matches.id,
         externalId: matchExternalIds.externalId,
         matchName: matches.name,
@@ -99,7 +103,18 @@ export class MatchEventStratificationService implements MatchStratifier {
         ),
       )
       .where(condition)
-      .orderBy(desc(matches.playedAt))
+      .groupBy(
+        matches.id,
+        matchExternalIds.externalId,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+      )
+      // Random, not newest-first: every stratum querying "the same handful
+      // of most recent matches" would otherwise collapse a large sample
+      // into a handful of overlapping matches, defeating the point of
+      // sampling several strata in the first place.
+      .orderBy(sql`random()`)
       .limit(limit);
 
     return rows.map((row) => ({ source, ...row }));

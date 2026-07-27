@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 
 import { HtmlService } from '../shared/html.service';
 import { TpRawMatchFileLoaderService } from '../source/tp-raw-match-file-loader.service';
-import { TpRawCodeLabelService } from './tp-raw-code-labels.service';
+import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 
 const HEADERS = ['#', 'Code', 'Event id', 'Instant', 'Other raw fields'];
 const NONE = '—';
@@ -23,7 +23,7 @@ const OWN_COLUMN_FIELDS = ['matchEventType', 'id', 'instant'];
 export class TpMatchEventsRawRendererService {
   constructor(
     private readonly loader: TpRawMatchFileLoaderService,
-    private readonly labels: TpRawCodeLabelService,
+    private readonly labels: TpRawCodeLabelsService,
     private readonly html: HtmlService,
   ) {}
 

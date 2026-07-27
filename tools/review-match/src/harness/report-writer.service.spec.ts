@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -32,32 +32,44 @@ describe('ReportWriterService', () => {
     return moduleRef.get(ReportWriterService);
   }
 
-  it('writes the document to the configured path and returns it', async () => {
+  const generatedAt = new Date('2026-07-27T19:15:00.000Z');
+
+  it('writes the document to the configured path with a timestamp inserted before the extension', async () => {
     const outputPath = join(dir, 'report.html');
     const service = await makeService(outputPath);
+    const expectedPath = join(dir, 'report-2026-07-27T19-15-00Z.html');
 
-    await expect(service.write('<html></html>')).resolves.toBe(outputPath);
-    await expect(readFile(outputPath, 'utf8')).resolves.toBe('<html></html>');
+    await expect(service.write('<html></html>', generatedAt)).resolves.toBe(
+      expectedPath,
+    );
+    await expect(readFile(expectedPath, 'utf8')).resolves.toBe('<html></html>');
   });
 
   it('creates the output directory when it does not exist yet', async () => {
     const outputPath = join(dir, 'nested', 'output', 'report.html');
     const service = await makeService(outputPath);
 
-    await service.write('<html></html>');
+    const written = await service.write('<html></html>', generatedAt);
 
-    await expect(readFile(outputPath, 'utf8')).resolves.toBe('<html></html>');
+    await expect(readFile(written, 'utf8')).resolves.toBe('<html></html>');
   });
 
-  it('overwrites a report from a previous run', async () => {
+  it('writes a distinct file per run instead of overwriting an earlier report', async () => {
     const outputPath = join(dir, 'report.html');
     const service = await makeService(outputPath);
+    const laterGeneratedAt = new Date('2026-07-27T19:16:00.000Z');
 
-    await service.write('<html>old</html>');
-    await service.write('<html>new</html>');
+    const firstPath = await service.write('<html>old</html>', generatedAt);
+    const secondPath = await service.write(
+      '<html>new</html>',
+      laterGeneratedAt,
+    );
 
-    await expect(readFile(outputPath, 'utf8')).resolves.toBe(
+    expect(firstPath).not.toBe(secondPath);
+    await expect(readFile(firstPath, 'utf8')).resolves.toBe('<html>old</html>');
+    await expect(readFile(secondPath, 'utf8')).resolves.toBe(
       '<html>new</html>',
     );
+    await expect(readdir(dir)).resolves.toHaveLength(2);
   });
 });

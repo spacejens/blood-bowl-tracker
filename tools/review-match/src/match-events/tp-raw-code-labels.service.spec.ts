@@ -1,16 +1,16 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { TpRawCodeLabelService } from './tp-raw-code-labels.service';
+import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 
-describe('TpRawCodeLabelService', () => {
-  let service: TpRawCodeLabelService;
+describe('TpRawCodeLabelsService', () => {
+  let service: TpRawCodeLabelsService;
 
   beforeEach(async () => {
     const moduleRef = await Test.createTestingModule({
-      providers: [TpRawCodeLabelService],
+      providers: [TpRawCodeLabelsService],
     }).compile();
-    service = moduleRef.get(TpRawCodeLabelService);
+    service = moduleRef.get(TpRawCodeLabelsService);
   });
 
   it('shows the code and its label for a known code', () => {
