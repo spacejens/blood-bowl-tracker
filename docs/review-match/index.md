@@ -12,7 +12,7 @@ services.
 
 ## What it does
 
-1. Samples matches per source (BBL and TP) across six strata — a few matches
+1. Samples matches per source (BBL and TP) across seven strata — a few matches
    each, `matchesPerStratum` (default 3) per stratum:
    1. contains a foul
    2. contains a casualty or death
@@ -20,16 +20,20 @@ services.
    4. an action *without* a matched consequence
    5. a journeyman, star or mercenary participant
    6. a consequence avoided by apothecary or regeneration (BBL only)
+   7. a four-team match merged from two BBL source rows (BBL only)
 2. Adds every match id listed in `overrides`, whatever the strata picked.
 3. For each sampled match, renders two panels:
    - **Raw source** — the BBL mirror page's `table.tblist` rows as plain text,
      or the TP `match_<id>.json`'s `matchEvents[]` entries with their numeric
-     codes. Neither panel uses the importers' interpretation logic, so an
-     importer bug shows up as a difference instead of being mirrored. TP's raw
-     panel also shows a hand-written `(label)` hint next to each numeric code
-     — treat the code as the authoritative datum and the label as a reading
-     aid only; the label table necessarily describes the same meanings as
-     `packages/parse-tp`'s real decoders; it can't independently catch a
+     codes. A BBL four-team match that the importer merged from two two-team
+     source rows shows both source pages' tables stacked, each under a
+     `Source match <id>` heading, since its single imported panel holds the
+     union of both. Neither panel uses the importers' interpretation logic, so
+     an importer bug shows up as a difference instead of being mirrored. TP's
+     raw panel also shows a hand-written `(label)` hint next to each numeric
+     code — treat the code as the authoritative datum and the label as a
+     reading aid only; the label table necessarily describes the same meanings
+     as `packages/parse-tp`'s real decoders; it can't independently catch a
      decoder that's simply wrong about what a code means.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.

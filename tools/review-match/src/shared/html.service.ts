@@ -55,6 +55,11 @@ export class HtmlService {
     return `<p class="note">${this.escape(text)}</p>`;
   }
 
+  /** A small label above one of several stacked fragments in a panel. */
+  subheading(text: string): string {
+    return `<h5>${this.escape(text)}</h5>`;
+  }
+
   private cellHtml(cell: TableCell): string {
     if (typeof cell === 'string') {
       return this.escape(cell);

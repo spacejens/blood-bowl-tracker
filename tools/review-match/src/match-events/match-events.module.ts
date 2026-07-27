@@ -6,11 +6,12 @@ import { BblMatchEventsRawRendererService } from './bbl-match-events-raw-rendere
 import { MatchEventStratificationService } from './match-event-stratification.service';
 import { MatchEventsDbRendererService } from './match-events-db-renderer.service';
 import { MatchEventsReviewerService } from './match-events-reviewer.service';
+import { MergedMatchStratificationService } from './merged-match-stratification.service';
 import { TpMatchEventsRawRendererService } from './tp-match-events-raw-renderer.service';
 import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
 
 /**
- * The only data-type module in v1. It exports exactly the two contract
+ * The only data-type module in v1. It exports exactly the contract
  * implementations the harness consumes; everything else is internal.
  */
 @Module({
@@ -20,9 +21,14 @@ import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
     MatchEventStratificationService,
     MatchEventsDbRendererService,
     MatchEventsReviewerService,
+    MergedMatchStratificationService,
     TpMatchEventsRawRendererService,
     TpRawCodeLabelsService,
   ],
-  exports: [MatchEventsReviewerService, MatchEventStratificationService],
+  exports: [
+    MatchEventsReviewerService,
+    MatchEventStratificationService,
+    MergedMatchStratificationService,
+  ],
 })
 export class MatchEventsModule {}

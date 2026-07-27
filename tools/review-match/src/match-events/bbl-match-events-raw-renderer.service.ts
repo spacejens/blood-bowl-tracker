@@ -33,7 +33,26 @@ export class BblMatchEventsRawRendererService {
     private readonly html: HtmlService,
   ) {}
 
-  async render(externalId: string): Promise<string> {
+  /**
+   * One id renders exactly one table with no heading. Two ids — a BBL
+   * four-team match the importer merged from two source rows — render both
+   * pages' tables stacked, each labelled with the source match it came from,
+   * so the union can be compared against the single imported panel.
+   */
+  async render(externalIds: string[]): Promise<string> {
+    if (externalIds.length === 1) {
+      return this.renderPage(externalIds[0]);
+    }
+    const parts: string[] = [];
+    for (const externalId of externalIds) {
+      parts.push(this.html.subheading(`Source match ${externalId}`));
+      parts.push(await this.renderPage(externalId));
+    }
+    return parts.join('');
+  }
+
+  /** One source page's event table, or a note when it isn't in the mirror. */
+  private async renderPage(externalId: string): Promise<string> {
     const page = await this.loader.loadMatchPage(externalId);
     if (page === null) {
       return this.html.note(

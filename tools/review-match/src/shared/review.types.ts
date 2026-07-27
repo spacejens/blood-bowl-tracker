@@ -16,6 +16,12 @@ export interface ReviewMatch {
   /** `game_data.competitions.name` the match belongs to. */
   competitionName: string;
   playedAt: Date;
+  /**
+   * The paired source's own match id, for a BBL match merged from two
+   * original two-team source rows. Set only by the merged-match stratifier;
+   * every other stratifier and the override lookup leave it undefined.
+   */
+  secondaryExternalId?: string;
 }
 
 /** A `ReviewMatch` plus the human-readable reasons it was picked. */

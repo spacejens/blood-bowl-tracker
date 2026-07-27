@@ -102,6 +102,7 @@ export class MatchSamplerService {
     if (!existing.selectedFor.includes(reason)) {
       existing.selectedFor.push(reason);
     }
+    existing.secondaryExternalId ??= match.secondaryExternalId;
   }
 
   /** Stable report order: source, then oldest match first, then id. */
