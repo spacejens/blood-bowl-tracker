@@ -208,6 +208,16 @@ describe('ApiResponseRecordingPageViewerService', () => {
     expect(result.pageErrors).toEqual(['page exploded']);
   });
 
+  it('collects non-Error page errors by wrapping them in an Error', async () => {
+    page.goto.mockImplementation(() => {
+      handlers.pageerror('boom' as never);
+    });
+
+    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+
+    expect(result.pageErrors).toEqual(['boom']);
+  });
+
   it('clicks the first element whose subtree matches the expected text', async () => {
     const wrong = fakeElement('Other');
     const nested = fakeElement('Team');
