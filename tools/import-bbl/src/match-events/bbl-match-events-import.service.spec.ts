@@ -896,6 +896,40 @@ describe('BblMatchEventsImportService', () => {
     expect(externalIds(captured)[1]).toBe('89-awy-cas-avoided-0');
   });
 
+  it('takes the action-side external id for a merged avoided casualty', async () => {
+    // A merged event carries both actionType and consequenceType; the
+    // external id must still be derived from the acting side, exactly like
+    // any other merged event, not the consequence side.
+    const { captured } = await runImport(
+      makeEvents({}),
+      { killer: 11 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'death',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'killer',
+            consequenceType: 'casualty_avoided',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: null,
+            consequenceAvoidedBy: 'regeneration',
+            consequenceAvoidedSeverity: 'death',
+          },
+        ],
+      },
+    );
+
+    expect(captured[0]).toMatchObject({
+      actionType: 'death',
+      consequenceType: 'casualty_avoided',
+      consequenceAvoidedBy: 'regeneration',
+      consequenceAvoidedSeverity: 'death',
+    });
+    expect(externalIds(captured)[0]).toBe('89-hme-death-0');
+  });
+
   it('omits the unidentified-kind and avoided-casualty fields entirely when the emitted event carries no tags', async () => {
     const { captured } = await runImport(
       makeEvents({}),
