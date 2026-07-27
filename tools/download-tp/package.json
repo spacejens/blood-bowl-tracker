@@ -20,6 +20,7 @@
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.28",
+    "json5": "^2.2.3",
     "puppeteer": "^24.34.0",
     "reflect-metadata": "^0.2.2"
   },

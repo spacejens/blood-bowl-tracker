@@ -1,10 +1,10 @@
-import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type { Browser } from 'puppeteer';
 import puppeteer from 'puppeteer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseRecordingPageViewerService } from './api-response-recording-page-viewer.service';
 
 vi.mock('puppeteer', () => ({
@@ -46,7 +46,7 @@ function fakeConsoleMessage(type: string, text: string) {
 
 describe('ApiResponseRecordingPageViewerService', () => {
   let service: ApiResponseRecordingPageViewerService;
-  let configService: MockProxy<ConfigService>;
+  let configService: MockProxy<DownloadTpConfigService>;
   let handlers: Handlers;
   let page: {
     on: ReturnType<typeof vi.fn>;
@@ -87,18 +87,14 @@ describe('ApiResponseRecordingPageViewerService', () => {
       browser as unknown as Browser,
     );
 
-    configService = mock<ConfigService>();
-    configService.get.mockImplementation((key: string) =>
-      key === 'HIDE_BROWSER_UI' ? 'true' : undefined,
-    );
-    configService.getOrThrow.mockImplementation((key: string) =>
-      key === 'TP_BACKEND_API_URL' ? 'https://tp.example/api/' : '',
-    );
+    configService = mock<DownloadTpConfigService>();
+    configService.isHeadless.mockReturnValue(true);
+    configService.getBackendApiUrl.mockReturnValue('https://tp.example/api/');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         ApiResponseRecordingPageViewerService,
-        { provide: ConfigService, useValue: configService },
+        { provide: DownloadTpConfigService, useValue: configService },
       ],
     }).compile();
     service = moduleRef.get(ApiResponseRecordingPageViewerService);
@@ -108,7 +104,7 @@ describe('ApiResponseRecordingPageViewerService', () => {
     vi.restoreAllMocks();
   });
 
-  it('launches headless when HIDE_BROWSER_UI is "true" and closes the browser', async () => {
+  it('launches headless when browser.headless is true and closes the browser', async () => {
     await service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' });
 
     expect(puppeteer.launch).toHaveBeenCalledWith(
@@ -120,8 +116,8 @@ describe('ApiResponseRecordingPageViewerService', () => {
     expect(browser.close).toHaveBeenCalled();
   });
 
-  it('launches with visible UI when HIDE_BROWSER_UI is not "true"', async () => {
-    configService.get.mockReturnValue('false');
+  it('launches with visible UI when browser.headless is false', async () => {
+    configService.isHeadless.mockReturnValue(false);
 
     await service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' });
 

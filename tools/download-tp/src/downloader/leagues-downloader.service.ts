@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
+import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
 import { FileSystemService } from './file-system.service';
 
@@ -22,16 +22,14 @@ type TpInscription = { roster: { id: string } };
 @Injectable()
 export class LeaguesDownloaderService {
   constructor(
-    private readonly configService: ConfigService,
+    private readonly downloadTpConfigService: DownloadTpConfigService,
     private readonly pageViewerService: ApiResponseStoringPageViewerService,
     private readonly fileSystemService: FileSystemService,
   ) {}
 
   async downloadAllLeagues(): Promise<void> {
-    const frontendUrl =
-      this.configService.getOrThrow<string>('TP_FRONTEND_URL');
-    const tournaments = this.configService.getOrThrow<string>('TOURNAMENTS');
-    for (const tournamentName of tournaments.split(',')) {
+    const frontendUrl = this.downloadTpConfigService.getFrontendUrl();
+    for (const tournamentName of this.downloadTpConfigService.getTournaments()) {
       const dirName = tournamentName;
       this.fileSystemService.mkdir(dirName);
       await this.downloadLeague(
@@ -175,7 +173,7 @@ export class LeaguesDownloaderService {
    * `findResponses('phases', ...)` picks them up with no merging step.
    */
   private missingRoundUrls(apiResponses: Map<string, unknown>): string[] {
-    const apiUrl = this.configService.getOrThrow<string>('TP_BACKEND_API_URL');
+    const apiUrl = this.downloadTpConfigService.getBackendApiUrl();
     const urls: string[] = [];
     apiResponses.forEach((response, requestUrl) => {
       if (!this.pathEndsWith(requestUrl, 'phases')) {
