@@ -6,6 +6,17 @@ source's **raw** match data against what the importers actually stored in
 is "correct" on its own, because the interpretation logic it deliberately does
 not run is the thing being reviewed.
 
+**Architectural boundary:** the raw-source panels never depend on
+`packages/parse-tp`, `tools/import-tp`, or `tools/import-bbl` — not just for
+player-id resolution, but for any decoding or lookup, including ones that look
+like safe shared domain knowledge (e.g. weather-code tables). Any "friendly
+value" the raw panels show (a hint next to a numeric code, a resolved player
+name, a decoded weather condition) is built from a hand-written table or a
+lookup over the raw source file itself, kept independent of the corresponding
+parser/importer logic on purpose: reusing that logic here would let a bug in
+it agree with review-match's display instead of showing up as a difference,
+defeating the tool's reason for existing.
+
 Scope today is match events; the tool is structured so a future data type
 (rosters, standings) plugs in as another module without touching the harness
 services.
