@@ -11,8 +11,9 @@ import { WeatherTypeService } from './weather-type.service';
  * Covers the actual decode/validation behavior `MatchEventParserService`
  * merely dispatches to: per-event-code schema validation, error messages on
  * an invalid payload, and conditional/optional field mapping. Per-code name
- * mapping tables (`weatherTypeByCode`/`secretObjectiveByCode`) are fully
- * covered by `WeatherTypeService`'s and `SecretObjectiveService`'s own specs;
+ * mapping tables (`weatherTypeByTableAndCode`/`secretObjectiveByCode`) are
+ * fully covered by `WeatherTypeService`'s and `SecretObjectiveService`'s own
+ * specs;
  * here `weatherType`/`secretObjective` are mocked so this spec only asserts
  * that the code-10/code-42 decoders delegate to them correctly.
  */
@@ -229,22 +230,34 @@ describe('MatchEventDecodersService', () => {
     expect(event).toMatchObject({ type: 'injury', injuryType: 'None' });
   });
 
-  it('decodes a weather roll (code 10) by delegating the raw code to WeatherTypeService', () => {
+  it('decodes a weather roll (code 10) by delegating the table and raw code to WeatherTypeService', () => {
     weatherType.decode.mockReturnValue('perfect_conditions');
 
     const event = decode(10, {
       id: 1,
       instant: '2026-01-17T17:56:05Z',
-      extraData: { weatherType: 104 },
+      extraData: { weatherType: 133, weatherTable: 13 },
     });
 
-    expect(weatherType.decode).toHaveBeenCalledWith(104);
+    expect(weatherType.decode).toHaveBeenCalledWith(13, 133);
     expect(event).toEqual({
       type: 'weather_roll',
       tpEventId: 1,
       instant: '2026-01-17T17:56:05Z',
       weatherType: 'perfect_conditions',
     });
+  });
+
+  it('decodes a weather roll with no weatherTable against the classic table 0', () => {
+    weatherType.decode.mockReturnValue('perfect_conditions');
+
+    decode(10, {
+      id: 1,
+      instant: '2026-01-17T17:56:05Z',
+      extraData: { weatherType: 104 },
+    });
+
+    expect(weatherType.decode).toHaveBeenCalledWith(0, 104);
   });
 
   it('decodes an inducements roll (code 11) with induced star players', () => {

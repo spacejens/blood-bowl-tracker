@@ -248,11 +248,37 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   `match_events`'s CHECK constraint requires `eventType` to be set alone
   (with both `actionType`/`consequenceType` null) XOR at least one of
   `actionType`/`consequenceType` to be set (with `eventType` null) — never a
-  mix of `eventType` and the other two. `weatherType` itself stays a plain,
-  un-decoded integer column: TP's ~20 observed distinct codes are almost
-  certainly a closed weather-table result set, but no authoritative
-  code-to-name mapping is confirmed yet (tracked as a follow-up to decode it
-  into a named enum).
+  mix of `eventType` and the other two. `weatherType` is decoded to a named
+  condition (the `game_data.weather_type` enum) before import, with `'unknown'`
+  as a permanent catch-all for codes not yet mapped.
+
+  **Weather decoding is table-aware (observed 2026-07, Major Season 30
+  onwards).** The code-10 event's `extraData` carries a `weatherTable`
+  alongside `weatherType`. It was present but always `0` in every earlier
+  era's data, so the code alone was enough; Major Season 30 introduced
+  `weatherTable: 13`. Table 13's `weatherType` codes are NOT a disjoint new
+  range — two of its five observed codes (`40`, `104`) collide with numbers
+  table 0 already uses for different conditions (`40` is `pouring_rain` on
+  table 0 but `very_sunny` on table 13; `104` is `perfect_conditions` on both,
+  coincidentally). This collision is exactly why the lookup had to become
+  table-aware rather than code-only: a code-only lookup would have actively
+  mis-decoded these two as their table-0 meanings, not merely failed to
+  decode them. Because the same number can name different conditions on
+  different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
+  code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
+  keys table first. An event with no `weatherTable` at all (the oldest data)
+  is treated as table `0`.
+
+  All five table-13 codes observed in Major Season 30's downloaded data are
+  now mapped, derived by grouping code-10 events by `weatherType` and cross-
+  referencing the `rollLocal`/`rollVisitor` 2d6 sum against the classic Blood
+  Bowl weather table (each code's observed sums form an exact, non-overlapping
+  partition of the 2-12 range): `40` → `very_sunny` (sum 3), `104` →
+  `perfect_conditions` (sums 4-10), `131` → `sweltering_heat` (sum 2), `132` →
+  `pouring_rain` (sum 11), `133` → `blizzard` (sum 12). A table-13 code never
+  observed stays unmapped and decodes to `'unknown'`, exactly as prior eras'
+  rare codes do.
+
 - **Dedicated fans** (`26`) is a consequence (the resulting fan-count
   change), not an action, so it's carried via `consequenceType:
 'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
@@ -437,7 +463,10 @@ described above.
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
-`hasMatchesInProgress`, `hasMatchesPlayed`). Note that the same roster shape
+`hasMatchesInProgress`, `hasMatchesPlayed`, and -- newly observed 2026-07 with
+Major Season 30, purely additive with nothing removed or reshaped -- `state`,
+`freeHireAndFireOrder`, `apothecary`; the parser reads only the fields it
+needs, so these required no code change). Note that the same roster shape
 reappears nested as `roster` inside `match` and `inscriptions` bodies — not a
 coincidence, but the full shape hasn't been reconciled across all three
 contexts. Those nested copies lack `rosterMaster` and are not a source for this

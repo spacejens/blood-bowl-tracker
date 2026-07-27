@@ -63,7 +63,7 @@ tools/review-match/review-match-config.json5
 tools/review-match/output/
 
 # tools/download-tp downloaded site data (never committed)
-tools/download-tp/tp-site
+tools/download-tp/data
 
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans

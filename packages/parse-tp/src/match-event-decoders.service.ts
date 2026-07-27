@@ -70,7 +70,15 @@ const foulRaw = z.object({
 const weatherRaw = z.object({
   id: z.number(),
   instant: z.string(),
-  extraData: z.object({ weatherType: z.number() }),
+  extraData: z.object({
+    weatherType: z.number(),
+    /**
+     * Which weather table `weatherType` indexes into. Always `0` in data
+     * before Major Season 30 and absent in the oldest events, so a missing
+     * value is treated as the classic table `0`.
+     */
+    weatherTable: z.number().nullish(),
+  }),
 });
 const inducementsRaw = z.object({
   id: z.number(),
@@ -240,7 +248,10 @@ export class MatchEventDecodersService {
           type: 'weather_roll',
           tpEventId: v.id,
           instant: v.instant,
-          weatherType: this.weatherType.decode(v.extraData.weatherType),
+          weatherType: this.weatherType.decode(
+            v.extraData.weatherTable ?? 0,
+            v.extraData.weatherType,
+          ),
         })),
       ],
       [

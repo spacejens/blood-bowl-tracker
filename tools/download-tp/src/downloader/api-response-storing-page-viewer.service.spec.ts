@@ -55,42 +55,46 @@ describe('ApiResponseStoringPageViewerService', () => {
     ]);
     recorder.viewPage.mockResolvedValue(pageResult({ apiResponses }));
 
-    const result = await service.viewPage(
-      'https://tp.example/blood-bowl/x/news',
-      'tournaments/x',
-    );
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x/news',
+      dirName: 'x',
+    });
 
-    expect(recorder.viewPage).toHaveBeenCalledWith(
-      'https://tp.example/blood-bowl/x/news',
-      undefined,
-    );
+    expect(recorder.viewPage).toHaveBeenCalledWith({
+      pageUrl: 'https://tp.example/blood-bowl/x/news',
+      clickableElements: undefined,
+      followUpRequests: undefined,
+    });
     expect(fileSystemService.writeJsonFile).toHaveBeenCalledWith(
-      'tournaments/x',
+      'x',
       'tournaments/x',
       { id: 'x' },
     );
     expect(fileSystemService.writeJsonFile).toHaveBeenCalledWith(
-      'tournaments/x',
+      'x',
       'tournaments/x/news',
       { news: [] },
     );
     expect(result).toBe(apiResponses);
   });
 
-  it('passes clickable elements through to the recorder', async () => {
+  it('passes clickable elements and follow-up requests through to the recorder', async () => {
     recorder.viewPage.mockResolvedValue(pageResult());
     const clickableElements = [{ selector: '.sel', textContent: 'Team' }];
+    const followUpRequests = () => ['https://tp.example/api/phases?round=2'];
 
-    await service.viewPage(
-      'https://tp.example/blood-bowl/x/honours',
-      'tournaments/x',
+    await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x/honours',
+      dirName: 'x',
       clickableElements,
-    );
+      followUpRequests,
+    });
 
-    expect(recorder.viewPage).toHaveBeenCalledWith(
-      'https://tp.example/blood-bowl/x/honours',
+    expect(recorder.viewPage).toHaveBeenCalledWith({
+      pageUrl: 'https://tp.example/blood-bowl/x/honours',
       clickableElements,
-    );
+      followUpRequests,
+    });
   });
 
   it('logs console errors and warnings when there are any', async () => {
@@ -98,7 +102,10 @@ describe('ApiResponseStoringPageViewerService', () => {
       pageResult({ consoleErrors: ['boom'], consoleWarnings: ['careful'] }),
     );
 
-    await service.viewPage('https://tp.example/blood-bowl/x', 'tournaments/x');
+    await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+      dirName: 'x',
+    });
 
     expect(consoleError).toHaveBeenCalledWith('Console errors: ["boom"]');
     expect(consoleError).toHaveBeenCalledWith('Console warnings: ["careful"]');
@@ -107,7 +114,10 @@ describe('ApiResponseStoringPageViewerService', () => {
   it('logs nothing when there are no console errors or warnings', async () => {
     recorder.viewPage.mockResolvedValue(pageResult());
 
-    await service.viewPage('https://tp.example/blood-bowl/x', 'tournaments/x');
+    await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+      dirName: 'x',
+    });
 
     expect(consoleError).not.toHaveBeenCalled();
   });
@@ -121,7 +131,10 @@ describe('ApiResponseStoringPageViewerService', () => {
     );
 
     await expect(
-      service.viewPage('https://tp.example/blood-bowl/x', 'tournaments/x'),
+      service.viewPage({
+        pageUrl: 'https://tp.example/blood-bowl/x',
+        dirName: 'x',
+      }),
     ).rejects.toThrow('Failed to view https://tp.example/blood-bowl/x');
     expect(consoleError).toHaveBeenCalledWith('Page errors: ["page exploded"]');
     expect(fileSystemService.writeJsonFile).not.toHaveBeenCalled();

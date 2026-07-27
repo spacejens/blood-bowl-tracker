@@ -1,12 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class FileSystemService {
-  constructor(private readonly configService: ConfigService) {}
-
   mkdir(dirName: string): void {
     const fullDirName = this.outputDir() + dirName;
     console.log(`Creating directory ${fullDirName}`);
@@ -23,9 +20,12 @@ export class FileSystemService {
     writeFileSync(fullFileName, JSON.stringify(contents, null, 2));
   }
 
+  /**
+   * Fixed output root. One folder per competition already identifies the
+   * tournament, so no configurable subdirectory is needed; this mirrors
+   * `tools/import-tp/data/<era>/<competition>/` one level down.
+   */
   private outputDir(): string {
-    return (
-      'tp-site/' + this.configService.getOrThrow<string>('OUTPUT_DIR') + '/'
-    );
+    return 'data/';
   }
 }
