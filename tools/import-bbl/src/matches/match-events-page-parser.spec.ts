@@ -315,6 +315,7 @@ describe('MatchEventsPageParser', () => {
     expect(result.actions).toEqual([
       { actionType: 'death', side: 'home', pid: '88' },
     ]);
+    expect(result.annotationErrors).toEqual([]);
   });
 
   it('tags a link-less "victim healed by apoth" consequence cell rather than emitting a bare anonymous victim', async () => {
