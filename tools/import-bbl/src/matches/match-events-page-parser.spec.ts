@@ -1,32 +1,56 @@
 import { Test } from '@nestjs/testing';
 import { load } from 'cheerio';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPage } from '../source/bbl-page.types';
 import { NormalizeExtractedTextService } from '../source/normalize-extracted-text.service';
+import type { CellAnnotation } from './cell-annotation.service';
+import { CellAnnotationService } from './cell-annotation.service';
 import { MatchEventsPageParser } from './match-events-page-parser';
 
 function matchPage(id: string, html: string): BblPage {
   return { type: 'm', params: { m: id }, load: () => load(html) };
 }
 
-let parser: MatchEventsPageParser;
-
-async function makeParser(): Promise<MatchEventsPageParser> {
+async function makeParser(
+  annotations: Record<string, CellAnnotation> = {},
+): Promise<MatchEventsPageParser> {
   const normalizeText: MockProxy<NormalizeExtractedTextService> =
     mock<NormalizeExtractedTextService>();
   normalizeText.normalize.mockImplementation((s: string) =>
     s.replace(/\s+/g, ' ').trim(),
   );
+  // Canned per-text answers only — the real vocabulary is tested in
+  // cell-annotation.service.spec.ts and must not be re-derived here. Anything
+  // a test did not seed falls through to `unrecognised`.
+  const cellAnnotation: MockProxy<CellAnnotationService> =
+    mock<CellAnnotationService>(
+      {},
+      { fallbackMockImplementation: () => ({ kind: 'unrecognised' }) },
+    );
+  for (const [text, annotation] of Object.entries(annotations)) {
+    cellAnnotation.classify.calledWith(text).mockReturnValue(annotation);
+  }
   const moduleRef = await Test.createTestingModule({
     providers: [
       MatchEventsPageParser,
       { provide: NormalizeExtractedTextService, useValue: normalizeText },
+      { provide: CellAnnotationService, useValue: cellAnnotation },
     ],
   }).compile();
   return moduleRef.get(MatchEventsPageParser);
 }
+
+/** The link-less annotation carried by the shared `HTML` fixture. */
+const APOTH: Record<string, CellAnnotation> = {
+  'victim healed by apoth': { kind: 'avoided', avoidedBy: 'apothecary' },
+};
+
+/** The link-less annotation carried by the journeyman-counting fixtures. */
+const JOURNEYMAN: Record<string, CellAnnotation> = {
+  journeyman: { kind: 'unidentified', participant: 'journeyman' },
+};
 
 function journeymenPage(rows: string, id = '1000'): BblPage {
   const html =
@@ -103,23 +127,22 @@ const HTML =
   '</table>';
 
 describe('MatchEventsPageParser', () => {
-  beforeEach(async () => {
-    parser = await makeParser();
-  });
-
-  it('returns null when the m param is missing', () => {
+  it('returns null when the m param is missing', async () => {
+    const parser = await makeParser(APOTH);
     const page = matchPage('', HTML);
     expect(parser.extractMatchEvents(page)).toBeNull();
   });
 
-  it('extracts home/away team ids', () => {
+  it('extracts home/away team ids', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(matchPage('1000', HTML))!;
     expect(result.homeTeamId).toBe('hom');
     expect(result.awayTeamId).toBe('awy');
     expect(result.bblId).toBe('1000');
   });
 
-  it('emits one action occurrence per player link, repeats included', () => {
+  it('emits one action occurrence per player link, repeats included', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(matchPage('1000', HTML))!;
     const tds = result.actions.filter((a) => a.actionType === 'touchdown');
     expect(tds).toHaveLength(2);
@@ -127,7 +150,8 @@ describe('MatchEventsPageParser', () => {
     expect(tds.every((a) => a.pid === '1601')).toBe(true);
   });
 
-  it('maps Killers to a death action and Sent off to a sent_off consequence', () => {
+  it('maps Killers to a death action and Sent off to a sent_off consequence', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(matchPage('1000', HTML))!;
     const killer = result.actions.find((a) => a.actionType === 'death');
     expect(killer).toEqual({ actionType: 'death', side: 'home', pid: '1602' });
@@ -142,7 +166,8 @@ describe('MatchEventsPageParser', () => {
     });
   });
 
-  it('emits a consequence with pid set when the victim has a player link', () => {
+  it('emits a consequence with pid set when the victim has a player link', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(matchPage('1000', HTML))!;
     const missNextGame = result.consequences.find(
       (c) => c.consequenceType === 'miss_next_game',
@@ -154,7 +179,8 @@ describe('MatchEventsPageParser', () => {
     });
   });
 
-  it('emits a consequence with pid null when the victim cell has no link', () => {
+  it('emits a consequence with an avoidedBy tag when the victim cell says the apothecary healed them', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(matchPage('1000', HTML))!;
     const niggling = result.consequences.find(
       (c) => c.consequenceType === 'niggling_injury',
@@ -163,15 +189,18 @@ describe('MatchEventsPageParser', () => {
       consequenceType: 'niggling_injury',
       side: 'home',
       pid: null,
+      avoidedBy: 'apothecary',
     });
   });
 
-  it('returns null when the team table is missing', () => {
+  it('returns null when the team table is missing', async () => {
+    const parser = await makeParser();
     const page = matchPage('1000', '<div>no team table</div>');
     expect(parser.extractMatchEvents(page)).toBeNull();
   });
 
-  it('maps a -1 PA Sustained-Injuries row to a stat_reduction_pa consequence', () => {
+  it('maps a -1 PA Sustained-Injuries row to a stat_reduction_pa consequence', async () => {
+    const parser = await makeParser();
     const html =
       '<div align="center"><b>' +
       '<a href="default.asp?p=ma&so=s&s=6">Season 4</a>, Final</b></div>' +
@@ -199,7 +228,8 @@ describe('MatchEventsPageParser', () => {
     });
   });
 
-  it('tags a "foul by" causer occurrence with viaFoul', () => {
+  it('tags a "foul by" causer occurrence with viaFoul', async () => {
+    const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -217,7 +247,8 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
-  it('keeps an ordinary causer occurrence free of viaFoul', () => {
+  it('keeps an ordinary causer occurrence free of viaFoul', async () => {
+    const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -232,7 +263,8 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
-  it('tags each occurrence independently in a cell mixing ordinary and foul causers (m=1830 shape)', () => {
+  it('tags each occurrence independently in a cell mixing ordinary and foul causers (m=1830 shape)', async () => {
+    const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -253,7 +285,8 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
-  it('matches the foul marker case-insensitively and ignores surrounding whitespace/nbsp', () => {
+  it('matches the foul marker case-insensitively and ignores surrounding whitespace/nbsp', async () => {
+    const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -268,7 +301,8 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
-  it('does not tag an occurrence whose segment text is unrelated prose', () => {
+  it('reports unclassifiable leftover text in a linked segment as unrecognised, while still emitting the linked occurrence unchanged', async () => {
+    const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -281,38 +315,289 @@ describe('MatchEventsPageParser', () => {
     expect(result.actions).toEqual([
       { actionType: 'death', side: 'home', pid: '88' },
     ]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Killers',
+        side: 'home',
+        text: 'assisted by',
+        reason: 'unrecognised',
+      },
+    ]);
   });
 
-  it('does not tag consequence occurrences, and a link-less cell still yields one anonymous occurrence', () => {
+  it('records no error when leftover text in a linked segment is a known ignored note', async () => {
+    const parser = await makeParser({
+      'Extra shoot-out TD after tied overtime': { kind: 'ignored' },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'Extra shoot-out TD after tied overtime <a href="default.asp?p=pl&pid=99">X</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '99' },
+    ]);
+    expect(result.annotationErrors).toEqual([]);
+  });
+
+  it('reports leftover text in a linked segment as misplaced when it is a known annotation', async () => {
+    const parser = await makeParser({
+      'victim healed by apoth': { kind: 'avoided', avoidedBy: 'apothecary' },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'victim healed by apoth <a href="default.asp?p=pl&pid=99">X</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '99' },
+    ]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Killers',
+        side: 'home',
+        text: 'victim healed by apoth',
+        reason: 'misplaced',
+      },
+    ]);
+  });
+
+  it('tags a link-less "victim healed by apoth" consequence cell rather than emitting a bare anonymous victim', async () => {
+    const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(
       journeymenPage(row('Miss Next Game', 'victim healed by apoth', '')),
     )!;
     expect(result.consequences).toEqual([
-      { consequenceType: 'miss_next_game', side: 'home', pid: null },
+      {
+        consequenceType: 'miss_next_game',
+        side: 'home',
+        pid: null,
+        avoidedBy: 'apothecary',
+      },
+    ]);
+  });
+
+  it('keeps unlinked entries when the same cell also has a linked player (bug 1)', async () => {
+    const parser = await makeParser({
+      'mercenary / star': {
+        kind: 'unidentified',
+        participant: 'mercenary_or_star',
+      },
+      'fans / random event': {
+        kind: 'unidentified',
+        participant: 'fans_or_random_event',
+      },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'mercenary / star<br>' +
+            '<a href="default.asp?p=pl&pid=4001">Grim Ironjaw</a><br>' +
+            'fans / random event',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      {
+        actionType: 'death',
+        side: 'home',
+        pid: null,
+        unidentifiedKind: 'mercenary_or_star',
+      },
+      { actionType: 'death', side: 'home', pid: '4001' },
+      {
+        actionType: 'death',
+        side: 'home',
+        pid: null,
+        unidentifiedKind: 'fans_or_random_event',
+      },
+    ]);
+  });
+
+  it('emits one occurrence per unlinked entry instead of collapsing them (bug 2)', async () => {
+    const parser = await makeParser(JOURNEYMAN);
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Death', '', 'journeyman<br>journeyman')),
+    )!;
+    expect(result.consequences).toEqual([
+      {
+        consequenceType: 'death',
+        side: 'away',
+        pid: null,
+        unidentifiedKind: 'journeyman',
+      },
+      {
+        consequenceType: 'death',
+        side: 'away',
+        pid: null,
+        unidentifiedKind: 'journeyman',
+      },
+    ]);
+  });
+
+  it('tags a bare "foul" segment in a casualty action row as viaFoul with no pid', async () => {
+    const parser = await makeParser({ foul: { kind: 'foul' } });
+    const result = parser.extractMatchEvents(
+      journeymenPage(row("Badly Hurt'ers", 'foul', '')),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'badly_hurt', side: 'home', pid: null, viaFoul: true },
+    ]);
+    expect(result.annotationErrors).toEqual([]);
+  });
+
+  it('reports a foul marker in a consequence row as a misplaced annotation', async () => {
+    const parser = await makeParser({ foul: { kind: 'foul' } });
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Death', 'foul', '')),
+    )!;
+    expect(result.consequences).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      { label: 'Death', side: 'home', text: 'foul', reason: 'misplaced' },
+    ]);
+  });
+
+  it('reports an avoided-consequence annotation in an action row as misplaced', async () => {
+    const parser = await makeParser(APOTH);
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Killers', 'victim healed by apoth', '')),
+    )!;
+    expect(result.actions).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Killers',
+        side: 'home',
+        text: 'victim healed by apoth',
+        reason: 'misplaced',
+      },
+    ]);
+  });
+
+  it('reports a bare "foul" segment in a non-casualty action row (TD Scorers) as misplaced rather than silently becoming a foul touchdown', async () => {
+    const parser = await makeParser({ foul: { kind: 'foul' } });
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('TD Scorers', 'foul', '')),
+    )!;
+    expect(result.actions).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      { label: 'TD Scorers', side: 'home', text: 'foul', reason: 'misplaced' },
+    ]);
+  });
+
+  it('reports an avoided-consequence annotation in a Sent off row as misplaced rather than producing a nonsensical avoided severity', async () => {
+    const parser = await makeParser(APOTH);
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Sent off', 'victim healed by apoth', '')),
+    )!;
+    expect(result.consequences).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Sent off',
+        side: 'home',
+        text: 'victim healed by apoth',
+        reason: 'misplaced',
+      },
+    ]);
+  });
+
+  it('reports unrecognised segment text as an error and emits no occurrence', async () => {
+    const parser = await makeParser();
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Death', 'victim eaten by the crowd', '')),
+    )!;
+    expect(result.consequences).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Death',
+        side: 'home',
+        text: 'victim eaten by the crowd',
+        reason: 'unrecognised',
+      },
+    ]);
+  });
+
+  it('drops a known-and-ignored note without an error or an occurrence', async () => {
+    const parser = await makeParser({
+      'Extra shoot-out TD after tied overtime': { kind: 'ignored' },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row('TD Scorers', 'Extra shoot-out TD after tied overtime', ''),
+      ),
+    )!;
+    expect(result.actions).toEqual([]);
+    expect(result.annotationErrors).toEqual([]);
+  });
+
+  it('emits nothing and no error for a cell holding only a spacer image', async () => {
+    const parser = await makeParser();
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Death', '', '')),
+    )!;
+    expect(result.consequences).toEqual([]);
+    expect(result.annotationErrors).toEqual([]);
+  });
+
+  it('records the side and label of an annotation error in the away cell', async () => {
+    const parser = await makeParser();
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Miss Next Game', '', 'who knows')),
+    )!;
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Miss Next Game',
+        side: 'away',
+        text: 'who knows',
+        reason: 'unrecognised',
+      },
+    ]);
+  });
+
+  it('carries an unidentified kind onto a Sent off consequence', async () => {
+    const parser = await makeParser(JOURNEYMAN);
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Sent off', 'journeyman', '')),
+    )!;
+    expect(result.consequences).toEqual([
+      {
+        consequenceType: 'sent_off',
+        side: 'home',
+        pid: null,
+        unidentifiedKind: 'journeyman',
+      },
     ]);
   });
 });
 
 describe('MatchEventsPageParser journeyman counting', () => {
-  beforeEach(async () => {
-    parser = await makeParser();
-  });
-
-  it('counts a single journeyman in a removal row as 1 (home)', () => {
+  it('counts a single journeyman in a removal row as 1 (home)', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(row('Miss Next Game', 'journeyman', '')),
     )!;
     expect(result.journeymenCount).toEqual({ home: 1, away: 0 });
   });
 
-  it('counts two journeymen in one removal cell as 2 (away, m=642 shape)', () => {
+  it('counts two journeymen in one removal cell as 2 (away, m=642 shape)', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(row('Death', '', 'journeyman<br>journeyman')),
     )!;
     expect(result.journeymenCount).toEqual({ home: 0, away: 2 });
   });
 
-  it('sums journeyman mentions across two removal rows for the same team', () => {
+  it('sums journeyman mentions across two removal rows for the same team', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(
         row('Death', 'journeyman', '') +
@@ -322,14 +607,16 @@ describe('MatchEventsPageParser journeyman counting', () => {
     expect(result.journeymenCount).toEqual({ home: 2, away: 0 });
   });
 
-  it('counts a journeyman named only in an achievement row as 1 via the floor', () => {
+  it('counts a journeyman named only in an achievement row as 1 via the floor', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(row('Foulers', 'journeyman', '')),
     )!;
     expect(result.journeymenCount).toEqual({ home: 1, away: 0 });
   });
 
-  it('counts zero when no journeyman is mentioned', () => {
+  it('counts zero when no journeyman is mentioned', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(
         row('Miss Next Game', '', '<a href="default.asp?p=pl&pid=1">Bob</a>'),
@@ -338,7 +625,8 @@ describe('MatchEventsPageParser journeyman counting', () => {
     expect(result.journeymenCount).toEqual({ home: 0, away: 0 });
   });
 
-  it('counts a journeyman in a removal cell that also has a linked named victim', () => {
+  it('counts a journeyman in a removal cell that also has a linked named victim', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(
         row(
@@ -361,7 +649,8 @@ describe('MatchEventsPageParser journeyman counting', () => {
     expect(result.journeymenCount).toEqual({ home: 0, away: 1 });
   });
 
-  it('does not count a linked anchor with "journeyman" text as an anonymous mention', () => {
+  it('does not count a linked anchor with "journeyman" text as an anonymous mention', async () => {
+    const parser = await makeParser(JOURNEYMAN);
     const result = parser.extractMatchEvents(
       journeymenPage(
         row('Death', '', '<a href="default.asp?p=pl&pid=999">journeyman</a>'),

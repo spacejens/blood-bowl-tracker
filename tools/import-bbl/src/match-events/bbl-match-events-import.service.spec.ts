@@ -854,4 +854,128 @@ describe('BblMatchEventsImportService', () => {
 
     expect(result).toBe(CANNED_RESULT);
   });
+
+  it('writes the unidentified kinds and avoided-casualty fields onto the upsert', async () => {
+    const { captured } = await runImport(
+      makeEvents({}),
+      {},
+      {
+        correlatedEvents: [
+          {
+            actionType: 'death',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: null,
+            actingUnidentifiedKind: 'mercenary_or_star',
+          },
+          {
+            consequenceType: 'casualty_avoided',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: null,
+            consequenceUnidentifiedKind: 'journeyman',
+            consequenceAvoidedBy: 'apothecary',
+            consequenceAvoidedSeverity: 'death',
+          },
+        ],
+      },
+    );
+
+    expect(captured[0]).toMatchObject({
+      actionType: 'death',
+      actingTeamEraId: HOME_TEAM_ERA_ID,
+      actingUnidentifiedKind: 'mercenary_or_star',
+    });
+    expect(captured[1]).toMatchObject({
+      consequenceType: 'casualty_avoided',
+      consequenceTeamEraId: AWAY_TEAM_ERA_ID,
+      consequenceUnidentifiedKind: 'journeyman',
+      consequenceAvoidedBy: 'apothecary',
+      consequenceAvoidedSeverity: 'death',
+    });
+    expect(externalIds(captured)[1]).toBe('89-awy-cas-avoided-0');
+  });
+
+  it('omits the unidentified-kind and avoided-casualty fields entirely when the emitted event carries no tags', async () => {
+    const { captured } = await runImport(
+      makeEvents({}),
+      { p1: 11 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p1',
+          },
+        ],
+      },
+    );
+
+    expect(captured[0]).not.toHaveProperty('actingUnidentifiedKind');
+    expect(captured[0]).not.toHaveProperty('consequenceUnidentifiedKind');
+    expect(captured[0]).not.toHaveProperty('consequenceAvoidedBy');
+    expect(captured[0]).not.toHaveProperty('consequenceAvoidedSeverity');
+  });
+
+  it('reports each parser annotation error as a non-fatal import error', async () => {
+    const { resultArgs } = await runImport(
+      makeEvents({
+        annotationErrors: [
+          {
+            label: 'Killers',
+            side: 'home',
+            text: 'victim eaten by the crowd',
+            reason: 'unrecognised',
+          },
+          {
+            label: 'Death',
+            side: 'away',
+            text: 'foul',
+            reason: 'misplaced',
+          },
+        ],
+      }),
+    );
+
+    expect(resultArgs.errors).toHaveLength(2);
+    expect(resultArgs.errors[0].message).toContain('victim eaten by the crowd');
+    expect(resultArgs.errors[0].message).toContain('Killers');
+    expect(resultArgs.errors[0].message).toContain(
+      'the text is not a known annotation',
+    );
+    expect(resultArgs.errors[1].message).toContain(
+      'the annotation cannot apply to this kind of row',
+    );
+  });
+
+  it('still imports a match whose cells also contain an unusable annotation', async () => {
+    const { captured, resultArgs } = await runImport(
+      makeEvents({
+        annotationErrors: [
+          { label: 'Death', side: 'away', text: 'foul', reason: 'misplaced' },
+        ],
+      }),
+      { p1: 11 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p1',
+          },
+        ],
+      },
+    );
+
+    expect(captured).toHaveLength(1);
+    expect(resultArgs.imported).toBe(1);
+  });
+
+  it('records no annotation errors for a page that parsed cleanly', async () => {
+    const { resultArgs } = await runImport(makeEvents({}));
+
+    expect(resultArgs.errors).toEqual([]);
+  });
 });

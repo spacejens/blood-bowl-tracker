@@ -138,6 +138,9 @@ export class BblMatchEventsImportService {
           if (sources.length === 0) {
             continue;
           }
+          for (const source of sources) {
+            this.reportAnnotationErrors(source, errors);
+          }
           const combined = this.matchEventCorrelation.combineOccurrences(
             ...sources,
           );
@@ -241,6 +244,18 @@ export class BblMatchEventsImportService {
       }
       if (event.journeymenCount !== undefined) {
         data.journeymenCount = event.journeymenCount;
+      }
+      if (event.actingUnidentifiedKind !== undefined) {
+        data.actingUnidentifiedKind = event.actingUnidentifiedKind;
+      }
+      if (event.consequenceUnidentifiedKind !== undefined) {
+        data.consequenceUnidentifiedKind = event.consequenceUnidentifiedKind;
+      }
+      if (event.consequenceAvoidedBy !== undefined) {
+        data.consequenceAvoidedBy = event.consequenceAvoidedBy;
+      }
+      if (event.consequenceAvoidedSeverity !== undefined) {
+        data.consequenceAvoidedSeverity = event.consequenceAvoidedSeverity;
       }
       if (event.actingTeamCode !== undefined) {
         data.actingTeamEraId = teamEraIdByCode.get(event.actingTeamCode);
@@ -346,5 +361,30 @@ export class BblMatchEventsImportService {
       return undefined;
     }
     return id;
+  }
+
+  /**
+   * Surface the parser's per-cell annotation reports as non-fatal import
+   * errors. The parser deliberately has no error channel of its own — an
+   * unexpected annotation must never abort a page — so the reports ride along
+   * on the parse result and are folded in here, next to the errors
+   * `resolvePlayerId` already records.
+   */
+  private reportAnnotationErrors(
+    source: BblMatchEvents,
+    errors: ImportError[],
+  ): void {
+    for (const annotation of source.annotationErrors ?? []) {
+      const reason =
+        annotation.reason === 'misplaced'
+          ? 'the annotation cannot apply to this kind of row'
+          : 'the text is not a known annotation';
+      errors.push(
+        this.importResults.error({
+          item: { match: source.bblId, row: annotation.label },
+          message: `Unusable cell annotation "${annotation.text}" in the ${annotation.side} cell of row "${annotation.label}" of match "${source.bblId}": ${reason}; no occurrence was emitted for it.`,
+        }),
+      );
+    }
   }
 }

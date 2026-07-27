@@ -43,7 +43,36 @@ export const consequenceTypeEnum = gameData.enum('consequence_type', [
   'expensive_mistake',
   'concession',
   'dedicated_fans',
+  // A casualty the source reports as prevented. The prevented severity lives
+  // in `consequence_avoided_severity`, so this value is deliberately absent
+  // from every *_SUFFERED_TYPES list in packages/game-data.
+  'casualty_avoided',
 ]);
+
+/**
+ * What a source says an un-indexed participant was, when it names the
+ * participant as plain text instead of linking a player row. A journeyman or
+ * mercenary IS a real player the source merely does not index; only
+ * `fans_or_random_event` is genuinely not a player — hence "unidentified"
+ * rather than "non-player". The `*_or_*` values preserve the source's own
+ * ambiguity instead of inventing a resolution.
+ */
+export const unidentifiedParticipantKindEnum = gameData.enum(
+  'unidentified_participant_kind',
+  [
+    'journeyman',
+    'mercenary',
+    'mercenary_or_star',
+    'fans_or_random_event',
+    'mercenary_or_fans_or_random_event',
+  ],
+);
+
+/** How a casualty the source reports was prevented from taking effect. */
+export const consequenceAvoidedByEnum = gameData.enum(
+  'consequence_avoided_by',
+  ['apothecary', 'regeneration'],
+);
 
 /**
  * Top-level classification for match events that have no actor and no
@@ -131,6 +160,26 @@ const matchEventsTable = historyTrackedTable({
     actionType: actionTypeEnum('action_type'),
     consequenceType: consequenceTypeEnum('consequence_type'),
     eventType: eventTypeEnum('event_type'),
+    /**
+     * Set when the acting participant was not an indexed player (so
+     * `acting_player_id` is null): what the source says it was.
+     */
+    actingUnidentifiedKind: unidentifiedParticipantKindEnum(
+      'acting_unidentified_kind',
+    ),
+    /** Same, for the consequence recipient. */
+    consequenceUnidentifiedKind: unidentifiedParticipantKindEnum(
+      'consequence_unidentified_kind',
+    ),
+    /** Only set together with `consequence_type = 'casualty_avoided'`. */
+    consequenceAvoidedBy: consequenceAvoidedByEnum('consequence_avoided_by'),
+    /**
+     * Which casualty severity was prevented. Reuses `consequence_type`
+     * because every severity it needs is already a value there.
+     */
+    consequenceAvoidedSeverity: consequenceTypeEnum(
+      'consequence_avoided_severity',
+    ),
     /**
      * The decoded, named weather condition for a `weather`-classified event
      * (nullable because it is only set on those events). Decoded upstream,
