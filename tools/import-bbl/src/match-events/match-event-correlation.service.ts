@@ -107,11 +107,13 @@ interface TeamCodedConsequence {
   sourceBblId: string;
   unidentifiedKind?: UnidentifiedParticipantKind;
   /**
-   * Set when the source said the casualty was prevented. Such a consequence
-   * never participates in action/consequence merging: a prevented casualty
-   * cannot be attributed to one of several candidate causers with any
-   * confidence, and the causer BBL does list still emits its own action-only
-   * event.
+   * Set when the source said the casualty was prevented. Such a consequence is
+   * an ordinary member of its severity group's merge-candidate pool: it merges
+   * with a causer action when it is that group's only candidate, and falls
+   * back to a consequence-only event as soon as 2+ candidates (real or
+   * prevented, in any mix) make the attribution ambiguous. Either way the
+   * emitted event describes it as `casualty_avoided` carrying the prevented
+   * severity, never as the raw severity.
    */
   avoidedBy?: ConsequenceAvoidedBy;
 }
@@ -236,6 +238,13 @@ export class MatchEventCorrelationService {
    * leftover actions in occurrence order, then leftover consequences in occurrence
    * order; that order fixes the external-id occurrence indices deterministically.
    *
+   * A prevented casualty (`avoidedBy` set) is an ordinary candidate in that
+   * pool alongside real consequences: a lone action plus a lone prevented
+   * consequence merge exactly like a real one, while an action facing both a
+   * real and a prevented candidate is ambiguous and merges neither. A merged
+   * prevented casualty still carries `consequenceType: 'casualty_avoided'`
+   * with the prevented severity in `consequenceAvoidedSeverity`.
+   *
    * A casualty occurrence marked `viaFoul` keeps matching by its severity tier
    * like any other, but the event finally emitted for it carries
    * `actionType: 'foul'` — so a foul that caused a casualty becomes one
@@ -263,7 +272,6 @@ export class MatchEventCorrelationService {
         );
         const consequenceIndices = combined.consequences.flatMap((c, i) =>
           !consequenceConsumed[i] &&
-          c.avoidedBy === undefined &&
           c.teamCode !== actingTeamCode &&
           group.consequences.has(c.consequenceType)
             ? [i]
@@ -276,19 +284,13 @@ export class MatchEventCorrelationService {
           consequenceConsumed[consequenceIndices[0]] = true;
           merged.push({
             actionType: action.viaFoul ? 'foul' : action.actionType,
-            consequenceType: consequence.consequenceType,
             actingTeamCode,
             actingSourceBblId: action.sourceBblId,
             actingPid: action.pid,
-            consequenceTeamCode: consequence.teamCode,
-            consequenceSourceBblId: consequence.sourceBblId,
-            consequencePid: consequence.pid,
             ...(action.unidentifiedKind
               ? { actingUnidentifiedKind: action.unidentifiedKind }
               : {}),
-            ...(consequence.unidentifiedKind
-              ? { consequenceUnidentifiedKind: consequence.unidentifiedKind }
-              : {}),
+            ...this.consequenceSide(consequence),
           });
         }
       }
@@ -307,7 +309,7 @@ export class MatchEventCorrelationService {
       }));
     const consequenceOnly: EmittedEvent[] = combined.consequences
       .filter((_, i) => !consequenceConsumed[i])
-      .map((c) => this.emitConsequence(c));
+      .map((c) => this.consequenceSide(c));
 
     const journeymanEvents: EmittedEvent[] = combined.journeymenSignings.map(
       (j) => ({
@@ -323,12 +325,14 @@ export class MatchEventCorrelationService {
   }
 
   /**
-   * A consequence-only event. An avoided casualty becomes
-   * `casualty_avoided` carrying the prevented severity, so no
+   * The consequence-side fields of an emitted event, used identically by the
+   * merged and consequence-only paths so a prevented casualty is described the
+   * same way whether or not it merged with a causer action. An avoided
+   * casualty becomes `casualty_avoided` carrying the prevented severity, so no
    * casualty-suffered statistic counts it while "deaths prevented" stays
    * queryable.
    */
-  private emitConsequence(consequence: TeamCodedConsequence): EmittedEvent {
+  private consequenceSide(consequence: TeamCodedConsequence): EmittedEvent {
     return {
       consequenceType:
         consequence.avoidedBy === undefined

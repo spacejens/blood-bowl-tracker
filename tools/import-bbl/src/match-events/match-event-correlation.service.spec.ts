@@ -404,7 +404,10 @@ describe('MatchEventCorrelationService', () => {
       ]);
     });
 
-    it('never merges an avoided consequence, and still emits the causer action', () => {
+    it('merges a single avoided consequence with the single causer action', () => {
+      // BBL 1262 (apothecary) / BBL 1820 (regeneration): one kill action and
+      // one prevented casualty in the whole match is unambiguously one pair,
+      // even though BBL names the saved victim without a player link.
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
@@ -424,14 +427,12 @@ describe('MatchEventCorrelationService', () => {
       expect(events).toEqual([
         {
           actionType: 'death',
-          actingTeamCode: 'hme',
-          actingSourceBblId: '89',
-          actingPid: 'killer',
-        },
-        {
           consequenceType: 'casualty_avoided',
           consequenceAvoidedBy: 'regeneration',
           consequenceAvoidedSeverity: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
           consequenceTeamCode: 'awy',
           consequenceSourceBblId: '89',
           consequencePid: null,
@@ -439,7 +440,10 @@ describe('MatchEventCorrelationService', () => {
       ]);
     });
 
-    it('still merges a real casualty when an avoided one is also present', () => {
+    it('merges neither consequence when a real and an avoided one both match one action', () => {
+      // Two consequence candidates for one action is ambiguous: nothing in the
+      // source says which of the two the action caused, so neither merges —
+      // exactly like two real consequence candidates.
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
@@ -457,14 +461,28 @@ describe('MatchEventCorrelationService', () => {
 
       const events = service.correlateEvents(combined);
 
-      expect(events[0]).toMatchObject({
-        actionType: 'death',
-        consequenceType: 'death',
-        actingPid: 'killer',
-        consequencePid: 'victim',
-      });
-      expect(events).toHaveLength(2);
-      expect(events[1]).toMatchObject({ consequenceType: 'casualty_avoided' });
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+        },
+        {
+          consequenceType: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'victim',
+        },
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
     });
 
     it('carries unidentified kinds onto a merged event', () => {
