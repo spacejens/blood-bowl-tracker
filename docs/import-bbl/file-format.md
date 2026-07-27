@@ -156,6 +156,24 @@ say which". A journeyman or mercenary is a real player BBL merely does not
 index, which is why the stored field is called *unidentified* participant kind
 rather than "non-player".
 
+`Extra shoot-out TD after tied overtime` is ignored rather than treated as an
+entry, because it annotates the touchdown beside it instead of naming another
+scorer — but it is worth keeping in the vocabulary rather than dropping,
+because it is the only per-side signal of who won a match that was still drawn
+after overtime. A shoot-out touchdown decides such a match without changing the
+score the rest of the page reports, so the side whose `TD Scorers` cell carries
+this note is the winner. Nothing in the model records that today; a match
+decided this way is currently indistinguishable from a draw.
+
+Two caveats for whoever picks that up. The note is rare and not reliably
+present: three mirrored matches went to a shoot-out and only one of them
+(`m=1892`) marks the deciding touchdown this way. And the accompanying
+prose — a `colspan=3` cell reading "This match went into overtime and was
+decided on a penalty shoot-out", present on all three — is not reachable from
+here at all, since the row walk requires exactly three cells. Recording
+shoot-out results properly therefore needs a separate pass over those
+merged-cell rows, not just this annotation.
+
 A prevented casualty is stored as `consequence_type = 'casualty_avoided'` with
 the prevented severity in `consequence_avoided_severity`, never as the severity
 itself, so no casualty-suffered statistic counts it as a real casualty. It is
