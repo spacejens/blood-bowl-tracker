@@ -73,7 +73,8 @@ This applies to every subagent dispatched from any phase below while working in 
    - **Option 1** — a full slug that closely follows the issue title.
    - **Option 2** — a shortened or rephrased variant of that same slug.
    - If both heuristics would produce the identical string, vary option 2 further (shorten or rephrase again) so the two options are always genuinely distinct. Never collapse to a single option — `AskUserQuestion` requires at least two.
-   - Do **not** add an explicit "type your own" option: `AskUserQuestion` always auto-adds a free-text "Other" entry, and that entry is how the developer supplies a custom slug.
+   - Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped) and prepend the `issue-{N}-` prefix if missing, before treating it as the confirmed branch name.
    - Example: issue 42 "Add player stats endpoint" → offer `issue-42-add-player-stats-endpoint` and `issue-42-player-stats-endpoint`
 7. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
    ```bash
@@ -126,7 +127,8 @@ This applies to every subagent dispatched from any phase below while working in 
    - **Option 1** — a full slug that closely follows the provided description.
    - **Option 2** — a shortened or rephrased variant of that same slug.
    - If both heuristics would produce the identical string, vary option 2 further (shorten or rephrase again) so the two options are always genuinely distinct. Never collapse to a single option — `AskUserQuestion` requires at least two.
-   - Do **not** add an explicit "type your own" option: `AskUserQuestion` always auto-adds a free-text "Other" entry, and that entry is how the developer supplies a custom slug.
+   - Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - If the developer supplies a free-text name instead of choosing one of the two options, normalize it to the same form (lowercase kebab-case, punctuation stripped) and prepend the `feature-` prefix if missing, before treating it as the confirmed branch name.
    - Example: "Add player stats endpoint" → offer `feature-add-player-stats-endpoint` and `feature-player-stats-endpoint`
 4. **REQUIRED SUB-SKILL:** Use `superpowers:using-git-worktrees` to create an isolated worktree on the confirmed branch name. The `EnterWorktree` tool always names the new branch `worktree-<confirmed-name>` (it forces a `worktree-` prefix). As a **mandatory** follow-up — always executed, never skipped — immediately rename that branch to the confirmed name:
    ```bash
