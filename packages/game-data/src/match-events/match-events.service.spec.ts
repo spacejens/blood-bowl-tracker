@@ -200,4 +200,48 @@ describe('MatchEventsService', () => {
     const call = updateCalls.find((c) => c.table === matchEvents);
     expect(call?.set).toMatchObject({ winnings: null });
   });
+
+  it('persists an avoided casualty with its avoided-by and prevented severity', async () => {
+    await service.upsert({
+      matchId: 10,
+      consequenceTeamEraId: 500,
+      consequenceType: 'casualty_avoided',
+      consequenceAvoidedBy: 'apothecary',
+      consequenceAvoidedSeverity: 'death',
+      externalIds: [
+        { externalSystemId: 1, externalId: '1000-vor-cas-avoided-0' },
+      ],
+    });
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({
+      consequenceMatchTeamId: 100,
+      consequenceType: 'casualty_avoided',
+      consequenceAvoidedBy: 'apothecary',
+      consequenceAvoidedSeverity: 'death',
+    });
+  });
+
+  it('persists an unidentified participant kind on both roles', async () => {
+    await service.upsert({
+      ...baseData,
+      actingUnidentifiedKind: 'mercenary_or_star',
+      consequenceUnidentifiedKind: 'journeyman',
+    });
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({
+      actingUnidentifiedKind: 'mercenary_or_star',
+      consequenceUnidentifiedKind: 'journeyman',
+    });
+  });
+
+  it('writes an explicit null through for a cleared unidentified kind', async () => {
+    externalIdRows = [{ ownerId: 1 }];
+
+    await service.upsert({ ...baseData, actingUnidentifiedKind: null });
+
+    const call = updateCalls.find((c) => c.table === matchEvents);
+    expect(call?.set).toMatchObject({ actingUnidentifiedKind: null });
+  });
 });
