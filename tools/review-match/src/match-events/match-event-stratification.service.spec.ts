@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { competitions, DB, matches } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -131,6 +131,29 @@ describe('MatchEventStratificationService', () => {
           limit: 2,
         }),
       ).resolves.toEqual([{ source: 'bbl', ...dbRow }]);
+    });
+
+    it('groups by the match, not the external id, so a merged match yields one row', async () => {
+      const dbResult = mockDb([dbRow]);
+      const service = await makeService(dbResult);
+
+      await service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'foul',
+        limit: 3,
+      });
+
+      // A merged BBL match has two matchExternalIds rows for the same
+      // match. Grouping by the raw external id column (as this query used
+      // to) would split it into two result rows, halving the effective
+      // sample size; grouping by the match's own columns and using an
+      // aggregate for externalId keeps it to one row.
+      expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+      );
     });
 
     it('throws when asked for a stratum it does not offer', async () => {
