@@ -7,6 +7,22 @@ export type ApiResponseRecordingPageViewerClickableElement = {
   textContent: string;
 };
 
+/**
+ * Resolves additional absolute API URLs to fetch from inside the already-open
+ * page, given the responses recorded so far. TP paginates some endpoints and
+ * only requests the first page/round on load; fetching the rest from inside
+ * the page reuses its own session and headers.
+ */
+export type ApiResponseFollowUpRequestResolver = (
+  apiResponses: Map<string, unknown>,
+) => string[];
+
+export type ApiResponseRecordingPageViewerOptions = {
+  pageUrl: string;
+  clickableElements?: ApiResponseRecordingPageViewerClickableElement[];
+  followUpRequests?: ApiResponseFollowUpRequestResolver;
+};
+
 export type ApiResponseRecordingPageViewerResult = {
   apiResponses: Map<string, unknown>;
   consoleErrors: string[];
@@ -19,9 +35,9 @@ export class ApiResponseRecordingPageViewerService {
   constructor(private readonly configService: ConfigService) {}
 
   async viewPage(
-    pageUrl: string,
-    clickableElements: ApiResponseRecordingPageViewerClickableElement[] = [],
+    options: ApiResponseRecordingPageViewerOptions,
   ): Promise<ApiResponseRecordingPageViewerResult> {
+    const { pageUrl, clickableElements = [], followUpRequests } = options;
     const responses = new Map<string, unknown>();
     const pendingResponses: Promise<void>[] = [];
     const consoleErrors: string[] = [];
@@ -123,6 +139,21 @@ export class ApiResponseRecordingPageViewerService {
         clickableElement.textContent,
       );
       await page.waitForNetworkIdle({ idleTime: 1000, timeout: 30000 });
+    }
+
+    // Fetch any follow-up API URLs from inside the open page, so they reuse
+    // the page's own session and headers. The caller decides which URLs to
+    // ask for, based on what has been recorded so far.
+    if (followUpRequests) {
+      await Promise.all(pendingResponses);
+      for (const followUpUrl of followUpRequests(responses)) {
+        console.log(`Fetching follow-up URL ${followUpUrl}`);
+        const body: unknown = await page.evaluate(
+          (url: string) => fetch(url).then((r) => r.json() as Promise<unknown>),
+          followUpUrl,
+        );
+        responses.set(followUpUrl.substring(apiUrl.length), body);
+      }
     }
 
     // Make sure every recorded response body has been read

@@ -109,7 +109,7 @@ describe('ApiResponseRecordingPageViewerService', () => {
   });
 
   it('launches headless when HIDE_BROWSER_UI is "true" and closes the browser', async () => {
-    await service.viewPage('https://tp.example/blood-bowl/x');
+    await service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' });
 
     expect(puppeteer.launch).toHaveBeenCalledWith(
       expect.objectContaining({ headless: true }),
@@ -123,7 +123,7 @@ describe('ApiResponseRecordingPageViewerService', () => {
   it('launches with visible UI when HIDE_BROWSER_UI is not "true"', async () => {
     configService.get.mockReturnValue('false');
 
-    await service.viewPage('https://tp.example/blood-bowl/x');
+    await service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' });
 
     expect(puppeteer.launch).toHaveBeenCalledWith(
       expect.objectContaining({ headless: false }),
@@ -141,7 +141,7 @@ describe('ApiResponseRecordingPageViewerService', () => {
       fn();
     });
 
-    await service.viewPage('https://tp.example/blood-bowl/x');
+    await service.viewPage({ pageUrl: 'https://tp.example/blood-bowl/x' });
 
     expect(globalThis.navigator.webdriver).toBeUndefined();
     expect('webdriver' in globalThis.navigator).toBe(true);
@@ -166,7 +166,9 @@ describe('ApiResponseRecordingPageViewerService', () => {
       );
     });
 
-    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+    });
 
     expect([...result.apiResponses.entries()]).toEqual([
       ['tournaments/x', { id: 'x' }],
@@ -180,7 +182,9 @@ describe('ApiResponseRecordingPageViewerService', () => {
       );
     });
 
-    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+    });
 
     expect(result.apiResponses.size).toBe(0);
   });
@@ -192,7 +196,9 @@ describe('ApiResponseRecordingPageViewerService', () => {
       handlers.console(fakeConsoleMessage('log', 'chatter') as never);
     });
 
-    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+    });
 
     expect(result.consoleErrors).toEqual(['boom']);
     expect(result.consoleWarnings).toEqual(['careful']);
@@ -203,7 +209,9 @@ describe('ApiResponseRecordingPageViewerService', () => {
       handlers.pageerror(new Error('page exploded') as never);
     });
 
-    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+    });
 
     expect(result.pageErrors).toEqual(['page exploded']);
   });
@@ -213,7 +221,9 @@ describe('ApiResponseRecordingPageViewerService', () => {
       handlers.pageerror('boom' as never);
     });
 
-    const result = await service.viewPage('https://tp.example/blood-bowl/x');
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+    });
 
     expect(result.pageErrors).toEqual(['boom']);
   });
@@ -231,9 +241,12 @@ describe('ApiResponseRecordingPageViewerService', () => {
       (fn: (...args: string[]) => unknown, ...args: string[]) => fn(...args),
     );
 
-    await service.viewPage('https://tp.example/blood-bowl/x', [
-      { selector: '.mat-button-toggle-button', textContent: 'Team' },
-    ]);
+    await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x',
+      clickableElements: [
+        { selector: '.mat-button-toggle-button', textContent: 'Team' },
+      ],
+    });
 
     expect(right.click).toHaveBeenCalled();
     expect(wrong.click).not.toHaveBeenCalled();
@@ -252,9 +265,75 @@ describe('ApiResponseRecordingPageViewerService', () => {
     );
 
     await expect(
-      service.viewPage('https://tp.example/blood-bowl/x', [
-        { selector: '.sel', textContent: 'Nope' },
-      ]),
+      service.viewPage({
+        pageUrl: 'https://tp.example/blood-bowl/x',
+        clickableElements: [{ selector: '.sel', textContent: 'Nope' }],
+      }),
     ).rejects.toThrow('No element found for selector ".sel" with text "Nope"');
+  });
+
+  it('fetches follow-up URLs from inside the page and records their responses', async () => {
+    page.goto.mockImplementation(() => {
+      handlers.requestfinished(
+        fakeRequest('https://tp.example/api/phases?phaseId=1', {
+          currentRound: 1,
+        }) as never,
+      );
+    });
+    page.evaluate.mockImplementation((_fn: unknown, url: string) =>
+      Promise.resolve({ round: url.endsWith('round=2') ? 2 : 3 }),
+    );
+
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x/scores',
+      followUpRequests: (apiResponses) => {
+        expect([...apiResponses.keys()]).toEqual(['phases?phaseId=1']);
+        return [
+          'https://tp.example/api/phases?phaseId=1&round=2',
+          'https://tp.example/api/phases?phaseId=1&round=3',
+        ];
+      },
+    });
+
+    expect([...result.apiResponses.entries()]).toEqual([
+      ['phases?phaseId=1', { currentRound: 1 }],
+      ['phases?phaseId=1&round=2', { round: 2 }],
+      ['phases?phaseId=1&round=3', { round: 3 }],
+    ]);
+  });
+
+  it('really calls fetch inside the page for each follow-up URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve({ fetched: true }),
+    });
+    Object.defineProperty(globalThis, 'fetch', {
+      value: fetchMock,
+      configurable: true,
+      writable: true,
+    });
+    page.evaluate.mockImplementation(
+      (fn: (url: string) => unknown, url: string) => fn(url),
+    );
+
+    const result = await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x/scores',
+      followUpRequests: () => ['https://tp.example/api/phases?round=2'],
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://tp.example/api/phases?round=2',
+    );
+    expect(result.apiResponses.get('phases?round=2')).toEqual({
+      fetched: true,
+    });
+  });
+
+  it('evaluates no follow-up fetch when the resolver returns no URLs', async () => {
+    await service.viewPage({
+      pageUrl: 'https://tp.example/blood-bowl/x/scores',
+      followUpRequests: () => [],
+    });
+
+    expect(page.evaluate).not.toHaveBeenCalled();
   });
 });
