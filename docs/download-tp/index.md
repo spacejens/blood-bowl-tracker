@@ -27,16 +27,17 @@ Copy the template and edit it:
 cp tools/download-tp/download-tp-config.example.json5 tools/download-tp/download-tp-config.json5
 ```
 
-| Key | Meaning |
-| --- | --- |
-| `connection.frontendUrl` | Base URL of the TP frontend, including a trailing slash (required) |
+| Key                        | Meaning                                                                                                         |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `connection.frontendUrl`   | Base URL of the TP frontend, including a trailing slash (required)                                              |
 | `connection.backendApiUrl` | Base URL of the TP API, including a trailing slash — responses whose URL starts with it are recorded (required) |
-| `browser.headless` | `true` to run the browser headless, `false` to show it (default `false`) |
-| `download.tournaments` | Tournament names to download, as they appear in the frontend path (required, non-empty) |
+| `browser.headless`         | `true` to run the browser headless, `false` to show it (default `false`)                                        |
+| `download.tournaments`     | Tournament names to download, as they appear in the frontend path (required, non-empty)                         |
 
 `download-tp-config.json5` is git-ignored; only the `.example` template is
-committed. Relative paths resolve against the working directory, which is
-`tools/download-tp/` when the tool is run as documented below.
+committed. It is looked up at `download-tp-config.json5` in the working
+directory, which is `tools/download-tp/` when the tool is run as documented
+below.
 
 Running headless is known to produce spurious console errors from TP's service
 worker (`A bad HTTP response code (403) was received when fetching the script.`,
@@ -60,8 +61,12 @@ pnpm --filter @blood-bowl-tracker/download-tp run build
 pnpm --filter @blood-bowl-tracker/download-tp run start
 ```
 
-A missing or incomplete config fails fast with a message naming the key to set,
-before any browser is launched.
+A missing or incomplete `connection.frontendUrl` or `download.tournaments`
+fails fast with a message naming the key to set, before any browser is
+launched. A missing or incomplete `connection.backendApiUrl` is only checked
+once the browser page is open, so it fails after a browser has already been
+launched (matching the tool's pre-existing `.env`-era behavior — this is not
+new to the JSON5 config).
 
 ## Development
 
