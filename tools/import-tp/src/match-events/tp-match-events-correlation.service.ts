@@ -71,7 +71,10 @@ export interface CasualtyPairing {
  * Only injuries left UNATTRIBUTED by `correlateCasualties` are eligible — an
  * injury already credited to a specific code-6 attacker is never re-credited
  * to a fouler. An unpaired foul is normal (most fouls hurt nobody) and stays a
- * standalone `'foul'` action row.
+ * standalone `'foul'` action row. The residual ~13% of same-turn candidates
+ * that fall outside the 120s window are the one case where a foul-caused
+ * casualty still imports as an ordinary (team-only or unattributed) casualty
+ * on TP — an accepted gap given TP's foul events carry no stronger signal.
  */
 export interface FoulPairing {
   /** Injury event tpEventId -> the foul event that caused it, when paired. */
