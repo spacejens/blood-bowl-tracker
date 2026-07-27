@@ -88,8 +88,15 @@ const PID_LINK = /[?&]p=pl&pid=([^&#"']+)/;
  */
 const FOUL_BY_PREFIX = /^foul by$/i;
 
-/** A casualty action row's severity: the only rows a bare `foul` marker may appear in. */
+/**
+ * A casualty action row's severity: the only rows a bare `foul` marker may
+ * appear in. Includes `casualty`, the generic tier, even though no BBL row
+ * label resolves to it today — the set means "any casualty severity", not
+ * "the severities BBL happens to emit", so a future label mapping to it does
+ * not wrongly reject a legitimate bare foul marker.
+ */
 const CASUALTY_ACTION_TYPES: ReadonlySet<ActionType> = new Set([
+  'casualty',
   'badly_hurt',
   'serious_injury',
   'death',
@@ -100,9 +107,14 @@ const CASUALTY_ACTION_TYPES: ReadonlySet<ActionType> = new Set([
  * annotation (`victim healed by apoth`, `victim regenerated`) may appear in.
  * Notably excludes `sent_off`, which is a removal consequence but not an
  * injury one — "avoided" would be nonsensical there (sent off is never
- * "prevented" by an apothecary or regeneration).
+ * "prevented" by an apothecary or regeneration). Includes `casualty`, the
+ * generic tier, even though no BBL row label resolves to it today — the set
+ * means "any casualty severity", not "the severities BBL happens to emit", so
+ * a future label mapping to it does not wrongly reject a legitimate
+ * avoided-consequence annotation.
  */
 const INJURY_CONSEQUENCE_TYPES: ReadonlySet<ConsequenceType> = new Set([
+  'casualty',
   'badly_hurt',
   'serious_injury',
   'death',
@@ -421,7 +433,23 @@ export class MatchEventsPageParser {
       }
       const viaFoul = FOUL_BY_PREFIX.test(text);
       if (text.length > 0 && !viaFoul) {
-        errors.push({ label, side, text, reason: 'unrecognised' });
+        // BBL is known to append match-level prose to cells (that is exactly
+        // why the ignored-notes vocabulary exists), so leftover text sharing a
+        // segment with a player link is still worth classifying rather than
+        // always calling it unrecognised: a known-and-ignored note is dropped
+        // silently, any other known annotation is reported as misplaced (it
+        // cannot apply here, sharing a segment with a player link), and only
+        // genuinely unknown text is reported as unrecognised.
+        const annotation = this.cellAnnotation.classify(text);
+        if (annotation.kind !== 'ignored') {
+          errors.push({
+            label,
+            side,
+            text,
+            reason:
+              annotation.kind === 'unrecognised' ? 'unrecognised' : 'misplaced',
+          });
+        }
       }
       links.each((_i, a) => {
         const href = $(a).attr('href') ?? '';

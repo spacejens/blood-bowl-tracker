@@ -325,6 +325,51 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
+  it('records no error when leftover text in a linked segment is a known ignored note', async () => {
+    const parser = await makeParser({
+      'Extra shoot-out TD after tied overtime': { kind: 'ignored' },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'Extra shoot-out TD after tied overtime <a href="default.asp?p=pl&pid=99">X</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '99' },
+    ]);
+    expect(result.annotationErrors).toEqual([]);
+  });
+
+  it('reports leftover text in a linked segment as misplaced when it is a known annotation', async () => {
+    const parser = await makeParser({
+      'victim healed by apoth': { kind: 'avoided', avoidedBy: 'apothecary' },
+    });
+    const result = parser.extractMatchEvents(
+      journeymenPage(
+        row(
+          'Killers',
+          'victim healed by apoth <a href="default.asp?p=pl&pid=99">X</a>',
+          '',
+        ),
+      ),
+    )!;
+    expect(result.actions).toEqual([
+      { actionType: 'death', side: 'home', pid: '99' },
+    ]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Killers',
+        side: 'home',
+        text: 'victim healed by apoth',
+        reason: 'misplaced',
+      },
+    ]);
+  });
+
   it('tags a link-less "victim healed by apoth" consequence cell rather than emitting a bare anonymous victim', async () => {
     const parser = await makeParser(APOTH);
     const result = parser.extractMatchEvents(

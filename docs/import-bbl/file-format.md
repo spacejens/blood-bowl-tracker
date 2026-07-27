@@ -128,11 +128,13 @@ event is emitted per side with a positive count. This is why BBL's
 
 Multi-entry cells: an event cell's `<br>`-separated segments are read one by
 one — `<br>` is the only separator BBL uses between entries in a cell, so a
-cell with no `<br>` is always exactly one entry. A segment with player links
-yields one occurrence per link; a link-less segment is classified against a
-closed vocabulary of plain-text annotations (the list below), so an unlinked
-entry survives alongside a linked one in the same cell and several unlinked
-entries stay several occurrences.
+cell with no `<br>` is always exactly one segment. A segment is not the same
+as an occurrence, though: a segment with player links yields one occurrence
+per link, so a `<br>`-less cell can still produce several occurrences. A
+link-less segment is classified against a closed vocabulary of plain-text
+annotations (the list below), so an unlinked entry survives alongside a
+linked one in the same cell and several unlinked entries stay several
+occurrences.
 
 The vocabulary, taken from a survey of every mirrored match-detail page:
 
