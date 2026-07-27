@@ -262,12 +262,14 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
 Two facts the match-event model can record are absent from TP's data, so the
 corresponding columns stay null for TP-sourced events:
 
-- **How a casualty was prevented.** There is no apothecary or regeneration
-  signal on a casualty or injury event. The only apothecary field anywhere is
-  `inscription*.roster.apothecary`, a boolean saying the team _has_ one, which
-  says nothing about whether it was used on a given casualty. An
-  apothecary-erased casualty is only inferable as an unpaired code 6 (see the
-  casualty/injury correlation section above).
+- **How a casualty was prevented.** No casualty (code 6) or injury (code 8)
+  event carries any apothecary or regeneration signal. Apothecaries appear
+  only away from the casualty itself: `inscription*.roster.apothecary`, a
+  boolean saying the team _has_ one, and a `WanderingApothecaries` entry in a
+  code 11 inducements roll's `common[]`, saying one was hired. Neither says
+  whether it was used on a given casualty, and regeneration has no
+  representation at all. An apothecary-erased casualty is only inferable as an
+  unpaired code 6 (see the casualty/injury correlation section above).
 - **An unidentified participant's kind.** Every event references its
   participant by `lineUpId`, and journeymen, mercenaries and star players are
   all imported as real player rows, so TP has no name-only or unidentified
