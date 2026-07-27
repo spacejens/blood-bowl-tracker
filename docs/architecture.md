@@ -50,6 +50,10 @@ tools/
                         data (leagues, eras, rules sets, races, positions,
                         coaches, teams, and extra external IDs); run before and
                         after the system-specific importers; uses packages/import
+  review-match/       — NestJS CLI application that reads game data directly via
+                        packages/db and renders raw source data side by side with
+                        imported match events as a static HTML report; a
+                        developer review aid, not part of any import path
 ```
 
 ## Data flow
