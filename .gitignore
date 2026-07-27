@@ -65,6 +65,10 @@ tools/review-match/output/
 # tools/download-tp downloaded site data (never committed)
 tools/download-tp/data
 
+# tools/download-tp real config (the committed template is
+# download-tp-config.example.json5)
+tools/download-tp/download-tp-config.json5
+
 # Implementation plans and design specs (ephemeral; not useful in git history)
 docs/plans
 docs/superpowers/
