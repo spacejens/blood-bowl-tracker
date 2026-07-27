@@ -896,7 +896,7 @@ describe('BblMatchEventsImportService', () => {
     expect(externalIds(captured)[1]).toBe('89-awy-cas-avoided-0');
   });
 
-  it('omits the new fields entirely when the emitted event carries no tags', async () => {
+  it('omits the unidentified-kind and avoided-casualty fields entirely when the emitted event carries no tags', async () => {
     const { captured } = await runImport(
       makeEvents({}),
       { p1: 11 },
@@ -949,7 +949,7 @@ describe('BblMatchEventsImportService', () => {
     );
   });
 
-  it('still imports the other events of a match with an unusable annotation', async () => {
+  it('still imports a match whose cells also contain an unusable annotation', async () => {
     const { captured, resultArgs } = await runImport(
       makeEvents({
         annotationErrors: [

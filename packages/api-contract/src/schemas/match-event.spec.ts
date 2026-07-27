@@ -238,7 +238,7 @@ describe('UpsertMatchEventSchema', () => {
     ).toThrow();
   });
 
-  it('accepts explicit nulls for the new nullable column fields', () => {
+  it('accepts explicit nulls for the unidentified-kind and avoided-casualty fields', () => {
     const parsed = UpsertMatchEventSchema.parse({
       ...base,
       actionType: 'touchdown',
