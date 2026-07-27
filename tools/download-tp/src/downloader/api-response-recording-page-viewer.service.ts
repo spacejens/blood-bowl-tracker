@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import puppeteer from 'puppeteer';
+
+import { DownloadTpConfigService } from '../config/download-tp-config.service';
 
 export type ApiResponseRecordingPageViewerClickableElement = {
   selector: string;
@@ -32,7 +33,9 @@ export type ApiResponseRecordingPageViewerResult = {
 
 @Injectable()
 export class ApiResponseRecordingPageViewerService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly downloadTpConfigService: DownloadTpConfigService,
+  ) {}
 
   async viewPage(
     options: ApiResponseRecordingPageViewerOptions,
@@ -46,7 +49,7 @@ export class ApiResponseRecordingPageViewerService {
 
     // Pretend to be a normal browser
     const browser = await puppeteer.launch({
-      headless: this.configService.get<string>('HIDE_BROWSER_UI') === 'true',
+      headless: this.downloadTpConfigService.isHeadless(),
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -65,7 +68,7 @@ export class ApiResponseRecordingPageViewerService {
     });
 
     // Set up response recording
-    const apiUrl = this.configService.getOrThrow<string>('TP_BACKEND_API_URL');
+    const apiUrl = this.downloadTpConfigService.getBackendApiUrl();
     page.on('requestfinished', (request) => {
       const requestUrl = request.url();
       if (!requestUrl.startsWith(apiUrl)) {

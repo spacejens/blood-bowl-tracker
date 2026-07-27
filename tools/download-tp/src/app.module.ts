@@ -6,10 +6,7 @@ import { DownloaderModule } from './downloader/downloader.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      ignoreEnvFile: false,
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
     DownloadTpConfigModule,
     DownloaderModule,
   ],
