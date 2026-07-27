@@ -50,6 +50,7 @@ export const CONSEQUENCE_CATEGORY: Record<ConsequenceType, string> = {
   expensive_mistake: 'expensive-mistake',
   concession: 'concession',
   dedicated_fans: 'dedicated-fans',
+  casualty_avoided: 'cas-avoided',
 };
 
 /**
