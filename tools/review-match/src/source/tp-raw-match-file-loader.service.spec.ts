@@ -94,6 +94,16 @@ describe('TpRawMatchFileLoaderService', () => {
     );
   });
 
+  it('rethrows a non-ENOENT filesystem error instead of treating it as missing', async () => {
+    // A regular file in place of the data directory makes readdir fail with
+    // ENOTDIR, not ENOENT — that error must propagate.
+    const notADirectory = join(dir, 'data-dir-is-actually-a-file');
+    await writeFile(notADirectory, 'not a directory', 'utf8');
+    const service = await makeService(notADirectory);
+
+    await expect(service.loadMatchFile('1')).rejects.toThrow(/ENOTDIR/);
+  });
+
   it('scans the directory tree only once across calls', async () => {
     await writeMatch(join('era', 'comp'), 'match_5.json', '{ "matchId": 5 }');
     const service = await makeService();

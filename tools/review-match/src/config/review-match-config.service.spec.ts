@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -160,6 +160,22 @@ describe('ReviewMatchConfigService', () => {
 
     expect(service.getMatchesPerStratum()).toBe(3);
     expect(() => service.getDatabaseUrl()).toThrow(/database\.url is not set/);
+  });
+
+  it('rethrows a non-ENOENT filesystem error instead of treating it as missing', async () => {
+    // A directory at the config path makes readFileSync fail with EISDIR,
+    // not ENOENT — that error must propagate rather than be swallowed.
+    const path = join(dir, 'review-match-config.json5');
+    mkdirSync(path);
+
+    await expect(
+      Test.createTestingModule({
+        providers: [
+          ReviewMatchConfigService,
+          { provide: REVIEW_MATCH_CONFIG_PATH, useValue: path },
+        ],
+      }).compile(),
+    ).rejects.toThrow(/EISDIR/);
   });
 
   it('throws with the file path when the config file is not valid JSON5', async () => {

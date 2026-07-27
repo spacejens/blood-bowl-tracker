@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -62,5 +62,14 @@ describe('BblRawPageLoaderService', () => {
     const service = await makeService(join(dir, 'nope'));
 
     await expect(service.loadMatchPage('1')).resolves.toBeNull();
+  });
+
+  it('rethrows a non-ENOENT filesystem error instead of treating it as missing', async () => {
+    // A directory in place of the page file makes readFile fail with
+    // EISDIR, not ENOENT — that error must propagate.
+    await mkdir(join(dir, 'default.asp?p=m&m=999'));
+    const service = await makeService();
+
+    await expect(service.loadMatchPage('999')).rejects.toThrow(/EISDIR/);
   });
 });
