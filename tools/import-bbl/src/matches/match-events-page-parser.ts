@@ -81,9 +81,39 @@ const PID_LINK = /[?&]p=pl&pid=([^&#"']+)/;
  * came from a foul, e.g. `foul by <a href="...">Eeeh-Gor</a>` (confirmed on
  * real mirrored pages, e.g. match 1830's "Badly Hurt'ers" cell). Matched
  * against the segment's text with player links and spacer images stripped and
- * whitespace normalized.
+ * whitespace normalized. Distinct from `cell-annotation.service.ts`'s bare-foul
+ * marker (no link), which that file names `BARE_FOUL` — same idea, different
+ * segment shape, kept as two separately-named constants so an edit to one is
+ * never mistaken for an edit to the other.
  */
-const FOUL_MARKER = /^foul by$/i;
+const FOUL_BY_PREFIX = /^foul by$/i;
+
+/** A casualty action row's severity: the only rows a bare `foul` marker may appear in. */
+const CASUALTY_ACTION_TYPES: ReadonlySet<ActionType> = new Set([
+  'badly_hurt',
+  'serious_injury',
+  'death',
+]);
+
+/**
+ * An injury consequence row's severity: the only rows an avoided-consequence
+ * annotation (`victim healed by apoth`, `victim regenerated`) may appear in.
+ * Notably excludes `sent_off`, which is a removal consequence but not an
+ * injury one — "avoided" would be nonsensical there (sent off is never
+ * "prevented" by an apothecary or regeneration).
+ */
+const INJURY_CONSEQUENCE_TYPES: ReadonlySet<ConsequenceType> = new Set([
+  'badly_hurt',
+  'serious_injury',
+  'death',
+  'miss_next_game',
+  'niggling_injury',
+  'stat_reduction_ma',
+  'stat_reduction_st',
+  'stat_reduction_ag',
+  'stat_reduction_av',
+  'stat_reduction_pa',
+]);
 
 /** One player occurrence read out of a single side cell. */
 interface CellOccurrence {
@@ -103,6 +133,10 @@ interface RowWalkOptions {
   rowKind: BblRowKind;
   label: string;
   errors: BblCellAnnotationError[];
+  /** The row's resolved action type, when `rowKind` is `'action'`. */
+  actionType?: ActionType;
+  /** The row's resolved consequence type, when `rowKind` is `'consequence'`. */
+  consequenceType?: ConsequenceType;
 }
 
 interface CellWalkOptions {
@@ -112,6 +146,8 @@ interface CellWalkOptions {
   rowKind: BblRowKind;
   label: string;
   errors: BblCellAnnotationError[];
+  actionType?: ActionType;
+  consequenceType?: ConsequenceType;
 }
 
 interface SegmentOptions {
@@ -120,6 +156,8 @@ interface SegmentOptions {
   rowKind: BblRowKind;
   label: string;
   errors: BblCellAnnotationError[];
+  actionType?: ActionType;
+  consequenceType?: ConsequenceType;
 }
 
 const ACTION_LABELS: { test: RegExp; actionType: ActionType }[] = [
@@ -225,6 +263,7 @@ export class MatchEventsPageParser {
           rowKind: 'action',
           label,
           errors: annotationErrors,
+          actionType: action.actionType,
         })) {
           actions.push({
             actionType: action.actionType,
@@ -247,6 +286,7 @@ export class MatchEventsPageParser {
           rowKind: 'consequence',
           label,
           errors: annotationErrors,
+          consequenceType: 'sent_off',
         })) {
           consequences.push(this.consequenceOccurrence('sent_off', occurrence));
         }
@@ -262,6 +302,7 @@ export class MatchEventsPageParser {
           rowKind: 'consequence',
           label,
           errors: annotationErrors,
+          consequenceType: consequence.consequenceType,
         })) {
           consequences.push(
             this.consequenceOccurrence(consequence.consequenceType, occurrence),
@@ -308,7 +349,16 @@ export class MatchEventsPageParser {
   private sideOccurrences(
     options: RowWalkOptions,
   ): (CellOccurrence & { side: BblEventSide })[] {
-    const { $, homeCell, awayCell, rowKind, label, errors } = options;
+    const {
+      $,
+      homeCell,
+      awayCell,
+      rowKind,
+      label,
+      errors,
+      actionType,
+      consequenceType,
+    } = options;
     const result: (CellOccurrence & { side: BblEventSide })[] = [];
     for (const side of ['home', 'away'] as const) {
       for (const occurrence of this.occurrences({
@@ -318,6 +368,8 @@ export class MatchEventsPageParser {
         rowKind,
         label,
         errors,
+        actionType,
+        consequenceType,
       })) {
         result.push({ side, ...occurrence });
       }
@@ -335,7 +387,16 @@ export class MatchEventsPageParser {
    * empty after stripping spacer images yields nothing.
    */
   private occurrences(options: CellWalkOptions): CellOccurrence[] {
-    const { $, cell, side, rowKind, label, errors } = options;
+    const {
+      $,
+      cell,
+      side,
+      rowKind,
+      label,
+      errors,
+      actionType,
+      consequenceType,
+    } = options;
     const result: CellOccurrence[] = [];
     for (const segment of (cell.html() ?? '').split(/<br\s*\/?>/i)) {
       const fragment = $(`<div>${segment}</div>`);
@@ -350,13 +411,18 @@ export class MatchEventsPageParser {
           rowKind,
           label,
           errors,
+          actionType,
+          consequenceType,
         });
         if (occurrence) {
           result.push(occurrence);
         }
         continue;
       }
-      const viaFoul = FOUL_MARKER.test(text);
+      const viaFoul = FOUL_BY_PREFIX.test(text);
+      if (text.length > 0 && !viaFoul) {
+        errors.push({ label, side, text, reason: 'unrecognised' });
+      }
       links.each((_i, a) => {
         const href = $(a).attr('href') ?? '';
         const m = PID_LINK.exec(href);
@@ -371,13 +437,18 @@ export class MatchEventsPageParser {
 
   /**
    * Turn one link-less segment's text into an occurrence, or into a non-fatal
-   * error. Placement is validated: an avoided-consequence annotation only
-   * makes sense in an injury row and a bare foul marker only in a casualty
-   * action row, so the wrong pairing is reported rather than silently
+   * error. Placement is validated against the row's actual resolved type, not
+   * just its coarse action/consequence kind: an avoided-consequence
+   * annotation only makes sense in an injury-severity consequence row (never
+   * e.g. `sent_off`, which is a removal but not an injury), and a bare foul
+   * marker only makes sense in a casualty-severity action row (never e.g.
+   * `TD Scorers`, where it would otherwise silently turn a touchdown into a
+   * foul downstream). The wrong pairing is reported rather than silently
    * mis-filed.
    */
   private classifySegment(options: SegmentOptions): CellOccurrence | null {
-    const { text, side, rowKind, label, errors } = options;
+    const { text, side, rowKind, label, errors, actionType, consequenceType } =
+      options;
     if (text.length === 0) {
       return null;
     }
@@ -386,13 +457,21 @@ export class MatchEventsPageParser {
       case 'unidentified':
         return { pid: null, unidentifiedKind: annotation.participant };
       case 'avoided':
-        if (rowKind !== 'consequence') {
+        if (
+          rowKind !== 'consequence' ||
+          !consequenceType ||
+          !INJURY_CONSEQUENCE_TYPES.has(consequenceType)
+        ) {
           errors.push({ label, side, text, reason: 'misplaced' });
           return null;
         }
         return { pid: null, avoidedBy: annotation.avoidedBy };
       case 'foul':
-        if (rowKind !== 'action') {
+        if (
+          rowKind !== 'action' ||
+          !actionType ||
+          !CASUALTY_ACTION_TYPES.has(actionType)
+        ) {
           errors.push({ label, side, text, reason: 'misplaced' });
           return null;
         }

@@ -40,9 +40,12 @@ const AVOIDED_CONSEQUENCES = new Map<string, ConsequenceAvoidedBy>([
 
 /**
  * A casualty caused by a foul whose fouler BBL cannot identify — the same
- * construct as `foul by <player link>`, minus the link.
+ * construct as `foul by <player link>`, minus the link. Distinct from
+ * `match-events-page-parser.ts`'s `FOUL_BY_PREFIX` (that one matches the
+ * linked-fouler prefix, not this bare marker) — kept as two separately-named
+ * constants so an edit to one is never mistaken for an edit to the other.
  */
-const FOUL_MARKER = 'foul';
+const BARE_FOUL = 'foul';
 
 /**
  * Notes that appear inside an event row but describe the match, not a
@@ -69,7 +72,7 @@ export class CellAnnotationService {
     if (avoidedBy !== undefined) {
       return { kind: 'avoided', avoidedBy };
     }
-    if (key === FOUL_MARKER) {
+    if (key === BARE_FOUL) {
       return { kind: 'foul' };
     }
     if (IGNORED_NOTES.has(key)) {

@@ -127,10 +127,12 @@ event is emitted per side with a positive count. This is why BBL's
 `journeymenCount` is a proven minimum, not TP's exact per-roster count.
 
 Multi-entry cells: an event cell's `<br>`-separated segments are read one by
-one. A segment with player links yields one occurrence per link; a link-less
-segment is classified against a closed vocabulary of plain-text annotations
-(the list below), so an unlinked entry survives alongside a linked one in the
-same cell and several unlinked entries stay several occurrences.
+one — `<br>` is the only separator BBL uses between entries in a cell, so a
+cell with no `<br>` is always exactly one entry. A segment with player links
+yields one occurrence per link; a link-less segment is classified against a
+closed vocabulary of plain-text annotations (the list below), so an unlinked
+entry survives alongside a linked one in the same cell and several unlinked
+entries stay several occurrences.
 
 The vocabulary, taken from a survey of every mirrored match-detail page:
 
@@ -159,12 +161,20 @@ never merged with a causer action — a prevented casualty cannot be attributed
 to one of several candidate causers — and the causer BBL does list still emits
 its own action-only event.
 
-Anything else in a link-less segment, and any known annotation used in a row
-kind where it cannot apply (an avoided-consequence text in an achievement row,
-a bare `foul` in an injury row), produces no occurrence and is reported as a
-non-fatal import error naming the match, the row and the text. Guessing would
-re-introduce exactly the data loss this handling exists to prevent if the
-mirror's wording ever changes.
+Placement is validated against the row's actual resolved type, not just
+achievement-vs-injury: a bare `foul` is only valid in a casualty-severity
+action row (`badly_hurt`, `serious_injury`, `death` — e.g. rejected in `TD
+Scorers`, where it would otherwise silently turn a touchdown into a foul), and
+an avoided-consequence annotation is only valid in an injury-severity
+consequence row (`badly_hurt`, `serious_injury`, `death`, `miss_next_game`,
+`niggling_injury`, any `stat_reduction_*` — e.g. rejected in `Sent off`, which
+is a removal but not an injury and cannot sensibly be "avoided"). Anything
+else in a link-less segment, any known annotation misplaced this way, and any
+leftover unclassifiable text sitting alongside a player link in the same
+segment, produces no occurrence for that text and is reported as a non-fatal
+import error naming the match, the row and the text (the linked player's own
+occurrence is still emitted). Guessing would re-introduce exactly the data
+loss this handling exists to prevent if the mirror's wording ever changes.
 
 TP provides none of this and needs no equivalent handling: it has no
 apothecary or regeneration signal on a casualty (only a roster-level "team has

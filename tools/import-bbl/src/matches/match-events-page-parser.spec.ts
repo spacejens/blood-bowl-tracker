@@ -301,7 +301,7 @@ describe('MatchEventsPageParser', () => {
     ]);
   });
 
-  it('does not tag an occurrence whose segment text is unrelated prose', async () => {
+  it('reports unclassifiable leftover text in a linked segment as unrecognised, while still emitting the linked occurrence unchanged', async () => {
     const parser = await makeParser();
     const result = parser.extractMatchEvents(
       journeymenPage(
@@ -315,7 +315,14 @@ describe('MatchEventsPageParser', () => {
     expect(result.actions).toEqual([
       { actionType: 'death', side: 'home', pid: '88' },
     ]);
-    expect(result.annotationErrors).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Killers',
+        side: 'home',
+        text: 'assisted by',
+        reason: 'unrecognised',
+      },
+    ]);
   });
 
   it('tags a link-less "victim healed by apoth" consequence cell rather than emitting a bare anonymous victim', async () => {
@@ -424,6 +431,33 @@ describe('MatchEventsPageParser', () => {
     expect(result.annotationErrors).toEqual([
       {
         label: 'Killers',
+        side: 'home',
+        text: 'victim healed by apoth',
+        reason: 'misplaced',
+      },
+    ]);
+  });
+
+  it('reports a bare "foul" segment in a non-casualty action row (TD Scorers) as misplaced rather than silently becoming a foul touchdown', async () => {
+    const parser = await makeParser({ foul: { kind: 'foul' } });
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('TD Scorers', 'foul', '')),
+    )!;
+    expect(result.actions).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      { label: 'TD Scorers', side: 'home', text: 'foul', reason: 'misplaced' },
+    ]);
+  });
+
+  it('reports an avoided-consequence annotation in a Sent off row as misplaced rather than producing a nonsensical avoided severity', async () => {
+    const parser = await makeParser(APOTH);
+    const result = parser.extractMatchEvents(
+      journeymenPage(row('Sent off', 'victim healed by apoth', '')),
+    )!;
+    expect(result.consequences).toEqual([]);
+    expect(result.annotationErrors).toEqual([
+      {
+        label: 'Sent off',
         side: 'home',
         text: 'victim healed by apoth',
         reason: 'misplaced',
