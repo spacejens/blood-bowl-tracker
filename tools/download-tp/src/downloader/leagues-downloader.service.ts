@@ -54,6 +54,7 @@ export class LeaguesDownloaderService {
     const fixturesPageResult = await this.pageViewerService.viewPage({
       pageUrl: tournamentUrl + '/scores',
       dirName,
+      followUpRequests: (apiResponses) => this.missingRoundUrls(apiResponses),
     });
     await this.downloadMatches(fixturesPageResult, tournamentUrl, dirName);
     await this.pageViewerService.viewPage({
@@ -161,5 +162,32 @@ export class LeaguesDownloaderService {
 
   private pathEndsWith(requestUrl: string, pathSuffix: string): boolean {
     return requestUrl.split('?')[0].endsWith(pathSuffix);
+  }
+
+  /**
+   * A phase response only carries its own `currentRound`'s matches; the
+   * frontend loads older rounds by clicking a round tab, which re-requests the
+   * same URL with `&round=<n>` appended. Tab labels differ by phase category
+   * ("Matchday N" for the main phase, "Day N" for qualifying and playoffs), so
+   * matching tabs by text would be brittle -- the round numbers are already in
+   * the first response's `rounds[]`, so each missing round is requested
+   * directly instead. The extra responses land under the same URL path, so
+   * `findResponses('phases', ...)` picks them up with no merging step.
+   */
+  private missingRoundUrls(apiResponses: Map<string, unknown>): string[] {
+    const apiUrl = this.configService.getOrThrow<string>('TP_BACKEND_API_URL');
+    const urls: string[] = [];
+    apiResponses.forEach((response, requestUrl) => {
+      if (!this.pathEndsWith(requestUrl, 'phases')) {
+        return;
+      }
+      const phase = response as TpPhase;
+      for (const round of phase.rounds ?? []) {
+        if (round.roundNumber !== phase.currentRound) {
+          urls.push(`${apiUrl}${requestUrl}&round=${round.roundNumber}`);
+        }
+      }
+    });
+    return urls;
   }
 }

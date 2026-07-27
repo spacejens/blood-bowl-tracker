@@ -8,6 +8,7 @@ import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
 
 const FRONTEND = 'https://tp.example/blood-bowl/';
+const API = 'https://tp.example/api/';
 
 const singleRoundPhase = {
   currentRound: 1,
@@ -24,13 +25,32 @@ describe('LeaguesDownloaderService', () => {
   let configService: MockProxy<ConfigService>;
   let pageViewer: MockProxy<ApiResponseStoringPageViewerService>;
   let fileSystemService: MockProxy<FileSystemService>;
+  let followedUpUrls: string[];
 
+  /**
+   * Simulates the storing page viewer: for the /scores page it runs any
+   * followUpRequests resolver it was given (as the real viewer does, from
+   * inside the open page) and merges the extra responses named by
+   * `roundResponses` into the map it returns, keyed by the URL the resolver
+   * asked for with the API base stripped.
+   */
   function stubPages(
     scores: Map<string, unknown>,
     players: Map<string, unknown>,
+    roundResponses: Map<string, unknown> = new Map<string, unknown>(),
   ): void {
     pageViewer.viewPage.mockImplementation((options) => {
-      if (options.pageUrl.endsWith('/scores')) return Promise.resolve(scores);
+      if (options.pageUrl.endsWith('/scores')) {
+        const result = new Map<string, unknown>(scores);
+        for (const url of options.followUpRequests?.(scores) ?? []) {
+          followedUpUrls.push(url);
+          const key = url.substring(API.length);
+          if (roundResponses.has(key)) {
+            result.set(key, roundResponses.get(key));
+          }
+        }
+        return Promise.resolve(result);
+      }
       if (options.pageUrl.endsWith('/players')) return Promise.resolve(players);
       return Promise.resolve(new Map<string, unknown>());
     });
@@ -41,9 +61,11 @@ describe('LeaguesDownloaderService', () => {
   }
 
   beforeEach(async () => {
+    followedUpUrls = [];
     configService = mock<ConfigService>();
     configService.getOrThrow.mockImplementation((key: string) => {
       if (key === 'TP_FRONTEND_URL') return FRONTEND;
+      if (key === 'TP_BACKEND_API_URL') return API;
       if (key === 'TOURNAMENTS') return 'season-30';
       return '';
     });
@@ -80,6 +102,7 @@ describe('LeaguesDownloaderService', () => {
   it('creates one output directory per configured tournament', async () => {
     configService.getOrThrow.mockImplementation((key: string) => {
       if (key === 'TP_FRONTEND_URL') return FRONTEND;
+      if (key === 'TP_BACKEND_API_URL') return API;
       if (key === 'TOURNAMENTS') return 'season-29,season-30';
       return '';
     });
@@ -233,5 +256,98 @@ describe('LeaguesDownloaderService', () => {
     await expect(service.downloadAllLeagues()).rejects.toThrow(
       'Did not find any response with URL path ending in inscriptions',
     );
+  });
+
+  it('asks for every round of a phase other than the one already returned', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/phases?phaseId=1&type=COACH',
+          {
+            currentRound: 9,
+            rounds: [
+              { roundNumber: 8 },
+              { roundNumber: 9 },
+              { roundNumber: 10 },
+            ],
+            matches: [{ matchId: 'r9' }],
+          },
+        ],
+      ]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(followedUpUrls).toEqual([
+      `${API}tournaments/18442/phases?phaseId=1&type=COACH&round=8`,
+      `${API}tournaments/18442/phases?phaseId=1&type=COACH&round=10`,
+    ]);
+  });
+
+  it('visits the matches returned by the follow-up round requests too', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/phases?phaseId=1&type=COACH',
+          {
+            currentRound: 2,
+            rounds: [{ roundNumber: 1 }, { roundNumber: 2 }],
+            matches: [{ matchId: 'current' }],
+          },
+        ],
+      ]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/phases?phaseId=1&type=COACH&round=1',
+          {
+            currentRound: 1,
+            rounds: [{ roundNumber: 1 }, { roundNumber: 2 }],
+            matches: [{ matchId: 'older' }],
+          },
+        ],
+      ]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/current`);
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/older`);
+  });
+
+  it('asks for no follow-up rounds for a single-round phase or a non-phases response', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        [
+          'tournaments/18442/phases?phaseId=1&type=COACH',
+          {
+            currentRound: 1,
+            rounds: [{ roundNumber: 1 }],
+            matches: [{ matchId: 'only' }],
+          },
+        ],
+        ['tournaments/18442/classifications?page=0', { rounds: [] }],
+      ]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(followedUpUrls).toEqual([]);
+  });
+
+  it('asks for no follow-up rounds for a phase response with no rounds array', async () => {
+    stubPages(
+      new Map<string, unknown>([
+        ['x/phases?type=COACH', { matches: [{ matchId: 'lone' }] }],
+      ]),
+      new Map<string, unknown>([['x/inscriptions?page=0', {}]]),
+    );
+
+    await service.downloadAllLeagues();
+
+    expect(followedUpUrls).toEqual([]);
+    expect(visitedUrls()).toContain(`${FRONTEND}season-30/match/lone`);
   });
 });
