@@ -22,7 +22,7 @@ export class MatchEventsReviewerService implements DataTypeReviewer {
 
   getRawSource(match: SampledMatch): Promise<string> {
     return match.source === 'bbl'
-      ? this.bblRaw.render(match.externalId)
+      ? this.bblRaw.render([match.externalId])
       : this.tpRaw.render(match.externalId);
   }
 

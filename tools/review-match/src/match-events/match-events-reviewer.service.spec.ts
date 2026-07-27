@@ -61,7 +61,7 @@ describe('MatchEventsReviewerService', () => {
     await expect(service.getRawSource(match('bbl'))).resolves.toBe(
       '<p>bbl raw</p>',
     );
-    expect(bbl.render).toHaveBeenCalledWith('1830');
+    expect(bbl.render).toHaveBeenCalledWith(['1830']);
     expect(tp.render).not.toHaveBeenCalled();
   });
 
