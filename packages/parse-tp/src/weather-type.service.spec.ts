@@ -41,4 +41,8 @@ describe('WeatherTypeService', () => {
   it('has a decode test for every classic-table weather code (guards against silent shrinkage of the code map)', () => {
     expect(Object.keys(weatherTypeByTableAndCode[0])).toHaveLength(20);
   });
+
+  it('has a decode test for every table-13 weather code (guards against silent shrinkage of the code map)', () => {
+    expect(Object.keys(weatherTypeByTableAndCode[13])).toHaveLength(5);
+  });
 });

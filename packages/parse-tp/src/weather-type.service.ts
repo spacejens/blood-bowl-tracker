@@ -68,6 +68,13 @@ export const weatherTypeByTableAndCode: Record<
     112: 'freezing',
     113: 'heavy_snow',
   },
+  13: {
+    40: 'very_sunny',
+    104: 'perfect_conditions',
+    131: 'sweltering_heat',
+    132: 'pouring_rain',
+    133: 'blizzard',
+  },
 };
 
 @Injectable()

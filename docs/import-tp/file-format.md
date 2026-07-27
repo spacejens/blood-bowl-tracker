@@ -256,14 +256,28 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   onwards).** The code-10 event's `extraData` carries a `weatherTable`
   alongside `weatherType`. It was present but always `0` in every earlier
   era's data, so the code alone was enough; Major Season 30 introduced
-  `weatherTable: 13` with `weatherType` codes in a new range (e.g. `133`).
-  Because the same number can name different conditions on different tables,
-  `packages/parse-tp`'s `WeatherTypeService.decode(table, code)` now takes
-  both and looks them up in `weatherTypeByTableAndCode`, which keys table
-  first. An event with no `weatherTable` at all (the oldest data) is treated
-  as table `0`. Table-13 codes are populated as they are actually observed in
-  downloaded data; a code never observed stays unmapped and decodes to
-  `'unknown'`, exactly as prior eras' rare codes do.
+  `weatherTable: 13`. Table 13's `weatherType` codes are NOT a disjoint new
+  range — two of its five observed codes (`40`, `104`) collide with numbers
+  table 0 already uses for different conditions (`40` is `pouring_rain` on
+  table 0 but `very_sunny` on table 13; `104` is `perfect_conditions` on both,
+  coincidentally). This collision is exactly why the lookup had to become
+  table-aware rather than code-only: a code-only lookup would have actively
+  mis-decoded these two as their table-0 meanings, not merely failed to
+  decode them. Because the same number can name different conditions on
+  different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
+  code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
+  keys table first. An event with no `weatherTable` at all (the oldest data)
+  is treated as table `0`.
+
+  All five table-13 codes observed in Major Season 30's downloaded data are
+  now mapped, derived by grouping code-10 events by `weatherType` and cross-
+  referencing the `rollLocal`/`rollVisitor` 2d6 sum against the classic Blood
+  Bowl weather table (each code's observed sums form an exact, non-overlapping
+  partition of the 2-12 range): `40` → `very_sunny` (sum 3), `104` →
+  `perfect_conditions` (sums 4-10), `131` → `sweltering_heat` (sum 2), `132` →
+  `pouring_rain` (sum 11), `133` → `blizzard` (sum 12). A table-13 code never
+  observed stays unmapped and decodes to `'unknown'`, exactly as prior eras'
+  rare codes do.
 
 - **Dedicated fans** (`26`) is a consequence (the resulting fan-count
   change), not an action, so it's carried via `consequenceType:
