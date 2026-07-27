@@ -248,11 +248,23 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   `match_events`'s CHECK constraint requires `eventType` to be set alone
   (with both `actionType`/`consequenceType` null) XOR at least one of
   `actionType`/`consequenceType` to be set (with `eventType` null) — never a
-  mix of `eventType` and the other two. `weatherType` itself stays a plain,
-  un-decoded integer column: TP's ~20 observed distinct codes are almost
-  certainly a closed weather-table result set, but no authoritative
-  code-to-name mapping is confirmed yet (tracked as a follow-up to decode it
-  into a named enum).
+  mix of `eventType` and the other two. `weatherType` is decoded to a named
+  condition (the `game_data.weather_type` enum) before import, with `'unknown'`
+  as a permanent catch-all for codes not yet mapped.
+
+  **Weather decoding is table-aware (observed 2026-07, Major Season 30
+  onwards).** The code-10 event's `extraData` carries a `weatherTable`
+  alongside `weatherType`. It was present but always `0` in every earlier
+  era's data, so the code alone was enough; Major Season 30 introduced
+  `weatherTable: 13` with `weatherType` codes in a new range (e.g. `133`).
+  Because the same number can name different conditions on different tables,
+  `packages/parse-tp`'s `WeatherTypeService.decode(table, code)` now takes
+  both and looks them up in `weatherTypeByTableAndCode`, which keys table
+  first. An event with no `weatherTable` at all (the oldest data) is treated
+  as table `0`. Table-13 codes are populated as they are actually observed in
+  downloaded data; a code never observed stays unmapped and decodes to
+  `'unknown'`, exactly as prior eras' rare codes do.
+
 - **Dedicated fans** (`26`) is a consequence (the resulting fan-count
   change), not an action, so it's carried via `consequenceType:
 'dedicated_fans'` / `consequenceTeamEraId` rather than `actionType`. A
@@ -437,7 +449,10 @@ described above.
 (`imageFile`, `assistantCoaches`, `cheerLeaders`,
 `fanFactor`, `ruleSet`, `necromancer`, `reRolls`, `shortTeamName`, `sponsors`,
 `teamColor`, `treasury`, `extraGoldQuantity`, `teamSpecialRules`, `league`,
-`hasMatchesInProgress`, `hasMatchesPlayed`). Note that the same roster shape
+`hasMatchesInProgress`, `hasMatchesPlayed`, and -- newly observed 2026-07 with
+Major Season 30, purely additive with nothing removed or reshaped -- `state`,
+`freeHireAndFireOrder`, `apothecary`; the parser reads only the fields it
+needs, so these required no code change). Note that the same roster shape
 reappears nested as `roster` inside `match` and `inscriptions` bodies — not a
 coincidence, but the full shape hasn't been reconciled across all three
 contexts. Those nested copies lack `rosterMaster` and are not a source for this
