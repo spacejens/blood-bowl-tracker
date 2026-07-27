@@ -636,8 +636,8 @@ describe('MatchEventCorrelationService', () => {
     });
 
     it('merges an unlinked action with a linked consequence', () => {
-      // pid is not part of the matching predicate: an action BBL gives no
-      // player link for still pairs with a normally linked victim.
+      // pid is not part of the matching predicate: an action with no BBL
+      // player link still pairs with a normally linked victim.
       const combined = service.combineOccurrences(
         makeEvents({
           actions: [
