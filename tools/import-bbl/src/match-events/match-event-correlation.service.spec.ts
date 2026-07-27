@@ -485,6 +485,125 @@ describe('MatchEventCorrelationService', () => {
       ]);
     });
 
+    it('merges an avoided badly_hurt with its causer action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'badly_hurt', side: 'home', pid: 'basher' }],
+          consequences: [
+            {
+              consequenceType: 'badly_hurt',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'badly_hurt',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'badly_hurt',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'basher',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges an avoided lasting injury with its serious_injury causer action', () => {
+      // The serious_injury group spans every lasting-injury consequence type,
+      // and the prevented severity recorded is the specific one, not the tier.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'basher' },
+          ],
+          consequences: [
+            {
+              consequenceType: 'niggling_injury',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'niggling_injury',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'basher',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
+    it('merges nothing when two avoided consequences match one action', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [{ actionType: 'death', side: 'home', pid: 'killer' }],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'apothecary',
+            },
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: null,
+              avoidedBy: 'regeneration',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+        },
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+        {
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'regeneration',
+          consequenceAvoidedSeverity: 'death',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: null,
+        },
+      ]);
+    });
+
     it('carries unidentified kinds onto a merged event', () => {
       const combined = service.combineOccurrences(
         makeEvents({
