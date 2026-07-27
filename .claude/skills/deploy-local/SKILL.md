@@ -229,7 +229,7 @@ Run this section only if "Run the match-event review tool" was selected in step 
 3. Build and run the tool — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/review-match run build
-   ( cd tools/review-match && node dist/main.js )
+   pnpm --filter @blood-bowl-tracker/review-match run start
    ```
 4. On success, open the report automatically — asking for the review is a request to look at it. Each run writes its own timestamped file under `tools/review-match/output/` rather than a fixed name, so open the exact path printed by step 3's command (the line reading `Reviewed <N> match(es); report written to <path>.`) — do not assume `report.html`:
    ```bash

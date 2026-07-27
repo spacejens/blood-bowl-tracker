@@ -68,7 +68,7 @@ which can also run this tool for you and open the report.
 
 ```bash
 pnpm --filter @blood-bowl-tracker/review-match run build
-( cd tools/review-match && node dist/main.js )
+pnpm --filter @blood-bowl-tracker/review-match run start
 ```
 
 Exit codes: `0` with `Reviewed <N> match(es); report written to <path>.` on
