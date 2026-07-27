@@ -1,8 +1,8 @@
-import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { DownloadTpConfigService } from '../config/download-tp-config.service';
 import { ApiResponseStoringPageViewerService } from './api-response-storing-page-viewer.service';
 import { FileSystemService } from './file-system.service';
 import { LeaguesDownloaderService } from './leagues-downloader.service';
@@ -22,7 +22,7 @@ const inscriptionsResponse = {
 
 describe('LeaguesDownloaderService', () => {
   let service: LeaguesDownloaderService;
-  let configService: MockProxy<ConfigService>;
+  let configService: MockProxy<DownloadTpConfigService>;
   let pageViewer: MockProxy<ApiResponseStoringPageViewerService>;
   let fileSystemService: MockProxy<FileSystemService>;
   let followedUpUrls: string[];
@@ -62,13 +62,10 @@ describe('LeaguesDownloaderService', () => {
 
   beforeEach(async () => {
     followedUpUrls = [];
-    configService = mock<ConfigService>();
-    configService.getOrThrow.mockImplementation((key: string) => {
-      if (key === 'TP_FRONTEND_URL') return FRONTEND;
-      if (key === 'TP_BACKEND_API_URL') return API;
-      if (key === 'TOURNAMENTS') return 'season-30';
-      return '';
-    });
+    configService = mock<DownloadTpConfigService>();
+    configService.getFrontendUrl.mockReturnValue(FRONTEND);
+    configService.getBackendApiUrl.mockReturnValue(API);
+    configService.getTournaments.mockReturnValue(['season-30']);
     pageViewer = mock<ApiResponseStoringPageViewerService>();
     fileSystemService = mock<FileSystemService>();
     stubPages(
@@ -88,7 +85,7 @@ describe('LeaguesDownloaderService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         LeaguesDownloaderService,
-        { provide: ConfigService, useValue: configService },
+        { provide: DownloadTpConfigService, useValue: configService },
         {
           provide: ApiResponseStoringPageViewerService,
           useValue: pageViewer,
@@ -100,12 +97,7 @@ describe('LeaguesDownloaderService', () => {
   });
 
   it('creates one output directory per configured tournament', async () => {
-    configService.getOrThrow.mockImplementation((key: string) => {
-      if (key === 'TP_FRONTEND_URL') return FRONTEND;
-      if (key === 'TP_BACKEND_API_URL') return API;
-      if (key === 'TOURNAMENTS') return 'season-29,season-30';
-      return '';
-    });
+    configService.getTournaments.mockReturnValue(['season-29', 'season-30']);
 
     await service.downloadAllLeagues();
 
