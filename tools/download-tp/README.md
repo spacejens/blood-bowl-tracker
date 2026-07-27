@@ -5,10 +5,6 @@ stores it locally as JSON for later import by `tools/import-tp`.
 
 This tool is designed to be run locally by a developer, not deployed.
 
-> **Status:** ported as-is from an older repository and not currently known to
-> work against the live TP site. Fixing it, and using it to download Major
-> Season 30, is tracked separately.
-
 ## Configuration
 
 Copy `.env.example` to `.env` in this directory and fill in the values:
