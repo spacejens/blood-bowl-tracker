@@ -33,7 +33,7 @@ const NONE = '—';
 const HEADERS: TableCell[] = [
   'DB id',
   'External ID',
-  ['Action', 'Consequence'],
+  ['Action /', 'Consequence'],
   'Event',
   'Acting player',
   'Acting team',
