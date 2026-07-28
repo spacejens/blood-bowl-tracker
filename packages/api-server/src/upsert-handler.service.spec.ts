@@ -1,4 +1,7 @@
-import { MissingRequiredFieldError } from '@blood-bowl-tracker/game-data';
+import {
+  MatchCategoryMismatchError,
+  MissingRequiredFieldError,
+} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,6 +58,20 @@ describe('UpsertHandlerService', () => {
     ).rejects.toBeInstanceOf(BadRequestReply);
     expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
       message: 'Cannot create new eras: missing required field(s): leagueId',
+    });
+  });
+
+  it('translates a match category mismatch error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new MatchCategoryMismatchError(
+          'Match category cup_final is not valid for competition type season',
+        );
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message:
+        'Match category cup_final is not valid for competition type season',
     });
   });
 
