@@ -23,7 +23,7 @@ settings — the directory to import is a command-line argument, not a config ke
 Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
-  The group itself is required (mirroring `import-tp-config.json5`).
+  The group itself is required.
   - `apiBaseUrl` — base URL of the running api-server. Defaults to
     `http://localhost:3000` if unset.
   - `apiToken` — **required.** The bearer token this tool authenticates with;
