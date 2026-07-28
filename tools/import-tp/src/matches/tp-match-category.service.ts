@@ -41,17 +41,23 @@ interface Stage {
  * ascending -- this reconstructs the true playoff sequence, because
  * `phaseType`'s literal value (30 vs 110 in the fixtures) is NOT stable
  * across seasons: which numeric phase hosts which stage flips from season to
- * season (the `tloegbbl-sasong-28` fixture is the one local example), but
- * the `(phaseOrder, round)` pair's ascending *position* always matches
- * chronological (`playedDate`) order. Confirmed shapes:
+ * season, but the `(phaseOrder, round)` pair's ascending *position* always
+ * matches chronological (`playedDate`) order. Confirmed shapes:
  *
  * - **6 non-main matches** (3 stages of 2, e.g. `tloegbbl-major-season-25`):
  *   stage 1 = `season_qualifier`, stage 2 = `season_semi_final`, stage 3 is
- *   the terminal stage (final + bronze, split below).
- * - **4 non-main matches** (2 stages of 2, e.g. `tloegbbl-sasong-28` — that
- *   season skips qualifying): stage 1 = `season_semi_final`, stage 2 is the
- *   terminal stage.
- * - Any other non-main match count (not 0, 4, or 6), or a stage whose bucket
+ *   the terminal stage (final + bronze, split below). `tloegbbl-sasong-28`
+ *   is also this 6-match shape, but with an inverted grouping: its qualifier
+ *   AND semifinal both fall under `phaseOrder 2` (rounds 1 and 2) and its
+ *   terminal stage sits alone under `phaseOrder 3`, the reverse of every
+ *   other season's `(2,1)`/`(3,1)`/`(3,2)` grouping -- proof that ascending
+ *   `(phaseOrder, round)` *position*, not the literal phase numbers, is what
+ *   identifies a stage.
+ * - **4 non-main matches** (2 stages of 2, no qualifying round that season):
+ *   stage 1 = `season_semi_final`, stage 2 is the terminal stage. No local
+ *   fixture has this shape; it's a developer-stated rule for a season that
+ *   skips qualifying entirely.
+ * - Any other non-main match count (not 4 or 6), or a stage whose bucket
  *   doesn't have exactly 2 matches, is an unanticipated shape -- throws
  *   rather than guessing.
  *
@@ -95,9 +101,10 @@ export class TpMatchCategoryService {
     if (nonMain.length !== 4 && nonMain.length !== 6) {
       throw new Error(
         `TP match ${match.id}: its competition has ${nonMain.length} ` +
-          'non-main-phase matches, but the confirmed mapping only covers ' +
-          '4 (semifinal + final/bronze) or 6 (qualifier + semifinal + ' +
-          'final/bronze). This is an unanticipated bracket shape.',
+          'non-main-phase matches, but the confirmed mapping only covers a ' +
+          'season with 4 (semifinal + final/bronze) or 6 (qualifier + ' +
+          'semifinal + final/bronze) non-main-phase matches. This is an ' +
+          'unanticipated bracket shape.',
       );
     }
     for (const stage of stages) {
@@ -114,12 +121,25 @@ export class TpMatchCategoryService {
     const stageIndex = stages.findIndex((stage) =>
       stage.matches.some((m) => m.id === match.id),
     );
+    if (stageIndex === -1) {
+      // Unreachable from TpMatchesImportService, which always includes
+      // `match` in `competitionMatches` -- but guard explicitly rather than
+      // let findIndex's "not found" sentinel (-1) collide with a stage
+      // index below, which would otherwise silently misclassify instead of
+      // throwing.
+      throw new Error(
+        `TP match ${match.id}: it was not found among its own ` +
+          'competitionMatches, so its bracket stage cannot be determined.',
+      );
+    }
     const isSixMatchShape = nonMain.length === 6;
-    const qualifierIndex = isSixMatchShape ? 0 : -1;
+    // The 4-match shape has no qualifier stage at all -- `undefined`, not a
+    // numeric sentinel, so it can never accidentally equal a real stageIndex.
+    const qualifierIndex = isSixMatchShape ? 0 : undefined;
     const semifinalIndex = isSixMatchShape ? 1 : 0;
     const terminalIndex = isSixMatchShape ? 2 : 1;
 
-    if (stageIndex === qualifierIndex) {
+    if (qualifierIndex !== undefined && stageIndex === qualifierIndex) {
       return 'season_qualifier';
     }
     if (stageIndex === semifinalIndex) {

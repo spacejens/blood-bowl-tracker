@@ -95,18 +95,18 @@ function sixMatchSeason(): TpMatch[] {
 }
 
 /**
- * The 4-match "semifinal -> final+bronze" shape (no qualifier), seen when a
- * season doesn't need a qualifying round -- the tloegbbl-sasong-28 shape,
- * once its extra qualifier+semifinal split within one phase-order is
- * flattened to (order, round) stage position. Same team-id story as
- * {@link sixMatchSeason} minus the qualifier: teams 1, 3, 5, 7 go directly
- * into the semifinal.
+ * The 4-match "semifinal -> final+bronze" shape (no qualifier), for a season
+ * that skips qualifying entirely. No local fixture has this shape -- it's a
+ * developer-stated rule ("if there are only 4 non-normal matches in a
+ * season, that means qualifying rounds were not used"), not one derived from
+ * real data. Same team-id story as {@link sixMatchSeason} minus the
+ * qualifier: teams 1, 3, 5, 7 go directly into the semifinal.
  */
 function fourMatchSeason(): TpMatch[] {
   return [
-    // Semifinal: order 2, round 2 (matches the sasong-28 fixture's actual
-    // (order, round) pair for its semifinal, to prove the stage is found by
-    // sorted (order, round) position, not fixed numbers).
+    // Semifinal: order 2, round 2 (an arbitrary (order, round) pair, chosen
+    // to prove the stage is found by sorted (order, round) position, not
+    // fixed numbers).
     match({
       id: 1,
       phaseOrder: 2,
@@ -134,6 +134,72 @@ function fourMatchSeason(): TpMatch[] {
     }),
     match({
       id: 4,
+      phaseOrder: 3,
+      round: 1,
+      homeTeamTpId: 3,
+      awayTeamTpId: 1,
+      winner: 'away', // bronze: 1 beats 3
+    }),
+  ];
+}
+
+/**
+ * The real `tloegbbl-sasong-28` grouping: still the 6-match "qualifier ->
+ * semifinal -> final+bronze" shape, but with the qualifier AND semifinal
+ * both falling under `phaseOrder 2` (rounds 1 and 2) and the terminal stage
+ * alone under `phaseOrder 3` (round 1) -- the reverse of every other
+ * season's `(2,1)`/`(3,1)`/`(3,2)` grouping. Proves stages are found by
+ * ascending `(phaseOrder, round)` position, not by phase-type/order numbers.
+ * Same team-id story as {@link sixMatchSeason}.
+ */
+function sixMatchSeasonInvertedGrouping(): TpMatch[] {
+  return [
+    // Qualifier: order 2, round 1.
+    match({
+      id: 1,
+      phaseOrder: 2,
+      round: 1,
+      homeTeamTpId: 1,
+      awayTeamTpId: 2,
+      winner: 'home', // 1 beats 2
+    }),
+    match({
+      id: 2,
+      phaseOrder: 2,
+      round: 1,
+      homeTeamTpId: 3,
+      awayTeamTpId: 4,
+      winner: 'home', // 3 beats 4
+    }),
+    // Semifinal: order 2, round 2 (still phaseOrder 2, unlike the normal
+    // grouping where the semifinal moves to phaseOrder 3).
+    match({
+      id: 3,
+      phaseOrder: 2,
+      round: 2,
+      homeTeamTpId: 5,
+      awayTeamTpId: 3,
+      winner: 'home', // 5 beats 3
+    }),
+    match({
+      id: 4,
+      phaseOrder: 2,
+      round: 2,
+      homeTeamTpId: 1,
+      awayTeamTpId: 7,
+      winner: 'away', // 7 beats 1
+    }),
+    // Terminal: order 3, round 1 -- final (5 v 7) and bronze (3 v 1).
+    match({
+      id: 5,
+      phaseOrder: 3,
+      round: 1,
+      homeTeamTpId: 5,
+      awayTeamTpId: 7,
+      winner: 'home', // final: 5 beats 7
+    }),
+    match({
+      id: 6,
       phaseOrder: 3,
       round: 1,
       homeTeamTpId: 3,
@@ -205,14 +271,16 @@ describe('TpMatchCategoryService', () => {
     });
   });
 
-  describe('the 4-match shape (semifinal -> final+bronze, no qualifier)', () => {
-    const matches = fourMatchSeason();
+  describe('the 6-match shape with the tloegbbl-sasong-28 inverted grouping (qualifier+semifinal share phaseOrder 2, terminal alone at phaseOrder 3)', () => {
+    const matches = sixMatchSeasonInvertedGrouping();
 
     it.each([
-      [1, 'season_semi_final'],
-      [2, 'season_semi_final'],
-      [3, 'season_final'],
-      [4, 'season_bronze'],
+      [1, 'season_qualifier'],
+      [2, 'season_qualifier'],
+      [3, 'season_semi_final'],
+      [4, 'season_semi_final'],
+      [5, 'season_final'],
+      [6, 'season_bronze'],
     ] as const)(
       'classifies match %i as %s (the sasong-28 inversion)',
       (id, expected) => {
@@ -227,6 +295,27 @@ describe('TpMatchCategoryService', () => {
         ).toBe(expected);
       },
     );
+  });
+
+  describe('the 4-match shape (semifinal -> final+bronze, no qualifier; no local fixture example)', () => {
+    const matches = fourMatchSeason();
+
+    it.each([
+      [1, 'season_semi_final'],
+      [2, 'season_semi_final'],
+      [3, 'season_final'],
+      [4, 'season_bronze'],
+    ] as const)('classifies match %i as %s', (id, expected) => {
+      const m = matches.find((candidate) => candidate.id === id);
+      expect(m).toBeDefined();
+      expect(
+        classify(service, {
+          match: m!,
+          competitionType: 'season',
+          competitionMatches: matches,
+        }),
+      ).toBe(expected);
+    });
   });
 
   it('resolves the final/bronze split by transitive inference when one semifinal is a drawn tie (the sasong-29 case)', () => {
@@ -334,10 +423,65 @@ describe('TpMatchCategoryService', () => {
         competitionType: 'season',
         competitionMatches: matches,
       }),
-    ).toThrow(/3/);
+    ).toThrow(
+      /TP match 3: both semifinal-stage matches feeding it are drawn ties/,
+    );
   });
 
-  it('throws for a season competition whose non-main match count is not 0, 4 or 6', () => {
+  it('throws when the terminal stage cannot be split into exactly one final and one bronze candidate', () => {
+    // A synthetic, structurally-invalid bracket: both semifinal matches have
+    // confirmed winners (5 and 7), but BOTH terminal matches happen to
+    // contain one of those winners -- a real bracket can never produce this
+    // (a team can only play in one terminal match), but the guard must
+    // still catch it and throw rather than pick one arbitrarily.
+    const matches: TpMatch[] = [
+      match({
+        id: 1,
+        phaseOrder: 2,
+        round: 1,
+        homeTeamTpId: 5,
+        awayTeamTpId: 6,
+        winner: 'home', // 5 beats 6
+      }),
+      match({
+        id: 2,
+        phaseOrder: 2,
+        round: 1,
+        homeTeamTpId: 7,
+        awayTeamTpId: 8,
+        winner: 'home', // 7 beats 8
+      }),
+      match({
+        id: 3,
+        phaseOrder: 3,
+        round: 1,
+        homeTeamTpId: 5,
+        awayTeamTpId: 3,
+        winner: 'home',
+      }),
+      match({
+        id: 4,
+        phaseOrder: 3,
+        round: 1,
+        homeTeamTpId: 7,
+        awayTeamTpId: 1,
+        winner: 'home',
+      }),
+    ];
+    const terminalMatch = matches.find((m) => m.id === 3)!;
+
+    expect(() =>
+      classify(service, {
+        match: terminalMatch,
+        competitionType: 'season',
+        competitionMatches: matches,
+      }),
+    ).toThrow(
+      /TP match 3: expected exactly one terminal-stage match to contain a confirmed semifinal winner, found 2/,
+    );
+  });
+
+  it('throws for a season competition whose non-main match count is not 4 or 6', () => {
     const matches: TpMatch[] = [
       match({ id: 1, phaseOrder: 2, round: 1 }),
       match({ id: 2, phaseOrder: 2, round: 1 }),
@@ -349,7 +493,7 @@ describe('TpMatchCategoryService', () => {
         competitionType: 'season',
         competitionMatches: matches,
       }),
-    ).toThrow(/1/);
+    ).toThrow(/TP match 1: its competition has 3 non-main-phase matches/);
   });
 
   it('throws when a stage bucket does not contain exactly 2 matches', () => {
@@ -365,7 +509,9 @@ describe('TpMatchCategoryService', () => {
         competitionType: 'season',
         competitionMatches: matches,
       }),
-    ).toThrow(/1/);
+    ).toThrow(
+      /phase order 2 round 1 has 3 matches, but the confirmed mapping expects exactly 2 per stage/,
+    );
   });
 
   it('throws for a cup competition match with a non-main phase (no confirmed cup playoff mapping)', () => {
