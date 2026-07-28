@@ -1,4 +1,4 @@
-import { DB, matches } from '@blood-bowl-tracker/db';
+import { competitions, DB, matches } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
@@ -86,6 +86,32 @@ describe('MatchCategoryStratificationService', () => {
         );
       },
     );
+
+    it('groups by the match, not the external id, so a merged match yields one row', async () => {
+      const dbResult = mockDb([dbRow]);
+      const service = await makeService(dbResult);
+
+      await service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'cup_final',
+        limit: 3,
+      });
+
+      // A merged BBL match (the four-team finals) has two matchExternalIds
+      // rows for the same match under the same external system — exactly
+      // the case a cup_final/season_final stratum is likely to hit.
+      // Grouping by the match's own columns (and picking the lowest external
+      // id via an aggregate, asserted by the query shape itself) keeps it to
+      // one row, the same guard MatchEventStratificationService and
+      // MergedMatchStratificationService both apply.
+      expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+        matches.category,
+      );
+    });
 
     it('limits the query to the requested number of matches', async () => {
       const dbResult = mockDb([dbRow]);

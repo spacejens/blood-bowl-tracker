@@ -61,9 +61,12 @@ const CATEGORY_STRATUM_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
  * select on match-event or merge properties.
  *
  * A separate stratifier rather than folding into
- * `MergedMatchStratificationService`: this filters a plain `matches` column,
- * with no aggregate/`GROUP BY`/`HAVING` needed, unlike that service's
- * "how many external ids does this match have" query.
+ * `MergedMatchStratificationService`: this filters a plain `matches` column
+ * rather than that service's "how many external ids does this match have"
+ * `HAVING` check. It still needs the same `GROUP BY` dedup as every other
+ * stratifier here, though — a merged BBL match has two `matchExternalIds`
+ * rows under one external system, and without grouping it would surface
+ * twice.
  */
 @Injectable()
 export class MatchCategoryStratificationService implements MatchStratifier {
@@ -87,10 +90,19 @@ export class MatchCategoryStratificationService implements MatchStratifier {
   }: StratumSampleRequest): Promise<ReviewMatch[]> {
     const category = this.categoryFor(stratumId);
     const externalSystemId = await this.externalSystems.getSystemId(source);
+    // GROUP BY, not a plain select: a merged BBL match (the four-team
+    // finals) carries two matchExternalIds rows under the same external
+    // system by design. Without this, such a match would surface as two
+    // duplicate rows here — for the cup_final/season_final strata that's
+    // exactly the case most likely to occur, and it would let one merged
+    // match consume multiple of a stratum's sample slots. `min()` (cast for
+    // numeric, not lexicographic, ordering) picks the numerically lower id,
+    // matching the "primary = numerically lower id" convention
+    // `MergedMatchStratificationService` establishes.
     const rows = await this.db
       .select({
         matchId: matches.id,
-        externalId: matchExternalIds.externalId,
+        externalId: sql<string>`min(${matchExternalIds.externalId}::integer)::text`,
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
@@ -105,6 +117,13 @@ export class MatchCategoryStratificationService implements MatchStratifier {
         ),
       )
       .where(eq(matches.category, category))
+      .groupBy(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+        matches.category,
+      )
       // Random, not newest-first: every stratum querying "the same handful
       // of most recent matches" would otherwise collapse a large sample
       // into a handful of overlapping matches, defeating the point of
