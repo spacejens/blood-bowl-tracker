@@ -98,4 +98,42 @@ describe('ImportBblConfigService', () => {
       }).compile(),
     ).rejects.toThrow(path);
   });
+
+  it('returns the configured API token', async () => {
+    const path = writeConfig(`{ connection: { apiToken: 'bbl-secret' } }`);
+    const service = await makeService(path);
+    expect(service.getApiToken()).toBe('bbl-secret');
+  });
+
+  it('throws from getApiToken when connection is not set', async () => {
+    const path = writeConfig(`{ league: { leagueName: 'tLoEG', eras: [] } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection is not set in import-bbl-config.json5',
+    );
+  });
+
+  it('throws when apiToken is missing', async () => {
+    const path = writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-bbl-config.json5',
+    );
+  });
+
+  it('throws when apiToken is an empty string', async () => {
+    const path = writeConfig(`{ connection: { apiToken: '' } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-bbl-config.json5',
+    );
+  });
+
+  it('throws when apiToken is not a string', async () => {
+    const path = writeConfig(`{ connection: { apiToken: 42 } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-bbl-config.json5',
+    );
+  });
 });
