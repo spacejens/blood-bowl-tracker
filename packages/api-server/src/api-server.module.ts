@@ -14,6 +14,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 
+import { ApiTokenAuthService } from './api-token-auth.service';
 import { RpcMiddleware } from './rpc.middleware';
 import { RPC_ROUTER } from './rpc-router.token';
 import { RpcRouterFactoryService } from './rpc-router-factory.service';
@@ -35,6 +36,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     MatchEventsModule,
   ],
   providers: [
+    ApiTokenAuthService,
     RpcRouterFactoryService,
     UpsertHandlerService,
     {
