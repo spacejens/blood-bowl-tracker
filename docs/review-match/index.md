@@ -53,7 +53,10 @@ services.
      (an id that resolves to nothing is shown as `unknown id <N>` rather than
      blanked, so the gap is visible); lists the star players an inducements
      event induced; or, for a weather event, names the decoded weather
-     condition (e.g. `40 (very sunny)`). Each event's remaining raw JSON sits
+     condition (e.g. table 13's code `40` is `40 (very sunny)`, though the
+     same code `40` means `pouring rain` in the classic table 0 — a
+     reminder that the code is only unique within its table). Each event's
+     remaining raw JSON sits
      behind a collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.

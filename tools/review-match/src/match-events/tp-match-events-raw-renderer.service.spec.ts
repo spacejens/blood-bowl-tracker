@@ -327,7 +327,7 @@ describe('TpMatchEventsRawRendererService', () => {
     const html = await service.render('344820');
 
     expect(html).toContain('…');
-    expect(html.length).toBeLessThan(2200);
+    expect(html.length).toBeLessThan(1600);
   });
 
   it('shows an entry without a numeric code rather than skipping it', async () => {
