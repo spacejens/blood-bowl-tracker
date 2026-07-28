@@ -193,6 +193,20 @@ camelCase, grouped into nested objects by concern:
   `Name` external id), with `competitionId` resolved to the imported competition's
   DB id. Runs after competitions, its only dependency. Per-team results/scores and
   per-player events (`match_teams`/`match_events`) remain out of scope.
+  `CompetitionTrophyPageParser` reads a competition's 1st/2nd/3rd-place team
+  codes off the "Team trophy" table on its `sr` results page, if present;
+  `BblCompetitionTrophyReaderService` performs the single, memoized walk over
+  `pages('sr')` and returns the parsed placements per competition. Finally,
+  `BblMatchOutcomesImportService` runs last of every match-related step (after
+  match events, since it counts scores from the `touchdown` events they
+  import): per competition, it sends `matches.resolveOutcomes` a configured
+  `matches.resultOverrides` entry as an override (translating its BBL team
+  code to a `team_era_id` via the team-participation import's
+  `teamEraIdsByCompetitionBblId` map) and, for the competition's final and
+  bronze matches, its trophy-table 1st/3rd-place team as a tie-break — the
+  only matches a placement identifies the winner of. Every match the server
+  cannot settle is reported as an import error naming its BBL id and pointing
+  at `matches.resultOverrides`.
 - **CompetitionsModule** — data-type extractor for competitions.
   `CompetitionListPageParser` reads every competition's numeric BBL id and name
   off the master dropdown embedded on any `se`/`sr` page (one page suffices).

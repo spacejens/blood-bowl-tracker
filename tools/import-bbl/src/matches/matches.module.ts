@@ -6,6 +6,7 @@ import { SourceModule } from '../source/source.module';
 import { BblCompetitionTrophyReaderService } from './bbl-competition-trophy-reader.service';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
+import { BblMatchOutcomesImportService } from './bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import { CellAnnotationService } from './cell-annotation.service';
 import { CompetitionTrophyPageParser } from './competition-trophy-page-parser';
@@ -35,6 +36,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchResultConfigService,
     CompetitionTrophyPageParser,
     BblCompetitionTrophyReaderService,
+    BblMatchOutcomesImportService,
   ],
   exports: [
     MatchListPageParser,
@@ -51,6 +53,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchResultConfigService,
     CompetitionTrophyPageParser,
     BblCompetitionTrophyReaderService,
+    BblMatchOutcomesImportService,
   ],
 })
 export class MatchesModule {}

@@ -9,6 +9,7 @@ import { BblCompetitionsImportService } from './competitions/bbl-competitions-im
 import { BblErasImportService } from './eras/bbl-eras-import.service';
 import { BblLeaguesImportService } from './leagues/bbl-leagues-import.service';
 import { BblMatchEventsImportService } from './match-events/bbl-match-events-import.service';
+import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
 import { BblPositionRaceErasImportService } from './positions/bbl-position-race-eras-import.service';
@@ -89,6 +90,19 @@ async function run(): Promise<ImportResult> {
         playerIdsByPid: playerOutcome.playerIdsByPid,
       });
 
+    // Match outcomes run last: scores are counted from the touchdown events
+    // imported just above, and a tied knock-out match's winner is traced
+    // through sibling matches that must already exist.
+    const matchOutcomesOutcome = await app
+      .get(BblMatchOutcomesImportService)
+      .importMatchOutcomes({
+        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        matchIdsByBblId: matchOutcome.matchIdsByBblId,
+        categoriesByBblId: matchOutcome.categoriesByBblId,
+        teamEraIdsByCompetitionBblId:
+          teamParticipationOutcome.teamEraIdsByCompetitionBblId,
+      });
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
@@ -103,6 +117,7 @@ async function run(): Promise<ImportResult> {
       playerOutcome.result,
       positionRaceErasOutcome.result,
       matchEventsOutcome.result,
+      matchOutcomesOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
