@@ -248,13 +248,18 @@ describe('MatchesService', () => {
       expect(db.insert).not.toHaveBeenCalled();
     });
 
-    it('rejects season_final on a cup competition', async () => {
+    it.each([
+      ['season_final'],
+      ['season_semi_final'],
+      ['season_bronze'],
+      ['season_qualifier'],
+    ] as const)('rejects %s on a cup competition', async (category) => {
       await build([{ type: 'cup' }]);
 
       await expect(
         service.upsert({
           competitionId: 3,
-          category: 'season_final',
+          category,
           externalIds: [{ externalSystemId: 1, externalId: '1830' }],
           teamEraIds: [],
         }),
