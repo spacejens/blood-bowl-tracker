@@ -21,11 +21,14 @@ camelCase, grouped into nested objects by concern:
   records are registered under. Defaults to `BBL` if unset or empty, so most
   deployments can leave it out.
 - `connection` — runtime settings for reaching the api-server to import into.
-  The group itself is required (even though its only current field is
-  optional), so a future mandatory field under it doesn't need a breaking
-  change to introduce.
+  The group itself is required.
   - `apiBaseUrl` — base URL of the running api-server to import into. Defaults
     to `http://localhost:3000` (a local docker-compose deployment) if unset.
+  - `apiToken` — **required.** The bearer token this tool authenticates with;
+    the api-server rejects unauthenticated requests with `401`. Must match the
+    `API_TOKEN_IMPORT_BBL` value in `apps/discord-bot/.env` (see
+    [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
+    `import-bbl-config.json5` is git-ignored, so it is never committed.
 - `leagues` — an array of the leagues the BBL data covers. Each entry has a
   `leagueName` and an `eras` array. The BBL data mirror covers a single league
   whose name is not present in the data, so league names are supplied here. Each

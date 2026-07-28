@@ -51,6 +51,12 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    fi
    ```
    Never overwrite a `.env` already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. If the main checkout doesn't have the file either, step 3's `docker compose up` fails with its own clear "env file not found" error — same as running it directly, so no special handling is needed for that case.
+
+   Once a `.env` is in place (synced or pre-existing), confirm it sets `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, and `API_TOKEN_IMPORT_MANUAL` to non-empty values that are not still the `.env.example` placeholders (`your-import-bbl-token-here`, etc.):
+   ```bash
+   grep -E '^API_TOKEN_IMPORT_(BBL|TP|MANUAL)=' apps/discord-bot/.env
+   ```
+   A `.env` missing one of these, or still carrying its placeholder value, does not fail at startup — the container comes up healthy and every `/rpc` call from the matching importer tool is rejected with `401` at request time instead. If any is missing or still a placeholder, tell the developer before proceeding — they need to set a value there and the matching `connection.apiToken` in that tool's config (see the importer sections below).
 2. `docker-compose.yml` fixes both container names (`postgres`, `discord-bot`) rather than letting Compose namespace them per project — a stopped container left over from a previous run (in this checkout or any other clone/worktree of this repo) will collide on the name and make step 3 fail with "Conflict. The container name ... is already in use". Check for and clear that first:
    ```bash
    docker ps -a --filter "name=^postgres$" --filter "name=^discord-bot$" --format '{{.Names}}\t{{.Status}}'
@@ -102,12 +108,13 @@ Run this section only if "Run the manual import (before other importers)" was se
    ```bash
    cat tools/import-manual/import-manual-config.json5 2>/dev/null
    ```
-   If the file doesn't exist, copy the template and confirm its `apiBaseUrl` is not the example placeholder before running:
+   If the file doesn't exist, copy the template and confirm its `apiBaseUrl` and `apiToken` are not the example placeholders before running (an unchanged `apiToken` fails with a `401` from the api-server, not a config error, since the placeholder is a syntactically valid string):
    ```bash
    if [ ! -f tools/import-manual/import-manual-config.json5 ]; then
      cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.json5
    fi
    ```
+   The `apiToken` value must also match `API_TOKEN_IMPORT_MANUAL` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — a valid-looking but mismatched token also fails with `401`.
 3. Build and run the import against the "before" directory — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
@@ -144,6 +151,8 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    fi
    ```
    followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
+
+   Also confirm `connection.apiToken` is not still the `import-bbl-config.example.json5` placeholder (`your-import-bbl-token-here`) and matches `API_TOKEN_IMPORT_BBL` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
 3. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run build
@@ -180,6 +189,8 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    fi
    ```
    followed by setting the `eras` array in that file to the confirmed `{ name, dataSubdir }` entries.
+
+   Also confirm `connection.apiToken` is not still the `import-tp-config.example.json5` placeholder (`your-import-tp-token-here`) and matches `API_TOKEN_IMPORT_TP` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
 3. Build and run the import script — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-tp run build

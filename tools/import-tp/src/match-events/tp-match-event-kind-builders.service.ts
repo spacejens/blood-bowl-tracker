@@ -567,14 +567,14 @@ export class TpMatchEventKindBuildersService {
         const home: UpsertMatchEvent = {
           matchId,
           actionType: 'fan_factor',
-          fanFactor: event.newFanFactorLocal,
+          fanFactor: event.fanFactorLocal,
           externalIds: this.externalId(tpSystemId, event.tpEventId, 'home'),
         };
         this.setIfDefined(home, 'actingTeamEraId', homeTeamEraId);
         const away: UpsertMatchEvent = {
           matchId,
           actionType: 'fan_factor',
-          fanFactor: event.newFanFactorVisitor,
+          fanFactor: event.fanFactorVisitor,
           externalIds: this.externalId(tpSystemId, event.tpEventId, 'away'),
         };
         this.setIfDefined(away, 'actingTeamEraId', awayTeamEraId);

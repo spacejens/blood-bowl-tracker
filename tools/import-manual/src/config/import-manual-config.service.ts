@@ -38,18 +38,42 @@ export class ImportManualConfigService {
    * `apiBaseUrl` itself is unset, but the `connection` group must be present.
    */
   getApiBaseUrl(): string {
+    const url = this.getConnection().apiBaseUrl;
+    return typeof url === 'string' && url !== ''
+      ? url
+      : 'http://localhost:3000';
+  }
+
+  /**
+   * Bearer token this tool authenticates to the api-server with, from
+   * `connection.apiToken`. Required — the api-server rejects unauthenticated
+   * requests with 401, so there is no useful default.
+   */
+  getApiToken(): string {
+    const connection = this.getConnection();
+    const token = connection.apiToken;
+    if (typeof token !== 'string' || token === '') {
+      throw new Error(
+        'connection.apiToken is not set in import-manual-config.json5. Set ' +
+          'it to the bearer token this tool authenticates with; it must ' +
+          'match the API_TOKEN_IMPORT_MANUAL value in apps/discord-bot/.env.',
+      );
+    }
+    return token;
+  }
+
+  /** The required `connection` group, or a friendly error when it's absent. */
+  private getConnection(): Record<string, unknown> {
     const connection = this.get<Record<string, unknown>>('connection');
     if (typeof connection !== 'object' || connection === null) {
       throw new Error(
         'connection is not set in import-manual-config.json5. Set it to an ' +
-          "object, e.g. { apiBaseUrl: 'http://localhost:3000' } (apiBaseUrl " +
-          'itself defaults to http://localhost:3000 if omitted).',
+          "object, e.g. { apiBaseUrl: 'http://localhost:3000', apiToken: " +
+          "'your-token' } (apiBaseUrl itself defaults to " +
+          'http://localhost:3000 if omitted).',
       );
     }
-    const url = connection.apiBaseUrl;
-    return typeof url === 'string' && url !== ''
-      ? url
-      : 'http://localhost:3000';
+    return connection;
   }
 
   /**

@@ -28,7 +28,10 @@ export class AppModule {
         ConfigModule.forRoot({ isGlobal: true }),
         ImportTpConfigModule,
         ApiClientModule.forRootAsync({
-          useFactory: (config: ImportTpConfigService) => config.getApiBaseUrl(),
+          useFactory: (config: ImportTpConfigService) => ({
+            baseUrl: config.getApiBaseUrl(),
+            apiToken: config.getApiToken(),
+          }),
           inject: [ImportTpConfigService],
         }),
         EraDataConfigModule,

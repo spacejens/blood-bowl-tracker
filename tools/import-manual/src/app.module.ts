@@ -15,8 +15,10 @@ export class AppModule {
         ConfigModule.forRoot({ isGlobal: true }),
         ImportManualConfigModule,
         ApiClientModule.forRootAsync({
-          useFactory: (config: ImportManualConfigService) =>
-            config.getApiBaseUrl(),
+          useFactory: (config: ImportManualConfigService) => ({
+            baseUrl: config.getApiBaseUrl(),
+            apiToken: config.getApiToken(),
+          }),
           inject: [ImportManualConfigService],
         }),
         ManualImportModule,

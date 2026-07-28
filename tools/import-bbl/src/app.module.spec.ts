@@ -30,7 +30,7 @@ describe('AppModule', () => {
     const configPath = join(dir, 'import-bbl-config.json5');
     writeFileSync(
       configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000' } }",
+      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' } }",
       'utf8',
     );
 

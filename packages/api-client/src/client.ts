@@ -5,8 +5,15 @@ import type { ContractRouterClient } from '@orpc/contract';
 
 type Client = ContractRouterClient<typeof contract>;
 
-export function createApiClient(baseUrl: string): Client {
-  const link = new RPCLink({ url: `${baseUrl}/rpc` });
+export function createApiClient(baseUrl: string, apiToken: string): Client {
+  const link = new RPCLink({
+    url: `${baseUrl}/rpc`,
+    // The api-server rejects any /rpc request without a matching bearer token
+    // (see docs/api/rpc-conventions.md). RPCLink's `headers` option accepts
+    // either a static value or a function returning one; a function is used
+    // here to build the Authorization header from the captured `apiToken`.
+    headers: () => ({ Authorization: `Bearer ${apiToken}` }),
+  });
   const client: Client = createORPCClient(link);
 
   // The oRPC client is a Proxy that turns ANY property access — including

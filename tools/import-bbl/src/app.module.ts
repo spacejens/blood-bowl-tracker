@@ -26,8 +26,10 @@ export class AppModule {
         ConfigModule.forRoot({ isGlobal: true }),
         ImportBblConfigModule,
         ApiClientModule.forRootAsync({
-          useFactory: (config: ImportBblConfigService) =>
-            config.getApiBaseUrl(),
+          useFactory: (config: ImportBblConfigService) => ({
+            baseUrl: config.getApiBaseUrl(),
+            apiToken: config.getApiToken(),
+          }),
           inject: [ImportBblConfigService],
         }),
         LeaguesModule,
