@@ -1,4 +1,7 @@
-import type { UpsertTeam } from '@blood-bowl-tracker/api-contract';
+import type {
+  MatchCategory,
+  UpsertTeam,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, Team } from '@blood-bowl-tracker/db';
 import {
   coaches,
@@ -429,7 +432,15 @@ export class TeamsService {
   listBiggestExpensiveMistakes(
     scope: FactScope,
     limit: number,
-  ): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+  ): Promise<
+    {
+      teamId: number;
+      name: string;
+      count: number;
+      date: string;
+      category: MatchCategory;
+    }[]
+  > {
     return queryListBiggestExpensiveMistakes({
       db: this.db,
       leagueId: scope.leagueId,

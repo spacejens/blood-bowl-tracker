@@ -22,6 +22,7 @@ import { FactTreeUtilsService } from './fact-tree-utils.service';
 import { CoachToplistService } from './facts/coach-toplist.service';
 import { ErasListService } from './facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from './facts/expensive-mistakes-toplist.service';
+import { MatchCategoryLabelService } from './facts/match-category-label.service';
 import { PlayerToplistService } from './facts/player-toplist.service';
 import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
@@ -55,6 +56,7 @@ const GAME_DATA_MODULES = [
     RaceToplistService,
     TeamToplistService,
     PlayerToplistService,
+    MatchCategoryLabelService,
     ExpensiveMistakesToplistService,
     ErasListService,
     StatsSummaryFactsService,

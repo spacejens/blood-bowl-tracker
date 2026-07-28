@@ -1,3 +1,4 @@
+import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import {
   coaches,
@@ -336,7 +337,15 @@ export async function sumExpensiveMistakesByTeam(
  */
 export async function listBiggestExpensiveMistakes(
   options: ExpensiveMistakesOptions,
-): Promise<{ teamId: number; name: string; count: number; date: string }[]> {
+): Promise<
+  {
+    teamId: number;
+    name: string;
+    count: number;
+    date: string;
+    category: MatchCategory;
+  }[]
+> {
   const { db, leagueId, eraId, competitionId, limit } = options;
   const selector = {
     role: 'consequence',
@@ -348,6 +357,7 @@ export async function listBiggestExpensiveMistakes(
       name: teams.name,
       count: sql<number>`${matchEvents.expensiveMistake}`,
       date: sql<string>`${matches.playedAt}::date`,
+      category: matches.category,
     })
     .from(matchEvents)
     .innerJoin(

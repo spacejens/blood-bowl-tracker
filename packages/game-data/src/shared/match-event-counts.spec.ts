@@ -1,6 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { describe, expect, it, vi } from 'vitest';
 
+import { mockDb } from './db-mock.test-helpers';
 import {
   countAllMatchEventsByPlayerForTeam,
   countMatchEventsByCoach,
@@ -380,6 +381,16 @@ describe('listBiggestExpensiveMistakes', () => {
     await expect(
       listBiggestExpensiveMistakes({ db, limit: 21 }),
     ).resolves.toEqual(rows);
+  });
+
+  it('selects the match category', async () => {
+    const { db } = mockDb([]);
+    await listBiggestExpensiveMistakes({ db, limit: 21 });
+    expect(
+      Object.keys(
+        firstCallArg((db as unknown as Record<string, unknown>).select),
+      ),
+    ).toContain('category');
   });
 
   it('filters by league when a leagueId is given', async () => {

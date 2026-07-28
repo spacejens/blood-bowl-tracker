@@ -334,8 +334,20 @@ describe('TeamsService', () => {
 
     it('listBiggestExpensiveMistakes returns the rows the query resolves to', async () => {
       const rows = [
-        { teamId: 1, name: '40 grinders', count: 90000, date: '2026-03-04' },
-        { teamId: 2, name: 'Gouged Eye', count: 60000, date: '2026-02-01' },
+        {
+          teamId: 1,
+          name: '40 grinders',
+          count: 90000,
+          date: '2026-03-04',
+          category: 'normal' as const,
+        },
+        {
+          teamId: 2,
+          name: 'Gouged Eye',
+          count: 60000,
+          date: '2026-02-01',
+          category: 'normal' as const,
+        },
       ];
       const { db } = await build(rows);
       await expect(
