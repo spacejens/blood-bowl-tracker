@@ -182,6 +182,10 @@ export const UpsertMatchEventSchema = z
     inducementsCost: z.number().int().nullable().optional(),
     inducementsFromTreasury: z.number().int().nullable().optional(),
     winnings: z.number().int().nullable().optional(),
+    /**
+     * The per-side fan factor for the match, not a delta from a prior
+     * value.
+     */
     fanFactor: z.number().int().nullable().optional(),
     journeymenCount: z.number().int().nullable().optional(),
     prayersToNuffle: z.number().int().nullable().optional(),
