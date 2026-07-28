@@ -23,10 +23,14 @@ settings — the directory to import is a command-line argument, not a config ke
 Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
-  The group itself is required (mirroring `import-tp-config.json5`), even though
-  its only current field is optional.
+  The group itself is required (mirroring `import-tp-config.json5`).
   - `apiBaseUrl` — base URL of the running api-server. Defaults to
     `http://localhost:3000` if unset.
+  - `apiToken` — **required.** The bearer token this tool authenticates with;
+    the api-server rejects unauthenticated requests with `401`. Must match the
+    `API_TOKEN_IMPORT_MANUAL` value in `apps/discord-bot/.env` (see
+    [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
+    `import-manual-config.json5` is git-ignored, so it is never committed.
 
 See `import-manual-config.example.json5` for a worked example.
 

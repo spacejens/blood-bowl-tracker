@@ -17,5 +17,10 @@
     // Base URL of the running api-server. Defaults to http://localhost:3000
     // if this field is omitted.
     apiBaseUrl: 'http://localhost:3000',
+
+    // Bearer token this tool authenticates with. Required. Must match the
+    // API_TOKEN_IMPORT_MANUAL value in apps/discord-bot/.env, or the
+    // api-server rejects every request with 401. Treat it like a password.
+    apiToken: 'your-import-manual-token-here',
   },
 }
