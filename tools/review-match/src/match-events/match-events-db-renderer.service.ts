@@ -9,7 +9,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq } from 'drizzle-orm';
+import { and, asc, eq, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
@@ -45,7 +45,6 @@ const HEADERS: TableCell[] = [
 /** One `game_data.match_events` row, flattened for display. */
 interface EventRow {
   id: number;
-  externalId: string | null;
   actionType: string | null;
   consequenceType: string | null;
   eventType: string | null;
@@ -87,34 +86,40 @@ export class MatchEventsDbRendererService {
   ) {}
 
   async render(match: SampledMatch): Promise<string> {
+    const externalSystemId = await this.externalSystems.getSystemId(
+      match.source,
+    );
     const rows = await this.load(match);
     if (rows.length === 0) {
       return this.html.note('No match events imported for this match.');
     }
+    const externalIdsByEventId = await this.loadExternalIds(
+      match,
+      externalSystemId,
+    );
     return this.html.table(
       HEADERS,
-      rows.map((row): TableCell[] => [
-        String(row.id),
-        row.externalId ?? NONE,
-        [row.actionType ?? NONE, row.consequenceType ?? NONE],
-        row.eventType ?? NONE,
-        row.actingPlayerName ?? NONE,
-        row.actingTeamName ?? NONE,
-        row.consequencePlayerName ?? NONE,
-        row.consequenceTeamName ?? NONE,
-        this.details(row),
-      ]),
+      rows.map((row): TableCell[] => {
+        const externalIds = externalIdsByEventId.get(row.id) ?? [];
+        return [
+          String(row.id),
+          externalIds.length > 0 ? externalIds : NONE,
+          [row.actionType ?? NONE, row.consequenceType ?? NONE],
+          row.eventType ?? NONE,
+          row.actingPlayerName ?? NONE,
+          row.actingTeamName ?? NONE,
+          row.consequencePlayerName ?? NONE,
+          row.consequenceTeamName ?? NONE,
+          this.details(row),
+        ];
+      }),
     );
   }
 
   private async load(match: SampledMatch): Promise<EventRow[]> {
-    const externalSystemId = await this.externalSystems.getSystemId(
-      match.source,
-    );
     return this.db
       .select({
         id: matchEvents.id,
-        externalId: matchEventExternalIds.externalId,
         actionType: matchEvents.actionType,
         consequenceType: matchEvents.consequenceType,
         eventType: matchEvents.eventType,
@@ -138,13 +143,6 @@ export class MatchEventsDbRendererService {
         expensiveMistake: matchEvents.expensiveMistake,
       })
       .from(matchEvents)
-      .leftJoin(
-        matchEventExternalIds,
-        and(
-          eq(matchEventExternalIds.matchEventId, matchEvents.id),
-          eq(matchEventExternalIds.externalSystemId, externalSystemId),
-        ),
-      )
       .leftJoin(actingPlayer, eq(actingPlayer.id, matchEvents.actingPlayerId))
       .leftJoin(
         consequencePlayer,
@@ -170,6 +168,39 @@ export class MatchEventsDbRendererService {
       )
       .where(eq(matchEvents.matchId, match.matchId))
       .orderBy(asc(matchEvents.id));
+  }
+
+  /**
+   * Every external id each of this match's events carries under the sampled
+   * source's external system, aggregated per event. A separate query rather
+   * than a join on the main one: an event can carry more than one id (a merged
+   * BBL event records one per side), and joining would duplicate the event row
+   * instead of showing both ids.
+   */
+  private async loadExternalIds(
+    match: SampledMatch,
+    externalSystemId: number,
+  ): Promise<Map<number, string[]>> {
+    const rows = await this.db
+      .select({
+        matchEventId: matchEventExternalIds.matchEventId,
+        externalIds: sql<
+          string[]
+        >`array_agg(${matchEventExternalIds.externalId} order by ${matchEventExternalIds.externalId})`,
+      })
+      .from(matchEventExternalIds)
+      .innerJoin(
+        matchEvents,
+        eq(matchEvents.id, matchEventExternalIds.matchEventId),
+      )
+      .where(
+        and(
+          eq(matchEvents.matchId, match.matchId),
+          eq(matchEventExternalIds.externalSystemId, externalSystemId),
+        ),
+      )
+      .groupBy(matchEventExternalIds.matchEventId);
+    return new Map(rows.map((row) => [row.matchEventId, row.externalIds]));
   }
 
   /** Every remaining non-null scalar, as `key=value`, in a stable order. */

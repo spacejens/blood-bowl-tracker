@@ -137,13 +137,21 @@ export class TpMatchEventKindBuildersService {
     return id;
   }
 
+  private externalIdEntry(
+    tpSystemId: number,
+    tpEventId: number,
+    suffix?: 'home' | 'away',
+  ): UpsertMatchEvent['externalIds'][number] {
+    const id = suffix ? `tp-${tpEventId}-${suffix}` : `tp-${tpEventId}`;
+    return { externalSystemId: tpSystemId, externalId: id };
+  }
+
   private externalId(
     tpSystemId: number,
     tpEventId: number,
     suffix?: 'home' | 'away',
   ): UpsertMatchEvent['externalIds'] {
-    const id = suffix ? `tp-${tpEventId}-${suffix}` : `tp-${tpEventId}`;
-    return [{ externalSystemId: tpSystemId, externalId: id }];
+    return [this.externalIdEntry(tpSystemId, tpEventId, suffix)];
   }
 
   /**
@@ -328,6 +336,13 @@ export class TpMatchEventKindBuildersService {
    *    to team-only credit with the same severity bucketing.
    * 4. Neither — self-inflicted or otherwise unattributable (a player falling
    *    on their own, or a random event); consequence-only, exactly as before.
+   *
+   * A paired casualty or foul is a genuinely separate TP event with its own
+   * `tpEventId` — unlike case 3's team-only inference, which names no
+   * specific event — so a merged row carries an external id from each side
+   * (action first, then consequence), the same convention `tools/import-bbl`
+   * uses for its own merged events, so a re-import can reconcile the row from
+   * either side even if a pairing decision changes.
    */
   buildInjuryEvent(
     options: BuildEventDataOptions & {
@@ -345,10 +360,29 @@ export class TpMatchEventKindBuildersService {
       casualtyPairing,
       foulPairing,
     } = options;
+
+    // A paired casualty (code 6) and a paired foul (code 31) credit the acting
+    // side identically — same team, same player, same code path — and differ
+    // only in the action type emitted. `correlateFouls` only ever considers
+    // injuries `correlateCasualties` left unattributed, so both can never be
+    // set at once; the casualty is preferred if that ever changes.
+    const pairedCasualty = casualtyPairing.casualtyByInjuryEventId.get(
+      event.tpEventId,
+    );
+    const pairedFoul = foulPairing.foulByInjuryEventId.get(event.tpEventId);
+    const pairedActor = pairedCasualty ?? pairedFoul;
+
+    const externalIds = pairedActor
+      ? [
+          this.externalIdEntry(tpSystemId, pairedActor.tpEventId),
+          this.externalIdEntry(tpSystemId, event.tpEventId),
+        ]
+      : this.externalId(tpSystemId, event.tpEventId);
+
     const data: UpsertMatchEvent = {
       matchId,
       consequenceType: INJURY_CONSEQUENCE_BY_TYPE[event.injuryType],
-      externalIds: this.externalId(tpSystemId, event.tpEventId),
+      externalIds,
     };
     this.setIfDefined(
       data,
@@ -370,16 +404,6 @@ export class TpMatchEventKindBuildersService {
       }),
     );
 
-    // A paired casualty (code 6) and a paired foul (code 31) credit the acting
-    // side identically — same team, same player, same code path — and differ
-    // only in the action type emitted. `correlateFouls` only ever considers
-    // injuries `correlateCasualties` left unattributed, so both can never be
-    // set at once; the casualty is preferred if that ever changes.
-    const pairedCasualty = casualtyPairing.casualtyByInjuryEventId.get(
-      event.tpEventId,
-    );
-    const pairedFoul = foulPairing.foulByInjuryEventId.get(event.tpEventId);
-    const pairedActor = pairedCasualty ?? pairedFoul;
     if (pairedActor) {
       data.actionType = pairedCasualty
         ? INJURY_ACTION_SEVERITY_BY_TYPE[event.injuryType]

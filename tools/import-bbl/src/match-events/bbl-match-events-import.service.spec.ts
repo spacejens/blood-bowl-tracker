@@ -307,6 +307,7 @@ describe('BblMatchEventsImportService', () => {
       consequencePlayerId: 8,
       externalIds: [
         { externalSystemId: BBL_SYSTEM_ID, externalId: '89-hme-death-0' },
+        { externalSystemId: BBL_SYSTEM_ID, externalId: '89-awy-death-0' },
       ],
     });
   });
@@ -896,10 +897,11 @@ describe('BblMatchEventsImportService', () => {
     expect(externalIds(captured)[1]).toBe('89-awy-cas-avoided-0');
   });
 
-  it('takes the action-side external id for a merged avoided casualty', async () => {
-    // A merged event carries both actionType and consequenceType; the
-    // external id must still be derived from the acting side, exactly like
-    // any other merged event, not the consequence side.
+  it('emits an external id from each side of a merged avoided casualty', async () => {
+    // A merged event carries both actionType and consequenceType, and each
+    // side has its own occurrence identity (team, category, index). Both are
+    // persisted, action side first, so a re-import whose correlation decision
+    // changes can still reconcile the row from either side.
     const { captured } = await runImport(
       makeEvents({}),
       { killer: 11 },
@@ -927,7 +929,59 @@ describe('BblMatchEventsImportService', () => {
       consequenceAvoidedBy: 'regeneration',
       consequenceAvoidedSeverity: 'death',
     });
-    expect(externalIds(captured)[0]).toBe('89-hme-death-0');
+    expect(captured[0].externalIds).toEqual([
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-hme-death-0' },
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-awy-cas-avoided-0' },
+    ]);
+  });
+
+  it('shares one occurrence counter per team and category across merged and non-merged sides', async () => {
+    // The merged event's two sides and the two standalone occurrences all
+    // draw from the same `${teamCode}-${category}` counters, in emission
+    // order, so indices neither collide nor skip.
+    const { captured } = await runImport(
+      makeEvents({}),
+      {},
+      {
+        correlatedEvents: [
+          {
+            actionType: 'casualty',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: null,
+            consequenceType: 'casualty',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: null,
+          },
+          {
+            actionType: 'casualty',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: null,
+          },
+          {
+            consequenceType: 'casualty',
+            consequenceTeamCode: 'awy',
+            consequenceSourceBblId: MATCH_BBL_ID,
+            consequencePid: null,
+          },
+        ],
+      },
+    );
+
+    expect(captured[0].externalIds).toEqual([
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-hme-cas-0' },
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-awy-cas-0' },
+    ]);
+    // Action-only: exactly one id, from the next index of the shared counter.
+    expect(captured[1].externalIds).toEqual([
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-hme-cas-1' },
+    ]);
+    // Consequence-only: exactly one id, likewise.
+    expect(captured[2].externalIds).toEqual([
+      { externalSystemId: BBL_SYSTEM_ID, externalId: '89-awy-cas-1' },
+    ]);
   });
 
   it('omits the unidentified-kind and avoided-casualty fields entirely when the emitted event carries no tags', async () => {
