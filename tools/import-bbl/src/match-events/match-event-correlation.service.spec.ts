@@ -914,6 +914,112 @@ describe('MatchEventCorrelationService', () => {
         },
       ]);
     });
+
+    it('merges two identical viaFoul actions with two consequences as fouls', () => {
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            {
+              actionType: 'badly_hurt',
+              side: 'home',
+              pid: 'fouler',
+              viaFoul: true,
+            },
+            {
+              actionType: 'badly_hurt',
+              side: 'home',
+              pid: 'fouler',
+              viaFoul: true,
+            },
+          ],
+          consequences: [
+            { consequenceType: 'badly_hurt', side: 'away', pid: 'v1' },
+            { consequenceType: 'badly_hurt', side: 'away', pid: 'v2' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'foul',
+          consequenceType: 'badly_hurt',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'fouler',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+        {
+          actionType: 'foul',
+          consequenceType: 'badly_hurt',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'fouler',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v2',
+        },
+      ]);
+    });
+
+    it('merges two identical actions with two prevented casualties as casualty_avoided', () => {
+      // The identical side here is the actions; the two prevented
+      // consequences share an avoidedBy but name different victims.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'death', side: 'home', pid: 'killer' },
+            { actionType: 'death', side: 'home', pid: 'killer' },
+          ],
+          consequences: [
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: 'v1',
+              avoidedBy: 'apothecary',
+            },
+            {
+              consequenceType: 'death',
+              side: 'away',
+              pid: 'v2',
+              avoidedBy: 'apothecary',
+            },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'death',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+        {
+          actionType: 'death',
+          consequenceType: 'casualty_avoided',
+          consequenceAvoidedBy: 'apothecary',
+          consequenceAvoidedSeverity: 'death',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'killer',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v2',
+        },
+      ]);
+    });
   });
 });
 
