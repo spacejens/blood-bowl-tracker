@@ -211,6 +211,35 @@ describe('TpMatchEventsRawRendererService', () => {
     expect(html).toContain('<td>—</td>');
   });
 
+  it('drops non-object star-player entries and ones with no string name', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 11,
+          matchEventType: 11,
+          instant: 'x',
+          extraData: { starPlayers: [{ name: 'A' }, 5, {}, null] },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>A</td>');
+  });
+
+  it('falls back to no summary when extraData itself is not an object', async () => {
+    const service = await makeService({
+      matchEvents: [
+        { id: 9, matchEventType: 10, instant: 'x', extraData: 'not an object' },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>—</td>');
+  });
+
   it('shows no summary for an event kind it has nothing to add to', async () => {
     const service = await makeService({
       matchEvents: [
@@ -252,12 +281,24 @@ describe('TpMatchEventsRawRendererService', () => {
 
   it('leaves an event with no other raw fields unwrapped, with nothing to expand', async () => {
     const service = await makeService({
-      matchEvents: [{ id: 7, matchEventType: 4, instant: 'x' }],
+      matchEvents: [{ id: 7, matchEventType: 4 }],
     });
 
     const html = await service.render('344820');
 
     expect(html).not.toContain('<details>');
+  });
+
+  it('folds instant into the "Other raw fields" JSON rather than dropping it', async () => {
+    const service = await makeService({
+      matchEvents: [
+        { id: 7, matchEventType: 4, instant: '2024-05-01T10:00:00Z' },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('&quot;instant&quot;:');
   });
 
   it('truncates very long field payloads', async () => {

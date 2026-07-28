@@ -12,7 +12,7 @@ const NONE = '—';
 /** Some events (inducements, line-ups) carry very large payloads. */
 const MAX_FIELDS_LENGTH = 400;
 /** Shown in their own columns, so left out of the "other fields" JSON. */
-const OWN_COLUMN_FIELDS = ['matchEventType', 'id', 'instant'];
+const OWN_COLUMN_FIELDS = ['matchEventType', 'id'];
 /** The two codes whose gist lives in their own `extraData`, not a player. */
 const WEATHER_CODE = 10;
 const INDUCEMENTS_CODE = 11;
@@ -30,10 +30,11 @@ const CLASSIC_WEATHER_TABLE = 0;
  * names directly and resolves them through this tool's own independent
  * lookups, never through the parser's typed event union.
  *
- * `instant` is not shown: it carries little review value, and the column
- * budget is better spent on the summary. It is still visible in the raw JSON
- * only insofar as any dropped field is — it is not, so a reviewer who needs
- * timing information reads the source file itself.
+ * `instant` does not get its own column: it carries little review value, and
+ * the column budget is better spent on the summary. It still appears in the
+ * collapsed "Other raw fields" JSON alongside every other field not shown in
+ * its own column, so a reviewer who needs timing information does not have to
+ * read the source file itself to find it.
  */
 @Injectable()
 export class TpMatchEventsRawRendererService {
