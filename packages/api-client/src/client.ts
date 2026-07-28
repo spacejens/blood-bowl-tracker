@@ -9,8 +9,9 @@ export function createApiClient(baseUrl: string, apiToken: string): Client {
   const link = new RPCLink({
     url: `${baseUrl}/rpc`,
     // The api-server rejects any /rpc request without a matching bearer token
-    // (see docs/api/rpc-conventions.md). `headers` is a function so the token
-    // is read per request rather than frozen into a captured object.
+    // (see docs/api/rpc-conventions.md). RPCLink's `headers` option accepts
+    // either a static value or a function returning one; a function is used
+    // here to build the Authorization header from the captured `apiToken`.
     headers: () => ({ Authorization: `Bearer ${apiToken}` }),
   });
   const client: Client = createORPCClient(link);
