@@ -26,6 +26,7 @@ export {
 export { MatchesModule } from './matches/matches.module';
 export type { MatchWithTeamEras } from './matches/matches.service';
 export {
+  MatchCategoryMismatchError,
   MatchesService,
   MatchUpsertConflictError,
 } from './matches/matches.service';
