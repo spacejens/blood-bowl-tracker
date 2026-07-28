@@ -3,10 +3,12 @@ import { Module } from '@nestjs/common';
 
 import { EraConfigModule } from '../eras/era-config.module';
 import { SourceModule } from '../source/source.module';
+import { BblCompetitionTrophyReaderService } from './bbl-competition-trophy-reader.service';
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import { CellAnnotationService } from './cell-annotation.service';
+import { CompetitionTrophyPageParser } from './competition-trophy-page-parser';
 import { MatchCategoryClassifierService } from './match-category-classifier.service';
 import { MatchCategoryConfigService } from './match-category-config.service';
 import { MatchEventsPageParser } from './match-events-page-parser';
@@ -31,6 +33,8 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchMergeConfigService,
     MatchMergeService,
     MatchResultConfigService,
+    CompetitionTrophyPageParser,
+    BblCompetitionTrophyReaderService,
   ],
   exports: [
     MatchListPageParser,
@@ -45,6 +49,8 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchMergeConfigService,
     MatchMergeService,
     MatchResultConfigService,
+    CompetitionTrophyPageParser,
+    BblCompetitionTrophyReaderService,
   ],
 })
 export class MatchesModule {}
