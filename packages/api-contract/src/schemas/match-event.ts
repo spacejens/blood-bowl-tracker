@@ -183,8 +183,8 @@ export const UpsertMatchEventSchema = z
     inducementsFromTreasury: z.number().int().nullable().optional(),
     winnings: z.number().int().nullable().optional(),
     /**
-     * The per-side change to fan factor from a fan factor roll, not the
-     * resulting total.
+     * The per-side fan factor for the match (Dedicated Fans + a fresh d3
+     * roll), not a delta from a prior value.
      */
     fanFactor: z.number().int().nullable().optional(),
     journeymenCount: z.number().int().nullable().optional(),

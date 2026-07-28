@@ -194,8 +194,8 @@ const matchEventsTable = historyTrackedTable({
     inducementsFromTreasury: integer('inducements_from_treasury'),
     winnings: integer('winnings'),
     /**
-     * The per-side change to fan factor from a fan factor roll, not the
-     * resulting total.
+     * The per-side fan factor for the match (Dedicated Fans + a fresh d3
+     * roll), not a delta from a prior value.
      */
     fanFactor: integer('fan_factor'),
     journeymenCount: integer('journeymen_count'),

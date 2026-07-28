@@ -99,20 +99,22 @@ const winningsRaw = z.object({
   }),
 });
 /**
- * TP keeps `extraData.newFanFactorLocal`/`newFanFactorVisitor` pinned at 0 in
- * real payloads; the actual per-side change is in the sibling
- * `fanFactorModifier*` fields, matching the `dedicatedFansModifier*`
- * convention used by the dedicated fans roll (code 26). As with that event,
- * a payload missing the modifier fields fails decoding rather than silently
- * falling back to a value — the same strict contract every other event here
- * already has.
+ * TP keeps `extraData.newFanFactorLocal`/`newFanFactorVisitor` (and the
+ * sibling `fanFactorModifier*` fields) pinned at 0 in real payloads for this
+ * event — TP never precomputes fan factor for this league. Per the BB2020
+ * rules, fan factor for a match is Dedicated Fans + a fresh 1d3 roll, and TP
+ * does send both ingredients: `extraData.roll1*` (the d3 roll) and
+ * `extraData.dedicatedFans*` (the team's current Dedicated Fans count) — see
+ * the decode mapping below, which computes the sum ourselves.
  */
 const fanFactorRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
-    fanFactorModifierLocal: z.number(),
-    fanFactorModifierVisitor: z.number(),
+    roll1Local: z.number(),
+    roll1Visitor: z.number(),
+    dedicatedFansLocal: z.number(),
+    dedicatedFansVisitor: z.number(),
   }),
 });
 const journeymanSigningRaw = z.object({
@@ -297,8 +299,10 @@ export class MatchEventDecodersService {
           type: 'fan_factor_roll',
           tpEventId: v.id,
           instant: v.instant,
-          fanFactorModifierLocal: v.extraData.fanFactorModifierLocal,
-          fanFactorModifierVisitor: v.extraData.fanFactorModifierVisitor,
+          fanFactorLocal:
+            v.extraData.dedicatedFansLocal + v.extraData.roll1Local,
+          fanFactorVisitor:
+            v.extraData.dedicatedFansVisitor + v.extraData.roll1Visitor,
         })),
       ],
       [

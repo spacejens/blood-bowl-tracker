@@ -340,45 +340,49 @@ describe('MatchEventDecodersService', () => {
     });
   });
 
-  it('decodes a fan factor roll (code 13) from the modifier fields', () => {
+  it('decodes a fan factor roll (code 13) as dedicated fans plus the d3 roll', () => {
     expect(
       decode(13, {
         id: 31,
         instant: '2026-01-17T09:02:20Z',
         extraData: {
           newFanFactorLocal: 0,
-          fanFactorModifierLocal: 1,
+          roll1Local: 3,
+          dedicatedFansLocal: 4,
           newFanFactorVisitor: 0,
-          fanFactorModifierVisitor: -1,
+          roll1Visitor: 1,
+          dedicatedFansVisitor: 1,
         },
       }),
     ).toEqual({
       type: 'fan_factor_roll',
       tpEventId: 31,
       instant: '2026-01-17T09:02:20Z',
-      fanFactorModifierLocal: 1,
-      fanFactorModifierVisitor: -1,
+      fanFactorLocal: 7,
+      fanFactorVisitor: 2,
     });
   });
 
-  it('decodes a fan factor roll (code 13) with zero modifiers', () => {
+  it('decodes a fan factor roll (code 13) with zero dedicated fans and a zero roll', () => {
     expect(
       decode(13, {
         id: 31,
         instant: '2026-01-17T09:02:20Z',
         extraData: {
           newFanFactorLocal: 0,
-          fanFactorModifierLocal: 0,
+          roll1Local: 0,
+          dedicatedFansLocal: 0,
           newFanFactorVisitor: 0,
-          fanFactorModifierVisitor: 0,
+          roll1Visitor: 0,
+          dedicatedFansVisitor: 0,
         },
       }),
     ).toEqual({
       type: 'fan_factor_roll',
       tpEventId: 31,
       instant: '2026-01-17T09:02:20Z',
-      fanFactorModifierLocal: 0,
-      fanFactorModifierVisitor: 0,
+      fanFactorLocal: 0,
+      fanFactorVisitor: 0,
     });
   });
 

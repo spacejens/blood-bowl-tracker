@@ -148,11 +148,13 @@ export type TpMatchEvent =
   | (TpMatchEventBase & {
       type: 'fan_factor_roll';
       /**
-       * Per-side change to fan factor. TP's `newFanFactor*` fields are always
-       * 0 in real payloads, so only the modifier is carried here.
+       * Fan factor for the match: Dedicated Fans + a fresh 1d3 roll, per the
+       * BB2020 rules. TP's own precomputed `newFanFactor*` fields are always
+       * 0 in real payloads, so this is computed from the roll and Dedicated
+       * Fans TP does send.
        */
-      fanFactorModifierLocal: number;
-      fanFactorModifierVisitor: number;
+      fanFactorLocal: number;
+      fanFactorVisitor: number;
     })
   | (TpMatchEventBase & {
       type: 'journeyman_signing';
