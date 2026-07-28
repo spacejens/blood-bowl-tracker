@@ -19,6 +19,7 @@ import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE,
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
@@ -185,6 +186,12 @@ export class InsightsCommandService implements OnModuleInit {
         return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE;
       }
     }
+    if (resolved.matchCategory) {
+      leaves = leaves.filter((leaf) => leaf.supportsMatchCategory);
+      if (leaves.length === 0) {
+        return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE;
+      }
+    }
 
     return this.resolveLeaf(leaves, resolved);
   }
@@ -201,6 +208,9 @@ export class InsightsCommandService implements OnModuleInit {
     }
     if (resolved.competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
+    }
+    if (resolved.matchCategory) {
+      leaves = leaves.filter((leaf) => leaf.supportsMatchCategory);
     }
     return this.resolveLeaf(leaves, resolved);
   }
@@ -253,16 +263,19 @@ export class InsightsCommandService implements OnModuleInit {
       leagueId: resolved.league?.id,
       eraId: resolved.era?.id,
       competitionId: resolved.competition?.id,
+      category: resolved.matchCategory?.value,
     };
     const reply = await picked.resolve(scope);
     return picked.supportsLeague ||
       picked.supportsEra ||
-      picked.supportsCompetition
+      picked.supportsCompetition ||
+      picked.supportsMatchCategory
       ? this.applyTitleSuffix(
           reply,
           resolved.league?.name ??
             resolved.era?.name ??
             resolved.competition?.name ??
+            resolved.matchCategory?.label ??
             'All time',
         )
       : reply;
