@@ -14,6 +14,7 @@ import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
 import { MatchEventsImportService } from './match-events-import.service';
+import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
 import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
@@ -29,6 +30,7 @@ const providers = [
   CompetitionsImportService,
   LeaguesImportService,
   MatchEventsImportService,
+  MatchOutcomesImportService,
   MatchesImportService,
   NameExternalIdService,
   PlayersImportService,
