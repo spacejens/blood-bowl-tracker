@@ -33,7 +33,7 @@ describe('AppModule', () => {
     const configPath = join(dir, 'import-tp-config.json5');
     writeFileSync(
       configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
+      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
       'utf8',
     );
 
@@ -51,7 +51,7 @@ describe('AppModule', () => {
     const configPath = join(dir, 'import-tp-config.json5');
     writeFileSync(
       configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
+      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
       'utf8',
     );
 
@@ -83,7 +83,7 @@ describe('AppModule', () => {
     const configPath = join(dir, 'import-tp-config.json5');
     writeFileSync(
       configPath,
-      "{ connection: { apiBaseUrl: 'http://localhost:3000' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
+      "{ connection: { apiBaseUrl: 'http://localhost:3000', apiToken: 'a-token' }, dataDir: 'data', league: { name: 'tLoEGBBL', eras: [{ identity: { name: 'Fourth era', rulesSets: ['BB2020'] }, dates: { startDate: '2020-11-28' }, dataSubdir: 'fourth-era' }] } }",
       'utf8',
     );
 

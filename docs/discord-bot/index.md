@@ -49,6 +49,13 @@ Configuration is supplied through an environment file in the app directory.
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
    - `DISCORD_CHANNEL_ID` — the channel id from step 3.
+   - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
+     — the bearer tokens the API accepts on `/rpc`, one per importer tool
+     (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
+     hard-to-guess string works for local development; each must match the
+     `connection.apiToken` in that tool's `import-*-config.json5`. A request
+     with no token, or one matching none of these, is rejected with `401`.
+     Leaving a variable empty disables that caller.
 
 `apps/discord-bot/.env` is git-ignored, so your secrets are never committed.
 Docker Compose loads this file via the `env_file` entry for the `discord-bot`

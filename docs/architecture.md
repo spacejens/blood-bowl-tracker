@@ -34,7 +34,9 @@ packages/
   api-server/         — Thin NestJS transport layer: mounts a single oRPC
                         RPCHandler at /rpc, dispatching into packages/game-data;
                         hosted in-process by apps/discord-bot (there is no
-                        separate deployed api-server process)
+                        separate deployed api-server process); /rpc requires a
+                        bearer token per importer tool, see
+                        docs/api/rpc-conventions.md
   api-client/         — NestJS module wrapping an oRPC RPCLink client for
                         calling a deployed api-server's /rpc endpoint; owns
                         its own @nestjs/config-backed base URL configuration

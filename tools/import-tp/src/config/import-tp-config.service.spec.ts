@@ -85,4 +85,42 @@ describe('ImportTpConfigService', () => {
     const path = writeConfig('{ this is : not valid');
     await expect(makeService(path)).rejects.toThrow(path);
   });
+
+  it('returns the configured API token', async () => {
+    const path = writeConfig(`{ connection: { apiToken: 'tp-secret' } }`);
+    const service = await makeService(path);
+    expect(service.getApiToken()).toBe('tp-secret');
+  });
+
+  it('throws from getApiToken when connection is not set', async () => {
+    const path = writeConfig(`{ dataDir: 'data' }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection is not set in import-tp-config.json5',
+    );
+  });
+
+  it('throws when apiToken is missing', async () => {
+    const path = writeConfig(`{ connection: { apiBaseUrl: 'http://x:3000' } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-tp-config.json5',
+    );
+  });
+
+  it('throws when apiToken is an empty string', async () => {
+    const path = writeConfig(`{ connection: { apiToken: '' } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-tp-config.json5',
+    );
+  });
+
+  it('throws when apiToken is not a string', async () => {
+    const path = writeConfig(`{ connection: { apiToken: 42 } }`);
+    const service = await makeService(path);
+    expect(() => service.getApiToken()).toThrow(
+      'connection.apiToken is not set in import-tp-config.json5',
+    );
+  });
 });

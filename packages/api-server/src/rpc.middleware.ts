@@ -5,6 +5,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { isDefinedError } from '@orpc/server';
 import { RPCHandler } from '@orpc/server/node';
 
+import { ApiTokenAuthService } from './api-token-auth.service';
 import { RPC_ROUTER } from './rpc-router.token';
 import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
@@ -19,6 +20,7 @@ export class RpcMiddleware implements NestMiddleware {
   constructor(
     @Inject(RPC_ROUTER)
     router: ReturnType<RpcRouterFactoryService['build']>,
+    private readonly auth: ApiTokenAuthService,
   ) {
     this.handler = new RPCHandler(router, {
       interceptors: [
@@ -65,6 +67,18 @@ export class RpcMiddleware implements NestMiddleware {
       req.url;
     if (!url?.startsWith(RPC_PREFIX)) {
       next();
+      return;
+    }
+    // Authenticate before the oRPC handler sees the request: an unauthorized
+    // caller must not be able to reach any procedure. The caller is unknown by
+    // definition on failure, so only the method and path are logged.
+    if (!this.auth.authenticate(req.headers.authorization).authenticated) {
+      this.logger.warn(
+        `Rejected unauthenticated RPC request ${req.method ?? 'UNKNOWN'} ${url}`,
+      );
+      res.statusCode = 401;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ error: 'Unauthorized' }));
       return;
     }
     const { matched } = await this.handler.handle(req, res, {

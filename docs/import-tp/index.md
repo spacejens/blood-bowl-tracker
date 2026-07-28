@@ -13,10 +13,14 @@ tool directory (`tools/import-tp/`). JSON5 allows comments and trailing commas,
 so the era list can be documented inline. Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
-  The group itself is required (mirroring `import-bbl-config.json5`), even
-  though its only current field is optional.
+  The group itself is required.
   - `apiBaseUrl` — base URL of the running api-server. Defaults to
     `http://localhost:3000` if unset.
+  - `apiToken` — **required.** The bearer token this tool authenticates with;
+    the api-server rejects unauthenticated requests with `401`. Must match the
+    `API_TOKEN_IMPORT_TP` value in `apps/discord-bot/.env` (see
+    [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
+    `import-tp-config.json5` is git-ignored, so it is never committed.
 - `externalSystemName` — name of the external system TP records are
   registered under. Defaults to `"TP"` if unset or empty.
 - `dataDir` — path to the folder that directly contains one subdirectory per

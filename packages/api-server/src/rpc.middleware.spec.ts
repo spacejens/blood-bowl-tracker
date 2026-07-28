@@ -4,6 +4,8 @@ import { Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { isDefinedError, ORPCError } from '@orpc/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 const handleMock = vi.fn();
 
@@ -15,12 +17,14 @@ vi.mock('@orpc/server/node', () => ({
 
 import { RPCHandler } from '@orpc/server/node';
 
+import { ApiTokenAuthService } from './api-token-auth.service';
 import { RpcMiddleware } from './rpc.middleware';
 import { RPC_ROUTER } from './rpc-router.token';
 import type { RpcRouterFactoryService } from './rpc-router-factory.service';
 
 describe('RpcMiddleware', () => {
   let middleware: RpcMiddleware;
+  let auth: MockProxy<ApiTokenAuthService>;
   const next = vi.fn();
 
   type StandardHandleResult = { matched: boolean; response?: unknown };
@@ -49,9 +53,15 @@ describe('RpcMiddleware', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    auth = mock<ApiTokenAuthService>();
+    auth.authenticate.mockReturnValue({
+      authenticated: true,
+      callerName: 'import-bbl',
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         RpcMiddleware,
+        { provide: ApiTokenAuthService, useValue: auth },
         {
           provide: RPC_ROUTER,
           useValue: {} as ReturnType<RpcRouterFactoryService['build']>,
@@ -63,7 +73,11 @@ describe('RpcMiddleware', () => {
 
   it('delegates /rpc requests to the oRPC handler and does not call next() when matched', async () => {
     handleMock.mockResolvedValue({ matched: true });
-    const req = { url: '/rpc/coaches/upsert' } as IncomingMessage;
+    const req = {
+      method: 'POST',
+      url: '/rpc/coaches/upsert',
+      headers: { authorization: 'Bearer bbl-secret' },
+    } as unknown as IncomingMessage;
     const res = {} as ServerResponse;
 
     await middleware.use(req, res, next);
@@ -77,7 +91,11 @@ describe('RpcMiddleware', () => {
 
   it('calls next() when the oRPC handler reports no match', async () => {
     handleMock.mockResolvedValue({ matched: false });
-    const req = { url: '/rpc/unknown' } as IncomingMessage;
+    const req = {
+      method: 'POST',
+      url: '/rpc/unknown',
+      headers: { authorization: 'Bearer bbl-secret' },
+    } as unknown as IncomingMessage;
     const res = {} as ServerResponse;
 
     await middleware.use(req, res, next);
@@ -86,7 +104,11 @@ describe('RpcMiddleware', () => {
   });
 
   it('calls next() immediately without invoking the handler for non-/rpc requests', async () => {
-    const req = { url: '/' } as IncomingMessage;
+    const req = {
+      method: 'GET',
+      url: '/',
+      headers: { authorization: 'Bearer bbl-secret' },
+    } as unknown as IncomingMessage;
     const res = {} as ServerResponse;
 
     await middleware.use(req, res, next);
@@ -98,9 +120,11 @@ describe('RpcMiddleware', () => {
   it('falls back to req.originalUrl for the /rpc prefix check, since Express rewrites req.url to "/" for path-mounted wildcard middleware', async () => {
     handleMock.mockResolvedValue({ matched: true });
     const req = {
+      method: 'POST',
       url: '/',
       originalUrl: '/rpc/coaches/upsert',
-    } as IncomingMessage & { originalUrl: string };
+      headers: { authorization: 'Bearer bbl-secret' },
+    } as unknown as IncomingMessage & { originalUrl: string };
     const res = {} as ServerResponse;
 
     await middleware.use(req, res, next);
@@ -194,5 +218,66 @@ describe('RpcMiddleware', () => {
 
     expect(warnSpy).not.toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  it('passes the Authorization header to ApiTokenAuthService and invokes the handler when it authenticates', async () => {
+    handleMock.mockResolvedValue({ matched: true });
+    const req = {
+      method: 'POST',
+      url: '/rpc/coaches/upsert',
+      headers: { authorization: 'Bearer bbl-secret' },
+    } as unknown as IncomingMessage;
+    const res = {} as ServerResponse;
+
+    await middleware.use(req, res, next);
+
+    expect(auth.authenticate).toHaveBeenCalledWith('Bearer bbl-secret');
+    expect(handleMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('responds 401 and never invokes the oRPC handler when authentication fails', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    auth.authenticate.mockReturnValue({ authenticated: false });
+    const req = {
+      method: 'POST',
+      url: '/rpc/coaches/upsert',
+      headers: {},
+    } as unknown as IncomingMessage;
+    const res = {
+      setHeader: vi.fn(),
+      end: vi.fn(),
+    } as unknown as ServerResponse;
+
+    await middleware.use(req, res, next);
+
+    expect(handleMock).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/json',
+    );
+    expect(res.end).toHaveBeenCalledWith(
+      JSON.stringify({ error: 'Unauthorized' }),
+    );
+    const [message] = warnSpy.mock.calls[0] as [string];
+    expect(message).toContain('POST');
+    expect(message).toContain('/rpc/coaches/upsert');
+  });
+
+  it('does not authenticate non-/rpc requests', async () => {
+    const req = {
+      method: 'GET',
+      url: '/',
+      headers: {},
+    } as unknown as IncomingMessage;
+    const res = {} as ServerResponse;
+
+    await middleware.use(req, res, next);
+
+    expect(auth.authenticate).not.toHaveBeenCalled();
+    expect(next).toHaveBeenCalledTimes(1);
   });
 });
