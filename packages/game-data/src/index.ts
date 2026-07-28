@@ -23,6 +23,7 @@ export {
   MatchEventsService,
   MatchEventUpsertConflictError,
 } from './match-events/match-events.service';
+export { MatchOutcomesService } from './matches/match-outcomes.service';
 export { MatchesModule } from './matches/matches.module';
 export type { MatchWithTeamEras } from './matches/matches.service';
 export {
