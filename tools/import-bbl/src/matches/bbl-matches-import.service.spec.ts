@@ -465,5 +465,60 @@ describe('BblMatchesImportService', () => {
         1,
       );
     });
+
+    it('reports each imported match its resolved category', async () => {
+      const { categoriesByBblId } = await service.importMatches(
+        competitionsByBblId,
+        competitionIdsByBblId,
+      );
+      expect(categoriesByBblId.get('1830')).toBe('normal');
+    });
+  });
+
+  it("reports a merged pair's category under both source ids", async () => {
+    const primary: BblMatch = {
+      bblId: '1061',
+      date: new Date(Date.UTC(2016, 8, 25)),
+    };
+    const secondary: BblMatch = {
+      bblId: '1062',
+      date: new Date(Date.UTC(2016, 8, 24)),
+    };
+    const { service, mocks } = await makeService(
+      { '32': [primary, secondary] },
+      { '1061': detail('1061', 'Bierhallentodball') },
+    );
+    mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 500 });
+    mocks.matchMerge.resolve.mockResolvedValue({
+      primaryBblIdByBblId: new Map([
+        ['1061', '1061'],
+        ['1062', '1061'],
+      ]),
+      partnerBblId: (bblId) =>
+        bblId === '1061' ? '1062' : bblId === '1062' ? '1061' : undefined,
+      isPrimary: (bblId) => bblId === '1061',
+      isSecondary: (bblId) => bblId === '1062',
+      effectivePlayedAt: (bblId, rawDate) =>
+        bblId === '1061' || bblId === '1062' ? secondary.date : rawDate,
+    });
+    mocks.categoryConfig.getCategoryOverrides.mockReturnValue(
+      new Map([['1061', 'cup_final']]),
+    );
+
+    const { categoriesByBblId } = await service.importMatches(
+      new Map([
+        [
+          '32',
+          {
+            ...competition,
+            externalIds: [{ externalSystemId: 1, externalId: '32' }],
+          },
+        ],
+      ]),
+      new Map([['32', 99]]),
+    );
+
+    expect(categoriesByBblId.get('1061')).toBe('cup_final');
+    expect(categoriesByBblId.get('1062')).toBe('cup_final');
   });
 });

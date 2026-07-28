@@ -56,14 +56,23 @@ export class BblMatchesImportService {
    * partner, else the keyword classifier. A category that cannot be resolved
    * — a classifier refusal, or a competition with no type — records a
    * per-match error and skips that match, rather than aborting the run.
+   *
+   * The returned `categoriesByBblId` carries each imported match's resolved
+   * category (under both ids of a merged pair) so the outcome step can tell a
+   * final from a bronze match without reclassifying.
    */
   async importMatches(
     competitionsByBblId: Map<string, UpsertCompetition>,
     competitionIdsByBblId: Map<string, number>,
-  ): Promise<{ result: ImportResult; matchIdsByBblId: Map<string, number> }> {
+  ): Promise<{
+    result: ImportResult;
+    matchIdsByBblId: Map<string, number>;
+    categoriesByBblId: Map<string, MatchCategory>;
+  }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const matchIdsByBblId = new Map<string, number>();
+    const categoriesByBblId = new Map<string, MatchCategory>();
 
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
@@ -137,8 +146,10 @@ export class BblMatchesImportService {
         if (upserted) {
           imported += 1;
           matchIdsByBblId.set(match.bblId, upserted.id);
+          categoriesByBblId.set(match.bblId, category);
           if (partnerBblId !== undefined) {
             matchIdsByBblId.set(partnerBblId, upserted.id);
+            categoriesByBblId.set(partnerBblId, category);
           }
         }
       }
@@ -147,6 +158,7 @@ export class BblMatchesImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       matchIdsByBblId,
+      categoriesByBblId,
     };
   }
 
