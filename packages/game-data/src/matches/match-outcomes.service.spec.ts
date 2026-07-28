@@ -1,7 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { QueryChain } from '../shared/db-mock.test-helpers';
@@ -35,10 +35,6 @@ describe('MatchOutcomesService', () => {
     { id: 12, matchId: 1, teamEraId: 102, score: 0 },
   ];
   const touchdownRows = [{ matchTeamId: 11, touchdowns: 2 }];
-
-  beforeEach(() => {
-    // each test builds its own module via build(...)
-  });
 
   it('hands the resolver the counted scores', async () => {
     await build(matchRows, teamRows, touchdownRows);
