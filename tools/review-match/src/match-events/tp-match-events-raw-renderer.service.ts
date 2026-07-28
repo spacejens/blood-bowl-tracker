@@ -34,9 +34,10 @@ const CLASSIC_WEATHER_TABLE = 0;
  * raw JSON behind a collapsed disclosure.
  *
  * The summary names the resolved player (prefixed `Player: `, with the
- * injury outcome appended for a code-8 event), the decoded weather condition,
- * the induced star players and/or treasury spend on an inducements event, or
- * the per-side fan-factor change on a dedicated-fans event.
+ * injury outcome appended for a code-8 event and the turn number appended
+ * whenever the raw event carries one), the decoded weather condition, the
+ * induced star players and/or treasury spend on an inducements event, or the
+ * per-side fan-factor change on a dedicated-fans event.
  *
  * Deliberately does not use `packages/parse-tp` — its decoding is what the
  * reviewer is checking. The summary column therefore reads TP's *raw* field
@@ -117,9 +118,11 @@ export class TpMatchEventsRawRendererService {
 
   /**
    * `Player: <name>`, with the injury outcome appended for a code-8 (injury)
-   * event. `injuryType` is a top-level raw field on that event, not under
-   * `extraData` — unlike weather or inducements, injury shares its schema
-   * shape with every other `lineUpId`-carrying event.
+   * event and the turn number appended whenever the raw event carries one
+   * (foul, casualty-caused, and injury events all optionally do). Both are
+   * top-level raw fields, not under `extraData` — unlike weather or
+   * inducements, these event kinds share their schema shape with every
+   * other `lineUpId`-carrying event.
    */
   private playerSummary(
     fields: Record<string, unknown>,
@@ -127,11 +130,21 @@ export class TpMatchEventsRawRendererService {
     lineUpId: number,
   ): TableCell {
     const name = this.players.nameFor(names, lineUpId);
+    const details: string[] = [];
     const injuryType = fields.injuryType;
-    return fields.matchEventType === INJURY_CODE &&
+    if (
+      fields.matchEventType === INJURY_CODE &&
       typeof injuryType === 'string'
-      ? `Player: ${name} (${injuryType})`
-      : `Player: ${name}`;
+    ) {
+      details.push(injuryType);
+    }
+    const turnNumber = fields.turnNumber;
+    if (typeof turnNumber === 'number') {
+      details.push(`turn ${turnNumber}`);
+    }
+    return details.length === 0
+      ? `Player: ${name}`
+      : `Player: ${name} (${details.join(', ')})`;
   }
 
   /** The raw `matchEvents` array, or null when the file has no such array. */

@@ -124,6 +124,43 @@ describe('TpMatchEventsRawRendererService', () => {
     expect(html).toContain('<td>Player: player:5 (Dead)</td>');
   });
 
+  it('appends the turn number for an event that carries one', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 7,
+          matchEventType: 31,
+          instant: 'x',
+          lineUpId: 5,
+          turnNumber: 3,
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Player: player:5 (turn 3)</td>');
+  });
+
+  it('combines the injury outcome and turn number for an injury event', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 7,
+          matchEventType: 8,
+          instant: 'x',
+          lineUpId: 5,
+          injuryType: 'Dead',
+          turnNumber: 7,
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Player: player:5 (Dead, turn 7)</td>');
+  });
+
   it('does not append an injury outcome for a non-injury event', async () => {
     const service = await makeService({
       matchEvents: [

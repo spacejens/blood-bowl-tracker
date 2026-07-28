@@ -52,8 +52,11 @@ services.
      <name>`), resolved from the same raw match file's own
      `inscription{Local,Visitor}` line-ups (an id that resolves to nothing is
      shown as `Player: unknown id <N>` rather than blanked, so the gap is
-     visible), with the injury outcome appended for an injury event (e.g.
-     `Player: Grim Ironjaw (Dead)`); lists the star players an inducements
+     visible), with the injury outcome appended for an injury event and the
+     turn number appended whenever the raw event carries one (e.g. `Player:
+     Grim Ironjaw (Dead, turn 7)` for an injury on turn 7, or `Player: Grim
+     Ironjaw (turn 3)` for a foul with no injury outcome); lists the star
+     players an inducements
      event induced and/or the treasury portion of the spend (e.g. `Griff
      Oberwald; Treasury: 50000`); shows the per-side fan-factor change on a
      dedicated-fans event (e.g. `Dedicated fans: local +1, visitor -1`); or,
