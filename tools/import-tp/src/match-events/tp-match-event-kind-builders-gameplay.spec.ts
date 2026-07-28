@@ -286,6 +286,7 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
           actingTeamEraId: HOME_TEAM_ERA_ID,
           actingPlayerId: ACTOR_PLAYER_ID,
           externalIds: [
+            { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-30' },
             { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-31' },
           ],
         },
@@ -311,6 +312,11 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
       expect(data.actionType).toBe('death');
       expect(data.actingTeamEraId).toBe(HOME_TEAM_ERA_ID);
       expect(data.actingPlayerId).toBeUndefined();
+      // Team-only credit names no specific action event, so there is no
+      // second id to attach — unlike a paired casualty/foul, unchanged.
+      expect(data.externalIds).toEqual([
+        { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-32' },
+      ]);
     });
 
     it('emits a consequence-only event when unpaired and the turn roster is the victim itself', () => {
@@ -448,6 +454,7 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
           actingTeamEraId: HOME_TEAM_ERA_ID,
           actingPlayerId: ACTOR_PLAYER_ID,
           externalIds: [
+            { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-50' },
             { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-51' },
           ],
         },
