@@ -71,9 +71,10 @@ export class ExpensiveMistakesToplistService {
   }
 
   /**
-   * The parenthesised suffix: the date alone for a routine match, or the
-   * date plus the category for a knock-out stage. A normal match's line is
-   * byte-for-byte what it was before categories existed.
+   * The parenthesised suffix: the date alone for a `normal` match, or the
+   * date plus the category label for a knock-out stage (e.g. "Season
+   * Final"). Labelling the overwhelming majority of rows "Normal" would be
+   * noise rather than information, so only the notable stages get one.
    */
   private suffix(row: { date: string; category: MatchCategory }): string {
     return row.category === 'normal'
