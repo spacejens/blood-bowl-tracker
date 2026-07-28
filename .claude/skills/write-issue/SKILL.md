@@ -43,6 +43,8 @@ For each confirmed candidate, run a short one-question-at-a-time clarifying dial
 
 Explicitly avoid drilling into implementation details or asking for code — this repo's existing issues (e.g. issue #49) state the need and its purpose in plain text and leave the "how" to the developer implementing it later.
 
+Then run the cross-tool/app impact review for this candidate by following `develop-feature`'s step exactly (`.claude/skills/develop-feature/SKILL.md`, Phase 2 step 1) — don't duplicate that logic here, so the two skills can't drift out of sync. Read "the issue or provided text" there as this candidate, and ignore its `cd <worktree-path> &&` dispatch note: this skill creates no worktree, so the `Explore` agent runs against the current checkout. Any questions it produces join this candidate's one-at-a-time dialogue above and are asked before drafting; when it skips silently, so does this step.
+
 Before drafting, check `gh issue list --state open` for issues that look like likely duplicates or heavy overlap with the candidate. If found, flag it to the developer via `AskUserQuestion` with two genuine options: "Create anyway" (a new, sufficiently distinct issue) and "Skip this one" (the existing issue already covers it).
 
 ## Phase 3: Draft and create
