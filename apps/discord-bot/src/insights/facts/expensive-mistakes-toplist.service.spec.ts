@@ -233,7 +233,7 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     ).toBe('1. 40 grinders — 90,000 gp (2026-06-13, Season Final)');
   });
 
-  it("leaves a normal match's suffix exactly as it was", async () => {
+  it('leaves the category out of the suffix when it is normal', async () => {
     const teams = {
       listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
     } as unknown as TeamsService;
