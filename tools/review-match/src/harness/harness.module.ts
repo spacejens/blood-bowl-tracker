@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { MatchCategoryStratificationService } from '../match-events/match-category-stratification.service';
 import { MatchEventStratificationService } from '../match-events/match-event-stratification.service';
 import { MatchEventsModule } from '../match-events/match-events.module';
 import { MatchEventsReviewerService } from '../match-events/match-events-reviewer.service';
@@ -38,10 +39,12 @@ import { ReviewService } from './review.service';
       useFactory: (
         matchEvents: MatchEventStratificationService,
         merged: MergedMatchStratificationService,
-      ) => [matchEvents, merged],
+        category: MatchCategoryStratificationService,
+      ) => [matchEvents, merged, category],
       inject: [
         MatchEventStratificationService,
         MergedMatchStratificationService,
+        MatchCategoryStratificationService,
       ],
     },
   ],

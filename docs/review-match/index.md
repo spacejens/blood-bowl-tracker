@@ -27,8 +27,8 @@ services.
 
 ## What it does
 
-1. Samples matches per source (BBL and TP) across seven strata — a few matches
-   each, `matchesPerStratum` (default 3) per stratum:
+1. Samples matches per source (BBL and TP) across twelve strata — a few
+   matches each, `matchesPerStratum` (default 3) per stratum:
    1. contains a foul
    2. contains a casualty or death
    3. an action paired with a matched consequence
@@ -36,6 +36,15 @@ services.
    5. a journeyman, star or mercenary participant
    6. a consequence avoided by apothecary or regeneration (BBL only)
    7. a four-team match merged from two BBL source rows (BBL only)
+   8. a cup final match
+   9. a season semi-final match
+   10. a season final match
+   11. a season bronze match
+   12. a season qualifier match
+
+   Strata 8–12 filter directly on `matches.category`; `normal` (the
+   overwhelming majority of matches) gets no dedicated stratum of its own,
+   since it needs no deliberate inclusion the way a rare category does.
 2. Adds every match id listed in `overrides`, whatever the strata picked.
 3. Each match's heading always carries its `game_data.matches.category`
    (e.g. `Round 3 [Cup Final]`) — including `normal`, unlike the Discord bot's
