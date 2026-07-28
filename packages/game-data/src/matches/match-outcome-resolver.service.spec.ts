@@ -208,4 +208,16 @@ describe('MatchOutcomeResolverService', () => {
     });
     expect(service.resolve(input([m])).unresolvedMatchIds).toEqual([1]);
   });
+
+  it('leaves a normal match with fewer than two participants unresolved rather than a draw', () => {
+    const m = match({
+      matchId: 1,
+      category: 'normal',
+      teams: [{ matchTeamId: 11, teamEraId: 101, score: 0 }],
+    });
+    expect(service.resolve(input([m]))).toEqual({
+      resolved: [],
+      unresolvedMatchIds: [1],
+    });
+  });
 });

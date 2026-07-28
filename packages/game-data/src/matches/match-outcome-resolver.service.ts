@@ -93,11 +93,12 @@ export class MatchOutcomeResolverService {
     }
 
     if (match.teams.length < 2) {
-      // Nothing to compare. A `normal` match with no participants is a draw
-      // by the same rule as a scoreless tie; anything else is a data gap.
-      return DRAWABLE_CATEGORIES.includes(match.category)
-        ? { matchId: match.matchId, winningMatchTeamId: null }
-        : undefined;
+      // Nothing to compare (also guards Math.max() below against an empty
+      // array, which would return -Infinity). Fewer than 2 participants is
+      // always a data gap, never a draw — guessing a draw here would hide an
+      // import failure (e.g. an unresolved team-participation row) behind a
+      // plausible-looking result.
+      return undefined;
     }
 
     const best = Math.max(...match.teams.map((team) => team.score));
