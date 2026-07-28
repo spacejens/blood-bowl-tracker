@@ -12,6 +12,7 @@ import {
   MatchesService,
   MatchEventsService,
   MatchEventUpsertConflictError,
+  MatchOutcomesService,
   MatchUpsertConflictError,
   PlayersService,
   PlayerUpsertConflictError,
@@ -48,6 +49,7 @@ export class RpcRouterFactoryService {
     private readonly teamsService: TeamsService,
     private readonly competitionsService: CompetitionsService,
     private readonly matchesService: MatchesService,
+    private readonly matchOutcomes: MatchOutcomesService,
     private readonly playersService: PlayersService,
     private readonly matchEventsService: MatchEventsService,
     private readonly upsertHandler: UpsertHandlerService,
@@ -170,6 +172,13 @@ export class RpcRouterFactoryService {
                 return { entity: match, created };
               },
             ),
+        ),
+        // Not routed through the upsert handler: this procedure has no
+        // CONFLICT/BAD_REQUEST error to map — a match whose outcome cannot be
+        // determined comes back in `unresolvedMatchIds` for the caller to
+        // report, rather than as a thrown error.
+        resolveOutcomes: implement(contract.matches.resolveOutcomes).handler(
+          async ({ input }) => this.matchOutcomes.resolveForCompetition(input),
         ),
       },
       matchEvents: {
