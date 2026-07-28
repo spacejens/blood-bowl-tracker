@@ -14,6 +14,7 @@ import { TpCompetitionsImportService } from './competitions/tp-competitions-impo
 import { TpErasImportService } from './eras/tp-eras-import.service';
 import { TpLeaguesImportService } from './leagues/tp-leagues-import.service';
 import { TpMatchEventsImportService } from './match-events/tp-match-events-import.service';
+import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
 import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
@@ -287,6 +288,19 @@ async function run(): Promise<ImportResult> {
         starPlayerIdsByRosterAndMaster,
       });
 
+    // Match outcomes run last: scores are counted from the touchdown events
+    // imported just above, and TP's own `winner` field per match is used
+    // directly as a tie-break -- no bracket reconstruction needed, since TP
+    // already exposes this signal per match, independent of score.
+    const matchOutcomesOutcome = await app
+      .get(TpMatchOutcomesImportService)
+      .importMatchOutcomes({
+        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
+        matchIdsByTpId,
+        eraIdByCompetitionId,
+        teamErasByRosterId: teamOutcome.teamErasByRosterId,
+      });
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
@@ -302,6 +316,7 @@ async function run(): Promise<ImportResult> {
       positionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       matchEventsOutcome.result,
+      matchOutcomesOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
