@@ -7,6 +7,7 @@ import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
 import { CellAnnotationService } from './cell-annotation.service';
+import { MatchCategoryClassifierService } from './match-category-classifier.service';
 import { MatchEventsPageParser } from './match-events-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
 import { MatchMergeService } from './match-merge.service';
@@ -23,6 +24,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
+    MatchCategoryClassifierService,
     MatchMergeConfigService,
     MatchMergeService,
   ],
@@ -34,6 +36,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     BblMatchDetailReaderService,
     BblMatchListReaderService,
     BblMatchesImportService,
+    MatchCategoryClassifierService,
     MatchMergeConfigService,
     MatchMergeService,
   ],
