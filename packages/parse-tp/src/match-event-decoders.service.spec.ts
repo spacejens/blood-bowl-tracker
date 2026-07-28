@@ -340,7 +340,28 @@ describe('MatchEventDecodersService', () => {
     });
   });
 
-  it('decodes a fan factor roll (code 13)', () => {
+  it('decodes a fan factor roll (code 13) from the modifier fields', () => {
+    expect(
+      decode(13, {
+        id: 31,
+        instant: '2026-01-17T09:02:20Z',
+        extraData: {
+          newFanFactorLocal: 0,
+          fanFactorModifierLocal: 1,
+          newFanFactorVisitor: 0,
+          fanFactorModifierVisitor: -1,
+        },
+      }),
+    ).toEqual({
+      type: 'fan_factor_roll',
+      tpEventId: 31,
+      instant: '2026-01-17T09:02:20Z',
+      fanFactorModifierLocal: 1,
+      fanFactorModifierVisitor: -1,
+    });
+  });
+
+  it('decodes a fan factor roll (code 13) with zero modifiers', () => {
     expect(
       decode(13, {
         id: 31,
@@ -356,8 +377,8 @@ describe('MatchEventDecodersService', () => {
       type: 'fan_factor_roll',
       tpEventId: 31,
       instant: '2026-01-17T09:02:20Z',
-      newFanFactorLocal: 0,
-      newFanFactorVisitor: 0,
+      fanFactorModifierLocal: 0,
+      fanFactorModifierVisitor: 0,
     });
   });
 

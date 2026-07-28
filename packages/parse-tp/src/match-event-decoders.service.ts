@@ -98,12 +98,18 @@ const winningsRaw = z.object({
     visitorWinnings: z.number(),
   }),
 });
+/**
+ * TP keeps `extraData.newFanFactorLocal`/`newFanFactorVisitor` pinned at 0 in
+ * real payloads; the actual per-side change is in the sibling
+ * `fanFactorModifier*` fields, matching the `dedicatedFansModifier*`
+ * convention used by the dedicated fans roll (code 26).
+ */
 const fanFactorRaw = z.object({
   id: z.number(),
   instant: z.string(),
   extraData: z.object({
-    newFanFactorLocal: z.number(),
-    newFanFactorVisitor: z.number(),
+    fanFactorModifierLocal: z.number(),
+    fanFactorModifierVisitor: z.number(),
   }),
 });
 const journeymanSigningRaw = z.object({
@@ -288,8 +294,8 @@ export class MatchEventDecodersService {
           type: 'fan_factor_roll',
           tpEventId: v.id,
           instant: v.instant,
-          newFanFactorLocal: v.extraData.newFanFactorLocal,
-          newFanFactorVisitor: v.extraData.newFanFactorVisitor,
+          fanFactorModifierLocal: v.extraData.fanFactorModifierLocal,
+          fanFactorModifierVisitor: v.extraData.fanFactorModifierVisitor,
         })),
       ],
       [

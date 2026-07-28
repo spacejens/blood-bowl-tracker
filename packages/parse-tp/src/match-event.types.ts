@@ -147,8 +147,12 @@ export type TpMatchEvent =
     })
   | (TpMatchEventBase & {
       type: 'fan_factor_roll';
-      newFanFactorLocal: number;
-      newFanFactorVisitor: number;
+      /**
+       * Per-side change to fan factor. TP's `newFanFactor*` fields are always
+       * 0 in real payloads, so only the modifier is carried here.
+       */
+      fanFactorModifierLocal: number;
+      fanFactorModifierVisitor: number;
     })
   | (TpMatchEventBase & {
       type: 'journeyman_signing';
