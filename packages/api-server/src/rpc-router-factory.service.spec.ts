@@ -652,6 +652,7 @@ describe('RpcRouterFactoryService', () => {
         competitionId: 20,
         teamEraIds: [100, 101],
         name: 'Final',
+        category: 'season_final',
         playedAt: new Date('2021-09-25'),
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
@@ -665,6 +666,7 @@ describe('RpcRouterFactoryService', () => {
       competitionId: 20,
       playedAt: new Date('2021-09-25'),
       name: 'Final',
+      category: 'season_final',
       externalIds: [{ externalSystemId: 1, externalId: '89' }],
     });
 
@@ -673,6 +675,7 @@ describe('RpcRouterFactoryService', () => {
       competitionId: 20,
       teamEraIds: [100, 101],
       name: 'Final',
+      category: 'season_final',
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
       created: true,
@@ -691,6 +694,7 @@ describe('RpcRouterFactoryService', () => {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
+        category: 'season_final',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       }),
     ).rejects.toMatchObject({
@@ -707,6 +711,7 @@ describe('RpcRouterFactoryService', () => {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
+        category: 'season_final',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       }),
     ).rejects.toThrow('db unavailable');

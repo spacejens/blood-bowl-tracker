@@ -44,6 +44,7 @@ describe('MatchesService', () => {
     competitionId: 20,
     playedAt: new Date('2021-09-25'),
     name: 'Final',
+    category: 'normal' as const,
     externalIds: [{ externalSystemId: 1, externalId: '89' }],
     teamEraIds: [] as number[],
   };
@@ -75,6 +76,7 @@ describe('MatchesService', () => {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
+        category: 'normal',
       });
     });
 
@@ -96,6 +98,7 @@ describe('MatchesService', () => {
         competitionId: 20,
         playedAt: new Date('2021-09-25'),
         name: 'Final',
+        category: 'normal',
       });
     });
 
@@ -191,6 +194,23 @@ describe('MatchesService', () => {
       });
 
       expect(firstCallArg(chains[1].set)).toEqual({ name: 'Semi-final' });
+    });
+
+    it('writes the category through to the insert values', async () => {
+      const { chains } = await build([], [fakeMatch]);
+
+      await service.upsert({
+        competitionId: 3,
+        playedAt: new Date('2026-06-13T00:00:00Z'),
+        name: 'Final',
+        category: 'season_final',
+        externalIds: [{ externalSystemId: 1, externalId: '1830' }],
+        teamEraIds: [],
+      });
+
+      expect(firstCallArg(chains[1].values)).toEqual(
+        expect.objectContaining({ category: 'season_final' }),
+      );
     });
   });
 

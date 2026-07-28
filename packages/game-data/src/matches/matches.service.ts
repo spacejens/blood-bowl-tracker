@@ -40,6 +40,7 @@ export class MatchesService {
         competitionId: data.competitionId,
         playedAt: data.playedAt,
         name: data.name,
+        category: data.category,
       },
       externalIdTable: matchExternalIds,
       ownerIdColumn: matchExternalIds.matchId,

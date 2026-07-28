@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MatchSchema, UpsertMatchSchema } from './match';
+import { MATCH_CATEGORIES, MatchSchema, UpsertMatchSchema } from './match';
 
 describe('UpsertMatchSchema', () => {
   const valid = {
@@ -41,9 +41,49 @@ describe('MatchSchema', () => {
       competitionId: 2,
       teamEraIds: [],
       name: 'Semifinal',
+      category: 'season_semi_final',
       playedAt: new Date('2021-09-25'),
       createdAt: new Date('2026-01-01'),
     });
     expect(parsed.name).toBe('Semifinal');
+  });
+});
+
+describe('UpsertMatchSchema category', () => {
+  const base = {
+    externalIds: [{ externalSystemId: 1, externalId: '1830' }],
+  };
+
+  it('accepts every known category', () => {
+    for (const category of MATCH_CATEGORIES) {
+      expect(UpsertMatchSchema.parse({ ...base, category }).category).toBe(
+        category,
+      );
+    }
+  });
+
+  it('rejects an unknown category', () => {
+    expect(() =>
+      UpsertMatchSchema.parse({ ...base, category: 'unknown' }),
+    ).toThrow();
+  });
+
+  it('leaves category undefined when the payload omits it', () => {
+    expect(UpsertMatchSchema.parse(base).category).toBeUndefined();
+  });
+});
+
+describe('MatchSchema category', () => {
+  it('requires a category on a read model', () => {
+    expect(() =>
+      MatchSchema.parse({
+        id: 1,
+        competitionId: 2,
+        teamEraIds: [],
+        name: 'Final',
+        playedAt: new Date('2026-06-13T00:00:00Z'),
+        createdAt: new Date('2026-06-13T00:00:00Z'),
+      }),
+    ).toThrow();
   });
 });
