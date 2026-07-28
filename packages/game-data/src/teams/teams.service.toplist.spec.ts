@@ -441,5 +441,31 @@ describe('TeamsService', () => {
         'cup_final',
       );
     });
+
+    it('countMatchesPlayedByTeam filters by the match category', async () => {
+      const { chains } = await build([]);
+      await service.countMatchesPlayedByTeam({ category: 'season_final' }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'season_final',
+      ]);
+    });
+
+    it('countCompetitionsByTeam does not join matches when no category is given', async () => {
+      const { chains } = await build([]);
+      await service.countCompetitionsByTeam({ eraId: 20 }, 21);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(4);
+    });
+
+    it('countCompetitionsByTeam counts only competitions with a match of the given category', async () => {
+      const { chains } = await build([]);
+      await service.countCompetitionsByTeam({ category: 'cup_final' }, 21);
+      // Two extra joins (match_teams, matches) carry the category filter.
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(6);
+      expect(
+        extractAllFilterValues(firstCallArg(chains[0].innerJoin, 5, 1)),
+      ).toContain('cup_final');
+      expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
   });
 });
