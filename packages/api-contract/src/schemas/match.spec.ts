@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { MATCH_CATEGORIES, MatchSchema, UpsertMatchSchema } from './match';
+import {
+  MATCH_CATEGORIES,
+  MatchSchema,
+  ResolveMatchOutcomesSchema,
+  UpsertMatchSchema,
+} from './match';
 
 describe('UpsertMatchSchema', () => {
   const valid = {
@@ -83,6 +88,34 @@ describe('MatchSchema category', () => {
         name: 'Final',
         playedAt: new Date('2026-06-13T00:00:00Z'),
         createdAt: new Date('2026-06-13T00:00:00Z'),
+      }),
+    ).toThrow();
+  });
+});
+
+describe('ResolveMatchOutcomesSchema', () => {
+  it('defaults both hint lists to empty', () => {
+    const parsed = ResolveMatchOutcomesSchema.parse({ competitionId: 7 });
+    expect(parsed).toEqual({
+      competitionId: 7,
+      overrides: [],
+      tieBreaks: [],
+    });
+  });
+
+  it('accepts a null winnerTeamEraId, meaning draw', () => {
+    const parsed = ResolveMatchOutcomesSchema.parse({
+      competitionId: 7,
+      tieBreaks: [{ matchId: 11, winnerTeamEraId: null }],
+    });
+    expect(parsed.tieBreaks[0].winnerTeamEraId).toBeNull();
+  });
+
+  it('rejects a hint with no winnerTeamEraId key at all', () => {
+    expect(() =>
+      ResolveMatchOutcomesSchema.parse({
+        competitionId: 7,
+        overrides: [{ matchId: 11 }],
       }),
     ).toThrow();
   });
