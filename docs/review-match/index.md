@@ -51,9 +51,10 @@ services.
      means. A `Summary` column names the player an event is about, resolved
      from the same raw match file's own `inscription{Local,Visitor}` line-ups
      (an id that resolves to nothing is shown as `unknown id <N>` rather than
-     blanked, so the gap is visible), or lists the star players an
-     inducements event induced. Each event's remaining raw JSON sits behind a
-     collapsed `expand` disclosure so a long match stays scannable.
+     blanked, so the gap is visible); lists the star players an inducements
+     event induced; or, for a weather event, names the decoded weather
+     condition (e.g. `40 (very sunny)`). Each event's remaining raw JSON sits
+     behind a collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
 4. Writes the report under `tools/review-match/output/` (gitignored) with a

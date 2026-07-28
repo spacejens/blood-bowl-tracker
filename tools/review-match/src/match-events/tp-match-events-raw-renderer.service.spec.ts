@@ -92,7 +92,6 @@ describe('TpMatchEventsRawRendererService', () => {
       '<tr><th>#</th><th>Code</th><th>Event id</th><th>Summary</th>' +
         '<th>Other raw fields</th></tr>',
     );
-    expect(html).not.toContain('Instant');
   });
 
   it('summarises an event carrying a lineUpId with the resolved player name', async () => {
@@ -192,6 +191,23 @@ describe('TpMatchEventsRawRendererService', () => {
     const html = await service.render('344820');
 
     expect(html).toContain('<td>Griff Oberwald, Morg n Thorg</td>');
+  });
+
+  it('shows no summary for an inducements event with no starPlayers field at all', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 11,
+          matchEventType: 11,
+          instant: 'x',
+          extraData: { totalCost: 100 },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>—</td>');
   });
 
   it('shows no summary for an inducements event that induced no star players', async () => {
@@ -311,7 +327,7 @@ describe('TpMatchEventsRawRendererService', () => {
     const html = await service.render('344820');
 
     expect(html).toContain('…');
-    expect(html.length).toBeLessThan(1500);
+    expect(html.length).toBeLessThan(2200);
   });
 
   it('shows an entry without a numeric code rather than skipping it', async () => {

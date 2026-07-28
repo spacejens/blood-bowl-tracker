@@ -9,8 +9,13 @@ import { TpRawWeatherLabelsService } from './tp-raw-weather-labels.service';
 
 const HEADERS = ['#', 'Code', 'Event id', 'Summary', 'Other raw fields'];
 const NONE = '—';
-/** Some events (inducements, line-ups) carry very large payloads. */
-const MAX_FIELDS_LENGTH = 400;
+/**
+ * Some events (inducements, line-ups) carry very large payloads. The JSON is
+ * collapsed behind a disclosure rather than always visible, so this budget
+ * only needs to keep a single expanded row from ballooning, not fit
+ * comfortably in an always-shown cell.
+ */
+const MAX_FIELDS_LENGTH = 1000;
 /** Shown in their own columns, so left out of the "other fields" JSON. */
 const OWN_COLUMN_FIELDS = ['matchEventType', 'id'];
 /** The two codes whose gist lives in their own `extraData`, not a player. */
@@ -81,7 +86,7 @@ export class TpMatchEventsRawRendererService {
    * the meaning of the opaque codes it carries. Reads TP's raw field names
    * directly — never `packages/parse-tp`'s typed event union.
    */
-  summary(
+  private summary(
     fields: Record<string, unknown>,
     names: ReadonlyMap<number, string>,
   ): TableCell {
