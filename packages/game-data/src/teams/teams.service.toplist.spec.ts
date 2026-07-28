@@ -433,5 +433,13 @@ describe('TeamsService', () => {
         30,
       ]);
     });
+
+    it('countTouchdownsScoredByTeam filters by the match category in the scope', async () => {
+      const { chains } = await build([]);
+      await service.countTouchdownsScoredByTeam({ category: 'cup_final' }, 21);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toContain(
+        'cup_final',
+      );
+    });
   });
 });

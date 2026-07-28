@@ -241,9 +241,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -255,9 +253,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: COMPLETION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -269,9 +265,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -283,9 +277,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEFLECTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -297,9 +289,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -311,9 +301,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -325,9 +313,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -339,9 +325,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -353,9 +337,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -367,9 +349,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -381,9 +361,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -395,9 +373,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -409,9 +385,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: DEATH_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -420,13 +394,7 @@ export class TeamsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return querySumExpensiveMistakesByTeam({
-      db: this.db,
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
-      limit,
-    });
+    return querySumExpensiveMistakesByTeam({ db: this.db, scope, limit });
   }
 
   listBiggestExpensiveMistakes(
@@ -441,13 +409,7 @@ export class TeamsService {
       category: MatchCategory;
     }[]
   > {
-    return queryListBiggestExpensiveMistakes({
-      db: this.db,
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
-      limit,
-    });
+    return queryListBiggestExpensiveMistakes({ db: this.db, scope, limit });
   }
 
   countAll(): Promise<number> {

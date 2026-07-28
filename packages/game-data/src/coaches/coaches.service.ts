@@ -379,12 +379,16 @@ export class CoachesService {
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
     // Deliberately does not forward scope.competitionId: coach toplists are
-    // league/era-scoped only, matching every other coach.toplist.* fact.
+    // league/era/match-category-scoped only, matching every other
+    // coach.toplist.* fact.
     return countMatchEventsByCoach({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
+      scope: {
+        leagueId: scope.leagueId,
+        eraId: scope.eraId,
+        category: scope.category,
+      },
       limit,
     });
   }

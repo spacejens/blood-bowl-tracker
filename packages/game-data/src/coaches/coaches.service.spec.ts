@@ -324,6 +324,25 @@ describe('CoachesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1)),
       ).toEqual(['coaches.id', 'teams.coach_id']);
     });
+
+    it('countFoulsCommittedByCoach filters by the match category in the scope', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach(
+        { category: 'season_final' },
+        21,
+      );
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toContain(
+        'season_final',
+      );
+    });
+
+    it('countFoulsCommittedByCoach still ignores a competition in the scope', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach({ competitionId: 30 }, 21);
+      expect(
+        extractAllFilterValues(firstCallArg(chains[0].where)),
+      ).not.toContain(30);
+    });
   });
 
   describe('league scoping', () => {
