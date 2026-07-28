@@ -782,6 +782,138 @@ describe('MatchEventCorrelationService', () => {
         },
       ]);
     });
+
+    it('merges two identical actions with two differing consequences pairwise', () => {
+      // BBL 2393: the same player is listed twice as a serious-injury causer,
+      // and two different victims sustained a Miss Next Game. The two actions
+      // are indistinguishable, so either pairing yields the same event set.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'gritr' },
+            { actionType: 'serious_injury', side: 'home', pid: 'gritr' },
+          ],
+          consequences: [
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v2' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'miss_next_game',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'gritr',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'miss_next_game',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'gritr',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v2',
+        },
+      ]);
+    });
+
+    it('merges two differing actions with two identical consequences pairwise', () => {
+      // The symmetric case: the consequences are indistinguishable, so which
+      // action attaches to which of them cannot change the resulting set.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'a1' },
+            { actionType: 'serious_injury', side: 'home', pid: 'a2' },
+          ],
+          consequences: [
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'miss_next_game',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a1',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+        {
+          actionType: 'serious_injury',
+          consequenceType: 'miss_next_game',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a2',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+      ]);
+    });
+
+    it('merges nothing when neither side of an equal-count group is identical', () => {
+      // Two distinct causers and two distinct victims: the source says nothing
+      // about which caused which, so the pairing would be a guess. Stays
+      // unmerged, exactly as before.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'a1' },
+            { actionType: 'serious_injury', side: 'home', pid: 'a2' },
+          ],
+          consequences: [
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v1' },
+            { consequenceType: 'miss_next_game', side: 'away', pid: 'v2' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a1',
+        },
+        {
+          actionType: 'serious_injury',
+          actingTeamCode: 'hme',
+          actingSourceBblId: '89',
+          actingPid: 'a2',
+        },
+        {
+          consequenceType: 'miss_next_game',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v1',
+        },
+        {
+          consequenceType: 'miss_next_game',
+          consequenceTeamCode: 'awy',
+          consequenceSourceBblId: '89',
+          consequencePid: 'v2',
+        },
+      ]);
+    });
   });
 });
 

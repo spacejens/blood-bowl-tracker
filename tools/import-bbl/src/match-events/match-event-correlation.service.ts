@@ -109,12 +109,11 @@ interface TeamCodedConsequence {
   unidentifiedKind?: UnidentifiedParticipantKind;
   /**
    * Set when the source said the casualty was prevented. Such a consequence is
-   * an ordinary member of its severity group's merge-candidate pool: it merges
-   * with a causer action when it is that group's only candidate, and falls
-   * back to a consequence-only event as soon as 2+ candidates (real or
-   * prevented, in any mix) make the attribution ambiguous. Either way the
-   * emitted event describes it as `casualty_avoided` carrying the prevented
-   * severity, never as the raw severity.
+   * an ordinary member of its severity group's merge-candidate pool, treated
+   * no differently from a real one when the group's candidates are paired off
+   * (or left unpaired) — see `correlateEvents`. Either way the emitted event
+   * describes it as `casualty_avoided` carrying the prevented severity, never
+   * as the raw severity.
    */
   avoidedBy?: ConsequenceAvoidedBy;
 }
@@ -228,23 +227,31 @@ export class MatchEventCorrelationService {
   }
 
   /**
-   * Correlate raw occurrences into events. A casualty action and a
-   * Sustained-Injury consequence merge into a single event only when, for a given
-   * acting team code and severity group, there is exactly one action candidate on
-   * that team and exactly one matching consequence candidate on ANY other team
-   * (one other team for a normal 2-team match, three for a merged 4-team match).
-   * Everything else — including every ambiguous casualty where 2+ candidates
-   * exist — falls through to independent action-only and consequence-only events,
-   * so no occurrence is ever dropped. Emission order is merged events first, then
-   * leftover actions in occurrence order, then leftover consequences in occurrence
-   * order; that order fixes the external-id occurrence indices deterministically.
+   * Correlate raw occurrences into events. For a given acting team code and
+   * severity group, the N action candidates on that team and the N matching
+   * consequence candidates on ANY other team (one other team for a normal
+   * 2-team match, three for a merged 4-team match) merge into N events, paired
+   * by index, when the counts are equal AND at least one of the two sides'
+   * candidates are pairwise identical to each other (see `actionKey` /
+   * `consequenceKey`). Identical candidates on one side make the pairing
+   * irrelevant: any permutation yields the same set of events, so no
+   * attribution can be wrong. N = 1 is the common instance of this rule, since
+   * a single candidate is vacuously identical to itself.
+   *
+   * Everything else — unequal counts, or equal counts where both sides'
+   * candidates differ internally so the pairing would be a guess — falls
+   * through to independent action-only and consequence-only events, so no
+   * occurrence is ever dropped. Emission order is merged events first, then
+   * leftover actions in occurrence order, then leftover consequences in
+   * occurrence order; that order fixes the external-id occurrence indices
+   * deterministically.
    *
    * A prevented casualty (`avoidedBy` set) is an ordinary candidate in that
-   * pool alongside real consequences: a lone action plus a lone prevented
-   * consequence merge exactly like a real one, while an action facing both a
-   * real and a prevented candidate is ambiguous and merges neither. A merged
-   * prevented casualty still carries `consequenceType: 'casualty_avoided'`
-   * with the prevented severity in `consequenceAvoidedSeverity`.
+   * pool alongside real consequences, merging or not by exactly the rule
+   * above; `avoidedBy` is one of the fields compared when deciding whether the
+   * consequence side is pairwise identical. A merged prevented casualty still
+   * carries `consequenceType: 'casualty_avoided'` with the prevented severity
+   * in `consequenceAvoidedSeverity`.
    *
    * A casualty occurrence marked `viaFoul` keeps matching by its severity tier
    * like any other, but the event finally emitted for it carries
@@ -278,21 +285,35 @@ export class MatchEventCorrelationService {
             ? [i]
             : [],
         );
-        if (actionIndices.length === 1 && consequenceIndices.length === 1) {
-          const action = combined.actions[actionIndices[0]];
-          const consequence = combined.consequences[consequenceIndices[0]];
-          actionConsumed[actionIndices[0]] = true;
-          consequenceConsumed[consequenceIndices[0]] = true;
-          merged.push({
-            actionType: action.viaFoul ? 'foul' : action.actionType,
-            actingTeamCode,
-            actingSourceBblId: action.sourceBblId,
-            actingPid: action.pid,
-            ...(action.unidentifiedKind
-              ? { actingUnidentifiedKind: action.unidentifiedKind }
-              : {}),
-            ...this.consequenceSide(consequence),
-          });
+        const pairCount = actionIndices.length;
+        const pairingIsUnambiguous =
+          pairCount > 0 &&
+          consequenceIndices.length === pairCount &&
+          (this.allIdentical(
+            actionIndices.map((i) => this.actionKey(combined.actions[i])),
+          ) ||
+            this.allIdentical(
+              consequenceIndices.map((i) =>
+                this.consequenceKey(combined.consequences[i]),
+              ),
+            ));
+        if (pairingIsUnambiguous) {
+          for (let pair = 0; pair < pairCount; pair++) {
+            const action = combined.actions[actionIndices[pair]];
+            const consequence = combined.consequences[consequenceIndices[pair]];
+            actionConsumed[actionIndices[pair]] = true;
+            consequenceConsumed[consequenceIndices[pair]] = true;
+            merged.push({
+              actionType: action.viaFoul ? 'foul' : action.actionType,
+              actingTeamCode,
+              actingSourceBblId: action.sourceBblId,
+              actingPid: action.pid,
+              ...(action.unidentifiedKind
+                ? { actingUnidentifiedKind: action.unidentifiedKind }
+                : {}),
+              ...this.consequenceSide(consequence),
+            });
+          }
         }
       }
     }
@@ -323,6 +344,45 @@ export class MatchEventCorrelationService {
     );
 
     return [...merged, ...actionOnly, ...consequenceOnly, ...journeymanEvents];
+  }
+
+  /**
+   * A canonical string identifying everything about an action that reaches the
+   * emitted event. Two actions with equal keys are interchangeable: swapping
+   * which of them merges with which consequence cannot change the resulting
+   * set of events. `teamCode` is excluded on purpose — the merge-candidate
+   * filter already guarantees it is equal across every candidate considered.
+   */
+  private actionKey(action: TeamCodedAction): string {
+    return JSON.stringify({
+      actionType: action.actionType,
+      pid: action.pid,
+      viaFoul: action.viaFoul,
+      unidentifiedKind: action.unidentifiedKind,
+      sourceBblId: action.sourceBblId,
+    });
+  }
+
+  /** The consequence-side counterpart of {@link actionKey}. */
+  private consequenceKey(consequence: TeamCodedConsequence): string {
+    return JSON.stringify({
+      consequenceType: consequence.consequenceType,
+      pid: consequence.pid,
+      avoidedBy: consequence.avoidedBy,
+      unidentifiedKind: consequence.unidentifiedKind,
+      sourceBblId: consequence.sourceBblId,
+    });
+  }
+
+  /**
+   * Whether every candidate on a side is identical to the others. Comparing
+   * each key against the first is sufficient because key equality is plain
+   * string equality, and therefore transitive. An empty or single-element list
+   * is vacuously identical, which is what makes the existing one-action /
+   * one-consequence merge a trivial instance of the general rule.
+   */
+  private allIdentical(keys: string[]): boolean {
+    return keys.every((key) => key === keys[0]);
   }
 
   /**
