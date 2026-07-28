@@ -1,6 +1,10 @@
-import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
+import type {
+  MatchCategory,
+  UpsertMatch,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, Match } from '@blood-bowl-tracker/db';
 import {
+  competitions,
   DB,
   eras,
   matches,
@@ -18,6 +22,28 @@ import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class MatchUpsertConflictError extends UpsertConflictError {}
 
+/**
+ * A match's category does not fit its competition's type (e.g. `cup_final`
+ * on a season, or any `season_*` stage on a cup). Enforced here rather than
+ * in the database: Postgres cannot cross-reference `competitions` from a
+ * plain `check()` on `matches`, and a trigger was judged not worth the
+ * complexity (see docs/plans and packages/db/src/schema/matches.ts).
+ */
+export class MatchCategoryMismatchError extends Error {}
+
+/** Competition types each category is allowed on. `normal` fits both. */
+const ALLOWED_COMPETITION_TYPES: Record<
+  MatchCategory,
+  readonly ('season' | 'cup')[]
+> = {
+  normal: ['season', 'cup'],
+  cup_final: ['cup'],
+  season_semi_final: ['season'],
+  season_final: ['season'],
+  season_bronze: ['season'],
+  season_qualifier: ['season'],
+};
+
 export interface MatchWithTeamEras extends Match {
   teamEraIds: number[];
 }
@@ -29,6 +55,7 @@ export class MatchesService {
   async upsert(
     data: UpsertMatch,
   ): Promise<{ match: MatchWithTeamEras; created: boolean }> {
+    await this.assertCategoryFitsCompetition(data);
     const { row: match, created } = await upsertByExternalIds<
       typeof matches,
       typeof matchExternalIds
@@ -40,6 +67,7 @@ export class MatchesService {
         competitionId: data.competitionId,
         playedAt: data.playedAt,
         name: data.name,
+        category: data.category,
       },
       externalIdTable: matchExternalIds,
       ownerIdColumn: matchExternalIds.matchId,
@@ -53,6 +81,35 @@ export class MatchesService {
 
     const teamEraIds = await this.syncTeams(match.id, data.teamEraIds);
     return { match: { ...match, teamEraIds }, created };
+  }
+
+  /**
+   * Throws when `data`'s category cannot occur in `data`'s competition. Runs
+   * only when the payload names both — an overlay update that mentions
+   * neither has nothing to check against.
+   */
+  private async assertCategoryFitsCompetition(
+    data: UpsertMatch,
+  ): Promise<void> {
+    const { category, competitionId } = data;
+    if (category === undefined || competitionId === undefined) {
+      return;
+    }
+    const [competition] = await this.db
+      .select({ type: competitions.type })
+      .from(competitions)
+      .where(eq(competitions.id, competitionId));
+    if (competition === undefined) {
+      throw new MatchCategoryMismatchError(
+        `Cannot set match category "${category}": competition ${competitionId} does not exist.`,
+      );
+    }
+    if (!ALLOWED_COMPETITION_TYPES[category].includes(competition.type)) {
+      throw new MatchCategoryMismatchError(
+        `Match category "${category}" is not valid for a competition of type ` +
+          `"${competition.type}" (competition ${competitionId}).`,
+      );
+    }
   }
 
   private async syncTeams(

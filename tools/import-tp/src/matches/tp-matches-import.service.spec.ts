@@ -14,6 +14,7 @@ import {
   mockImportResultService,
 } from '../import-package.test-helpers';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
+import { TpMatchCategoryService } from './tp-match-category.service';
 import { TpMatchesImportService } from './tp-matches-import.service';
 
 const MATCH_DB_ID = 7;
@@ -22,6 +23,7 @@ interface MakeServiceOptions {
   bootstrap: ReturnType<typeof vi.fn>;
   upsertMatchResult: ReturnType<typeof vi.fn>;
   getTpSystemName?: () => string;
+  classify?: TpMatchCategoryService['classify'];
 }
 
 /**
@@ -49,9 +51,11 @@ async function makeService({
   bootstrap,
   upsertMatchResult,
   getTpSystemName = () => 'TP',
+  classify = () => 'normal',
 }: MakeServiceOptions): Promise<{
   service: TpMatchesImportService;
   importResults: MockProxy<ImportResultService>;
+  categoryClassifier: MockProxy<TpMatchCategoryService>;
 }> {
   const matchesImport = mock<MatchesImportService>();
   matchesImport.upsertMatchResult.mockImplementation(
@@ -63,6 +67,8 @@ async function makeService({
   );
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const categoryClassifier = mock<TpMatchCategoryService>();
+  categoryClassifier.classify.mockImplementation(classify);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
@@ -83,11 +89,13 @@ async function makeService({
         useValue: externalSystemName,
       },
       { provide: ImportResultService, useValue: importResults },
+      { provide: TpMatchCategoryService, useValue: categoryClassifier },
     ],
   }).compile();
   return {
     service: moduleRef.get(TpMatchesImportService),
     importResults,
+    categoryClassifier,
   };
 }
 
@@ -101,23 +109,31 @@ function tpMatch(id: number, name: string): TpMatch {
     matchEvents: [],
     homeRosterPlayers: [],
     awayRosterPlayers: [],
+    phaseType: 160,
+    phaseOrder: 1,
+    round: 1,
+    winner: 'home',
   };
 }
 
 describe('TpMatchesImportService', () => {
-  it('upserts every match across competitions with its competitionId, name and TP external id', async () => {
+  it('upserts every match across competitions with its competitionId, name, category and TP external id', async () => {
     const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
     const { service, importResults } = await makeService({
       bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
       upsertMatchResult,
     });
 
-    await service.importMatches(
-      new Map([
+    await service.importMatches({
+      matchesByCompetitionId: new Map([
         [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
         [20, [tpMatch(200, 'Day 1')]],
       ]),
-    );
+      competitionTypesByCompetitionId: new Map([
+        [10, 'season'],
+        [20, 'cup'],
+      ]),
+    });
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(3);
@@ -129,6 +145,7 @@ describe('TpMatchesImportService', () => {
         competitionId: 10,
         playedAt: new Date('2021-05-15T18:00:00Z'),
         name: 'Round 1',
+        category: 'normal',
         externalIds: [{ externalSystemId: 1, externalId: '100' }],
         teamEraIds: [],
       },
@@ -140,6 +157,7 @@ describe('TpMatchesImportService', () => {
         competitionId: 20,
         playedAt: new Date('2021-05-15T18:00:00Z'),
         name: 'Day 1',
+        category: 'normal',
         externalIds: [{ externalSystemId: 1, externalId: '200' }],
         teamEraIds: [],
       },
@@ -162,9 +180,12 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    await service.importMatches(
-      new Map([[10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]]]),
-    );
+    await service.importMatches({
+      matchesByCompetitionId: new Map([
+        [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
+      ]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(1);
@@ -181,7 +202,10 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    await service.importMatches(new Map([[10, []]]));
+    await service.importMatches({
+      matchesByCompetitionId: new Map([[10, []]]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
 
     const { imported, errors } = resultArgs(importResults);
     expect(imported).toBe(0);
@@ -202,7 +226,10 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    await service.importMatches(new Map([[10, [tpMatch(100, 'Round 1')]]]));
+    await service.importMatches({
+      matchesByCompetitionId: new Map([[10, [tpMatch(100, 'Round 1')]]]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
 
     const { errors } = resultArgs(importResults);
     expect(errors).toHaveLength(1);
@@ -217,9 +244,10 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    const { matchIdsByTpId } = await service.importMatches(
-      new Map([[500, [tpMatch(566088, 'Test Match')]]]),
-    );
+    const { matchIdsByTpId } = await service.importMatches({
+      matchesByCompetitionId: new Map([[500, [tpMatch(566088, 'Test Match')]]]),
+      competitionTypesByCompetitionId: new Map([[500, 'season']]),
+    });
 
     expect(matchIdsByTpId.get(566088)).toBe(MATCH_DB_ID);
   });
@@ -231,10 +259,86 @@ describe('TpMatchesImportService', () => {
       upsertMatchResult,
     });
 
-    const { result } = await service.importMatches(
-      new Map([[10, [tpMatch(100, 'Round 1')]]]),
-    );
+    const { result } = await service.importMatches({
+      matchesByCompetitionId: new Map([[10, [tpMatch(100, 'Round 1')]]]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it("skips all of a competition's matches with one recorded error when its type is unknown", async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
+    const { service, importResults } = await makeService({
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+      upsertMatchResult,
+    });
+
+    await service.importMatches({
+      matchesByCompetitionId: new Map([
+        [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
+      ]),
+      competitionTypesByCompetitionId: new Map(),
+    });
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(0);
+    expect(upsertMatchResult).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].item).toEqual({ competitionId: 10 });
+  });
+
+  it('skips one match with one recorded error when the classifier throws, importing the rest', async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
+    const classify = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        throw new Error('TP match 100: unmapped phase');
+      })
+      .mockReturnValue('normal');
+    const { service, importResults } = await makeService({
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+      upsertMatchResult,
+      classify,
+    });
+
+    await service.importMatches({
+      matchesByCompetitionId: new Map([
+        [10, [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')]],
+      ]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
+
+    const { imported, errors } = resultArgs(importResults);
+    expect(imported).toBe(1);
+    expect(upsertMatchResult).toHaveBeenCalledTimes(1);
+    expect(errors.some((e) => e.message.includes('unmapped phase'))).toBe(true);
+  });
+
+  it("passes the competition type and every one of the competition's matches to the classifier", async () => {
+    const upsertMatchResult = vi.fn().mockResolvedValue({ id: 7 });
+    const classify = vi.fn().mockReturnValue('normal');
+    const { service } = await makeService({
+      bootstrap: vi.fn().mockResolvedValue({ ok: true, ids: [1] }),
+      upsertMatchResult,
+      classify,
+    });
+    const matches = [tpMatch(100, 'Round 1'), tpMatch(101, 'Round 2')];
+
+    await service.importMatches({
+      matchesByCompetitionId: new Map([[10, matches]]),
+      competitionTypesByCompetitionId: new Map([[10, 'season']]),
+    });
+
+    expect(classify).toHaveBeenCalledWith({
+      match: matches[0],
+      competitionType: 'season',
+      competitionMatches: matches,
+    });
+    expect(classify).toHaveBeenCalledWith({
+      match: matches[1],
+      competitionType: 'season',
+      competitionMatches: matches,
+    });
   });
 });

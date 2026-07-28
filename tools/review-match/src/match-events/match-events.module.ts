@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { SharedModule } from '../shared/shared.module';
 import { SourceModule } from '../source/source.module';
 import { BblMatchEventsRawRendererService } from './bbl-match-events-raw-renderer.service';
+import { MatchCategoryStratificationService } from './match-category-stratification.service';
 import { MatchEventStratificationService } from './match-event-stratification.service';
 import { MatchEventsDbRendererService } from './match-events-db-renderer.service';
 import { MatchEventsReviewerService } from './match-events-reviewer.service';
@@ -19,6 +20,7 @@ import { TpRawWeatherLabelsService } from './tp-raw-weather-labels.service';
   imports: [SharedModule, SourceModule],
   providers: [
     BblMatchEventsRawRendererService,
+    MatchCategoryStratificationService,
     MatchEventStratificationService,
     MatchEventsDbRendererService,
     MatchEventsReviewerService,
@@ -28,6 +30,7 @@ import { TpRawWeatherLabelsService } from './tp-raw-weather-labels.service';
     TpRawWeatherLabelsService,
   ],
   exports: [
+    MatchCategoryStratificationService,
     MatchEventsReviewerService,
     MatchEventStratificationService,
     MergedMatchStratificationService,

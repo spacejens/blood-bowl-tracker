@@ -68,6 +68,7 @@ export class MergedMatchStratificationService implements MatchStratifier {
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
+        category: matches.category,
         externalIds: sql<
           string[]
         >`array_agg(${matchExternalIds.externalId} order by ${matchExternalIds.externalId}::integer)`,
@@ -81,7 +82,13 @@ export class MergedMatchStratificationService implements MatchStratifier {
           eq(matchExternalIds.externalSystemId, externalSystemId),
         ),
       )
-      .groupBy(matches.id, matches.name, competitions.name, matches.playedAt)
+      .groupBy(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+        matches.category,
+      )
       .having(sql`count(*) = 2`)
       // Random for the same reason the other stratifier randomises: several
       // strata all taking "the newest few" would collapse into the same

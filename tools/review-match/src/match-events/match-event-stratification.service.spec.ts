@@ -14,6 +14,7 @@ const dbRow = {
   matchName: 'Round 3',
   competitionName: 'Season 18',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
+  category: 'normal' as const,
 };
 
 async function makeService(
@@ -153,6 +154,7 @@ describe('MatchEventStratificationService', () => {
         matches.name,
         competitions.name,
         matches.playedAt,
+        matches.category,
       );
     });
 

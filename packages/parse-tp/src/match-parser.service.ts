@@ -88,6 +88,36 @@ export interface TpMatch {
    * `inscriptionVisitor.roster.lineUps[]`. See `homeRosterPlayers`.
    */
   awayRosterPlayers: TpRosterPlayer[];
+  /**
+   * `group.phase.type` — TP's numeric phase-kind code (e.g. 160 for the main
+   * phase, 30/110 for playoff phases in the local data). TP never names a
+   * match's stage in text (`roundName` only ever holds DAY/MATCHDAY/ROUND),
+   * so this plus `phaseOrder` is the only stage signal available. Decoded by
+   * `TpMatchCategoryService` in tools/import-tp -- but note that `type`'s
+   * literal value carries no fixed stage meaning by itself (it is not stable
+   * across seasons); the classifier keys off `phaseOrder`/`round` position
+   * instead, and only carries `phaseType` for possible future use.
+   */
+  phaseType: number;
+  /** `group.phase.order` — the phase's 1-based position within the tournament. */
+  phaseOrder: number;
+  /**
+   * `round` — the match's 1-based position within its phase (distinct from
+   * `phaseOrder`, the phase's own position within the tournament). Combined
+   * with `phaseOrder`, this is what `TpMatchCategoryService` sorts on to
+   * reconstruct a season's playoff bracket sequence, since neither
+   * `phaseType` nor `phaseOrder` alone reliably identifies a stage.
+   */
+  round: number;
+  /**
+   * The match's outcome, from `scoreResume.winner`: `'home'` when the home
+   * team (TP's "Local") won, `'away'` when the away team ("Visitor") won,
+   * `'draw'` for a tie. `undefined` when no result is recorded yet
+   * (`scoreResume` absent, or its `winner` field absent). Used by
+   * `TpMatchCategoryService` to trace which teams advance through a season's
+   * playoff bracket, to split a shared "final + bronze" phase.
+   */
+  winner: 'home' | 'away' | 'draw' | undefined;
 }
 
 const TpMatchSchema = z.object({
@@ -96,6 +126,8 @@ const TpMatchSchema = z.object({
   group: z.object({
     phase: z.object({
       roundName: z.string(),
+      type: z.number(),
+      order: z.number(),
     }),
   }),
   scheduledDate: z.string().nullish(),
@@ -103,6 +135,7 @@ const TpMatchSchema = z.object({
   scoreResume: z
     .object({
       startInstant: z.string().nullish(),
+      winner: z.enum(['Local', 'Visitor', 'Draw']).nullish(),
     })
     .nullish(),
   inscriptionLocal: z.object({
@@ -138,7 +171,11 @@ export class MatchParserService {
    * `inscriptionVisitor.roster.lineUps[]` field-for-field the same way
    * `RosterParserService.parse()` maps its own `lineUps[]` to `players`,
    * except a missing `rosterId` (real match-embedded entries omit it)
-   * defaults to the parent roster's own `id`.
+   * defaults to the parent roster's own `id`. `phaseType`/`phaseOrder` map
+   * `group.phase.type`/`group.phase.order`; `round` maps the top-level
+   * `round` field. `winner` maps `scoreResume.winner`
+   * (`Local`/`Visitor`/`Draw` to `home`/`away`/`draw`), or `undefined` when
+   * absent.
    * Extra fields are allowed and dropped. Throws an Error whose message names
    * the failing field on any shape mismatch, or when the resolved date string
    * cannot be parsed.
@@ -178,6 +215,14 @@ export class MatchParserService {
       .slice(1)
       .toLowerCase()} ${round}`;
     const matchEvents = this.matchEventParser.parse(rawMatchEvents ?? []);
+    const winner =
+      scoreResume?.winner === 'Local'
+        ? 'home'
+        : scoreResume?.winner === 'Visitor'
+          ? 'away'
+          : scoreResume?.winner === 'Draw'
+            ? 'draw'
+            : undefined;
     const toRosterPlayer = (
       entry: z.infer<typeof MatchLineUpSchema>,
       fallbackRosterId: number,
@@ -203,6 +248,10 @@ export class MatchParserService {
       awayRosterPlayers: inscriptionVisitor.roster.lineUps.map((entry) =>
         toRosterPlayer(entry, inscriptionVisitor.roster.id),
       ),
+      phaseType: group.phase.type,
+      phaseOrder: group.phase.order,
+      round,
+      winner,
     };
   }
 }

@@ -116,6 +116,10 @@ function tpMatch(id: number, home: number, away: number): TpMatch {
     matchEvents: [],
     homeRosterPlayers: [],
     awayRosterPlayers: [],
+    phaseType: 160,
+    phaseOrder: 1,
+    round: 1,
+    winner: 'home',
   };
 }
 

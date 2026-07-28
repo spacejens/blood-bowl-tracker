@@ -1,4 +1,7 @@
-import { MissingRequiredFieldError } from '@blood-bowl-tracker/game-data';
+import {
+  MatchCategoryMismatchError,
+  MissingRequiredFieldError,
+} from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -17,8 +20,10 @@ export interface ConflictErrors {
  * known failure modes into the matching contract error. A per-entity conflict
  * (>1 owner matched) becomes CONFLICT; a create-path payload missing a
  * required column (`MissingRequiredFieldError`, shared across every entity,
- * so no per-entity class is needed here) becomes BAD_REQUEST. Anything else
- * propagates untouched.
+ * so no per-entity class is needed here) becomes BAD_REQUEST. A match whose
+ * category doesn't fit its competition's type (`MatchCategoryMismatchError`)
+ * is likewise a payload-validity failure, not a conflict, and also becomes
+ * BAD_REQUEST. Anything else propagates untouched.
  */
 @Injectable()
 export class UpsertHandlerService {
@@ -38,7 +43,10 @@ export class UpsertHandlerService {
       if (err instanceof conflictErrorClass) {
         throw errors.CONFLICT({ message: err.message });
       }
-      if (err instanceof MissingRequiredFieldError) {
+      if (
+        err instanceof MissingRequiredFieldError ||
+        err instanceof MatchCategoryMismatchError
+      ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
       throw err;

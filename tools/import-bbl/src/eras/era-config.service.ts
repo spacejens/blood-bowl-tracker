@@ -55,8 +55,17 @@ export interface EraConfig {
      * BBL match-id pairs to merge into one match. Per-pair and cross-era
      * uniqueness validation lives in MatchMergeConfigService, which flattens
      * these across all eras — so the entries are carried untyped here.
+     * Optional: an era may carry only categoryOverrides.
      */
-    merges: unknown[];
+    merges?: unknown[];
+    /**
+     * Explicit match-category assignments for matches the keyword classifier
+     * cannot recognize (thematic cup finals such as "Bierhallentodball", or
+     * stage-like names it deliberately refuses to guess at). Per-entry shape
+     * and cross-era uniqueness validation lives in
+     * MatchCategoryConfigService, so entries are carried untyped here.
+     */
+    categoryOverrides?: unknown[];
   };
   /**
    * Position availability overrides for this era, for cases where the
@@ -424,13 +433,22 @@ export class EraConfigService {
     if (typeof raw !== 'object' || raw === null) {
       throw new Error(`BBL_ERAS[${index}].matches must be an object.`);
     }
-    const { merges } = raw as Record<string, unknown>;
-    if (!Array.isArray(merges)) {
+    const { merges, categoryOverrides } = raw as Record<string, unknown>;
+    if (merges !== undefined && !Array.isArray(merges)) {
       throw new Error(
         `BBL_ERAS[${index}].matches.merges must be an array of [id, id] pairs.`,
       );
     }
-    return { merges };
+    if (categoryOverrides !== undefined && !Array.isArray(categoryOverrides)) {
+      throw new Error(
+        `BBL_ERAS[${index}].matches.categoryOverrides must be an array of ` +
+          '{ matchId, category } entries.',
+      );
+    }
+    return {
+      ...(merges !== undefined ? { merges } : {}),
+      ...(categoryOverrides !== undefined ? { categoryOverrides } : {}),
+    };
   }
 
   private parsePositions(raw: unknown, index: number): EraConfig['positions'] {

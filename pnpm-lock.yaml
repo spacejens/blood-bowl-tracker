@@ -53,6 +53,9 @@ importers:
 
   apps/discord-bot:
     dependencies:
+      '@blood-bowl-tracker/api-contract':
+        specifier: workspace:*
+        version: link:../../packages/api-contract
       '@blood-bowl-tracker/api-server':
         specifier: workspace:*
         version: link:../../packages/api-server

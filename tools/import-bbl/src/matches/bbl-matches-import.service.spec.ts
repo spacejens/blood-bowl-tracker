@@ -5,12 +5,14 @@ import {
   MatchesImportService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { BblMatchDetailReaderService } from './bbl-match-detail-reader.service';
 import { BblMatchListReaderService } from './bbl-match-list-reader.service';
 import { BblMatchesImportService } from './bbl-matches-import.service';
+import { MatchCategoryClassifierService } from './match-category-classifier.service';
+import { MatchCategoryConfigService } from './match-category-config.service';
 import type { BblMatch } from './match-list-page-parser';
 import type { MatchMergeResolution } from './match-merge.service';
 import { MatchMergeService } from './match-merge.service';
@@ -63,6 +65,8 @@ interface Mocks {
   matchMerge: MockProxy<MatchMergeService>;
   matchDetailReader: MockProxy<BblMatchDetailReaderService>;
   importResults: MockProxy<ImportResultService>;
+  classifier: MockProxy<MatchCategoryClassifierService>;
+  categoryConfig: MockProxy<MatchCategoryConfigService>;
 }
 
 async function makeService(
@@ -94,6 +98,12 @@ async function makeService(
   }));
   importResults.result.mockReturnValue(CANNED_RESULT);
 
+  const classifier = mock<MatchCategoryClassifierService>();
+  classifier.classify.mockReturnValue('normal');
+
+  const categoryConfig = mock<MatchCategoryConfigService>();
+  categoryConfig.getCategoryOverrides.mockReturnValue(new Map());
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblMatchesImportService,
@@ -102,6 +112,8 @@ async function makeService(
       { provide: MatchMergeService, useValue: matchMerge },
       { provide: BblMatchDetailReaderService, useValue: matchDetailReader },
       { provide: ImportResultService, useValue: importResults },
+      { provide: MatchCategoryClassifierService, useValue: classifier },
+      { provide: MatchCategoryConfigService, useValue: categoryConfig },
     ],
   }).compile();
 
@@ -113,6 +125,8 @@ async function makeService(
       matchMerge,
       matchDetailReader,
       importResults,
+      classifier,
+      categoryConfig,
     },
   };
 }
@@ -150,6 +164,7 @@ describe('BblMatchesImportService', () => {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 8, 25)),
         name: 'Match 3',
+        category: 'normal',
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
         teamEraIds: [],
       },
@@ -239,6 +254,7 @@ describe('BblMatchesImportService', () => {
         competitionId: 99,
         playedAt: new Date(Date.UTC(2016, 8, 24)),
         name: 'Bierhallentodball',
+        category: 'normal',
         externalIds: [
           { externalSystemId: 1, externalId: '1061' },
           { externalSystemId: 1, externalId: '1062' },
@@ -329,5 +345,125 @@ describe('BblMatchesImportService', () => {
     const { result } = await service.importMatches(new Map(), new Map());
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  describe('category resolution', () => {
+    const cupMatch: BblMatch = {
+      bblId: '1830',
+      date: new Date(Date.UTC(2022, 5, 1)),
+    };
+
+    const cupCompetition: UpsertCompetition = {
+      name: 'Cup Season 3',
+      type: 'cup',
+      eraId: 200,
+      teamEraIds: [],
+      externalIds: [{ externalSystemId: 1, externalId: '55' }],
+    };
+
+    let mocks: Mocks;
+    let service: BblMatchesImportService;
+    let competitionsByBblId: Map<string, UpsertCompetition>;
+    let competitionIdsByBblId: Map<string, number>;
+
+    beforeEach(async () => {
+      ({ service, mocks } = await makeService(
+        { '55': [cupMatch] },
+        { '1830': detail('1830', 'Final') },
+      ));
+      mocks.matchesImport.upsertMatchResult.mockResolvedValue({ id: 700 });
+      mocks.matchMerge.resolve.mockResolvedValue({
+        primaryBblIdByBblId: new Map([['1830', '1830']]),
+        partnerBblId: (bblId) => (bblId === '1830' ? '1831' : undefined),
+        isPrimary: (bblId) => bblId === '1830',
+        isSecondary: () => false,
+        effectivePlayedAt: (_bblId, rawDate) => rawDate,
+      });
+      // Reflects the real ImportResultService.result() shape (a pure field
+      // copy, not branching logic to guard against drift) so these tests can
+      // assert on the returned result's errors directly, rather than only on
+      // the args recorded via resultArgs().
+      mocks.importResults.result.mockImplementation((args) => ({
+        success: args.errors.length === 0,
+        imported: args.imported,
+        errors: args.errors,
+      }));
+      competitionsByBblId = new Map([['55', cupCompetition]]);
+      competitionIdsByBblId = new Map([['55', 900]]);
+    });
+
+    it('sends the classifier-derived category on the upsert', async () => {
+      mocks.classifier.classify.mockReturnValue('season_final');
+      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'season_final' }),
+        expect.anything(),
+      );
+    });
+
+    it('passes the match name and the competition type to the classifier', async () => {
+      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      expect(mocks.classifier.classify).toHaveBeenCalledWith({
+        bblId: '1830',
+        name: 'Final',
+        competitionType: 'cup',
+      });
+    });
+
+    it('prefers a configured override over the classifier', async () => {
+      mocks.categoryConfig.getCategoryOverrides.mockReturnValue(
+        new Map([['1830', 'cup_final']]),
+      );
+      mocks.classifier.classify.mockReturnValue('normal');
+      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'cup_final' }),
+        expect.anything(),
+      );
+      expect(mocks.classifier.classify).not.toHaveBeenCalled();
+    });
+
+    it('uses a merge partner’s override when the primary has none', async () => {
+      // merges.partnerBblId returns '1831' for '1830'
+      mocks.categoryConfig.getCategoryOverrides.mockReturnValue(
+        new Map([['1831', 'cup_final']]),
+      );
+      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      expect(mocks.matchesImport.upsertMatchResult).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'cup_final' }),
+        expect.anything(),
+      );
+    });
+
+    it('records an error and skips the match when the classifier throws', async () => {
+      mocks.classifier.classify.mockImplementation(() => {
+        throw new Error('looks like a knock-out stage');
+      });
+      const { result } = await service.importMatches(
+        competitionsByBblId,
+        competitionIdsByBblId,
+      );
+      expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
+      expect(result.errors).toHaveLength(1);
+    });
+
+    it('records an error and skips the match when the competition has no type', async () => {
+      // competitionsByBblId entry built without `type`
+      const { type: _type, ...withoutType } = cupCompetition;
+      competitionsByBblId = new Map([['55', withoutType]]);
+      const { result } = await service.importMatches(
+        competitionsByBblId,
+        competitionIdsByBblId,
+      );
+      expect(mocks.matchesImport.upsertMatchResult).not.toHaveBeenCalled();
+      expect(result.errors).toHaveLength(1);
+    });
+
+    it('reads the override list once per import run, not once per match', async () => {
+      await service.importMatches(competitionsByBblId, competitionIdsByBblId);
+      expect(mocks.categoryConfig.getCategoryOverrides).toHaveBeenCalledTimes(
+        1,
+      );
+    });
   });
 });

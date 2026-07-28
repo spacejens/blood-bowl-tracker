@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { HtmlService } from '../shared/html.service';
+import { MatchCategoryLabelService } from '../shared/match-category-label.service';
 import type { ReviewGap, SampledMatch } from '../shared/review.types';
 
 /** One data type's two panels for one match. */
@@ -48,7 +49,10 @@ const STYLES = `
  */
 @Injectable()
 export class ReportBuilderService {
-  constructor(private readonly html: HtmlService) {}
+  constructor(
+    private readonly html: HtmlService,
+    private readonly categoryLabel: MatchCategoryLabelService,
+  ) {}
 
   build(report: ReviewReport): string {
     const body =
@@ -87,6 +91,7 @@ ${body}
     const heading = this.html.escape(
       `${match.source.toUpperCase()} match ${match.externalId} — ` +
         `${match.competitionName}, ${match.matchName} ` +
+        `[${this.categoryLabel.label(match.category)}] ` +
         `(${match.playedAt.toISOString().slice(0, 10)}, db id ${match.matchId})`,
     );
     const reasons = this.html.escape(

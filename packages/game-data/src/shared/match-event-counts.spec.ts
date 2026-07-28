@@ -382,6 +382,16 @@ describe('listBiggestExpensiveMistakes', () => {
     ).resolves.toEqual(rows);
   });
 
+  it('selects the match category', async () => {
+    const builder = makeQueryBuilder([]);
+    const select = vi.fn(() => builder);
+    const db = { select } as unknown as Db;
+    await listBiggestExpensiveMistakes({ db, limit: 21 });
+    expect(
+      Object.keys(firstCallArg(select) as Record<string, unknown>),
+    ).toContain('category');
+  });
+
   it('filters by league when a leagueId is given', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;

@@ -8,14 +8,17 @@ import { MatchParserService } from './match-parser.service';
 
 /**
  * A minimal valid match body. `round`, `group.phase.roundName`,
- * `inscriptionLocal.roster.id` and `inscriptionVisitor.roster.id` are all
- * required, so every valid body includes them; override to model each case.
+ * `group.phase.type`, `group.phase.order`, `inscriptionLocal.roster.id` and
+ * `inscriptionVisitor.roster.id` are all required, so every valid body
+ * includes them; override to model each case. `type`/`order` default to
+ * `160`/`1` -- the real "main phase" tuple seen across most fixture
+ * competitions -- since most cases don't care about the phase tuple itself.
  */
 function matchBody(overrides: Record<string, unknown> = {}) {
   return {
     matchId: 42,
     round: 3,
-    group: { phase: { roundName: 'ROUND' } },
+    group: { phase: { roundName: 'ROUND', type: 160, order: 1 } },
     createdInstant: '2021-04-01T09:00:00Z',
     inscriptionLocal: { roster: { id: 10, lineUps: [] } },
     inscriptionVisitor: { roster: { id: 20, lineUps: [] } },
@@ -66,7 +69,59 @@ describe('MatchParserService', () => {
       matchEvents: [],
       homeRosterPlayers: [],
       awayRosterPlayers: [],
+      phaseType: 160,
+      phaseOrder: 1,
+      round: 3,
+      winner: undefined,
     });
+  });
+
+  it('exposes the phase type and order', () => {
+    const parsed = service.parse(
+      matchBody({
+        group: { phase: { roundName: 'DAY', type: 110, order: 3 } },
+      }),
+    );
+    expect(parsed.phaseType).toBe(110);
+    expect(parsed.phaseOrder).toBe(3);
+  });
+
+  it('exposes round (the phase-relative round number, distinct from phase.order)', () => {
+    const result = service.parse(matchBody({ round: 2 }));
+    expect(result.round).toBe(2);
+  });
+
+  it('maps scoreResume.winner "Local" to winner "home"', () => {
+    const result = service.parse(
+      matchBody({ scoreResume: { winner: 'Local' } }),
+    );
+    expect(result.winner).toBe('home');
+  });
+
+  it('maps scoreResume.winner "Visitor" to winner "away"', () => {
+    const result = service.parse(
+      matchBody({ scoreResume: { winner: 'Visitor' } }),
+    );
+    expect(result.winner).toBe('away');
+  });
+
+  it('maps scoreResume.winner "Draw" to winner "draw"', () => {
+    const result = service.parse(
+      matchBody({ scoreResume: { winner: 'Draw' } }),
+    );
+    expect(result.winner).toBe('draw');
+  });
+
+  it('leaves winner undefined when scoreResume is absent', () => {
+    const result = service.parse(matchBody());
+    expect(result.winner).toBeUndefined();
+  });
+
+  it('leaves winner undefined when scoreResume.winner is absent', () => {
+    const result = service.parse(
+      matchBody({ scoreResume: { startInstant: '2021-04-01T09:00:00Z' } }),
+    );
+    expect(result.winner).toBeUndefined();
   });
 
   it('maps inscriptionLocal.roster.lineUps / inscriptionVisitor.roster.lineUps to homeRosterPlayers/awayRosterPlayers', () => {
@@ -253,7 +308,10 @@ describe('MatchParserService', () => {
 
   it('title-cases a "DAY" roundName ("DAY" + 2 -> "Day 2")', () => {
     const result = service.parse(
-      matchBody({ round: 2, group: { phase: { roundName: 'DAY' } } }),
+      matchBody({
+        round: 2,
+        group: { phase: { roundName: 'DAY', type: 160, order: 1 } },
+      }),
     );
     expect(result.name).toBe('Day 2');
   });

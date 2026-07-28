@@ -86,11 +86,24 @@ camelCase, grouped into nested objects by concern:
       imported as ordinary matches. Unset or empty means no merges are
       configured for that era (the common case). The
       `import-bbl-config.example.json5` ships this league's six confirmed
-      pairs, all under `First era`, as a working example.
+      pairs, all under `First era`, as a working example. `matches` also
+      carries an optional `categoryOverrides` list, an array of
+      `{ matchId, category }` entries, e.g.
+      `[{ matchId: "1061", category: "cup_final" }]`. This lets the developer
+      explicitly assign a match category for a BBL match id the keyword
+      classifier cannot recognize (a thematic cup-final name such as
+      "Bierhallentodball"/"Bierhallentotball") or deliberately refuses to
+      guess at (an ambiguous stage-like name). A configured override always
+      wins over the keyword classifier's guess. A match whose name the
+      classifier cannot recognize, and which has no override here, fails the
+      import until it gets either a keyword the classifier understands or an
+      entry in this list. `merges` is optional within `matches` too, so an
+      era may configure only `categoryOverrides` with no merges.
 
     A competition bblId may appear in only one of the two competition override
     lists across all eras; a team code in only one era's `teamCodeOverrides`;
-    and a match id in only one `matches.merges` pair across all eras. Rules
+    a match id in only one `matches.merges` pair across all eras; and a match
+    id in only one `matches.categoryOverrides` entry across all eras. Rules
     sets and eras are not present in the source data, so they are supplied
     here. Each era's rules set names and each era name are used as external
     IDs under both the configured BBL external system and the `Name` external

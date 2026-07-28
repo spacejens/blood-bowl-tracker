@@ -1,3 +1,4 @@
+import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
@@ -12,24 +13,29 @@ import {
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
 import { ExpensiveMistakesToplistService } from './expensive-mistakes-toplist.service';
+import { MatchCategoryLabelService } from './match-category-label.service';
 
 interface MadeService {
   service: ExpensiveMistakesToplistService;
   leaderboard: MockProxy<LeaderboardService>;
+  categoryLabel: MockProxy<MatchCategoryLabelService>;
 }
 
 async function makeService(teams: TeamsService): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
+  const categoryLabel = mock<MatchCategoryLabelService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       ExpensiveMistakesToplistService,
       { provide: TeamsService, useValue: teams },
       { provide: LeaderboardService, useValue: leaderboard },
+      { provide: MatchCategoryLabelService, useValue: categoryLabel },
     ],
   }).compile();
   return {
     service: moduleRef.get(ExpensiveMistakesToplistService),
     leaderboard,
+    categoryLabel,
   };
 }
 
@@ -41,6 +47,17 @@ interface MistakeRow {
 
 interface BiggestMistakeRow extends MistakeRow {
   date: string;
+  category: MatchCategory;
+}
+
+function capturedFormatRow(
+  leaderboard: MockProxy<LeaderboardService>,
+): (row: BiggestMistakeRow & { rank: number }) => string {
+  const options = leaderboard.resolveToplist.mock
+    .calls[0][0] as unknown as ResolveToplistOptions<BiggestMistakeRow>;
+  return options.formatRow as (
+    row: BiggestMistakeRow & { rank: number },
+  ) => string;
 }
 
 describe('ExpensiveMistakesToplistService.resolveTotal', () => {
@@ -145,6 +162,7 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
         name: '40 grinders',
         count: 0,
         date: '2026-03-04',
+        category: 'normal',
       }),
     ).toBe(1);
     expect(
@@ -153,6 +171,7 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
         name: '40 grinders',
         count: 90000,
         date: '2026-03-04',
+        category: 'normal',
         rank: 1,
       }),
     ).toBe('1. 40 grinders — 90,000 gp (2026-03-04)');
@@ -191,5 +210,46 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
     expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
       expect.objectContaining({ timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE }),
     );
+  });
+
+  it('appends the category to the date suffix when it is not normal', async () => {
+    const teams = {
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard, categoryLabel } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    categoryLabel.label.mockReturnValue('Season Final');
+    await service.resolveBiggest({});
+    const formatRow = capturedFormatRow(leaderboard);
+    expect(
+      formatRow({
+        rank: 1,
+        teamId: 4,
+        name: '40 grinders',
+        count: 90000,
+        date: '2026-06-13',
+        category: 'season_final',
+      }),
+    ).toBe('1. 40 grinders — 90,000 gp (2026-06-13, Season Final)');
+  });
+
+  it('leaves the category out of the suffix when it is normal', async () => {
+    const teams = {
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveBiggest({});
+    const formatRow = capturedFormatRow(leaderboard);
+    expect(
+      formatRow({
+        rank: 1,
+        teamId: 4,
+        name: '40 grinders',
+        count: 90000,
+        date: '2026-06-13',
+        category: 'normal',
+      }),
+    ).toBe('1. 40 grinders — 90,000 gp (2026-06-13)');
   });
 });

@@ -1,93 +1,109 @@
 import { competitions, DB, matches } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 import type { MockDbResult } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
-import { MergedMatchStratificationService } from './merged-match-stratification.service';
+import { MatchCategoryStratificationService } from './match-category-stratification.service';
 
 const dbRow = {
   matchId: 11,
-  matchName: 'Final',
+  externalId: '1830',
+  matchName: 'Cup Final',
   competitionName: 'Bierhallentodball 2021',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
-  category: 'cup_final' as const,
-  externalIds: ['1830', '1831'],
 };
 
 async function makeService(
   dbResult: MockDbResult,
   systemId = 3,
-): Promise<MergedMatchStratificationService> {
+): Promise<MatchCategoryStratificationService> {
   const externalSystems = mock<ExternalSystemLookupService>();
   externalSystems.getSystemId.mockResolvedValue(systemId);
   const moduleRef = await Test.createTestingModule({
     providers: [
-      MergedMatchStratificationService,
+      MatchCategoryStratificationService,
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],
   }).compile();
-  return moduleRef.get(MergedMatchStratificationService);
+  return moduleRef.get(MatchCategoryStratificationService);
 }
 
-describe('MergedMatchStratificationService', () => {
+describe('MatchCategoryStratificationService', () => {
   describe('listStrata', () => {
-    it('offers exactly the merged stratum', async () => {
+    it('lists the five non-normal category strata, in table order', async () => {
       const service = await makeService(mockDb());
 
       expect(service.listStrata().map((stratum) => stratum.id)).toEqual([
-        'merged',
+        'cup_final',
+        'season_semi_final',
+        'season_final',
+        'season_bronze',
+        'season_qualifier',
       ]);
     });
 
-    it('offers the merged stratum for BBL only', async () => {
+    it('offers every stratum for both BBL and TP', async () => {
       const service = await makeService(mockDb());
 
-      expect(service.listStrata()[0].sources).toEqual(['bbl']);
+      for (const stratum of service.listStrata()) {
+        expect(stratum.sources).toEqual(['bbl', 'tp']);
+      }
     });
 
-    it('gives the stratum a non-empty label', async () => {
+    it('gives every stratum a non-empty label', async () => {
       const service = await makeService(mockDb());
 
-      expect(service.listStrata()[0].label).not.toBe('');
+      for (const stratum of service.listStrata()) {
+        expect(stratum.label).not.toBe('');
+      }
     });
   });
 
   describe('sampleStratum', () => {
-    it('splits the two aggregated ids into primary and secondary', async () => {
-      const service = await makeService(mockDb([dbRow]));
+    it.each([
+      ['cup_final', 'cup_final'],
+      ['season_semi_final', 'season_semi_final'],
+      ['season_final', 'season_final'],
+      ['season_bronze', 'season_bronze'],
+      ['season_qualifier', 'season_qualifier'],
+    ] as const)(
+      'filters stratum "%s" on matches.category = "%s"',
+      async (stratumId, category) => {
+        const dbResult = mockDb([dbRow]);
+        const service = await makeService(dbResult);
 
-      await expect(
-        service.sampleStratum({ source: 'bbl', stratumId: 'merged', limit: 3 }),
-      ).resolves.toEqual([
-        {
-          source: 'bbl',
-          matchId: 11,
-          matchName: 'Final',
-          competitionName: 'Bierhallentodball 2021',
-          playedAt: new Date('2021-09-25T18:00:00.000Z'),
-          category: 'cup_final',
-          externalId: '1830',
-          secondaryExternalId: '1831',
-        },
-      ]);
-    });
+        await expect(
+          service.sampleStratum({ source: 'bbl', stratumId, limit: 3 }),
+        ).resolves.toEqual([{ source: 'bbl', category, ...dbRow }]);
 
-    it('restricts the query to matches with exactly two external ids', async () => {
+        expect(dbResult.chains[0].where).toHaveBeenCalledWith(
+          eq(matches.category, category),
+        );
+      },
+    );
+
+    it('groups by the match, not the external id, so a merged match yields one row', async () => {
       const dbResult = mockDb([dbRow]);
       const service = await makeService(dbResult);
 
       await service.sampleStratum({
         source: 'bbl',
-        stratumId: 'merged',
+        stratumId: 'cup_final',
         limit: 3,
       });
 
-      // The one-id and three-or-more-id matches are excluded in SQL by the
-      // HAVING clause; the mock cannot evaluate it, so assert it is applied.
+      // A merged BBL match (the four-team finals) has two matchExternalIds
+      // rows for the same match under the same external system — exactly
+      // the case a cup_final/season_final stratum is likely to hit.
+      // Grouping by the match's own columns (and picking the lowest external
+      // id via an aggregate, asserted by the query shape itself) keeps it to
+      // one row, the same guard MatchEventStratificationService and
+      // MergedMatchStratificationService both apply.
       expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
         matches.id,
         matches.name,
@@ -95,7 +111,6 @@ describe('MergedMatchStratificationService', () => {
         matches.playedAt,
         matches.category,
       );
-      expect(dbResult.chains[0].having).toHaveBeenCalledTimes(1);
     });
 
     it('limits the query to the requested number of matches', async () => {
@@ -104,18 +119,22 @@ describe('MergedMatchStratificationService', () => {
 
       await service.sampleStratum({
         source: 'bbl',
-        stratumId: 'merged',
+        stratumId: 'cup_final',
         limit: 5,
       });
 
       expect(dbResult.chains[0].limit).toHaveBeenCalledWith(5);
     });
 
-    it('returns an empty list when no merged match exists', async () => {
+    it('returns an empty list when no match satisfies the stratum', async () => {
       const service = await makeService(mockDb([]));
 
       await expect(
-        service.sampleStratum({ source: 'bbl', stratumId: 'merged', limit: 3 }),
+        service.sampleStratum({
+          source: 'tp',
+          stratumId: 'season_final',
+          limit: 3,
+        }),
       ).resolves.toEqual([]);
     });
 
@@ -125,20 +144,20 @@ describe('MergedMatchStratificationService', () => {
       const dbResult = mockDb([]);
       const moduleRef = await Test.createTestingModule({
         providers: [
-          MergedMatchStratificationService,
+          MatchCategoryStratificationService,
           { provide: DB, useValue: dbResult.db },
           { provide: ExternalSystemLookupService, useValue: externalSystems },
         ],
       }).compile();
-      const service = moduleRef.get(MergedMatchStratificationService);
+      const service = moduleRef.get(MatchCategoryStratificationService);
 
       await service.sampleStratum({
-        source: 'bbl',
-        stratumId: 'merged',
+        source: 'tp',
+        stratumId: 'cup_final',
         limit: 1,
       });
 
-      expect(externalSystems.getSystemId).toHaveBeenCalledWith('bbl');
+      expect(externalSystems.getSystemId).toHaveBeenCalledWith('tp');
     });
 
     it('throws when asked for a stratum it does not offer', async () => {
@@ -150,7 +169,7 @@ describe('MergedMatchStratificationService', () => {
           stratumId: 'nonsense',
           limit: 1,
         }),
-      ).rejects.toThrow(/Unknown merged-match stratum "nonsense"/);
+      ).rejects.toThrow(/Unknown match-category stratum "nonsense"/);
     });
   });
 });

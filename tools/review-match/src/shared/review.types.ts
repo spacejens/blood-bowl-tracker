@@ -1,3 +1,5 @@
+import type { Match } from '@blood-bowl-tracker/db';
+
 /** The import sources this tool can review data from. */
 export type ReviewSource = 'bbl' | 'tp';
 
@@ -16,6 +18,13 @@ export interface ReviewMatch {
   /** `game_data.competitions.name` the match belongs to. */
   competitionName: string;
   playedAt: Date;
+  /**
+   * `game_data.matches.category`, e.g. 'cup_final'. Always rendered in the
+   * report heading, including for 'normal' — confirming that a routine match
+   * really was imported as routine is exactly the kind of check this review
+   * tool exists for.
+   */
+  category: Match['category'];
   /**
    * The paired source's own match id, for a BBL match merged from two
    * original two-team source rows. Set only by the merged-match stratifier;

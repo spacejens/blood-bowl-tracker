@@ -6,3 +6,4 @@ A [match](../../glossary.md#match) is a single game of Blood Bowl played within 
 - A match involves two or more [team eras](../team-eras/index.md). Almost all matches have exactly two; more than two is a rare variant.
 - A match contains zero or more [match events](../match-events/index.md).
 - A match has a mandatory display name (e.g. "Final", "Vecka 40-41"). Names are not unique and must never be used as an external ID.
+- A match has a mandatory category describing its stage within the competition: `normal` (the default for routine league and cup play), `cup_final`, `season_semi_final`, `season_final`, `season_bronze`, or `season_qualifier`. There is no "unknown" value — an importer that cannot classify a match must fail rather than guess. A category must be consistent with its competition's type (`cup_final` only on a cup, `season_*` only on a season); this is enforced in application code, not in the database.
