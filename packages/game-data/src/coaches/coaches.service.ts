@@ -151,6 +151,9 @@ export class CoachesService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          scope.category === undefined
+            ? undefined
+            : eq(matches.category, scope.category),
         ),
       )
       .groupBy(coaches.id, coaches.name)
@@ -166,8 +169,8 @@ export class CoachesService {
    *
    * The inner `selectDistinct` deduplicates a match a coach played with two of
    * their own teams (same reason `countMatchesPlayedByCoach` counts distinct
-   * match ids), so such a match cannot produce a spurious zero-day gap. League
-   * and era filtering is applied here, before the window function, so only
+   * match ids), so such a match cannot produce a spurious zero-day gap. League,
+   * era and match-category filtering is applied here, before the window function, so only
    * in-scope matches take part in a coach's gap sequence.
    */
   private gapsByCoach(scope: FactScope) {
@@ -191,6 +194,9 @@ export class CoachesService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          scope.category === undefined
+            ? undefined
+            : eq(matches.category, scope.category),
         ),
       )
       .as('coach_matches');
@@ -284,11 +290,26 @@ export class CoachesService {
     );
   }
 
+  /**
+   * Coaches ranked by distinct competitions entered. A match category narrows
+   * this to the competitions in which the coach's teams actually played a match
+   * of that category (e.g. the competitions they reached the final of), which
+   * needs the played matches joined in — registration alone
+   * (`competitionTeams`) carries no category. The join is added only on that
+   * path so the unfiltered count keeps counting entries rather than
+   * appearances.
+   */
   async countCompetitionsByCoach(
     scope: FactScope,
     limit: number,
   ): Promise<{ coachId: number; name: string; count: number }[]> {
-    return this.db
+    const eraFilter = and(
+      scope.leagueId === undefined
+        ? undefined
+        : eq(eras.leagueId, scope.leagueId),
+      scope.eraId === undefined ? undefined : eq(teamEras.eraId, scope.eraId),
+    );
+    const base = this.db
       .select({
         coachId: coaches.id,
         name: coaches.name,
@@ -302,17 +323,25 @@ export class CoachesService {
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(coaches, eq(coaches.id, teams.coachId))
-      .where(
+      .innerJoin(coaches, eq(coaches.id, teams.coachId));
+    if (scope.category === undefined) {
+      return base
+        .where(eraFilter)
+        .groupBy(coaches.id, coaches.name)
+        .orderBy(desc(countDistinct(competitions.id)))
+        .limit(limit);
+    }
+    return base
+      .innerJoin(matchTeams, eq(matchTeams.teamEraId, teamEras.id))
+      .innerJoin(
+        matches,
         and(
-          scope.leagueId === undefined
-            ? undefined
-            : eq(eras.leagueId, scope.leagueId),
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
+          eq(matches.id, matchTeams.matchId),
+          eq(matches.competitionId, competitions.id),
+          eq(matches.category, scope.category),
         ),
       )
+      .where(eraFilter)
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(competitions.id)))
       .limit(limit);
