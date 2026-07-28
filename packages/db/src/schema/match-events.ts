@@ -2,8 +2,7 @@ import { sql } from 'drizzle-orm';
 import { check, integer, serial } from 'drizzle-orm/pg-core';
 
 import { historyTrackedTable } from './history';
-import { matchTeams } from './match-teams';
-import { matches } from './matches';
+import { matches, matchTeams } from './matches';
 import { gameData } from './pg-schema';
 import { players } from './players';
 
