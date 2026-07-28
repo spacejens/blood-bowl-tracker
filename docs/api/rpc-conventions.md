@@ -4,6 +4,24 @@ Every procedure in the API is exposed through `packages/api-contract` and
 dispatched over [oRPC](https://orpc.dev/)'s native RPC transport (not
 REST/OpenAPI), implemented in `packages/api-server`.
 
+## Authentication
+
+Every `/rpc` request must carry an `Authorization: Bearer <token>` header. The
+server (`packages/api-server`) accepts one token per known network caller —
+`tools/import-bbl`, `tools/import-tp`, and `tools/import-manual` — configured
+as the `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, and
+`API_TOKEN_IMPORT_MANUAL` environment variables of the hosting
+`apps/discord-bot` process (see [discord-bot](../discord-bot/index.md)).
+`apps/discord-bot` itself needs no token: its own commands call
+`packages/game-data` in-process, never over HTTP.
+
+A request with no header, a malformed header, or a token matching no
+configured caller is rejected before it reaches any procedure, with HTTP `401`
+and the body `{"error":"Unauthorized"}`. This is authentication only: every
+authenticated caller can invoke every procedure. Tokens are compared in
+constant time, and rejections are logged at warn level (the caller is unknown
+by definition, so only the method and path are logged).
+
 ## Standard procedures
 
 Most importable entities expose an `upsert` procedure (e.g.
