@@ -71,11 +71,19 @@ export class MatchCategoryClassifierService {
     const normalized = this.normalize(name);
     const target = KEYWORDS[normalized];
     if (target !== undefined) {
-      return target === 'final'
-        ? competitionType === 'cup'
-          ? 'cup_final'
-          : 'season_final'
-        : target;
+      if (target === 'final') {
+        return competitionType === 'cup' ? 'cup_final' : 'season_final';
+      }
+      if (competitionType === 'cup') {
+        throw new Error(
+          `BBL match ${bblId}: match name "${name}" resolved via keyword ` +
+            `"${normalized}" to category "${target}", which is not valid ` +
+            "for a cup competition. Set the match's category explicitly " +
+            'via leagues[].eras[].matches.categoryOverrides in ' +
+            'import-bbl-config.json5.',
+        );
+      }
+      return target;
     }
     if (SUSPICIOUS.some((token) => normalized.includes(token))) {
       throw new Error(

@@ -86,4 +86,15 @@ describe('MatchCategoryClassifierService', () => {
       /SL Final - Deathmatch/,
     );
   });
+
+  it.each([['Semifinal'], ['Bronsmatch'], ['Kval']])(
+    'throws for %s on a cup competition, since only season stages have those keywords',
+    (name) => {
+      expect(() => classify(name, 'cup')).toThrow(/BBL match 1830/);
+    },
+  );
+
+  it('names the match id in the thrown message for a season keyword on a cup', () => {
+    expect(() => classify('Semifinal', 'cup')).toThrow(/1830/);
+  });
 });
