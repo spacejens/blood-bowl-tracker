@@ -18,9 +18,12 @@ const NONE = '—';
 const MAX_FIELDS_LENGTH = 1000;
 /** Shown in their own columns, so left out of the "other fields" JSON. */
 const OWN_COLUMN_FIELDS = ['matchEventType', 'id'];
-/** The two codes whose gist lives in their own `extraData`, not a player. */
+/** The codes whose gist lives in their own `extraData`, not a player. */
 const WEATHER_CODE = 10;
 const INDUCEMENTS_CODE = 11;
+const DEDICATED_FANS_CODE = 26;
+/** The one player-referencing code whose outcome is worth naming. */
+const INJURY_CODE = 8;
 /** TP's classic weather table, and what an event with no table means. */
 const CLASSIC_WEATHER_TABLE = 0;
 
@@ -29,6 +32,11 @@ const CLASSIC_WEATHER_TABLE = 0;
  * event code (with an independent human-readable hint), the event's own id, a
  * one-line summary of who or what the event is about, and every other field as
  * raw JSON behind a collapsed disclosure.
+ *
+ * The summary names the resolved player (prefixed `Player: `, with the
+ * injury outcome appended for a code-8 event), the decoded weather condition,
+ * the induced star players and/or treasury spend on an inducements event, or
+ * the per-side fan-factor change on a dedicated-fans event.
  *
  * Deliberately does not use `packages/parse-tp` — its decoding is what the
  * reviewer is checking. The summary column therefore reads TP's *raw* field
@@ -92,16 +100,38 @@ export class TpMatchEventsRawRendererService {
   ): TableCell {
     const lineUpId = fields.lineUpId;
     if (typeof lineUpId === 'number') {
-      return this.players.nameFor(names, lineUpId);
+      return this.playerSummary(fields, names, lineUpId);
     }
     const extraData = this.objectAt(fields, 'extraData');
     if (fields.matchEventType === WEATHER_CODE) {
       return this.weatherSummary(extraData);
     }
     if (fields.matchEventType === INDUCEMENTS_CODE) {
-      return this.starPlayersSummary(extraData);
+      return this.inducementsSummary(extraData);
+    }
+    if (fields.matchEventType === DEDICATED_FANS_CODE) {
+      return this.dedicatedFansSummary(extraData);
     }
     return NONE;
+  }
+
+  /**
+   * `Player: <name>`, with the injury outcome appended for a code-8 (injury)
+   * event. `injuryType` is a top-level raw field on that event, not under
+   * `extraData` — unlike weather or inducements, injury shares its schema
+   * shape with every other `lineUpId`-carrying event.
+   */
+  private playerSummary(
+    fields: Record<string, unknown>,
+    names: ReadonlyMap<number, string>,
+    lineUpId: number,
+  ): TableCell {
+    const name = this.players.nameFor(names, lineUpId);
+    const injuryType = fields.injuryType;
+    return fields.matchEventType === INJURY_CODE &&
+      typeof injuryType === 'string'
+      ? `Player: ${name} (${injuryType})`
+      : `Player: ${name}`;
   }
 
   /** The raw `matchEvents` array, or null when the file has no such array. */
@@ -150,20 +180,56 @@ export class TpMatchEventsRawRendererService {
     return this.weatherLabels.describe(table, code);
   }
 
-  /** Star player names are already inline in the raw JSON — no lookup. */
-  private starPlayersSummary(extraData: Record<string, unknown>): TableCell {
+  /**
+   * Star player names are already inline in the raw JSON — no lookup. The
+   * treasury portion of the spend (`extraData.fromTreasury`) is appended
+   * when present, since it is the one value change on this event kind a
+   * reviewer would otherwise have to open the raw JSON to see.
+   */
+  private inducementsSummary(extraData: Record<string, unknown>): TableCell {
+    const parts: string[] = [];
     const starPlayers = extraData.starPlayers;
-    if (!Array.isArray(starPlayers)) {
+    if (Array.isArray(starPlayers)) {
+      const names = starPlayers
+        .map((player) =>
+          typeof player === 'object' && player !== null
+            ? (player as { name?: unknown }).name
+            : undefined,
+        )
+        .filter((name): name is string => typeof name === 'string');
+      if (names.length > 0) {
+        parts.push(names.join(', '));
+      }
+    }
+    const fromTreasury = extraData.fromTreasury;
+    if (typeof fromTreasury === 'number') {
+      parts.push(`Treasury: ${fromTreasury}`);
+    }
+    return parts.length === 0 ? NONE : parts.join('; ');
+  }
+
+  /**
+   * A code-26 (dedicated fans) event carries no player or weather reference
+   * — only the fan-factor modifier change for each side.
+   */
+  private dedicatedFansSummary(extraData: Record<string, unknown>): TableCell {
+    const local = extraData.dedicatedFansModifierLocal;
+    const visitor = extraData.dedicatedFansModifierVisitor;
+    if (typeof local !== 'number' && typeof visitor !== 'number') {
       return NONE;
     }
-    const names = starPlayers
-      .map((player) =>
-        typeof player === 'object' && player !== null
-          ? (player as { name?: unknown }).name
-          : undefined,
-      )
-      .filter((name): name is string => typeof name === 'string');
-    return names.length === 0 ? NONE : names.join(', ');
+    return (
+      `Dedicated fans: local ${this.signed(local)}, ` +
+      `visitor ${this.signed(visitor)}`
+    );
+  }
+
+  /** A numeric change with an explicit sign, or `?` when it is absent. */
+  private signed(value: unknown): string {
+    if (typeof value !== 'number') {
+      return '?';
+    }
+    return value >= 0 ? `+${value}` : `${value}`;
   }
 
   /** The named property as a record, or an empty one when it is not one. */

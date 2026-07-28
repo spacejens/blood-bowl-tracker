@@ -102,8 +102,44 @@ describe('TpMatchEventsRawRendererService', () => {
 
     const html = await service.render('344820');
 
-    expect(html).toContain('<td>player:5</td>');
+    expect(html).toContain('<td>Player: player:5</td>');
     expect(mocks.players.nameFor).toHaveBeenCalledWith(NAMES, 5);
+  });
+
+  it('appends the injury outcome for a code-8 (injury) event', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 7,
+          matchEventType: 8,
+          instant: 'x',
+          lineUpId: 5,
+          injuryType: 'Dead',
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Player: player:5 (Dead)</td>');
+  });
+
+  it('does not append an injury outcome for a non-injury event', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 7,
+          matchEventType: 4,
+          instant: 'x',
+          lineUpId: 5,
+          injuryType: 'Dead',
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Player: player:5</td>');
   });
 
   it('builds the name map once from the loaded file and reuses it per row', async () => {
@@ -193,6 +229,48 @@ describe('TpMatchEventsRawRendererService', () => {
     expect(html).toContain('<td>Griff Oberwald, Morg n Thorg</td>');
   });
 
+  it('shows the treasury spend alongside the induced star players', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 11,
+          matchEventType: 11,
+          instant: 'x',
+          extraData: {
+            totalCost: 250000,
+            starPlayers: [{ name: 'Griff Oberwald' }],
+            fromTreasury: 50000,
+          },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Griff Oberwald; Treasury: 50000</td>');
+  });
+
+  it('shows the treasury spend alone when no star players were induced', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 11,
+          matchEventType: 11,
+          instant: 'x',
+          extraData: {
+            totalCost: 25000,
+            starPlayers: [],
+            fromTreasury: 25000,
+          },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Treasury: 25000</td>');
+  });
+
   it('shows no summary for an inducements event with no starPlayers field at all', async () => {
     const service = await makeService({
       matchEvents: [
@@ -273,6 +351,55 @@ describe('TpMatchEventsRawRendererService', () => {
     expect(html).toContain('<td>—</td>');
   });
 
+  it('summarises a dedicated fans event with both modifiers', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 13,
+          matchEventType: 26,
+          instant: 'x',
+          extraData: {
+            dedicatedFansModifierLocal: 1,
+            dedicatedFansModifierVisitor: -1,
+          },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Dedicated fans: local +1, visitor -1</td>');
+  });
+
+  it('summarises a dedicated fans event when only one modifier is present', async () => {
+    const service = await makeService({
+      matchEvents: [
+        {
+          id: 13,
+          matchEventType: 26,
+          instant: 'x',
+          extraData: { dedicatedFansModifierLocal: 2 },
+        },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>Dedicated fans: local +2, visitor ?</td>');
+  });
+
+  it('shows no summary for a dedicated fans event with neither modifier present', async () => {
+    const service = await makeService({
+      matchEvents: [
+        { id: 13, matchEventType: 26, instant: 'x', extraData: {} },
+      ],
+    });
+
+    const html = await service.render('344820');
+
+    expect(html).toContain('<td>—</td>');
+  });
+
   it('folds the remaining raw fields into a collapsed details block', async () => {
     const service = await makeService({
       matchEvents: [
@@ -281,7 +408,7 @@ describe('TpMatchEventsRawRendererService', () => {
           matchEventType: 8,
           instant: 'x',
           lineUpId: 5,
-          extraData: { injuryType: 'Dead' },
+          injuryType: 'Dead',
         },
       ],
     });

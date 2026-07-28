@@ -48,16 +48,20 @@ services.
      labels as reading aids only; the label tables necessarily describe the
      same meanings as `packages/parse-tp`'s real decoders, so they can't
      independently catch a decoder that's simply wrong about what a code
-     means. A `Summary` column names the player an event is about, resolved
-     from the same raw match file's own `inscription{Local,Visitor}` line-ups
-     (an id that resolves to nothing is shown as `unknown id <N>` rather than
-     blanked, so the gap is visible); lists the star players an inducements
-     event induced; or, for a weather event, names the decoded weather
-     condition (e.g. table 13's code `40` is `40 (very sunny)`, though the
-     same code `40` means `pouring rain` in the classic table 0 — a
-     reminder that the code is only unique within its table). Each event's
-     remaining raw JSON sits
-     behind a collapsed `expand` disclosure so a long match stays scannable.
+     means. A `Summary` column names the player an event is about (`Player:
+     <name>`), resolved from the same raw match file's own
+     `inscription{Local,Visitor}` line-ups (an id that resolves to nothing is
+     shown as `Player: unknown id <N>` rather than blanked, so the gap is
+     visible), with the injury outcome appended for an injury event (e.g.
+     `Player: Grim Ironjaw (Dead)`); lists the star players an inducements
+     event induced and/or the treasury portion of the spend (e.g. `Griff
+     Oberwald; Treasury: 50000`); shows the per-side fan-factor change on a
+     dedicated-fans event (e.g. `Dedicated fans: local +1, visitor -1`); or,
+     for a weather event, names the decoded weather condition (e.g. table
+     13's code `40` is `40 (very sunny)`, though the same code `40` means
+     `pouring rain` in the classic table 0 — a reminder that the code is only
+     unique within its table). Each event's remaining raw JSON sits behind a
+     collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
 4. Writes the report under `tools/review-match/output/` (gitignored) with a
