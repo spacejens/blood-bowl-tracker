@@ -11,6 +11,7 @@ import { mockDb } from '../shared/db-mock.test-helpers';
 import { FACT_SCOPE_ALL_TIME } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
+  extractAllFilterValues,
   extractFilterValues,
   extractJoinColumns,
   firstCallArg,
@@ -246,6 +247,18 @@ describe('RacesService', () => {
       expect(chains[0].where).toHaveBeenCalledTimes(1);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(20);
       expect(chains[0].limit).toHaveBeenCalledWith(21);
+    });
+
+    it('countMatchesPlayedByRace filters by the match category', async () => {
+      const { chains } = await build([]);
+      await service.countMatchesPlayedByRace({ category: 'season_final' }, 21);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'season_final',
+      ]);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 4, 1)),
+      ).toEqual(['matches.id', 'match_teams.match_id']);
     });
   });
 
