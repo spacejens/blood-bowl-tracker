@@ -225,6 +225,45 @@ describe('BblMatchOutcomesImportService', () => {
     );
   });
 
+  it('keys the final and bronze tie-breaks to their own matches in one competition', async () => {
+    const FINAL_BBL_ID = '1830';
+    const BRONZE_BBL_ID = '1831';
+    const FINAL_DB_ID = 11;
+    const BRONZE_DB_ID = 12;
+    const { service, mocks } = await makeService({
+      matches: new Map([
+        [COMPETITION_BBL_ID, [match(FINAL_BBL_ID), match(BRONZE_BBL_ID)]],
+      ]),
+      placements: new Map([
+        [COMPETITION_BBL_ID, { first: 'sew', second: 'vor', third: 'nur' }],
+      ]),
+    });
+    const options = defaultOptions({
+      matchIdsByBblId: new Map([
+        [FINAL_BBL_ID, FINAL_DB_ID],
+        [BRONZE_BBL_ID, BRONZE_DB_ID],
+      ]),
+      categoriesByBblId: new Map([
+        [FINAL_BBL_ID, 'season_final'],
+        [BRONZE_BBL_ID, 'season_bronze'],
+      ]),
+    });
+
+    await service.importMatchOutcomes(options);
+
+    expect(mocks.matchOutcomes.resolveOutcomes).toHaveBeenCalledWith(
+      {
+        competitionId: COMPETITION_DB_ID,
+        overrides: [],
+        tieBreaks: [
+          { matchId: FINAL_DB_ID, winnerTeamEraId: 501 },
+          { matchId: BRONZE_DB_ID, winnerTeamEraId: 503 },
+        ],
+      },
+      expect.anything(),
+    );
+  });
+
   it('sends no tie-break for a normal match', async () => {
     const { service, mocks } = await makeService({
       placements: new Map([
