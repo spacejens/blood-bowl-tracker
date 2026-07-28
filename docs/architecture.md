@@ -63,6 +63,24 @@ tools/
 - `packages/api-server` imports `packages/game-data` (for persistence) and `packages/api-contract` (for the RPC contract it implements) — it has no dependency on `packages/db` directly
 - `packages/game-data` has no dependency on any network-facing package — it is pure business logic over `packages/db`
 
+## Tool/app relationships
+
+Which tools and apps feed each other along the download → import → consume
+pipeline. Use this to judge whether a change in one place needs a matching
+change — or opens an opportunity — somewhere else. Only participants in that
+pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
+`tools/db-diagram`, `tools/eslint-rules`) are omitted.
+
+- **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
+- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot
+- **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other
+- **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity
+- **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data
+- **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once
+- **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, and import together
+- **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight
+- **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here; it deliberately reads the raw sources itself and must never depend on `packages/parse-tp` or importer logic (see `docs/review-match/index.md`)
+
 ## Key decisions
 
 **Drizzle in its own package.** The pre-release Drizzle dependency is isolated to `packages/db`, so the risk of breaking changes is contained to one place.

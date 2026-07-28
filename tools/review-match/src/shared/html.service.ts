@@ -9,9 +9,22 @@ import { Injectable } from '@nestjs/common';
  *   horizontal space;
  * - a `{ pre }` block, escaped as a whole and rendered preformatted — for
  *   naturally multi-line content (e.g. pretty-printed JSON) where line
- *   breaks and indentation both matter.
+ *   breaks and indentation both matter;
+ * - a `{ details }` block, rendered as a collapsed `<details>` disclosure
+ *   wrapping any other cell — for bulky content (e.g. one event's whole raw
+ *   JSON) that would otherwise make a long table unscannable. Build one with
+ *   `details()` rather than by hand.
  */
-export type TableCell = string | readonly string[] | { readonly pre: string };
+export type TableCell =
+  | string
+  | readonly string[]
+  | { readonly pre: string }
+  | {
+      readonly details: {
+        readonly summary: string;
+        readonly body: TableCell;
+      };
+    };
 
 /**
  * Builds the small HTML fragments every renderer needs. Escaping lives here
@@ -60,12 +73,27 @@ export class HtmlService {
     return `<h5>${this.escape(text)}</h5>`;
   }
 
+  /**
+   * A collapsed disclosure: the summary is always visible, the body only
+   * once the reader expands it. Rendering (and escaping) happens in
+   * `cellHtml` like every other cell kind.
+   */
+  details(summary: string, body: TableCell): TableCell {
+    return { details: { summary, body } };
+  }
+
   private cellHtml(cell: TableCell): string {
     if (typeof cell === 'string') {
       return this.escape(cell);
     }
     if ('pre' in cell) {
       return `<pre class="cell-pre">${this.escape(cell.pre)}</pre>`;
+    }
+    if ('details' in cell) {
+      return (
+        `<details><summary>${this.escape(cell.details.summary)}</summary>` +
+        `${this.cellHtml(cell.details.body)}</details>`
+      );
     }
     return cell.map((segment) => this.escape(segment)).join('<br>');
   }

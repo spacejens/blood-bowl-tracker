@@ -178,9 +178,15 @@ This applies to every subagent dispatched from any phase below while working in 
 
 ### Phase 2: Specification
 
-1. **REQUIRED SUB-SKILL:** Use `superpowers:brainstorming` with the issue content (issue mode) or provided text (ad-hoc mode) as starting context
-2. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. Note the exact saved filename — Phase 3 needs it.
-3. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+1. **Cross-tool/app impact review.** A change rarely stops at the tool or app the issue names: a downloader change alters what its importer can import, a change to one importer usually wants a matching change in its sibling, and newly imported data is something a consuming app or tool could surface. Run this before brainstorming, so the answers are context the spec starts from rather than something it has to rediscover.
+   - Identify which tool(s)/app(s) the issue (issue mode) or provided text (ad-hoc mode) names or clearly involves.
+   - Look each one up in the "Tool/app relationships" section of `docs/architecture.md`. If none of them appear there, or the ones that do name no related tools/apps worth investigating for this change, **skip the rest of this step silently** — no prompt, no status line, no mention in the spec.
+   - For each related tool/app found, dispatch a read-only `Explore` agent scoped to that one tool/app — not the whole repo — to report concrete specifics relevant to this issue: what it does today, what data it already has, and what is missing relative to what this issue would change. Per the "Subagent dispatch discipline" section above, prefix every shell command in its dispatch prompt with `cd <worktree-path> &&`.
+   - Turn those findings into specific questions and ask them via `AskUserQuestion` — e.g. "The same match results are also available in TP data. Import them there too?" or "How should the new match results be shown in review-match?". Ask only about findings that genuinely warrant a decision; drop a finding that turns out to be a non-issue (the sibling importer already behaves the same way) rather than manufacturing a question for every related tool/app found. A question that cannot name the specific tool and the specific behavior is not ready to be asked — never fall back to a generic "should this be broader in scope?". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+   - Carry the answers into step 2 as part of the starting context.
+2. **REQUIRED SUB-SKILL:** Use `superpowers:brainstorming` with the issue content (issue mode) or provided text (ad-hoc mode) — plus any answers from step 1 — as starting context
+3. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. Note the exact saved filename — Phase 3 needs it.
+4. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
 

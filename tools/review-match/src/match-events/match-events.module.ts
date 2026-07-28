@@ -9,6 +9,7 @@ import { MatchEventsReviewerService } from './match-events-reviewer.service';
 import { MergedMatchStratificationService } from './merged-match-stratification.service';
 import { TpMatchEventsRawRendererService } from './tp-match-events-raw-renderer.service';
 import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
+import { TpRawWeatherLabelsService } from './tp-raw-weather-labels.service';
 
 /**
  * The only data-type module in v1. It exports exactly the contract
@@ -24,6 +25,7 @@ import { TpRawCodeLabelsService } from './tp-raw-code-labels.service';
     MergedMatchStratificationService,
     TpMatchEventsRawRendererService,
     TpRawCodeLabelsService,
+    TpRawWeatherLabelsService,
   ],
   exports: [
     MatchEventsReviewerService,
