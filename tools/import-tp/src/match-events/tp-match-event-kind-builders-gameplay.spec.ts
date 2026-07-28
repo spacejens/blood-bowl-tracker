@@ -286,6 +286,7 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
           actingTeamEraId: HOME_TEAM_ERA_ID,
           actingPlayerId: ACTOR_PLAYER_ID,
           externalIds: [
+            { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-30' },
             { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-31' },
           ],
         },
@@ -448,6 +449,7 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
           actingTeamEraId: HOME_TEAM_ERA_ID,
           actingPlayerId: ACTOR_PLAYER_ID,
           externalIds: [
+            { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-50' },
             { externalSystemId: TP_SYSTEM_ID, externalId: 'tp-51' },
           ],
         },
