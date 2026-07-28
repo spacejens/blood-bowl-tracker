@@ -72,7 +72,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 `tools/db-diagram`, `tools/eslint-rules`) are omitted.
 
 - **`tools/download-tp`** (downloader) — scrapes TP into local JSON files; what it records is exactly what `tools/import-tp` can later import, so widening or narrowing the download changes what is importable at all
-- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed by both `tools/import-tp` and `apps/discord-bot`, so a decoding change lands in both
+- **`packages/parse-tp`** (shared parsing) — decodes `tools/download-tp`'s JSON; consumed today by `tools/import-tp` only, though it's intended to also be shared with `apps/discord-bot` — check whether that's landed yet before assuming a decoding change reaches the bot
 - **`tools/import-bbl`** (importer, BBL source) — sibling of `tools/import-tp`; the same domain data usually exists in both upstream sources, so behavior added to one importer is usually wanted in the other
 - **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data
