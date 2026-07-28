@@ -13,6 +13,7 @@ import { MatchEventsPageParser } from './match-events-page-parser';
 import { MatchListPageParser } from './match-list-page-parser';
 import { MatchMergeService } from './match-merge.service';
 import { MatchMergeConfigService } from './match-merge-config.service';
+import { MatchResultConfigService } from './match-result-config.service';
 import { MatchTeamsPageParser } from './match-teams-page-parser';
 
 @Module({
@@ -29,6 +30,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchCategoryConfigService,
     MatchMergeConfigService,
     MatchMergeService,
+    MatchResultConfigService,
   ],
   exports: [
     MatchListPageParser,
@@ -42,6 +44,7 @@ import { MatchTeamsPageParser } from './match-teams-page-parser';
     MatchCategoryConfigService,
     MatchMergeConfigService,
     MatchMergeService,
+    MatchResultConfigService,
   ],
 })
 export class MatchesModule {}

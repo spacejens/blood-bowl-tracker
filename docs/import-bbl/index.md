@@ -100,10 +100,24 @@ camelCase, grouped into nested objects by concern:
       entry in this list. `merges` is optional within `matches` too, so an
       era may configure only `categoryOverrides` with no merges.
 
+      `matches` also carries an optional `resultOverrides` list, an array of
+      `{ matchId, winnerTeamCode }` entries, e.g.
+      `[{ matchId: "1061", winnerTeamCode: "sew" }]`. `winnerTeamCode` is
+      either a BBL team code (that team won) or the literal `"draw"`. This
+      lets the developer settle a match whose winner cannot be derived from
+      the touchdown count plus the competition's "Team trophy" placements —
+      a tied knock-out match in a competition whose `sr` page carries no
+      trophy table (e.g. Ogretoberfest 6), or a stage that normally forbids a
+      draw but genuinely ended level because the competition was abandoned
+      before its roll-off. A configured override always wins over the
+      computed result. A match whose outcome cannot be determined, and which
+      has no override here, is reported as an import error until it gets one.
+
     A competition bblId may appear in only one of the two competition override
     lists across all eras; a team code in only one era's `teamCodeOverrides`;
-    a match id in only one `matches.merges` pair across all eras; and a match
-    id in only one `matches.categoryOverrides` entry across all eras. Rules
+    a match id in only one `matches.merges` pair across all eras; a match
+    id in only one `matches.categoryOverrides` entry across all eras; and a
+    match id in only one `matches.resultOverrides` entry across all eras. Rules
     sets and eras are not present in the source data, so they are supplied
     here. Each era's rules set names and each era name are used as external
     IDs under both the configured BBL external system and the `Name` external

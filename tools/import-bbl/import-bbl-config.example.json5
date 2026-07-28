@@ -111,6 +111,14 @@
               { matchId: '1061', category: 'cup_final' },
               { matchId: '1062', category: 'cup_final' },
             ],
+            // Explicit outcomes for matches whose winner cannot be derived from
+            // the touchdown count plus the competition's "Team trophy"
+            // placements. winnerTeamCode is a BBL team code, or "draw" for a
+            // tied match in a stage that normally forbids one.
+            resultOverrides: [
+              // { matchId: "1061", winnerTeamCode: "sew" },
+              // { matchId: "1311", winnerTeamCode: "draw" },
+            ],
           },
         },
         {
