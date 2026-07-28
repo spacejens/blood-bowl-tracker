@@ -21,6 +21,7 @@ function reviewMatch(
     matchName: `Round ${matchId}`,
     competitionName: 'Season 18',
     playedAt: new Date(playedAt),
+    category: 'normal',
   };
 }
 

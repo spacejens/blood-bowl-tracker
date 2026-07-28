@@ -1,7 +1,9 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 
 import { HtmlService } from '../shared/html.service';
+import { MatchCategoryLabelService } from '../shared/match-category-label.service';
 import type { SampledMatch } from '../shared/review.types';
 import type { ReviewReport } from './report-builder.service';
 import { ReportBuilderService } from './report-builder.service';
@@ -13,6 +15,7 @@ const match: SampledMatch = {
   matchName: 'Round 3',
   competitionName: 'Season 18',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
+  category: 'normal',
   selectedFor: ['Contains a foul', 'override'],
 };
 
@@ -33,14 +36,43 @@ const report: ReviewReport = {
   ],
 };
 
+/** `report`, with its lone match replaced by `overrides` merged over `match`. */
+function reportWith(overrides: Partial<SampledMatch>): ReviewReport {
+  return {
+    ...report,
+    matches: [{ ...report.matches[0], match: { ...match, ...overrides } }],
+  };
+}
+
 describe('ReportBuilderService', () => {
   let service: ReportBuilderService;
+  let categoryLabel: ReturnType<typeof mock<MatchCategoryLabelService>>;
 
   beforeEach(async () => {
+    categoryLabel = mock<MatchCategoryLabelService>();
+    categoryLabel.label.mockReturnValue('Normal');
     const moduleRef = await Test.createTestingModule({
-      providers: [ReportBuilderService, HtmlService],
+      providers: [
+        ReportBuilderService,
+        HtmlService,
+        { provide: MatchCategoryLabelService, useValue: categoryLabel },
+      ],
     }).compile();
     service = moduleRef.get(ReportBuilderService);
+  });
+
+  it('includes the match category in the heading', () => {
+    categoryLabel.label.mockReturnValue('Cup Final');
+    const html = service.build(reportWith({ category: 'cup_final' }));
+
+    expect(html).toContain('Round 3 [Cup Final]');
+  });
+
+  it('includes the category for a normal match too', () => {
+    categoryLabel.label.mockReturnValue('Normal');
+    const html = service.build(reportWith({ category: 'normal' }));
+
+    expect(html).toContain('[Normal]');
   });
 
   it('builds a standalone HTML document', () => {

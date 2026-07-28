@@ -15,7 +15,11 @@ name, a decoded weather condition) is built from a hand-written table or a
 lookup over the raw source file itself, kept independent of the corresponding
 parser/importer logic on purpose: reusing that logic here would let a bug in
 it agree with review-match's display instead of showing up as a difference,
-defeating the tool's reason for existing.
+defeating the tool's reason for existing. For the same reason,
+`MatchCategoryLabelService` (in `tools/review-match/src/shared/`) is
+deliberately duplicated from the Discord bot's own label service of the same
+name rather than shared — the six-word title-casing it does isn't behaviour
+worth coupling two independent tools over.
 
 Scope today is match events; the tool is structured so a future data type
 (rosters, standings) plugs in as another module without touching the harness
@@ -33,7 +37,11 @@ services.
    6. a consequence avoided by apothecary or regeneration (BBL only)
    7. a four-team match merged from two BBL source rows (BBL only)
 2. Adds every match id listed in `overrides`, whatever the strata picked.
-3. For each sampled match, renders two panels:
+3. Each match's heading always carries its `game_data.matches.category`
+   (e.g. `Round 3 [Cup Final]`) — including `normal`, unlike the Discord bot's
+   "only show when notable" choice, because review-match is a QA aid where
+   confirming a routine match really was imported as routine has value.
+4. For each sampled match, renders two panels:
    - **Raw source** — the BBL mirror page's `table.tblist` rows as plain text,
      or the TP `match_<id>.json`'s `matchEvents[]` entries with their numeric
      codes. A BBL four-team match that the importer merged from two two-team
@@ -67,7 +75,7 @@ services.
      collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
-4. Writes the report under `tools/review-match/output/` (gitignored) with a
+5. Writes the report under `tools/review-match/output/` (gitignored) with a
    timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
    so successive runs don't overwrite each other's reports, and prints where
    it landed.

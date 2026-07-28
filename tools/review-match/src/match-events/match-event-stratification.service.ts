@@ -99,6 +99,7 @@ export class MatchEventStratificationService implements MatchStratifier {
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
+        category: matches.category,
       })
       .from(matchEvents)
       .innerJoin(matches, eq(matches.id, matchEvents.matchId))
@@ -111,7 +112,13 @@ export class MatchEventStratificationService implements MatchStratifier {
         ),
       )
       .where(condition)
-      .groupBy(matches.id, matches.name, competitions.name, matches.playedAt)
+      .groupBy(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+        matches.category,
+      )
       // Random, not newest-first: every stratum querying "the same handful
       // of most recent matches" would otherwise collapse a large sample
       // into a handful of overlapping matches, defeating the point of

@@ -18,6 +18,7 @@ const match: SampledMatch = {
   matchName: 'Round 3',
   competitionName: 'Season 18',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
+  category: 'normal',
   selectedFor: ['Contains a foul'],
 };
 

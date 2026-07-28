@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { competitions, DB, matches } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
@@ -13,6 +13,7 @@ const dbRow = {
   matchName: 'Final',
   competitionName: 'Bierhallentodball 2021',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
+  category: 'cup_final' as const,
   externalIds: ['1830', '1831'],
 };
 
@@ -68,6 +69,7 @@ describe('MergedMatchStratificationService', () => {
           matchName: 'Final',
           competitionName: 'Bierhallentodball 2021',
           playedAt: new Date('2021-09-25T18:00:00.000Z'),
+          category: 'cup_final',
           externalId: '1830',
           secondaryExternalId: '1831',
         },
@@ -86,7 +88,13 @@ describe('MergedMatchStratificationService', () => {
 
       // The one-id and three-or-more-id matches are excluded in SQL by the
       // HAVING clause; the mock cannot evaluate it, so assert it is applied.
-      expect(dbResult.chains[0].groupBy).toHaveBeenCalledTimes(1);
+      expect(dbResult.chains[0].groupBy).toHaveBeenCalledWith(
+        matches.id,
+        matches.name,
+        competitions.name,
+        matches.playedAt,
+        matches.category,
+      );
       expect(dbResult.chains[0].having).toHaveBeenCalledTimes(1);
     });
 

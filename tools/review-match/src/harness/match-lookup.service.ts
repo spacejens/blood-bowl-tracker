@@ -38,6 +38,7 @@ export class MatchLookupService {
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
+        category: matches.category,
       })
       .from(matchExternalIds)
       .innerJoin(matches, eq(matches.id, matchExternalIds.matchId))
