@@ -179,5 +179,17 @@ describe('schema', () => {
     );
     expect(winner).toBeDefined();
     expect(winner!.notNull).toBe(false);
+
+    const fk = config.foreignKeys.find((foreignKey) =>
+      foreignKey
+        .reference()
+        .columns.some((column) => column.name === 'winning_match_team_id'),
+    );
+    expect(fk).toBeDefined();
+    const reference = fk!.reference();
+    expect(reference.foreignTable).toBe(matchTeams);
+    expect(reference.foreignColumns.map((column) => column.name)).toEqual([
+      'id',
+    ]);
   });
 });
