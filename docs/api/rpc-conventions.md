@@ -22,6 +22,12 @@ authenticated caller can invoke every procedure. Tokens are compared in
 constant time, and rejections are logged at warn level (the caller is unknown
 by definition, so only the method and path are logged).
 
+Callers send the header through `packages/api-client`:
+`createApiClient(baseUrl, apiToken)` attaches
+`Authorization: Bearer <apiToken>` to every request, and
+`ApiClientModule.forRootAsync`'s factory supplies both values from the tool's
+own config (`connection.apiBaseUrl` and `connection.apiToken`).
+
 ## Standard procedures
 
 Most importable entities expose an `upsert` procedure (e.g.

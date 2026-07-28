@@ -45,7 +45,10 @@ describe('ImportModule', () => {
   it('composes every exported service with its real dependencies wired', async () => {
     const moduleRef = await Test.createTestingModule({
       imports: [
-        ApiClientModule.forRoot({ baseUrl: 'http://localhost:3000' }),
+        ApiClientModule.forRoot({
+          baseUrl: 'http://localhost:3000',
+          apiToken: 'a-token',
+        }),
         ImportModule,
       ],
     })
