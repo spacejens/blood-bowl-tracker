@@ -148,7 +148,7 @@ describe('countMatchEventsByTeam', () => {
     await countMatchEventsByTeam({
       db,
       selector: { role: 'acting', types: ['touchdown'] },
-      leagueId: 9,
+      scope: { leagueId: 9 },
       limit: 21,
     });
     expect(builder.where).toHaveBeenCalledTimes(1);
@@ -161,6 +161,39 @@ describe('countMatchEventsByTeam', () => {
         (column) => column === 'eras.league_id',
       ),
     ).toHaveLength(1);
+  });
+
+  it('filters by match category when a category is given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByTeam({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      scope: { category: 'season_final' },
+      limit: 21,
+    });
+    expect(builder.where).toHaveBeenCalledTimes(1);
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'touchdown',
+      'season_final',
+    ]);
+  });
+
+  it('filters by competition and match category together when both are given', async () => {
+    const builder = makeQueryBuilder([]);
+    const db = { select: vi.fn(() => builder) } as unknown as Db;
+    await countMatchEventsByTeam({
+      db,
+      selector: { role: 'acting', types: ['touchdown'] },
+      scope: { competitionId: 30, category: 'cup_final' },
+      limit: 21,
+    });
+    // Competition first, then match category: the filters' drill-down order.
+    expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
+      'touchdown',
+      30,
+      'cup_final',
+    ]);
   });
 });
 
@@ -237,9 +270,7 @@ describe('countMatchEventsByCoach', () => {
     await countMatchEventsByCoach({
       db,
       selector: { role: 'acting', types: ['foul'] },
-      leagueId: 9,
-      eraId: 20,
-      competitionId: 30,
+      scope: { leagueId: 9, eraId: 20, competitionId: 30 },
       limit: 21,
     });
     expect(builder.where).toHaveBeenCalledTimes(1);
@@ -347,14 +378,18 @@ describe('sumExpensiveMistakesByTeam', () => {
     const builder = makeQueryBuilder(rows);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
     await expect(
-      sumExpensiveMistakesByTeam({ db, eraId: 5, competitionId: 6, limit: 21 }),
+      sumExpensiveMistakesByTeam({
+        db,
+        scope: { eraId: 5, competitionId: 6 },
+        limit: 21,
+      }),
     ).resolves.toEqual(rows);
   });
 
   it('filters by league when a leagueId is given', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await sumExpensiveMistakesByTeam({ db, leagueId: 9, limit: 21 });
+    await sumExpensiveMistakesByTeam({ db, scope: { leagueId: 9 }, limit: 21 });
     expect(builder.where).toHaveBeenCalledTimes(1);
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'expensive_mistake',
@@ -395,7 +430,11 @@ describe('listBiggestExpensiveMistakes', () => {
   it('filters by league when a leagueId is given', async () => {
     const builder = makeQueryBuilder([]);
     const db = { select: vi.fn(() => builder) } as unknown as Db;
-    await listBiggestExpensiveMistakes({ db, leagueId: 9, limit: 21 });
+    await listBiggestExpensiveMistakes({
+      db,
+      scope: { leagueId: 9 },
+      limit: 21,
+    });
     expect(builder.where).toHaveBeenCalledTimes(1);
     expect(extractAllFilterValues(firstCallArg(builder.where))).toEqual([
       'expensive_mistake',

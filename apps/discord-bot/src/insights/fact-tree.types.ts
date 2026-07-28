@@ -24,6 +24,7 @@ export interface FactLeaf {
   supportsLeague: boolean;
   supportsEra: boolean;
   supportsCompetition: boolean;
+  supportsMatchCategory: boolean;
   resolve: (scope: FactScope) => Promise<string | InteractionReplyOptions>;
 }
 export type FactNode = FactLeaf | { [segment: string]: FactNode };

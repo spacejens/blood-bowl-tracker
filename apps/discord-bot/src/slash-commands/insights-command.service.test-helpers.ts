@@ -21,6 +21,7 @@ import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
 import { CoachToplistService } from '../insights/facts/coach-toplist.service';
 import { ErasListService } from '../insights/facts/eras-list.service';
 import { ExpensiveMistakesToplistService } from '../insights/facts/expensive-mistakes-toplist.service';
+import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import { PlayerToplistService } from '../insights/facts/player-toplist.service';
 import { RaceToplistService } from '../insights/facts/race-toplist.service';
 import { StatsSummaryFactsService } from '../insights/facts/stats-summary.service';
@@ -327,6 +328,7 @@ export interface MakeServiceResult {
   competitions: MockProxy<CompetitionsService>;
   registry: MockProxy<SlashCommandRegistryService>;
   factTreeUtils: MockProxy<FactTreeUtilsService>;
+  categoryLabel: MockProxy<MatchCategoryLabelService>;
   factTreeDeps: FactTreeMocks;
 }
 
@@ -345,6 +347,11 @@ export async function makeService(): Promise<MakeServiceResult> {
 
   const registry = mock<SlashCommandRegistryService>();
   const factTreeUtils = makeFactTreeUtilsMock();
+  const categoryLabel = mock<MatchCategoryLabelService>();
+  // A sentinel label, not a copy of the real service's formatting: it proves
+  // each choice's name comes from the label service without re-deriving what
+  // that service does (which is covered by its own spec).
+  categoryLabel.label.mockImplementation((category) => `Label for ${category}`);
   const factTreeDeps = makeFactTreeMocks();
   const factTree = buildFactTree(factTreeDeps);
 
@@ -357,6 +364,7 @@ export async function makeService(): Promise<MakeServiceResult> {
       { provide: FACT_TREE, useValue: factTree },
       { provide: SlashCommandRegistryService, useValue: registry },
       { provide: FactTreeUtilsService, useValue: factTreeUtils },
+      { provide: MatchCategoryLabelService, useValue: categoryLabel },
     ],
   }).compile();
 
@@ -367,6 +375,7 @@ export async function makeService(): Promise<MakeServiceResult> {
     competitions,
     registry,
     factTreeUtils,
+    categoryLabel,
     factTreeDeps,
   };
 }
@@ -377,9 +386,15 @@ export function chatInput(
     era?: string | null;
     competition?: string | null;
     league?: string | null;
+    matchCategory?: string | null;
   } = {},
 ): ChatInputCommandInteraction {
-  const { era = null, competition = null, league = null } = scope;
+  const {
+    era = null,
+    competition = null,
+    league = null,
+    matchCategory = null,
+  } = scope;
   return {
     options: {
       getString: vi.fn((name: string) =>
@@ -389,7 +404,9 @@ export function chatInput(
             ? competition
             : name === 'league'
               ? league
-              : category,
+              : name === 'match-category'
+                ? matchCategory
+                : category,
       ),
     },
   } as unknown as ChatInputCommandInteraction;

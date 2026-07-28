@@ -30,9 +30,9 @@ export type MatchEventSelector =
 
 /**
  * The where clause shared by every match-event count: the type filter for the
- * given selector's role, optionally narrowed to an era and/or a competition.
- * `undefined` for either scope means "no filter", matching the public
- * `count*` signatures.
+ * given selector's role, optionally narrowed to a league, era, competition
+ * and/or match category. `undefined` for any scope field means "no filter",
+ * matching the public `count*` signatures.
  */
 function matchEventFilter(
   selector: MatchEventSelector,
@@ -49,19 +49,22 @@ function matchEventFilter(
     scope.competitionId === undefined
       ? undefined
       : eq(matches.competitionId, scope.competitionId),
+    scope.category === undefined
+      ? undefined
+      : eq(matches.category, scope.category),
   );
 }
 
 /**
  * Options shared by every match-event count: the database handle, the
- * role/type selector, and the optional era/competition/league scope.
+ * role/type selector, and the optional fact scope. Taking the whole
+ * `FactScope` (rather than mirroring its fields one by one) keeps the callers
+ * — which already hold a `FactScope` — from restating it at every call site.
  */
 export interface CountMatchEventsOptions {
   db: Db;
   selector: MatchEventSelector;
-  leagueId?: number;
-  eraId?: number;
-  competitionId?: number;
+  scope?: FactScope;
   limit: number;
 }
 
@@ -72,7 +75,7 @@ export interface CountMatchEventsOptions {
 export async function countMatchEventsByPlayer(
   options: CountMatchEventsOptions,
 ): Promise<{ playerId: number; name: string; count: number }[]> {
-  const { db, selector, leagueId, eraId, competitionId, limit } = options;
+  const { db, selector, scope = {}, limit } = options;
   return db
     .select({
       playerId: players.id,
@@ -101,7 +104,7 @@ export async function countMatchEventsByPlayer(
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
-    .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
+    .where(matchEventFilter(selector, scope))
     .groupBy(players.id, players.name)
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);
@@ -117,7 +120,7 @@ export async function countMatchEventsByPlayer(
 export async function countMatchEventsByTeam(
   options: CountMatchEventsOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
-  const { db, selector, leagueId, eraId, competitionId, limit } = options;
+  const { db, selector, scope = {}, limit } = options;
   return db
     .select({
       teamId: teams.id,
@@ -138,7 +141,7 @@ export async function countMatchEventsByTeam(
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
-    .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
+    .where(matchEventFilter(selector, scope))
     .groupBy(teams.id, teams.name)
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);
@@ -148,14 +151,13 @@ export async function countMatchEventsByTeam(
  * Match events matching the given selector, counted per coach and ordered
  * most-first. Extends countMatchEventsByTeam's join graph by one hop —
  * `teams.coachId -> coaches.id` — so a coach's total spans every team they
- * have coached. Accepts the shared options (including `competitionId`) for
- * consistency with its siblings; the coach toplists that call it simply do
- * not pass a competition scope.
+ * have coached. Accepts the shared options for consistency with its siblings;
+ * the coach toplists that call it simply do not pass a competition scope.
  */
 export async function countMatchEventsByCoach(
   options: CountMatchEventsOptions,
 ): Promise<{ coachId: number; name: string; count: number }[]> {
-  const { db, selector, leagueId, eraId, competitionId, limit } = options;
+  const { db, selector, scope = {}, limit } = options;
   return db
     .select({
       coachId: coaches.id,
@@ -177,7 +179,7 @@ export async function countMatchEventsByCoach(
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .innerJoin(coaches, eq(coaches.id, teams.coachId))
-    .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
+    .where(matchEventFilter(selector, scope))
     .groupBy(coaches.id, coaches.name)
     .orderBy(desc(count(matchEvents.id)))
     .limit(limit);
@@ -227,9 +229,7 @@ export interface CountMatchEventsForPlayerOptions {
   db: Db;
   playerId: number;
   selector: MatchEventSelector;
-  leagueId?: number;
-  eraId?: number;
-  competitionId?: number;
+  scope?: FactScope;
 }
 
 /**
@@ -244,7 +244,7 @@ export interface CountMatchEventsForPlayerOptions {
 export async function countMatchEventsForPlayer(
   options: CountMatchEventsForPlayerOptions,
 ): Promise<number> {
-  const { db, playerId, selector, leagueId, eraId, competitionId } = options;
+  const { db, playerId, selector, scope = {} } = options;
   const [row] = await db
     .select({ count: count(matchEvents.id) })
     .from(matchEvents)
@@ -269,24 +269,17 @@ export async function countMatchEventsForPlayer(
     .innerJoin(matches, eq(matches.id, matchTeams.matchId))
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
-    .where(
-      and(
-        matchEventFilter(selector, { leagueId, eraId, competitionId }),
-        eq(players.id, playerId),
-      ),
-    );
+    .where(and(matchEventFilter(selector, scope), eq(players.id, playerId)));
   return row.count;
 }
 
 /**
  * Options shared by the two expensive-mistake queries: the database handle,
- * the optional era/competition scope, and the required SQL row cap.
+ * the optional fact scope, and the required SQL row cap.
  */
 export interface ExpensiveMistakesOptions {
   db: Db;
-  leagueId?: number;
-  eraId?: number;
-  competitionId?: number;
+  scope?: FactScope;
   limit: number;
 }
 
@@ -300,7 +293,7 @@ export interface ExpensiveMistakesOptions {
 export async function sumExpensiveMistakesByTeam(
   options: ExpensiveMistakesOptions,
 ): Promise<{ teamId: number; name: string; count: number }[]> {
-  const { db, leagueId, eraId, competitionId, limit } = options;
+  const { db, scope = {}, limit } = options;
   const selector = {
     role: 'consequence',
     types: EXPENSIVE_MISTAKE_TYPES,
@@ -317,7 +310,7 @@ export async function sumExpensiveMistakesByTeam(
     .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
     .innerJoin(eras, eq(eras.id, teamEras.eraId))
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
-    .where(matchEventFilter(selector, { leagueId, eraId, competitionId }))
+    .where(matchEventFilter(selector, scope))
     .groupBy(teams.id, teams.name)
     .orderBy(desc(total))
     .limit(limit);
@@ -346,7 +339,7 @@ export async function listBiggestExpensiveMistakes(
     category: MatchCategory;
   }[]
 > {
-  const { db, leagueId, eraId, competitionId, limit } = options;
+  const { db, scope = {}, limit } = options;
   const selector = {
     role: 'consequence',
     types: EXPENSIVE_MISTAKE_TYPES,
@@ -370,7 +363,7 @@ export async function listBiggestExpensiveMistakes(
     .innerJoin(teams, eq(teams.id, teamEras.teamId))
     .where(
       and(
-        matchEventFilter(selector, { leagueId, eraId, competitionId }),
+        matchEventFilter(selector, scope),
         isNotNull(matchEvents.expensiveMistake),
       ),
     )

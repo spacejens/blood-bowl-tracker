@@ -75,6 +75,20 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
         type: 3,
         autocomplete: true,
       },
+      {
+        name: 'match-category',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+        description: expect.any(String),
+        type: 3,
+        choices: [
+          { name: 'Label for normal', value: 'normal' },
+          { name: 'Label for cup_final', value: 'cup_final' },
+          { name: 'Label for season_semi_final', value: 'season_semi_final' },
+          { name: 'Label for season_final', value: 'season_final' },
+          { name: 'Label for season_bronze', value: 'season_bronze' },
+          { name: 'Label for season_qualifier', value: 'season_qualifier' },
+        ],
+      },
     ]);
   });
 
@@ -92,7 +106,7 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
   it('advertises a competition option alongside category, league and era', async () => {
     const { service } = await makeService();
     const command = service.buildCommand();
-    expect(command.options).toHaveLength(4);
+    expect(command.options).toHaveLength(5);
     expect(command.options?.[3]).toEqual({
       name: 'competition',
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
@@ -113,5 +127,25 @@ describe('InsightsCommandService — bootstrap and autocomplete', () => {
     expect(choices).toEqual([
       { name: 'Major Season 24 (The Major)', value: '30' },
     ]);
+  });
+
+  it('advertises the match-category option last, with static choices instead of autocomplete', async () => {
+    const { service } = await makeService();
+    const command = service.buildCommand();
+    const option = command.options?.[4] as {
+      name: string;
+      autocomplete?: boolean;
+      choices?: { name: string; value: string }[];
+    };
+    expect(option.name).toBe('match-category');
+    expect(option.autocomplete).toBeUndefined();
+    expect(option.choices).toHaveLength(6);
+  });
+
+  it('labels every match-category choice through MatchCategoryLabelService', async () => {
+    const { service, categoryLabel } = await makeService();
+    service.buildCommand();
+    expect(categoryLabel.label).toHaveBeenCalledTimes(6);
+    expect(categoryLabel.label).toHaveBeenCalledWith('season_final');
   });
 });

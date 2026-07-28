@@ -719,3 +719,60 @@ describe('buildFactTree competition capabilities', () => {
     ).toHaveBeenCalledWith({ leagueId: 9, eraId: 20 });
   });
 });
+
+describe('buildFactTree match category capabilities', () => {
+  it('excludes exactly the six leaves that are not scoped to matches', () => {
+    const tree = buildFactTree(deps());
+    const unsupported = factTreeUtils
+      .collectLeaves(tree)
+      .filter((leaf) => !leaf.supportsMatchCategory);
+    expect(unsupported).toEqual(
+      expect.arrayContaining([
+        factTreeUtils.resolvePath(tree, 'coach.toplist.teams'),
+        factTreeUtils.resolvePath(tree, 'coach.toplist.eras.active'),
+        factTreeUtils.resolvePath(tree, 'team.toplist.eras.active'),
+        factTreeUtils.resolvePath(tree, 'race.toplist.teams'),
+        factTreeUtils.resolvePath(tree, 'eras.list'),
+        factTreeUtils.resolvePath(tree, 'stats'),
+      ]),
+    );
+    expect(unsupported).toHaveLength(6);
+  });
+
+  it('supports the match category on every other leaf', () => {
+    const tree = buildFactTree(deps());
+    const supported = factTreeUtils
+      .collectLeaves(tree)
+      .filter((leaf) => leaf.supportsMatchCategory);
+    expect(supported).toHaveLength(37);
+  });
+
+  it('supports the match category on leaves that do not support a competition', () => {
+    const tree = buildFactTree(deps());
+    for (const path of [
+      'coach.toplist.matches.played',
+      'coach.toplist.competitions.played',
+      'coach.toplist.fouls.committed',
+      'coach.toplist.timeBetweenMatches.average',
+      'team.toplist.matches.played',
+      'team.toplist.competitions.played',
+      'race.toplist.matches.played',
+    ]) {
+      const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
+      expect(leaf.supportsMatchCategory, path).toBe(true);
+      expect(leaf.supportsCompetition, path).toBe(false);
+    }
+  });
+
+  it('forwards the match category to an in-scope leaf', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'team.toplist.touchdowns.scored',
+    );
+    await (leaf as FactLeaf).resolve({ category: 'season_final' });
+    expect(d.teamToplist.resolveTouchdownsScored).toHaveBeenCalledWith({
+      category: 'season_final',
+    });
+  });
+});

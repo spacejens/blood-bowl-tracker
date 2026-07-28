@@ -20,6 +20,37 @@ the fact tree (for example `coach.toplist.teams`):
 As you type the argument, autocomplete suggests the next segment of valid paths
 so you can navigate the tree without memorizing it.
 
+## Scope options
+
+Besides `category`, the command takes four optional scope options — `league`,
+`era`, `competition` and `match-category`, in that drill-down order. They are
+mutually exclusive: supplying more than one replies `The referee rejects your
+request.` With none of them, facts are all-time and the embed title ends in
+`— All time`; with one, the title ends in that league, era, competition or
+match category's name instead.
+
+`league`, `era` and `competition` autocomplete against the recorded data.
+`match-category` instead offers the six fixed match categories as a static
+choice list — Normal, Cup Final, Season Semi Final, Season Final, Season
+Bronze and Season Qualifier — so there is no id to mistype and no "not found"
+reply.
+
+Each fact declares which of the four scopes it supports; a fact that supports
+none of them is skipped when that scope is in play, and asking for it by name
+replies with a per-scope refusal message. All but six facts support
+`match-category`. The exceptions are `coach.toplist.teams`,
+`race.toplist.teams`, `coach.toplist.eras.active`, `team.toplist.eras.active`
+and `eras.list` — which count teams or eras rather than matches — and `stats`,
+which is excluded deliberately: only two of the dozen counts it reports
+(matches and match events) have a category at all, so a category-scoped
+`stats` would show two scoped numbers beside ten all-time ones.
+
+Note that `coach.toplist.competitions.played` and
+`team.toplist.competitions.played` change meaning under a match category: they
+then count the competitions in which that coach or team actually played a
+match of the chosen category (e.g. with Season Final, the seasons whose final
+they reached), rather than every competition entered.
+
 ## Available facts
 
 - `stats` — a combined embed of entity counts (title "Statistics"): leagues,
