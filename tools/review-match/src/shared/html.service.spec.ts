@@ -60,6 +60,41 @@ describe('HtmlService', () => {
     });
   });
 
+  describe('details', () => {
+    it('renders a collapsed disclosure with the escaped summary', () => {
+      const html = service.table(['A'], [[service.details('expand', 'x & y')]]);
+
+      expect(html).toContain(
+        '<td><details><summary>expand</summary>x &amp; y</details></td>',
+      );
+    });
+
+    it('escapes markup in the summary text', () => {
+      const html = service.table(['A'], [[service.details('<b> & more', 'x')]]);
+
+      expect(html).toContain('<summary>&lt;b&gt; &amp; more</summary>');
+    });
+
+    it('renders a pre body inside the disclosure, escaped as usual', () => {
+      const html = service.table(
+        ['A'],
+        [[service.details('expand', { pre: '{\n  "x": "<y>"\n}' })]],
+      );
+
+      expect(html).toContain(
+        '<td><details><summary>expand</summary>' +
+          '<pre class="cell-pre">{\n  &quot;x&quot;: &quot;&lt;y&gt;&quot;\n}</pre>' +
+          '</details></td>',
+      );
+    });
+
+    it('is collapsed by default so long payloads do not dominate the panel', () => {
+      const html = service.table(['A'], [[service.details('expand', 'body')]]);
+
+      expect(html).not.toContain('<details open');
+    });
+  });
+
   describe('note', () => {
     it('renders escaped text in a note paragraph', () => {
       expect(service.note('missing <file>')).toBe(
