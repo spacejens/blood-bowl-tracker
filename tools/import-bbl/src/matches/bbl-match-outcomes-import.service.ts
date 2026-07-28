@@ -88,6 +88,7 @@ export class BblMatchOutcomesImportService {
       const overrides: MatchOutcomeHint[] = [];
       const tieBreaks: MatchOutcomeHint[] = [];
       const bblIdsByMatchId = new Map<number, string>();
+      const overriddenMatchIds = new Set<number>();
 
       for (const match of matches) {
         if (merges.isSecondary(match.bblId)) {
@@ -120,6 +121,7 @@ export class BblMatchOutcomesImportService {
             );
           } else {
             overrides.push({ matchId, winnerTeamEraId });
+            overriddenMatchIds.add(matchId);
             continue;
           }
         }
@@ -128,12 +130,21 @@ export class BblMatchOutcomesImportService {
           options.categoriesByBblId.get(match.bblId),
           placements,
         );
-        const tieBreakTeamEraId =
-          tieBreakCode === undefined
-            ? undefined
-            : teamEraIdsByCode.get(tieBreakCode);
-        if (tieBreakTeamEraId !== undefined) {
-          tieBreaks.push({ matchId, winnerTeamEraId: tieBreakTeamEraId });
+        if (tieBreakCode !== undefined) {
+          const tieBreakTeamEraId = teamEraIdsByCode.get(tieBreakCode);
+          if (tieBreakTeamEraId === undefined) {
+            errors.push(
+              this.importResults.error({
+                item: { match: match.bblId },
+                message:
+                  `Skipping the Team trophy tie-break for match ${match.bblId}: ` +
+                  `could not resolve team code "${tieBreakCode}" to a team ` +
+                  'era in its competition.',
+              }),
+            );
+          } else {
+            tieBreaks.push({ matchId, winnerTeamEraId: tieBreakTeamEraId });
+          }
         }
       }
 
@@ -147,6 +158,10 @@ export class BblMatchOutcomesImportService {
       imported += outcome.resolvedMatchIds.length;
       for (const unresolvedId of outcome.unresolvedMatchIds) {
         const bblId = bblIdsByMatchId.get(unresolvedId) ?? String(unresolvedId);
+        const guidance = overriddenMatchIds.has(unresolvedId)
+          ? 'Its configured matches.resultOverrides entry names a team era ' +
+            "that is not one of the match's participants — fix that entry."
+          : 'Add a matches.resultOverrides entry for it.';
         errors.push(
           this.importResults.error({
             item: { match: bblId },
@@ -154,7 +169,7 @@ export class BblMatchOutcomesImportService {
               `Could not determine the outcome of match ${bblId}: it ended ` +
               'level, its stage forbids a draw, and neither the ' +
               "competition's Team trophy placements nor the bracket settle " +
-              'it. Add a matches.resultOverrides entry for it.',
+              `it. ${guidance}`,
           }),
         );
       }

@@ -329,6 +329,22 @@ describe('BblMatchOutcomesImportService', () => {
     );
   });
 
+  it('records an error when a Team trophy tie-break names an unknown team code', async () => {
+    const { service, mocks } = await makeService({
+      placements: new Map([[COMPETITION_BBL_ID, { first: 'zzz' }]]),
+    });
+    useRealResult(mocks.importResults);
+    const options = defaultOptions({
+      categoriesByBblId: new Map([[MATCH_BBL_ID, 'cup_final']]),
+    });
+
+    const { result } = await service.importMatchOutcomes(options);
+
+    expect(result.errors[0].message).toContain(
+      'could not resolve team code "zzz"',
+    );
+  });
+
   it('records an error when an override names an unknown team code', async () => {
     const { service, mocks } = await makeService({
       overrides: new Map([[MATCH_BBL_ID, 'zzz']]),
@@ -444,6 +460,35 @@ describe('BblMatchOutcomesImportService', () => {
       'matches.resultOverrides',
     );
     expect(result.success).toBe(false);
+  });
+
+  it('points at the existing override, not "add one", when it named a non-participant and the match stayed unresolved', async () => {
+    const { service, mocks } = await makeService({
+      overrides: new Map([[MATCH_BBL_ID, 'vor']]),
+      outcomeResult: {
+        competitionId: COMPETITION_DB_ID,
+        resolvedMatchIds: [],
+        unresolvedMatchIds: [MATCH_DB_ID],
+      },
+    });
+    const options = defaultOptions();
+    mocks.importResults.result.mockReturnValue({
+      success: false,
+      imported: 0,
+      errors: [],
+    });
+
+    await service.importMatchOutcomes(options);
+
+    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
+      `Could not determine the outcome of match ${MATCH_BBL_ID}`,
+    );
+    expect(resultArgs(mocks.importResults).errors[0].message).not.toContain(
+      'Add a matches.resultOverrides entry',
+    );
+    expect(resultArgs(mocks.importResults).errors[0].message).toContain(
+      'not one of the',
+    );
   });
 
   it('counts every resolved match as imported', async () => {
