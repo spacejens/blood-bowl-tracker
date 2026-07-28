@@ -32,14 +32,6 @@ export const UpsertMatchSchema = z.object({
   competitionId: z.number().int().optional(),
   playedAt: z.date().optional(),
   name: z.string().min(1).optional(),
-  /**
-   * Optional in the same sense every other field here is: an upsert payload
-   * is an overlay, and `undefined` means "say nothing about this column"
-   * (see `upsertByExternalIds`). It is NOT optional in practice on the
-   * create path — the column is NOT NULL with no default, so omitting it
-   * when creating a new match raises `MissingRequiredFieldError` naming
-   * `category`. Every importer must set it explicitly.
-   */
   category: z.enum(MATCH_CATEGORIES).optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
   teamEraIds: z.array(z.number().int()).default([]),
