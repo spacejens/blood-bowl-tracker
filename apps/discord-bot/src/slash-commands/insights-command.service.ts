@@ -1,3 +1,5 @@
+import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
@@ -26,15 +28,20 @@ import {
 import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
-/** The single league/era/competition resolved for the current request, if any. */
+/**
+ * The single league/era/competition/match category resolved for the current
+ * request, if any.
+ */
 interface ResolvedScope {
   league?: { id: number; name: string };
   era?: { id: number; name: string };
   competition?: { id: number; name: string };
+  matchCategory?: { value: MatchCategory; label: string };
 }
 
 @Injectable()
@@ -46,6 +53,7 @@ export class InsightsCommandService implements OnModuleInit {
     @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
     private readonly factTreeUtils: FactTreeUtilsService,
+    private readonly categoryLabel: MatchCategoryLabelService,
   ) {}
 
   onModuleInit(): void {
@@ -81,6 +89,19 @@ export class InsightsCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'match-category',
+          description:
+            'Scope the insight to a single match category (optional)',
+          type: ApplicationCommandOptionType.String,
+          // Static choices rather than autocomplete: MATCH_CATEGORIES is a
+          // fixed six-value enum, so Discord can present the whole list and
+          // only ever sends one of these values back.
+          choices: MATCH_CATEGORIES.map((category) => ({
+            name: this.categoryLabel.label(category),
+            value: category,
+          })),
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -94,10 +115,14 @@ export class InsightsCommandService implements OnModuleInit {
     const leagueOption = interaction.options.getString('league');
     const eraOption = interaction.options.getString('era');
     const competitionOption = interaction.options.getString('competition');
+    const matchCategoryOption = interaction.options.getString('match-category');
 
-    const givenCount = [leagueOption, eraOption, competitionOption].filter(
-      (option) => option !== null,
-    ).length;
+    const givenCount = [
+      leagueOption,
+      eraOption,
+      competitionOption,
+      matchCategoryOption,
+    ].filter((option) => option !== null).length;
     if (givenCount > 1) {
       return INSIGHTS_SCOPE_CONFLICT_MESSAGE;
     }
@@ -129,6 +154,7 @@ export class InsightsCommandService implements OnModuleInit {
         competitionResult.kind === 'found'
           ? competitionResult.value
           : undefined,
+      matchCategory: this.resolveMatchCategory(matchCategoryOption),
     };
 
     if (!category) {
@@ -197,6 +223,21 @@ export class InsightsCommandService implements OnModuleInit {
     const id = Number(option);
     const found = Number.isInteger(id) ? await findById(id) : undefined;
     return found ? { kind: 'found', value: found } : { kind: 'notFound' };
+  }
+
+  /**
+   * The match category named by the `match-category` option. Discord's static
+   * choices only ever deliver one of `MATCH_CATEGORIES`, so there is no lookup
+   * that can fail and no "not found" message; anything else is treated exactly
+   * like an absent option.
+   */
+  private resolveMatchCategory(
+    option: string | null,
+  ): { value: MatchCategory; label: string } | undefined {
+    const value = MATCH_CATEGORIES.find((category) => category === option);
+    return value === undefined
+      ? undefined
+      : { value, label: this.categoryLabel.label(value) };
   }
 
   /**
