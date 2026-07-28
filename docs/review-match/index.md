@@ -54,7 +54,11 @@ services.
    touchdown count) and the outcome (the winning team's name, or "Draw"),
    rendered as its own block right under the heading — never appended to the
    heading text — with a note in its place when the match has no
-   `match_teams` rows at all.
+   `match_teams` rows at all. "Draw" here means `winning_match_team_id IS
+   NULL`, which is indistinguishable from an unresolved outcome — the schema
+   deliberately has no third "unknown" state, so an importer that cannot
+   resolve a match's winner is expected to fail loudly rather than write NULL
+   for that reason.
 5. For each sampled match, renders two panels:
    - **Raw source** — the BBL mirror page's `table.tblist` rows as plain text,
      or the TP `match_<id>.json`'s `matchEvents[]` entries with their numeric
