@@ -90,7 +90,7 @@ export class TpMatchCategoryService {
     }
 
     const nonMain = competitionMatches.filter((m) => m.phaseOrder !== 1);
-    const stages = this.buildStages(match, nonMain);
+    const stages = this.buildStages(nonMain);
 
     if (nonMain.length !== 4 && nonMain.length !== 6) {
       throw new Error(
@@ -140,7 +140,7 @@ export class TpMatchCategoryService {
   }
 
   /** Every distinct `(phaseOrder, round)` pair among `nonMain`, sorted ascending. */
-  private buildStages(match: TpMatch, nonMain: TpMatch[]): Stage[] {
+  private buildStages(nonMain: TpMatch[]): Stage[] {
     const byKey = new Map<string, Stage>();
     for (const m of nonMain) {
       const key = `${m.phaseOrder}:${m.round}`;
@@ -155,7 +155,6 @@ export class TpMatchCategoryService {
         });
       }
     }
-    void match; // reserved for a future richer error message if needed
     return [...byKey.values()].sort(
       (a, b) => a.phaseOrder - b.phaseOrder || a.round - b.round,
     );
