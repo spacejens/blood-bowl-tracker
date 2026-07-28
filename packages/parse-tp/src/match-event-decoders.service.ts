@@ -102,7 +102,10 @@ const winningsRaw = z.object({
  * TP keeps `extraData.newFanFactorLocal`/`newFanFactorVisitor` pinned at 0 in
  * real payloads; the actual per-side change is in the sibling
  * `fanFactorModifier*` fields, matching the `dedicatedFansModifier*`
- * convention used by the dedicated fans roll (code 26).
+ * convention used by the dedicated fans roll (code 26). As with that event,
+ * a payload missing the modifier fields fails decoding rather than silently
+ * falling back to a value — the same strict contract every other event here
+ * already has.
  */
 const fanFactorRaw = z.object({
   id: z.number(),

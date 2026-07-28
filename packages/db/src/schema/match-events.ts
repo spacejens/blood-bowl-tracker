@@ -193,6 +193,10 @@ const matchEventsTable = historyTrackedTable({
      */
     inducementsFromTreasury: integer('inducements_from_treasury'),
     winnings: integer('winnings'),
+    /**
+     * The per-side change to fan factor from a fan factor roll, not the
+     * resulting total.
+     */
     fanFactor: integer('fan_factor'),
     journeymenCount: integer('journeymen_count'),
     prayersToNuffle: integer('prayers_to_nuffle'),
