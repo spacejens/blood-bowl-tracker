@@ -191,8 +191,9 @@ camelCase, grouped into nested objects by concern:
   themselves. `BblMatchesImportService` upserts each completed match, keyed by its
   numeric BBL id under the competition's BBL external system (matches have no
   `Name` external id), with `competitionId` resolved to the imported competition's
-  DB id. Runs after competitions, its only dependency. Per-team results/scores and
-  per-player events (`match_teams`/`match_events`) remain out of scope.
+  DB id. Runs after competitions, its only dependency; per-team results/scores
+  and per-player events (`match_teams`/`match_events`) are populated by later
+  steps, described below.
   `CompetitionTrophyPageParser` reads a competition's 1st/2nd/3rd-place team
   codes off the "Team trophy" table on its `sr` results page, if present;
   `BblCompetitionTrophyReaderService` performs the single, memoized walk over
