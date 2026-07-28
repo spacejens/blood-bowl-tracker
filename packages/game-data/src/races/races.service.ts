@@ -172,30 +172,39 @@ export class RacesService {
     scope: FactScope,
     limit: number,
   ): Promise<{ raceId: number; name: string; count: number }[]> {
-    return this.db
-      .select({
-        raceId: races.id,
-        name: races.name,
-        count: countDistinct(matchTeams.id),
-      })
-      .from(matchTeams)
-      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
-      .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(races, eq(races.id, teams.raceId))
-      .where(
-        and(
-          scope.leagueId === undefined
-            ? undefined
-            : eq(eras.leagueId, scope.leagueId),
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
-        ),
-      )
-      .groupBy(races.id, races.name)
-      .orderBy(desc(countDistinct(matchTeams.id)))
-      .limit(limit);
+    return (
+      this.db
+        .select({
+          raceId: races.id,
+          name: races.name,
+          count: countDistinct(matchTeams.id),
+        })
+        .from(matchTeams)
+        .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+        .innerJoin(eras, eq(eras.id, teamEras.eraId))
+        .innerJoin(teams, eq(teams.id, teamEras.teamId))
+        .innerJoin(races, eq(races.id, teams.raceId))
+        // matchTeams.matchId is a non-null foreign key, so this join drops no
+        // rows; it is unconditional (and last, keeping the earlier join indices
+        // stable) purely to expose matches.category to the filter below.
+        .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+        .where(
+          and(
+            scope.leagueId === undefined
+              ? undefined
+              : eq(eras.leagueId, scope.leagueId),
+            scope.eraId === undefined
+              ? undefined
+              : eq(teamEras.eraId, scope.eraId),
+            scope.category === undefined
+              ? undefined
+              : eq(matches.category, scope.category),
+          ),
+        )
+        .groupBy(races.id, races.name)
+        .orderBy(desc(countDistinct(matchTeams.id)))
+        .limit(limit)
+    );
   }
 
   countAll(): Promise<number> {
