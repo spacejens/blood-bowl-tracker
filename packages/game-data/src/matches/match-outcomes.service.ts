@@ -77,8 +77,11 @@ export class MatchOutcomesService {
 
     const touchdownsByMatchTeamId = new Map<number, number>(
       touchdownRows
-        .filter((row) => row.matchTeamId !== null)
-        .map((row) => [row.matchTeamId as number, row.touchdowns]),
+        .filter(
+          (row): row is { matchTeamId: number; touchdowns: number } =>
+            row.matchTeamId !== null,
+        )
+        .map((row) => [row.matchTeamId, row.touchdowns]),
     );
 
     const outcomeMatches: OutcomeMatch[] = matchRows.map((row) => ({
