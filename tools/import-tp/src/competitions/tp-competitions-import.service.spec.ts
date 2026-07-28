@@ -55,6 +55,10 @@ const CANNED_MATCH: TpMatch = {
   matchEvents: [],
   homeRosterPlayers: [],
   awayRosterPlayers: [],
+  phaseType: 160,
+  phaseOrder: 1,
+  round: 1,
+  winner: 'home',
 };
 
 /**
@@ -216,6 +220,10 @@ function matchFile({
     matchEvents: [],
     homeRosterPlayers: [],
     awayRosterPlayers: [],
+    phaseType: 160,
+    phaseOrder: 1,
+    round,
+    winner: 'home',
   };
   return {
     file: {

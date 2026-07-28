@@ -47,9 +47,23 @@ async function run(): Promise<ImportResult> {
     // Matches link to their competition only via the directory scan competitions
     // import already performed (match files carry no tournament id), so this
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
+    // Each competition's type (for match category classification) comes from
+    // the same competitions import's upsert payloads, keyed by DB competition
+    // id via competitionIdsByTpId.
+    const competitionTypesByCompetitionId = new Map<number, 'season' | 'cup'>();
+    for (const [tpId, entry] of competitionOutcome.competitionsByTpId) {
+      const competitionId = competitionOutcome.competitionIdsByTpId.get(tpId);
+      if (competitionId !== undefined && entry.upsert.type !== undefined) {
+        competitionTypesByCompetitionId.set(competitionId, entry.upsert.type);
+      }
+    }
+
     const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)
-      .importMatches(competitionOutcome.matchesByCompetitionId);
+      .importMatches({
+        matchesByCompetitionId: competitionOutcome.matchesByCompetitionId,
+        competitionTypesByCompetitionId,
+      });
 
     const coachOutcome = await app.get(TpCoachesImportService).importCoaches();
 

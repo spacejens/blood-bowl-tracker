@@ -50,6 +50,10 @@ export function matchWithEvents(options: {
     matchEvents: options.events,
     homeRosterPlayers: [],
     awayRosterPlayers: [],
+    phaseType: 160,
+    phaseOrder: 1,
+    round: 1,
+    winner: 'home',
   };
 }
 

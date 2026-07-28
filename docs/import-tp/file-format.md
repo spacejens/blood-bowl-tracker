@@ -99,6 +99,65 @@ ids and re-upserts each match with its `match_teams`, and derives each
 competition's `competition_teams` from which roster files appear under its
 directory.
 
+### Match category classification (`phaseType`/`phaseOrder`/`round`/`winner`)
+
+TP never names a match's stage in text — `group.phase.roundName` only ever
+holds `DAY`/`MATCHDAY`/`ROUND` across all local data. The only stage signal is
+numeric: `group.phase.type`, `group.phase.order`, and the match's own
+top-level `round`. `MatchParserService.parse()` additionally exposes these as
+`phaseType`/`phaseOrder`/`round` on `TpMatch`, plus `winner` (`'home'`/
+`'away'`/`'draw'`/`undefined`, mapped from `scoreResume.winner`). Decoding
+this into a `MatchCategory` is `tools/import-tp`'s
+`TpMatchCategoryService.classify()`'s job — see its doc comment for the full
+algorithm. Summary, with the evidence behind it:
+
+- `phaseOrder === 1` is always the main phase (regular season, or a cup's
+  pool play) — `normal`, for both `season` and `cup` competitions. Every
+  single-phase competition in the local data (`chaos-cup-8`,
+  `ogretoberfest-11/12/13`, `dungeon-bowl-season-2/3/4`) only ever has this
+  tuple, confirming there's no cup-final signal in the current fixtures.
+- For a `season` competition, `phaseType`'s _literal value_ (`30` vs `110` in
+  the fixtures) is **not** a stable stage signal — which numeric phase hosts
+  which stage flips between seasons (`tloegbbl-sasong-28` is the local
+  example: its playoff matches split `4`+`2` across `(30, 2, 70)`/`(110, 3,
+70)`, the reverse of every other season's `2`+`4`). The stable signal is
+  each match's `(phaseOrder, round)` pair's ascending _position_ among all of
+  its competition's non-main-phase matches — that always matches
+  chronological (`playedDate`) order, confirmed against real `startInstant`
+  timestamps.
+- Sorting a season's non-main matches by `(phaseOrder, round)` yields exactly
+  2 or 3 stages of 2 matches each, developer-confirmed against the real
+  `tLoEGBBL` playoff format:
+  - **6 non-main matches** (3 stages): stage 1 = `season_qualifier`, stage 2 =
+    `season_semi_final`, stage 3 = the terminal (final + bronze) stage.
+  - **4 non-main matches** (2 stages, no qualifying round that season): stage
+    1 = `season_semi_final`, stage 2 = the terminal stage.
+  - Any other non-main match count, or a stage without exactly 2 matches, is
+    an unanticipated shape and the classifier throws rather than guessing.
+- The terminal stage's two matches share an identical `(phaseOrder, round)`
+  tuple — nothing in the data tells them apart directly. They're split by
+  tracing which two teams _won_ the semifinal stage's two matches (via
+  `winner`/`homeTeamTpId`/`awayTeamTpId`): the terminal match pairing the two
+  semifinal winners is `season_final`; the one pairing the two semifinal
+  losers is `season_bronze`. Verified by hand against real team ids and
+  scores for every season competition in the local data. One fixture
+  (`tloegbbl-sasong-29`) has a drawn semifinal (`winner: 'draw'`) — resolved
+  transitively, since the _other_ semifinal's confirmed winner can only
+  appear in one of the two terminal matches, making that one the final and
+  the other bronze regardless of the drawn semifinal's own score. If both
+  semifinal matches were ever drawn in the same season, there'd be no
+  confirmed winner to anchor that inference on — the classifier throws rather
+  than guessing (never observed locally).
+- A `cup` competition match with `phaseOrder !== 1` has no confirmed mapping
+  (no local cup has more than one phase) and throws.
+
+This mapping was derived directly from the TP fixture data itself, not by
+cross-referencing the BBL mirror as originally planned: the local BBL mirror's
+newest recorded match result is 2023-06-10, while every TP competition that
+needs this classification (`tloegbbl-major-season-25` onward) starts on or
+after 2023-06-28 — after the mirror's data ends. There is no BBL data to
+cross-reference against for any of these competitions.
+
 `matchEvents[]` — TP's per-roll event log for the match — is decoded by
 `packages/parse-tp`'s `parseMatchEvents()` into `TpMatchEvent[]`, keyed by the
 raw numeric `matchEventType` code. **Modeled codes**: `3` completion, `4`
@@ -265,7 +324,7 @@ mechanic to the outcome, e.g. `inducements`, `winnings`, `fan_factor`,
   mis-decoded these two as their table-0 meanings, not merely failed to
   decode them. Because the same number can name different conditions on
   different tables, `packages/parse-tp`'s `WeatherTypeService.decode(table,
-  code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
+code)` takes both and looks them up in `weatherTypeByTableAndCode`, which
   keys table first. An event with no `weatherTable` at all (the oldest data)
   is treated as table `0`.
 
