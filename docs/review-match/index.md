@@ -50,7 +50,12 @@ services.
    (e.g. `Round 3 [Cup Final]`) — including `normal`, unlike the Discord bot's
    "only show when notable" choice, because review-match is a QA aid where
    confirming a routine match really was imported as routine has value.
-4. For each sampled match, renders two panels:
+4. Each match section shows a score line (every participating team and its
+   touchdown count) and the outcome (the winning team's name, or "Draw"),
+   rendered as its own block right under the heading — never appended to the
+   heading text — with a note in its place when the match has no
+   `match_teams` rows at all.
+5. For each sampled match, renders two panels:
    - **Raw source** — the BBL mirror page's `table.tblist` rows as plain text,
      or the TP `match_<id>.json`'s `matchEvents[]` entries with their numeric
      codes. A BBL four-team match that the importer merged from two two-team
@@ -84,7 +89,7 @@ services.
      collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
-5. Writes the report under `tools/review-match/output/` (gitignored) with a
+6. Writes the report under `tools/review-match/output/` (gitignored) with a
    timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
    so successive runs don't overwrite each other's reports, and prints where
    it landed.

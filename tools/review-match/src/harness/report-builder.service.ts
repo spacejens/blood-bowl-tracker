@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { HtmlService } from '../shared/html.service';
 import { MatchCategoryLabelService } from '../shared/match-category-label.service';
 import type { ReviewGap, SampledMatch } from '../shared/review.types';
+import type { MatchResultSummary } from './match-result-lookup.service';
 
 /** One data type's two panels for one match. */
 export interface ReviewPanel {
@@ -16,6 +17,11 @@ export interface ReviewPanel {
 export interface ReviewedMatch {
   match: SampledMatch;
   panels: ReviewPanel[];
+  /**
+   * The match's per-team scores and winner. Absent only when the match has
+   * no match_teams rows at all, which is itself worth seeing in the report.
+   */
+  result?: MatchResultSummary;
 }
 
 export interface ReviewReport {
@@ -30,6 +36,7 @@ const STYLES = `
   h2 { font-size: 1.1rem; margin-bottom: 0.25rem; }
   section.match { border-top: 2px solid #ccc; padding-top: 1rem; margin-top: 2rem; }
   .reasons { color: #555; font-size: 0.9rem; margin: 0 0 0.75rem; }
+  .result { font-size: 0.95rem; margin: 0 0 0.25rem; font-weight: 600; }
   .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
   .panel { border: 1px solid #ddd; padding: 0.5rem; overflow-x: auto; }
   .panel h4 { margin: 0 0 0.5rem; font-size: 0.95rem; }
@@ -87,7 +94,7 @@ ${body}
     )}`;
   }
 
-  private matchSection({ match, panels }: ReviewedMatch): string {
+  private matchSection({ match, panels, result }: ReviewedMatch): string {
     const heading = this.html.escape(
       `${match.source.toUpperCase()} match ${match.externalId} — ` +
         `${match.competitionName}, ${match.matchName} ` +
@@ -99,9 +106,32 @@ ${body}
     );
     return `<section class="match">
 <h2>${heading}</h2>
+${this.resultBlock(result)}
 <p class="reasons">${reasons}</p>
 ${panels.map((panel) => this.panelPair(panel, match)).join('\n')}
 </section>`;
+  }
+
+  /**
+   * The match's score line and outcome, as its own block rather than more
+   * text in the heading: score and winner are the point of this data type's
+   * review, and a heading that already carries five facts hides them.
+   */
+  private resultBlock(result: MatchResultSummary | undefined): string {
+    if (result === undefined || result.teams.length === 0) {
+      return this.html.note('No score or outcome recorded.');
+    }
+    const score = result.teams
+      .map((team) => `${this.html.escape(team.teamName)} ${team.score}`)
+      .join(' &#8211; ');
+    const winner = result.teams.find(
+      (team) => team.matchTeamId === result.winningMatchTeamId,
+    );
+    const outcome =
+      result.winningMatchTeamId === null
+        ? 'Draw'
+        : `Winner: ${this.html.escape(winner?.teamName ?? `match team ${result.winningMatchTeamId}`)}`;
+    return `<p class="result">${score} &#8212; ${outcome}</p>`;
   }
 
   private panelPair(panel: ReviewPanel, match: SampledMatch): string {

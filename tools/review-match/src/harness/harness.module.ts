@@ -9,6 +9,7 @@ import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { MATCH_STRATIFIERS } from '../shared/match-stratifier';
 import { SharedModule } from '../shared/shared.module';
 import { MatchLookupService } from './match-lookup.service';
+import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
 import { ReportWriterService } from './report-writer.service';
@@ -25,6 +26,7 @@ import { ReviewService } from './review.service';
   imports: [SharedModule, MatchEventsModule],
   providers: [
     MatchLookupService,
+    MatchResultLookupService,
     MatchSamplerService,
     ReportBuilderService,
     ReportWriterService,

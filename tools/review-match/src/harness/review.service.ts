@@ -4,6 +4,7 @@ import type { DataTypeReviewer } from '../shared/data-type-reviewer';
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { HtmlService } from '../shared/html.service';
 import type { ReviewGap, SampledMatch } from '../shared/review.types';
+import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
 import type { ReviewedMatch, ReviewPanel } from './report-builder.service';
 import { ReportBuilderService } from './report-builder.service';
@@ -34,10 +35,14 @@ export class ReviewService {
     private readonly builder: ReportBuilderService,
     private readonly writer: ReportWriterService,
     private readonly html: HtmlService,
+    private readonly results: MatchResultLookupService,
   ) {}
 
   async run(): Promise<ReviewOutcome> {
     const { matches, gaps } = await this.sampler.sample();
+    const resultsByMatchId = await this.results.findByMatchIds(
+      matches.map((match) => match.matchId),
+    );
 
     const reviewed: ReviewedMatch[] = [];
     for (const match of matches) {
@@ -45,7 +50,11 @@ export class ReviewService {
       for (const reviewer of this.reviewers) {
         panels.push(await this.panel(reviewer, match));
       }
-      reviewed.push({ match, panels });
+      reviewed.push({
+        match,
+        panels,
+        result: resultsByMatchId.get(match.matchId),
+      });
     }
 
     const generatedAt = new Date();
