@@ -213,6 +213,51 @@ describe('MatchEventCorrelationService', () => {
       ).toBe(true);
     });
 
+    it('does not merge two same-type consequences that differ only by teamCode in a merged 4-team match', () => {
+      // Regression test for a code-review finding on issue #316: the
+      // consequence-candidate filter (`c.teamCode !== actingTeamCode`) admits
+      // candidates from every other team, which in a merged four-team match
+      // (two source BBL pages combined) can be up to three distinct teams —
+      // unlike the action-candidate filter (`a.teamCode === actingTeamCode`),
+      // which guarantees exactly one team. Two consequences from the two
+      // sides of the SAME partner source match can share consequenceType,
+      // pid, avoidedBy, unidentifiedKind, and sourceBblId while belonging to
+      // different teams. `consequenceKey` must include `teamCode` so such
+      // consequences are not wrongly judged pairwise identical to each
+      // other — if they were, the group would merge even though the two
+      // action candidates below differ from each other, which is exactly the
+      // unsound case `correlateEvents` is supposed to reject.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          bblId: '89',
+          homeTeamId: 'hme',
+          awayTeamId: 'awy',
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'a1' },
+            { actionType: 'serious_injury', side: 'home', pid: 'a2' },
+          ],
+        }),
+        makeEvents({
+          bblId: '90',
+          homeTeamId: 'hme2',
+          awayTeamId: 'awy2',
+          consequences: [
+            { consequenceType: 'miss_next_game', side: 'home', pid: null },
+            { consequenceType: 'miss_next_game', side: 'away', pid: null },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toHaveLength(4);
+      expect(
+        events.every(
+          (e) => e.consequenceType === undefined || e.actionType === undefined,
+        ),
+      ).toBe(true);
+    });
+
     it('emits journeymen-signing events with a null pid and the source bblId', () => {
       const combined = service.combineOccurrences(
         makeEvents({ journeymenCount: { home: 3, away: 0 } }),

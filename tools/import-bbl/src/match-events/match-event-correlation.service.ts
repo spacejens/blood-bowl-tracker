@@ -350,8 +350,11 @@ export class MatchEventCorrelationService {
    * A canonical string identifying everything about an action that reaches the
    * emitted event. Two actions with equal keys are interchangeable: swapping
    * which of them merges with which consequence cannot change the resulting
-   * set of events. `teamCode` is excluded on purpose — the merge-candidate
-   * filter already guarantees it is equal across every candidate considered.
+   * set of events. `teamCode` is excluded on purpose — the action-candidate
+   * filter (`a.teamCode === actingTeamCode`) already guarantees it is equal
+   * across every candidate considered. This guarantee is specific to actions:
+   * see {@link consequenceKey} for why the consequence side cannot make the
+   * same exclusion.
    */
   private actionKey(action: TeamCodedAction): string {
     return JSON.stringify({
@@ -363,10 +366,20 @@ export class MatchEventCorrelationService {
     });
   }
 
-  /** The consequence-side counterpart of {@link actionKey}. */
+  /**
+   * The consequence-side counterpart of {@link actionKey}. Unlike the action
+   * side, `teamCode` IS included here: the consequence-candidate filter
+   * (`c.teamCode !== actingTeamCode`) only excludes the acting team, so in a
+   * merged four-team match it can admit candidates from up to three distinct
+   * teams. Without `teamCode` in this key, two consequences on different
+   * teams that otherwise match could be judged "identical" and trigger a
+   * merge whose specific action-to-consequence pairing is not actually
+   * provably irrelevant.
+   */
   private consequenceKey(consequence: TeamCodedConsequence): string {
     return JSON.stringify({
       consequenceType: consequence.consequenceType,
+      teamCode: consequence.teamCode,
       pid: consequence.pid,
       avoidedBy: consequence.avoidedBy,
       unidentifiedKind: consequence.unidentifiedKind,
