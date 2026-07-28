@@ -209,15 +209,15 @@ describe('TpMatchEventKindBuildersService admin events', () => {
     ]);
   });
 
-  it('emits two fan_factor events, one per side', () => {
+  it('emits two fan_factor events, one per side, carrying the modifier', () => {
     const events = service.buildAdminEvents(
       buildOptions({
         event: {
           type: 'fan_factor_roll',
           tpEventId: 13,
           instant: 'x',
-          newFanFactorLocal: 7,
-          newFanFactorVisitor: 9,
+          fanFactorModifierLocal: 1,
+          fanFactorModifierVisitor: -1,
         },
       }),
     );
@@ -228,11 +228,33 @@ describe('TpMatchEventKindBuildersService admin events', () => {
     ]);
     expect(
       events.find((e) => e.actingTeamEraId === HOME_TEAM_ERA_ID)?.fanFactor,
-    ).toBe(7);
+    ).toBe(1);
     expect(
       events.find((e) => e.actingTeamEraId === AWAY_TEAM_ERA_ID)?.fanFactor,
-    ).toBe(9);
+    ).toBe(-1);
     expect(events.every((e) => e.actionType === 'fan_factor')).toBe(true);
+  });
+
+  it('emits both fan_factor events even when a modifier is 0', () => {
+    const events = service.buildAdminEvents(
+      buildOptions({
+        event: {
+          type: 'fan_factor_roll',
+          tpEventId: 13,
+          instant: 'x',
+          fanFactorModifierLocal: 0,
+          fanFactorModifierVisitor: 2,
+        },
+      }),
+    );
+
+    expect(events).toHaveLength(2);
+    expect(
+      events.find((e) => e.actingTeamEraId === HOME_TEAM_ERA_ID)?.fanFactor,
+    ).toBe(0);
+    expect(
+      events.find((e) => e.actingTeamEraId === AWAY_TEAM_ERA_ID)?.fanFactor,
+    ).toBe(2);
   });
 
   it('emits two dedicated_fans consequence events, one per side', () => {
