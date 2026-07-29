@@ -146,4 +146,79 @@ describe('ReportBuilderService', () => {
 
     expect(html).toContain('No matches were sampled');
   });
+
+  it('renders a score and winner block for a decided match', () => {
+    const html = service.build({
+      ...report,
+      matches: [
+        {
+          match,
+          panels: [],
+          result: {
+            teams: [
+              { matchTeamId: 11, teamName: 'Sewerton Scavengers', score: 2 },
+              { matchTeamId: 12, teamName: 'Vorgash New Order', score: 1 },
+            ],
+            winningMatchTeamId: 11,
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain(
+      '<p class="result">Sewerton Scavengers 2 &#8211; Vorgash New Order 1 ' +
+        '&#8212; Winner: Sewerton Scavengers</p>',
+    );
+  });
+
+  it('renders "Draw" when no team won', () => {
+    const html = service.build({
+      ...report,
+      matches: [
+        {
+          match,
+          panels: [],
+          result: {
+            teams: [
+              { matchTeamId: 11, teamName: 'Sewerton Scavengers', score: 1 },
+              { matchTeamId: 12, teamName: 'Vorgash New Order', score: 1 },
+            ],
+            winningMatchTeamId: null,
+          },
+        },
+      ],
+    });
+
+    expect(html).toContain('&#8212; Draw</p>');
+  });
+
+  it('notes when a match has no result data at all', () => {
+    const html = service.build({
+      ...report,
+      matches: [{ match, panels: [] }],
+    });
+
+    expect(html).toContain('No score or outcome recorded.');
+  });
+
+  it('keeps the result out of the heading', () => {
+    const html = service.build({
+      ...report,
+      matches: [
+        {
+          match,
+          panels: [],
+          result: {
+            teams: [
+              { matchTeamId: 11, teamName: 'Sewerton Scavengers', score: 2 },
+              { matchTeamId: 12, teamName: 'Vorgash New Order', score: 1 },
+            ],
+            winningMatchTeamId: 11,
+          },
+        },
+      ],
+    });
+
+    expect(html).toMatch(/<h2>[^<]*<\/h2>\s*<p class="result">/);
+  });
 });

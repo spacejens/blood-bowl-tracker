@@ -11,7 +11,12 @@ import {
   UpsertExternalSystemSchema,
 } from './schemas/external-system';
 import { LeagueSchema, UpsertLeagueSchema } from './schemas/league';
-import { MatchSchema, UpsertMatchSchema } from './schemas/match';
+import {
+  MatchSchema,
+  ResolveMatchOutcomesResultSchema,
+  ResolveMatchOutcomesSchema,
+  UpsertMatchSchema,
+} from './schemas/match';
 import {
   MatchEventSchema,
   UpsertMatchEventSchema,
@@ -65,6 +70,14 @@ export const contract = {
   },
   matches: {
     upsert: upsertProcedure(UpsertMatchSchema, MatchSchema),
+    // Not an upsert: this recomputes an already-imported competition's match
+    // scores and winners in place, so there is no entity+created shape to
+    // return and no external-id conflict to detect. Matches it cannot resolve
+    // come back in `unresolvedMatchIds` rather than as a thrown error, so one
+    // bad match does not cost the competition its other outcomes.
+    resolveOutcomes: oc
+      .input(ResolveMatchOutcomesSchema)
+      .output(ResolveMatchOutcomesResultSchema),
   },
   matchEvents: {
     upsert: upsertProcedure(UpsertMatchEventSchema, MatchEventSchema),

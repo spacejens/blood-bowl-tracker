@@ -666,6 +666,58 @@ describe('EraConfigService', () => {
     );
   });
 
+  it('parses matches.resultOverrides alongside merges', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        matches: {
+          merges: [['1', '2']],
+          resultOverrides: [{ matchId: '1', winnerTeamCode: 'sew' }],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(service.getEras()[0].matches?.resultOverrides).toEqual([
+      { matchId: '1', winnerTeamCode: 'sew' },
+    ]);
+  });
+
+  it('allows a matches group with only resultOverrides', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        matches: {
+          resultOverrides: [{ matchId: '1', winnerTeamCode: 'draw' }],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    const result = service.getEras();
+    expect(result[0].matches?.merges).toBeUndefined();
+    expect(result[0].matches?.resultOverrides).toEqual([
+      { matchId: '1', winnerTeamCode: 'draw' },
+    ]);
+  });
+
+  it('rejects a non-array resultOverrides', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        matches: { resultOverrides: 'nope' },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      /matches\.resultOverrides must be an array/,
+    );
+  });
+
   it('parses positions overrides when present, leaving it undefined when absent', async () => {
     const eras = [
       {

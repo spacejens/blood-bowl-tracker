@@ -66,6 +66,13 @@ export interface EraConfig {
      * MatchCategoryConfigService, so entries are carried untyped here.
      */
     categoryOverrides?: unknown[];
+    /**
+     * Explicit match outcomes for matches whose winner cannot be determined
+     * from scores plus the source's own placement data (or that the source
+     * gets wrong). Per-entry shape and cross-era uniqueness validation lives
+     * in MatchResultConfigService, so entries are carried untyped here.
+     */
+    resultOverrides?: unknown[];
   };
   /**
    * Position availability overrides for this era, for cases where the
@@ -433,7 +440,10 @@ export class EraConfigService {
     if (typeof raw !== 'object' || raw === null) {
       throw new Error(`BBL_ERAS[${index}].matches must be an object.`);
     }
-    const { merges, categoryOverrides } = raw as Record<string, unknown>;
+    const { merges, categoryOverrides, resultOverrides } = raw as Record<
+      string,
+      unknown
+    >;
     if (merges !== undefined && !Array.isArray(merges)) {
       throw new Error(
         `BBL_ERAS[${index}].matches.merges must be an array of [id, id] pairs.`,
@@ -445,9 +455,16 @@ export class EraConfigService {
           '{ matchId, category } entries.',
       );
     }
+    if (resultOverrides !== undefined && !Array.isArray(resultOverrides)) {
+      throw new Error(
+        `BBL_ERAS[${index}].matches.resultOverrides must be an array of ` +
+          '{ matchId, winnerTeamCode } entries.',
+      );
+    }
     return {
       ...(merges !== undefined ? { merges } : {}),
       ...(categoryOverrides !== undefined ? { categoryOverrides } : {}),
+      ...(resultOverrides !== undefined ? { resultOverrides } : {}),
     };
   }
 

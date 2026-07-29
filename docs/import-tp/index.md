@@ -241,22 +241,35 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   match. Idempotent; a roster id or `lineUpId` that can't be resolved is
   recorded as a non-fatal error and the event is still emitted with that
   field omitted.
+- **TpMatchOutcomesImportService** — runs last of every match-related step
+  (after match events, since it counts scores from the `touchdown` events they
+  import): per competition, it sends `matches.resolveOutcomes` a tie-break for
+  every match with a `winner` — TP's own per-match field, independent of
+  score, so no bracket reconstruction like BBL's trophy-table placements is
+  needed. `'home'`/`'away'` resolve the corresponding roster id to a team era
+  (via `teamErasByRosterId` and the competition's `eraId`); `'draw'` sends an
+  explicit `null` winner; a match with no `winner` sends no tie-break at all.
+  TP has no result-override config, unlike BBL — `overrides` is always empty.
+  Every match the server cannot settle is reported as an import error naming
+  its TP match id.
 
 `main.ts` orchestrates these in dependency order — league, then rule sets,
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
 positions, then players (including hired star players), then star position
-race/era availability, then team participation, and finally match events —
-aggregating each step's `ImportResult` into one overall result, mirroring
-`tools/import-bbl/src/main.ts`.
+race/era availability, then team participation, then match events, and
+finally match outcomes — aggregating each step's `ImportResult` into one
+overall result, mirroring `tools/import-bbl/src/main.ts`.
 Races, teams, and positions run after coaches; they have no FK dependency on the
 earlier import steps (only on each other, in that order). Players run after
 positions and teams (each player resolves a team era and a position). Star
 position race/era availability runs immediately after players, since it needs
 the `starPositionUsages` that step emits. Team participation runs after that
 because it needs the teams step's resolved team-era ids and the competitions
-step's maps. Match events run last of all because they depend on
-`match_teams`, which team participation is what populates.
+step's maps. Match events run after that because they depend on
+`match_teams`, which team participation is what populates. Match outcomes run
+last of all because they count scores from the touchdown events match events
+just imported.
 
 ## Related documentation
 

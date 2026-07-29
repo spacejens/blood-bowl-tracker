@@ -27,8 +27,12 @@ export interface ReviewMatch {
   category: Match['category'];
   /**
    * The paired source's own match id, for a BBL match merged from two
-   * original two-team source rows. Set only by the merged-match stratifier;
-   * every other stratifier and the override lookup leave it undefined.
+   * original two-team source rows. Set by every stratifier that groups by
+   * match (they all collect every external id the match has, not just the
+   * lowest), so the raw-source panel can render both merge partners
+   * regardless of which stratum picked the match. The override lookup
+   * leaves it undefined; `MatchSamplerService.merge()` fills it in from
+   * whichever stratifier result carries it, if any.
    */
   secondaryExternalId?: string;
 }

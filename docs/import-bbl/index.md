@@ -100,10 +100,24 @@ camelCase, grouped into nested objects by concern:
       entry in this list. `merges` is optional within `matches` too, so an
       era may configure only `categoryOverrides` with no merges.
 
+      `matches` also carries an optional `resultOverrides` list, an array of
+      `{ matchId, winnerTeamCode }` entries, e.g.
+      `[{ matchId: "1061", winnerTeamCode: "sew" }]`. `winnerTeamCode` is
+      either a BBL team code (that team won) or the literal `"draw"`. This
+      lets the developer settle a match whose winner cannot be derived from
+      the touchdown count plus the competition's "Team trophy" placements —
+      a tied knock-out match in a competition whose `sr` page carries no
+      trophy table (e.g. Ogretoberfest 6), or a stage that normally forbids a
+      draw but genuinely ended level because the competition was abandoned
+      before its roll-off. A configured override always wins over the
+      computed result. A match whose outcome cannot be determined, and which
+      has no override here, is reported as an import error until it gets one.
+
     A competition bblId may appear in only one of the two competition override
     lists across all eras; a team code in only one era's `teamCodeOverrides`;
-    a match id in only one `matches.merges` pair across all eras; and a match
-    id in only one `matches.categoryOverrides` entry across all eras. Rules
+    a match id in only one `matches.merges` pair across all eras; a match
+    id in only one `matches.categoryOverrides` entry across all eras; and a
+    match id in only one `matches.resultOverrides` entry across all eras. Rules
     sets and eras are not present in the source data, so they are supplied
     here. Each era's rules set names and each era name are used as external
     IDs under both the configured BBL external system and the `Name` external
@@ -177,8 +191,23 @@ camelCase, grouped into nested objects by concern:
   themselves. `BblMatchesImportService` upserts each completed match, keyed by its
   numeric BBL id under the competition's BBL external system (matches have no
   `Name` external id), with `competitionId` resolved to the imported competition's
-  DB id. Runs after competitions, its only dependency. Per-team results/scores and
-  per-player events (`match_teams`/`match_events`) remain out of scope.
+  DB id. Runs after competitions, its only dependency; per-team results/scores
+  and per-player events (`match_teams`/`match_events`) are populated by later
+  steps, described below.
+  `CompetitionTrophyPageParser` reads a competition's 1st/2nd/3rd-place team
+  codes off the "Team trophy" table on its `sr` results page, if present;
+  `BblCompetitionTrophyReaderService` performs the single, memoized walk over
+  `pages('sr')` and returns the parsed placements per competition. Finally,
+  `BblMatchOutcomesImportService` runs last of every match-related step (after
+  match events, since it counts scores from the `touchdown` events they
+  import): per competition, it sends `matches.resolveOutcomes` a configured
+  `matches.resultOverrides` entry as an override (translating its BBL team
+  code to a `team_era_id` via the team-participation import's
+  `teamEraIdsByCompetitionBblId` map) and, for the competition's final and
+  bronze matches, its trophy-table 1st/3rd-place team as a tie-break — the
+  only matches a placement identifies the winner of. Every match the server
+  cannot settle is reported as an import error naming its BBL id and pointing
+  at `matches.resultOverrides`.
 - **CompetitionsModule** — data-type extractor for competitions.
   `CompetitionListPageParser` reads every competition's numeric BBL id and name
   off the master dropdown embedded on any `se`/`sr` page (one page suffices).

@@ -305,6 +305,37 @@ describe('BblTeamParticipationImportService', () => {
     );
   });
 
+  it("reports each competition's team code to team era mapping", async () => {
+    const { service, mocks } = await makeService({
+      matches: { '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }] },
+      matchTeamsByBblId: { m1: matchTeams('m1', 'sew', 'vor') },
+    });
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        data.name === 'Sewerton Scavengers'
+          ? makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] })
+          : makeTeamRecord({ id: 2, eras: [{ id: 1002, eraId: 200 }] }),
+      ),
+    );
+    mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
+    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+
+    const { teamEraIdsByCompetitionBblId } =
+      await service.importTeamParticipation({
+        competitionsByBblId: new Map([['1', competition]]),
+        teamsByCode: new Map([
+          ['sew', home],
+          ['vor', away],
+        ]),
+        racesByRaceId,
+        eraIdsByName,
+        competitionIdsByBblId: new Map([['1', 42]]),
+      });
+
+    expect(teamEraIdsByCompetitionBblId.get('1')?.get('sew')).toBe(1001);
+    expect(teamEraIdsByCompetitionBblId.get('1')?.get('vor')).toBe(1002);
+  });
+
   it('re-upserts each race that participated, with the set of eras it appeared in', async () => {
     const otherEraCompetition: UpsertCompetition = {
       ...competition,

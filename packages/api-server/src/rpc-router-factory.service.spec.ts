@@ -11,6 +11,7 @@ import {
   MatchesService,
   MatchEventsService,
   MatchEventUpsertConflictError,
+  MatchOutcomesService,
   MatchUpsertConflictError,
   PlayersService,
   PlayerUpsertConflictError,
@@ -44,6 +45,7 @@ describe('RpcRouterFactoryService', () => {
   let teamsService: MockProxy<TeamsService>;
   let competitionsService: MockProxy<CompetitionsService>;
   let matchesService: MockProxy<MatchesService>;
+  let matchOutcomesService: MockProxy<MatchOutcomesService>;
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
@@ -59,6 +61,7 @@ describe('RpcRouterFactoryService', () => {
     teamsService = mock<TeamsService>();
     competitionsService = mock<CompetitionsService>();
     matchesService = mock<MatchesService>();
+    matchOutcomesService = mock<MatchOutcomesService>();
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
     upsertHandler = mock<UpsertHandlerService>();
@@ -97,6 +100,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: TeamsService, useValue: teamsService },
         { provide: CompetitionsService, useValue: competitionsService },
         { provide: MatchesService, useValue: matchesService },
+        { provide: MatchOutcomesService, useValue: matchOutcomesService },
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
@@ -654,6 +658,7 @@ describe('RpcRouterFactoryService', () => {
         name: 'Final',
         category: 'season_final',
         playedAt: new Date('2021-09-25'),
+        winningMatchTeamId: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -715,6 +720,27 @@ describe('RpcRouterFactoryService', () => {
         externalIds: [{ externalSystemId: 1, externalId: '89' }],
       }),
     ).rejects.toThrow('db unavailable');
+  });
+
+  it('delegates matches.resolveOutcomes to MatchOutcomesService', async () => {
+    const expected = {
+      competitionId: 7,
+      resolvedMatchIds: [1, 2],
+      unresolvedMatchIds: [3],
+    };
+    matchOutcomesService.resolveForCompetition.mockResolvedValue(expected);
+
+    const input = {
+      competitionId: 7,
+      overrides: [],
+      tieBreaks: [{ matchId: 3, winnerTeamEraId: null }],
+    };
+    const result = await call(router.matches.resolveOutcomes, input);
+
+    expect(result).toEqual(expected);
+    expect(matchOutcomesService.resolveForCompetition).toHaveBeenCalledWith(
+      input,
+    );
   });
 
   it('players.upsert returns the flat entity with a created flag', async () => {

@@ -85,6 +85,11 @@ export class BblTeamParticipationImportService {
    * sync here and is skipped entirely; its own row (with an empty
    * teamEraIds) was already created upstream by BblCompetitionsImportService,
    * so this is not a missing import.
+   *
+   * `teamEraIdsByCompetitionBblId` exposes the per-competition team code ->
+   * team era mapping this step already builds, so the outcome step can turn
+   * a trophy placement or a configured override's team code into the team era
+   * that identifies the winning match team.
    * Idempotent.
    */
   async importTeamParticipation({
@@ -99,9 +104,11 @@ export class BblTeamParticipationImportService {
   }: ImportTeamParticipationOptions): Promise<{
     result: ImportResult;
     eraIdsByRaceId: Map<number, Set<number>>;
+    teamEraIdsByCompetitionBblId: Map<string, Map<string, number>>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const teamEraIdsByCompetitionBblId = new Map<string, Map<string, number>>();
 
     const matchesByCompetitionId =
       await this.matchListReader.getMatchesByCompetitionId(errors);
@@ -175,6 +182,8 @@ export class BblTeamParticipationImportService {
         eraIdsByRaceId.set(teamRaceId, eras);
       }
 
+      teamEraIdsByCompetitionBblId.set(bblId, teamEraIdByTeamId);
+
       if (teamEraIds.length > 0) {
         const success = await this.competitionsImport.upsertCompetition(
           { ...competition, teamEraIds },
@@ -208,6 +217,7 @@ export class BblTeamParticipationImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       eraIdsByRaceId,
+      teamEraIdsByCompetitionBblId,
     };
   }
 

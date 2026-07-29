@@ -6,6 +6,7 @@ import type { DataTypeReviewer } from '../shared/data-type-reviewer';
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { HtmlService } from '../shared/html.service';
 import type { SampledMatch } from '../shared/review.types';
+import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
 import { ReportWriterService } from './report-writer.service';
@@ -28,6 +29,7 @@ interface Harness {
   reviewer: MockProxy<DataTypeReviewer>;
   builder: MockProxy<ReportBuilderService>;
   writer: MockProxy<ReportWriterService>;
+  resultLookup: MockProxy<MatchResultLookupService>;
 }
 
 async function makeHarness(): Promise<Harness> {
@@ -41,6 +43,8 @@ async function makeHarness(): Promise<Harness> {
   builder.build.mockReturnValue('<html></html>');
   const writer = mock<ReportWriterService>();
   writer.write.mockResolvedValue('/tmp/report.html');
+  const resultLookup = mock<MatchResultLookupService>();
+  resultLookup.findByMatchIds.mockResolvedValue(new Map());
   const moduleRef = await Test.createTestingModule({
     providers: [
       ReviewService,
@@ -49,6 +53,7 @@ async function makeHarness(): Promise<Harness> {
       { provide: ReportBuilderService, useValue: builder },
       { provide: ReportWriterService, useValue: writer },
       HtmlService,
+      { provide: MatchResultLookupService, useValue: resultLookup },
     ],
   }).compile();
   return {
@@ -57,6 +62,7 @@ async function makeHarness(): Promise<Harness> {
     reviewer,
     builder,
     writer,
+    resultLookup,
   };
 }
 
@@ -144,6 +150,26 @@ describe('ReviewService', () => {
     const report = builder.build.mock.calls[0][0];
     expect(report.matches[0].panels[0].importedHtml).toBe(
       '<p class="note">Rendering failed: disk on fire</p>',
+    );
+  });
+
+  it("passes each sampled match's result to the report builder", async () => {
+    const { service, resultLookup, builder } = await makeHarness();
+    resultLookup.findByMatchIds.mockResolvedValue(
+      new Map([[match.matchId, { teams: [], winningMatchTeamId: null }]]),
+    );
+
+    await service.run();
+
+    expect(resultLookup.findByMatchIds).toHaveBeenCalledWith([match.matchId]);
+    expect(builder.build).toHaveBeenCalledWith(
+      expect.objectContaining({
+        matches: [
+          expect.objectContaining({
+            result: { teams: [], winningMatchTeamId: null },
+          }),
+        ],
+      }),
     );
   });
 });

@@ -1,3 +1,4 @@
+import { getTableConfig } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -162,5 +163,33 @@ describe('schema', () => {
     expect(matchEventExternalIds.matchEventId).toBeDefined();
     expect(matchEventExternalIds.externalSystemId).toBeDefined();
     expect(matchEventExternalIds.externalId).toBeDefined();
+  });
+
+  it('match_teams has a non-null score column', () => {
+    const config = getTableConfig(matchTeams);
+    const score = config.columns.find((c) => c.name === 'score');
+    expect(score).toBeDefined();
+    expect(score!.notNull).toBe(true);
+  });
+
+  it('matches has a nullable winning_match_team_id referencing match_teams', () => {
+    const config = getTableConfig(matches);
+    const winner = config.columns.find(
+      (c) => c.name === 'winning_match_team_id',
+    );
+    expect(winner).toBeDefined();
+    expect(winner!.notNull).toBe(false);
+
+    const fk = config.foreignKeys.find((foreignKey) =>
+      foreignKey
+        .reference()
+        .columns.some((column) => column.name === 'winning_match_team_id'),
+    );
+    expect(fk).toBeDefined();
+    const reference = fk!.reference();
+    expect(reference.foreignTable).toBe(matchTeams);
+    expect(reference.foreignColumns.map((column) => column.name)).toEqual([
+      'id',
+    ]);
   });
 });
