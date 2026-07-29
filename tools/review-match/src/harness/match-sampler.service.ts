@@ -67,7 +67,16 @@ export class MatchSamplerService {
         continue;
       }
       const found = await this.lookup.findByExternalIds(source, overrides);
-      const foundIds = new Set(found.map((match) => match.externalId));
+      // Both ids, not just the primary: an override naming a merged match's
+      // secondary (higher) id resolves onto that match too — see
+      // MatchLookupService — so it must not be reported as a gap.
+      const foundIds = new Set(
+        found.flatMap((match) =>
+          match.secondaryExternalId === undefined
+            ? [match.externalId]
+            : [match.externalId, match.secondaryExternalId],
+        ),
+      );
       for (const externalId of overrides) {
         if (!foundIds.has(externalId)) {
           gaps.push({
