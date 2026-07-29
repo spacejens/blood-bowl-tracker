@@ -43,9 +43,12 @@ export interface MakeToplistResolversOptions<
    * Enriches every fetched row before ranking — e.g. attaching each team's
    * race/coach context. Runs inside `fetchRows`, so it is covered by the
    * toplist's database timeout, and it sees the full fetch window rather than
-   * only the rows that survive tie truncation.
+   * only the rows that survive tie truncation. Receives the resolver's own
+   * `scope` too, because which context a row shows can depend on it: an
+   * era-scoped toplist already names the era in its headline, so its rows
+   * leave the era out.
    */
-  decorateRows?: (rows: TRow[]) => Promise<TRow[]>;
+  decorateRows?: (rows: TRow[], scope: FactScope) => Promise<TRow[]>;
   /** Overrides the default `"<rank>. <name> — <count>"` line rendering. */
   formatRow?: (row: TRow & { rank: number }) => string;
   leaderboard: LeaderboardService;
@@ -83,7 +86,7 @@ export function makeToplistResolvers<
         title: titles[method],
         fetchRows: async (limit) => {
           const rows = await service[method](scope, limit);
-          return decorateRows === undefined ? rows : decorateRows(rows);
+          return decorateRows === undefined ? rows : decorateRows(rows, scope);
         },
         timeoutMessage,
         noDataMessage,
