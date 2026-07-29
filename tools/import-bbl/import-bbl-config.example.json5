@@ -85,19 +85,22 @@
             // without widening the range.
             playerIdOverrides: [4907, 4909, 4911, 4912, 4914, 4915, 4921, 4922, 4923],
           },
-          // BBL cannot store a match with more than two teams, so the four-team
-          // "Bierhallentodball" finals in the Ogretoberfest cups were each
-          // registered as two two-team rows. Each pair is imported as one match
-          // (both external ids, all four teams, the union of both rows' events).
-          // Both ids of a pair must be in the same competition's match list. All
-          // six of this league's confirmed pairs fall inside First era.
+          // BBL cannot store a match with more than two teams, so every
+          // four-team "Bierhallentodball" match in the Ogretoberfest cups
+          // (both the actual final and, in Ogretoberfest 5 and 6, an extra
+          // non-final four-team match that used the same format and flavor
+          // name) was registered as two two-team rows. Each pair is imported
+          // as one match (both external ids, all four teams, the union of
+          // both rows' events). Both ids of a pair must be in the same
+          // competition's match list. All six of this league's confirmed
+          // pairs fall inside First era.
           matches: {
             merges: [
               ['1061', '1062'], // Ogretoberfest 4 final
-              ['1311', '1312'], // Ogretoberfest 5
-              ['1309', '1310'], // Ogretoberfest 5
-              ['1520', '1521'], // Ogretoberfest 6
-              ['1518', '1519'], // Ogretoberfest 6
+              ['1311', '1312'], // Ogretoberfest 5 final
+              ['1309', '1310'], // Ogretoberfest 5, not the final
+              ['1520', '1521'], // Ogretoberfest 6, not the final
+              ['1518', '1519'], // Ogretoberfest 6 final
               ['1759', '1760'], // Ogretoberfest 7 final
             ],
             // Optional -- omit entirely (or omit merges above) when an era has
@@ -107,17 +110,26 @@
             // deliberately refuses to guess at (ambiguous stage-like names).
             // These win over the keyword classifier. A match id may appear in
             // only one entry across all eras.
+            //
+            // Ogretoberfest 5 and 6 each had two merged four-team
+            // "Bierhallentodball" matches, but only one final per
+            // competition: the BBL season result page's "Bierhallenförer"
+            // player-prize record (default.asp?p=sr&s=<season>) names the
+            // trophy-winning Ogre and team for each competition, which
+            // identifies which merged pair was the actual final by matching
+            // that Ogre's touchdown to one of the two pairs (an Ogre-scored
+            // touchdown is the final's win condition; Ogretoberfest 5's other
+            // pair was decided by a non-Ogre touchdown instead, which the
+            // rules don't credit as a final result). The other pair is left
+            // uncategorized here so the classifier's default 'normal'
+            // applies, despite it also having four teams.
             categoryOverrides: [
               { matchId: '1061', category: 'cup_final' }, // Ogretoberfest 4
               { matchId: '1062', category: 'cup_final' }, // Ogretoberfest 4
-              { matchId: '1309', category: 'cup_final' }, // Ogretoberfest 5
-              { matchId: '1310', category: 'cup_final' }, // Ogretoberfest 5
-              { matchId: '1311', category: 'cup_final' }, // Ogretoberfest 5
-              { matchId: '1312', category: 'cup_final' }, // Ogretoberfest 5
-              { matchId: '1518', category: 'cup_final' }, // Ogretoberfest 6
-              { matchId: '1519', category: 'cup_final' }, // Ogretoberfest 6
-              { matchId: '1520', category: 'cup_final' }, // Ogretoberfest 6
-              { matchId: '1521', category: 'cup_final' }, // Ogretoberfest 6
+              { matchId: '1311', category: 'cup_final' }, // Ogretoberfest 5 final
+              { matchId: '1312', category: 'cup_final' }, // Ogretoberfest 5 final
+              { matchId: '1518', category: 'cup_final' }, // Ogretoberfest 6 final
+              { matchId: '1519', category: 'cup_final' }, // Ogretoberfest 6 final
               { matchId: '1759', category: 'cup_final' }, // Ogretoberfest 7
               { matchId: '1760', category: 'cup_final' }, // Ogretoberfest 7
             ],
