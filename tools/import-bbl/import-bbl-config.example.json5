@@ -108,8 +108,18 @@
             // These win over the keyword classifier. A match id may appear in
             // only one entry across all eras.
             categoryOverrides: [
-              { matchId: '1061', category: 'cup_final' },
+              { matchId: '1061', category: 'cup_final' }, // Ogretoberfest 4
               { matchId: '1062', category: 'cup_final' },
+              { matchId: '1309', category: 'cup_final' }, // Ogretoberfest 5
+              { matchId: '1310', category: 'cup_final' },
+              { matchId: '1311', category: 'cup_final' },
+              { matchId: '1312', category: 'cup_final' },
+              { matchId: '1518', category: 'cup_final' }, // Ogretoberfest 6
+              { matchId: '1519', category: 'cup_final' },
+              { matchId: '1520', category: 'cup_final' },
+              { matchId: '1521', category: 'cup_final' },
+              { matchId: '1759', category: 'cup_final' }, // Ogretoberfest 7
+              { matchId: '1760', category: 'cup_final' },
             ],
             // Explicit outcomes for matches whose winner cannot be derived from
             // the touchdown count plus the competition's "Team trophy"
