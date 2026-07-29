@@ -93,12 +93,12 @@
           // six of this league's confirmed pairs fall inside First era.
           matches: {
             merges: [
-              ['1061', '1062'],
-              ['1311', '1312'],
-              ['1309', '1310'],
-              ['1520', '1521'],
-              ['1518', '1519'],
-              ['1759', '1760'],
+              ['1061', '1062'], // Ogretoberfest 4 final
+              ['1311', '1312'], // Ogretoberfest 5
+              ['1309', '1310'], // Ogretoberfest 5
+              ['1520', '1521'], // Ogretoberfest 6
+              ['1518', '1519'], // Ogretoberfest 6
+              ['1759', '1760'], // Ogretoberfest 7 final
             ],
             // Optional -- omit entirely (or omit merges above) when an era has
             // no category overrides. Explicit BBL match id -> category
@@ -109,17 +109,17 @@
             // only one entry across all eras.
             categoryOverrides: [
               { matchId: '1061', category: 'cup_final' }, // Ogretoberfest 4
-              { matchId: '1062', category: 'cup_final' },
+              { matchId: '1062', category: 'cup_final' }, // Ogretoberfest 4
               { matchId: '1309', category: 'cup_final' }, // Ogretoberfest 5
-              { matchId: '1310', category: 'cup_final' },
-              { matchId: '1311', category: 'cup_final' },
-              { matchId: '1312', category: 'cup_final' },
+              { matchId: '1310', category: 'cup_final' }, // Ogretoberfest 5
+              { matchId: '1311', category: 'cup_final' }, // Ogretoberfest 5
+              { matchId: '1312', category: 'cup_final' }, // Ogretoberfest 5
               { matchId: '1518', category: 'cup_final' }, // Ogretoberfest 6
-              { matchId: '1519', category: 'cup_final' },
-              { matchId: '1520', category: 'cup_final' },
-              { matchId: '1521', category: 'cup_final' },
+              { matchId: '1519', category: 'cup_final' }, // Ogretoberfest 6
+              { matchId: '1520', category: 'cup_final' }, // Ogretoberfest 6
+              { matchId: '1521', category: 'cup_final' }, // Ogretoberfest 6
               { matchId: '1759', category: 'cup_final' }, // Ogretoberfest 7
-              { matchId: '1760', category: 'cup_final' },
+              { matchId: '1760', category: 'cup_final' }, // Ogretoberfest 7
             ],
             // Explicit outcomes for matches whose winner cannot be derived from
             // the touchdown count plus the competition's "Team trophy"
