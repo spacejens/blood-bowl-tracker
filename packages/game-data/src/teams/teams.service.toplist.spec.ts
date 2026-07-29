@@ -86,17 +86,31 @@ describe('TeamsService', () => {
     });
 
     it.each([
-      ['countMatchesWonByTeam'],
-      ['countMatchesLostByTeam'],
-      ['countMatchesDrawnByTeam'],
+      [
+        'countMatchesWonByTeam',
+        ['matches.winning_match_team_id', 'match_teams.id'],
+      ],
+      [
+        'countMatchesLostByTeam',
+        [
+          'matches.winning_match_team_id',
+          'matches.winning_match_team_id',
+          'match_teams.id',
+        ],
+      ],
+      ['countMatchesDrawnByTeam', ['matches.winning_match_team_id']],
     ] as const)(
       '%s forwards the match category scope and limit to the outcome query',
-      async (method) => {
+      async (method, expectedOutcomeColumns) => {
         const { chains } = await build([]);
         await service[method]({ category: 'season_final' }, 21);
         expect(chains[0].where).toHaveBeenCalledTimes(1);
         expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
           'season_final',
+        ]);
+        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+          ...expectedOutcomeColumns,
+          'matches.category',
         ]);
         expect(chains[0].limit).toHaveBeenCalledWith(21);
       },

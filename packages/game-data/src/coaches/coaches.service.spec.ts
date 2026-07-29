@@ -239,17 +239,31 @@ describe('CoachesService', () => {
     );
 
     it.each([
-      ['countMatchesWonByCoach'],
-      ['countMatchesLostByCoach'],
-      ['countMatchesDrawnByCoach'],
+      [
+        'countMatchesWonByCoach',
+        ['matches.winning_match_team_id', 'match_teams.id'],
+      ],
+      [
+        'countMatchesLostByCoach',
+        [
+          'matches.winning_match_team_id',
+          'matches.winning_match_team_id',
+          'match_teams.id',
+        ],
+      ],
+      ['countMatchesDrawnByCoach', ['matches.winning_match_team_id']],
     ] as const)(
       '%s forwards the era scope and limit to the outcome query',
-      async (method) => {
+      async (method, expectedOutcomeColumns) => {
         const { chains } = await build([]);
         await service[method]({ eraId: 20 }, 21);
         expect(chains[0].where).toHaveBeenCalledTimes(1);
         expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
           20,
+        ]);
+        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+          ...expectedOutcomeColumns,
+          'team_eras.era_id',
         ]);
         expect(chains[0].limit).toHaveBeenCalledWith(21);
       },

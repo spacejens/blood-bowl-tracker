@@ -69,6 +69,8 @@ they reached), rather than every competition entered.
   Coaches, Competitions, Teams, Players, Matches, and Match events are each
   scoped to the selected era.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
+  Supports league, era and match-category filtering, but not competition
+  filtering (like the other `coach.toplist.*` facts).
 - `coach.toplist.matches.won` — coaches ranked by number of matches won.
   Counts matches whose recorded winner is one of the coach's own teams.
   Supports league, era and match-category filtering, but not competition
@@ -110,6 +112,8 @@ button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 
 - `team.toplist.matches.played` — teams ranked by number of matches played.
+  Supports league, era and match-category filtering, but not competition
+  filtering.
 - `team.toplist.matches.won` — teams ranked by number of matches won. Counts
   matches whose recorded winner is that team. Supports league, era and
   match-category filtering, but not competition filtering.
@@ -233,7 +237,7 @@ button, in the same order as the list, that opens that player's
 - `race.toplist.matches.played` — races ranked by number of matches played by
   teams of that race. Counts one participation per participating team, so a
   match between two teams of the same race adds 2 to that race's total.
-  Supports era filtering.
+  Supports league, era and match-category filtering.
 - `race.toplist.matches.won` — races ranked by number of matches won by teams
   of that race. Counts one result per participating team, so a match between
   two teams of the same race contributes one win and one loss to that race.

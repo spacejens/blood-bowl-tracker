@@ -278,17 +278,31 @@ describe('RacesService', () => {
     });
 
     it.each([
-      ['countMatchesWonByRace'],
-      ['countMatchesLostByRace'],
-      ['countMatchesDrawnByRace'],
+      [
+        'countMatchesWonByRace',
+        ['matches.winning_match_team_id', 'match_teams.id'],
+      ],
+      [
+        'countMatchesLostByRace',
+        [
+          'matches.winning_match_team_id',
+          'matches.winning_match_team_id',
+          'match_teams.id',
+        ],
+      ],
+      ['countMatchesDrawnByRace', ['matches.winning_match_team_id']],
     ] as const)(
       '%s forwards the league scope and limit to the outcome query',
-      async (method) => {
+      async (method, expectedOutcomeColumns) => {
         const { chains } = await build([]);
         await service[method]({ leagueId: 9 }, 21);
         expect(chains[0].where).toHaveBeenCalledTimes(1);
         expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
           9,
+        ]);
+        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+          ...expectedOutcomeColumns,
+          'eras.league_id',
         ]);
         expect(chains[0].limit).toHaveBeenCalledWith(21);
       },
