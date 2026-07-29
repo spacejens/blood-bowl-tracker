@@ -52,9 +52,12 @@ export class MatchEventStratificationService implements MatchStratifier {
       sources: ['bbl', 'tp'],
     },
     {
+      // BBL-only: TP resolves every journeyman, star, and mercenary
+      // participant to a real player row via lineUpId, so it has no
+      // name-only/unidentified participant to describe in the first place.
       id: 'unidentified',
       label: 'Journeyman, star or mercenary participant',
-      sources: ['bbl', 'tp'],
+      sources: ['bbl'],
     },
     {
       // BBL-only: TP's data has no apothecary/regeneration annotation.

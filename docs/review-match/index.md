@@ -33,7 +33,7 @@ services.
    2. contains a casualty or death
    3. an action paired with a matched consequence
    4. an action *without* a matched consequence
-   5. a journeyman, star or mercenary participant
+   5. a journeyman, star or mercenary participant (BBL only)
    6. a consequence avoided by apothecary or regeneration (BBL only)
    7. a four-team match merged from two BBL source rows (BBL only)
    8. a cup final match

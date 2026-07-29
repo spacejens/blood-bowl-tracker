@@ -57,11 +57,14 @@ describe('MatchEventStratificationService', () => {
       ]);
     });
 
-    it('offers the avoided-consequence stratum for BBL only', async () => {
+    it('offers the BBL-only strata for BBL only', async () => {
       const service = await makeService(mockDb());
       const strata = service.listStrata();
 
       expect(strata.find((s) => s.id === 'avoided')?.sources).toEqual(['bbl']);
+      expect(strata.find((s) => s.id === 'unidentified')?.sources).toEqual([
+        'bbl',
+      ]);
       expect(strata.find((s) => s.id === 'foul')?.sources).toEqual([
         'bbl',
         'tp',
