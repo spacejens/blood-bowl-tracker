@@ -285,6 +285,18 @@
               'fes2', 'ver', 'liz2', 'hel', 'läd', 'pro2', 'var', 'sma', 'knu', 'wew', 'dum',
             ],
           },
+          // This competition's full bracket is Kvalmatch -> Slutspel rond1 (2
+          // walkovers) -> Semifinal (2 matches) -> Final + Bronsmatch.
+          // "Slutspel rond1 wo" is a preliminary playoff round before the
+          // semi-finals -- the same conceptual role as Kvalmatch, both
+          // mapping to this enum's single season_qualifier value even though
+          // the bracket has two distinct qualifying stages.
+          matches: {
+            categoryOverrides: [
+              { matchId: '1765', category: 'season_qualifier' }, // Slutspel rond1 wo
+              { matchId: '1766', category: 'season_qualifier' },
+            ],
+          },
         },
       ],
     },
