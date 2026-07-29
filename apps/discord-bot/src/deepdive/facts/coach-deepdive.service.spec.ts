@@ -16,11 +16,13 @@ import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
+import { TeamContextService } from '../../insights/team-context.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { CoachDeepdiveService } from './coach-deepdive.service';
 
@@ -29,6 +31,22 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  teamContext?: MockProxy<TeamContextService>;
+}
+
+/**
+ * A `TeamContextService` mock canned to attach a fixed suffix to every row.
+ * It does not reproduce the real lookup/formatting — that is covered by
+ * team-context.service.spec.ts.
+ */
+function passthroughTeamContext(
+  contextSuffix = '',
+): MockProxy<TeamContextService> {
+  const teamContext = mock<TeamContextService>();
+  teamContext.attachSuffixes.mockImplementation((rows: unknown[]) =>
+    Promise.resolve(rows.map((row) => ({ ...(row as object), contextSuffix }))),
+  );
+  return teamContext;
 }
 
 async function makeService({
@@ -36,10 +54,12 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = mock<LeaderboardService>(),
   entityComponents = nullEntityComponents(),
+  teamContext = passthroughTeamContext(),
 }: MakeServiceOptions): Promise<{
   service: CoachDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
   entityComponents: MockProxy<EntityComponentsService>;
+  teamContext: MockProxy<TeamContextService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -48,12 +68,14 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: TeamContextService, useValue: teamContext },
     ],
   }).compile();
   return {
     service: moduleRef.get(CoachDeepdiveService),
     leaderboard,
     entityComponents,
+    teamContext,
   };
 }
 
@@ -352,5 +374,115 @@ describe('CoachDeepdiveService', () => {
       () => undefined,
       DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
     );
+  });
+
+  it('falls back to the team-context timeout message when attachSuffixes times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const leaderboard = mock<LeaderboardService>();
+        const rankedTeams = [
+          { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+        ];
+        leaderboard.topRanksWithTies.mockReturnValue({
+          rows: rankedTeams,
+          truncatedCount: 0,
+          tieGroupOpenEnded: false,
+        });
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          coaches: makeCoaches({
+            coach: { id: 1, name: 'Roze Madder' },
+            span: { start: '2021-09-01', end: '2023-06-10' },
+            topTeams: [{ id: 11, name: 'Reikland Reavers', count: 12 }],
+          }),
+          leaderboard,
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('appends each team race to its line and leaves the coach out', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const rankedTeams = [
+      { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+      { id: 22, name: 'Gouged Eye', count: 5, rank: 2 },
+    ];
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: rankedTeams,
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
+    });
+    const teamContext = mock<TeamContextService>();
+    teamContext.attachSuffixes.mockResolvedValue([
+      { ...rankedTeams[0], contextSuffix: ' (Human)' },
+      { ...rankedTeams[1], contextSuffix: ' (Orc)' },
+    ]);
+    const { service } = await makeService({
+      coaches: makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [
+          { id: 11, name: 'Reikland Reavers', count: 12 },
+          { id: 22, name: 'Gouged Eye', count: 5 },
+        ],
+      }),
+      leaderboard,
+      teamContext,
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('1. Reikland Reavers (Human) — 12');
+    expect(lines).toContain('2. Gouged Eye (Orc) — 5');
+    const [rows, teamIdOf, options] = teamContext.attachSuffixes.mock.calls[0];
+    expect(rows).toEqual(rankedTeams);
+    expect(teamIdOf(rankedTeams[0])).toBe(11);
+    expect(options).toEqual({ includeRace: true, includeCoach: false });
+  });
+
+  it('still labels the team buttons with the plain team name', async () => {
+    const leaderboard = mock<LeaderboardService>();
+    const rankedTeams = [
+      { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
+    ];
+    leaderboard.topRanksWithTies.mockReturnValue({
+      rows: rankedTeams,
+      truncatedCount: 0,
+      tieGroupOpenEnded: false,
+    });
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    const { service } = await makeService({
+      coaches: makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topTeams: [{ id: 11, name: 'Reikland Reavers', count: 12 }],
+      }),
+      leaderboard,
+      entityComponents,
+      teamContext: passthroughTeamContext(' (Human)'),
+    });
+    await service.resolve(1);
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '11',
+        label: 'Reikland Reavers',
+      },
+    ]);
   });
 });

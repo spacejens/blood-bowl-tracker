@@ -86,6 +86,8 @@ export const DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE =
   "The archivist is still leafing through this coach's match ledger.";
 export const DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE =
   "The equipment manager is still counting up this coach's roster of teams.";
+export const DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The scribe is still tracking down which races and coaches those teams belong to.';
 export const DEEPDIVE_MULTIPLE_TARGETS_MESSAGE =
   'The referees are arguing amongst themselves about which one you meant — pick a single target.';
 export const DEEPDIVE_TEAM_NOT_FOUND_MESSAGE =
