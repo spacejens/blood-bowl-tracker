@@ -141,6 +141,15 @@ function makeFactTreeMocks(): FactTreeMocks {
   coachToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Coaches by matches played', '1. Roze Madder — 9'),
   );
+  coachToplist.resolveMatchesWon.mockResolvedValue(
+    sampleEmbedReply('Coaches by matches won', '1. Roze Madder — 5'),
+  );
+  coachToplist.resolveMatchesLost.mockResolvedValue(
+    sampleEmbedReply('Coaches by matches lost', '1. Roze Madder — 3'),
+  );
+  coachToplist.resolveMatchesDrawn.mockResolvedValue(
+    sampleEmbedReply('Coaches by matches drawn', '1. Roze Madder — 1'),
+  );
   coachToplist.resolveTeams.mockResolvedValue(
     sampleEmbedReply('Coaches by teams', '1. Roze Madder — 3'),
   );
@@ -175,6 +184,15 @@ function makeFactTreeMocks(): FactTreeMocks {
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Teams by matches played', '1. 40 grinders — 12'),
+  );
+  teamToplist.resolveMatchesWon.mockResolvedValue(
+    sampleEmbedReply('Teams by matches won', '1. 40 grinders — 7'),
+  );
+  teamToplist.resolveMatchesLost.mockResolvedValue(
+    sampleEmbedReply('Teams by matches lost', '1. 40 grinders — 4'),
+  );
+  teamToplist.resolveMatchesDrawn.mockResolvedValue(
+    sampleEmbedReply('Teams by matches drawn', '1. 40 grinders — 1'),
   );
   teamToplist.resolveCompetitionsPlayed.mockResolvedValue(
     sampleEmbedReply('Teams by competitions played', '1. 40 grinders — 4'),
@@ -290,6 +308,15 @@ function makeFactTreeMocks(): FactTreeMocks {
   );
   raceToplist.resolveMatchesPlayed.mockResolvedValue(
     sampleEmbedReply('Races by matches played', '1. Orc — 40'),
+  );
+  raceToplist.resolveMatchesWon.mockResolvedValue(
+    sampleEmbedReply('Races by matches won', '1. Orc — 22'),
+  );
+  raceToplist.resolveMatchesLost.mockResolvedValue(
+    sampleEmbedReply('Races by matches lost', '1. Orc — 15'),
+  );
+  raceToplist.resolveMatchesDrawn.mockResolvedValue(
+    sampleEmbedReply('Races by matches drawn', '1. Orc — 3'),
   );
 
   const expensiveMistakes = mock<ExpensiveMistakesToplistService>();

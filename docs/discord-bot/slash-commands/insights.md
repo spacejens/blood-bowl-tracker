@@ -69,6 +69,18 @@ they reached), rather than every competition entered.
   Coaches, Competitions, Teams, Players, Matches, and Match events are each
   scoped to the selected era.
 - `coach.toplist.matches.played` — coaches ranked by number of matches played.
+  Supports league, era and match-category filtering, but not competition
+  filtering (like the other `coach.toplist.*` facts).
+- `coach.toplist.matches.won` — coaches ranked by number of matches won.
+  Counts matches whose recorded winner is one of the coach's own teams.
+  Supports league, era and match-category filtering, but not competition
+  filtering (like the other `coach.toplist.*` facts).
+- `coach.toplist.matches.lost` — coaches ranked by number of matches lost:
+  matches with a recorded winner that was not one of the coach's own teams.
+  Ranked most-losses-first, as its own leaderboard rather than an inverted
+  wins list. Same filtering as above.
+- `coach.toplist.matches.drawn` — coaches ranked by number of drawn matches
+  (matches with no recorded winner). Same filtering as above.
 - `coach.toplist.teams` — coaches ranked by number of teams coached.
 - `coach.toplist.competitions.played` — coaches ranked by number of distinct
   competitions their teams have entered. Supports era filtering.
@@ -95,11 +107,21 @@ they reached), rather than every competition entered.
   Same exclusions and filtering as above, plus the same minimum-5-matches floor
   as `.longest.ascending`.
 
-Each coach listed by the eight `coach.toplist.*` facts above also gets a
+Each coach listed by the eleven `coach.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that coach's
 [`/deepdive`](deepdive.md) detail view.
 
 - `team.toplist.matches.played` — teams ranked by number of matches played.
+  Supports league, era and match-category filtering, but not competition
+  filtering.
+- `team.toplist.matches.won` — teams ranked by number of matches won. Counts
+  matches whose recorded winner is that team. Supports league, era and
+  match-category filtering, but not competition filtering.
+- `team.toplist.matches.lost` — teams ranked by number of matches lost:
+  matches with a recorded winner that was the opponent. Ranked
+  most-losses-first, as its own leaderboard. Same filtering as above.
+- `team.toplist.matches.drawn` — teams ranked by number of drawn matches
+  (matches with no recorded winner). Same filtering as above.
 - `team.toplist.competitions.played` — teams ranked by number of distinct
   competitions entered. Supports era filtering.
 - `team.toplist.eras.active` — teams ranked by number of distinct eras they
@@ -158,7 +180,7 @@ button, in the same order as the list, that opens that coach's
   date of the match it occurred in. A team can appear more than once. Supports
   era and competition filtering.
 
-Each team listed by the eighteen `team.toplist.*` facts above also gets a
+Each team listed by the twenty-one `team.toplist.*` facts above also gets a
 button, in the same order as the list, that opens that team's
 [`/deepdive`](deepdive.md) detail view. For the biggest-events fact, buttons are
 deduplicated so a team that appears on multiple rows gets a single button.
@@ -215,7 +237,18 @@ button, in the same order as the list, that opens that player's
 - `race.toplist.matches.played` — races ranked by number of matches played by
   teams of that race. Counts one participation per participating team, so a
   match between two teams of the same race adds 2 to that race's total.
-  Supports era filtering.
+  Supports league, era and match-category filtering.
+- `race.toplist.matches.won` — races ranked by number of matches won by teams
+  of that race. Counts one result per participating team, so a match between
+  two teams of the same race contributes one win and one loss to that race.
+  Supports league, era and match-category filtering.
+- `race.toplist.matches.lost` — races ranked by number of matches lost by
+  teams of that race, counted the same way. Ranked most-losses-first, as its
+  own leaderboard.
+- `race.toplist.matches.drawn` — races ranked by number of drawn matches
+  played by teams of that race. A drawn match between two teams of the same
+  race adds 2 to that race's total, matching how `race.toplist.matches.played`
+  counts.
 - `eras.list` — a single embed listing every recorded era in chronological
   order by start date, regardless of league (ties broken by league, then era
   name). Each line reads `<era> (<league>): <start> – <end>`

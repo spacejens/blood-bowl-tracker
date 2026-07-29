@@ -219,6 +219,56 @@ describe('CoachesService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
+    it.each([
+      ['countMatchesWonByCoach', 'won'],
+      ['countMatchesLostByCoach', 'lost'],
+      ['countMatchesDrawnByCoach', 'drawn'],
+    ] as const)(
+      '%s returns the rows the query resolves to',
+      async (method, _outcome) => {
+        const rows = [
+          { coachId: 1, name: 'Roze Madder', count: 5 },
+          { coachId: 2, name: 'Grashnak', count: 2 },
+        ];
+        const { db } = await build(rows);
+        await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+          rows,
+        );
+        expect(db.select).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it.each([
+      [
+        'countMatchesWonByCoach',
+        ['matches.winning_match_team_id', 'match_teams.id'],
+      ],
+      [
+        'countMatchesLostByCoach',
+        [
+          'matches.winning_match_team_id',
+          'matches.winning_match_team_id',
+          'match_teams.id',
+        ],
+      ],
+      ['countMatchesDrawnByCoach', ['matches.winning_match_team_id']],
+    ] as const)(
+      '%s forwards the era scope and limit to the outcome query',
+      async (method, expectedOutcomeColumns) => {
+        const { chains } = await build([]);
+        await service[method]({ eraId: 20 }, 21);
+        expect(chains[0].where).toHaveBeenCalledTimes(1);
+        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+          20,
+        ]);
+        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+          ...expectedOutcomeColumns,
+          'team_eras.era_id',
+        ]);
+        expect(chains[0].limit).toHaveBeenCalledWith(21);
+      },
+    );
+
     it('countTeamsByCoach joins team_eras when an eraId is given', async () => {
       const rows = [{ coachId: 1, name: 'Roze Madder', count: 1 }];
       const { db, chains } = await build(rows);

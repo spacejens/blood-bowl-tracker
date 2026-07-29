@@ -55,6 +55,31 @@ const cases: TeamCase[] = [
     expectedTitle: 'Teams by matches played',
   },
   {
+    describeName: 'resolveMatchesWon',
+    method: 'countMatchesWonByTeam',
+    resolve: (service, scope) => service.resolveMatchesWon(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 7 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 3 }],
+    expectedTitle: 'Teams by matches won',
+  },
+  {
+    describeName: 'resolveMatchesLost',
+    method: 'countMatchesLostByTeam',
+    resolve: (service, scope) => service.resolveMatchesLost(scope as FactScope),
+    rows: [{ teamId: 2, name: 'Reikland Reavers', count: 9 }],
+    eraRows: [{ teamId: 2, name: 'Reikland Reavers', count: 4 }],
+    expectedTitle: 'Teams by matches lost',
+  },
+  {
+    describeName: 'resolveMatchesDrawn',
+    method: 'countMatchesDrawnByTeam',
+    resolve: (service, scope) =>
+      service.resolveMatchesDrawn(scope as FactScope),
+    rows: [{ teamId: 1, name: '40 grinders', count: 2 }],
+    eraRows: [{ teamId: 1, name: '40 grinders', count: 1 }],
+    expectedTitle: 'Teams by matches drawn',
+  },
+  {
     describeName: 'resolveCompetitionsPlayed',
     method: 'countCompetitionsByTeam',
     resolve: (service, scope) =>

@@ -69,6 +69,53 @@ describe('TeamsService', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(21);
     });
 
+    it.each([
+      ['countMatchesWonByTeam'],
+      ['countMatchesLostByTeam'],
+      ['countMatchesDrawnByTeam'],
+    ] as const)('%s returns the rows the query resolves to', async (method) => {
+      const rows = [
+        { teamId: 1, name: '40 grinders', count: 6 },
+        { teamId: 2, name: 'Reikland Reavers', count: 2 },
+      ];
+      const { db } = await build(rows);
+      await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+        rows,
+      );
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      [
+        'countMatchesWonByTeam',
+        ['matches.winning_match_team_id', 'match_teams.id'],
+      ],
+      [
+        'countMatchesLostByTeam',
+        [
+          'matches.winning_match_team_id',
+          'matches.winning_match_team_id',
+          'match_teams.id',
+        ],
+      ],
+      ['countMatchesDrawnByTeam', ['matches.winning_match_team_id']],
+    ] as const)(
+      '%s forwards the match category scope and limit to the outcome query',
+      async (method, expectedOutcomeColumns) => {
+        const { chains } = await build([]);
+        await service[method]({ category: 'season_final' }, 21);
+        expect(chains[0].where).toHaveBeenCalledTimes(1);
+        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+          'season_final',
+        ]);
+        expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+          ...expectedOutcomeColumns,
+          'matches.category',
+        ]);
+        expect(chains[0].limit).toHaveBeenCalledWith(21);
+      },
+    );
+
     it('countCompetitionsByTeam returns the rows the query resolves to', async () => {
       const rows = [
         { teamId: 1, name: '40 grinders', count: 4 },

@@ -30,6 +30,7 @@ import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
 import { countMatchEventsByCoach } from '../shared/match-event-counts';
 import { FOUL_TYPES } from '../shared/match-event-types';
+import { countMatchesWithOutcomeByCoach } from '../shared/match-outcome-counts';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -159,6 +160,48 @@ export class CoachesService {
       .groupBy(coaches.id, coaches.name)
       .orderBy(desc(countDistinct(matches.id)))
       .limit(limit);
+  }
+
+  /**
+   * The won/lost/drawn siblings of `countMatchesPlayedByCoach`: the same
+   * league/era/match-category scope, narrowed to matches with the given
+   * outcome for the coach's own side. See shared/match-outcome-counts.ts for
+   * the query and its dedup semantics.
+   */
+  countMatchesWonByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByCoach({
+      db: this.db,
+      outcome: 'won',
+      scope,
+      limit,
+    });
+  }
+
+  countMatchesLostByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByCoach({
+      db: this.db,
+      outcome: 'lost',
+      scope,
+      limit,
+    });
+  }
+
+  countMatchesDrawnByCoach(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ coachId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByCoach({
+      db: this.db,
+      outcome: 'drawn',
+      scope,
+      limit,
+    });
   }
 
   /**

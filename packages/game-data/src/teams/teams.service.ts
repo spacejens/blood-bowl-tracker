@@ -43,6 +43,7 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import { countMatchesWithOutcomeByTeam } from '../shared/match-outcome-counts';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -186,6 +187,47 @@ export class TeamsService {
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(matches.id)))
       .limit(limit);
+  }
+
+  /**
+   * The won/lost/drawn siblings of `countMatchesPlayedByTeam`: the same
+   * league/era/match-category scope, narrowed to matches with the given
+   * outcome for this team's side. See shared/match-outcome-counts.ts.
+   */
+  countMatchesWonByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByTeam({
+      db: this.db,
+      outcome: 'won',
+      scope,
+      limit,
+    });
+  }
+
+  countMatchesLostByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByTeam({
+      db: this.db,
+      outcome: 'lost',
+      scope,
+      limit,
+    });
+  }
+
+  countMatchesDrawnByTeam(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ teamId: number; name: string; count: number }[]> {
+    return countMatchesWithOutcomeByTeam({
+      db: this.db,
+      outcome: 'drawn',
+      scope,
+      limit,
+    });
   }
 
   /**
