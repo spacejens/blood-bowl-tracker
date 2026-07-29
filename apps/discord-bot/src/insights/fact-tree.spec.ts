@@ -26,6 +26,9 @@ beforeAll(async () => {
 function deps(): FactTreeDeps {
   const coachToplist = mock<CoachToplistService>();
   coachToplist.resolveMatchesPlayed.mockResolvedValue('coach matches played');
+  coachToplist.resolveMatchesWon.mockResolvedValue('coach matches won');
+  coachToplist.resolveMatchesLost.mockResolvedValue('coach matches lost');
+  coachToplist.resolveMatchesDrawn.mockResolvedValue('coach matches drawn');
   coachToplist.resolveTeams.mockResolvedValue('coach teams');
   coachToplist.resolveCompetitionsPlayed.mockResolvedValue(
     'coach competitions played',
@@ -44,6 +47,9 @@ function deps(): FactTreeDeps {
 
   const teamToplist = mock<TeamToplistService>();
   teamToplist.resolveMatchesPlayed.mockResolvedValue('team matches played');
+  teamToplist.resolveMatchesWon.mockResolvedValue('team matches won');
+  teamToplist.resolveMatchesLost.mockResolvedValue('team matches lost');
+  teamToplist.resolveMatchesDrawn.mockResolvedValue('team matches drawn');
   teamToplist.resolveCompetitionsPlayed.mockResolvedValue(
     'team competitions played',
   );
@@ -106,6 +112,9 @@ function deps(): FactTreeDeps {
   const raceToplist = mock<RaceToplistService>();
   raceToplist.resolveTeams.mockResolvedValue('race teams');
   raceToplist.resolveMatchesPlayed.mockResolvedValue('race matches played');
+  raceToplist.resolveMatchesWon.mockResolvedValue('race matches won');
+  raceToplist.resolveMatchesLost.mockResolvedValue('race matches lost');
+  raceToplist.resolveMatchesDrawn.mockResolvedValue('race matches drawn');
 
   const expensiveMistakes = mock<ExpensiveMistakesToplistService>();
   expensiveMistakes.resolveTotal.mockResolvedValue('expensive mistakes total');
@@ -131,8 +140,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly forty-three leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(43);
+  it('exposes exactly fifty-two leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(52);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -143,6 +152,23 @@ describe('buildFactTree', () => {
     );
     await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
     expect(d.coachToplist.resolveMatchesPlayed).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['coach.toplist.matches.won', 'coachToplist', 'resolveMatchesWon'],
+    ['coach.toplist.matches.lost', 'coachToplist', 'resolveMatchesLost'],
+    ['coach.toplist.matches.drawn', 'coachToplist', 'resolveMatchesDrawn'],
+    ['team.toplist.matches.won', 'teamToplist', 'resolveMatchesWon'],
+    ['team.toplist.matches.lost', 'teamToplist', 'resolveMatchesLost'],
+    ['team.toplist.matches.drawn', 'teamToplist', 'resolveMatchesDrawn'],
+    ['race.toplist.matches.won', 'raceToplist', 'resolveMatchesWon'],
+    ['race.toplist.matches.lost', 'raceToplist', 'resolveMatchesLost'],
+    ['race.toplist.matches.drawn', 'raceToplist', 'resolveMatchesDrawn'],
+  ] as const)('wires %s to %s.%s', async (path, dep, method) => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(buildFactTree(d), path);
+    await (leaf as FactLeaf).resolve({ leagueId: 9 });
+    expect(d[dep][method]).toHaveBeenCalledWith({ leagueId: 9 });
   });
 
   it('wires coach.toplist.teams to CoachToplistService.resolveTeams', async () => {
@@ -744,19 +770,28 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeUtils
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(37);
+    expect(supported).toHaveLength(46);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {
     const tree = buildFactTree(deps());
     for (const path of [
       'coach.toplist.matches.played',
+      'coach.toplist.matches.won',
+      'coach.toplist.matches.lost',
+      'coach.toplist.matches.drawn',
       'coach.toplist.competitions.played',
       'coach.toplist.fouls.committed',
       'coach.toplist.timeBetweenMatches.average',
       'team.toplist.matches.played',
+      'team.toplist.matches.won',
+      'team.toplist.matches.lost',
+      'team.toplist.matches.drawn',
       'team.toplist.competitions.played',
       'race.toplist.matches.played',
+      'race.toplist.matches.won',
+      'race.toplist.matches.lost',
+      'race.toplist.matches.drawn',
     ]) {
       const leaf = factTreeUtils.resolvePath(tree, path) as FactLeaf;
       expect(leaf.supportsMatchCategory, path).toBe(true);
