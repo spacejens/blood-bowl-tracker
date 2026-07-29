@@ -116,6 +116,8 @@ export const DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE =
   'The archivist is still checking which eras this race turned up in.';
 export const DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE =
   'The scout is still counting how many teams of this race took the field.';
+export const DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The scout is still tracking down which coaches those teams belong to.';
 export const DEEPDIVE_RACE_NO_TEAMS_MESSAGE =
   'No team of this race has taken the field yet.';
 export const DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE =
