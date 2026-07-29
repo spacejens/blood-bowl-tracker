@@ -166,10 +166,10 @@ export class BblMatchOutcomesImportService {
           this.importResults.error({
             item: { match: bblId },
             message:
-              `Could not determine the outcome of match ${bblId}: it ended ` +
-              'level, its stage forbids a draw, and neither the ' +
-              "competition's Team trophy placements nor the bracket settle " +
-              `it. ${guidance}`,
+              `Could not determine the outcome of match ${bblId}: its ` +
+              'outcome could not be resolved automatically — neither its ' +
+              "score, the competition's Team trophy placements, nor the " +
+              `bracket settle it. ${guidance}`,
           }),
         );
       }

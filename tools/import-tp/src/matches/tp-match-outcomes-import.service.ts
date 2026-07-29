@@ -109,9 +109,9 @@ export class TpMatchOutcomesImportService {
           this.importResults.error({
             item: { match: tpId },
             message:
-              `Could not determine the outcome of match ${tpId}: it ended ` +
-              "level, its stage forbids a draw, and neither TP's own " +
-              'recorded winner nor the bracket settle it.',
+              `Could not determine the outcome of match ${tpId}: its ` +
+              'outcome could not be resolved automatically — neither its ' +
+              "score, TP's own recorded winner, nor the bracket settle it.",
           }),
         );
       }
