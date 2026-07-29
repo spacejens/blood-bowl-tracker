@@ -191,6 +191,28 @@ describe('MatchSamplerService', () => {
     });
   });
 
+  it('does not record a gap for an override id resolved onto the secondary external id of a merged match', async () => {
+    // MatchLookupService backfills secondaryExternalId for a merged match
+    // even when only its higher (non-primary) id was configured as the
+    // override — the match itself is still found, so this must not be
+    // reported as a gap (issue #331 follow-up).
+    const { service, config, lookup } = await makeHarness();
+    config.getOverrides.mockImplementation((source) =>
+      source === 'bbl' ? ['1312'] : [],
+    );
+    lookup.findByExternalIds.mockImplementation((source) =>
+      Promise.resolve(
+        source === 'bbl'
+          ? [{ ...reviewMatch('bbl', 1), secondaryExternalId: '1312' }]
+          : [],
+      ),
+    );
+
+    const { gaps } = await service.sample();
+
+    expect(gaps.some((gap) => gap.reason.includes('1312'))).toBe(false);
+  });
+
   it('does not duplicate a reason already recorded for a match', async () => {
     const { service, config, lookup } = await makeHarness();
     // Two distinct override ids that both resolve to the same DB match —
