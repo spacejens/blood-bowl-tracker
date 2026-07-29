@@ -197,6 +197,13 @@ candidates share a group (any mix of real and prevented — say one player kille
 outright and another saved by an apothecary), attribution is ambiguous and
 nothing merges: the action and each consequence are emitted as separate events,
 so no occurrence is lost.
+The same all-or-nothing rule covers the cross-team case peculiar to a merged
+four-team match: because a consequence's candidate actions are drawn from every
+team other than the acting one, two teams' actions can each be the only
+plausible cause of one consequence. That contention is resolved before anything
+is committed, and it likewise merges nothing — both actions and the consequence
+are emitted as separate events rather than the first team in source order
+silently claiming it.
 
 Placement is validated against the row's actual resolved type, not just
 achievement-vs-injury: a bare `foul` is only valid in a casualty-severity
