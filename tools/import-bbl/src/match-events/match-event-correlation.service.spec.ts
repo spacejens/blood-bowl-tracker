@@ -258,6 +258,68 @@ describe('MatchEventCorrelationService', () => {
       ).toBe(true);
     });
 
+    it('merges nothing when two acting teams from different source pages each have the sole candidate action for one consequence', () => {
+      // Issue #331: BBL match 1311 merged with 1312. The consequence
+      // filter is "any team other than the acting team", which in a
+      // four-team merged match spans up to three other teams — so the
+      // single stat_reduction_av on `tha` is the sole candidate for BOTH
+      // `fer`'s serious_injury (same source page) and `pro`'s
+      // serious_injury (the other source page). Each acting team's
+      // pairing looks unambiguous in isolation; considered together they
+      // are a genuine cross-team ambiguity, so nothing may merge. Before
+      // the fix, `fer` came first in `teamCodes` order and silently
+      // claimed the consequence, and `pro`'s equally plausible action was
+      // never compared.
+      const combined = service.combineOccurrences(
+        makeEvents({
+          bblId: '1311',
+          homeTeamId: 'fer',
+          awayTeamId: 'tha',
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'merc' },
+          ],
+          consequences: [
+            {
+              consequenceType: 'stat_reduction_av',
+              side: 'away',
+              pid: 'goldie',
+            },
+          ],
+        }),
+        makeEvents({
+          bblId: '1312',
+          homeTeamId: 'pro',
+          awayTeamId: 'oth',
+          actions: [
+            { actionType: 'serious_injury', side: 'home', pid: 'fegull' },
+          ],
+        }),
+      );
+
+      const events = service.correlateEvents(combined);
+
+      expect(events).toEqual([
+        {
+          actionType: 'serious_injury',
+          actingTeamCode: 'fer',
+          actingSourceBblId: '1311',
+          actingPid: 'merc',
+        },
+        {
+          actionType: 'serious_injury',
+          actingTeamCode: 'pro',
+          actingSourceBblId: '1312',
+          actingPid: 'fegull',
+        },
+        {
+          consequenceType: 'stat_reduction_av',
+          consequenceTeamCode: 'tha',
+          consequenceSourceBblId: '1311',
+          consequencePid: 'goldie',
+        },
+      ]);
+    });
+
     it('emits journeymen-signing events with a null pid and the source bblId', () => {
       const combined = service.combineOccurrences(
         makeEvents({ journeymenCount: { home: 3, away: 0 } }),

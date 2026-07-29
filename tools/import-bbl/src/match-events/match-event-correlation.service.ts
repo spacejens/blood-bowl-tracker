@@ -158,6 +158,20 @@ export interface EmittedEvent {
 }
 
 /**
+ * One acting team's candidate action/consequence pairing within one severity
+ * group, computed without consuming anything so that every acting team's
+ * claim on a consequence can be compared against every other's before any
+ * merge is committed. `actionIndices` and `consequenceIndices` are indices
+ * into `CombinedOccurrences.actions` / `.consequences`, equal in length, and
+ * paired by position.
+ */
+interface TentativePairing {
+  actingTeamCode: string;
+  actionIndices: number[];
+  consequenceIndices: number[];
+}
+
+/**
  * Combines raw per-match occurrences into a team-coded shape and correlates
  * casualty actions with their Sustained-Injury consequences.
  */
@@ -269,51 +283,43 @@ export class MatchEventCorrelationService {
     const consequenceConsumed = combined.consequences.map(() => false);
     const merged: EmittedEvent[] = [];
 
+    // Phase 1 + 2, per severity group: collect every acting team's
+    // tentatively-unambiguous pairing, then drop the ones that contend with
+    // another acting team's over the same consequence. Groups are handled
+    // independently because SEVERITY_GROUPS partitions both the action types
+    // and the consequence types disjointly, so no group's outcome can affect
+    // another's candidate pool.
+    const survivingPairings = SEVERITY_GROUPS.map((group) =>
+      this.withoutConflicts(this.tentativePairings(combined, group)),
+    );
+
+    // Phase 3: commit. Walked acting-team-outer / group-inner, exactly as
+    // before the two-phase split, so merged-event order — and therefore the
+    // external-id occurrence indices derived from it — is unchanged.
     for (const actingTeamCode of combined.teamCodes) {
-      for (const group of SEVERITY_GROUPS) {
-        const actionIndices = combined.actions.flatMap((a, i) =>
-          !actionConsumed[i] &&
-          a.teamCode === actingTeamCode &&
-          a.actionType === group.action
-            ? [i]
-            : [],
+      for (const pairings of survivingPairings) {
+        const pairing = pairings.find(
+          (candidate) => candidate.actingTeamCode === actingTeamCode,
         );
-        const consequenceIndices = combined.consequences.flatMap((c, i) =>
-          !consequenceConsumed[i] &&
-          c.teamCode !== actingTeamCode &&
-          group.consequences.has(c.consequenceType)
-            ? [i]
-            : [],
-        );
-        const pairCount = actionIndices.length;
-        const pairingIsUnambiguous =
-          pairCount > 0 &&
-          consequenceIndices.length === pairCount &&
-          (this.allIdentical(
-            actionIndices.map((i) => this.actionKey(combined.actions[i])),
-          ) ||
-            this.allIdentical(
-              consequenceIndices.map((i) =>
-                this.consequenceKey(combined.consequences[i]),
-              ),
-            ));
-        if (pairingIsUnambiguous) {
-          for (let pair = 0; pair < pairCount; pair++) {
-            const action = combined.actions[actionIndices[pair]];
-            const consequence = combined.consequences[consequenceIndices[pair]];
-            actionConsumed[actionIndices[pair]] = true;
-            consequenceConsumed[consequenceIndices[pair]] = true;
-            merged.push({
-              actionType: action.viaFoul ? 'foul' : action.actionType,
-              actingTeamCode,
-              actingSourceBblId: action.sourceBblId,
-              actingPid: action.pid,
-              ...(action.unidentifiedKind
-                ? { actingUnidentifiedKind: action.unidentifiedKind }
-                : {}),
-              ...this.consequenceSide(consequence),
-            });
-          }
+        if (pairing === undefined) {
+          continue;
+        }
+        for (let pair = 0; pair < pairing.actionIndices.length; pair++) {
+          const action = combined.actions[pairing.actionIndices[pair]];
+          const consequence =
+            combined.consequences[pairing.consequenceIndices[pair]];
+          actionConsumed[pairing.actionIndices[pair]] = true;
+          consequenceConsumed[pairing.consequenceIndices[pair]] = true;
+          merged.push({
+            actionType: action.viaFoul ? 'foul' : action.actionType,
+            actingTeamCode,
+            actingSourceBblId: action.sourceBblId,
+            actingPid: action.pid,
+            ...(action.unidentifiedKind
+              ? { actingUnidentifiedKind: action.unidentifiedKind }
+              : {}),
+            ...this.consequenceSide(consequence),
+          });
         }
       }
     }
@@ -344,6 +350,83 @@ export class MatchEventCorrelationService {
     );
 
     return [...merged, ...actionOnly, ...consequenceOnly, ...journeymanEvents];
+  }
+
+  /**
+   * Phase 1 of correlation: every acting team's candidate pairing for one
+   * severity group, filtered to those that are unambiguous *in isolation* —
+   * equal candidate counts on both sides, and at least one side's candidates
+   * pairwise identical (see {@link actionKey} / {@link consequenceKey}).
+   * Nothing is consumed here: a consequence can legitimately appear in two
+   * different acting teams' pairings at this stage, which is exactly the
+   * cross-team contention {@link withoutConflicts} then resolves.
+   *
+   * The consumed flags are deliberately not consulted. Within a group nothing
+   * is consumed until the commit phase, and across groups SEVERITY_GROUPS
+   * partitions action and consequence types disjointly, so no candidate
+   * reaching here can already have been consumed.
+   */
+  private tentativePairings(
+    combined: CombinedOccurrences,
+    group: (typeof SEVERITY_GROUPS)[number],
+  ): TentativePairing[] {
+    const tentative: TentativePairing[] = [];
+    for (const actingTeamCode of combined.teamCodes) {
+      const actionIndices = combined.actions.flatMap((a, i) =>
+        a.teamCode === actingTeamCode && a.actionType === group.action
+          ? [i]
+          : [],
+      );
+      const consequenceIndices = combined.consequences.flatMap((c, i) =>
+        c.teamCode !== actingTeamCode &&
+        group.consequences.has(c.consequenceType)
+          ? [i]
+          : [],
+      );
+      const pairCount = actionIndices.length;
+      const pairingIsUnambiguous =
+        pairCount > 0 &&
+        consequenceIndices.length === pairCount &&
+        (this.allIdentical(
+          actionIndices.map((i) => this.actionKey(combined.actions[i])),
+        ) ||
+          this.allIdentical(
+            consequenceIndices.map((i) =>
+              this.consequenceKey(combined.consequences[i]),
+            ),
+          ));
+      if (pairingIsUnambiguous) {
+        tentative.push({ actingTeamCode, actionIndices, consequenceIndices });
+      }
+    }
+    return tentative;
+  }
+
+  /**
+   * Phase 2 of correlation: the tentative pairings of one severity group that
+   * no *other* acting team also lays claim to. A consequence claimed by two
+   * acting teams is a genuine cross-team ambiguity — in a merged four-team
+   * match the consequence-candidate filter (`c.teamCode !== actingTeamCode`)
+   * spans up to three other teams, so two teams' actions can each be the sole
+   * plausible cause of the same consequence — and it invalidates *every*
+   * pairing referencing it, not just the later one, matching this file's
+   * all-or-nothing treatment of ambiguity: nothing merges, and the actions
+   * and consequence fall through to unpaired events.
+   *
+   * Only the consequence side can contend. An action's `teamCode` is fixed,
+   * so it is only ever a candidate for its own team's pairing. Indices within
+   * a single pairing are distinct, so a pairing can never contend with itself.
+   */
+  private withoutConflicts(pairings: TentativePairing[]): TentativePairing[] {
+    const claims = new Map<number, number>();
+    for (const pairing of pairings) {
+      for (const index of pairing.consequenceIndices) {
+        claims.set(index, (claims.get(index) ?? 0) + 1);
+      }
+    }
+    return pairings.filter((pairing) =>
+      pairing.consequenceIndices.every((index) => claims.get(index) === 1),
+    );
   }
 
   /**
