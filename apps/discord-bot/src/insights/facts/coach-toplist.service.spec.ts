@@ -67,6 +67,34 @@ const cases: ToplistCase[] = [
     expectedTitle: 'Coaches by matches played',
   },
   {
+    describeName: 'resolveMatchesWon',
+    method: 'countMatchesWonByCoach',
+    resolve: (service) => service.resolveMatchesWon(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 1, name: 'Roze Madder', count: 6 },
+      { coachId: 2, name: 'Grashnak', count: 6 },
+      { coachId: 3, name: 'Skabsquik', count: 1 },
+    ],
+    expectedTitle: 'Coaches by matches won',
+  },
+  {
+    describeName: 'resolveMatchesLost',
+    method: 'countMatchesLostByCoach',
+    resolve: (service) => service.resolveMatchesLost(FACT_SCOPE_ALL_TIME),
+    rows: [
+      { coachId: 3, name: 'Skabsquik', count: 8 },
+      { coachId: 1, name: 'Roze Madder', count: 2 },
+    ],
+    expectedTitle: 'Coaches by matches lost',
+  },
+  {
+    describeName: 'resolveMatchesDrawn',
+    method: 'countMatchesDrawnByCoach',
+    resolve: (service) => service.resolveMatchesDrawn(FACT_SCOPE_ALL_TIME),
+    rows: [{ coachId: 2, name: 'Grashnak', count: 3 }],
+    expectedTitle: 'Coaches by matches drawn',
+  },
+  {
     describeName: 'resolveTeams',
     method: 'countTeamsByCoach',
     resolve: (service) => service.resolveTeams(FACT_SCOPE_ALL_TIME),

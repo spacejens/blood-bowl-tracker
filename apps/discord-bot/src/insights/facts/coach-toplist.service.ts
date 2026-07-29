@@ -16,6 +16,9 @@ import { makeToplistResolvers } from './toplist-factory';
 type CoachToplistMethod =
   | 'countFoulsCommittedByCoach'
   | 'countMatchesPlayedByCoach'
+  | 'countMatchesWonByCoach'
+  | 'countMatchesLostByCoach'
+  | 'countMatchesDrawnByCoach'
   | 'countTeamsByCoach'
   | 'countCompetitionsByCoach';
 
@@ -50,6 +53,9 @@ export class CoachToplistService {
       titles: {
         countFoulsCommittedByCoach: 'Coaches by fouls committed',
         countMatchesPlayedByCoach: 'Coaches by matches played',
+        countMatchesWonByCoach: 'Coaches by matches won',
+        countMatchesLostByCoach: 'Coaches by matches lost',
+        countMatchesDrawnByCoach: 'Coaches by matches drawn',
         countTeamsByCoach: 'Coaches by teams coached',
         countCompetitionsByCoach: 'Coaches by competitions played',
       },
@@ -70,6 +76,24 @@ export class CoachToplistService {
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
     return this.resolvers.countMatchesPlayedByCoach(this.coaches, scope);
+  }
+
+  resolveMatchesWon(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countMatchesWonByCoach(this.coaches, scope);
+  }
+
+  resolveMatchesLost(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countMatchesLostByCoach(this.coaches, scope);
+  }
+
+  resolveMatchesDrawn(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolvers.countMatchesDrawnByCoach(this.coaches, scope);
   }
 
   resolveTeams(scope: FactScope): Promise<string | InteractionReplyOptions> {
