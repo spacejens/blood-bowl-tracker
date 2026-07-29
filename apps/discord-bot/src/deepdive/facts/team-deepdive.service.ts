@@ -9,6 +9,7 @@ import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+  DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -16,6 +17,7 @@ import {
   LeaderboardService,
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
+import { PlayerContextService } from '../../insights/player-context.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
@@ -31,7 +33,12 @@ type Team = {
   coachId: number;
 };
 type CareerSpan = { start: string; end: string };
-type TopPlayer = { playerId: number; name: string; count: number };
+type TopPlayer = {
+  playerId: number;
+  name: string;
+  count: number;
+  contextSuffix?: string;
+};
 
 /** Position at which the top-players list opens a tie group (5th place). */
 const TOP_PLAYERS_TOP_ENTRIES = 5;
@@ -50,6 +57,7 @@ export class TeamDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly playerContext: PlayerContextService,
   ) {}
 
   async resolve(teamId: number): Promise<string | InteractionReplyOptions> {
@@ -112,12 +120,31 @@ export class TeamDeepdiveService {
       return DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE;
     }
 
+    // The list is already scoped to this one team, whose race and coach the
+    // header states, so only the position and era add information. Wrapped in
+    // the same timeout handling as every other DB call in this method, since
+    // attachSuffixes does its own DB round trip.
+    const decoratedPlayers: TopPlayer[] | null = await this.databaseTimeout.run(
+      this.playerContext.attachSuffixes(topPlayers, (row) => row.playerId, {
+        includePosition: true,
+        includeTeam: false,
+        includeRace: false,
+        includeEra: true,
+        includeCoach: false,
+      }),
+      null,
+    );
+    if (decoratedPlayers === null) {
+      return DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE;
+    }
+
     const { rows: ranked, truncatedCount } = this.leaderboard.topRanksWithTies(
-      topPlayers,
+      decoratedPlayers,
       TOP_PLAYERS_TOP_ENTRIES,
     );
     const playerLines = ranked.map(
-      (row) => `${row.rank}. ${row.name} — ${row.count}`,
+      (row) =>
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`,
     );
     if (truncatedCount > 0) {
       playerLines.push(`…and ${truncatedCount} more tied.`);
