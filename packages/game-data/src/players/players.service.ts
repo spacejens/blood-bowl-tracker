@@ -37,6 +37,8 @@ import {
   SERIOUS_INJURY_SUFFERED_TYPES,
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
+import type { PlayerContextNames } from '../shared/player-context-names';
+import { getPlayerContextNamesByIds as queryPlayerContextNamesByIds } from '../shared/player-context-names';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -147,6 +149,17 @@ export class PlayersService {
       label: category.label,
       count: counts[index],
     }));
+  }
+
+  /**
+   * Position, team, race, era and coach names for a batch of players, for
+   * annotating player lists with context beyond the player name. See
+   * shared/player-context-names.ts.
+   */
+  getContextNamesByIds(
+    playerIds: number[],
+  ): Promise<Map<number, PlayerContextNames>> {
+    return queryPlayerContextNamesByIds({ db: this.db, playerIds });
   }
 
   async upsert(

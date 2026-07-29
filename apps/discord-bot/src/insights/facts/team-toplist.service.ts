@@ -94,6 +94,8 @@ export class TeamToplistService {
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      // No team toplist's context depends on its scope, so the second
+      // (scope) parameter the hook now supplies is deliberately ignored.
       decorateRows: (rows) => this.decorateTeamRows(rows),
       formatRow: (row) => this.formatTeamRow(row),
       leaderboard: this.leaderboard,

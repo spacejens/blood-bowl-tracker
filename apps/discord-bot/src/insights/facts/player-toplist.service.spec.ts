@@ -15,6 +15,8 @@ import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
+import { PlayerContextService } from '../player-context.service';
+import { passthroughPlayerContext } from '../player-context-mock.test-helpers';
 import { PlayerToplistService } from './player-toplist.service';
 
 interface MadeService {
@@ -22,13 +24,17 @@ interface MadeService {
   leaderboard: MockProxy<LeaderboardService>;
 }
 
-async function makeService(players: PlayersService): Promise<MadeService> {
+async function makeService(
+  players: PlayersService,
+  playerContext: MockProxy<PlayerContextService> = passthroughPlayerContext(),
+): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerToplistService,
       { provide: PlayersService, useValue: players },
       { provide: LeaderboardService, useValue: leaderboard },
+      { provide: PlayerContextService, useValue: playerContext },
     ],
   }).compile();
   return { service: moduleRef.get(PlayerToplistService), leaderboard };
@@ -255,6 +261,106 @@ describe.each(cases)(
           timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
         }),
       );
+    });
+
+    it('decorates every fetched row with position, team, race, era and coach when the toplist is not era-scoped', async () => {
+      const players = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as PlayersService;
+      const playerContext = mock<PlayerContextService>();
+      playerContext.attachSuffixes.mockResolvedValue(
+        rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
+      );
+      const { service, leaderboard } = await makeService(
+        players,
+        playerContext,
+      );
+      let fetched: unknown;
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'canned';
+      });
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(playerContext.attachSuffixes).toHaveBeenCalledTimes(1);
+      const [inputRows, playerIdOf, contextOptions] =
+        playerContext.attachSuffixes.mock.calls[0];
+      expect(inputRows).toEqual(rows);
+      expect(playerIdOf(rows[0])).toBe(rows[0].playerId);
+      expect(contextOptions).toEqual({
+        includePosition: true,
+        includeTeam: true,
+        includeRace: true,
+        includeEra: true,
+        includeCoach: true,
+      });
+      expect(fetched).toEqual(
+        rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
+      );
+    });
+
+    it('leaves the era out of the row context when the toplist is era-scoped', async () => {
+      const players = {
+        [method]: vi.fn().mockResolvedValue(eraRows),
+      } as unknown as PlayersService;
+      const playerContext = mock<PlayerContextService>();
+      playerContext.attachSuffixes.mockResolvedValue(
+        eraRows.map((row) => ({ ...row, contextSuffix: '' })),
+      );
+      const { service, leaderboard } = await makeService(
+        players,
+        playerContext,
+      );
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'canned';
+      });
+      await resolve(service, { eraId: 20 });
+      const [, , contextOptions] = playerContext.attachSuffixes.mock.calls[0];
+      expect(contextOptions).toEqual({
+        includePosition: true,
+        includeTeam: true,
+        includeRace: true,
+        includeEra: false,
+        includeCoach: true,
+      });
+    });
+
+    it('renders each row with its context suffix between the name and the count', async () => {
+      const players = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as PlayersService;
+      const { service, leaderboard } = await makeService(players);
+      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      const options = leaderboard.resolveToplist.mock
+        .calls[0][0] as unknown as ResolveToplistOptions<
+        (typeof rows)[number] & { contextSuffix?: string }
+      >;
+      expect(
+        options.formatRow?.({
+          ...rows[0],
+          contextSuffix: ' (Blitzer, Reikland Reavers, Human, Roze Madder)',
+          rank: 3,
+        }),
+      ).toBe(
+        `3. ${rows[0].name} (Blitzer, Reikland Reavers, Human, Roze Madder) — ${rows[0].count}`,
+      );
+    });
+
+    it('renders a row with no known context without stray parentheses', async () => {
+      const players = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as PlayersService;
+      const { service, leaderboard } = await makeService(players);
+      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      const options = leaderboard.resolveToplist.mock
+        .calls[0][0] as unknown as ResolveToplistOptions<
+        (typeof rows)[number] & { contextSuffix?: string }
+      >;
+      expect(
+        options.formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
+      ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
     });
   },
 );

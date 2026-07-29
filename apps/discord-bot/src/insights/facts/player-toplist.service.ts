@@ -8,10 +8,23 @@ import {
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { LeaderboardService } from '../leaderboard.service';
+import { PlayerContextService } from '../player-context.service';
 import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
 type PlayerToplistMethod = ScopedCountMethods<PlayersService>;
+
+/**
+ * The row shape every player toplist renders. `contextSuffix` is optional so the
+ * undecorated rows a `PlayersService` count method returns are still assignable
+ * here; `decoratePlayerRows` fills it in before the rows reach the embed.
+ */
+type PlayerToplistRow = {
+  playerId: number;
+  name: string;
+  count: number;
+  contextSuffix?: string;
+};
 
 /**
  * Every player toplist is the same resolver over a different count: the table
@@ -32,11 +45,12 @@ export class PlayerToplistService {
   constructor(
     private readonly players: PlayersService,
     private readonly leaderboard: LeaderboardService,
+    private readonly playerContext: PlayerContextService,
   ) {
     this.resolvers = makeToplistResolvers<
       PlayerToplistMethod,
       PlayersService,
-      { playerId: number; name: string; count: number }
+      PlayerToplistRow
     >({
       titles: {
         countMvpAwardsByPlayer: 'Players by MVP awards',
@@ -59,8 +73,32 @@ export class PlayerToplistService {
       timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.playerLink,
+      decorateRows: (rows, scope) => this.decoratePlayerRows(rows, scope),
+      formatRow: (row) => this.formatPlayerRow(row),
       leaderboard: this.leaderboard,
     });
+  }
+
+  /**
+   * No player toplist is scoped to a team, race or coach, so those always add
+   * information. The era is the exception: an era-scoped toplist already names
+   * the era in its headline, so repeating it on every row says nothing.
+   */
+  private decoratePlayerRows(
+    rows: PlayerToplistRow[],
+    scope: FactScope,
+  ): Promise<PlayerToplistRow[]> {
+    return this.playerContext.attachSuffixes(rows, (row) => row.playerId, {
+      includePosition: true,
+      includeTeam: true,
+      includeRace: true,
+      includeEra: scope.eraId === undefined,
+      includeCoach: true,
+    });
+  }
+
+  private formatPlayerRow(row: PlayerToplistRow & { rank: number }): string {
+    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`;
   }
 
   resolveMvps(scope: FactScope) {

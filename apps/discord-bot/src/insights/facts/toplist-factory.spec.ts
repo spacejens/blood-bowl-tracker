@@ -153,8 +153,30 @@ describe('makeToplistResolvers', () => {
       });
       const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
       await resolvers.alpha({ alpha } as never, FACT_SCOPE_ALL_TIME);
-      expect(decorateRows).toHaveBeenCalledWith([{ name: 'Griff', count: 3 }]);
+      expect(decorateRows).toHaveBeenCalledWith(
+        [{ name: 'Griff', count: 3 }],
+        FACT_SCOPE_ALL_TIME,
+      );
       expect(fetched).toEqual([{ name: 'Griff (decorated)', count: 3 }]);
+    });
+
+    it('passes the resolver scope to decorateRows so it can vary by era', async () => {
+      const leaderboard = mock<LeaderboardService>();
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'placeholder reply';
+      });
+      const decorateRows = vi.fn().mockResolvedValue([]);
+      const resolvers = makeToplistResolvers<'alpha', StubService>({
+        titles: { alpha: 'A title' },
+        timeoutMessage: 'timed out',
+        noDataMessage: 'no data',
+        decorateRows,
+        leaderboard,
+      });
+      const alpha = vi.fn().mockResolvedValue([]);
+      await resolvers.alpha({ alpha } as never, { eraId: 20 });
+      expect(decorateRows).toHaveBeenCalledWith([], { eraId: 20 });
     });
 
     it('returns the fetched rows unchanged when no decorateRows hook is supplied', async () => {

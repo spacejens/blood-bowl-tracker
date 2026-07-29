@@ -52,6 +52,7 @@ export {
 export type { FactScope } from './shared/fact-scope';
 export { FACT_SCOPE_ALL_TIME } from './shared/fact-scope';
 export { MissingRequiredFieldError } from './shared/missing-required-field-error';
+export type { PlayerContextNames } from './shared/player-context-names';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names';
 export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';

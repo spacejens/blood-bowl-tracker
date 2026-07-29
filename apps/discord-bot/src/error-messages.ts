@@ -100,6 +100,8 @@ export const DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE =
   'The team historian is still thumbing through the match-day programmes.';
 export const DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE =
   'The roster manager is still tallying up who did what on the pitch.';
+export const DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE =
+  'The team scout is still checking which positions those players line up in.';
 export const DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE =
   'No such player has ever pulled on a jersey in this league.';
 export const DEEPDIVE_PLAYER_TIMEOUT_MESSAGE =

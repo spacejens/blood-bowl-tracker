@@ -15,12 +15,15 @@ import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+  DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_PLAYERS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
+import { PlayerContextService } from '../../insights/player-context.service';
+import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
 import { TeamDeepdiveService } from './team-deepdive.service';
 
 interface MakeServiceOptions {
@@ -28,6 +31,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  playerContext?: MockProxy<PlayerContextService>;
 }
 
 async function makeService({
@@ -35,6 +39,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = mock<LeaderboardService>(),
   entityComponents = passthroughEntityComponents(),
+  playerContext = passthroughPlayerContext(),
 }: MakeServiceOptions): Promise<{
   service: TeamDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
@@ -47,6 +52,7 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: PlayerContextService, useValue: playerContext },
     ],
   }).compile();
   return {
@@ -319,5 +325,82 @@ describe('TeamDeepdiveService', () => {
       'deepdive:race:2',
       'deepdive:coach:9',
     ]);
+  });
+
+  it('appends each player position and era to its line, leaving team, race and coach out', async () => {
+    const playerContext = mock<PlayerContextService>();
+    const decorated: {
+      playerId: number;
+      name: string;
+      count: number;
+      contextSuffix: string;
+    }[] = [
+      {
+        playerId: 5,
+        name: 'Griff',
+        count: 20,
+        contextSuffix: ' (Blitzer, First era)',
+      },
+      {
+        playerId: 8,
+        name: 'Morg',
+        count: 11,
+        contextSuffix: ' (Star Player, Second era)',
+      },
+    ];
+    playerContext.attachSuffixes.mockResolvedValue(decorated);
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [
+          { playerId: 5, name: 'Griff', count: 20 },
+          { playerId: 8, name: 'Morg', count: 11 },
+        ],
+      }),
+      leaderboard: passthroughLeaderboard(),
+      playerContext,
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('1. Griff (Blitzer, First era) — 20');
+    expect(lines).toContain('1. Morg (Star Player, Second era) — 11');
+    const [rows, playerIdOf, options] =
+      playerContext.attachSuffixes.mock.calls[0];
+    expect(playerIdOf(rows[0])).toBe(5);
+    expect(options).toEqual({
+      includePosition: true,
+      includeTeam: false,
+      includeRace: false,
+      includeEra: true,
+      includeCoach: false,
+    });
+  });
+
+  it('falls back to the player-context timeout message when attachSuffixes times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({
+            team: grinders,
+            span: { start: '2021-09-01', end: '2023-06-10' },
+            topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+          }),
+          leaderboard: passthroughLeaderboard(),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
+    );
   });
 });
