@@ -73,6 +73,36 @@ const cases: RaceCase[] = [
     eraRows: [{ raceId: 1, name: 'Orc', count: 6 }],
     expectedTitle: 'Races by matches played',
   },
+  {
+    describeName: 'resolveMatchesWon',
+    method: 'countMatchesWonByRace',
+    resolve: (service, scope) => service.resolveMatchesWon(scope),
+    rows: [
+      { raceId: 1, name: 'Orc', count: 22 },
+      { raceId: 2, name: 'Skaven', count: 9 },
+    ],
+    eraRows: [{ raceId: 1, name: 'Orc', count: 4 }],
+    expectedTitle: 'Races by matches won',
+  },
+  {
+    describeName: 'resolveMatchesLost',
+    method: 'countMatchesLostByRace',
+    resolve: (service, scope) => service.resolveMatchesLost(scope),
+    rows: [
+      { raceId: 2, name: 'Skaven', count: 15 },
+      { raceId: 1, name: 'Orc', count: 6 },
+    ],
+    eraRows: [{ raceId: 2, name: 'Skaven', count: 2 }],
+    expectedTitle: 'Races by matches lost',
+  },
+  {
+    describeName: 'resolveMatchesDrawn',
+    method: 'countMatchesDrawnByRace',
+    resolve: (service, scope) => service.resolveMatchesDrawn(scope),
+    rows: [{ raceId: 3, name: 'Elf', count: 5 }],
+    eraRows: [{ raceId: 3, name: 'Elf', count: 1 }],
+    expectedTitle: 'Races by matches drawn',
+  },
 ];
 
 describe.each(cases)(

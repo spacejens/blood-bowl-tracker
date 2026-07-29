@@ -51,4 +51,56 @@ export class RaceToplistService {
       entityLink: this.raceLink,
     });
   }
+
+  /**
+   * The three match-outcome toplists differ only in title and backing count,
+   * so they share one private builder rather than repeating the same
+   * resolveToplist call three times. Same precedent as
+   * CoachToplistService.resolveGapToplist.
+   */
+  private resolveMatchOutcomeToplist(options: {
+    title: string;
+    fetchRows: (
+      limit: number,
+    ) => Promise<{ raceId: number; name: string; count: number }[]>;
+  }): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<{
+      raceId: number;
+      name: string;
+      count: number;
+    }>({
+      title: options.title,
+      fetchRows: options.fetchRows,
+      timeoutMessage: RACE_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: RACE_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.raceLink,
+    });
+  }
+
+  resolveMatchesWon(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Races by matches won',
+      fetchRows: (limit) => this.races.countMatchesWonByRace(scope, limit),
+    });
+  }
+
+  resolveMatchesLost(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Races by matches lost',
+      fetchRows: (limit) => this.races.countMatchesLostByRace(scope, limit),
+    });
+  }
+
+  resolveMatchesDrawn(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Races by matches drawn',
+      fetchRows: (limit) => this.races.countMatchesDrawnByRace(scope, limit),
+    });
+  }
 }
