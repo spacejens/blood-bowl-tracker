@@ -11,7 +11,7 @@ import { MatchCategoryStratificationService } from './match-category-stratificat
 
 const dbRow = {
   matchId: 11,
-  externalId: '1830',
+  externalIds: ['1830'],
   matchName: 'Cup Final',
   competitionName: 'Bierhallentodball 2021',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
@@ -79,13 +79,38 @@ describe('MatchCategoryStratificationService', () => {
 
         await expect(
           service.sampleStratum({ source: 'bbl', stratumId, limit: 3 }),
-        ).resolves.toEqual([{ source: 'bbl', category, ...dbRow }]);
+        ).resolves.toEqual([
+          {
+            source: 'bbl',
+            category,
+            matchId: dbRow.matchId,
+            matchName: dbRow.matchName,
+            competitionName: dbRow.competitionName,
+            playedAt: dbRow.playedAt,
+            externalId: '1830',
+            secondaryExternalId: undefined,
+          },
+        ]);
 
         expect(dbResult.chains[0].where).toHaveBeenCalledWith(
           eq(matches.category, category),
         );
       },
     );
+
+    it('sets secondaryExternalId from the second aggregated id, for a merged match', async () => {
+      const dbResult = mockDb([{ ...dbRow, externalIds: ['1830', '1831'] }]);
+      const service = await makeService(dbResult);
+
+      const [result] = await service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'cup_final',
+        limit: 3,
+      });
+
+      expect(result.externalId).toBe('1830');
+      expect(result.secondaryExternalId).toBe('1831');
+    });
 
     it('groups by the match, not the external id, so a merged match yields one row', async () => {
       const dbResult = mockDb([dbRow]);

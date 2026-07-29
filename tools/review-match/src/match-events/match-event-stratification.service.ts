@@ -87,15 +87,24 @@ export class MatchEventStratificationService implements MatchStratifier {
     const rows = await this.db
       .select({
         matchId: matches.id,
-        // Lowest external id, not just `matchExternalIds.externalId`: a
-        // merged BBL match has two external-id rows for the same match
+        // Every external id for the match, not just `matchExternalIds.externalId`:
+        // a merged BBL match has two external-id rows for the same match
         // under the same system, and grouping by the raw column would
         // surface it as two rows here — halving its effective sample and
-        // sometimes naming the report by the secondary id instead of the
-        // primary. `min()` (cast for numeric, not lexicographic, ordering)
-        // matches the "primary = numerically lower id" convention
-        // `MergedMatchStratificationService` establishes.
-        externalId: sql<string>`min(${matchExternalIds.externalId}::integer)::text`,
+        // dropping one of the merge's two source pages from the report.
+        // `array_agg` (ordered numerically, not lexicographically) collects
+        // both ids instead of collapsing to one, matching
+        // `MergedMatchStratificationService`'s approach. Not DISTINCT: this
+        // query joins matchEvents (many rows per match) against
+        // matchExternalIds (one row per external id), so each external id
+        // repeats once per event row -- Postgres also rejects
+        // `array_agg(DISTINCT ... ORDER BY x::integer)` outright (the ORDER
+        // BY expression must match the DISTINCT argument exactly). Dedup
+        // happens in JS below instead, after the numeric ordering is already
+        // applied.
+        externalIds: sql<
+          string[]
+        >`array_agg(${matchExternalIds.externalId} order by ${matchExternalIds.externalId}::integer)`,
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
@@ -126,7 +135,18 @@ export class MatchEventStratificationService implements MatchStratifier {
       .orderBy(sql`random()`)
       .limit(limit);
 
-    return rows.map((row) => ({ source, ...row }));
+    // Numerically ascending above, so the lower id is first — matching the
+    // importer's own "primary = numerically lower id" convention. `Set`
+    // dedups the per-event-row repeats while preserving that order.
+    return rows.map(({ externalIds, ...row }) => {
+      const uniqueExternalIds = [...new Set(externalIds)];
+      return {
+        source,
+        ...row,
+        externalId: uniqueExternalIds[0],
+        secondaryExternalId: uniqueExternalIds[1],
+      };
+    });
   }
 
   /** The `WHERE` clause for one stratum, over a single match_events row. */

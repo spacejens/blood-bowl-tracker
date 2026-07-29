@@ -10,11 +10,21 @@ import { MatchEventStratificationService } from './match-event-stratification.se
 
 const dbRow = {
   matchId: 11,
-  externalId: '1830',
+  externalIds: ['1830'],
   matchName: 'Round 3',
   competitionName: 'Season 18',
   playedAt: new Date('2021-09-25T18:00:00.000Z'),
   category: 'normal' as const,
+};
+
+const mappedRow = {
+  matchId: dbRow.matchId,
+  matchName: dbRow.matchName,
+  competitionName: dbRow.competitionName,
+  playedAt: dbRow.playedAt,
+  category: dbRow.category,
+  externalId: '1830',
+  secondaryExternalId: undefined,
 };
 
 async function makeService(
@@ -74,7 +84,42 @@ describe('MatchEventStratificationService', () => {
 
       await expect(
         service.sampleStratum({ source: 'bbl', stratumId: 'foul', limit: 3 }),
-      ).resolves.toEqual([{ source: 'bbl', ...dbRow }]);
+      ).resolves.toEqual([{ source: 'bbl', ...mappedRow }]);
+    });
+
+    it('sets secondaryExternalId from the second aggregated id, for a merged match', async () => {
+      const dbResult = mockDb([{ ...dbRow, externalIds: ['1830', '1831'] }]);
+      const service = await makeService(dbResult);
+
+      const [result] = await service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'foul',
+        limit: 3,
+      });
+
+      expect(result.externalId).toBe('1830');
+      expect(result.secondaryExternalId).toBe('1831');
+    });
+
+    it('dedups repeated external ids from the matchEvents join fan-out', async () => {
+      // For a merged match with several events, joining matchEvents against
+      // matchExternalIds repeats each external id once per event row --
+      // array_agg (without DISTINCT, since Postgres rejects DISTINCT
+      // combined with this ORDER BY) collects all of them, so the service
+      // must dedup in JS rather than trusting the aggregate to be unique.
+      const dbResult = mockDb([
+        { ...dbRow, externalIds: ['1830', '1830', '1831', '1831', '1831'] },
+      ]);
+      const service = await makeService(dbResult);
+
+      const [result] = await service.sampleStratum({
+        source: 'bbl',
+        stratumId: 'foul',
+        limit: 3,
+      });
+
+      expect(result.externalId).toBe('1830');
+      expect(result.secondaryExternalId).toBe('1831');
     });
 
     it('limits the query to the requested number of matches', async () => {
@@ -131,7 +176,7 @@ describe('MatchEventStratificationService', () => {
           stratumId: 'unpaired',
           limit: 2,
         }),
-      ).resolves.toEqual([{ source: 'bbl', ...dbRow }]);
+      ).resolves.toEqual([{ source: 'bbl', ...mappedRow }]);
     });
 
     it('groups by the match, not the external id, so a merged match yields one row', async () => {

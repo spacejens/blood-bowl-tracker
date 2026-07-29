@@ -95,14 +95,17 @@ export class MatchCategoryStratificationService implements MatchStratifier {
     // system by design. Without this, such a match would surface as two
     // duplicate rows here — for the cup_final/season_final strata that's
     // exactly the case most likely to occur, and it would let one merged
-    // match consume multiple of a stratum's sample slots. `min()` (cast for
-    // numeric, not lexicographic, ordering) picks the numerically lower id,
-    // matching the "primary = numerically lower id" convention
-    // `MergedMatchStratificationService` establishes.
+    // match consume multiple of a stratum's sample slots. `array_agg`
+    // (ordered numerically, not lexicographically) collects every external
+    // id for the match rather than collapsing to just the lowest one, so a
+    // merged match's second source page isn't silently dropped from the
+    // report — matching `MergedMatchStratificationService`'s approach.
     const rows = await this.db
       .select({
         matchId: matches.id,
-        externalId: sql<string>`min(${matchExternalIds.externalId}::integer)::text`,
+        externalIds: sql<
+          string[]
+        >`array_agg(${matchExternalIds.externalId} order by ${matchExternalIds.externalId}::integer)`,
         matchName: matches.name,
         competitionName: competitions.name,
         playedAt: matches.playedAt,
@@ -131,7 +134,15 @@ export class MatchCategoryStratificationService implements MatchStratifier {
       .orderBy(sql`random()`)
       .limit(limit);
 
-    return rows.map((row) => ({ source, category, ...row }));
+    // Numerically ascending above, so the lower id is first — matching the
+    // importer's own "primary = numerically lower id" convention.
+    return rows.map(({ externalIds, ...row }) => ({
+      source,
+      category,
+      ...row,
+      externalId: externalIds[0],
+      secondaryExternalId: externalIds[1],
+    }));
   }
 
   /** The `matches.category` value one stratum id filters on. */
