@@ -23,6 +23,7 @@ import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
+import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
@@ -31,21 +32,6 @@ interface MakeServiceOptions {
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
-}
-
-/**
- * A `TeamContextService` mock canned to attach a fixed suffix to every row.
- * It does not reproduce the real lookup/formatting — that is covered by
- * team-context.service.spec.ts.
- */
-function passthroughTeamContext(
-  contextSuffix = '',
-): MockProxy<TeamContextService> {
-  const teamContext = mock<TeamContextService>();
-  teamContext.attachSuffixes.mockImplementation((rows: unknown[]) =>
-    Promise.resolve(rows.map((row) => ({ ...(row as object), contextSuffix }))),
-  );
-  return teamContext;
 }
 
 async function makeService({

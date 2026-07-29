@@ -343,17 +343,21 @@ describe.each(cases)(
         rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
       );
       const { service, leaderboard } = await makeService(teams, teamContext);
+      let fetched: unknown;
       leaderboard.resolveToplist.mockImplementation(async (options) => {
-        await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
         return 'canned';
       });
       await resolve(service, FACT_SCOPE_ALL_TIME);
       expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
-      const [decoratedRows, teamIdOf, contextOptions] =
+      const [inputRows, teamIdOf, contextOptions] =
         teamContext.attachSuffixes.mock.calls[0];
-      expect(decoratedRows).toEqual(rows);
+      expect(inputRows).toEqual(rows);
       expect(teamIdOf(rows[0])).toBe(rows[0].teamId);
       expect(contextOptions).toEqual({ includeRace: true, includeCoach: true });
+      expect(fetched).toEqual(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
