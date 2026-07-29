@@ -158,6 +158,60 @@ export class TeamToplistService {
     });
   }
 
+  /**
+   * The three match-outcome toplists differ only in title and backing count,
+   * so they share one private builder rather than repeating the same
+   * resolveToplist call three times. Same precedent as
+   * CoachToplistService.resolveGapToplist. They stay hand-written (rather than
+   * joining makeToplistResolvers) to sit next to resolveMatchesPlayed, whose
+   * league/era/category-only scope they share.
+   */
+  private resolveMatchOutcomeToplist(options: {
+    title: string;
+    fetchRows: (
+      limit: number,
+    ) => Promise<{ teamId: number; name: string; count: number }[]>;
+  }): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<{
+      teamId: number;
+      name: string;
+      count: number;
+    }>({
+      title: options.title,
+      fetchRows: options.fetchRows,
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.teamLink,
+    });
+  }
+
+  resolveMatchesWon(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Teams by matches won',
+      fetchRows: (limit) => this.teams.countMatchesWonByTeam(scope, limit),
+    });
+  }
+
+  resolveMatchesLost(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Teams by matches lost',
+      fetchRows: (limit) => this.teams.countMatchesLostByTeam(scope, limit),
+    });
+  }
+
+  resolveMatchesDrawn(
+    scope: FactScope,
+  ): Promise<string | InteractionReplyOptions> {
+    return this.resolveMatchOutcomeToplist({
+      title: 'Teams by matches drawn',
+      fetchRows: (limit) => this.teams.countMatchesDrawnByTeam(scope, limit),
+    });
+  }
+
   resolveCompetitionsPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
