@@ -324,6 +324,60 @@ describe('CoachesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 5, 1)),
       ).toEqual(['coaches.id', 'teams.coach_id']);
     });
+
+    it('countFoulsCommittedByCoach filters by the match category in the scope', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach(
+        { category: 'season_final' },
+        21,
+      );
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toContain(
+        'season_final',
+      );
+    });
+
+    it('countFoulsCommittedByCoach still ignores a competition in the scope', async () => {
+      const { chains } = await build([]);
+      await service.countFoulsCommittedByCoach({ competitionId: 30 }, 21);
+      expect(
+        extractAllFilterValues(firstCallArg(chains[0].where)),
+      ).not.toContain(30);
+    });
+
+    it('countMatchesPlayedByCoach filters by the match category', async () => {
+      const { chains } = await build([]);
+      await service.countMatchesPlayedByCoach({ category: 'season_final' }, 21);
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'season_final',
+      ]);
+    });
+
+    it('the time-between-matches subquery only sees matches of the given category', async () => {
+      const { chains } = await build([], [], []);
+      await service.getAverageGapBetweenMatchesByCoach(
+        { category: 'season_final' },
+        21,
+      );
+      // chains[0] is the inner selectDistinct that feeds the window function.
+      expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+        'season_final',
+      ]);
+    });
+
+    it('countCompetitionsByCoach does not join matches when no category is given', async () => {
+      const { chains } = await build([]);
+      await service.countCompetitionsByCoach({ eraId: 20 }, 21);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
+    });
+
+    it('countCompetitionsByCoach counts only competitions with a match of the given category', async () => {
+      const { chains } = await build([]);
+      await service.countCompetitionsByCoach({ category: 'cup_final' }, 21);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(7);
+      expect(
+        extractAllFilterValues(firstCallArg(chains[0].innerJoin, 6, 1)),
+      ).toContain('cup_final');
+    });
   });
 
   describe('league scoping', () => {

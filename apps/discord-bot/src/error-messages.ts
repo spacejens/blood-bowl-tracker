@@ -57,6 +57,8 @@ export const INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE =
   'The commissioner has no record of that league in the standings.';
 export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE =
   'The stadium turnstiles are jammed shut.';
+export const INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE =
+  'The scoreboard scribe has misfiled that stack of match reports.';
 
 // --- /deepdive command (slash-commands/deepdive-command.service.ts,
 //     deepdive/facts/era-deepdive.ts) ---

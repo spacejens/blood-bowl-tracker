@@ -178,6 +178,9 @@ export class TeamsService {
           scope.eraId === undefined
             ? undefined
             : eq(teamEras.eraId, scope.eraId),
+          scope.category === undefined
+            ? undefined
+            : eq(matches.category, scope.category),
         ),
       )
       .groupBy(teams.id, teams.name)
@@ -185,11 +188,25 @@ export class TeamsService {
       .limit(limit);
   }
 
+  /**
+   * Teams ranked by distinct competitions entered. A match category narrows
+   * this to the competitions in which the team actually played a match of that
+   * category (e.g. the competitions it reached the final of), which needs the
+   * played matches joined in — registration alone (`competitionTeams`) carries
+   * no category. The join is added only on that path so the unfiltered count
+   * keeps counting entries rather than appearances.
+   */
   async countCompetitionsByTeam(
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return this.db
+    const eraFilter = and(
+      scope.leagueId === undefined
+        ? undefined
+        : eq(eras.leagueId, scope.leagueId),
+      scope.eraId === undefined ? undefined : eq(teamEras.eraId, scope.eraId),
+    );
+    const base = this.db
       .select({
         teamId: teams.id,
         name: teams.name,
@@ -202,17 +219,25 @@ export class TeamsService {
       )
       .innerJoin(teamEras, eq(teamEras.id, competitionTeams.teamEraId))
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .where(
+      .innerJoin(teams, eq(teams.id, teamEras.teamId));
+    if (scope.category === undefined) {
+      return base
+        .where(eraFilter)
+        .groupBy(teams.id, teams.name)
+        .orderBy(desc(countDistinct(competitions.id)))
+        .limit(limit);
+    }
+    return base
+      .innerJoin(matchTeams, eq(matchTeams.teamEraId, teamEras.id))
+      .innerJoin(
+        matches,
         and(
-          scope.leagueId === undefined
-            ? undefined
-            : eq(eras.leagueId, scope.leagueId),
-          scope.eraId === undefined
-            ? undefined
-            : eq(teamEras.eraId, scope.eraId),
+          eq(matches.id, matchTeams.matchId),
+          eq(matches.competitionId, competitions.id),
+          eq(matches.category, scope.category),
         ),
       )
+      .where(eraFilter)
       .groupBy(teams.id, teams.name)
       .orderBy(desc(countDistinct(competitions.id)))
       .limit(limit);
@@ -241,9 +266,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -255,9 +278,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: COMPLETION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -269,9 +290,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -283,9 +302,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEFLECTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -297,9 +314,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -311,9 +326,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -325,9 +338,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -339,9 +350,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -353,9 +362,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -367,9 +374,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -381,9 +386,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -395,9 +398,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -409,9 +410,7 @@ export class TeamsService {
     return countMatchEventsByTeam({
       db: this.db,
       selector: { role: 'consequence', types: DEATH_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -420,13 +419,7 @@ export class TeamsService {
     scope: FactScope,
     limit: number,
   ): Promise<{ teamId: number; name: string; count: number }[]> {
-    return querySumExpensiveMistakesByTeam({
-      db: this.db,
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
-      limit,
-    });
+    return querySumExpensiveMistakesByTeam({ db: this.db, scope, limit });
   }
 
   listBiggestExpensiveMistakes(
@@ -441,13 +434,7 @@ export class TeamsService {
       category: MatchCategory;
     }[]
   > {
-    return queryListBiggestExpensiveMistakes({
-      db: this.db,
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
-      limit,
-    });
+    return queryListBiggestExpensiveMistakes({ db: this.db, scope, limit });
   }
 
   countAll(): Promise<number> {

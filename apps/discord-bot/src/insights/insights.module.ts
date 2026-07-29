@@ -77,6 +77,7 @@ const GAME_DATA_MODULES = [
     RaceToplistService,
     TeamToplistService,
     PlayerToplistService,
+    MatchCategoryLabelService,
     ExpensiveMistakesToplistService,
     ErasListService,
     StatsSummaryFactsService,

@@ -186,9 +186,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: MVP_AWARD_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -200,9 +198,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: TOUCHDOWN_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -214,9 +210,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: COMPLETION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -228,9 +222,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: INTERCEPTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -242,9 +234,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: DEFLECTION_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -256,9 +246,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: CASUALTY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -270,9 +258,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: SERIOUS_INJURY_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -284,9 +270,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: DEATH_CAUSED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -298,9 +282,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'acting', types: FOUL_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -312,9 +294,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'consequence', types: SENT_OFF_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -326,9 +306,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'consequence', types: CASUALTY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -340,9 +318,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'consequence', types: SERIOUS_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }
@@ -354,9 +330,7 @@ export class PlayersService {
     return countMatchEventsByPlayer({
       db: this.db,
       selector: { role: 'consequence', types: LASTING_INJURY_SUFFERED_TYPES },
-      leagueId: scope.leagueId,
-      eraId: scope.eraId,
-      competitionId: scope.competitionId,
+      scope,
       limit,
     });
   }

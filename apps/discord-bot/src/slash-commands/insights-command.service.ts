@@ -1,3 +1,5 @@
+import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
+import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import type { FactScope } from '@blood-bowl-tracker/game-data';
 import {
@@ -17,6 +19,7 @@ import {
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE,
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
   INSIGHTS_CATEGORY_UNSUPPORTED_FOR_LEAGUE_MESSAGE,
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE,
   INSIGHTS_COMPETITION_NOT_FOUND_MESSAGE,
   INSIGHTS_ERA_NOT_FOUND_MESSAGE,
   INSIGHTS_LEAGUE_NOT_FOUND_MESSAGE,
@@ -26,15 +29,20 @@ import {
 import { FACT_TREE } from '../insights/fact-tree.token';
 import type { FactLeaf, FactNode } from '../insights/fact-tree.types';
 import { FactTreeUtilsService } from '../insights/fact-tree-utils.service';
+import { MatchCategoryLabelService } from '../insights/facts/match-category-label.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 const MAX_AUTOCOMPLETE_CHOICES = 25;
 
-/** The single league/era/competition resolved for the current request, if any. */
+/**
+ * The single league/era/competition/match category resolved for the current
+ * request, if any.
+ */
 interface ResolvedScope {
   league?: { id: number; name: string };
   era?: { id: number; name: string };
   competition?: { id: number; name: string };
+  matchCategory?: { value: MatchCategory; label: string };
 }
 
 @Injectable()
@@ -46,6 +54,7 @@ export class InsightsCommandService implements OnModuleInit {
     @Inject(FACT_TREE) private readonly factTree: FactNode,
     private readonly registry: SlashCommandRegistryService,
     private readonly factTreeUtils: FactTreeUtilsService,
+    private readonly categoryLabel: MatchCategoryLabelService,
   ) {}
 
   onModuleInit(): void {
@@ -81,6 +90,19 @@ export class InsightsCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'match-category',
+          description:
+            'Scope the insight to a single match category (optional)',
+          type: ApplicationCommandOptionType.String,
+          // Static choices rather than autocomplete: MATCH_CATEGORIES is a
+          // fixed six-value enum, so Discord can present the whole list and
+          // only ever sends one of these values back.
+          choices: MATCH_CATEGORIES.map((category) => ({
+            name: this.categoryLabel.label(category),
+            value: category,
+          })),
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) => this.autocomplete(interaction),
@@ -94,10 +116,14 @@ export class InsightsCommandService implements OnModuleInit {
     const leagueOption = interaction.options.getString('league');
     const eraOption = interaction.options.getString('era');
     const competitionOption = interaction.options.getString('competition');
+    const matchCategoryOption = interaction.options.getString('match-category');
 
-    const givenCount = [leagueOption, eraOption, competitionOption].filter(
-      (option) => option !== null,
-    ).length;
+    const givenCount = [
+      leagueOption,
+      eraOption,
+      competitionOption,
+      matchCategoryOption,
+    ].filter((option) => option !== null).length;
     if (givenCount > 1) {
       return INSIGHTS_SCOPE_CONFLICT_MESSAGE;
     }
@@ -129,6 +155,7 @@ export class InsightsCommandService implements OnModuleInit {
         competitionResult.kind === 'found'
           ? competitionResult.value
           : undefined,
+      matchCategory: this.resolveMatchCategory(matchCategoryOption),
     };
 
     if (!category) {
@@ -159,6 +186,12 @@ export class InsightsCommandService implements OnModuleInit {
         return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_COMPETITION_MESSAGE;
       }
     }
+    if (resolved.matchCategory) {
+      leaves = leaves.filter((leaf) => leaf.supportsMatchCategory);
+      if (leaves.length === 0) {
+        return INSIGHTS_CATEGORY_UNSUPPORTED_FOR_MATCH_CATEGORY_MESSAGE;
+      }
+    }
 
     return this.resolveLeaf(leaves, resolved);
   }
@@ -175,6 +208,9 @@ export class InsightsCommandService implements OnModuleInit {
     }
     if (resolved.competition) {
       leaves = leaves.filter((leaf) => leaf.supportsCompetition);
+    }
+    if (resolved.matchCategory) {
+      leaves = leaves.filter((leaf) => leaf.supportsMatchCategory);
     }
     return this.resolveLeaf(leaves, resolved);
   }
@@ -200,6 +236,21 @@ export class InsightsCommandService implements OnModuleInit {
   }
 
   /**
+   * The match category named by the `match-category` option. Discord's static
+   * choices only ever deliver one of `MATCH_CATEGORIES`, so there is no lookup
+   * that can fail and no "not found" message; anything else is treated exactly
+   * like an absent option.
+   */
+  private resolveMatchCategory(
+    option: string | null,
+  ): { value: MatchCategory; label: string } | undefined {
+    const value = MATCH_CATEGORIES.find((category) => category === option);
+    return value === undefined
+      ? undefined
+      : { value, label: this.categoryLabel.label(value) };
+  }
+
+  /**
    * Pick one of the candidate leaves at random and render it, suffixing the
    * embed title with the scope when the leaf is scope-aware.
    */
@@ -212,16 +263,19 @@ export class InsightsCommandService implements OnModuleInit {
       leagueId: resolved.league?.id,
       eraId: resolved.era?.id,
       competitionId: resolved.competition?.id,
+      category: resolved.matchCategory?.value,
     };
     const reply = await picked.resolve(scope);
     return picked.supportsLeague ||
       picked.supportsEra ||
-      picked.supportsCompetition
+      picked.supportsCompetition ||
+      picked.supportsMatchCategory
       ? this.applyTitleSuffix(
           reply,
           resolved.league?.name ??
             resolved.era?.name ??
             resolved.competition?.name ??
+            resolved.matchCategory?.label ??
             'All time',
         )
       : reply;
