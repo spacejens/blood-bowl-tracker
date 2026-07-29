@@ -39,6 +39,15 @@ export interface MakeToplistResolversOptions<
   timeoutMessage: string;
   noDataMessage: string;
   entityLink?: EntityLink<TRow>;
+  /**
+   * Enriches every fetched row before ranking — e.g. attaching each team's
+   * race/coach context. Runs inside `fetchRows`, so it is covered by the
+   * toplist's database timeout, and it sees the full fetch window rather than
+   * only the rows that survive tie truncation.
+   */
+  decorateRows?: (rows: TRow[]) => Promise<TRow[]>;
+  /** Overrides the default `"<rank>. <name> — <count>"` line rendering. */
+  formatRow?: (row: TRow & { rank: number }) => string;
   leaderboard: LeaderboardService;
 }
 
@@ -58,17 +67,28 @@ export function makeToplistResolvers<
 >(
   options: MakeToplistResolversOptions<TMethod, TRow>,
 ): Record<TMethod, ToplistResolver<TService>> {
-  const { titles, timeoutMessage, noDataMessage, entityLink, leaderboard } =
-    options;
+  const {
+    titles,
+    timeoutMessage,
+    noDataMessage,
+    entityLink,
+    decorateRows,
+    formatRow,
+    leaderboard,
+  } = options;
   const resolvers = {} as Record<TMethod, ToplistResolver<TService>>;
   for (const method of Object.keys(titles) as TMethod[]) {
     resolvers[method] = (service, scope) => {
       return leaderboard.resolveToplist({
         title: titles[method],
-        fetchRows: (limit) => service[method](scope, limit),
+        fetchRows: async (limit) => {
+          const rows = await service[method](scope, limit);
+          return decorateRows === undefined ? rows : decorateRows(rows);
+        },
         timeoutMessage,
         noDataMessage,
         entityLink,
+        formatRow,
       });
     };
   }
