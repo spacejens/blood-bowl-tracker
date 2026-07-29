@@ -260,6 +260,39 @@ describe('RacesService', () => {
         extractJoinColumns(firstCallArg(chains[0].innerJoin, 4, 1)),
       ).toEqual(['matches.id', 'match_teams.match_id']);
     });
+
+    it.each([
+      ['countMatchesWonByRace'],
+      ['countMatchesLostByRace'],
+      ['countMatchesDrawnByRace'],
+    ] as const)('%s returns the rows the query resolves to', async (method) => {
+      const rows = [
+        { raceId: 1, name: 'Orc', count: 14 },
+        { raceId: 2, name: 'Skaven', count: 5 },
+      ];
+      const { db } = await build(rows);
+      await expect(service[method](FACT_SCOPE_ALL_TIME, 21)).resolves.toEqual(
+        rows,
+      );
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['countMatchesWonByRace'],
+      ['countMatchesLostByRace'],
+      ['countMatchesDrawnByRace'],
+    ] as const)(
+      '%s forwards the league scope and limit to the outcome query',
+      async (method) => {
+        const { chains } = await build([]);
+        await service[method]({ leagueId: 9 }, 21);
+        expect(chains[0].where).toHaveBeenCalledTimes(1);
+        expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([
+          9,
+        ]);
+        expect(chains[0].limit).toHaveBeenCalledWith(21);
+      },
+    );
   });
 
   describe('league scoping', () => {
