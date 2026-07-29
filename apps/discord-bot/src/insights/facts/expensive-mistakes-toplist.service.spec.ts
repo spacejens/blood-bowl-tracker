@@ -12,6 +12,7 @@ import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
+import { TeamContextService } from '../team-context.service';
 import { ExpensiveMistakesToplistService } from './expensive-mistakes-toplist.service';
 import { MatchCategoryLabelService } from './match-category-label.service';
 
@@ -19,9 +20,13 @@ interface MadeService {
   service: ExpensiveMistakesToplistService;
   leaderboard: MockProxy<LeaderboardService>;
   categoryLabel: MockProxy<MatchCategoryLabelService>;
+  teamContext: MockProxy<TeamContextService>;
 }
 
-async function makeService(teams: TeamsService): Promise<MadeService> {
+async function makeService(
+  teams: TeamsService,
+  teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
+): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const categoryLabel = mock<MatchCategoryLabelService>();
   const moduleRef = await Test.createTestingModule({
@@ -30,12 +35,14 @@ async function makeService(teams: TeamsService): Promise<MadeService> {
       { provide: TeamsService, useValue: teams },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: MatchCategoryLabelService, useValue: categoryLabel },
+      { provide: TeamContextService, useValue: teamContext },
     ],
   }).compile();
   return {
     service: moduleRef.get(ExpensiveMistakesToplistService),
     leaderboard,
     categoryLabel,
+    teamContext,
   };
 }
 
@@ -43,6 +50,7 @@ interface MistakeRow {
   teamId: number;
   name: string;
   count: number;
+  contextSuffix?: string;
 }
 
 interface BiggestMistakeRow extends MistakeRow {
@@ -131,6 +139,53 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
     expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
       expect.objectContaining({ timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE }),
     );
+  });
+
+  it('decorates every fetched row with both race and coach context', async () => {
+    const rawRows = [{ teamId: 1, name: '40 grinders', count: 150000 }];
+    const teams = {
+      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue(rawRows),
+    } as unknown as TeamsService;
+    const teamContext = mock<TeamContextService>();
+    teamContext.attachSuffixes.mockResolvedValue(
+      rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+    );
+    const { service, leaderboard } = await makeService(teams, teamContext);
+    let fetched: unknown;
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
+    await service.resolveTotal({});
+    expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+    const [inputRows, teamIdOf, contextOptions] =
+      teamContext.attachSuffixes.mock.calls[0];
+    expect(inputRows).toEqual(rawRows);
+    expect(teamIdOf(rawRows[0])).toBe(1);
+    expect(contextOptions).toEqual({ includeRace: true, includeCoach: true });
+    expect(fetched).toEqual(
+      rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+    );
+  });
+
+  it('renders the context suffix between the name and the gp amount', async () => {
+    const teams = {
+      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveTotal({});
+    const options = leaderboard.resolveToplist.mock
+      .calls[0][0] as unknown as ResolveToplistOptions<MistakeRow>;
+    expect(
+      options.formatRow?.({
+        teamId: 1,
+        name: '40 grinders',
+        count: 150000,
+        contextSuffix: ' (Orc, Skarsnik)',
+        rank: 1,
+      }),
+    ).toBe('1. 40 grinders (Orc, Skarsnik) — 150,000 gp');
   });
 });
 
@@ -251,5 +306,61 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
         category: 'normal',
       }),
     ).toBe('1. 40 grinders — 90,000 gp (2026-06-13)');
+  });
+
+  it('decorates every fetched row with both race and coach context', async () => {
+    const rawRows = [
+      {
+        teamId: 4,
+        name: '40 grinders',
+        count: 90000,
+        date: '2026-06-13',
+        category: 'normal' as const,
+      },
+    ];
+    const teams = {
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue(rawRows),
+    } as unknown as TeamsService;
+    const teamContext = mock<TeamContextService>();
+    teamContext.attachSuffixes.mockResolvedValue(
+      rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+    );
+    const { service, leaderboard } = await makeService(teams, teamContext);
+    let fetched: unknown;
+    leaderboard.resolveToplist.mockImplementation(async (options) => {
+      fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+      return 'canned';
+    });
+    await service.resolveBiggest({});
+    expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+    const [inputRows, teamIdOf, contextOptions] =
+      teamContext.attachSuffixes.mock.calls[0];
+    expect(inputRows).toEqual(rawRows);
+    expect(teamIdOf(rawRows[0])).toBe(4);
+    expect(contextOptions).toEqual({ includeRace: true, includeCoach: true });
+    expect(fetched).toEqual(
+      rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+    );
+  });
+
+  it('renders the context suffix between the name and the gp amount, before the date parenthetical', async () => {
+    const teams = {
+      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
+    } as unknown as TeamsService;
+    const { service, leaderboard } = await makeService(teams);
+    leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+    await service.resolveBiggest({});
+    const formatRow = capturedFormatRow(leaderboard);
+    expect(
+      formatRow({
+        rank: 1,
+        teamId: 4,
+        name: '40 grinders',
+        count: 90000,
+        date: '2026-06-13',
+        category: 'normal',
+        contextSuffix: ' (Orc, Skarsnik)',
+      }),
+    ).toBe('1. 40 grinders (Orc, Skarsnik) — 90,000 gp (2026-06-13)');
   });
 });

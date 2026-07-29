@@ -10,12 +10,19 @@ import {
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { LeaderboardService } from '../leaderboard.service';
+import { TeamContextService } from '../team-context.service';
 import { MatchCategoryLabelService } from './match-category-label.service';
 
 /** Money rendered with a thousands separator and a `gp` suffix, e.g. `150,000 gp`. */
 function gp(amount: number): string {
   return `${amount.toLocaleString('en-US')} gp`;
 }
+
+type MistakeRow = { teamId: number; name: string; count: number };
+type BiggestMistakeRow = MistakeRow & {
+  date: string;
+  category: MatchCategory;
+};
 
 /**
  * Two hand-written resolvers (rather than the uniform makeToplistResolvers
@@ -34,39 +41,53 @@ export class ExpensiveMistakesToplistService {
     private readonly teams: TeamsService,
     private readonly leaderboard: LeaderboardService,
     private readonly categoryLabel: MatchCategoryLabelService,
+    private readonly teamContext: TeamContextService,
   ) {}
 
-  resolveTotal(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-    }>({
-      title: 'Teams by money lost to expensive mistakes',
-      fetchRows: (limit) => this.teams.sumExpensiveMistakesByTeam(scope, limit),
-      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
-      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
-      entityLink: this.teamLink,
-      formatRow: (row) => `${row.rank}. ${row.name} — ${gp(row.count)}`,
+  /**
+   * Neither list is scoped to a single race or coach, so both toplists show
+   * both, matching every TeamToplistService toplist.
+   */
+  private decorateTeamRows<T extends { teamId: number }>(
+    rows: T[],
+  ): Promise<(T & { contextSuffix: string })[]> {
+    return this.teamContext.attachSuffixes(rows, (row) => row.teamId, {
+      includeRace: true,
+      includeCoach: true,
     });
   }
 
-  resolveBiggest(scope: FactScope): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-      date: string;
-      category: MatchCategory;
-    }>({
-      title: 'Biggest expensive mistakes',
-      fetchRows: (limit) =>
-        this.teams.listBiggestExpensiveMistakes(scope, limit),
+  resolveTotal(scope: FactScope): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<
+      MistakeRow & { contextSuffix?: string }
+    >({
+      title: 'Teams by money lost to expensive mistakes',
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(
+          await this.teams.sumExpensiveMistakesByTeam(scope, limit),
+        ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
       formatRow: (row) =>
-        `${row.rank}. ${row.name} — ${gp(row.count)} (${this.suffix(row)})`,
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${gp(row.count)}`,
+    });
+  }
+
+  resolveBiggest(scope: FactScope): Promise<string | InteractionReplyOptions> {
+    return this.leaderboard.resolveToplist<
+      BiggestMistakeRow & { contextSuffix?: string }
+    >({
+      title: 'Biggest expensive mistakes',
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(
+          await this.teams.listBiggestExpensiveMistakes(scope, limit),
+        ),
+      timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
+      noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
+      entityLink: this.teamLink,
+      formatRow: (row) =>
+        `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${gp(row.count)} (${this.suffix(row)})`,
     });
   }
 
