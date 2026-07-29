@@ -125,4 +125,25 @@ describe('TeamsService lookups', () => {
       expect(chains[0].limit).toHaveBeenCalledWith(10);
     });
   });
+
+  describe('getRaceAndCoachNamesByIds', () => {
+    it('returns race and coach names keyed by team id', async () => {
+      const { chains } = await build([
+        { teamId: 1, raceName: 'Orc', coachName: 'Skarsnik' },
+      ]);
+      const names = await service.getRaceAndCoachNamesByIds([1]);
+      expect(names.get(1)).toEqual({
+        raceName: 'Orc',
+        coachName: 'Skarsnik',
+      });
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toEqual([1]);
+    });
+
+    it('returns an empty map for an empty id list', async () => {
+      const { db } = await build([]);
+      const names = await service.getRaceAndCoachNamesByIds([]);
+      expect(names.size).toBe(0);
+      expect(db.select).not.toHaveBeenCalled();
+    });
+  });
 });
