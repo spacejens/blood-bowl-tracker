@@ -5,8 +5,8 @@ import * as messages from './error-messages';
 describe('error-messages', () => {
   const values = Object.entries(messages);
 
-  it('exports 57 message constants', () => {
-    expect(values).toHaveLength(57);
+  it('exports 58 message constants', () => {
+    expect(values).toHaveLength(58);
   });
 
   it('gives every constant a non-empty string value', () => {

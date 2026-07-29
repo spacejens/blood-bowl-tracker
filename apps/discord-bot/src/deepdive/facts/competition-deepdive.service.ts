@@ -8,9 +8,11 @@ import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { TeamContextService } from '../../insights/team-context.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -40,6 +42,7 @@ export class CompetitionDeepdiveService {
     private readonly competitions: CompetitionsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly teamContext: TeamContextService,
   ) {}
 
   async resolve(
@@ -65,9 +68,24 @@ export class CompetitionDeepdiveService {
       return DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE;
     }
 
+    // A competition is not scoped to one race or coach, so both add
+    // information here. Wrapped in the same timeout handling as every other
+    // DB call in this method, since attachSuffixes does its own DB round trip.
+    const decorated: (ParticipatingTeam & { contextSuffix: string })[] | null =
+      await this.databaseTimeout.run(
+        this.teamContext.attachSuffixes(teams, (row) => row.id, {
+          includeRace: true,
+          includeCoach: true,
+        }),
+        null,
+      );
+    if (decorated === null) {
+      return DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE;
+    }
+
     const teamLines =
-      teams.length > 0
-        ? teams.map((team) => team.name)
+      decorated.length > 0
+        ? decorated.map((team) => `${team.name}${team.contextSuffix}`)
         : [DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE];
 
     const descriptionLines = [

@@ -126,5 +126,7 @@ export const DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE =
   'The tournament clerk is still digging the trophy out of the cabinet.';
 export const DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE =
   'The turnstile operators are still tallying who turned up to play.';
+export const DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The clerk is still tracking down which races and coaches turned up to this competition.';
 export const DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE =
   'Not a single team has signed up for this competition yet.';
