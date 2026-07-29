@@ -264,6 +264,37 @@ describe('PlayersService', () => {
     });
   });
 
+  describe('getContextNamesByIds', () => {
+    it('returns the context names the query resolves to, keyed by player id', async () => {
+      const { db } = await build([
+        {
+          playerId: 1,
+          positionName: 'Blitzer',
+          teamName: 'Reikland Reavers',
+          raceName: 'Human',
+          eraName: 'First era',
+          coachName: 'Roze Madder',
+        },
+      ]);
+      const names = await service.getContextNamesByIds([1]);
+      expect(names.get(1)).toEqual({
+        positionName: 'Blitzer',
+        teamName: 'Reikland Reavers',
+        raceName: 'Human',
+        eraName: 'First era',
+        coachName: 'Roze Madder',
+      });
+      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns an empty map without querying when given no ids', async () => {
+      const { db } = await build([]);
+      const names = await service.getContextNamesByIds([]);
+      expect(names.size).toBe(0);
+      expect(db.select).not.toHaveBeenCalled();
+    });
+  });
+
   describe('countAll', () => {
     it('returns the total row count', async () => {
       const { db } = await build([{ count: 5 }]);
