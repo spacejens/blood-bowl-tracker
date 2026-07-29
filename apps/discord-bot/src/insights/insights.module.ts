@@ -28,6 +28,7 @@ import { RaceToplistService } from './facts/race-toplist.service';
 import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { LeaderboardService } from './leaderboard.service';
+import { TeamContextService } from './team-context.service';
 
 const GAME_DATA_MODULES = [
   CoachesModule,
@@ -49,6 +50,7 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     EntityComponentsService,
     LeaderboardService,
+    TeamContextService,
     DayCountFormatterService,
     FactTreeFactoryService,
     FactTreeUtilsService,
@@ -71,6 +73,7 @@ const GAME_DATA_MODULES = [
     DatabaseTimeoutService,
     EntityComponentsService,
     LeaderboardService,
+    TeamContextService,
     DayCountFormatterService,
     FactTreeUtilsService,
     CoachToplistService,

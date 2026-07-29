@@ -14,23 +14,35 @@ import { nullEntityComponents } from '../../entity-components-mock.test-helpers'
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import { TeamContextService } from '../../insights/team-context.service';
+import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { CompetitionDeepdiveService } from './competition-deepdive.service';
 
-async function makeService(
-  competitions: CompetitionsService,
-  databaseTimeout: MockProxy<DatabaseTimeoutService> = mockDatabaseTimeout(),
-  entityComponents: MockProxy<EntityComponentsService> = nullEntityComponents(),
-): Promise<{
+interface MakeServiceOptions {
+  competitions: CompetitionsService;
+  databaseTimeout?: MockProxy<DatabaseTimeoutService>;
+  entityComponents?: MockProxy<EntityComponentsService>;
+  teamContext?: MockProxy<TeamContextService>;
+}
+
+async function makeService({
+  competitions,
+  databaseTimeout = mockDatabaseTimeout(),
+  entityComponents = nullEntityComponents(),
+  teamContext = passthroughTeamContext(),
+}: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
+  teamContext: MockProxy<TeamContextService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -38,11 +50,13 @@ async function makeService(
       { provide: CompetitionsService, useValue: competitions },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: TeamContextService, useValue: teamContext },
     ],
   }).compile();
   return {
     service: moduleRef.get(CompetitionDeepdiveService),
     entityComponents,
+    teamContext,
   };
 }
 
@@ -64,9 +78,9 @@ function makeCompetitions(options: {
 
 describe('CompetitionDeepdiveService', () => {
   it('returns the not-found message when the competition does not exist', async () => {
-    const { service } = await makeService(
-      makeCompetitions({ competition: undefined }),
-    );
+    const { service } = await makeService({
+      competitions: makeCompetitions({ competition: undefined }),
+    });
     const result = await service.resolve(999);
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
   });
@@ -77,7 +91,7 @@ describe('CompetitionDeepdiveService', () => {
   // CompetitionDeepdiveService itself owns: the type/era/teams description
   // text, and the era-then-teams entry pool (in that order, with the right
   // ids/labels) it hands to buildEntityComponents.
-  it('renders the type, era line, and participating-teams list, with the era entry before team entries', async () => {
+  it('renders the type, era line, and participating-teams list (with context suffix), with the era entry before team entries', async () => {
     const entityComponents = mock<EntityComponentsService>();
     const cannedComponents = [
       {
@@ -91,8 +105,8 @@ describe('CompetitionDeepdiveService', () => {
       components: cannedComponents,
       overflowNote: null,
     });
-    const { service } = await makeService(
-      makeCompetitions({
+    const { service } = await makeService({
+      competitions: makeCompetitions({
         competition: {
           id: 1,
           name: 'Major Season 24',
@@ -105,9 +119,9 @@ describe('CompetitionDeepdiveService', () => {
           { id: 9, name: 'Reikland Reavers' },
         ],
       }),
-      undefined,
       entityComponents,
-    );
+      teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
+    });
     const result = await service.resolve(1);
     expect(result).toEqual({
       embeds: [
@@ -118,8 +132,8 @@ describe('CompetitionDeepdiveService', () => {
             'Era: BB2020',
             '',
             'Participating teams:',
-            'Gouged Eye',
-            'Reikland Reavers',
+            'Gouged Eye (Orc, Skarsnik)',
+            'Reikland Reavers (Orc, Skarsnik)',
           ].join('\n'),
         },
       ],
@@ -145,14 +159,45 @@ describe('CompetitionDeepdiveService', () => {
     ]);
   });
 
+  it('calls attachSuffixes with both race and coach context enabled', async () => {
+    const teamContext = mock<TeamContextService>();
+    const rawTeams = [
+      { id: 5, name: 'Gouged Eye' },
+      { id: 9, name: 'Reikland Reavers' },
+    ];
+    teamContext.attachSuffixes.mockResolvedValue(
+      rawTeams.map((team) => ({ ...team, contextSuffix: '' })),
+    );
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Major Season 24',
+          type: 'season',
+          eraId: 20,
+          eraName: 'BB2020',
+        },
+        teams: rawTeams,
+      }),
+      teamContext,
+    });
+    await service.resolve(1);
+    expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+    const [inputRows, teamIdOf, options] =
+      teamContext.attachSuffixes.mock.calls[0];
+    expect(inputRows).toEqual(rawTeams);
+    expect(teamIdOf(rawTeams[0])).toBe(5);
+    expect(options).toEqual({ includeRace: true, includeCoach: true });
+  });
+
   it('shows the no-teams message but still passes the era-only entry to buildEntityComponents', async () => {
     const entityComponents = mock<EntityComponentsService>();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: null,
     });
-    const { service } = await makeService(
-      makeCompetitions({
+    const { service } = await makeService({
+      competitions: makeCompetitions({
         competition: {
           id: 1,
           name: 'Major Season 24',
@@ -162,9 +207,8 @@ describe('CompetitionDeepdiveService', () => {
         },
         teams: [],
       }),
-      undefined,
       entityComponents,
-    );
+    });
     const result = (await service.resolve(1)) as unknown as {
       embeds: { description: string }[];
     };
@@ -181,15 +225,72 @@ describe('CompetitionDeepdiveService', () => {
     ]);
   });
 
+  it('keeps the no-teams placeholder free of any context suffix even when attachSuffixes would attach one', async () => {
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Major Season 24',
+          type: 'cup',
+          eraId: 20,
+          eraName: 'BB2020',
+        },
+        teams: [],
+      }),
+      teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain(DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE);
+  });
+
+  it('still labels the team buttons with the plain team name', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Major Season 24',
+          type: 'season',
+          eraId: 20,
+          eraName: 'BB2020',
+        },
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      entityComponents,
+      teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
+    });
+    await service.resolve(1);
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toEqual([
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Gouged Eye',
+      },
+    ]);
+  });
+
   it('falls back to the competition timeout message when the header lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(
-          makeCompetitions({}),
+        const { service } = await makeService({
+          competitions: makeCompetitions({}),
           databaseTimeout,
-        );
+        });
         return service.resolve(1);
       },
       () => undefined,
@@ -203,8 +304,8 @@ describe('CompetitionDeepdiveService', () => {
         const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run.mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
-        const { service } = await makeService(
-          makeCompetitions({
+        const { service } = await makeService({
+          competitions: makeCompetitions({
             competition: {
               id: 1,
               name: 'Major Season 24',
@@ -214,11 +315,39 @@ describe('CompetitionDeepdiveService', () => {
             },
           }),
           databaseTimeout,
-        );
+        });
         return service.resolve(1);
       },
       () => undefined,
       DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the team-context timeout message when attachSuffixes times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          competitions: makeCompetitions({
+            competition: {
+              id: 1,
+              name: 'Major Season 24',
+              type: 'season',
+              eraId: 20,
+              eraName: 'BB2020',
+            },
+            teams: [{ id: 5, name: 'Gouged Eye' }],
+          }),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE,
     );
   });
 });

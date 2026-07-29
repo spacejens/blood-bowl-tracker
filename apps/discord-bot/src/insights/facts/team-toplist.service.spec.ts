@@ -15,23 +15,33 @@ import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
 } from '../leaderboard.service';
+import { TeamContextService } from '../team-context.service';
 import { TeamToplistService } from './team-toplist.service';
 
 interface MadeService {
   service: TeamToplistService;
   leaderboard: MockProxy<LeaderboardService>;
+  teamContext: MockProxy<TeamContextService>;
 }
 
-async function makeService(teams: TeamsService): Promise<MadeService> {
+async function makeService(
+  teams: TeamsService,
+  teamContext: MockProxy<TeamContextService> = mock<TeamContextService>(),
+): Promise<MadeService> {
   const leaderboard = mock<LeaderboardService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       TeamToplistService,
       { provide: TeamsService, useValue: teams },
       { provide: LeaderboardService, useValue: leaderboard },
+      { provide: TeamContextService, useValue: teamContext },
     ],
   }).compile();
-  return { service: moduleRef.get(TeamToplistService), leaderboard };
+  return {
+    service: moduleRef.get(TeamToplistService),
+    leaderboard,
+    teamContext,
+  };
 }
 
 interface TeamCase {
@@ -269,7 +279,11 @@ describe.each(cases)(
       it('passes the era id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(eraRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
-        const { service, leaderboard } = await makeService(teams);
+        const teamContext = mock<TeamContextService>();
+        teamContext.attachSuffixes.mockResolvedValue(
+          eraRows.map((row) => ({ ...row, contextSuffix: '' })),
+        );
+        const { service, leaderboard } = await makeService(teams, teamContext);
         leaderboard.resolveToplist.mockImplementation(async (options) => {
           await options.fetchRows(TOPLIST_FETCH_LIMIT);
           return 'canned';
@@ -286,7 +300,11 @@ describe.each(cases)(
       it('passes the competition id through to the query', async () => {
         const queryFn = vi.fn().mockResolvedValue(competitionRows);
         const teams = { [method]: queryFn } as unknown as TeamsService;
-        const { service, leaderboard } = await makeService(teams);
+        const teamContext = mock<TeamContextService>();
+        teamContext.attachSuffixes.mockResolvedValue(
+          competitionRows.map((row) => ({ ...row, contextSuffix: '' })),
+        );
+        const { service, leaderboard } = await makeService(teams, teamContext);
         leaderboard.resolveToplist.mockImplementation(async (options) => {
           await options.fetchRows(TOPLIST_FETCH_LIMIT);
           return 'canned';
@@ -315,6 +333,68 @@ describe.each(cases)(
         }),
       );
     });
+
+    it('decorates every fetched row with both race and coach context', async () => {
+      const teams = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as TeamsService;
+      const teamContext = mock<TeamContextService>();
+      teamContext.attachSuffixes.mockResolvedValue(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
+      const { service, leaderboard } = await makeService(teams, teamContext);
+      let fetched: unknown;
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'canned';
+      });
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      expect(teamContext.attachSuffixes).toHaveBeenCalledTimes(1);
+      const [inputRows, teamIdOf, contextOptions] =
+        teamContext.attachSuffixes.mock.calls[0];
+      expect(inputRows).toEqual(rows);
+      expect(teamIdOf(rows[0])).toBe(rows[0].teamId);
+      expect(contextOptions).toEqual({ includeRace: true, includeCoach: true });
+      expect(fetched).toEqual(
+        rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
+      );
+    });
+
+    it('renders each row with its context suffix between the name and the count', async () => {
+      const teams = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as TeamsService;
+      const { service, leaderboard } = await makeService(teams);
+      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      const options = leaderboard.resolveToplist.mock
+        .calls[0][0] as unknown as ResolveToplistOptions<
+        (typeof rows)[number] & { contextSuffix?: string }
+      >;
+      expect(
+        options.formatRow?.({
+          ...rows[0],
+          contextSuffix: ' (Orc, Skarsnik)',
+          rank: 3,
+        }),
+      ).toBe(`3. ${rows[0].name} (Orc, Skarsnik) — ${rows[0].count}`);
+    });
+
+    it('renders a row with no known context without stray parentheses', async () => {
+      const teams = {
+        [method]: vi.fn().mockResolvedValue(rows),
+      } as unknown as TeamsService;
+      const { service, leaderboard } = await makeService(teams);
+      leaderboard.resolveToplist.mockResolvedValueOnce('canned');
+      await resolve(service, FACT_SCOPE_ALL_TIME);
+      const options = leaderboard.resolveToplist.mock
+        .calls[0][0] as unknown as ResolveToplistOptions<
+        (typeof rows)[number] & { contextSuffix?: string }
+      >;
+      expect(
+        options.formatRow?.({ ...rows[0], contextSuffix: '', rank: 1 }),
+      ).toBe(`1. ${rows[0].name} — ${rows[0].count}`);
+    });
   },
 );
 
@@ -322,7 +402,9 @@ describe('TeamToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
     const queryFn = vi.fn().mockResolvedValue([]);
     const teams = { countErasByTeam: queryFn } as unknown as TeamsService;
-    const { service, leaderboard } = await makeService(teams);
+    const teamContext = mock<TeamContextService>();
+    teamContext.attachSuffixes.mockResolvedValue([]);
+    const { service, leaderboard } = await makeService(teams, teamContext);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';

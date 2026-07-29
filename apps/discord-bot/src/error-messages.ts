@@ -86,6 +86,8 @@ export const DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE =
   "The archivist is still leafing through this coach's match ledger.";
 export const DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE =
   "The equipment manager is still counting up this coach's roster of teams.";
+export const DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The scribe is still tracking down which races those teams belong to.';
 export const DEEPDIVE_MULTIPLE_TARGETS_MESSAGE =
   'The referees are arguing amongst themselves about which one you meant — pick a single target.';
 export const DEEPDIVE_TEAM_NOT_FOUND_MESSAGE =
@@ -114,6 +116,8 @@ export const DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE =
   'The archivist is still checking which eras this race turned up in.';
 export const DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE =
   'The scout is still counting how many teams of this race took the field.';
+export const DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The scout is still tracking down which coaches those teams belong to.';
 export const DEEPDIVE_RACE_NO_TEAMS_MESSAGE =
   'No team of this race has taken the field yet.';
 export const DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE =
@@ -122,5 +126,7 @@ export const DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE =
   'The tournament clerk is still digging the trophy out of the cabinet.';
 export const DEEPDIVE_COMPETITION_TEAMS_TIMEOUT_MESSAGE =
   'The turnstile operators are still tallying who turned up to play.';
+export const DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE =
+  'The clerk is still tracking down which races and coaches turned up to this competition.';
 export const DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE =
   'Not a single team has signed up for this competition yet.';

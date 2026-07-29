@@ -9,6 +9,7 @@ import {
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { LeaderboardService } from '../leaderboard.service';
+import { TeamContextService } from '../team-context.service';
 import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
 
@@ -39,6 +40,18 @@ const _teamToplistMethods = [
 ] as const satisfies readonly ScopedCountMethods<TeamsService>[];
 type TeamToplistMethod = (typeof _teamToplistMethods)[number];
 
+/**
+ * The row shape every team toplist renders. `contextSuffix` is optional so the
+ * undecorated rows a `TeamsService` count method returns are still assignable
+ * here; `decorateTeamRows` fills it in before the rows reach the embed.
+ */
+type TeamToplistRow = {
+  teamId: number;
+  name: string;
+  count: number;
+  contextSuffix?: string;
+};
+
 @Injectable()
 export class TeamToplistService {
   private readonly resolvers: Record<
@@ -54,11 +67,12 @@ export class TeamToplistService {
   constructor(
     private readonly teams: TeamsService,
     private readonly leaderboard: LeaderboardService,
+    private readonly teamContext: TeamContextService,
   ) {
     this.resolvers = makeToplistResolvers<
       TeamToplistMethod,
       TeamsService,
-      { teamId: number; name: string; count: number }
+      TeamToplistRow
     >({
       titles: {
         countTouchdownsScoredByTeam: 'Teams by touchdowns scored',
@@ -80,8 +94,25 @@ export class TeamToplistService {
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      decorateRows: (rows) => this.decorateTeamRows(rows),
+      formatRow: (row) => this.formatTeamRow(row),
       leaderboard: this.leaderboard,
     });
+  }
+
+  /**
+   * No team toplist is scoped to a single race or coach, so every one of them
+   * shows both.
+   */
+  private decorateTeamRows(rows: TeamToplistRow[]): Promise<TeamToplistRow[]> {
+    return this.teamContext.attachSuffixes(rows, (row) => row.teamId, {
+      includeRace: true,
+      includeCoach: true,
+    });
+  }
+
+  private formatTeamRow(row: TeamToplistRow & { rank: number }): string {
+    return `${row.rank}. ${row.name}${row.contextSuffix ?? ''} — ${row.count}`;
   }
 
   resolveTouchdownsScored(scope: FactScope) {
@@ -145,16 +176,16 @@ export class TeamToplistService {
   resolveMatchesPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-    }>({
+    return this.leaderboard.resolveToplist<TeamToplistRow>({
       title: 'Teams by matches played',
-      fetchRows: (limit) => this.teams.countMatchesPlayedByTeam(scope, limit),
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(
+          await this.teams.countMatchesPlayedByTeam(scope, limit),
+        ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      formatRow: (row) => this.formatTeamRow(row),
     });
   }
 
@@ -168,20 +199,16 @@ export class TeamToplistService {
    */
   private resolveMatchOutcomeToplist(options: {
     title: string;
-    fetchRows: (
-      limit: number,
-    ) => Promise<{ teamId: number; name: string; count: number }[]>;
+    fetchRows: (limit: number) => Promise<TeamToplistRow[]>;
   }): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-    }>({
+    return this.leaderboard.resolveToplist<TeamToplistRow>({
       title: options.title,
-      fetchRows: options.fetchRows,
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(await options.fetchRows(limit)),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      formatRow: (row) => this.formatTeamRow(row),
     });
   }
 
@@ -215,30 +242,28 @@ export class TeamToplistService {
   resolveCompetitionsPlayed(
     scope: FactScope,
   ): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-    }>({
+    return this.leaderboard.resolveToplist<TeamToplistRow>({
       title: 'Teams by competitions played',
-      fetchRows: (limit) => this.teams.countCompetitionsByTeam(scope, limit),
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(
+          await this.teams.countCompetitionsByTeam(scope, limit),
+        ),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      formatRow: (row) => this.formatTeamRow(row),
     });
   }
 
   resolveErasActive(): Promise<string | InteractionReplyOptions> {
-    return this.leaderboard.resolveToplist<{
-      teamId: number;
-      name: string;
-      count: number;
-    }>({
+    return this.leaderboard.resolveToplist<TeamToplistRow>({
       title: 'Teams by eras active',
-      fetchRows: (limit) => this.teams.countErasByTeam(limit),
+      fetchRows: async (limit) =>
+        this.decorateTeamRows(await this.teams.countErasByTeam(limit)),
       timeoutMessage: TEAM_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: TEAM_TOPLIST_NO_DATA_MESSAGE,
       entityLink: this.teamLink,
+      formatRow: (row) => this.formatTeamRow(row),
     });
   }
 }

@@ -9,6 +9,7 @@ import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -16,6 +17,7 @@ import {
   LeaderboardService,
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
+import { TeamContextService } from '../../insights/team-context.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -43,6 +45,7 @@ export class RaceDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly teamContext: TeamContextService,
   ) {}
 
   async resolve(raceId: number): Promise<string | InteractionReplyOptions> {
@@ -82,10 +85,29 @@ export class RaceDeepdiveService {
       topTeams,
       TOP_TEAMS_TOP_ENTRIES,
     );
+    // The list is already scoped to this one race, so only the coach adds
+    // information; the race half would repeat on every row. Wrapped in the
+    // same timeout handling as every other DB call in this method, since
+    // attachSuffixes does its own DB round trip.
+    const decorated:
+      (TopTeam & { rank: number; contextSuffix: string })[] | null =
+      await this.databaseTimeout.run(
+        this.teamContext.attachSuffixes(ranked, (row) => row.id, {
+          includeRace: false,
+          includeCoach: true,
+        }),
+        null,
+      );
+    if (decorated === null) {
+      return DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE;
+    }
     const teamLines =
-      ranked.length === 0
+      decorated.length === 0
         ? [DEEPDIVE_RACE_NO_TEAMS_MESSAGE]
-        : ranked.map((row) => `${row.rank}. ${row.name} — ${row.count}`);
+        : decorated.map(
+            (row) =>
+              `${row.rank}. ${row.name}${row.contextSuffix} — ${row.count}`,
+          );
     if (truncatedCount > 0) {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }

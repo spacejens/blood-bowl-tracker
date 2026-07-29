@@ -8,6 +8,7 @@ import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
+  DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_COACH_TIMEOUT_MESSAGE,
 } from '../../error-messages';
@@ -15,6 +16,7 @@ import {
   LeaderboardService,
   MAX_LEADERBOARD_ENTRIES,
 } from '../../insights/leaderboard.service';
+import { TeamContextService } from '../../insights/team-context.service';
 import { TEAM_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type Coach = { id: number; name: string };
@@ -38,6 +40,7 @@ export class CoachDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly leaderboard: LeaderboardService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly teamContext: TeamContextService,
   ) {}
 
   async resolve(coachId: number): Promise<string | InteractionReplyOptions> {
@@ -79,8 +82,24 @@ export class CoachDeepdiveService {
       topTeams,
       TOP_TEAMS_TOP_ENTRIES,
     );
-    const teamLines = ranked.map(
-      (row) => `${row.rank}. ${row.name} — ${row.count}`,
+    // The list is already scoped to this one coach, so only the race adds
+    // information; the coach half would repeat on every row. Wrapped in the
+    // same timeout handling as every other DB call in this method, since
+    // attachSuffixes does its own DB round trip.
+    const decorated:
+      (TopTeam & { rank: number; contextSuffix: string })[] | null =
+      await this.databaseTimeout.run(
+        this.teamContext.attachSuffixes(ranked, (row) => row.id, {
+          includeRace: true,
+          includeCoach: false,
+        }),
+        null,
+      );
+    if (decorated === null) {
+      return DEEPDIVE_COACH_TEAM_CONTEXT_TIMEOUT_MESSAGE;
+    }
+    const teamLines = decorated.map(
+      (row) => `${row.rank}. ${row.name}${row.contextSuffix} — ${row.count}`,
     );
     if (truncatedCount > 0) {
       teamLines.push(`…and ${truncatedCount} more tied.`);

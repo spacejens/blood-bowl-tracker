@@ -15,12 +15,15 @@ import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
+  DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { LeaderboardService } from '../../insights/leaderboard.service';
 import { passthroughLeaderboard } from '../../insights/leaderboard-mock.test-helpers';
+import { TeamContextService } from '../../insights/team-context.service';
+import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { RaceDeepdiveService } from './race-deepdive.service';
 
 interface MakeServiceOptions {
@@ -28,6 +31,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   leaderboard?: MockProxy<LeaderboardService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  teamContext?: MockProxy<TeamContextService>;
 }
 
 async function makeService({
@@ -35,6 +39,7 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   leaderboard = mock<LeaderboardService>(),
   entityComponents = passthroughEntityComponents(),
+  teamContext = passthroughTeamContext(),
 }: MakeServiceOptions): Promise<{
   service: RaceDeepdiveService;
   leaderboard: MockProxy<LeaderboardService>;
@@ -47,6 +52,7 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: LeaderboardService, useValue: leaderboard },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: TeamContextService, useValue: teamContext },
     ],
   }).compile();
   return {
@@ -301,6 +307,96 @@ describe('RaceDeepdiveService', () => {
       },
       () => undefined,
       DEEPDIVE_RACE_TEAMS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('appends each team coach to its line and leaves the race out', async () => {
+    const teamContext = mock<TeamContextService>();
+    const decorated: {
+      id: number;
+      name: string;
+      count: number;
+      rank: number;
+      contextSuffix: string;
+    }[] = [
+      {
+        id: 9,
+        name: 'Gouged Eye',
+        count: 40,
+        rank: 1,
+        contextSuffix: ' (Skarsnik)',
+      },
+      {
+        id: 10,
+        name: 'Da Deff Skwad',
+        count: 12,
+        rank: 1,
+        contextSuffix: ' (Grashnak)',
+      },
+    ];
+    teamContext.attachSuffixes.mockResolvedValue(decorated);
+    const { service } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        topTeams: [
+          { id: 9, name: 'Gouged Eye', count: 40 },
+          { id: 10, name: 'Da Deff Skwad', count: 12 },
+        ],
+      }),
+      leaderboard: passthroughLeaderboard(),
+      teamContext,
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain('1. Gouged Eye (Skarsnik) — 40');
+    expect(lines).toContain('1. Da Deff Skwad (Grashnak) — 12');
+    const [rows, teamIdOf, options] = teamContext.attachSuffixes.mock.calls[0];
+    expect(teamIdOf(rows[0])).toBe(9);
+    expect(options).toEqual({ includeRace: false, includeCoach: true });
+  });
+
+  it('keeps the no-teams placeholder free of any context suffix', async () => {
+    const { service } = await makeService({
+      races: makeRaces({
+        race: { id: 1, name: 'Orc' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        topTeams: [],
+      }),
+      leaderboard: passthroughLeaderboard(),
+      teamContext: passthroughTeamContext(' (Skarsnik)'),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines).toContain(DEEPDIVE_RACE_NO_TEAMS_MESSAGE);
+  });
+
+  it('falls back to the team-context timeout message when attachSuffixes times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          races: makeRaces({
+            race: { id: 1, name: 'Orc' },
+            eras: [{ id: 4, name: 'BB2020' }],
+            topTeams: [{ id: 9, name: 'Gouged Eye', count: 40 }],
+          }),
+          leaderboard: passthroughLeaderboard(),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_RACE_TEAM_CONTEXT_TIMEOUT_MESSAGE,
     );
   });
 });

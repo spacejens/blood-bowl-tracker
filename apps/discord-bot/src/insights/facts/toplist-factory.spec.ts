@@ -133,5 +133,68 @@ describe('makeToplistResolvers', () => {
         expect.objectContaining({ entityLink }),
       );
     });
+
+    it('runs decorateRows over the fetched rows when the hook is supplied', async () => {
+      const leaderboard = mock<LeaderboardService>();
+      let fetched: { name: string; count: number }[] = [];
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'placeholder reply';
+      });
+      const decorateRows = vi
+        .fn()
+        .mockResolvedValue([{ name: 'Griff (decorated)', count: 3 }]);
+      const resolvers = makeToplistResolvers<'alpha', StubService>({
+        titles: { alpha: 'A title' },
+        timeoutMessage: 'timed out',
+        noDataMessage: 'no data',
+        decorateRows,
+        leaderboard,
+      });
+      const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
+      await resolvers.alpha({ alpha } as never, FACT_SCOPE_ALL_TIME);
+      expect(decorateRows).toHaveBeenCalledWith([{ name: 'Griff', count: 3 }]);
+      expect(fetched).toEqual([{ name: 'Griff (decorated)', count: 3 }]);
+    });
+
+    it('returns the fetched rows unchanged when no decorateRows hook is supplied', async () => {
+      const leaderboard = mock<LeaderboardService>();
+      let fetched: { name: string; count: number }[] = [];
+      leaderboard.resolveToplist.mockImplementation(async (options) => {
+        fetched = await options.fetchRows(TOPLIST_FETCH_LIMIT);
+        return 'placeholder reply';
+      });
+      const resolvers = makeToplistResolvers<'alpha', StubService>({
+        titles: { alpha: 'A title' },
+        timeoutMessage: 'timed out',
+        noDataMessage: 'no data',
+        leaderboard,
+      });
+      const alpha = vi.fn().mockResolvedValue([{ name: 'Griff', count: 3 }]);
+      await resolvers.alpha({ alpha } as never, FACT_SCOPE_ALL_TIME);
+      expect(fetched).toEqual([{ name: 'Griff', count: 3 }]);
+    });
+
+    it('threads formatRow through to leaderboard.resolveToplist', async () => {
+      const leaderboard = mock<LeaderboardService>();
+      leaderboard.resolveToplist.mockResolvedValue('placeholder reply');
+      const formatRow = (row: {
+        name: string;
+        count: number;
+        rank: number;
+      }): string => `${row.rank}! ${row.name}`;
+      const resolvers = makeToplistResolvers<'alpha', StubService>({
+        titles: { alpha: 'A title' },
+        timeoutMessage: 'timed out',
+        noDataMessage: 'no data',
+        formatRow,
+        leaderboard,
+      });
+      const alpha = vi.fn().mockResolvedValue([]);
+      await resolvers.alpha({ alpha } as never, FACT_SCOPE_ALL_TIME);
+      expect(leaderboard.resolveToplist).toHaveBeenCalledWith(
+        expect.objectContaining({ formatRow }),
+      );
+    });
   });
 });

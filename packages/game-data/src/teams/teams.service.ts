@@ -44,6 +44,8 @@ import {
   TOUCHDOWN_TYPES,
 } from '../shared/match-event-types';
 import { countMatchesWithOutcomeByTeam } from '../shared/match-outcome-counts';
+import type { TeamRaceAndCoachNames } from '../shared/team-race-coach-names';
+import { getRaceAndCoachNamesByIds as queryRaceAndCoachNamesByIds } from '../shared/team-race-coach-names';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -154,6 +156,16 @@ export class TeamsService {
     limit: number,
   ): Promise<{ playerId: number; name: string; count: number }[]> {
     return countAllMatchEventsByPlayerForTeam({ db: this.db, teamId, limit });
+  }
+
+  /**
+   * Race and coach names for a batch of teams, for annotating team lists with
+   * context beyond the team name. See shared/team-race-coach-names.ts.
+   */
+  getRaceAndCoachNamesByIds(
+    teamIds: number[],
+  ): Promise<Map<number, TeamRaceAndCoachNames>> {
+    return queryRaceAndCoachNamesByIds({ db: this.db, teamIds });
   }
 
   async countMatchesPlayedByTeam(
