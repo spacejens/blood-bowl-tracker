@@ -203,6 +203,30 @@
           teams: {
             teamCodeOverrides: ['rad', 'sl-', 'sl-2', 'his', 'oxt', 'ogh'],
           },
+          // BBL cannot store a match with more than two teams, so the
+          // four-team finals of both Stunty Leeg cups were each registered as
+          // two two-team rows -- same pattern as the Ogretoberfest merges
+          // above. "SL Final - Deathmatch" (Stunty Leeg 1) and "Deathball"
+          // (Stunty Leeg 2) don't parse as finals to the keyword classifier:
+          // "Stunty Leeg" is a themed cup competition (like Chaos Cup,
+          // Ogretoberfest), and "Deathmatch"/"Deathball" is flavor text with
+          // no recognized keyword.
+          matches: {
+            merges: [
+              ['939', '940'],
+              ['1073', '1074'],
+            ],
+            categoryOverrides: [
+              { matchId: '939', category: 'cup_final' }, // Stunty Leeg 1, SL Final - Deathmatch
+              { matchId: '940', category: 'cup_final' },
+              { matchId: '1073', category: 'cup_final' }, // Stunty Leeg 2, Deathball
+              { matchId: '1074', category: 'cup_final' },
+            ],
+            // Stunty Leeg 2's four-team final ended 0-0-0-0 across both
+            // source rows -- a genuine draw, developer-confirmed, not a
+            // shoot-out or roll-off decided by other means.
+            resultOverrides: [{ matchId: '1073', winnerTeamCode: 'draw' }],
+          },
         },
         {
           identity: {
