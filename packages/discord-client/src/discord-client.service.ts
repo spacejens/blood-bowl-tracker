@@ -16,7 +16,12 @@ import type {
   MessageCreateOptions,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import { Client, GatewayIntentBits } from 'discord.js';
+import {
+  ApplicationIntegrationType,
+  Client,
+  GatewayIntentBits,
+  InteractionContextType,
+} from 'discord.js';
 
 export const DISCORD_BOT_TOKEN = Symbol('DISCORD_BOT_TOKEN');
 
@@ -109,12 +114,25 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Registers slash commands with every guild the client has joined.
+   * Registers slash commands globally, so they work both in every server the
+   * bot belongs to and in DMs with the bot. `contexts` is what makes a command
+   * usable in a DM; `integration_types` keeps the guild-install model, so a
+   * user still has to share a server with the bot to DM it.
    *
-   * `guild.commands.set` REPLACES a guild's entire command list, so all
-   * slash commands across the application must be registered via a single
-   * call to this method. If another service calls `registerCommands`
+   * Also clears each joined guild's own command list, which removes the
+   * guild-scoped copies registered before commands went global - otherwise a
+   * guild would show two of every command. This runs on every startup, so it
+   * is self-healing for any guild the bot is or becomes a member of.
+   *
+   * `application.commands.set` REPLACES the application's entire command list,
+   * so all slash commands across the application must be registered via a
+   * single call to this method. If another service calls `registerCommands`
    * separately, it will wipe out the commands registered by a previous call.
+   *
+   * Going global costs propagation speed: Discord can take up to ~1 hour to
+   * show a changed command definition (name, description, options), where
+   * guild-scoped updates were near-instant. Handler behaviour is unaffected
+   * and changes as soon as the bot redeploys.
    */
   async registerCommands(commands: SlashCommandDefinition[]): Promise<void> {
     for (const command of commands) {
@@ -127,9 +145,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       name: command.name,
       description: command.description,
       ...(command.options ? { options: command.options } : {}),
+      contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
+      integration_types: [ApplicationIntegrationType.GuildInstall],
     }));
+    // `application` is only null before the client is ready, and this method
+    // is always called after `onModuleInit` awaited the `ready` event.
+    await this.client.application!.commands.set(commandData);
     for (const guild of this.client.guilds.cache.values()) {
-      await guild.commands.set(commandData);
+      await guild.commands.set([]);
     }
   }
 
