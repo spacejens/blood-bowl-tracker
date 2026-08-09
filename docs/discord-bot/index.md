@@ -93,11 +93,23 @@ about misconfiguration).
 
 ## Slash commands
 
-The bot registers these slash commands with every server it belongs to when it
-starts (see each command's page for details); a server the bot joins later
-receives the commands the next time it restarts. If the database does not respond
-in time, a command falls back to the message `I am stunned` instead of its normal
-reply, so it always answers within Discord's response window.
+The bot registers these slash commands globally rather than per server, so they
+work both in every server the bot belongs to and in a direct message to the bot
+(see each command's page for details), though DM use still requires the user to
+share a server with the bot — this is the guild-install model, not a broader
+user-install. If the database does not respond in time,
+a command falls back to the message `I am stunned` instead of its normal reply,
+so it always answers within Discord's response window.
+
+Global registration is what makes DM use possible, and it trades away the
+near-instant propagation that per-server registration had. After a deploy that
+changes what a command *looks* like — its name, description, or options —
+Discord can take up to about an hour to show the new definition, and the old
+definition keeps working in the meantime. An unchanged `/insights` or
+`/deepdive` listing shortly after such a deploy is normal, not a sign the deploy
+failed. The delay only applies to changes in what the bot sends to Discord at
+startup; a deploy that only changes how a command answers (handler logic) takes
+effect immediately.
 
 - [`/insights`](slash-commands/insights.md) — shares a random or chosen fact
   from a tree of categorized insights, with autocomplete to navigate the fact
