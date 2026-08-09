@@ -248,7 +248,7 @@ describe('DiscordClientService', () => {
         name: 'stats',
         description: 'Show stats',
         contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
-        integration_types: [ApplicationIntegrationType.GuildInstall],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
       },
     ]);
   });
@@ -269,6 +269,37 @@ describe('DiscordClientService', () => {
     ]);
     expect(guildA.commands.set).toHaveBeenCalledWith([]);
     expect(guildB.commands.set).toHaveBeenCalledWith([]);
+  });
+
+  it('logs a warning and continues clearing other guilds when one guild fails', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const guildA = {
+      id: 'a',
+      commands: { set: vi.fn().mockRejectedValue(new Error('403 Forbidden')) },
+    };
+    const guildB = {
+      id: 'b',
+      commands: { set: vi.fn().mockResolvedValue(undefined) },
+    };
+    mockClient.guilds.cache = new Map([
+      ['a', guildA],
+      ['b', guildB],
+    ]);
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('stats'),
+      },
+    ]);
+    expect(guildA.commands.set).toHaveBeenCalledWith([]);
+    expect(guildB.commands.set).toHaveBeenCalledWith([]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Failed to clear guild-scoped commands for guild a',
+      expect.any(Error),
+    );
   });
 
   it('dispatches a registered command and replies with its output', async () => {
@@ -436,7 +467,7 @@ describe('DiscordClientService', () => {
           },
         ],
         contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
-        integration_types: [ApplicationIntegrationType.GuildInstall],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
       },
     ]);
   });

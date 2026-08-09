@@ -116,13 +116,16 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   /**
    * Registers slash commands globally, so they work both in every server the
    * bot belongs to and in DMs with the bot. `contexts` is what makes a command
-   * usable in a DM; `integration_types` keeps the guild-install model, so a
+   * usable in a DM; `integrationTypes` keeps the guild-install model, so a
    * user still has to share a server with the bot to DM it.
    *
    * Also clears each joined guild's own command list, which removes the
-   * guild-scoped copies registered before commands went global - otherwise a
+   * guild-scoped copies registered before commands went global — otherwise a
    * guild would show two of every command. This runs on every startup, so it
-   * is self-healing for any guild the bot is or becomes a member of.
+   * is self-healing for any guild the bot is or becomes a member of. Cleanup
+   * is best-effort: a failure for one guild is logged and does not prevent
+   * cleanup of the rest, since global registration (the essential step) has
+   * already succeeded by this point.
    *
    * `application.commands.set` REPLACES the application's entire command list,
    * so all slash commands across the application must be registered via a
@@ -146,13 +149,20 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       description: command.description,
       ...(command.options ? { options: command.options } : {}),
       contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
-      integration_types: [ApplicationIntegrationType.GuildInstall],
+      integrationTypes: [ApplicationIntegrationType.GuildInstall],
     }));
     // `application` is only null before the client is ready, and this method
     // is always called after `onModuleInit` awaited the `ready` event.
     await this.client.application!.commands.set(commandData);
     for (const guild of this.client.guilds.cache.values()) {
-      await guild.commands.set([]);
+      try {
+        await guild.commands.set([]);
+      } catch (error) {
+        this.logger.warn(
+          `Failed to clear guild-scoped commands for guild ${guild.id}`,
+          error,
+        );
+      }
     }
   }
 

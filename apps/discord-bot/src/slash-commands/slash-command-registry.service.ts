@@ -3,8 +3,9 @@ import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 
 /**
- * `DiscordClientService.registerCommands` REPLACES a guild's entire command
- * list on every call, so every slash command must be registered in one call.
+ * `DiscordClientService.registerCommands` REPLACES the application's entire
+ * global command list on every call, so every slash command must be
+ * registered in one call.
  * Command services register their definition here during `onModuleInit`; this
  * registry flushes the full collected list to Discord once, on
  * `onApplicationBootstrap` (which runs after all `onModuleInit` hooks).
