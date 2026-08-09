@@ -350,4 +350,25 @@ describe('CompetitionsService', () => {
       await expect(service.listTeams(3)).resolves.toEqual([]);
     });
   });
+
+  describe('listAllWithEraId', () => {
+    it('returns every competition with its era id', async () => {
+      await build([
+        { id: 1, name: 'Season 1', eraId: 10 },
+        { id: 2, name: 'Cup 1', eraId: 11 },
+      ]);
+
+      const result = await service.listAllWithEraId();
+
+      expect(result).toEqual([
+        { id: 1, name: 'Season 1', eraId: 10 },
+        { id: 2, name: 'Cup 1', eraId: 11 },
+      ]);
+    });
+
+    it('returns an empty list when there are no competitions', async () => {
+      await build([]);
+      expect(await service.listAllWithEraId()).toEqual([]);
+    });
+  });
 });
