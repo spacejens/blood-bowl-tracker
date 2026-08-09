@@ -24,8 +24,8 @@ function entries(
   }));
 }
 
-/** Discord rejects an empty label; a non-breaking space renders as blank but validates. */
-const BLANK_LABEL = '\u00a0';
+/** Discord rejects an empty label; a zero-width space renders as blank but validates. */
+const BLANK_LABEL = '\u200b';
 
 describe('EntityComponentsService', () => {
   let service: EntityComponentsService;
