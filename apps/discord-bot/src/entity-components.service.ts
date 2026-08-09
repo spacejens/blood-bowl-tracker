@@ -14,6 +14,16 @@ const MAX_OPTIONS_PER_SELECT = 25;
 /** Infix that turns a routing prefix into a select menu's own custom id. */
 const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
 
+/**
+ * Discord rejects a button or select-menu option with an empty label, which
+ * fails the whole interaction. Some imported entities genuinely have no name,
+ * so blank labels fall back to a zero-width space: valid for Discord (unlike
+ * a non-breaking space, which Discord's API rejects as blank too — confirmed
+ * against the live API while fixing #350), and visually blank, matching the
+ * fact that there is no name to show.
+ */
+const BLANK_LABEL = '\u200b';
+
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
   customIdPrefix: string;
@@ -78,7 +88,11 @@ export interface EntityComponents {
 @Injectable()
 export class EntityComponentsService {
   buildEntityComponents(entries: EntityComponentEntry[]): EntityComponents {
-    const unique = this.dedupe(entries);
+    const resolved = entries.map((entry) => ({
+      ...entry,
+      label: this.resolveLabel(entry.label),
+    }));
+    const unique = this.dedupe(resolved);
     if (unique.length <= MAX_BUTTON_ENTRIES) {
       return { components: this.buildButtonRows(unique), overflowNote: null };
     }
@@ -88,6 +102,12 @@ export class EntityComponentsService {
       components: rows,
       overflowNote: dropped > 0 ? `…and ${dropped} more without a link.` : null,
     };
+  }
+
+  /** Trims a label, substituting `BLANK_LABEL` when nothing is left. */
+  private resolveLabel(label: string): string {
+    const trimmed = label.trim();
+    return trimmed === '' ? BLANK_LABEL : trimmed;
   }
 
   /** Discord rejects duplicate custom ids in one message; keep the first. */

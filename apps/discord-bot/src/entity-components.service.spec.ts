@@ -24,6 +24,9 @@ function entries(
   }));
 }
 
+/** Discord rejects an empty label; a zero-width space renders as blank but validates. */
+const BLANK_LABEL = '\u200b';
+
 describe('EntityComponentsService', () => {
   let service: EntityComponentsService;
 
@@ -166,5 +169,55 @@ describe('EntityComponentsService', () => {
     // One row goes to the era menu, leaving four rows (100 options) for teams.
     expect(components).toHaveLength(5);
     expect(overflowNote).toBe('…and 20 more without a link.');
+  });
+
+  it('falls back to a non-breaking space for an empty button label', () => {
+    const { components } = service.buildEntityComponents([
+      { customIdPrefix: TEAM, entityId: '1', label: '' },
+    ]);
+    const [row] = components as EntityButtonRow[];
+    expect(row.components[0]).toEqual({
+      type: ComponentType.Button,
+      style: ButtonStyle.Primary,
+      label: BLANK_LABEL,
+      custom_id: 'deepdive:team:1',
+    });
+  });
+
+  it('treats a whitespace-only button label as blank', () => {
+    const { components } = service.buildEntityComponents([
+      { customIdPrefix: TEAM, entityId: '1', label: '   ' },
+    ]);
+    const [row] = components as EntityButtonRow[];
+    expect(row.components[0].label).toBe(BLANK_LABEL);
+  });
+
+  it('trims incidental whitespace around a real button label', () => {
+    const { components } = service.buildEntityComponents([
+      { customIdPrefix: TEAM, entityId: '1', label: '  Bob  ' },
+    ]);
+    const [row] = components as EntityButtonRow[];
+    expect(row.components[0].label).toBe('Bob');
+  });
+
+  it('leaves an ordinary button label untouched', () => {
+    const { components } = service.buildEntityComponents([
+      { customIdPrefix: TEAM, entityId: '1', label: 'Entity 1' },
+    ]);
+    const [row] = components as EntityButtonRow[];
+    expect(row.components[0].label).toBe('Entity 1');
+  });
+
+  it('falls back to a non-breaking space for a blank select-menu option too', () => {
+    // 26 entries forces the select-menu path; the blank one lands in menu 1.
+    const { components, overflowNote } = service.buildEntityComponents([
+      ...entries(25),
+      { customIdPrefix: TEAM, entityId: '26', label: '' },
+    ]);
+    expect(overflowNote).toBeNull();
+    const rows = components as EntitySelectRow[];
+    expect(rows[1].components[0].options).toEqual([
+      { label: BLANK_LABEL, value: '26' },
+    ]);
   });
 });
