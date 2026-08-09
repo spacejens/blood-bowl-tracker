@@ -25,7 +25,7 @@ function entries(
 }
 
 /** Discord rejects an empty label; a non-breaking space renders as blank but validates. */
-const BLANK_LABEL = ' ';
+const BLANK_LABEL = '\u00a0';
 
 describe('EntityComponentsService', () => {
   let service: EntityComponentsService;
