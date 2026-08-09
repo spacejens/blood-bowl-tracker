@@ -37,7 +37,7 @@
       ],
     },
     {
-      name: 'Jack',
+      name: 'Jack G',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Jack' },
         { system: 'tourplay.net', id: '997ff288-05ca-45f4-7cc1-08dad1ed32ac' },
