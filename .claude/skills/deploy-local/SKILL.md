@@ -90,7 +90,7 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
 
 Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
 
-1. `tools/import-manual/import-manual-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout might. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create. If running from a worktree, sync both from the main checkout:
+1. `tools/import-manual/import-manual-config.json5` is gitignored, so a git worktree created fresh from a branch won't have it even though the main checkout might. (`tools/import-manual/data` needs no sync — it is committed to git, so a worktree checkout already has it.) `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create. If running from a worktree, copy the config from the main checkout:
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
@@ -98,12 +98,9 @@ Run this section only if "Run the manual import (before other importers)" was se
      if [ ! -f "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" ]; then
        cp "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5"
      fi
-     if [ ! -e "$WORKTREE_ROOT/tools/import-manual/data" ] && [ -d "$MAIN_ROOT/tools/import-manual/data" ]; then
-       ln -s "$MAIN_ROOT/tools/import-manual/data" "$WORKTREE_ROOT/tools/import-manual/data"
-     fi
    fi
    ```
-   Never overwrite an `import-manual-config.json5` or `data` entry already present in the worktree — only fill in what's missing. (`tools/import-manual/data` is gitignored in its entirety, so a fresh worktree lacks it and the symlink fills it in from the main checkout — matching `tools/import-bbl/data` and `tools/import-tp/data`.)
+   Never overwrite an `import-manual-config.json5` already present in the worktree — only fill in what's missing. (`tools/import-manual/data` is tracked by git, unlike `tools/import-bbl/data` and `tools/import-tp/data`, which stay gitignored and keep their own symlink sync in the sections below.)
 2. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
    cat tools/import-manual/import-manual-config.json5 2>/dev/null
@@ -202,7 +199,7 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
 
 Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
-1. Perform the same worktree config/data sync as the "before" subsection (identical commands — sync `tools/import-manual/import-manual-config.json5` and symlink `tools/import-manual/data` from the main checkout only when missing).
+1. Perform the same worktree config sync as the "before" subsection (identical commands — copy `tools/import-manual/import-manual-config.json5` from the main checkout only when missing).
 2. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 2).
 3. Build and run the import against the "after" directory:
    ```bash

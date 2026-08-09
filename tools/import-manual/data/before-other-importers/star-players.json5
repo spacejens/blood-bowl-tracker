@@ -1,0 +1,102 @@
+// Star players that exist in both BBL and TP source data, pre-registered here
+// (before the BBL/TP importers run) so each importer's upsert matches this
+// single record instead of creating a duplicate.
+//
+// BBL's star-player positions always carry a "Name" external id equal to the
+// star player's bare name (see BblPositionsImportService). TP's star-player
+// positions (both the inducement-hire path and the embedded roster path
+// added by #229) now carry a "Name" external id too -- their own bare name --
+// alongside their tourplay.net-scoped one (see TpPositionsImportService). A
+// star player whose BBL and TP spelling already match verbatim therefore
+// merges automatically now (both sides land on the same "Name" id) and needs
+// no entry here.
+//
+// Entries below are only for the handful of stars where BBL's page title and
+// TP's roster data spell the same star player slightly differently -- a duo
+// star's BBL title appending "(& <partner>)", a nickname quoted with
+// straight vs. curly quotes, or a pun name BBL renders without its
+// punctuation ("Frank N Stein" vs. "Frank 'n' Stein"). Because the two
+// systems' "Name" ids never coincide for these, each entry pins the mismatch
+// by registering BBL's "Name" id, TP's tourplay.net id, AND TP's own "Name"
+// id (its own spelling) up front, so a later TP upsert's automatically
+// attached "Name" id lands on this same row rather than looking new. Each
+// pairing was verified by pulling the real BBL page title and the real TP
+// `starPlayersMasters`/`inducements_roll` string from this repo's cached
+// fixture data (tools/import-bbl/data, tools/import-tp/data) and confirming
+// there's exactly one plausible match on both sides -- not guessed from name
+// similarity alone. Where a BBL star name had no plausible TP counterpart in
+// the cached data at all (Grut Gitgobbla, Lewdgrip Whiparm, Rasta Tailspike),
+// it's left out rather than paired with an unverified guess; ask the
+// developer if a TP spelling for these becomes known.
+{
+  externalSystems: [
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  positions: [
+    {
+      // BBL: 'Bryce "The Slice" Cambuel' (straight quotes, capital "The").
+      // TP: "Bryce 'the Slice' Cambuel" (straight quotes, lowercase "the").
+      name: 'Bryce "The Slice" Cambuel',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Bryce "The Slice" Cambuel' },
+        { system: 'tourplay.net', id: "Bryce 'the Slice' Cambuel" },
+        { system: 'Name', id: "Bryce 'the Slice' Cambuel" },
+      ],
+    },
+    {
+      // BBL's page title appends the duo partner: "Crumbleberry (& Grak)".
+      name: 'Crumbleberry',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Crumbleberry (& Grak)' },
+        { system: 'tourplay.net', id: 'Crumbleberry' },
+        { system: 'Name', id: 'Crumbleberry' },
+      ],
+    },
+    {
+      // BBL: "Frank N Stein" (no apostrophes). TP: "Frank 'n' Stein" (curly
+      // quotes around "n").
+      name: "Frank 'n' Stein",
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Frank N Stein' },
+        { system: 'tourplay.net', id: 'Frank ‘n’ Stein' },
+        { system: 'Name', id: 'Frank ‘n’ Stein' },
+      ],
+    },
+    {
+      // BBL's page title appends the duo partner: "Grak (& Crumbleberry)".
+      name: 'Grak',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Grak (& Crumbleberry)' },
+        { system: 'tourplay.net', id: 'Grak' },
+        { system: 'Name', id: 'Grak' },
+      ],
+    },
+    {
+      // BBL's page title appends the duo partner: "Lucien Swift (& Valen
+      // Swift)".
+      name: 'Lucien Swift',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Lucien Swift (& Valen Swift)' },
+        { system: 'tourplay.net', id: 'Lucien Swift' },
+        { system: 'Name', id: 'Lucien Swift' },
+      ],
+    },
+    {
+      // BBL's page title appends the duo partner: "Valen Swift (& Lucien
+      // Swift)".
+      name: 'Valen Swift',
+      isStarPlayer: true,
+      externalIds: [
+        { system: 'Name', id: 'Valen Swift (& Lucien Swift)' },
+        { system: 'tourplay.net', id: 'Valen Swift' },
+        { system: 'Name', id: 'Valen Swift' },
+      ],
+    },
+  ],
+}

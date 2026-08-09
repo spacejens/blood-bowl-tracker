@@ -1,0 +1,218 @@
+// Normalizes the names of recurring numbered competitions (issues #270, #285).
+//
+// BBL and TP named the same recurring competition tracks inconsistently over
+// the years: the top-tier season track ran uninterrupted as 1..29 but was
+// called "Season N" (1-18, before "Minor Season" existed so the top tier
+// needed no "Major" qualifier), then "Major Season N" (19-24), then
+// "tLoEGBBL Säsong N" (26-29, Swedish for "season" -- Minor Season was
+// discontinued after 25 and the source system simply switched language, not
+// competition concept). Ogretoberfest, Chaos Cup, Moot Mania and Dungeon Bowl
+// picked up stray prefixes/spacing along the way, and each of the first three
+// tracks' very first instalment was never numbered at all ("Chaos Cup" rather
+// than "Chaos Cup 1"). BBL's three Reserves Rumble events (bblIds 7, 16, 23)
+// were never numbered either -- they all carry the identical raw name.
+// All of them are renamed here to the canonical form.
+//
+// Runs AFTER the BBL/TP importers (this is the after-other-importers
+// directory): each entry matches its existing database row by that row's own
+// source-system id alone. Competitions carry NO "Name" external id (issue
+// #285 removed it: a shared Name id made distinct same-named competitions --
+// exactly the Reserves Rumble case -- dedupe onto a single row via
+// resolveExistingByExternalIds), so supplying one here would be a dead lookup
+// key.
+//
+// Each entry is a pure rename: the new name plus the external ids that match
+// the existing row. Competitions upsert as overlays (issue #174), so a field
+// this file omits -- era, type -- is left exactly as the BBL/TP importers set
+// it. That is why there are no eras, league or rules sets declared here: with
+// nothing to reference, there is nothing to redeclare.
+//
+// Not renamed (already consistent, or out of scope per the issue): Korpen 1-9,
+// Moot Mania 2-4, NAA/NAA 2, Ogretoberfest 2-9/11/13, Chaos Cup 2-7,
+// Minor Season 18/19/21-23/25, Dungeon Bowl 1, Major Season 19-24,
+// Stunty Leeg 1/2, the one-off cups (Blitzmania!, Champions of..., Fright
+// Night, Snöbollskrieg) and GBBL 1. type is deliberately not supplied: BBL/TP
+// already classify every row correctly, and an omitted field is left
+// untouched.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+  ],
+
+  competitions: [
+    // -- The Major Season track, seasons 1-18 (BBL, First era). Named plain
+    // "Season N" back when there was no Minor Season to distinguish from.
+    // The numeric id is the competition's BBL `s` value from the p=se
+    // competition list -- the only key competitions are matched by.
+    {
+      name: 'Major Season 1',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '1' }],
+    },
+    {
+      name: 'Major Season 2',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '2' }],
+    },
+    {
+      name: 'Major Season 3',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '4' }],
+    },
+    {
+      name: 'Major Season 4',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '6' }],
+    },
+    {
+      name: 'Major Season 5',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '10' }],
+    },
+    {
+      name: 'Major Season 6',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '13' }],
+    },
+    {
+      name: 'Major Season 7',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '18' }],
+    },
+    {
+      name: 'Major Season 8',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
+    },
+    {
+      name: 'Major Season 9',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '25' }],
+    },
+    {
+      name: 'Major Season 10',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '28' }],
+    },
+    {
+      name: 'Major Season 11',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '31' }],
+    },
+    {
+      name: 'Major Season 12',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
+    },
+    {
+      name: 'Major Season 13',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '38' }],
+    },
+    {
+      name: 'Major Season 14',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '42' }],
+    },
+    {
+      name: 'Major Season 15',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '47' }],
+    },
+    {
+      name: 'Major Season 16',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '49' }],
+    },
+    {
+      name: 'Major Season 17',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '52' }],
+    },
+    {
+      name: 'Major Season 18',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '58' }],
+    },
+
+    // -- Each track's first instalment was never numbered on BBL, unlike
+    // every later one ("Chaos Cup 2".."Chaos Cup 7", etc.). All First era.
+    {
+      name: 'Moot Mania 1',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '3' }],
+    },
+    {
+      name: 'Ogretoberfest 1',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '11' }],
+    },
+    {
+      name: 'Chaos Cup 1',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '14' }],
+    },
+
+    // -- Reserves Rumble: BBL ran three identically-named events (bblIds 7,
+    // 16, 23; single match day each, 2013/2014/2015 respectively) and never
+    // numbered any of them. Until issue #285 they merged onto a single
+    // database row via the shared "Name" external id, so renaming them was
+    // impossible; now that competitions carry only their source id, the three
+    // import as distinct rows and can be numbered chronologically.
+    {
+      name: 'Reserves Rumble 1',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '7' }],
+    },
+    {
+      name: 'Reserves Rumble 2',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '16' }],
+    },
+    {
+      name: 'Reserves Rumble 3',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '23' }],
+    },
+
+    // -- Ogretoberfest: missing space (BBL) and shouty prefix/suffix (TP).
+    {
+      name: 'Ogretoberfest 10',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '72' }],
+    },
+    {
+      name: 'Ogretoberfest 12',
+      externalIds: [{ system: 'tourplay.net', id: '13584' }],
+    },
+
+    // -- Chaos Cup: TP prefixed the league's own name onto the cup.
+    {
+      name: 'Chaos Cup 8',
+      externalIds: [{ system: 'tourplay.net', id: '18616' }],
+    },
+
+    // -- Dungeon Bowl: BBL called season 1 "Dungeon Bowl 1"; TP called the
+    // later ones "tLoEGBBL - Dungeon Bowl Season N".
+    {
+      name: 'Dungeon Bowl 2',
+      externalIds: [{ system: 'tourplay.net', id: '5181' }],
+    },
+    {
+      name: 'Dungeon Bowl 3',
+      externalIds: [{ system: 'tourplay.net', id: '9091' }],
+    },
+    {
+      name: 'Dungeon Bowl 4',
+      externalIds: [{ system: 'tourplay.net', id: '14846' }],
+    },
+
+    // -- The Major Season track, seasons 25-29 (TP, Third era). Season 25
+    // kept the English name behind a league prefix; 26-29 switched to Swedish
+    // ("Säsong") after Minor Season was discontinued.
+    {
+      name: 'Major Season 25',
+      externalIds: [{ system: 'tourplay.net', id: '6543' }],
+    },
+    {
+      name: 'Major Season 26',
+      externalIds: [{ system: 'tourplay.net', id: '8918' }],
+    },
+    {
+      name: 'Major Season 27',
+      externalIds: [{ system: 'tourplay.net', id: '12741' }],
+    },
+    {
+      name: 'Major Season 28',
+      externalIds: [{ system: 'tourplay.net', id: '14615' }],
+    },
+    {
+      name: 'Major Season 29',
+      externalIds: [{ system: 'tourplay.net', id: '16751' }],
+    },
+
+    // -- The Major Season track, season 30 (TP, Fourth era). First Major
+    // Season of the fourth era; TP kept the Swedish "Säsong" naming
+    // ("tloegbbl-sasong-30"), so it needs the same rename as 26-29 above.
+    {
+      name: 'Major Season 30',
+      externalIds: [{ system: 'tourplay.net', id: '18442' }],
+    },
+  ],
+}

@@ -184,7 +184,9 @@ real-world entity differently:
 have created their records, to fix up names or attach external IDs the source
 systems could not supply:
 
-- `coaches.json5` — TP usernames replaced with the coach's real name.
+- `coaches.json5` — TP usernames replaced with a readable coach name. These
+  names are pseudonymized (see [Data layout](#data-layout) below), so this is
+  where a coach's displayed pseudonym is set.
 - `competitions.json5` — normalizes the 35 recurring numbered competitions the
   two source systems named inconsistently (`Season N` / `Major Season N` /
   `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
@@ -209,14 +211,24 @@ tools/import-manual/data/before-other-importers/
 tools/import-manual/data/after-other-importers/
 ```
 
-The whole `tools/import-manual/data` directory is gitignored (nothing under it
-is tracked), so create the subdirectories locally before authoring data files
-or running the tool:
+Both subdirectories, and the `.json5` files in them, are **committed to git**
+(issue #352) — unlike `tools/import-bbl/data` and `tools/import-tp/data`, which
+hold bulky regenerable scrapes and stay gitignored. A fresh checkout or a new
+worktree therefore already has the reconciled dataset: there is nothing to
+create by hand and nothing to sync in from another checkout, and edits to it go
+through normal PR review.
 
-```bash
-mkdir -p tools/import-manual/data/before-other-importers \
-         tools/import-manual/data/after-other-importers
-```
+Coach `name` values in the committed data are **pseudonyms** — a first name plus
+a last initial — because this repository is public. This applies to
+`data/before-other-importers/coaches.json5`,
+`data/after-other-importers/coaches.json5`, and the coach names mentioned in
+`data/before-other-importers/teams.json5`'s comments. Matching and re-import
+correctness are driven entirely by `externalIds`, never by `name`, so the
+pseudonyms have no functional effect on importing; the only visible consequence
+is that the coaches fixed up by `data/after-other-importers/coaches.json5` are
+displayed under their pseudonym in the running app. Keep new hand-authored
+entries to the same convention, and do not "fix" a pseudonym back to a real
+name.
 
 Author your `.json5` files under whichever phase they belong to. You can also
 point the tool at any other directory by passing its path.
