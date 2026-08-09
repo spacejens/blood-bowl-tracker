@@ -7,9 +7,6 @@ settings:
 overrides:
   '@discordjs/rest>undici': ^6.27.0
 
-patchedDependencies:
-  vitest-mock-extended@5.1.0: 1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2
-
 importers:
 
   .:
@@ -121,8 +118,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   packages/api-client:
     dependencies:
@@ -164,8 +161,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   packages/api-contract:
     dependencies:
@@ -241,8 +238,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   packages/db:
     dependencies:
@@ -358,8 +355,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   packages/import:
     dependencies:
@@ -395,8 +392,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   packages/parse-tp:
     dependencies:
@@ -429,8 +426,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   tools/download-tp:
     dependencies:
@@ -478,8 +475,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   tools/eslint-rules:
     devDependencies:
@@ -557,8 +554,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   tools/import-manual:
     dependencies:
@@ -615,8 +612,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   tools/import-tp:
     dependencies:
@@ -673,8 +670,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
   tools/review-match:
     dependencies:
@@ -725,8 +722,8 @@ importers:
         specifier: ^4.1.10
         version: 4.1.10(@types/node@26.1.0)(@vitest/coverage-v8@4.1.10)(vite@8.1.5(@types/node@26.1.0)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
       vitest-mock-extended:
-        specifier: ^5.1.0
-        version: 5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10)
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
 packages:
 
@@ -4437,8 +4434,8 @@ packages:
       yaml:
         optional: true
 
-  vitest-mock-extended@5.1.0:
-    resolution: {integrity: sha512-xW28qmo6CbEROzwFRKw+fhLQcwoxBbUHdezDtBJXiHinthfyYZ3pwt4ez4r+XPdimTbXJcFetjzKBJqMw1A6Jw==}
+  vitest-mock-extended@5.1.1:
+    resolution: {integrity: sha512-k5Ji2+t4+nsdepXeakCkilyKydtgaULtP0HsjwQGIZsYr5hDTqrwCtC0+Sh0YBKUS7cY/Wxplf7SVjcZstTIMQ==}
     peerDependencies:
       typescript: 3.x || 4.x || 5.x || 6.x || 7.x
       vitest: '>=4.0.0'
@@ -8178,7 +8175,7 @@ snapshots:
       terser: 5.48.0
       yaml: 2.9.0
 
-  vitest-mock-extended@5.1.0(patch_hash=1a2d736dee34a34993dadb542124a90376be3384e2d922f43ffc3f2d4fa434a2)(typescript@6.0.3)(vitest@4.1.10):
+  vitest-mock-extended@5.1.1(typescript@6.0.3)(vitest@4.1.10):
     dependencies:
       ts-essentials: 10.2.1(typescript@6.0.3)
       typescript: 6.0.3
