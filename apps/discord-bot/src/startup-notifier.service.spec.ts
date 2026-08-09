@@ -17,7 +17,7 @@ describe('StartupNotifierService', () => {
     discordClient = mock<DiscordClientService>();
     discordClient.sendMessage.mockResolvedValue(undefined);
     insightsCommand = mock<InsightsCommandService>();
-    insightsCommand.resolveRandomFact.mockResolvedValue('a random fact');
+    insightsCommand.resolveCategory.mockResolvedValue('the stats fact');
     config = mock<DiscordBotConfigService>();
     config.getStartupMessageDiscordChannel.mockReturnValue('42');
 
@@ -32,12 +32,13 @@ describe('StartupNotifierService', () => {
     service = moduleRef.get(StartupNotifierService);
   });
 
-  it('posts a random insights fact string to the configured channel', async () => {
+  it('posts the unfiltered stats insight to the configured channel', async () => {
     await service.onApplicationBootstrap();
-    expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
+    expect(insightsCommand.resolveCategory).toHaveBeenCalledWith('stats', {});
+    expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '42',
-      'a random fact',
+      'the stats fact',
     );
   });
 
@@ -45,7 +46,7 @@ describe('StartupNotifierService', () => {
     const embed = {
       embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
     };
-    insightsCommand.resolveRandomFact.mockResolvedValue(embed);
+    insightsCommand.resolveCategory.mockResolvedValue(embed);
     await service.onApplicationBootstrap();
     expect(discordClient.sendMessage).toHaveBeenCalledWith('42', embed);
   });
@@ -57,6 +58,6 @@ describe('StartupNotifierService', () => {
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
       'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
     );
-    expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
+    expect(insightsCommand.resolveCategory).not.toHaveBeenCalled();
   });
 });
