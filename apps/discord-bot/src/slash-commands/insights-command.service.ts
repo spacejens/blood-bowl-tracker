@@ -38,7 +38,7 @@ const MAX_AUTOCOMPLETE_CHOICES = 25;
  * The single league/era/competition/match category resolved for the current
  * request, if any.
  */
-interface ResolvedScope {
+export interface ResolvedScope {
   league?: { id: number; name: string };
   era?: { id: number; name: string };
   competition?: { id: number; name: string };
@@ -162,6 +162,19 @@ export class InsightsCommandService implements OnModuleInit {
       return this.resolveRandomFact(resolved);
     }
 
+    return this.resolveCategory(category, resolved);
+  }
+
+  /**
+   * Resolve one specific fact-tree path under an already-resolved scope.
+   * Extracted from `execute()` so callers outside a slash-command interaction
+   * (the startup notifier) can request a specific insight; the returned
+   * fallback messages are the same ones the slash command replies with.
+   */
+  async resolveCategory(
+    category: string,
+    resolved: ResolvedScope = {},
+  ): Promise<string | InteractionReplyOptions> {
     const node = this.factTreeUtils.resolvePath(this.factTree, category);
     if (node === undefined) {
       return INSIGHTS_UNMATCHED_CATEGORY_MESSAGE;

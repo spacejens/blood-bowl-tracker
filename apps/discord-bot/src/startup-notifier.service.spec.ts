@@ -17,9 +17,9 @@ describe('StartupNotifierService', () => {
     discordClient = mock<DiscordClientService>();
     discordClient.sendMessage.mockResolvedValue(undefined);
     insightsCommand = mock<InsightsCommandService>();
-    insightsCommand.resolveRandomFact.mockResolvedValue('a random fact');
+    insightsCommand.resolveCategory.mockResolvedValue('the stats fact');
     config = mock<DiscordBotConfigService>();
-    config.getDiscordChannelId.mockReturnValue('42');
+    config.getStartupMessageDiscordChannel.mockReturnValue('42');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -32,12 +32,13 @@ describe('StartupNotifierService', () => {
     service = moduleRef.get(StartupNotifierService);
   });
 
-  it('posts a random insights fact string to the configured channel', async () => {
+  it('posts the unfiltered stats insight to the configured channel', async () => {
     await service.onApplicationBootstrap();
-    expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
+    expect(insightsCommand.resolveCategory).toHaveBeenCalledWith('stats', {});
+    expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '42',
-      'a random fact',
+      'the stats fact',
     );
   });
 
@@ -45,18 +46,18 @@ describe('StartupNotifierService', () => {
     const embed = {
       embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
     };
-    insightsCommand.resolveRandomFact.mockResolvedValue(embed);
+    insightsCommand.resolveCategory.mockResolvedValue(embed);
     await service.onApplicationBootstrap();
     expect(discordClient.sendMessage).toHaveBeenCalledWith('42', embed);
   });
 
   it('propagates the error when the channel id is not configured', async () => {
-    config.getDiscordChannelId.mockImplementation(() => {
-      throw new Error('DISCORD_CHANNEL_ID is not configured');
+    config.getStartupMessageDiscordChannel.mockImplementation(() => {
+      throw new Error('STARTUP_MESSAGE_DISCORD_CHANNEL is not configured');
     });
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
-      'DISCORD_CHANNEL_ID is not configured',
+      'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
     );
-    expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
+    expect(insightsCommand.resolveCategory).not.toHaveBeenCalled();
   });
 });

@@ -204,6 +204,21 @@ export class CompetitionsService {
       .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
   }
 
+  /**
+   * Every competition with the era it belongs to. Unordered: the only caller
+   * (the random-insights scheduler) picks one at random, so paying for a sort
+   * would be wasted work.
+   */
+  listAllWithEraId(): Promise<{ id: number; name: string; eraId: number }[]> {
+    return this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        eraId: competitions.eraId,
+      })
+      .from(competitions);
+  }
+
   searchByNamePrefix(
     prefix: string,
     limit: number,

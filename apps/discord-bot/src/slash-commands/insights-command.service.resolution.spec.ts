@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { INSIGHTS_UNMATCHED_CATEGORY_MESSAGE } from '../error-messages';
+import {
+  INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE,
+  INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
+} from '../error-messages';
 import {
   chatInput,
   makeService,
@@ -177,5 +180,34 @@ describe('InsightsCommandService — fact-path resolution', () => {
       ],
       components: [],
     });
+  });
+
+  it('resolveCategory resolves a path without an interaction', async () => {
+    const { service, factTreeDeps } = await makeService();
+    const result = await service.resolveCategory('stats', {});
+    expect(factTreeDeps.statsSummary.resolve).toHaveBeenCalledWith({
+      leagueId: undefined,
+      eraId: undefined,
+      competitionId: undefined,
+      category: undefined,
+    });
+    expect(result).toMatchObject({
+      embeds: [{ title: expect.stringContaining('All time') as unknown }],
+    });
+  });
+
+  it('resolveCategory returns the apothecary fallback for an unknown path', async () => {
+    const { service } = await makeService();
+    expect(await service.resolveCategory('nope.nope', {})).toBe(
+      INSIGHTS_UNMATCHED_CATEGORY_MESSAGE,
+    );
+  });
+
+  it('resolveCategory reports a category that does not support an era scope', async () => {
+    const { service } = await makeService();
+    const result = await service.resolveCategory('eras.list', {
+      era: { id: 20, name: 'BB2020' },
+    });
+    expect(result).toBe(INSIGHTS_CATEGORY_UNSUPPORTED_FOR_ERA_MESSAGE);
   });
 });
