@@ -1,0 +1,150 @@
+import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
+import { SchedulerRegistry } from '@nestjs/schedule';
+import { Test } from '@nestjs/testing';
+import type { CronJob } from 'cron';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { mock, type MockProxy } from 'vitest-mock-extended';
+
+import { DiscordBotConfigService } from '../discord-bot-config.service';
+import { InsightsCommandService } from '../slash-commands/insights-command.service';
+import {
+  RANDOM_INSIGHTS_JOB_NAME,
+  RandomInsightsSchedulerService,
+} from './random-insights-scheduler.service';
+import { RandomInsightsScopeService } from './random-insights-scope.service';
+
+describe('RandomInsightsSchedulerService', () => {
+  let insightsCommand: MockProxy<InsightsCommandService>;
+  let discordClient: MockProxy<DiscordClientService>;
+  let config: MockProxy<DiscordBotConfigService>;
+  let registry: MockProxy<SchedulerRegistry>;
+  let scope: MockProxy<RandomInsightsScopeService>;
+  let service: RandomInsightsSchedulerService;
+
+  beforeEach(async () => {
+    insightsCommand = mock<InsightsCommandService>();
+    insightsCommand.resolveRandomFact.mockResolvedValue('a random fact');
+    discordClient = mock<DiscordClientService>();
+    discordClient.sendMessage.mockResolvedValue(undefined);
+    config = mock<DiscordBotConfigService>();
+    config.getRandomInsightsCron.mockReturnValue('0 * * * *');
+    config.getRandomInsightsDiscordChannel.mockReturnValue('99');
+    registry = mock<SchedulerRegistry>();
+    scope = mock<RandomInsightsScopeService>();
+    scope.pickScope.mockResolvedValue({});
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        RandomInsightsSchedulerService,
+        { provide: InsightsCommandService, useValue: insightsCommand },
+        { provide: DiscordClientService, useValue: discordClient },
+        { provide: DiscordBotConfigService, useValue: config },
+        { provide: SchedulerRegistry, useValue: registry },
+        { provide: RandomInsightsScopeService, useValue: scope },
+      ],
+    }).compile();
+    service = moduleRef.get(RandomInsightsSchedulerService);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** The job handed to the mocked registry by onApplicationBootstrap. */
+  function registeredJob(): CronJob {
+    return registry.addCronJob.mock.calls[0][1];
+  }
+
+  it('registers and starts a cron job built from the configured expression', () => {
+    service.onApplicationBootstrap();
+
+    expect(registry.addCronJob).toHaveBeenCalledTimes(1);
+    expect(registry.addCronJob.mock.calls[0][0]).toBe(RANDOM_INSIGHTS_JOB_NAME);
+    const job = registeredJob();
+    expect(job.isActive).toBe(true);
+    expect(job.cronTime.source).toBe('0 * * * *');
+    void job.stop();
+  });
+
+  it('posts an insight when the job ticks', async () => {
+    service.onApplicationBootstrap();
+    const job = registeredJob();
+    void job.stop();
+
+    await job.fireOnTick();
+    // The job's onTick fires postRandomInsight without awaiting it (a
+    // deliberate fire-and-forget so a slow tick can't block the scheduler),
+    // and it now awaits scope resolution before resolving the fact. Flush
+    // the microtask queue so that work has actually landed before asserting.
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(insightsCommand.resolveRandomFact).toHaveBeenCalledWith({});
+    expect(discordClient.sendMessage).toHaveBeenCalledWith(
+      '99',
+      'a random fact',
+    );
+  });
+
+  it('resolves the insight under the scope chosen for this tick', async () => {
+    scope.pickScope.mockResolvedValue({ era: { id: 1, name: 'BB2020' } });
+
+    await service.postRandomInsight();
+
+    expect(insightsCommand.resolveRandomFact).toHaveBeenCalledWith({
+      era: { id: 1, name: 'BB2020' },
+    });
+  });
+
+  it('throws at bootstrap when the cron expression is invalid', () => {
+    config.getRandomInsightsCron.mockReturnValue('not a cron expression');
+    expect(() => service.onApplicationBootstrap()).toThrow();
+    expect(registry.addCronJob).not.toHaveBeenCalled();
+  });
+
+  it('throws at bootstrap when the discord channel config is invalid', () => {
+    config.getRandomInsightsDiscordChannel.mockImplementation(() => {
+      throw new Error('invalid RANDOM_INSIGHTS_DISCORD_CHANNEL');
+    });
+    expect(() => service.onApplicationBootstrap()).toThrow(
+      'invalid RANDOM_INSIGHTS_DISCORD_CHANNEL',
+    );
+    expect(registry.addCronJob).not.toHaveBeenCalled();
+  });
+
+  it('throws at bootstrap when the filter probability config is invalid', () => {
+    scope.validateConfig.mockImplementation(() => {
+      throw new Error('invalid RANDOM_INSIGHTS_FILTER_PROBABILITY');
+    });
+    expect(() => service.onApplicationBootstrap()).toThrow(
+      'invalid RANDOM_INSIGHTS_FILTER_PROBABILITY',
+    );
+    expect(registry.addCronJob).not.toHaveBeenCalled();
+  });
+
+  it('posts the resolved insight to the configured channel', async () => {
+    const embed = {
+      embeds: [{ title: 'Coaches', description: '1. Roze — 9' }],
+    };
+    insightsCommand.resolveRandomFact.mockResolvedValue(embed);
+
+    await service.postRandomInsight();
+
+    expect(discordClient.sendMessage).toHaveBeenCalledWith('99', embed);
+  });
+
+  it('swallows and logs a failure to post, so later ticks still run', async () => {
+    const logged = vi
+      .spyOn(service['logger'], 'error')
+      .mockImplementation(() => undefined);
+    discordClient.sendMessage.mockRejectedValue(new Error('Discord is down'));
+
+    await expect(service.postRandomInsight()).resolves.toBeUndefined();
+    expect(logged).toHaveBeenCalled();
+  });
+
+  it('swallows a failure to resolve the insight', async () => {
+    insightsCommand.resolveRandomFact.mockRejectedValue(new Error('db gone'));
+    await expect(service.postRandomInsight()).resolves.toBeUndefined();
+    expect(discordClient.sendMessage).not.toHaveBeenCalled();
+  });
+});

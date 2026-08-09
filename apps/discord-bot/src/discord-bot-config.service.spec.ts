@@ -52,20 +52,129 @@ describe('DiscordBotConfigService', () => {
     expect(configService.get).toHaveBeenCalledWith('DISCORD_BOT_TOKEN');
   });
 
-  it('returns the configured Discord channel ID', () => {
+  it('returns the configured startup message channel', () => {
     configService.get.mockImplementation((key: string) =>
-      key === 'DISCORD_CHANNEL_ID' ? '42' : undefined,
+      key === 'STARTUP_MESSAGE_DISCORD_CHANNEL' ? '42' : undefined,
     );
-    expect(service.getDiscordChannelId()).toBe('42');
-    expect(configService.get).toHaveBeenCalledWith('DISCORD_CHANNEL_ID');
+    expect(service.getStartupMessageDiscordChannel()).toBe('42');
+    expect(configService.get).toHaveBeenCalledWith(
+      'STARTUP_MESSAGE_DISCORD_CHANNEL',
+    );
   });
 
-  it('throws when the Discord channel ID is not configured', () => {
+  it('throws when the startup message channel is not configured', () => {
     configService.get.mockReturnValue(undefined);
-    expect(() => service.getDiscordChannelId()).toThrow(
-      'DISCORD_CHANNEL_ID is not configured',
+    expect(() => service.getStartupMessageDiscordChannel()).toThrow(
+      'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
     );
-    expect(configService.get).toHaveBeenCalledWith('DISCORD_CHANNEL_ID');
+  });
+
+  it('returns the configured random insights cron expression', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'RANDOM_INSIGHTS_CRON' ? '0 * * * *' : undefined,
+    );
+    expect(service.getRandomInsightsCron()).toBe('0 * * * *');
+    expect(configService.get).toHaveBeenCalledWith('RANDOM_INSIGHTS_CRON');
+  });
+
+  it('throws when the random insights cron expression is not configured', () => {
+    configService.get.mockReturnValue(undefined);
+    expect(() => service.getRandomInsightsCron()).toThrow(
+      'RANDOM_INSIGHTS_CRON is not configured',
+    );
+  });
+
+  it('returns the configured random insights channel', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'RANDOM_INSIGHTS_DISCORD_CHANNEL' ? '99' : undefined,
+    );
+    expect(service.getRandomInsightsDiscordChannel()).toBe('99');
+    expect(configService.get).toHaveBeenCalledWith(
+      'RANDOM_INSIGHTS_DISCORD_CHANNEL',
+    );
+  });
+
+  it('throws when the random insights channel is not configured', () => {
+    configService.get.mockReturnValue(undefined);
+    expect(() => service.getRandomInsightsDiscordChannel()).toThrow(
+      'RANDOM_INSIGHTS_DISCORD_CHANNEL is not configured',
+    );
+  });
+
+  it('returns the filter probability as a number', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'RANDOM_INSIGHTS_FILTER_PROBABILITY' ? '50' : undefined,
+    );
+    expect(service.getRandomInsightsFilterProbability()).toBe(50);
+    expect(configService.get).toHaveBeenCalledWith(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY',
+    );
+  });
+
+  it('accepts 0 and 100 as filter probabilities', () => {
+    configService.get.mockReturnValue('0');
+    expect(service.getRandomInsightsFilterProbability()).toBe(0);
+    configService.get.mockReturnValue('100');
+    expect(service.getRandomInsightsFilterProbability()).toBe(100);
+  });
+
+  it('throws when the filter probability is not configured', () => {
+    configService.get.mockReturnValue(undefined);
+    expect(() => service.getRandomInsightsFilterProbability()).toThrow(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY is not configured',
+    );
+  });
+
+  it('throws when the filter probability is not an integer', () => {
+    configService.get.mockReturnValue('half');
+    expect(() => service.getRandomInsightsFilterProbability()).toThrow(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
+    );
+    configService.get.mockReturnValue('12.5');
+    expect(() => service.getRandomInsightsFilterProbability()).toThrow(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
+    );
+  });
+
+  it('throws when the filter probability is out of range', () => {
+    configService.get.mockReturnValue('101');
+    expect(() => service.getRandomInsightsFilterProbability()).toThrow(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
+    );
+    configService.get.mockReturnValue('-1');
+    expect(() => service.getRandomInsightsFilterProbability()).toThrow(
+      'RANDOM_INSIGHTS_FILTER_PROBABILITY must be an integer between 0 and 100',
+    );
+  });
+
+  it('returns the current-era filter probability as a number', () => {
+    configService.get.mockImplementation((key: string) =>
+      key === 'RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY'
+        ? '75'
+        : undefined,
+    );
+    expect(service.getRandomInsightsFilterCurrentEraProbability()).toBe(75);
+    expect(configService.get).toHaveBeenCalledWith(
+      'RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY',
+    );
+  });
+
+  it('throws when the current-era filter probability is not configured', () => {
+    configService.get.mockReturnValue(undefined);
+    expect(() =>
+      service.getRandomInsightsFilterCurrentEraProbability(),
+    ).toThrow(
+      'RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY is not configured',
+    );
+  });
+
+  it('throws when the current-era filter probability is out of range', () => {
+    configService.get.mockReturnValue('200');
+    expect(() =>
+      service.getRandomInsightsFilterCurrentEraProbability(),
+    ).toThrow(
+      'RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY must be an integer between 0 and 100',
+    );
   });
 
   it('returns the configured port as a number', () => {
