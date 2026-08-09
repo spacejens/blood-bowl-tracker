@@ -13,6 +13,7 @@ interface MockGuild {
 
 interface MockClient {
   channels: { fetch: ReturnType<typeof vi.fn> };
+  application: { commands: { set: ReturnType<typeof vi.fn> } };
   guilds: { cache: Map<string, MockGuild> };
   once: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
@@ -28,6 +29,7 @@ const mockChannel: MockChannel = {
 
 const mockClient: MockClient = {
   channels: { fetch: vi.fn() },
+  application: { commands: { set: vi.fn() } },
   guilds: { cache: new Map<string, MockGuild>() },
   once: vi.fn(),
   on: vi.fn(),
@@ -41,7 +43,13 @@ vi.mock('discord.js', () => ({
     return mockClient;
   }),
   GatewayIntentBits: { Guilds: 1 },
+  // Real discord-api-types values, so assertions can compare against the
+  // genuine enum members the service passes to Discord.
+  InteractionContextType: { Guild: 0, BotDM: 1, PrivateChannel: 2 },
+  ApplicationIntegrationType: { GuildInstall: 0, UserInstall: 1 },
 }));
+
+import { ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 
 import {
   DISCORD_BOT_TOKEN,
@@ -70,6 +78,7 @@ describe('DiscordClientService', () => {
       return mockClient;
     });
     mockClient.login.mockResolvedValue('my-token');
+    mockClient.application.commands.set.mockResolvedValue(undefined);
     mockClient.destroy.mockResolvedValue(undefined);
     mockChannel.isSendable.mockReturnValue(true);
     const moduleRef = await Test.createTestingModule({
@@ -225,7 +234,26 @@ describe('DiscordClientService', () => {
     }
   });
 
-  it('registers commands with every current guild', async () => {
+  it('registers commands globally with guild and DM contexts', async () => {
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('stats'),
+      },
+    ]);
+    expect(mockClient.application.commands.set).toHaveBeenCalledTimes(1);
+    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
+      },
+    ]);
+  });
+
+  it('clears the leftover guild-scoped commands from every guild', async () => {
     const guildA = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
     const guildB = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
     mockClient.guilds.cache = new Map([
@@ -239,9 +267,39 @@ describe('DiscordClientService', () => {
         execute: vi.fn().mockResolvedValue('stats'),
       },
     ]);
-    const expected = [{ name: 'stats', description: 'Show stats' }];
-    expect(guildA.commands.set).toHaveBeenCalledWith(expected);
-    expect(guildB.commands.set).toHaveBeenCalledWith(expected);
+    expect(guildA.commands.set).toHaveBeenCalledWith([]);
+    expect(guildB.commands.set).toHaveBeenCalledWith([]);
+  });
+
+  it('logs a warning and continues clearing other guilds when one guild fails', async () => {
+    const warnSpy = vi
+      .spyOn(Logger.prototype, 'warn')
+      .mockImplementation(() => undefined);
+    const guildA = {
+      id: 'a',
+      commands: { set: vi.fn().mockRejectedValue(new Error('403 Forbidden')) },
+    };
+    const guildB = {
+      id: 'b',
+      commands: { set: vi.fn().mockResolvedValue(undefined) },
+    };
+    mockClient.guilds.cache = new Map([
+      ['a', guildA],
+      ['b', guildB],
+    ]);
+    await service.registerCommands([
+      {
+        name: 'stats',
+        description: 'Show stats',
+        execute: vi.fn().mockResolvedValue('stats'),
+      },
+    ]);
+    expect(guildA.commands.set).toHaveBeenCalledWith([]);
+    expect(guildB.commands.set).toHaveBeenCalledWith([]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      'Failed to clear guild-scoped commands for guild a',
+      expect.any(Error),
+    );
   });
 
   it('dispatches a registered command and replies with its output', async () => {
@@ -380,9 +438,7 @@ describe('DiscordClientService', () => {
     expect(reply).not.toHaveBeenCalled();
   });
 
-  it('forwards command options to guild.commands.set', async () => {
-    const guild = { commands: { set: vi.fn().mockResolvedValue(undefined) } };
-    mockClient.guilds.cache = new Map([['a', guild]]);
+  it('forwards command options to the global command registration', async () => {
     await service.registerCommands([
       {
         name: 'insights',
@@ -398,7 +454,7 @@ describe('DiscordClientService', () => {
         execute: vi.fn().mockResolvedValue('ok'),
       },
     ]);
-    expect(guild.commands.set).toHaveBeenCalledWith([
+    expect(mockClient.application.commands.set).toHaveBeenCalledWith([
       {
         name: 'insights',
         description: 'Share an insight',
@@ -410,6 +466,8 @@ describe('DiscordClientService', () => {
             autocomplete: true,
           },
         ],
+        contexts: [InteractionContextType.Guild, InteractionContextType.BotDM],
+        integrationTypes: [ApplicationIntegrationType.GuildInstall],
       },
     ]);
   });
