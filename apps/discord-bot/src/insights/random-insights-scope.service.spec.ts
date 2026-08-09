@@ -7,7 +7,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
-import { MatchCategoryLabelService } from './facts/match-category-label.service';
 import { RandomInsightsScopeService } from './random-insights-scope.service';
 import { RandomSourceService } from './random-source.service';
 
@@ -31,7 +30,6 @@ describe('RandomInsightsScopeService', () => {
   let random: MockProxy<RandomSourceService>;
   let eras: MockProxy<ErasService>;
   let competitions: MockProxy<CompetitionsService>;
-  let categoryLabel: MockProxy<MatchCategoryLabelService>;
   let service: RandomInsightsScopeService;
 
   beforeEach(async () => {
@@ -46,8 +44,6 @@ describe('RandomInsightsScopeService', () => {
       { id: 10, name: 'Season 5', eraId: 1 },
       { id: 11, name: 'Season 1', eraId: 2 },
     ]);
-    categoryLabel = mock<MatchCategoryLabelService>();
-    categoryLabel.label.mockReturnValue('Label for the category');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -56,7 +52,6 @@ describe('RandomInsightsScopeService', () => {
         { provide: RandomSourceService, useValue: random },
         { provide: ErasService, useValue: eras },
         { provide: CompetitionsService, useValue: competitions },
-        { provide: MatchCategoryLabelService, useValue: categoryLabel },
       ],
     }).compile();
     service = moduleRef.get(RandomInsightsScopeService);
@@ -136,18 +131,6 @@ describe('RandomInsightsScopeService', () => {
     expect(await service.pickScope()).toEqual({
       competition: { id: 11, name: 'Season 1' },
     });
-  });
-
-  it('scopes to a match category without consulting eras', async () => {
-    rolls(true);
-    // dimension pick -> index 2 = 'match-category'; category pick -> 'normal'.
-    picks(2, 0);
-    expect(await service.pickScope()).toEqual({
-      matchCategory: { value: 'normal', label: 'Label for the category' },
-    });
-    expect(categoryLabel.label).toHaveBeenCalledWith('normal');
-    expect(eras.listErasWithLeague).not.toHaveBeenCalled();
-    expect(random.rollPercent).toHaveBeenCalledTimes(1);
   });
 
   it('returns an unfiltered scope when there are no eras at all', async () => {

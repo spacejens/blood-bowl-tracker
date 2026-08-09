@@ -1,4 +1,3 @@
-import { MATCH_CATEGORIES } from '@blood-bowl-tracker/api-contract';
 import {
   CompetitionsService,
   ErasService,
@@ -7,20 +6,22 @@ import { Injectable } from '@nestjs/common';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import type { ResolvedScope } from '../slash-commands/insights-command.service';
-import { MatchCategoryLabelService } from './facts/match-category-label.service';
 import { RandomSourceService } from './random-source.service';
 
-/** The filter dimensions a scheduled insight can be scoped to. */
-const FILTER_DIMENSIONS = ['era', 'competition', 'match-category'] as const;
+/**
+ * The filter dimensions a scheduled insight can be scoped to. Match category
+ * is deliberately excluded: with only a handful of categories, that filter
+ * came up far too often to be a useful, varied signal.
+ */
+const FILTER_DIMENSIONS = ['era', 'competition'] as const;
 
 /**
  * Chooses the scope for one scheduled random insight: no filter at all, or
- * exactly one era, competition or match category.
+ * exactly one era or competition.
  *
  * Era and competition scoping are additionally weighted towards ongoing eras
  * (those with no end date), because recent data is what channel members care
- * about most. Match categories have no "current" notion, so that second roll
- * does not apply to them.
+ * about most.
  */
 @Injectable()
 export class RandomInsightsScopeService {
@@ -29,7 +30,6 @@ export class RandomInsightsScopeService {
     private readonly random: RandomSourceService,
     private readonly eras: ErasService,
     private readonly competitions: CompetitionsService,
-    private readonly categoryLabel: MatchCategoryLabelService,
   ) {}
 
   /**
@@ -53,13 +53,6 @@ export class RandomInsightsScopeService {
     }
 
     const dimension = this.random.pick(FILTER_DIMENSIONS);
-    if (dimension === 'match-category') {
-      const value = this.random.pick(MATCH_CATEGORIES);
-      return {
-        matchCategory: { value, label: this.categoryLabel.label(value) },
-      };
-    }
-
     const candidateEras = await this.pickCandidateEras();
     if (candidateEras.length === 0) {
       return {};

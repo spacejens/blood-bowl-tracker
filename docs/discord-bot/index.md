@@ -60,12 +60,11 @@ Configuration is supplied through an environment file in the app directory.
    - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
      insights are posted to; may be the same as the startup channel.
    - `RANDOM_INSIGHTS_FILTER_PROBABILITY` — percent chance (integer 0-100)
-     that a scheduled insight is scoped to one randomly chosen era,
-     competition or match category instead of being unfiltered.
+     that a scheduled insight is scoped to one randomly chosen era or
+     competition instead of being unfiltered.
    - `RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY` — percent chance
      (integer 0-100) that an era- or competition-scoped insight draws only
-     from ongoing eras (those with no end date). Does not apply to
-     match-category scoping.
+     from ongoing eras (those with no end date).
    - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
