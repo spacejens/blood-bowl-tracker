@@ -19,7 +19,7 @@ describe('StartupNotifierService', () => {
     insightsCommand = mock<InsightsCommandService>();
     insightsCommand.resolveRandomFact.mockResolvedValue('a random fact');
     config = mock<DiscordBotConfigService>();
-    config.getDiscordChannelId.mockReturnValue('42');
+    config.getStartupMessageDiscordChannel.mockReturnValue('42');
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -51,11 +51,11 @@ describe('StartupNotifierService', () => {
   });
 
   it('propagates the error when the channel id is not configured', async () => {
-    config.getDiscordChannelId.mockImplementation(() => {
-      throw new Error('DISCORD_CHANNEL_ID is not configured');
+    config.getStartupMessageDiscordChannel.mockImplementation(() => {
+      throw new Error('STARTUP_MESSAGE_DISCORD_CHANNEL is not configured');
     });
     await expect(service.onApplicationBootstrap()).rejects.toThrow(
-      'DISCORD_CHANNEL_ID is not configured',
+      'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
     );
     expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
   });

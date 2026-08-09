@@ -15,7 +15,7 @@ export class StartupNotifierService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    const channelId = this.config.getDiscordChannelId();
+    const channelId = this.config.getStartupMessageDiscordChannel();
     const message = await this.insightsCommand.resolveRandomFact();
     await this.discordClient.sendMessage(channelId, message);
     this.logger.log(`Posted startup message to channel ${channelId}`);
