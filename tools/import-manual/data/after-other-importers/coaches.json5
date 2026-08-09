@@ -1,0 +1,40 @@
+// Coaches to clean up after the other importers, so each ends up with a
+// readable name instead of a TP username.
+//
+// The `name` values below are pseudonyms -- first name plus last initial --
+// not the coaches' full real names, because this repository is public. Unlike
+// before-other-importers/coaches.json5, whose `name` both importers overwrite,
+// this file's `name` is the one that sticks as the coach's displayed name in
+// the running app: showing a pseudonym there is a deliberate
+// privacy-over-accuracy tradeoff. Matching still resolves coaches by
+// `externalIds` and never by `name`, so nothing about import correctness
+// changes.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'NAF', category: 'referenced_not_imported' },
+  ],
+  coaches: [
+    {
+      // TP's username for this coach is "inforthepain", which is why the
+      // pseudonym below is derived from BBL's name for them instead.
+      name: 'Jan A',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Jan A' },
+        { system: 'tourplay.net', id: 'b21596f2-1177-4712-848c-08db4af58d38' },
+        { system: 'NAF', id: '19483' },
+      ],
+    },
+    {
+      // TP's username for this coach is their own full real name, which this
+      // entry deliberately replaces with a pseudonym.
+      name: 'Mattias C',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Mattias' },
+        { system: 'tourplay.net', id: '7a6bac67-3ae1-4f39-43c1-08dac15ec170' },
+        { system: 'NAF', id: '10911' },
+      ],
+    },
+  ],
+}

@@ -1,0 +1,940 @@
+// Races and positions that exist in both BBL and TP source data under
+// slightly different names, pre-registered here (before the BBL/TP
+// importers run) so each importer's upsert matches this single record
+// instead of creating a duplicate.
+//
+// Races: BBL names its team-page race "<Race> Team"/"<Race> Teams"; TP
+// names the same race just "<Race>". Paired below by stripping that suffix.
+// A race whose BBL and TP names already matched verbatim (e.g. every
+// "College of X", and "Slann") merged automatically via the shared "Name"
+// external id and needs no entry here.
+//
+// Positions: both BBL and TP key a position by "<raceName>: <positionName>"
+// under the "Name" external id (see NameExternalIdService.forPosition and
+// TpPositionsImportService/BblPositionsImportService). A position whose BBL
+// and TP position name already match verbatim merges automatically via that
+// shared "Name" id and needs no entry here, the same as the race case above.
+// Only positions whose BBL and TP position name genuinely differs are listed
+// below: each registers both source systems' raw ids (BBL's
+// "<typId>-<raceBblId>" and TP's numeric position id) plus TP's own "Name" id
+// (its own spelling) so a later TP upsert's automatically-attached id lands on
+// this same row rather than looking new. Pairs were found two ways: (1)
+// programmatically, same race (per the pairing above) and the same position
+// name once case, plural (-s/-es/-ies, including irregular ones like
+// -men/-man) and punctuation differences are normalized away; (2) by a
+// manual race-by-race review recognizing same-role renames a string match
+// can't catch (e.g. "DB Big Un Blocker" / "Big Un Blocker", "Elven Blitzers"
+// / "Elf Blitzer", "Anointed Blitzer" / "Tomb Kings Blitzer"). Wording that
+// differs by more than a recognizable rename (e.g. Amazon's BBL "Piranha
+// Warrior Catcher" vs TP "Piranha Warrior Blitzer" -- looks like a genuine
+// roster reshuffle between rule editions, not a naming variant -- or the
+// many BB2020-only/CRP-only positions with no counterpart at all, was left
+// out rather than guessed at, since a wrong guess would silently conflate
+// two different roster slots.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  races: [
+    {
+      name: 'Amazon',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '1' },
+        { system: 'tourplay.net', id: 'Amazon_BB2020' },
+      ],
+    },
+    {
+      name: 'Black Orc',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '44' },
+        { system: 'tourplay.net', id: 'BlackOrc' },
+      ],
+    },
+    {
+      name: 'Chaos Dwarf',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '3' },
+        { system: 'tourplay.net', id: 'ChaosDwarf_BB2020' },
+      ],
+    },
+    {
+      name: 'Chaos Renegade',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '23' },
+        { system: 'tourplay.net', id: 'ChaosRenegade' },
+      ],
+    },
+    {
+      name: 'Dwarf',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '5' },
+        { system: 'tourplay.net', id: 'Dwarf_BB2025' },
+        { system: 'tourplay.net', id: 'Dwarf' },
+      ],
+    },
+    {
+      name: 'Elven Union',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '6' },
+        { system: 'tourplay.net', id: 'ElvenUnion' },
+      ],
+    },
+    {
+      name: 'Goblin',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '7' },
+        { system: 'tourplay.net', id: 'Goblin' },
+      ],
+    },
+    {
+      name: 'Halfling',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '8' },
+        { system: 'tourplay.net', id: 'Halfling' },
+      ],
+    },
+    {
+      name: 'High Elf',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '9' },
+        { system: 'tourplay.net', id: 'HighElf' },
+      ],
+    },
+    {
+      name: 'Human',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '10' },
+        { system: 'tourplay.net', id: 'Human' },
+      ],
+    },
+    {
+      name: 'Imperial Nobility',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '45' },
+        { system: 'tourplay.net', id: 'ImperialNobility' },
+        { system: 'tourplay.net', id: 'ImperialNobility_BB2025' },
+      ],
+    },
+    {
+      name: 'Khorne',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '46' },
+        { system: 'tourplay.net', id: 'Khorne' },
+      ],
+    },
+    {
+      name: 'Lizardmen',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '12' },
+        { system: 'tourplay.net', id: 'Lizardmen' },
+      ],
+    },
+    {
+      name: 'Necromantic Horror',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '13' },
+        { system: 'tourplay.net', id: 'Necromantic_BB2025' },
+      ],
+    },
+    {
+      name: 'Norse',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '14' },
+        { system: 'tourplay.net', id: 'Norse_BB2025' },
+        { system: 'tourplay.net', id: 'Norse_BB2020' },
+      ],
+    },
+    {
+      name: 'Nurgle',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '15' },
+        { system: 'tourplay.net', id: 'Nurgle_BB2025' },
+        { system: 'tourplay.net', id: 'Nurgle' },
+      ],
+    },
+    {
+      name: 'Ogre',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '21' },
+        { system: 'tourplay.net', id: 'Ogre' },
+      ],
+    },
+    {
+      name: 'Orc',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '16' },
+        { system: 'tourplay.net', id: 'Orc' },
+        { system: 'tourplay.net', id: 'Orc_BB2025' },
+      ],
+    },
+    {
+      name: 'Snotling',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '43' },
+        { system: 'tourplay.net', id: 'Snotling_BB2025' },
+      ],
+    },
+    {
+      name: 'Tomb Kings',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '11' },
+        { system: 'tourplay.net', id: 'Khemri_BB2025' },
+      ],
+    },
+    {
+      name: 'Underworld Denizens',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '24' },
+        { system: 'tourplay.net', id: 'Underworld' },
+      ],
+    },
+    {
+      name: 'Vampire',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '20' },
+        { system: 'tourplay.net', id: 'Vampire_BB2020' },
+        { system: 'tourplay.net', id: 'Vampire' },
+      ],
+    },
+    {
+      name: 'Wood Elf',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '19' },
+        { system: 'tourplay.net', id: 'WoodElf' },
+      ],
+    },
+  ],
+  positions: [
+    {
+      // Black Orc: BBL 'Goblin Bruiser' / TP 'Goblin Bruiser Lineman'
+      name: 'Goblin Bruiser Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '310-44' },
+        { system: 'tourplay.net', id: '257' },
+        { system: 'Name', id: 'Black Orc: Goblin Bruiser Lineman' },
+      ],
+    },
+    {
+      // Chaos Dwarf: BBL 'Bull Centaur' / TP 'Bull Centaur Blitzer'
+      name: 'Bull Centaur Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '10-3' },
+        { system: 'tourplay.net', id: '680' },
+        { system: 'Name', id: 'Chaos Dwarf: Bull Centaur Blitzer' },
+      ],
+    },
+    {
+      // Chaos Dwarf: BBL 'Chaos Dwarf Blockers' / TP 'Chaos Dwarf Blocker'
+      name: 'Chaos Dwarf Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '11-3' },
+        { system: 'tourplay.net', id: '678' },
+        { system: 'Name', id: 'Chaos Dwarf: Chaos Dwarf Blocker' },
+      ],
+    },
+    {
+      // Chaos Dwarf: BBL 'Enslaved Minotaur' / TP 'Minotaur'
+      name: 'Minotaur',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '309-3' },
+        { system: 'tourplay.net', id: '681' },
+        { system: 'Name', id: 'Chaos Dwarf: Minotaur' },
+      ],
+    },
+    {
+      // Chaos Dwarf: BBL 'Hobgoblin Linemen' / TP 'Hobgoblin Lineman'
+      name: 'Hobgoblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '42-3' },
+        { system: 'tourplay.net', id: '676' },
+        { system: 'Name', id: 'Chaos Dwarf: Hobgoblin Lineman' },
+      ],
+    },
+    {
+      // College of Beasts: BBL 'Chosen Blockers' / TP 'Chaos Chosen Blocker'
+      name: 'Chaos Chosen Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '12-53' },
+        { system: 'tourplay.net', id: '511' },
+        { system: 'Name', id: 'College of Beasts: Chaos Chosen Blocker' },
+      ],
+    },
+    {
+      // College of Beasts: BBL 'Khornegors' / TP 'Khorngor'
+      name: 'Khorngor',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '331-53' },
+        { system: 'tourplay.net', id: '510' },
+        { system: 'Name', id: 'College of Beasts: Khorngor' },
+      ],
+    },
+    {
+      // College of Death: BBL 'Ghoul Runners' / TP 'Ghoul Runner'
+      name: 'Ghoul Runner',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '32-51' },
+        { system: 'tourplay.net', id: '486' },
+        { system: 'Name', id: 'College of Death: Ghoul Runner' },
+      ],
+    },
+    {
+      // College of Death: BBL 'Wraiths' / TP 'Wraith'
+      name: 'Wraith',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '323-51' },
+        { system: 'tourplay.net', id: '487' },
+        { system: 'Name', id: 'College of Death: Wraith' },
+      ],
+    },
+    {
+      // College of Death: BBL 'Zombie' / TP 'Zombie Lineman'
+      name: 'Zombie Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '104-51' },
+        { system: 'tourplay.net', id: '485' },
+        { system: 'Name', id: 'College of Death: Zombie Lineman' },
+      ],
+    },
+    {
+      // College of Fire: BBL 'Dwarf Blocker Linemen' / TP 'Dwarf Blocker Lineman'
+      name: 'Dwarf Blocker Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '57-47' },
+        { system: 'tourplay.net', id: '449' },
+        { system: 'Name', id: 'College of Fire: Dwarf Blocker Lineman' },
+      ],
+    },
+    {
+      // College of Fire: BBL 'Gnoblar Linemen' / TP 'Gnoblar Lineman'
+      name: 'Gnoblar Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '109-47' },
+        { system: 'tourplay.net', id: '450' },
+        { system: 'Name', id: 'College of Fire: Gnoblar Lineman' },
+      ],
+    },
+    {
+      // College of Fire: BBL 'Ogre Blockers' / TP 'Ogre Blocker'
+      name: 'Ogre Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '71-47' },
+        { system: 'tourplay.net', id: '455' },
+        { system: 'Name', id: 'College of Fire: Ogre Blocker' },
+      ],
+    },
+    {
+      // College of Heavens: BBL 'DB Norse Raider Lineman' / TP 'Norse Raider Lineman'
+      name: 'Norse Raider Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '344-54' },
+        { system: 'tourplay.net', id: '542' },
+        { system: 'Name', id: 'College of Heavens: Norse Raider Lineman' },
+      ],
+    },
+    {
+      // College of Heavens: BBL 'Saurus Blockers' / TP 'Saurus Blocker'
+      name: 'Saurus Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '81-54' },
+        { system: 'tourplay.net', id: '519' },
+        { system: 'Name', id: 'College of Heavens: Saurus Blocker' },
+      ],
+    },
+    {
+      // College of Heavens: BBL 'Skink Runner Linemen' / TP 'Skink Runner Lineman'
+      name: 'Skink Runner Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '88-54' },
+        { system: 'tourplay.net', id: '516' },
+        { system: 'Name', id: 'College of Heavens: Skink Runner Lineman' },
+      ],
+    },
+    {
+      // College of Heavens: BBL 'Valkyries' / TP 'Valkyrie'
+      name: 'Valkyrie',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '335-54' },
+        { system: 'tourplay.net', id: '544' },
+        { system: 'Name', id: 'College of Heavens: Valkyrie' },
+      ],
+    },
+    {
+      // College of Life: BBL 'Bloaters' / TP 'Bloater'
+      name: 'Bloater',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '108-52' },
+        { system: 'tourplay.net', id: '501' },
+        { system: 'Name', id: 'College of Life: Bloater' },
+      ],
+    },
+    {
+      // College of Life: BBL 'Fun-hoppas' / TP 'Fun-hoppa'
+      name: 'Fun-hoppa',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '306-52' },
+        { system: 'tourplay.net', id: '503' },
+        { system: 'Name', id: 'College of Life: Fun-hoppa' },
+      ],
+    },
+    {
+      // College of Life: BBL 'Hafling Treeman' / TP 'Treeman'
+      name: 'Treeman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '169-52' },
+        { system: 'tourplay.net', id: '504' },
+        { system: 'Name', id: 'College of Life: Treeman' },
+      ],
+    },
+    {
+      // College of Life: BBL 'Rotter Linemen' / TP 'Rotter Lineman'
+      name: 'Rotter Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '70-52' },
+        { system: 'tourplay.net', id: '492' },
+        { system: 'Name', id: 'College of Life: Rotter Lineman' },
+      ],
+    },
+    {
+      // College of Metal: BBL 'DB Big Un Blocker' / TP 'Big Un Blocker'
+      name: 'Big Un Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '342-49' },
+        { system: 'tourplay.net', id: '474' },
+        { system: 'Name', id: 'College of Metal: Big Un Blocker' },
+      ],
+    },
+    {
+      // College of Metal: BBL 'DB Orc Blitzer' / TP 'Orc Blitzer'
+      name: 'Orc Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '340-49' },
+        { system: 'tourplay.net', id: '470' },
+        { system: 'Name', id: 'College of Metal: Orc Blitzer' },
+      ],
+    },
+    {
+      // College of Metal: BBL 'Goblin Bruiser' / TP 'Goblin Bruiser Lineman'
+      name: 'Goblin Bruiser Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '310-49' },
+        { system: 'tourplay.net', id: '467' },
+        { system: 'Name', id: 'College of Metal: Goblin Bruiser Lineman' },
+      ],
+    },
+    {
+      // Dwarf: BBL 'Dwarf Blocker Linemen' / TP 'Dwarf Blocker Lineman'
+      name: 'Dwarf Blocker Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '57-5' },
+        { system: 'tourplay.net', id: '280' },
+        { system: 'Name', id: 'Dwarf: Dwarf Blocker Lineman' },
+      ],
+    },
+    {
+      // Elven Union: BBL 'Elven Blitzers' / TP 'Elf Blitzer'
+      name: 'Elf Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '26-6' },
+        { system: 'tourplay.net', id: '288' },
+        { system: 'Name', id: 'Elven Union: Elf Blitzer' },
+      ],
+    },
+    {
+      // Elven Union: BBL 'Elven Catchers' / TP 'Elf Catcher'
+      name: 'Elf Catcher',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '27-6' },
+        { system: 'tourplay.net', id: '287' },
+        { system: 'Name', id: 'Elven Union: Elf Catcher' },
+      ],
+    },
+    {
+      // Elven Union: BBL 'Elven Linemen' / TP 'Elf Lineman'
+      name: 'Elf Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '28-6' },
+        { system: 'tourplay.net', id: '285' },
+        { system: 'Name', id: 'Elven Union: Elf Lineman' },
+      ],
+    },
+    {
+      // Elven Union: BBL 'Elven Throwers' / TP 'Elf Thrower'
+      name: 'Elf Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '29-6' },
+        { system: 'tourplay.net', id: '286' },
+        { system: 'Name', id: 'Elven Union: Elf Thrower' },
+      ],
+    },
+    {
+      // Goblin: BBL 'Goblin Linemen' / TP 'Goblin Lineman'
+      name: 'Goblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '33-7' },
+        { system: 'tourplay.net', id: '289' },
+        { system: 'Name', id: 'Goblin: Goblin Lineman' },
+      ],
+    },
+    {
+      // Goblin: BBL 'Ooligan' / TP '’Ooligan'
+      name: 'Ooligan',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '232-7' },
+        { system: 'tourplay.net', id: '294' },
+        { system: 'Name', id: 'Goblin: ’Ooligan' },
+      ],
+    },
+    {
+      // Halfling: BBL 'Hafling Treeman' / TP 'Altern Forest Treeman'
+      name: 'Altern Forest Treeman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '169-8' },
+        { system: 'tourplay.net', id: '300' },
+        { system: 'Name', id: 'Halfling: Altern Forest Treeman' },
+      ],
+    },
+    {
+      // High Elf: BBL 'High Elf Blitzers' / TP 'High Elf Blitzer'
+      name: 'High Elf Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '20-9' },
+        { system: 'tourplay.net', id: '410' },
+        { system: 'Name', id: 'High Elf: High Elf Blitzer' },
+      ],
+    },
+    {
+      // High Elf: BBL 'High Elf Catchers' / TP 'High Elf Catcher'
+      name: 'High Elf Catcher',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '56-9' },
+        { system: 'tourplay.net', id: '409' },
+        { system: 'Name', id: 'High Elf: High Elf Catcher' },
+      ],
+    },
+    {
+      // High Elf: BBL 'High Elf Linemen' / TP 'High Elf Lineman'
+      name: 'High Elf Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '41-9' },
+        { system: 'tourplay.net', id: '407' },
+        { system: 'Name', id: 'High Elf: High Elf Lineman' },
+      ],
+    },
+    {
+      // High Elf: BBL 'High Elf Throwers' / TP 'High Elf Thrower'
+      name: 'High Elf Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '76-9' },
+        { system: 'tourplay.net', id: '408' },
+        { system: 'Name', id: 'High Elf: High Elf Thrower' },
+      ],
+    },
+    {
+      // Human: BBL 'Halfling Hopefuls' / TP 'Halfling Hopeful'
+      name: 'Halfling Hopeful',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '318-10' },
+        { system: 'tourplay.net', id: '305' },
+        { system: 'Name', id: 'Human: Halfling Hopeful' },
+      ],
+    },
+    {
+      // Khorne: BBL 'Blood Seeker' / TP 'Bloodseeker'
+      name: 'Bloodseeker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '332-46' },
+        { system: 'tourplay.net', id: '444' },
+        { system: 'Name', id: 'Khorne: Bloodseeker' },
+      ],
+    },
+    {
+      // Khorne: BBL 'Blood Spawn' / TP 'Bloodspawn'
+      name: 'Bloodspawn',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '333-46' },
+        { system: 'tourplay.net', id: '445' },
+        { system: 'Name', id: 'Khorne: Bloodspawn' },
+      ],
+    },
+    {
+      // Khorne: BBL 'Khornegors' / TP 'Khorngor'
+      name: 'Khorngor',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '331-46' },
+        { system: 'tourplay.net', id: '443' },
+        { system: 'Name', id: 'Khorne: Khorngor' },
+      ],
+    },
+    {
+      // Lizardmen: BBL 'Chameleon Skinks' / TP 'Chameleon Skink'
+      name: 'Chameleon Skink',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '286-12' },
+        { system: 'tourplay.net', id: '313' },
+        { system: 'Name', id: 'Lizardmen: Chameleon Skink' },
+      ],
+    },
+    {
+      // Lizardmen: BBL 'Saurus Blockers' / TP 'Saurus Blocker'
+      name: 'Saurus Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '81-12' },
+        { system: 'tourplay.net', id: '314' },
+        { system: 'Name', id: 'Lizardmen: Saurus Blocker' },
+      ],
+    },
+    {
+      // Lizardmen: BBL 'Skink Runner Linemen' / TP 'Skink Runner Lineman'
+      name: 'Skink Runner Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '88-12' },
+        { system: 'tourplay.net', id: '312' },
+        { system: 'Name', id: 'Lizardmen: Skink Runner Lineman' },
+      ],
+    },
+    {
+      // Necromantic Horror: BBL 'Ghoul Runners' / TP 'Ghoul Runner'
+      name: 'Ghoul Runner',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '32-13' },
+        { system: 'tourplay.net', id: '989' },
+        { system: 'Name', id: 'Necromantic Horror: Ghoul Runner' },
+      ],
+    },
+    {
+      // Necromantic Horror: BBL 'Wraiths' / TP 'Wraith'
+      name: 'Wraith',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '323-13' },
+        { system: 'tourplay.net', id: '990' },
+        { system: 'Name', id: 'Necromantic Horror: Wraith' },
+      ],
+    },
+    {
+      // Necromantic Horror: BBL 'Zombie' / TP 'Zombie Lineman'
+      name: 'Zombie Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '104-13' },
+        { system: 'tourplay.net', id: '988' },
+        { system: 'Name', id: 'Necromantic Horror: Zombie Lineman' },
+      ],
+    },
+    {
+      // Norse: BBL 'Beer Boars' / TP 'Beer Boar'
+      name: 'Beer Boar',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '334-14' },
+        { system: 'tourplay.net', id: '1059' },
+        { system: 'tourplay.net', id: '531' },
+        { system: 'Name', id: 'Norse: Beer Boar' },
+      ],
+    },
+    {
+      // Norse: BBL 'Norse Berserkers' / TP 'Norse Berserker'
+      name: 'Norse Berserker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '65-14' },
+        { system: 'tourplay.net', id: '1060' },
+        { system: 'tourplay.net', id: '532' },
+        { system: 'Name', id: 'Norse: Norse Berserker' },
+      ],
+    },
+    {
+      // Norse: BBL 'Norse Raider Linemen' / TP 'Norse Raider Lineman'
+      name: 'Norse Raider Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '67-14' },
+        { system: 'tourplay.net', id: '530' },
+        { system: 'Name', id: 'Norse: Norse Raider Lineman' },
+      ],
+    },
+    {
+      // Norse: BBL 'Valkyries' / TP 'Valkyrie'
+      name: 'Valkyrie',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '335-14' },
+        { system: 'tourplay.net', id: '1061' },
+        { system: 'tourplay.net', id: '533' },
+        { system: 'Name', id: 'Norse: Valkyrie' },
+      ],
+    },
+    {
+      // Nurgle: BBL 'Bloaters' / TP 'Bloater'
+      name: 'Bloater',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '108-15' },
+        { system: 'tourplay.net', id: '323' },
+        { system: 'tourplay.net', id: '995' },
+        { system: 'Name', id: 'Nurgle: Bloater' },
+      ],
+    },
+    {
+      // Nurgle: BBL 'Pestigors' / TP 'Pestigor'
+      name: 'Pestigor',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '69-15' },
+        { system: 'tourplay.net', id: '322' },
+        { system: 'tourplay.net', id: '994' },
+        { system: 'Name', id: 'Nurgle: Pestigor' },
+      ],
+    },
+    {
+      // Nurgle: BBL 'Rotter Linemen' / TP 'Rotter Lineman'
+      name: 'Rotter Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '70-15' },
+        { system: 'tourplay.net', id: '321' },
+        { system: 'tourplay.net', id: '993' },
+        { system: 'Name', id: 'Nurgle: Rotter Lineman' },
+      ],
+    },
+    {
+      // Ogre: BBL 'Gnoblar Linemen' / TP 'Gnoblar Lineman'
+      name: 'Gnoblar Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '109-21' },
+        { system: 'tourplay.net', id: '325' },
+        { system: 'Name', id: 'Ogre: Gnoblar Lineman' },
+      ],
+    },
+    {
+      // Ogre: BBL 'Ogre Blockers' / TP 'Ogre Blocker'
+      name: 'Ogre Blocker',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '71-21' },
+        { system: 'tourplay.net', id: '327' },
+        { system: 'Name', id: 'Ogre: Ogre Blocker' },
+      ],
+    },
+    {
+      // Orc: BBL 'Goblin Linemen' / TP 'Goblin Lineman'
+      name: 'Goblin Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '33-16' },
+        { system: 'tourplay.net', id: '1012' },
+        { system: 'Name', id: 'Orc: Goblin Lineman' },
+      ],
+    },
+    {
+      // Slann: BBL 'Slann Blitzer' / TP 'Blitzer'
+      name: 'Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '142-22' },
+        { system: 'tourplay.net', id: '433' },
+        { system: 'Name', id: 'Slann: Blitzer' },
+      ],
+    },
+    {
+      // Slann: BBL 'Slann Catcher' / TP 'Catcher'
+      name: 'Catcher',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '141-22' },
+        { system: 'tourplay.net', id: '432' },
+        { system: 'Name', id: 'Slann: Catcher' },
+      ],
+    },
+    {
+      // Slann: BBL 'Slann Lineman' / TP 'Lineman'
+      name: 'Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '140-22' },
+        { system: 'tourplay.net', id: '431' },
+        { system: 'Name', id: 'Slann: Lineman' },
+      ],
+    },
+    {
+      // Snotling: BBL 'Fun-hoppas' / TP 'Fun-hoppa'
+      name: 'Fun-hoppa',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '306-43' },
+        { system: 'tourplay.net', id: '1028' },
+        { system: 'Name', id: 'Snotling: Fun-hoppa' },
+      ],
+    },
+    {
+      // Snotling: BBL 'Snotling' / TP 'Snotling Lineman'
+      name: 'Snotling Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '304-43' },
+        { system: 'tourplay.net', id: '1027' },
+        { system: 'Name', id: 'Snotling: Snotling Lineman' },
+      ],
+    },
+    {
+      // Tomb Kings: BBL 'Anointed Blitzer' / TP 'Tomb Kings Blitzer'
+      name: 'Tomb Kings Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '51-11' },
+        { system: 'tourplay.net', id: '1052' },
+        { system: 'Name', id: 'Tomb Kings: Tomb Kings Blitzer' },
+      ],
+    },
+    {
+      // Tomb Kings: BBL 'Anointed Thrower' / TP 'Tomb Kings Thrower'
+      name: 'Tomb Kings Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '54-11' },
+        { system: 'tourplay.net', id: '1051' },
+        { system: 'Name', id: 'Tomb Kings: Tomb Kings Thrower' },
+      ],
+    },
+    {
+      // Tomb Kings: BBL 'Skeleton Linemen' / TP 'Skeleton Lineman'
+      name: 'Skeleton Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '53-11' },
+        { system: 'tourplay.net', id: '1050' },
+        { system: 'Name', id: 'Tomb Kings: Skeleton Lineman' },
+      ],
+    },
+    {
+      // Tomb Kings: BBL 'Tomb Guardians' / TP 'Tomb Guardian'
+      name: 'Tomb Guardian',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '52-11' },
+        { system: 'tourplay.net', id: '1053' },
+        { system: 'Name', id: 'Tomb Kings: Tomb Guardian' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Skaven Blitzers' / TP 'Skaven Blitzer'
+      name: 'Skaven Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '154-24' },
+        { system: 'tourplay.net', id: '366' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Blitzer' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Skaven Gutter Runner' / TP 'Gutter Runner'
+      name: 'Gutter Runner',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '293-24' },
+        { system: 'tourplay.net', id: '365' },
+        { system: 'Name', id: 'Underworld Denizens: Gutter Runner' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Skaven Lineman' / TP 'Skaven Clanrat'
+      name: 'Skaven Clanrat',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '152-24' },
+        { system: 'tourplay.net', id: '363' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Clanrat' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Underworld Skaven Thrower' / TP 'Skaven Thrower'
+      name: 'Skaven Thrower',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '153-24' },
+        { system: 'tourplay.net', id: '364' },
+        { system: 'Name', id: 'Underworld Denizens: Skaven Thrower' },
+      ],
+    },
+    {
+      // Underworld Denizens: BBL 'Warpstone Troll' / TP 'Underworld Troll'
+      name: 'Underworld Troll',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '155-24' },
+        { system: 'tourplay.net', id: '367' },
+        { system: 'Name', id: 'Underworld Denizens: Underworld Troll' },
+      ],
+    },
+    {
+      // Vampire: BBL 'Thrall Linemen' / TP 'Thrall Lineman'
+      name: 'Thrall Lineman',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '106-20' },
+        { system: 'tourplay.net', id: '421' },
+        { system: 'tourplay.net', id: '580' },
+        { system: 'Name', id: 'Vampire: Thrall Lineman' },
+      ],
+    },
+    {
+      // Vampire: BBL 'Vampire Blitzers' / TP 'Vampire Blitzer'
+      name: 'Vampire Blitzer',
+      isStarPlayer: false,
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: '107-20' },
+        { system: 'tourplay.net', id: '422' },
+        { system: 'tourplay.net', id: '583' },
+        { system: 'Name', id: 'Vampire: Vampire Blitzer' },
+      ],
+    },
+
+  ],
+}

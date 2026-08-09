@@ -46,10 +46,6 @@ tools/import-bbl/import-bbl-config.json5
 # import-tp-config.example.json5)
 tools/import-tp/import-tp-config.json5
 
-# tools/import-manual authored data (a directory in the main checkout, a
-# symlink in worktrees — no trailing slash so both forms are ignored)
-tools/import-manual/data
-
 # tools/import-manual real config (the committed template is
 # import-manual-config.example.json5)
 tools/import-manual/import-manual-config.json5

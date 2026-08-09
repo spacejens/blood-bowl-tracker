@@ -1,0 +1,120 @@
+// Coaches that exist in both BBL and TP source data under different names,
+// pre-registered here (before the BBL/TP importers run) so each importer's
+// upsert matches this single record instead of creating a duplicate.
+//
+// BBL only ever surfaces a coach's first name plus, sometimes, a first-initial
+// of their last name; TP (tourplay.net/NAF) surfaces their full real name (or,
+// for "inforthepain", a username). Pairs below were identified by matching BBL's
+// partial name against TP's full name (same first name, and matching last-name
+// initial when BBL has one).
+//
+// The `name` values below are pseudonyms -- first name plus last initial --
+// not the coaches' full real names, because this repository is public.
+// Matching resolves coaches by `externalIds` and never by `name`, and both the
+// BBL and TP importers overwrite this `name` on their own upsert anyway, so
+// the pseudonyms have no effect on import correctness.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'NAF', category: 'referenced_not_imported' },
+  ],
+  coaches: [
+    {
+      name: 'Andreas G',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Andreas' },
+        { system: 'tourplay.net', id: '17cc91d4-aaf6-45c9-134d-08dacad31bb4' },
+        { system: 'NAF', id: '19767' },
+      ],
+    },
+    {
+      name: 'Filip L',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Filip L' },
+        { system: 'tourplay.net', id: 'acc3d88b-349a-43ed-6e7b-08da16d8d912' },
+        { system: 'NAF', id: '21319' },
+      ],
+    },
+    {
+      name: 'Jack',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Jack' },
+        { system: 'tourplay.net', id: '997ff288-05ca-45f4-7cc1-08dad1ed32ac' },
+        { system: 'NAF', id: '21760' },
+      ],
+    },
+    {
+      // TP's username for this coach is "inforthepain", which is why the
+      // pseudonym below is derived from BBL's name for them instead.
+      name: 'Jan A',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Jan A' },
+        { system: 'tourplay.net', id: 'b21596f2-1177-4712-848c-08db4af58d38' },
+        { system: 'NAF', id: '19483' },
+      ],
+    },
+    {
+      name: 'Jens R',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Jens' },
+        { system: 'tourplay.net', id: 'b8944e53-1ff8-43f4-134e-08dacad31bb4' },
+      ],
+    },
+    {
+      name: 'Johan F',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Johan F' },
+        { system: 'tourplay.net', id: '76e02116-366f-4134-0b81-08db98428a6d' },
+      ],
+    },
+    {
+      name: 'Linus E',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Linus' },
+        { system: 'tourplay.net', id: '9a0fd687-6b40-4d34-0e8d-08db5ed22ea1' },
+        { system: 'NAF', id: '20114' },
+      ],
+    },
+    {
+      name: 'Mattias C',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Mattias' },
+        { system: 'tourplay.net', id: '7a6bac67-3ae1-4f39-43c1-08dac15ec170' },
+        { system: 'NAF', id: '10911' },
+      ],
+    },
+    {
+      name: 'Niklas G',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Niklas G' },
+        { system: 'tourplay.net', id: 'e7162529-4b45-49e2-2b14-08db43025cfd' },
+        { system: 'NAF', id: '19170' },
+      ],
+    },
+    {
+      name: 'Patrick M',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Patrick' },
+        { system: 'tourplay.net', id: '11d6d562-13af-4d2b-43e3-08dac15ec170' },
+        { system: 'NAF', id: '29240' },
+      ],
+    },
+    {
+      name: 'Tobias G',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Tobias' },
+        { system: 'tourplay.net', id: 'f24e4051-b588-4909-26bc-08d8b44a68c8' },
+        { system: 'NAF', id: '17908' },
+      ],
+    },
+    {
+      name: 'Tomas T',
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'Tomas T' },
+        { system: 'tourplay.net', id: '3ad65bb4-11a9-4924-3c43-08d97062972b' },
+        { system: 'NAF', id: '37612' },
+      ],
+    },
+  ],
+}

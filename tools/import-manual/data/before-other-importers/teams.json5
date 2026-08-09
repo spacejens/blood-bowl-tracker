@@ -1,0 +1,147 @@
+// Teams that exist in both BBL and TP source data under different names,
+// pre-registered here (before the BBL/TP importers run) so each importer's
+// upsert matches this single record instead of creating a duplicate.
+//
+// Unlike coaches/races/positions, team names turned out to barely overlap
+// between the two systems at all: of the ~112 BBL teams belonging to a coach
+// known to exist in both systems, only 7 have a plausible same-race, same-coach
+// TP counterpart. BBL looks like a persistent local league (a coach keeps a
+// handful of long-running franchises); TP (tourplay.net) looks like it tracks
+// one-off tournament entries (a coach fields a fresh team per event) -- so most
+// of a coach's BBL teams and most of their TP teams are just genuinely
+// different teams, not the same franchise under two names. The 7 pairs below
+// were confirmed individually (2 by exact/near-exact name match, 5 by a
+// same-coach, same-race judgment call -- two of those, "Ängårdsbergen
+// Avengers"/"Kallebäcks Komposterare" and "Gyttjevrålarna FC"/"Gyttjevrålarna",
+// by user confirmation despite having no name similarity, or in the latter
+// case only a suffix difference that looked like it could equally be a
+// separate team) rather than guessed at, since merging two actually-different
+// teams would corrupt their separate match histories.
+//
+// These entries pre-register teams that do NOT yet exist, so each one supplies
+// its race and coach -- a create needs them, even though an upsert that merely
+// overlays an existing row would not (issue #174). Every coach referenced
+// below already has an entry in coaches.json5 in this same directory (pooled
+// and processed before teams). Every race referenced below already has an
+// entry in races-and-positions.json5, EXCEPT "College of Fire" and "College of
+// Life", whose BBL and TP names already matched verbatim and so needed no
+// dedup entry there -- they're re-declared here (matching their single
+// existing db rows, not creating new ones) so this file can reference them.
+//
+// Coach names in the per-team comments below are pseudonyms -- first name plus
+// last initial -- matching coaches.json5 in this same directory; see that file
+// for why.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+  ],
+  races: [
+    {
+      name: 'College of Fire',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '47' }],
+    },
+    {
+      name: 'College of Life',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '52' }],
+    },
+  ],
+  teams: [
+    {
+      // Andreas / Andreas G, Ogre: BBL 'Appenzeller Jodlers' / TP
+      // 'Appenzeller Yodelers' ("Jodlers" is German/Swedish for "Yodlers").
+      name: 'Appenzeller Yodelers',
+      race: { system: 'tloeg.bbleague.se', id: '21' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Andreas' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'app' },
+        { system: 'tourplay.net', id: '150975' },
+      ],
+    },
+    {
+      // Andreas / Andreas G, College of Fire: BBL 'Twisted
+      // Firestarters' / TP 'Firestarters'.
+      name: 'Firestarters',
+      race: { system: 'tloeg.bbleague.se', id: '47' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Andreas' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'twi' },
+        { system: 'tourplay.net', id: '24801' },
+      ],
+    },
+    {
+      // Linus / Linus E, Imperial Nobility: BBL 'Carcassonne Crusaders'
+      // / TP 'Colette Crusaders'.
+      name: 'Colette Crusaders',
+      race: { system: 'tloeg.bbleague.se', id: '45' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Linus' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'car' },
+        { system: 'tourplay.net', id: '141018' },
+      ],
+    },
+    {
+      // Mattias / Mattias C, Vampire: BBL 'Drakenhof Bite Club' / TP
+      // 'Drakenhof Biteclub'.
+      name: 'Drakenhof Biteclub',
+      race: { system: 'tloeg.bbleague.se', id: '20' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Mattias' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'dra' },
+        { system: 'tourplay.net', id: '36047' },
+        { system: 'tourplay.net', id: '58917' },
+      ],
+    },
+    {
+      // Tobias / Tobias G, Ogre: BBL 'Tynnered Titans' / TP 'Toltorp
+      // Titans' (both real Gothenburg districts; same team per user
+      // confirmation, despite the coach having two other Ogre teams in BBL).
+      name: 'Toltorp Titans',
+      race: { system: 'tloeg.bbleague.se', id: '21' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Tobias' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'tyn' },
+        { system: 'tourplay.net', id: '46579' },
+      ],
+    },
+    {
+      // Tobias / Tobias G, College of Life: BBL 'Ängårdsbergen Avengers'
+      // / TP 'Kallebäcks Komposterare' -- same team per user confirmation,
+      // despite the names sharing no similarity at all.
+      name: 'Kallebäcks Komposterare',
+      race: { system: 'tloeg.bbleague.se', id: '52' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Tobias' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'äng' },
+        { system: 'tourplay.net', id: '24070' },
+      ],
+    },
+    {
+      // Jack / JackG, Norse: BBL 'Gyttjevrålarna FC' (team code 'gyt') / TP
+      // 'Gyttjevrålarna' -- same team per user confirmation. TP's name already
+      // matched a second BBL team code ('jac') verbatim, so that code already
+      // carries both TP ids on the same row; both BBL codes are listed here so
+      // a fresh import of either lands on this one record.
+      name: 'Gyttjevrålarna',
+      race: { system: 'tloeg.bbleague.se', id: '14' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Jack' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'gyt' },
+        { system: 'tloeg.bbleague.se', id: 'jac' },
+        { system: 'tourplay.net', id: '85424' },
+        { system: 'tourplay.net', id: '168304' },
+      ],
+    },
+    {
+      // Linus / Linus E, Goblin: BBL 'Santas Little Helpers' (team code
+      // 'san') / TP 'Santa's Little Helpers' -- BBL is missing the apostrophe.
+      name: "Santa's Little Helpers",
+      race: { system: 'tloeg.bbleague.se', id: '7' },
+      coach: { system: 'tloeg.bbleague.se', id: 'Linus' },
+      externalIds: [
+        { system: 'tloeg.bbleague.se', id: 'san' },
+        { system: 'tourplay.net', id: '179567' },
+      ],
+    },
+  ],
+}
