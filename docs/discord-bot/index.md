@@ -119,3 +119,24 @@ effect immediately.
   and top teams), or a single team (race, coach, career span, and top players
   by match events), reachable both directly and via the buttons on `/insights`'
   era list, coach toplists, and team toplists.
+
+### Drill-down buttons and blank entity names
+
+Every drill-down button and select-menu option (from both `/insights` and
+`/deepdive`) is built in one place, `EntityComponentsService` in
+`apps/discord-bot/src/entity-components.service.ts`, because Discord rejects
+a component with an empty `label` outright — failing the whole interaction.
+Some imported entities (players, so far) genuinely have a blank name in the
+source data, so the service substitutes a placeholder whenever a label is
+empty or whitespace-only.
+
+That placeholder is a **zero-width space** (`U+200B`), not the more obvious
+non-breaking space (`U+00A0`): Discord's API rejects an NBSP-only label with
+a `400 BASE_TYPE_REQUIRED` error, treating it as blank the same as `''` —
+confirmed against the live API while fixing #350, after it passed code
+review and every unit test with NBSP. A zero-width space isn't normalized
+away the same way and is accepted, while still rendering visually blank.
+Any future case needing a Discord text field that must be non-empty but
+visually blank should use the same character, and should be confirmed
+against a live bot before trusting a "should be valid" assumption about
+Discord's validation.
