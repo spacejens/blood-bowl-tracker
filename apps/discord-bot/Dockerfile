@@ -14,7 +14,6 @@ COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
-COPY patches/ patches/
 
 RUN pnpm install --frozen-lockfile
 
@@ -38,7 +37,6 @@ COPY packages/discord-client/package.json packages/discord-client/
 COPY packages/game-data/package.json packages/game-data/
 COPY packages/import/package.json packages/import/
 COPY tools/import-bbl/package.json tools/import-bbl/
-COPY patches/ patches/
 
 RUN pnpm install --frozen-lockfile --prod
 

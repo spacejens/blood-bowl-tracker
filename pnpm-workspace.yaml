@@ -14,9 +14,3 @@ allowBuilds:
 minimumReleaseAge: 1440
 overrides:
   '@discordjs/rest>undici': ^6.27.0
-patchedDependencies:
-  # Works around an upstream bug: 5.1.0's Rolldown-built .d.ts files use
-  # extensionless relative specifiers, which fail under moduleResolution
-  # nodenext (TS2305). The patch adds the missing .js extensions. Drop it once
-  # a fixed release ships — https://github.com/eratio08/vitest-mock-extended/issues/997
-  vitest-mock-extended@5.1.0: patches/vitest-mock-extended@5.1.0.patch
