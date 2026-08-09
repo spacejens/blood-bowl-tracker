@@ -32,6 +32,19 @@ export class RandomInsightsScopeService {
     private readonly categoryLabel: MatchCategoryLabelService,
   ) {}
 
+  /**
+   * Forces the two percent-probability config getters this service depends
+   * on to be read (and thus validated) eagerly. Called from
+   * `RandomInsightsSchedulerService.onApplicationBootstrap()` so a missing or
+   * invalid value fails startup immediately, rather than lazily on the first
+   * `pickScope()` call -- where it would be swallowed by that caller's
+   * per-tick error handling instead of crashing the process.
+   */
+  validateConfig(): void {
+    this.config.getRandomInsightsFilterProbability();
+    this.config.getRandomInsightsFilterCurrentEraProbability();
+  }
+
   async pickScope(): Promise<ResolvedScope> {
     if (
       !this.random.rollPercent(this.config.getRandomInsightsFilterProbability())

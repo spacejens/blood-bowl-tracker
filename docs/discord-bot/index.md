@@ -54,8 +54,9 @@ Configuration is supplied through an environment file in the app directory.
      posts the unfiltered `stats` insight here on every startup.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
-     seconds), in the bot process's local time zone. `0 * * * *` posts hourly.
-     An invalid expression makes the bot fail to start.
+     seconds), in the bot process's local time zone (in the Docker deployment
+     this is UTC unless `TZ` is set). `0 * * * *` posts hourly. An invalid
+     expression makes the bot fail to start.
    - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
      insights are posted to; may be the same as the startup channel.
    - `RANDOM_INSIGHTS_FILTER_PROBABILITY` — percent chance (integer 0-100)

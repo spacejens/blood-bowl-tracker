@@ -163,4 +163,38 @@ describe('RandomInsightsScopeService', () => {
     picks(1, 0);
     expect(await service.pickScope()).toEqual({});
   });
+
+  describe('validateConfig', () => {
+    it('reads both percent-probability getters, propagating a throw', () => {
+      config.getRandomInsightsFilterProbability.mockImplementation(() => {
+        throw new Error('invalid RANDOM_INSIGHTS_FILTER_PROBABILITY');
+      });
+
+      expect(() => service.validateConfig()).toThrow(
+        'invalid RANDOM_INSIGHTS_FILTER_PROBABILITY',
+      );
+    });
+
+    it('propagates a throw from the current-era probability getter', () => {
+      config.getRandomInsightsFilterCurrentEraProbability.mockImplementation(
+        () => {
+          throw new Error(
+            'invalid RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY',
+          );
+        },
+      );
+
+      expect(() => service.validateConfig()).toThrow(
+        'invalid RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY',
+      );
+    });
+
+    it('does not throw when both getters return valid values', () => {
+      expect(() => service.validateConfig()).not.toThrow();
+      expect(config.getRandomInsightsFilterProbability).toHaveBeenCalled();
+      expect(
+        config.getRandomInsightsFilterCurrentEraProbability,
+      ).toHaveBeenCalled();
+    });
+  });
 });

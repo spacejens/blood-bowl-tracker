@@ -36,6 +36,14 @@ export class RandomInsightsSchedulerService implements OnApplicationBootstrap {
 
   onApplicationBootstrap(): void {
     const cronTime = this.config.getRandomInsightsCron();
+    // Force the channel id and the two percent-probability getters to be
+    // read (and thus validated) here too, even though they're only actually
+    // used later inside postRandomInsight()'s try/catch. That try/catch
+    // swallows and logs errors so transient per-tick failures don't kill the
+    // schedule -- but that would also silently swallow a missing or invalid
+    // env var forever instead of failing startup, so validate eagerly.
+    this.config.getRandomInsightsDiscordChannel();
+    this.scope.validateConfig();
     const job: CronJob<null, null> = CronJob.from({
       cronTime,
       onTick: () => {

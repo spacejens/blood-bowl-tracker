@@ -101,6 +101,26 @@ describe('RandomInsightsSchedulerService', () => {
     expect(registry.addCronJob).not.toHaveBeenCalled();
   });
 
+  it('throws at bootstrap when the discord channel config is invalid', () => {
+    config.getRandomInsightsDiscordChannel.mockImplementation(() => {
+      throw new Error('invalid RANDOM_INSIGHTS_DISCORD_CHANNEL');
+    });
+    expect(() => service.onApplicationBootstrap()).toThrow(
+      'invalid RANDOM_INSIGHTS_DISCORD_CHANNEL',
+    );
+    expect(registry.addCronJob).not.toHaveBeenCalled();
+  });
+
+  it('throws at bootstrap when the filter probability config is invalid', () => {
+    scope.validateConfig.mockImplementation(() => {
+      throw new Error('invalid RANDOM_INSIGHTS_FILTER_PROBABILITY');
+    });
+    expect(() => service.onApplicationBootstrap()).toThrow(
+      'invalid RANDOM_INSIGHTS_FILTER_PROBABILITY',
+    );
+    expect(registry.addCronJob).not.toHaveBeenCalled();
+  });
+
   it('posts the resolved insight to the configured channel', async () => {
     const embed = {
       embeds: [{ title: 'Coaches', description: '1. Roze — 9' }],
