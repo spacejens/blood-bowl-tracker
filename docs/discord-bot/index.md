@@ -32,7 +32,9 @@ the application.
 
 1. In Discord, open **User Settings > Advanced** and enable **Developer Mode**.
 2. Right-click the channel you want the bot to post in and choose
-   **Copy Channel ID**. This is your `DISCORD_CHANNEL_ID`.
+   **Copy Channel ID**. This is your `STARTUP_MESSAGE_DISCORD_CHANNEL` (and,
+   if you want the scheduled random insights posted in the same place, your
+   `RANDOM_INSIGHTS_DISCORD_CHANNEL` too — they may be different channels).
 3. Make sure the bot can see and post in that channel (channel permissions must
    allow the bot's role to View Channel, Send Messages, and Embed Links — the
    startup message is posted as a plain channel message, so it needs Embed
@@ -48,7 +50,21 @@ Configuration is supplied through an environment file in the app directory.
    ```
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
-   - `DISCORD_CHANNEL_ID` — the channel id from step 3.
+   - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from step 3. The bot
+     posts the unfiltered `stats` insight here on every startup.
+   - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
+     as a standard 5-field cron expression (an optional sixth leading field is
+     seconds), in the bot process's local time zone (in the Docker deployment
+     this is UTC unless `TZ` is set). `0 * * * *` posts hourly. An invalid
+     expression makes the bot fail to start.
+   - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
+     insights are posted to; may be the same as the startup channel.
+   - `RANDOM_INSIGHTS_FILTER_PROBABILITY` — percent chance (integer 0-100)
+     that a scheduled insight is scoped to one randomly chosen era or
+     competition instead of being unfiltered.
+   - `RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY` — percent chance
+     (integer 0-100) that an era- or competition-scoped insight draws only
+     from ongoing eras (those with no end date).
    - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
@@ -103,3 +119,24 @@ effect immediately.
   and top teams), or a single team (race, coach, career span, and top players
   by match events), reachable both directly and via the buttons on `/insights`'
   era list, coach toplists, and team toplists.
+
+### Drill-down buttons and blank entity names
+
+Every drill-down button and select-menu option (from both `/insights` and
+`/deepdive`) is built in one place, `EntityComponentsService` in
+`apps/discord-bot/src/entity-components.service.ts`, because Discord rejects
+a component with an empty `label` outright — failing the whole interaction.
+Some imported entities (players, so far) genuinely have a blank name in the
+source data, so the service substitutes a placeholder whenever a label is
+empty or whitespace-only.
+
+That placeholder is a **zero-width space** (`U+200B`), not the more obvious
+non-breaking space (`U+00A0`): Discord's API rejects an NBSP-only label with
+a `400 BASE_TYPE_REQUIRED` error, treating it as blank the same as `''` —
+confirmed against the live API while fixing #350, after it passed code
+review and every unit test with NBSP. A zero-width space isn't normalized
+away the same way and is accepted, while still rendering visually blank.
+Any future case needing a Discord text field that must be non-empty but
+visually blank should use the same character, and should be confirmed
+against a live bot before trusting a "should be valid" assumption about
+Discord's validation.
