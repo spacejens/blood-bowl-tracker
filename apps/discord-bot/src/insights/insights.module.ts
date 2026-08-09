@@ -29,6 +29,7 @@ import { StatsSummaryFactsService } from './facts/stats-summary.service';
 import { TeamToplistService } from './facts/team-toplist.service';
 import { LeaderboardService } from './leaderboard.service';
 import { PlayerContextService } from './player-context.service';
+import { RandomInsightsScopeService } from './random-insights-scope.service';
 import { RandomSourceService } from './random-source.service';
 import { TeamContextService } from './team-context.service';
 
@@ -58,6 +59,7 @@ const GAME_DATA_MODULES = [
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
+    RandomInsightsScopeService,
     CoachToplistService,
     RaceToplistService,
     TeamToplistService,
@@ -82,6 +84,7 @@ const GAME_DATA_MODULES = [
     DayCountFormatterService,
     FactTreeUtilsService,
     RandomSourceService,
+    RandomInsightsScopeService,
     CoachToplistService,
     RaceToplistService,
     TeamToplistService,

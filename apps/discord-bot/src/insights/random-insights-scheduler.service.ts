@@ -5,6 +5,7 @@ import { CronJob } from 'cron';
 
 import { DiscordBotConfigService } from '../discord-bot-config.service';
 import { InsightsCommandService } from '../slash-commands/insights-command.service';
+import { RandomInsightsScopeService } from './random-insights-scope.service';
 
 /** The name this job is registered under in NestJS's SchedulerRegistry. */
 export const RANDOM_INSIGHTS_JOB_NAME = 'random-insights';
@@ -30,6 +31,7 @@ export class RandomInsightsSchedulerService implements OnApplicationBootstrap {
     private readonly discordClient: DiscordClientService,
     private readonly config: DiscordBotConfigService,
     private readonly registry: SchedulerRegistry,
+    private readonly scope: RandomInsightsScopeService,
   ) {}
 
   onApplicationBootstrap(): void {
@@ -53,7 +55,8 @@ export class RandomInsightsSchedulerService implements OnApplicationBootstrap {
   async postRandomInsight(): Promise<void> {
     try {
       const channelId = this.config.getRandomInsightsDiscordChannel();
-      const message = await this.insightsCommand.resolveRandomFact();
+      const scope = await this.scope.pickScope();
+      const message = await this.insightsCommand.resolveRandomFact(scope);
       await this.discordClient.sendMessage(channelId, message);
       this.logger.log(`Posted random insight to channel ${channelId}`);
     } catch (error) {

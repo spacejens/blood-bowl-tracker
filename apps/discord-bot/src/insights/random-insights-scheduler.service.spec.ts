@@ -11,12 +11,14 @@ import {
   RANDOM_INSIGHTS_JOB_NAME,
   RandomInsightsSchedulerService,
 } from './random-insights-scheduler.service';
+import { RandomInsightsScopeService } from './random-insights-scope.service';
 
 describe('RandomInsightsSchedulerService', () => {
   let insightsCommand: MockProxy<InsightsCommandService>;
   let discordClient: MockProxy<DiscordClientService>;
   let config: MockProxy<DiscordBotConfigService>;
   let registry: MockProxy<SchedulerRegistry>;
+  let scope: MockProxy<RandomInsightsScopeService>;
   let service: RandomInsightsSchedulerService;
 
   beforeEach(async () => {
@@ -28,6 +30,8 @@ describe('RandomInsightsSchedulerService', () => {
     config.getRandomInsightsCron.mockReturnValue('0 * * * *');
     config.getRandomInsightsDiscordChannel.mockReturnValue('99');
     registry = mock<SchedulerRegistry>();
+    scope = mock<RandomInsightsScopeService>();
+    scope.pickScope.mockResolvedValue({});
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -36,6 +40,7 @@ describe('RandomInsightsSchedulerService', () => {
         { provide: DiscordClientService, useValue: discordClient },
         { provide: DiscordBotConfigService, useValue: config },
         { provide: SchedulerRegistry, useValue: registry },
+        { provide: RandomInsightsScopeService, useValue: scope },
       ],
     }).compile();
     service = moduleRef.get(RandomInsightsSchedulerService);
@@ -67,12 +72,27 @@ describe('RandomInsightsSchedulerService', () => {
     void job.stop();
 
     await job.fireOnTick();
+    // The job's onTick fires postRandomInsight without awaiting it (a
+    // deliberate fire-and-forget so a slow tick can't block the scheduler),
+    // and it now awaits scope resolution before resolving the fact. Flush
+    // the microtask queue so that work has actually landed before asserting.
+    await new Promise((resolve) => setImmediate(resolve));
 
-    expect(insightsCommand.resolveRandomFact).toHaveBeenCalled();
+    expect(insightsCommand.resolveRandomFact).toHaveBeenCalledWith({});
     expect(discordClient.sendMessage).toHaveBeenCalledWith(
       '99',
       'a random fact',
     );
+  });
+
+  it('resolves the insight under the scope chosen for this tick', async () => {
+    scope.pickScope.mockResolvedValue({ era: { id: 1, name: 'BB2020' } });
+
+    await service.postRandomInsight();
+
+    expect(insightsCommand.resolveRandomFact).toHaveBeenCalledWith({
+      era: { id: 1, name: 'BB2020' },
+    });
   });
 
   it('throws at bootstrap when the cron expression is invalid', () => {
