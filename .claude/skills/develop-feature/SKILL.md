@@ -94,7 +94,7 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, `tools/import-manual/data/`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). All three `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+9. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
@@ -104,7 +104,7 @@ This applies to every subagent dispatched from any phase below while working in 
          cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
        fi
      done
-     for d in tools/import-bbl/data tools/import-tp/data tools/import-manual/data; do
+     for d in tools/import-bbl/data tools/import-tp/data; do
        if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
          ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
        fi
@@ -148,7 +148,7 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, `tools/import-manual/data/`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). All three `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
+6. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
    ```bash
    MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
    WORKTREE_ROOT=$(git rev-parse --show-toplevel)
@@ -158,7 +158,7 @@ This applies to every subagent dispatched from any phase below while working in 
          cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
        fi
      done
-     for d in tools/import-bbl/data tools/import-tp/data tools/import-manual/data; do
+     for d in tools/import-bbl/data tools/import-tp/data; do
        if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
          ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
        fi
