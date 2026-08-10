@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: superfly/flyctl-actions/setup-flyctl@1.5
       # --remote-only builds the image on Fly's builders rather than in the
       # runner, so no Docker layer caching or buildx setup is needed here.
       # Run from the repo root, where fly.toml lives and which is the build

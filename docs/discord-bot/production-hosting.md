@@ -339,7 +339,12 @@ fly apps restart blood-bowl-tracker-discord-bot
 
 `DATABASE_URL` is the direct Neon connection string from
 `apps/discord-bot/.env.production` (see
-[Configuration and secrets](#configuration-and-secrets)).
+[Configuration and secrets](#configuration-and-secrets)). The
+`deploy-production` skill extracts this value itself and validates it looks
+like a real `postgres://` connection string — stripping a dotenv-style quote
+pair and a trailing CRLF first — before ever connecting, and aborts without
+running `psql` if it doesn't; an empty or malformed value would otherwise let
+`psql` silently fall back to a local connection instead of failing loudly.
 
 Both schemas have to go. The application tables live in `public`, but
 drizzle-orm records which migrations have already run in

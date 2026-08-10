@@ -19,14 +19,14 @@ Takes no arguments.
 
 ## Preconditions
 
-These apply to every action below. Check them once, before step 0's question, and stop with a clear message if one fails — every action here is useless without them.
+Preconditions 1 and 3 are true blocking preconditions for every action below — check them once, before step 0's question, and stop with a clear message if one fails. Precondition 2 (`gh` authentication) is needed only by the "Trigger a redeploy without a new merge" action; check it once step 0's selections are known, and only if that action was selected. An unauthenticated `gh` CLI must never block a status check, restart, rollback, database reset, or import run — those don't use `gh` at all, and this matters most during an incident, when the developer may just want `fly status` and shouldn't be stopped by an unrelated tool.
 
 1. `flyctl` is installed and authenticated:
    ```bash
    fly auth whoami
    ```
    If this fails, tell the developer to run `flyctl auth login` themselves — it opens a browser for OAuth and needs a real interactive terminal, so this skill cannot do it for them.
-2. `gh` is installed and authenticated (needed by the redeploy action, and harmless otherwise):
+2. `gh` is installed and authenticated — required only for "Trigger a redeploy without a new merge" (see above), checked at the start of that section rather than here:
    ```bash
    gh auth status
    ```
@@ -139,6 +139,11 @@ Run this section only if "Trigger a redeploy without a new merge" was selected i
 
 This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after pushing changed Fly secrets, after a rollback that needs undoing, or to retry a deploy that failed transiently. It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
 
+0. Check that `gh` is installed and authenticated — this is the one action in this skill that needs it (see the Preconditions section):
+   ```bash
+   gh auth status
+   ```
+   If this fails, tell the developer to run `gh auth login` themselves and stop; do not attempt any of the steps below without it.
 1. Note the current release version first, so the new one is distinguishable:
    ```bash
    fly status
@@ -195,16 +200,20 @@ Run this section only if "Drop and recreate the production database" was selecte
    blood-bowl-tracker-discord-bot
    ```
 
-   Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections.
-4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable:
+   Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the reset they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
+4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string does not error — it silently falls back to libpq's local-connection defaults, which could drop schemas in a local database while this step reports success against production, so abort rather than let that happen:
    ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2-)
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
+   case "$DATABASE_URL" in
+     postgres://*|postgresql://*) ;;
+     *) echo "DATABASE_URL is empty or malformed after extraction — aborting without connecting." >&2; exit 1 ;;
+   esac
    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
      -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
      -c 'CREATE SCHEMA public;' \
      -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
    ```
-   Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
+   If the `case` aborts, stop and report that `DATABASE_URL` looked empty or malformed after extraction — without ever printing the value itself — and tell the developer to check `apps/discord-bot/.env.production` by hand. Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
 
    If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
 5. Restart the machine so the bot's startup migrations rebuild the schema:
@@ -217,7 +226,7 @@ Run this section only if "Drop and recreate the production database" was selecte
    fly status
    fly logs --no-tail
    ```
-   A successful reset shows every migration applying in order (not "nothing pending") and then a normal startup. **"Nothing pending" against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports.
+   A successful reset shows every migration applying in order (not "nothing pending") and then a normal startup. **"Nothing pending" against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 7 below.
 7. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
    - **Run the manual import (before other importers) against production**
    - **Run the BBL import against production**
@@ -230,6 +239,8 @@ Run this section only if "Drop and recreate the production database" was selecte
 ### Production imports: shared setup
 
 Run this section only if at least one of the four "against production" import actions was selected in step 0 (or chained from the database reset above). It is not a menu option of its own — it is the setup those actions share, run once no matter how many of them were selected, immediately before the first of them.
+
+Throughout this section and the four import sections below, "or chained from the database reset" means the reset actually ran and completed successfully (its step 6 confirmed the schemas rebuilt, not "nothing pending"). If the reset was refused at its typed confirmation, or completed but step 6 detected "nothing pending", any import action selected alongside it does **not** run automatically — see the reset section's step 3 and step 6 for the exact handling.
 
 Everything here automates the flow documented in `docs/discord-bot/production-hosting.md`'s "Running import tools against production" section; read that section when something here fails.
 
