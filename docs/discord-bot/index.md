@@ -31,13 +31,20 @@ the application.
 ## 3. Find the channel id
 
 1. In Discord, open **User Settings > Advanced** and enable **Developer Mode**.
-2. Right-click the channel you want the bot to post in and choose
-   **Copy Channel ID**. This is your `STARTUP_MESSAGE_DISCORD_CHANNEL` (and,
-   if you want the scheduled random insights posted in the same place, your
-   `RANDOM_INSIGHTS_DISCORD_CHANNEL` too — they may be different channels).
-3. Make sure the bot can see and post in that channel (channel permissions must
-   allow the bot's role to View Channel, Send Messages, and Embed Links — the
-   startup message is posted as a plain channel message, so it needs Embed
+2. Right-click the channel you want the bot to post its startup message in and
+   choose **Copy Channel ID**. This is your `STARTUP_MESSAGE_DISCORD_CHANNEL`.
+3. Do the same for the channel the scheduled random insights should go to, to
+   get `RANDOM_INSIGHTS_DISCORD_CHANNEL`. Once the bot is serving real server
+   members, these should be two different channels: the startup message is
+   status output for whoever runs the bot, while the scheduled insights are
+   the bot's regular output for everyone. Give the insights channel a name
+   that signals it carries the bot's automated posts rather than conversation
+   — something along the lines of `bot-updates` or `tracker-insights` — so
+   members know what to expect there. Pointing both variables at the same test
+   channel is fine for purely local development.
+4. Make sure the bot can see and post in those channels (channel permissions
+   must allow the bot's role to View Channel, Send Messages, and Embed Links —
+   the startup message is posted as a plain channel message, so it needs Embed
    Links whenever it's an embed, unlike slash-command replies).
 
 ## 4. Configure the application
@@ -56,15 +63,24 @@ Configuration is supplied through an environment file in the app directory.
      as a standard 5-field cron expression (an optional sixth leading field is
      seconds), in the bot process's local time zone (in the Docker deployment
      this is UTC unless `TZ` is set). `0 * * * *` posts hourly. An invalid
-     expression makes the bot fail to start.
+     expression makes the bot fail to start. The hourly example exists for
+     local testing, where fast feedback while developing matters; a channel
+     serving real members generally wants a far lower frequency, such as once
+     a day (`0 8 * * *`).
    - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
-     insights are posted to; may be the same as the startup channel.
+     insights are posted to, from step 3. Once the bot is released to real
+     members this is its own dedicated channel, separate from the startup
+     channel.
    - `RANDOM_INSIGHTS_FILTER_PROBABILITY` — percent chance (integer 0-100)
      that a scheduled insight is scoped to one randomly chosen era or
-     competition instead of being unfiltered.
+     competition instead of being unfiltered. The template's value is a
+     starting point picked for local testing.
    - `RANDOM_INSIGHTS_FILTER_CURRENT_ERA_PROBABILITY` — percent chance
      (integer 0-100) that an era- or competition-scoped insight draws only
-     from ongoing eras (those with no end date).
+     from ongoing eras (those with no end date). Like
+     `RANDOM_INSIGHTS_FILTER_PROBABILITY`, the template's value is a
+     local-testing starting point; how varied the posts in a live channel
+     should feel is worth deciding deliberately for that audience.
    - `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, `API_TOKEN_IMPORT_MANUAL`
      — the bearer tokens the API accepts on `/rpc`, one per importer tool
      (`tools/import-bbl`, `tools/import-tp`, `tools/import-manual`). Any
