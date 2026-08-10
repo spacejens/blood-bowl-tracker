@@ -124,22 +124,61 @@ Done once, by a developer with accounts on both providers:
    fly secrets import < apps/discord-bot/.env.production
    fly deploy
    ```
-6. Verify (see below).
+6. Create a Fly deploy token and store it as a GitHub Actions repository
+   secret, so the deploy workflow can authenticate. Run from the repository
+   root, where `fly.toml` names the app:
+   ```bash
+   fly tokens create deploy --name github-actions
+   gh secret set FLY_API_TOKEN --app actions
+   ```
+   `fly tokens create deploy` prints the token on stdout; the leading
+   `FlyV1 ` is part of the value, so paste the whole line when `gh secret
+   set` prompts for it. The token is scoped to deploying this one app, not
+   to the whole Fly account. Adding the secret through the GitHub web UI
+   (Settings → Secrets and variables → Actions) works equally well.
+
+   This step stays manual on purpose. The `deploy-production` skill does not
+   mint or store this credential: creating a deploy token is a rare,
+   deliberate act, and a skill that did it silently would be handing itself
+   the ability to deploy.
+7. Verify (see below).
 
 ## Deploying
 
-Deploys are manual for now — run from the repository root, where `fly.toml`
-lives:
+Deploys run automatically in GitHub Actions.
+`.github/workflows/deploy.yml` triggers on every push to `main` — in
+practice, every pull request merged with GitHub's merge-commit button — and
+runs `flyctl deploy --remote-only` from the repository root, where
+`fly.toml` lives. Fly builds `apps/discord-bot/Dockerfile` with the repo
+root as build context on Fly's own builders, pushes the image, and replaces
+the running machine.
+
+The workflow authenticates with the `FLY_API_TOKEN` repository secret
+created in [First-time setup](#first-time-setup). Its `deploy-production`
+concurrency group deliberately does not cancel in-progress runs, so two
+deploys queue rather than race — cancelling a deploy mid-flight can leave
+the machine half-replaced.
+
+Nothing about CI gates the deploy. `.github/workflows/ci.yml` runs on pull
+requests, so lint, typecheck, and tests have already passed on the branch
+before the merge that triggers a deploy.
+
+The workflow also accepts `workflow_dispatch`, which redeploys the current
+`main` without a new commit — useful after pushing changed secrets, or to
+retry a deploy that failed for a transient reason:
 
 ```bash
-fly deploy
+gh workflow run deploy.yml --ref main
 ```
 
-Fly builds `apps/discord-bot/Dockerfile` with the repo root as build
-context, pushes the image, and replaces the running machine. Automating
-repeatable deploys is tracked separately; there is deliberately no GitHub
-Actions deploy workflow, so there is one place responsible for the deploy
-mechanism rather than two parallel paths.
+A manual `fly deploy` from a developer machine still works, and rolling
+back uses it (see [Rolling back](#rolling-back)), but it is not the normal
+path: whatever it deploys is replaced by the next merge to `main`.
+
+For status checks, restarts, rollbacks, dispatching a redeploy, resetting
+the database, and running the importers against production, use the
+`deploy-production` skill (`.claude/skills/deploy-production/SKILL.md`),
+which wraps the commands documented on this page.
 
 ## Running import tools against production
 
