@@ -34,13 +34,16 @@ The machine never scales to zero (`auto_stop_machines = "off"`,
 persistent connection to Discord's gateway, so a stopped machine is an
 offline bot, not a cold start.
 
-Nothing is published to the public internet: `fly.toml` declares the
-service's internal port 3000 and a TCP health check against it, but no
-public ports. Making the `/rpc` API reachable for the import tools is
+The app has a `.fly.dev` hostname, but nothing answers on it: `fly.toml`
+declares the service's internal port 3000 and a TCP health check against it,
+with no public ports. Making the `/rpc` API reachable for the import tools is
 tracked separately.
 
 There is no redundancy, failover, or autoscaling. For a low-traffic hobby
-bot that is a deliberate non-goal, not an oversight.
+bot that is a deliberate non-goal, not an oversight. There is also no backup
+strategy for the Neon database: production data is fully reproducible by
+re-running the `tools/import-*` importers, so nothing here needs its own
+backups.
 
 ## Configuration and secrets
 
@@ -60,6 +63,11 @@ pooled PgBouncer variant Neon also offers. The bot is one long-lived
 container maintaining its own connection pool through drizzle-orm, not a
 burst of short-lived serverless invocations, so Neon's pooler has nothing
 to add.
+
+Write `.env.production` as plain `KEY=VALUE` lines with no surrounding
+quotes — `fly secrets import` stores each value verbatim, so
+`RANDOM_INSIGHTS_CRON="0 * * * *"` would push the literal quote characters
+and make the bot fail to start on an invalid cron expression.
 
 Push the file to Fly as secrets:
 
@@ -147,9 +155,11 @@ Common failures and where they surface:
   reached its max restart count"), fixing the secret alone does not bring it
   back — explicitly restart it with
   `fly machine start <machine-id-from-fly-status>`.
-- **Database unreachable** — a wrong or pooled `DATABASE_URL`, or a
-  suspended Neon project, shows as a connection error during migration in
-  `fly logs`.
+- **Database unreachable** — a wrong or pooled `DATABASE_URL` shows as a
+  connection error during migration in `fly logs`. Neon's free tier
+  autosuspends its compute after a period of inactivity by design; the first
+  connection after that incurs a brief cold-start delay while it resumes,
+  which is normal and not itself a failure.
 - **Bad image** — a failed build stops the `fly deploy` command itself,
   before anything is replaced; the previous machine keeps running.
 
@@ -164,3 +174,7 @@ fly deploy --image <image-ref-from-an-earlier-release>
 ```
 
 `fly releases --json` shows the exact image reference for each release.
+
+This path wasn't exercised during the first deploy — there was no prior
+release to roll back to — so treat it as documented but not yet proven in
+practice.
