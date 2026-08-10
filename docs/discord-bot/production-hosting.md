@@ -124,22 +124,61 @@ Done once, by a developer with accounts on both providers:
    fly secrets import < apps/discord-bot/.env.production
    fly deploy
    ```
-6. Verify (see below).
+6. Create a Fly deploy token and store it as a GitHub Actions repository
+   secret, so the deploy workflow can authenticate. Run from the repository
+   root, where `fly.toml` names the app:
+   ```bash
+   fly tokens create deploy --name github-actions
+   gh secret set FLY_API_TOKEN --app actions
+   ```
+   `fly tokens create deploy` prints the token on stdout; the leading
+   `FlyV1 ` is part of the value, so paste the whole line when `gh secret
+   set` prompts for it. The token is scoped to deploying this one app, not
+   to the whole Fly account. Adding the secret through the GitHub web UI
+   (Settings → Secrets and variables → Actions) works equally well.
+
+   This step stays manual on purpose. The `deploy-production` skill does not
+   mint or store this credential: creating a deploy token is a rare,
+   deliberate act, and a skill that did it silently would be handing itself
+   the ability to deploy.
+7. Verify (see below).
 
 ## Deploying
 
-Deploys are manual for now — run from the repository root, where `fly.toml`
-lives:
+Deploys run automatically in GitHub Actions.
+`.github/workflows/deploy.yml` triggers on every push to `main` — in
+practice, every pull request merged with GitHub's merge-commit button — and
+runs `flyctl deploy --remote-only` from the repository root, where
+`fly.toml` lives. Fly builds `apps/discord-bot/Dockerfile` with the repo
+root as build context on Fly's own builders, pushes the image, and replaces
+the running machine.
+
+The workflow authenticates with the `FLY_API_TOKEN` repository secret
+created in [First-time setup](#first-time-setup). Its `deploy-production`
+concurrency group deliberately does not cancel in-progress runs, so two
+deploys queue rather than race — cancelling a deploy mid-flight can leave
+the machine half-replaced.
+
+Nothing about CI gates the deploy. `.github/workflows/ci.yml` runs on pull
+requests, so lint, typecheck, and tests have already passed on the branch
+before the merge that triggers a deploy.
+
+The workflow also accepts `workflow_dispatch`, which redeploys the current
+`main` without a new commit — useful after pushing changed secrets, or to
+retry a deploy that failed for a transient reason:
 
 ```bash
-fly deploy
+gh workflow run deploy.yml --ref main
 ```
 
-Fly builds `apps/discord-bot/Dockerfile` with the repo root as build
-context, pushes the image, and replaces the running machine. Automating
-repeatable deploys is tracked separately; there is deliberately no GitHub
-Actions deploy workflow, so there is one place responsible for the deploy
-mechanism rather than two parallel paths.
+A manual `fly deploy` from a developer machine still works, and rolling
+back uses it (see [Rolling back](#rolling-back)), but it is not the normal
+path: whatever it deploys is replaced by the next merge to `main`.
+
+For status checks, restarts, rollbacks, dispatching a redeploy, resetting
+the database, and running the importers against production, use the
+`deploy-production` skill (`.claude/skills/deploy-production/SKILL.md`),
+which wraps the commands documented on this page.
 
 ## Running import tools against production
 
@@ -215,7 +254,18 @@ Common failures:
   different shell than the one that ran the tool), so the default config file
   was used.
 
-Automating this as a `deploy-production` skill is deliberately not done here.
+The `deploy-production` skill automates this flow: it opens the tunnel,
+runs the importers in the order above with `IMPORT_CONFIG_ENV=production`,
+and closes the tunnel afterwards, in any combination of the four import
+steps. It also checks first that nothing else holds port 3000, since a
+running local stack there would silently take the writes instead.
+
+The manual steps above stay documented because they are what the skill does
+under the hood — which is what you need when an automated run fails partway
+through. Step 1 in particular stays a human job: the skill checks that the
+`.production.json5` files exist and syncs them into a worktree, but never
+creates one, because a config generated from the example template would
+carry a placeholder token and fail with `401`.
 
 ## Checking on the deployment
 
@@ -262,3 +312,61 @@ fly deploy --image <image-ref-from-an-earlier-release>
 This path wasn't exercised during the first deploy — there was no prior
 release to roll back to — so treat it as documented but not yet proven in
 practice.
+
+The `deploy-production` skill automates this: it lists recent releases with
+their image references, asks which one to roll back to, and runs the
+`fly deploy --image` for you. Note that a rollback deploys from a developer
+machine and so sits outside the GitHub Actions deploy path — the next merge
+to `main` redeploys the newest code over it. A rollback buys time; the
+offending change still has to be reverted or fixed on `main`.
+
+## Dropping and recreating the production database
+
+Production data is fully reproducible by re-running the importers, so the
+recovery path for a corrupt or schema-drifted production database is to wipe
+it and re-import rather than to restore a backup — there are no backups.
+This is the production equivalent of `docker compose down -v` locally.
+
+The mechanism is a schema drop against Neon followed by a machine restart:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+  -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
+  -c 'CREATE SCHEMA public;' \
+  -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
+fly apps restart blood-bowl-tracker-discord-bot
+```
+
+`DATABASE_URL` is the direct Neon connection string from
+`apps/discord-bot/.env.production` (see
+[Configuration and secrets](#configuration-and-secrets)). The
+`deploy-production` skill extracts this value itself and validates it looks
+like a real `postgres://` connection string — stripping a dotenv-style quote
+pair and a trailing CRLF first — before ever connecting, and aborts without
+running `psql` if it doesn't; an empty or malformed value would otherwise let
+`psql` silently fall back to a local connection instead of failing loudly.
+
+Both schemas have to go. The application tables live in `public`, but
+drizzle-orm records which migrations have already run in
+`drizzle.__drizzle_migrations`, in a schema of its own. Dropping `public`
+alone would leave that journal asserting every migration was applied, so the
+restart would rebuild nothing and leave an empty database that the bot
+starts against perfectly happily — a silent failure rather than a loud one.
+
+The restart is what rebuilds the schema: `packages/db`'s `createDb` runs
+drizzle's `migrate()` at startup before the app serves anything, exactly as
+it does on a first deploy against an empty database. A successful reset
+shows every migration applying in `fly logs`; "nothing pending" against a
+freshly dropped database means the `drizzle` schema survived the drop.
+
+This is destructive and has no undo. The only way back is a full re-import,
+which takes considerably longer against production than it does locally (see
+[What is deployed where](#what-is-deployed-where)) and leaves the bot serving
+empty data for that whole window.
+
+The `deploy-production` skill automates this and gates it behind typing the
+exact phrase `blood-bowl-tracker-discord-bot` — a button click is too easy to
+make out of habit — then offers to chain straight into the production imports
+described in
+[Running import tools against production](#running-import-tools-against-production),
+so production does not sit empty afterwards.
