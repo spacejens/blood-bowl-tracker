@@ -154,8 +154,19 @@ files — plus `DATABASE_URL`.
 Its values are an independent set, not a copy of your local `.env`: the
 Discord token and channel ids point at the real production Discord
 application and server, the `API_TOKEN_IMPORT_*` values are separate
-production secrets, and the `RANDOM_INSIGHTS_*` tunables may be set
-differently than locally.
+production secrets, and the `RANDOM_INSIGHTS_*` tunables are set for a live
+audience rather than for development.
+
+Concretely: `RANDOM_INSIGHTS_DISCORD_CHANNEL` in production points at a
+channel dedicated to the bot's scheduled output for real server members,
+distinct from the startup/status channel named by
+`STARTUP_MESSAGE_DISCORD_CHANNEL` — the startup message is deployment noise
+that members should not have to scroll past. `RANDOM_INSIGHTS_CRON` is
+likewise lower-frequency than the hourly expression in the local template:
+hourly exists for quick feedback while developing, whereas a channel people
+actually read wants something closer to once a day (`0 8 * * *`). The
+`RANDOM_INSIGHTS_FILTER_*` probabilities deserve the same second look — the
+template's values were chosen for local iteration, not for a live audience.
 
 `DATABASE_URL` is Neon's **direct** (non-pooled) connection string, not the
 pooled PgBouncer variant Neon also offers. The bot is one long-lived
