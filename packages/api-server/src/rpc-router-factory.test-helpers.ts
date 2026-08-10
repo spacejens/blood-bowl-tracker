@@ -4,9 +4,11 @@ import {
   ErasService,
   ExternalSystemsService,
   LeaguesService,
+  MatchCategoryMismatchError,
   MatchesService,
   MatchEventsService,
   MatchOutcomesService,
+  MissingRequiredFieldError,
   PlayersService,
   PositionsService,
   RacesService,
@@ -78,6 +80,13 @@ export async function createRouterHarness() {
           if (
             conflictErrorClass !== undefined &&
             err instanceof conflictErrorClass
+          ) {
+            results.push({ success: false, error: err.message });
+            continue;
+          }
+          if (
+            err instanceof MissingRequiredFieldError ||
+            err instanceof MatchCategoryMismatchError
           ) {
             results.push({ success: false, error: err.message });
             continue;
