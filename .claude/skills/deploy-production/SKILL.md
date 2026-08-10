@@ -169,6 +169,64 @@ This dispatches the same `.github/workflows/deploy.yml` workflow that merges to 
    ```
 6. Report to the developer: the run URL, its conclusion, the release version before and after, and what the logs showed.
 
+### Drop and recreate the production database
+
+Run this section only if "Drop and recreate the production database" was selected in step 0 above. Runs after every earlier section if those were also selected; runs standalone if it is the only one picked.
+
+**This is destructive and has no undo.** It deletes all production data. The only way back is a full re-import, which is much slower against production than locally and leaves the bot serving empty data for that whole window. Treat every step below as mandatory — in particular, never skip step 3's typed confirmation, and never proceed on an implied or assumed "yes".
+
+1. Make sure the production environment file is present. `apps/discord-bot/.env.production` is gitignored, so a worktree created fresh from a branch will not have it even though the main checkout does. Fill it in from the main checkout only if missing — never overwrite a copy already in the worktree, and never create one from a template:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ] && [ ! -f "$WORKTREE_ROOT/apps/discord-bot/.env.production" ] && [ -f "$MAIN_ROOT/apps/discord-bot/.env.production" ]; then
+     cp "$MAIN_ROOT/apps/discord-bot/.env.production" "$WORKTREE_ROOT/apps/discord-bot/.env.production"
+   fi
+   ```
+   If the file exists in neither place, stop and tell the developer to create it per `docs/discord-bot/production-hosting.md`'s "Configuration and secrets" section. Do not try to read `DATABASE_URL` out of Fly instead.
+2. Confirm the file actually sets `DATABASE_URL`, **without printing its value** — it is the production database credential and must never appear in the transcript:
+   ```bash
+   grep -c '^DATABASE_URL=' apps/discord-bot/.env.production
+   ```
+   Expected output: `1`. Anything else (0, or more than one) — stop and report. Every later step reads this value into a shell variable and never echoes it.
+3. Require a typed confirmation. Ask the developer, in plain text, to reply with exactly:
+
+   ```
+   blood-bowl-tracker-discord-bot
+   ```
+
+   Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections.
+4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable:
+   ```bash
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2-) \
+     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+       -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
+       -c 'CREATE SCHEMA public;' \
+       -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
+   ```
+   Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
+
+   If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
+5. Restart the machine so the bot's startup migrations rebuild the schema:
+   ```bash
+   fly apps restart blood-bowl-tracker-discord-bot
+   ```
+   `packages/db`'s `createDb` runs drizzle's `migrate()` before the app serves anything, exactly as it does on a first deploy against an empty database. No separate migration command exists or is needed.
+6. Verify the rebuild, polling until the machine reports `started` (up to about 60 seconds):
+   ```bash
+   fly status
+   fly logs --no-tail
+   ```
+   A successful reset shows every migration applying in order (not "nothing pending") and then a normal startup. **"Nothing pending" against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports.
+7. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
+   - **Run the manual import (before other importers) against production**
+   - **Run the BBL import against production**
+   - **Run the TP import against production**
+   - **Run the manual import (after other importers) against production**
+
+   Add nothing else to that list — no "All", no "None"; deselecting everything already means "none", and that is a valid answer meaning production stays empty for now. Anything selected here joins the set from step 0 and runs in the same fixed order as the sections below.
+8. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
+
 ## Non-goals
 
 - **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an *older* image.
