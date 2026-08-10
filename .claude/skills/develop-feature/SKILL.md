@@ -293,7 +293,46 @@ This applies to every subagent dispatched from any phase below while working in 
 
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
-4. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
+4. **Automated review loop.** An automated review bot reviews every PR in this repo (see `docs/development-workflow.md`). Wait for its review and drive it to completion here rather than leaving it for the developer to notice later. Repeat the wait → handle cycle below for at most **5 iterations total**.
+
+   **Before the loop**, capture the developer's own login once — it is what distinguishes a reviewer from the PR's author:
+   ```bash
+   gh api user --jq .login
+   ```
+   If this command fails, skip the loop entirely (report a one-line warning that the review loop was skipped because the current `gh` user could not be determined) and continue to step 5 — without a login there is no way to tell a bot's review apart from the developer's own.
+
+   **Each iteration:**
+
+   a. **Record the iteration start time** — only reviews submitted after this moment count, so a previous iteration's review is never re-consumed:
+      ```bash
+      date +%s
+      ```
+
+   b. **Wait for a review.** Poll every **30 seconds**, for up to **10 minutes** total, for a submitted review by someone other than the developer, posted after the iteration start time:
+      ```bash
+      gh pr view <PR> --json reviews --jq \
+        '.reviews[] | select(.author.login != "<developer-login>" and (.submittedAt | fromdateiso8601) > <iteration-start-epoch>)'
+      ```
+      Substitute the PR number from step 3, the login captured before the loop, and the epoch from (a). A non-empty result means a qualifying review exists — stop polling and go to (c).
+
+      This check is bot-agnostic by construction: it never looks for a particular bot's name or API, only for *some* formal review object from a non-author. Any tool that submits a review when it finishes satisfies it. A formal review object — not a raw comment count — is the signal, because bots submit one when their pass completes, distinct from individual comments that may stream in while the review is still in progress. Keep it that way: do not add a bot-name filter.
+
+   c. **Timeout handling.** If the full 10 minutes elapse with no qualifying review, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
+      - **Keep waiting** — poll for another 10 minutes under the same conditions (this does not consume an extra loop iteration).
+      - **Skip the review loop** — leave the loop immediately and continue to step 5.
+
+      This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+
+   d. **Handle the review.** **REQUIRED SUB-SKILL:** Use the `handle-pr-reviews` skill, targeting this PR by number, to discover and triage everything outstanding — inline review comments, top-level comments, and failing CI checks alike, exactly as it does when a developer runs it standalone. Nothing about its own discovery, triage, or reply behavior changes here; the loop only calls it.
+
+   e. **Exit check.** After that run reports, leave the loop early — before reaching 5 iterations — if either holds:
+      - It reported **"No unhandled review comments or failing CI checks found."** — the review is clean, so another iteration has nothing left to find.
+      - It **stopped mid-triage on an ambiguous item** (its own Phase 2 behavior when the right classification or fix genuinely isn't clear). Looping again cannot resolve an item that already needed developer judgment, so surface it immediately — report what is ambiguous, matching `handle-pr-reviews`'s own report — instead of silently consuming further iterations.
+
+      Otherwise start the next iteration at (a). Failing CI checks need no separate tracking: `handle-pr-reviews`'s "nothing unhandled" signal already covers them, and a push that fixes review comments can itself trigger new CI runs worth checking on the next pass.
+
+   **After the loop** — whether it exited early or reached the 5-iteration cap — continue into step 5 unchanged. Print a brief status line noting how the loop ended (clean, ambiguous item surfaced, iteration cap reached, timed out and skipped, or skipped because the login lookup failed).
+5. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
    - **Discord slash-command propagation reminder.** Check whether the branch's diff touches Discord slash-command registration or definitions:
      ```bash
      git diff --name-only origin/main...HEAD -- packages/discord-client/src/discord-client.service.ts apps/discord-bot/src/slash-commands/
@@ -301,4 +340,4 @@ This applies to every subagent dispatched from any phase below while working in 
      If this prints any file paths, print the following reminder to the developer alongside the `deploy-local` hand-off:
      > This branch changes Discord slash-command registration or definitions. Commands are registered globally, and Discord can take up to ~1 hour to propagate a changed command's name, description, or options — so your slash commands may still show their old definitions in Discord for a while after the deploy. That is expected, not a failed deploy. Changes to how a command answers (handler logic) take effect as soon as the bot restarts.
      If it prints nothing, skip the reminder silently — no status line, no mention.
-5. **Skill ends** — human review and merge happen outside this workflow. A future review-bot loop (e.g. Qodo) will run after PR creation, before human review. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
+6. **Skill ends** — human review and merge happen outside this workflow. The automated review bot's feedback has already been driven to completion in step 4, so what reaches the human is a PR that has been through both Claude's self-review and an independent bot pass. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
