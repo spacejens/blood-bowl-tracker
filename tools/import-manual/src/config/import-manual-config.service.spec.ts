@@ -1,5 +1,5 @@
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,8 +20,11 @@ import * as fsModule from 'node:fs';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
 import {
+  DEFAULT_IMPORT_MANUAL_CONFIG_PATH,
   IMPORT_MANUAL_CONFIG_PATH,
   ImportManualConfigService,
+  PRODUCTION_IMPORT_MANUAL_CONFIG_PATH,
+  resolveImportManualConfigPath,
 } from './import-manual-config.service';
 
 describe('ImportManualConfigService', () => {
@@ -147,6 +150,42 @@ describe('ImportManualConfigService', () => {
     const service = await makeService(path);
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-manual-config.json5',
+    );
+  });
+});
+
+describe('resolveImportManualConfigPath', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('resolves the default config path when IMPORT_CONFIG_ENV is unset', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', undefined);
+    expect(resolveImportManualConfigPath()).toBe(
+      DEFAULT_IMPORT_MANUAL_CONFIG_PATH,
+    );
+  });
+
+  it('resolves the default config path for a value other than production', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', 'staging');
+    expect(resolveImportManualConfigPath()).toBe(
+      DEFAULT_IMPORT_MANUAL_CONFIG_PATH,
+    );
+  });
+
+  it('resolves the production config path when IMPORT_CONFIG_ENV is production', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', 'production');
+    expect(resolveImportManualConfigPath()).toBe(
+      PRODUCTION_IMPORT_MANUAL_CONFIG_PATH,
+    );
+  });
+
+  it('points the two paths at sibling files in the working directory', () => {
+    expect(DEFAULT_IMPORT_MANUAL_CONFIG_PATH).toBe(
+      resolve(process.cwd(), 'import-manual-config.json5'),
+    );
+    expect(PRODUCTION_IMPORT_MANUAL_CONFIG_PATH).toBe(
+      resolve(process.cwd(), 'import-manual-config.production.json5'),
     );
   });
 });

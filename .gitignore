@@ -48,9 +48,10 @@ tools/import-bbl/import-bbl-config.production.json5
 tools/import-tp/import-tp-config.json5
 tools/import-tp/import-tp-config.production.json5
 
-# tools/import-manual real config (the committed template is
-# import-manual-config.example.json5)
+# tools/import-manual real configs, local and production (the committed
+# template for both is import-manual-config.example.json5)
 tools/import-manual/import-manual-config.json5
+tools/import-manual/import-manual-config.production.json5
 
 # tools/review-match real config (the committed template is
 # review-match-config.example.json5)
