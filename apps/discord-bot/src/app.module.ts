@@ -17,6 +17,8 @@ import {
   AdvisoryLockService,
   LOCK_SQL,
 } from './leader-election/advisory-lock.service';
+import { ProcessExitService } from './leader-election/process-exit.service';
+import { SleepService } from './leader-election/sleep.service';
 import { SlashCommandsModule } from './slash-commands/slash-commands.module';
 import { StartupNotifierService } from './startup-notifier.service';
 
@@ -55,6 +57,8 @@ import { StartupNotifierService } from './startup-notifier.service';
       inject: [DiscordBotConfigService],
     },
     AdvisoryLockService,
+    ProcessExitService,
+    SleepService,
   ],
 })
 export class AppModule {}
