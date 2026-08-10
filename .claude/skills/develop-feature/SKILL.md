@@ -94,30 +94,27 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for f in apps/discord-bot/.env tools/download-tp/download-tp-config.json5 tools/import-bbl/import-bbl-config.json5 tools/import-tp/import-tp-config.json5 tools/import-manual/import-manual-config.json5 tools/review-match/review-match-config.json5; do
-       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
-         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
-       fi
-     done
-     for d in tools/import-bbl/data tools/import-tp/data; do
-       if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
-         ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
-       fi
-     done
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
-10. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+10. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+   ```bash
+   node tools/ai-helpers/dist/main.js sync-gitignored
+   ```
+   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+
+   It prints JSON to stdout, e.g.:
+   ```json
+   {
+     "copied": ["apps/discord-bot/.env"],
+     "symlinked": ["tools/import-bbl/data"],
+     "skipped": ["tools/review-match/review-match-config.json5"]
+   }
+   ```
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 11's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
 11. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
@@ -148,30 +145,27 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for f in apps/discord-bot/.env tools/download-tp/download-tp-config.json5 tools/import-bbl/import-bbl-config.json5 tools/import-tp/import-tp-config.json5 tools/import-manual/import-manual-config.json5 tools/review-match/review-match-config.json5; do
-       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
-         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
-       fi
-     done
-     for d in tools/import-bbl/data tools/import-tp/data; do
-       if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
-         ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
-       fi
-     done
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
-7. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+7. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+   ```bash
+   node tools/ai-helpers/dist/main.js sync-gitignored
+   ```
+   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+
+   It prints JSON to stdout, e.g.:
+   ```json
+   {
+     "copied": ["apps/discord-bot/.env"],
+     "symlinked": ["tools/import-bbl/data"],
+     "skipped": ["tools/review-match/review-match-config.json5"]
+   }
+   ```
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 8's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
 8. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 ---
