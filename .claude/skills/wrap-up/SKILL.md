@@ -25,6 +25,12 @@ Most often triggered conversationally — when the developer says something like
    git fetch origin main
    ```
    This only updates the remote-tracking ref `origin/main`. It never checks out or otherwise touches the developer's local `main` branch.
+
+   Steps 3 and 4 below invoke `tools/ai-helpers`, so make sure it is compiled before running them:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/ai-helpers run build
+   ```
+   If this fails because dependencies are not installed in this checkout, run `pnpm install` first. A build failure here blocks steps 3 and 4 — report it and stop rather than skipping those checks.
 3. Check for stranded work: commits on `headRefName` or uncommitted changes in the worktree that never made it into the merged PR (can happen if a developer commits directly in the worktree outside the normal task flow). Compare the merged PR's final commit against the local branch tip:
    ```bash
    git -C <worktree-path> log --oneline <merged-sha>..HEAD
@@ -34,74 +40,43 @@ Most often triggered conversationally — when the developer says something like
 
    Then also check the **main checkout** (the repo's primary working tree, distinct from this worktree) for stray commits **and** uncommitted changes left behind by an accidental edit outside the worktree:
    ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   if [ "$MAIN_ROOT" != "$(git rev-parse --show-toplevel)" ]; then
-     git -C "$MAIN_ROOT" status --porcelain
-     git -C "$MAIN_ROOT" log --oneline @{u}..HEAD 2>/dev/null
-   fi
+   node tools/ai-helpers/dist/main.js check-main-stray
    ```
-   Apply the same logic as the pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main (`git -C "$MAIN_ROOT" restore <paths>`, reset redundant commits); if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
+   It prints `{"isWorktree": false}` outside a worktree — nothing to check, move on. Inside one it prints:
+   ```json
+   {
+     "isWorktree": true,
+     "uncommittedFiles": ["path/to/file"],
+     "strayCommits": [{ "sha": "abc1234", "subject": "commit subject" }]
+   }
+   ```
+   Apply the same logic as `develop-feature`'s and `handle-pr-reviews`' pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main; if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. To clean up, resolve the main checkout's path first with `node tools/ai-helpers/dist/main.js resolve-main-root` and use its `mainRoot` value (`git -C "<main-root>" restore <paths>`, reset redundant commits). This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
 4. Check for gitignored config drift — changes to gitignored config/env files that live only inside this worktree and would be lost when it is removed. `git status` never surfaces these, so they need their own check.
-
-   This step runs **only inside a git worktree** — detect worktree context the same way Phase 2's Docker step does (this session entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`). In a plain main checkout there is no second copy to compare against, so skip this step silently.
-
-   Compare a **fixed list** of gitignored files between this worktree and the main checkout. The list mirrors the files `develop-feature`'s Phase 1 setup syncs *into* a fresh worktree, plus the production config variants:
-
-   - `apps/discord-bot/.env`
-   - `apps/discord-bot/.env.production`
-   - `tools/download-tp/download-tp-config.json5`
-   - `tools/import-bbl/import-bbl-config.json5`
-   - `tools/import-bbl/import-bbl-config.production.json5`
-   - `tools/import-tp/import-tp-config.json5`
-   - `tools/import-tp/import-tp-config.production.json5`
-   - `tools/import-manual/import-manual-config.json5`
-   - `tools/import-manual/import-manual-config.production.json5`
-   - `tools/review-match/review-match-config.json5`
-
-   The list is hardcoded here on purpose, matching how `develop-feature` hardcodes its own copy — keep the two in sync by eye when a new tool config appears. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately **excluded**: `develop-feature` symlinks them into the worktree rather than copying, so they always read through to the main checkout's files and cannot drift.
-
-   Classify each listed file:
-
    ```bash
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for f in apps/discord-bot/.env apps/discord-bot/.env.production \
-              tools/download-tp/download-tp-config.json5 \
-              tools/import-bbl/import-bbl-config.json5 \
-              tools/import-bbl/import-bbl-config.production.json5 \
-              tools/import-tp/import-tp-config.json5 \
-              tools/import-tp/import-tp-config.production.json5 \
-              tools/import-manual/import-manual-config.json5 \
-              tools/import-manual/import-manual-config.production.json5 \
-              tools/review-match/review-match-config.json5; do
-       if [ ! -e "$WORKTREE_ROOT/$f" ]; then
-         continue                                  # not in the worktree — nothing to check
-       elif [ ! -e "$MAIN_ROOT/$f" ]; then
-         echo "WORKTREE-ONLY: $f"
-       elif ! diff -q "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f" >/dev/null; then
-         echo "DRIFTED: $f"
-       fi
-     done
-   fi
+   node tools/ai-helpers/dist/main.js check-drift
    ```
+   The command detects worktree context itself and reports nothing outside a worktree (in a plain main checkout there is no second copy to compare against), so there is no separate detection step here. It compares a fixed list of gitignored files — the dev configs `develop-feature`'s Phase 1 syncs *into* a worktree, plus the `.production` variants — between this worktree and the main checkout. That list lives in `tools/ai-helpers/src/shared/gitignored-files.ts` (`GITIGNORED_DRIFT_FILES`); when a new tool config appears, add it there, in one place, rather than to a copy in this file. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately excluded: they are symlinked into the worktree rather than copied, so they always read through to the main checkout's files and cannot drift. A listed file that is absent from this worktree is not checked — there is nothing here to lose.
 
-   Always decide by running `diff` on the two files — never by eyeballing their contents from separate reads, which has produced a false "identical" conclusion before.
+   Output:
+   ```json
+   {
+     "drifted": [{ "path": "apps/discord-bot/.env", "diff": "< old\n---\n> new" }],
+     "worktreeOnly": ["tools/review-match/review-match-config.json5"]
+   }
+   ```
+   If both arrays are empty, nothing has drifted — continue to Phase 2.
 
    For **each** flagged file, first show the developer what is at stake:
 
-   - **DRIFTED** — show the actual differences (`<` lines are the main checkout's copy, `>` lines are this worktree's):
-     ```bash
-     diff "$MAIN_ROOT/<file>" "$WORKTREE_ROOT/<file>"
-     ```
-   - **WORKTREE-ONLY** — state that the file exists only in this worktree and has no counterpart in the main checkout, so removing the worktree destroys the entire file, not just the latest edits.
+   - **drifted** — show the entry's `diff` text verbatim (`<` lines are the main checkout's copy, `>` lines are this worktree's). The comparison was done by running `diff` on the two files, never by eyeballing their contents from separate reads — which has produced a false "identical" conclusion before.
+   - **worktreeOnly** — state that the file exists only in this worktree and has no counterpart in the main checkout, so removing the worktree destroys the entire file, not just the latest edits.
 
    Then ask via `AskUserQuestion`, **one question per flagged file**, with these two genuine options (recommended first, per this project's `AskUserQuestion` convention):
 
-   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied:
+   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied. Resolve both roots first with `node tools/ai-helpers/dist/main.js resolve-main-root` and use its `mainRoot` and `worktreeRoot` values:
       ```bash
-      mkdir -p "$(dirname "$MAIN_ROOT/<file>")"
-      cp "$WORKTREE_ROOT/<file>" "$MAIN_ROOT/<file>"
+      mkdir -p "$(dirname "<main-root>/<file>")"
+      cp "<worktree-root>/<file>" "<main-root>/<file>"
       ```
    2. **"Leave it"** — the worktree's version is not wanted in the main checkout.
 
