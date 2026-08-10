@@ -24,6 +24,6 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
     CompetitionDeepdiveService,
     EraDeepdiveService,
   ],
-  exports: [InsightsCommandService],
+  exports: [InsightsCommandService, SlashCommandRegistryService],
 })
 export class SlashCommandsModule {}
