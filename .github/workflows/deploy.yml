@@ -1,0 +1,35 @@
+# Deploys apps/discord-bot to Fly.io. See docs/discord-bot/production-hosting.md.
+#
+# Runs on every push to main (i.e. every merged pull request) and on manual
+# dispatch, which redeploys the current main without a new commit. CI does not
+# gate this: ci.yml runs on pull requests, so the checks already passed on the
+# branch before the merge that triggers this workflow.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# No cancel-in-progress: cancelling a deploy mid-flight can leave the machine
+# half-replaced, so a second deploy queues behind the first instead.
+concurrency:
+  group: deploy-production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      # --remote-only builds the image on Fly's builders rather than in the
+      # runner, so no Docker layer caching or buildx setup is needed here.
+      # Run from the repo root, where fly.toml lives and which is the build
+      # context apps/discord-bot/Dockerfile expects.
+      - name: Deploy to Fly.io
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
