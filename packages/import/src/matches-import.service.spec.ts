@@ -1,10 +1,12 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
+import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
+import type { BatchBuffer } from './batch-buffer.service';
 import { BatchBufferService } from './batch-buffer.service';
 import { ImportRunnerService } from './import-runner.service';
 import { stubImportRunner } from './import-runner.test-helpers';
@@ -90,9 +92,7 @@ describe('MatchesImportService', () => {
 
   it('createBatch builds a buffer whose upsertBatch calls the client', async () => {
     const errors: ImportError[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const buffer = {} as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const buffer = {} as BatchBuffer<unknown>;
     batchBuffer.create.mockReturnValue(buffer);
     client.matches.upsertBatch.mockResolvedValue([]);
 
@@ -105,8 +105,7 @@ describe('MatchesImportService', () => {
   });
 
   it('createBatch builds the same error message the single-item path uses', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
-    batchBuffer.create.mockReturnValue({} as any);
+    batchBuffer.create.mockReturnValue({} as BatchBuffer<unknown>);
 
     service.createBatch([]);
 
@@ -117,21 +116,17 @@ describe('MatchesImportService', () => {
   });
 
   it('addToBatch delegates to the buffer service and returns its count', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const buffer = {} as any;
+    const buffer = {} as BatchBuffer<UpsertMatch>;
     batchBuffer.add.mockResolvedValue(2);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await expect(service.addToBatch(buffer, data)).resolves.toBe(2);
     expect(batchBuffer.add).toHaveBeenCalledWith(buffer, data);
   });
 
   it('flushBatch delegates to the buffer service and returns its count', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const buffer = {} as any;
+    const buffer = {} as BatchBuffer<UpsertMatch>;
     batchBuffer.flush.mockResolvedValue(5);
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await expect(service.flushBatch(buffer)).resolves.toBe(5);
     expect(batchBuffer.flush).toHaveBeenCalledWith(buffer);
   });
