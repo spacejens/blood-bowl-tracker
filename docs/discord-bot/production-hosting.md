@@ -29,10 +29,12 @@ directory containing `fly.toml` as the Docker build context, and
 `apps/discord-bot/Dockerfile` builds from the monorepo root — the same
 context `docker-compose.yml` uses.
 
-The machine never scales to zero (`auto_stop_machines = "off"`,
-`min_machines_running = 1`). Unlike a stateless web app, the bot holds a
-persistent connection to Discord's gateway, so a stopped machine is an
-offline bot, not a cold start.
+The machine never scales to zero. `fly.toml` declares no `[[services]]` block
+(see below), and Fly's autostop/autostart machinery only acts on machines
+behind a declared service — with none declared, there is nothing for it to
+stop, so the single machine simply keeps running once started. Unlike a
+stateless web app, the bot holds a persistent connection to Discord's
+gateway, so a stopped machine is an offline bot, not a cold start.
 
 The app has a `.fly.dev` hostname, but nothing answers on it. `fly.toml`
 declares no `[[services]]` block at all — only a top-level `[checks.tcp]`
