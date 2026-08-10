@@ -4,6 +4,12 @@ services:
     build:
       context: .
       dockerfile: apps/discord-bot/Dockerfile
+      # Sourced from the host shell; the deploy-local skill exports these from
+      # the checkout before building. Empty is fine — the startup message just
+      # omits the field.
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+        GIT_BRANCH: ${GIT_BRANCH:-}
     ports:
       - "3000:3000"
     env_file:

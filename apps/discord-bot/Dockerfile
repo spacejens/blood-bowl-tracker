@@ -49,6 +49,15 @@ COPY --from=builder /build/packages/db/migrations ./packages/db/migrations
 COPY --from=builder /build/packages/discord-client/dist ./packages/discord-client/dist
 COPY --from=builder /build/packages/game-data/dist ./packages/game-data/dist
 
+# Identity of the code in this image, surfaced in the bot's startup message.
+# `.dockerignore` excludes `.git`, so this cannot be discovered at runtime
+# inside the container — it has to be passed in at build time. Both default to
+# empty; DeploymentInfoService omits an empty field rather than failing.
+ARG GIT_SHA=""
+ARG GIT_BRANCH=""
+ENV GIT_SHA=$GIT_SHA
+ENV GIT_BRANCH=$GIT_BRANCH
+
 ENV NODE_ENV=production
 EXPOSE 3000
 
