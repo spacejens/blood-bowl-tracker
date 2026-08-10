@@ -32,7 +32,7 @@ describe('SlashCommandRegistryService', () => {
       description: 'b',
       execute: vi.fn(),
     });
-    await registry.onApplicationBootstrap();
+    await registry.flush();
     expect(discordClient.registerCommands).toHaveBeenCalledTimes(1);
     const commands = discordClient.registerCommands.mock.calls[0][0] as {
       name: string;
@@ -41,7 +41,7 @@ describe('SlashCommandRegistryService', () => {
   });
 
   it('calls registerCommands with an empty list when nothing registered', async () => {
-    await registry.onApplicationBootstrap();
+    await registry.flush();
     expect(discordClient.registerCommands).toHaveBeenCalledWith([]);
   });
 });

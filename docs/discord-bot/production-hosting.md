@@ -1,7 +1,8 @@
 # Production hosting
 
-The production Discord bot runs as a single always-on container on
-[Fly.io](https://fly.io/), backed by a managed PostgreSQL database on
+The production Discord bot runs as two always-on containers on
+[Fly.io](https://fly.io/) — one active, one standby — backed by a managed
+PostgreSQL database on
 [Neon](https://neon.tech/). This page covers the hosting setup itself: what
 exists where, how configuration reaches the running app, and how to check
 on or roll back a deployment.
@@ -13,13 +14,13 @@ isolated bot identity locally alongside this production deployment, see
 
 ## What is deployed where
 
-| Thing | Value |
-|-------|-------|
-| Fly app | `blood-bowl-tracker-discord-bot` |
-| Fly region | `arn` (Stockholm) |
-| Fly VM | one `shared-cpu-1x` machine, 256 MB, always on |
-| Neon project | `blood-bowl-tracker` |
-| Neon region | `eu-central-1` (Frankfurt) |
+| Thing        | Value                                                                          |
+| ------------ | ------------------------------------------------------------------------------ |
+| Fly app      | `blood-bowl-tracker-discord-bot`                                               |
+| Fly region   | `arn` (Stockholm)                                                              |
+| Fly VM       | two `shared-cpu-1x` machines, 256 MB each, always on (one active, one standby) |
+| Neon project | `blood-bowl-tracker`                                                           |
+| Neon region  | `eu-central-1` (Frankfurt)                                                     |
 
 Both regions are chosen for proximity to the bot's users, who are all in
 Sweden. Fly has a Stockholm region directly; `eu-central-1` (Frankfurt) is
@@ -31,10 +32,10 @@ directory containing `fly.toml` as the Docker build context, and
 `apps/discord-bot/Dockerfile` builds from the monorepo root — the same
 context `docker-compose.yml` uses.
 
-The machine never scales to zero. `fly.toml` declares no `[[services]]` block
+The machines never scale to zero. `fly.toml` declares no `[[services]]` block
 (see below), and Fly's autostop/autostart machinery only acts on machines
 behind a declared service — with none declared, there is nothing for it to
-stop, so the single machine simply keeps running once started. Unlike a
+stop, so both machines simply keep running once started. Unlike a
 stateless web app, the bot holds a persistent connection to Discord's
 gateway, so a stopped machine is an offline bot, not a cold start.
 
@@ -44,8 +45,11 @@ health check against port 3000 — so no port is published to the public
 internet. The `/rpc` API is reached instead through a private `flyctl proxy`
 tunnel; see [Running import tools against production](#running-import-tools-against-production).
 
-There is no redundancy, failover, or autoscaling. For a low-traffic hobby
-bot that is a deliberate non-goal, not an oversight. There is also no backup
+The two machines give redundancy and failover: a crash, a restart, or a
+deploy that replaces one machine leaves the other to take over within one
+retry interval. There is still no autoscaling and no multi-region
+deployment — both are deliberate non-goals for a single-guild, low-traffic
+bot. There is also no backup
 strategy for the Neon database: production data is reproducible by re-running
 the `tools/import-*` importers, so nothing here needs its own backups. This is
 an emergency recovery option, not a routine one, though: each importer writes
@@ -54,6 +58,83 @@ one record at a time over the `flyctl proxy` tunnel (see
 so a full re-import of the whole dataset takes considerably longer against
 production than it does locally, and the bot serves stale or empty data for
 that whole window.
+
+## Active and standby
+
+Both machines run the same image, and both start their HTTP/RPC server
+immediately — the TCP health check and the `flyctl proxy` import endpoint are
+live on both at all times, regardless of which one is active.
+
+What they do _not_ both do is talk to Discord. Discord delivers every gateway
+event to every connected session of an unsharded bot, so two live sessions
+would both receive the same slash-command interaction and race to answer it
+(one succeeds, one fails with "interaction already acknowledged"), and both
+would post the scheduled random insight.
+
+The machines therefore elect a leader through a Postgres advisory lock on the
+shared Neon database — no new infrastructure, since the bot is already
+connected to it. Each machine opens one dedicated connection (separate from
+drizzle's pool, because advisory locks are session-scoped) and calls
+`pg_try_advisory_lock`. The winner:
+
+1. connects to Discord's gateway,
+2. registers the slash commands,
+3. starts the `RANDOM_INSIGHTS_CRON` job,
+4. posts its startup message.
+
+The loser posts a standby startup message — a single plain REST call to
+Discord's API, never a gateway session — and retries the lock every 15
+seconds, doing nothing else.
+
+**Failover** needs no heartbeat or timeout bookkeeping. If the active machine
+crashes, is killed, or loses connectivity, its lock connection drops and
+Postgres releases the lock immediately; the standby's next retry acquires it
+and runs the same four steps. Its own startup message is the only signal that
+a handover happened — there is no separate takeover message.
+
+If an active machine loses its lock connection but keeps running (a transient
+network blip), it treats that as fatal and exits rather than guessing whether
+it is still the leader. Fly restarts it and it rejoins the election, normally
+as the standby.
+
+The implementation lives in `apps/discord-bot/src/leader-election/`.
+
+### The startup message
+
+Each machine posts a status embed when it starts, so it is clear at a glance
+whether something new was deployed, rolled back, or merely restarted. The
+title names the role; the description has one `Label: value` line per field
+that resolved:
+
+```
+Bot starting as active
+────────────────────────
+Machine: 148e123456
+App: blood-bowl-tracker-discord-bot
+Branch: main
+Commit: abcdef1
+```
+
+| Field          | Source in production                                                     |
+| -------------- | ------------------------------------------------------------------------ |
+| Machine id     | `FLY_MACHINE_ID`, injected by Fly                                        |
+| App name       | `FLY_APP_NAME`, injected by Fly                                          |
+| Branch         | `GIT_BRANCH` build arg, from `github.ref_name`                           |
+| Commit SHA     | `GIT_SHA` build arg, from `github.sha` (shown as the first 7 characters) |
+| Active/standby | which side of the election this machine ended up on, shown in the title  |
+
+The two `GIT_*` values are baked into the image by
+`.github/workflows/deploy.yml` at build time, because `.dockerignore` excludes
+`.git` — a running container has no way to discover its own commit. Locally,
+the `deploy-local` skill exports the same two variables from the host
+checkout, and a bare `pnpm start:dev` falls back to running
+`git rev-parse HEAD` / `git branch --show-current` directly. Any field that
+cannot be resolved is left off the embed rather than shown blank; none is
+required, and none can fail startup.
+
+This is the only message either machine posts on startup — the previous
+behavior of also posting the unfiltered `stats` insight was dropped, since
+the status embed alone already answers "what is running right now."
 
 ## Configuration and secrets
 
@@ -117,25 +198,35 @@ Done once, by a developer with accounts on both providers:
    ```bash
    flyctl apps create blood-bowl-tracker-discord-bot
    ```
-4. Create `apps/discord-bot/.env.production` and fill in every variable:
+4. Scale to two machines:
+   ```bash
+   fly scale count 2
+   ```
+   Machine count is not a `fly.toml` field — like `flyctl apps create`, it is
+   set imperatively, once. Deploys preserve the existing count, so this does
+   not need repeating. See [Active and standby](#active-and-standby) for what
+   the second machine does.
+5. Create `apps/discord-bot/.env.production` and fill in every variable:
    the production `DISCORD_BOT_TOKEN`, the production channel ids, the
    `RANDOM_INSIGHTS_*` tunables, the `API_TOKEN_IMPORT_*` tokens, and
    `DATABASE_URL` set to the Neon string from step 2.
-5. Push secrets and deploy:
+6. Push secrets and deploy:
    ```bash
    fly secrets import < apps/discord-bot/.env.production
    fly deploy
    ```
-6. Create a Fly deploy token and store it as a GitHub Actions repository
+7. Create a Fly deploy token and store it as a GitHub Actions repository
    secret, so the deploy workflow can authenticate. Run from the repository
    root, where `fly.toml` names the app:
+
    ```bash
    fly tokens create deploy --name github-actions
    gh secret set FLY_API_TOKEN --app actions
    ```
+
    `fly tokens create deploy` prints the token on stdout; the leading
    `FlyV1 ` is part of the value, so paste the whole line when `gh secret
-   set` prompts for it. The token is scoped to deploying this one app, not
+set` prompts for it. The token is scoped to deploying this one app, not
    to the whole Fly account. Adding the secret through the GitHub web UI
    (Settings → Secrets and variables → Actions) works equally well.
 
@@ -143,7 +234,8 @@ Done once, by a developer with accounts on both providers:
    mint or store this credential: creating a deploy token is a rare,
    deliberate act, and a skill that did it silently would be handing itself
    the ability to deploy.
-7. Verify (see below).
+
+8. Verify (see below).
 
 ## Deploying
 
@@ -153,13 +245,15 @@ practice, every pull request merged with GitHub's merge-commit button — and
 runs `flyctl deploy --remote-only` from the repository root, where
 `fly.toml` lives. Fly builds `apps/discord-bot/Dockerfile` with the repo
 root as build context on Fly's own builders, pushes the image, and replaces
-the running machine.
+both running machines, one at a time — see
+[Active and standby](#active-and-standby) for what that overlap means for
+which machine ends up active afterward.
 
 The workflow authenticates with the `FLY_API_TOKEN` repository secret
 created in [First-time setup](#first-time-setup). Its `deploy-production`
 concurrency group deliberately does not cancel in-progress runs, so two
 deploys queue rather than race — cancelling a deploy mid-flight can leave
-the machine half-replaced.
+a machine half-replaced.
 
 Nothing about CI gates the deploy. `.github/workflows/ci.yml` runs on pull
 requests, so lint, typecheck, and tests have already passed on the branch
@@ -202,10 +296,10 @@ secrets in `apps/discord-bot/.env.production`, not from the local `.env`.
 Each importer therefore keeps a second, git-ignored config file next to its
 default one:
 
-| Tool | Local config | Production config |
-|------|--------------|-------------------|
-| `tools/import-bbl` | `import-bbl-config.json5` | `import-bbl-config.production.json5` |
-| `tools/import-tp` | `import-tp-config.json5` | `import-tp-config.production.json5` |
+| Tool                  | Local config                 | Production config                       |
+| --------------------- | ---------------------------- | --------------------------------------- |
+| `tools/import-bbl`    | `import-bbl-config.json5`    | `import-bbl-config.production.json5`    |
+| `tools/import-tp`     | `import-tp-config.json5`     | `import-tp-config.production.json5`     |
 | `tools/import-manual` | `import-manual-config.json5` | `import-manual-config.production.json5` |
 
 Both variants share one committed template per tool — the existing
@@ -272,19 +366,22 @@ carry a placeholder token and fail with `401`.
 ## Checking on the deployment
 
 ```bash
-fly status    # should show exactly one machine in state "started"
-fly logs      # live log stream from the running machine
+fly status    # should show two machines, both in state "started"
+fly logs      # live log stream from both running machines
 ```
 
-A healthy startup shows the drizzle migrations applying (or nothing
-pending), the bot logging in to Discord's gateway, and the startup insight
-being posted to `STARTUP_MESSAGE_DISCORD_CHANNEL`.
+A healthy startup shows the drizzle migrations applying (or nothing pending)
+on both machines, one machine logging `Acquired the leader lock; becoming
+active`, that machine logging in to Discord's gateway and posting the active
+startup message to `STARTUP_MESSAGE_DISCORD_CHANNEL`, and the other logging
+`Another machine holds the leader lock; standing by` and posting the standby
+message. `fly logs` interleaves both machines, prefixed by machine id.
 
 Common failures and where they surface:
 
 - **Missing or invalid configuration** — the bot is intentionally
   fail-fast, so a missing variable throws at startup (`DATABASE_URL is not
-  configured`, and similar) and the machine crash-loops. `fly status` shows
+configured`, and similar) and the machine crash-loops. `fly status` shows
   repeated restarts; `fly logs` shows the thrown error. Fix the value and
   re-run `fly secrets import`. If the machine already hit Fly's max restart
   count (`fly status` shows `stopped` and `fly logs` shows "machine has
@@ -298,6 +395,36 @@ Common failures and where they surface:
   which is normal and not itself a failure.
 - **Bad image** — a failed build stops the `fly deploy` command itself,
   before anything is replaced; the previous machine keeps running.
+- **Both machines standby, none active** — nothing is posted and slash
+  commands go unanswered. Neither machine could take the advisory lock, which
+  in practice means a third process holds it (a local bot pointed at the
+  production database) or the lock connection cannot be opened at all;
+  `fly logs` shows `Failed to reserve the advisory-lock connection` in the
+  latter case.
+- **A machine restarting after `Lost the leader lock while active`** — the
+  active machine's dedicated lock connection dropped, which is fatal by
+  design. A single occurrence is the intended reaction to a blip and the
+  standby will already have taken over; a repeating loop points at the
+  database dropping connections.
+- **A machine restarting after `Failed to complete startup after connecting
+to Discord; exiting`** — a step after a successful gateway connection
+  (registering slash commands, starting the cron, or posting the startup
+  message) failed. This is fatal by design too, for the same reason as
+  above: once connected, releasing the lock and retrying would risk two
+  live gateway sessions instead of one. Fly restarts the machine and it
+  rejoins the election. Check the logged error for the underlying cause
+  (a Discord API error, a misconfigured channel id, and similar).
+- **A migration error in `fly logs` from one of two simultaneously-starting
+  machines** — `packages/db`'s migration step runs unconditionally on both
+  machines at boot, and drizzle's migrator takes no lock of its own. A
+  rolling deploy staggers the two machines (the second isn't replaced until
+  the first passes its health check, which happens after migrations run), so
+  this is not a concern for the normal deploy path. It can happen if both
+  machines restart at the same moment with a pending migration — `fly scale
+count 2`, `fly apps restart`, or a coincidental simultaneous crash-restart
+  of both machines. The machine that lost the race crash-loops until Fly
+  restarts it into the now-migrated database; the other proceeds normally.
+  No manual fix is needed beyond letting Fly's restart machinery catch up.
 
 ## Rolling back
 

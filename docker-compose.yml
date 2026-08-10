@@ -4,13 +4,19 @@ services:
     build:
       context: .
       dockerfile: apps/discord-bot/Dockerfile
+      # Sourced from the host shell; the deploy-local skill exports these from
+      # the checkout before building. Empty is fine — the startup message just
+      # omits the field.
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+        GIT_BRANCH: ${GIT_BRANCH:-}
     ports:
-      - "3000:3000"
+      - '3000:3000'
     env_file:
       - apps/discord-bot/.env
     environment:
       DATABASE_URL: postgres://blood_bowl:blood_bowl@postgres:5432/blood_bowl
-      PORT: "3000"
+      PORT: '3000'
       NODE_ENV: production
     depends_on:
       postgres:
@@ -24,18 +30,18 @@ services:
       POSTGRES_USER: blood_bowl
       POSTGRES_PASSWORD: blood_bowl
     ports:
-      - "5433:5432"
+      - '5433:5432'
     volumes:
       - postgres_data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U blood_bowl -d blood_bowl"]
+      test: ['CMD-SHELL', 'pg_isready -U blood_bowl -d blood_bowl']
       interval: 5s
       timeout: 5s
       retries: 5
 
   schemaspy:
     image: schemaspy/schemaspy:7.0.2
-    profiles: ["schemaspy"]
+    profiles: ['schemaspy']
     depends_on:
       postgres:
         condition: service_healthy
@@ -45,7 +51,7 @@ services:
       - -host
       - postgres
       - -port
-      - "5432"
+      - '5432'
       - -db
       - blood_bowl
       - -u

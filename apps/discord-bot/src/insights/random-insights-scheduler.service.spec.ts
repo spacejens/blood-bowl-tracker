@@ -56,7 +56,7 @@ describe('RandomInsightsSchedulerService', () => {
   }
 
   it('registers and starts a cron job built from the configured expression', () => {
-    service.onApplicationBootstrap();
+    service.start();
 
     expect(registry.addCronJob).toHaveBeenCalledTimes(1);
     expect(registry.addCronJob.mock.calls[0][0]).toBe(RANDOM_INSIGHTS_JOB_NAME);
@@ -67,7 +67,7 @@ describe('RandomInsightsSchedulerService', () => {
   });
 
   it('posts an insight when the job ticks', async () => {
-    service.onApplicationBootstrap();
+    service.start();
     const job = registeredJob();
     void job.stop();
 
@@ -97,7 +97,7 @@ describe('RandomInsightsSchedulerService', () => {
 
   it('throws at bootstrap when the cron expression is invalid', () => {
     config.getRandomInsightsCron.mockReturnValue('not a cron expression');
-    expect(() => service.onApplicationBootstrap()).toThrow();
+    expect(() => service.start()).toThrow();
     expect(registry.addCronJob).not.toHaveBeenCalled();
   });
 
@@ -105,7 +105,7 @@ describe('RandomInsightsSchedulerService', () => {
     config.getRandomInsightsDiscordChannel.mockImplementation(() => {
       throw new Error('invalid RANDOM_INSIGHTS_DISCORD_CHANNEL');
     });
-    expect(() => service.onApplicationBootstrap()).toThrow(
+    expect(() => service.start()).toThrow(
       'invalid RANDOM_INSIGHTS_DISCORD_CHANNEL',
     );
     expect(registry.addCronJob).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('RandomInsightsSchedulerService', () => {
     scope.validateConfig.mockImplementation(() => {
       throw new Error('invalid RANDOM_INSIGHTS_FILTER_PROBABILITY');
     });
-    expect(() => service.onApplicationBootstrap()).toThrow(
+    expect(() => service.start()).toThrow(
       'invalid RANDOM_INSIGHTS_FILTER_PROBABILITY',
     );
     expect(registry.addCronJob).not.toHaveBeenCalled();

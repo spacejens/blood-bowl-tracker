@@ -30,10 +30,18 @@ primary_region = "arn"
 # recognized inside a [[services]] or [http_service] block — flyctl silently
 # drops them anywhere else, including at the top level. With no services
 # declared, there is nothing for Fly's autostop/autostart machinery to act
-# on, so the single machine simply keeps running once started; it is stopped
+# on, so both machines simply keep running once started; it is stopped
 # or replaced only by an explicit `fly machine stop`/`fly deploy`. The bot
 # holds a persistent Discord gateway connection, so this always-on behavior
 # is required, not incidental.
+#
+# Machine COUNT is likewise not a fly.toml field. The app runs two machines —
+# one active, one standby, coordinated through a Postgres advisory lock (see
+# apps/discord-bot/src/leader-election/) — and that count is set imperatively,
+# once, with `fly scale count 2`, the same way the app itself was created with
+# `flyctl apps create` rather than declared here. Deploys preserve the existing
+# count, so this is a one-time step. See
+# docs/discord-bot/production-hosting.md.
 #
 # The app has no HTTP health endpoint, so the check is a plain TCP connect
 # against the port the RPC server binds.

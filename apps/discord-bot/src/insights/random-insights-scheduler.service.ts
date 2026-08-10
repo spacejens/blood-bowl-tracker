@@ -1,5 +1,5 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
 
@@ -23,7 +23,7 @@ export const RANDOM_INSIGHTS_JOB_NAME = 'random-insights';
  * InsightsModule -- registering it there would make those two modules cyclic.
  */
 @Injectable()
-export class RandomInsightsSchedulerService implements OnApplicationBootstrap {
+export class RandomInsightsSchedulerService {
   private readonly logger = new Logger(RandomInsightsSchedulerService.name);
 
   constructor(
@@ -34,7 +34,12 @@ export class RandomInsightsSchedulerService implements OnApplicationBootstrap {
     private readonly scope: RandomInsightsScopeService,
   ) {}
 
-  onApplicationBootstrap(): void {
+  /**
+   * Registers and starts the cron job. Called by leader election once this
+   * machine is active — a standby must never post scheduled insights, since
+   * both machines share one bot identity and one channel.
+   */
+  start(): void {
     const cronTime = this.config.getRandomInsightsCron();
     // Force the channel id and the two percent-probability getters to be
     // read (and thus validated) here too, even though they're only actually

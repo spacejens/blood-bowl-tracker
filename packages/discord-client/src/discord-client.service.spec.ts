@@ -17,6 +17,7 @@ interface MockClient {
   guilds: { cache: Map<string, MockGuild> };
   once: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   user: { tag: string | undefined };
@@ -33,6 +34,7 @@ const mockClient: MockClient = {
   guilds: { cache: new Map<string, MockGuild>() },
   once: vi.fn(),
   on: vi.fn(),
+  off: vi.fn(),
   login: vi.fn(),
   destroy: vi.fn(),
   user: { tag: 'test-bot#0001' },
@@ -91,7 +93,26 @@ describe('DiscordClientService', () => {
   });
 
   it('logs in with the provided token on module init', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
+    expect(mockClient.login).toHaveBeenCalledWith('my-token');
+  });
+
+  it('does not log in during onModuleInit', () => {
+    service.onModuleInit();
+
+    expect(mockClient.login).not.toHaveBeenCalled();
+    expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
+    expect(mockClient.on).toHaveBeenCalledWith(
+      'interactionCreate',
+      expect.any(Function),
+    );
+  });
+
+  it('logs in and waits for ready when connect is called', async () => {
+    service.onModuleInit();
+    await service.connect();
+
     expect(mockClient.login).toHaveBeenCalledWith('my-token');
   });
 
@@ -132,7 +153,8 @@ describe('DiscordClientService', () => {
   });
 
   it('registers a persistent error handler on module init', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
     expect(mockClient.on).toHaveBeenCalledWith('error', expect.any(Function));
   });
 
@@ -140,7 +162,8 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
     const call = mockClient.on.mock.calls.find(([event]) => event === 'error');
     if (!call) throw new Error('error handler not registered');
     const errorHandler = call[1] as (error: unknown) => void;
@@ -157,7 +180,8 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'error')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
 
     interactionHandler()({
       isChatInputCommand: () => {
@@ -179,7 +203,8 @@ describe('DiscordClientService', () => {
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
     try {
-      await service.onModuleInit();
+      service.onModuleInit();
+      await service.connect();
       expect(logSpy).toHaveBeenCalledWith('Logged in as unknown');
     } finally {
       mockClient.user = originalUser;
@@ -189,7 +214,8 @@ describe('DiscordClientService', () => {
   it('wraps a non-Error login rejection in an Error', async () => {
     mockClient.once.mockImplementation(() => mockClient);
     mockClient.login.mockRejectedValue('token invalid');
-    const result = service.onModuleInit();
+    service.onModuleInit();
+    const result = service.connect();
     await expect(result).rejects.toBeInstanceOf(Error);
     await expect(result).rejects.toThrow('token invalid');
   });
@@ -197,7 +223,8 @@ describe('DiscordClientService', () => {
   it('rejects init when login fails', async () => {
     mockClient.once.mockImplementation(() => mockClient);
     mockClient.login.mockRejectedValue(new Error('Invalid token'));
-    await expect(service.onModuleInit()).rejects.toThrow('Invalid token');
+    service.onModuleInit();
+    await expect(service.connect()).rejects.toThrow('Invalid token');
   });
 
   it('provides DiscordClientService via forRootAsync', async () => {
@@ -221,14 +248,26 @@ describe('DiscordClientService', () => {
   it('rejects init when the client never becomes ready', async () => {
     vi.useFakeTimers();
     try {
-      mockClient.once.mockImplementation(() => mockClient);
+      let readyHandler: (() => void) | undefined;
+      mockClient.once.mockImplementation((event: string, cb: () => void) => {
+        if (event === 'ready') readyHandler = cb;
+        return mockClient;
+      });
       mockClient.login.mockReturnValue(new Promise<string>(() => {}));
-      const initPromise = service.onModuleInit();
+      service.onModuleInit();
+      const initPromise = service.connect();
       const assertion = expect(initPromise).rejects.toThrow(
         'Discord client did not become ready',
       );
       await vi.advanceTimersByTimeAsync(30_000);
       await assertion;
+
+      // The login promise above never resolves, so a later `ready` event
+      // would still be possible unless the timeout tore both down — a
+      // duplicate gateway session if this machine has already released the
+      // lock and a standby has taken over.
+      expect(mockClient.off).toHaveBeenCalledWith('ready', readyHandler);
+      expect(mockClient.destroy).toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
@@ -303,7 +342,8 @@ describe('DiscordClientService', () => {
   });
 
   it('dispatches a registered command and replies with its output', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
     const execute = vi.fn().mockResolvedValue('the answer');
     await service.registerCommands([
       { name: 'stats', description: 'Show stats', execute },
@@ -329,7 +369,8 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
     const execute = vi.fn().mockResolvedValue('the answer');
     await service.registerCommands([
       { name: 'stats', description: 'Show stats', execute },
@@ -356,7 +397,8 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
+    await service.connect();
     const execute = vi.fn().mockResolvedValue('the answer');
     await service.registerCommands([
       { name: 'stats', description: 'Show stats', execute },
@@ -383,7 +425,7 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
     await service.registerCommands([
       {
         name: 'stats',
@@ -410,7 +452,7 @@ describe('DiscordClientService', () => {
   });
 
   it('ignores interactions for unregistered commands', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const reply = vi.fn();
     interactionHandler()({
       isAutocomplete: () => false,
@@ -425,7 +467,7 @@ describe('DiscordClientService', () => {
   });
 
   it('ignores non-command interactions', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const reply = vi.fn();
     interactionHandler()({
       isAutocomplete: () => false,
@@ -473,7 +515,7 @@ describe('DiscordClientService', () => {
   });
 
   it('passes the interaction into the command execute handler', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const execute = vi.fn().mockResolvedValue('the answer');
     await service.registerCommands([
       { name: 'stats', description: 'Show stats', execute },
@@ -496,7 +538,7 @@ describe('DiscordClientService', () => {
   });
 
   it('replies with an error when a command handler throws', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     await service.registerCommands([
       {
         name: 'stats',
@@ -518,7 +560,7 @@ describe('DiscordClientService', () => {
   });
 
   it('responds to an autocomplete interaction with the command choices', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const autocomplete = vi
       .fn()
       .mockResolvedValue([{ name: 'coach', value: 'coach' }]);
@@ -546,7 +588,7 @@ describe('DiscordClientService', () => {
   });
 
   it('ignores autocomplete interactions for commands without an autocomplete handler', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     await service.registerCommands([
       { name: 'stats', description: 'Show stats', execute: vi.fn() },
     ]);
@@ -564,7 +606,7 @@ describe('DiscordClientService', () => {
   });
 
   it('dispatches a button interaction to the handler whose prefix matches its customId', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const handler = vi.fn().mockResolvedValue('era details');
     service.registerButtonHandler('deepdive:era:', handler);
     const reply = vi.fn().mockResolvedValue(undefined);
@@ -586,7 +628,7 @@ describe('DiscordClientService', () => {
   });
 
   it('ignores a button interaction whose customId matches no registered prefix', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     service.registerButtonHandler('deepdive:era:', vi.fn());
     const reply = vi.fn();
     interactionHandler()({
@@ -602,7 +644,7 @@ describe('DiscordClientService', () => {
   });
 
   it('replies with an error when a button handler throws', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     service.registerButtonHandler(
       'deepdive:era:',
       vi.fn().mockRejectedValue(new Error('boom')),
@@ -624,7 +666,7 @@ describe('DiscordClientService', () => {
   });
 
   it('dispatches a select menu interaction to the handler whose prefix matches its customId', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const handler = vi.fn().mockResolvedValue('era details');
     service.registerSelectMenuHandler('deepdive:era:', handler);
     const reply = vi.fn().mockResolvedValue(undefined);
@@ -647,7 +689,7 @@ describe('DiscordClientService', () => {
   });
 
   it('ignores a select menu interaction whose customId matches no registered prefix', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     service.registerSelectMenuHandler('deepdive:era:', vi.fn());
     const reply = vi.fn();
     interactionHandler()({
@@ -664,7 +706,7 @@ describe('DiscordClientService', () => {
   });
 
   it('does not route a select menu interaction to a button handler', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     const buttonHandler = vi.fn();
     service.registerButtonHandler('deepdive:era:', buttonHandler);
     const reply = vi.fn();
@@ -686,7 +728,7 @@ describe('DiscordClientService', () => {
     const logSpy = vi
       .spyOn(Logger.prototype, 'log')
       .mockImplementation(() => undefined);
-    await service.onModuleInit();
+    service.onModuleInit();
     service.registerSelectMenuHandler(
       'deepdive:era:',
       vi.fn().mockResolvedValue('era details'),
@@ -711,7 +753,7 @@ describe('DiscordClientService', () => {
   });
 
   it('replies with an error when a select menu handler throws', async () => {
-    await service.onModuleInit();
+    service.onModuleInit();
     service.registerSelectMenuHandler(
       'deepdive:era:',
       vi.fn().mockRejectedValue(new Error('boom')),

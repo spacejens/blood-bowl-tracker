@@ -29,7 +29,14 @@ jobs:
       # runner, so no Docker layer caching or buildx setup is needed here.
       # Run from the repo root, where fly.toml lives and which is the build
       # context apps/discord-bot/Dockerfile expects.
+      #
+      # The two build args bake this commit's identity into the image so the
+      # bot's startup message reports which version is deployed — the image
+      # has no .git to discover it from at runtime.
       - name: Deploy to Fly.io
-        run: flyctl deploy --remote-only
+        run: >-
+          flyctl deploy --remote-only
+          --build-arg GIT_SHA=${{ github.sha }}
+          --build-arg GIT_BRANCH=${{ github.ref_name }}
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
