@@ -3,13 +3,6 @@ import { Injectable, Logger } from '@nestjs/common';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
-import { InsightsCommandService } from './slash-commands/insights-command.service';
-
-/**
- * The fact-tree path posted on every startup: a predictable "state of the
- * data" snapshot. Random variety is the scheduled random-insights job's job.
- */
-const STARTUP_INSIGHT_CATEGORY = 'stats';
 
 /** Discord's REST base, used only by the standby path. */
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -24,15 +17,14 @@ export class StartupNotifierService {
 
   constructor(
     private readonly discordClient: DiscordClientService,
-    private readonly insightsCommand: InsightsCommandService,
     private readonly config: DiscordBotConfigService,
     private readonly deploymentInfo: DeploymentInfoService,
   ) {}
 
   /**
-   * The elected machine's announcement: the deployment status line, then the
-   * unfiltered stats insight, both through the gateway client. Errors
-   * propagate — the caller treats a failure here as "could not become active".
+   * The elected machine's announcement: the deployment status line, through
+   * the gateway client. Errors propagate — the caller treats a failure here
+   * as "could not become active".
    */
   async postActiveStartupMessage(): Promise<void> {
     const channelId = this.config.getStartupMessageDiscordChannel();
@@ -40,11 +32,6 @@ export class StartupNotifierService {
       channelId,
       this.deploymentInfo.describe('active'),
     );
-    const message = await this.insightsCommand.resolveCategory(
-      STARTUP_INSIGHT_CATEGORY,
-      {},
-    );
-    await this.discordClient.sendMessage(channelId, message);
     this.logger.log(`Posted active startup message to channel ${channelId}`);
   }
 

@@ -125,8 +125,9 @@ checkout, and a bare `pnpm start:dev` falls back to running
 cannot be resolved is left out of the message; none is required, and none can
 fail startup.
 
-The active machine posts this line _and_ the usual unfiltered `stats` insight.
-The standby posts only the line.
+This is the only message either machine posts on startup — the previous
+behavior of also posting the unfiltered `stats` insight was dropped, since
+the status line alone already answers "what is running right now."
 
 ## Configuration and secrets
 

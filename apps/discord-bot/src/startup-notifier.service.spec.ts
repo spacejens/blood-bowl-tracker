@@ -5,12 +5,10 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigService } from './discord-bot-config.service';
-import { InsightsCommandService } from './slash-commands/insights-command.service';
 import { StartupNotifierService } from './startup-notifier.service';
 
 describe('StartupNotifierService', () => {
   let discordClient: MockProxy<DiscordClientService>;
-  let insightsCommand: MockProxy<InsightsCommandService>;
   let config: MockProxy<DiscordBotConfigService>;
   let deploymentInfo: MockProxy<DeploymentInfoService>;
   let service: StartupNotifierService;
@@ -18,8 +16,6 @@ describe('StartupNotifierService', () => {
   beforeEach(async () => {
     discordClient = mock<DiscordClientService>();
     discordClient.sendMessage.mockResolvedValue(undefined);
-    insightsCommand = mock<InsightsCommandService>();
-    insightsCommand.resolveCategory.mockResolvedValue('the stats fact');
     config = mock<DiscordBotConfigService>();
     config.getStartupMessageDiscordChannel.mockReturnValue('42');
     config.getDiscordBotToken.mockReturnValue('the-token');
@@ -30,7 +26,6 @@ describe('StartupNotifierService', () => {
       providers: [
         StartupNotifierService,
         { provide: DiscordClientService, useValue: discordClient },
-        { provide: InsightsCommandService, useValue: insightsCommand },
         { provide: DiscordBotConfigService, useValue: config },
         { provide: DeploymentInfoService, useValue: deploymentInfo },
       ],
@@ -43,27 +38,13 @@ describe('StartupNotifierService', () => {
   });
 
   describe('active path', () => {
-    it('posts the deployment status line and then the stats insight', async () => {
+    it('posts the deployment status line to the configured channel', async () => {
       await service.postActiveStartupMessage();
 
       expect(deploymentInfo.describe).toHaveBeenCalledWith('active');
-      expect(insightsCommand.resolveCategory).toHaveBeenCalledWith('stats', {});
-      expect(insightsCommand.resolveRandomFact).not.toHaveBeenCalled();
       expect(discordClient.sendMessage.mock.calls).toEqual([
         ['42', 'Bot starting as **active**'],
-        ['42', 'the stats fact'],
       ]);
-    });
-
-    it('posts an embed fact to the configured channel', async () => {
-      const embed = {
-        embeds: [{ title: 'I have knowledge of', description: 'Leagues: 3' }],
-      };
-      insightsCommand.resolveCategory.mockResolvedValue(embed);
-
-      await service.postActiveStartupMessage();
-
-      expect(discordClient.sendMessage).toHaveBeenLastCalledWith('42', embed);
     });
 
     it('propagates the error when the channel id is not configured', async () => {
@@ -74,7 +55,15 @@ describe('StartupNotifierService', () => {
       await expect(service.postActiveStartupMessage()).rejects.toThrow(
         'STARTUP_MESSAGE_DISCORD_CHANNEL is not configured',
       );
-      expect(insightsCommand.resolveCategory).not.toHaveBeenCalled();
+      expect(discordClient.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('propagates the error when sending the status line fails', async () => {
+      discordClient.sendMessage.mockRejectedValue(new Error('gateway down'));
+
+      await expect(service.postActiveStartupMessage()).rejects.toThrow(
+        'gateway down',
+      );
     });
   });
 
@@ -99,7 +88,6 @@ describe('StartupNotifierService', () => {
         },
       );
       expect(discordClient.sendMessage).not.toHaveBeenCalled();
-      expect(insightsCommand.resolveCategory).not.toHaveBeenCalled();
     });
 
     it('swallows a non-ok REST response', async () => {
