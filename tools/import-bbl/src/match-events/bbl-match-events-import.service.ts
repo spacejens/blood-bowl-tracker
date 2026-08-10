@@ -3,7 +3,11 @@ import type {
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchEventsImportService,
@@ -30,6 +34,7 @@ interface EmitEventsOptions {
   teamEraIdByCode: Map<string, number>;
   playerIdsByPid: Map<string, number>;
   errors: ImportError[];
+  batch: BatchBuffer<UpsertMatchEvent>;
 }
 
 interface ImportMatchEventsOptions {
@@ -99,6 +104,11 @@ export class BblMatchEventsImportService {
     const eventsByBblId =
       await this.matchEventsReader.getMatchEventsByBblId(errors);
     const merges = await this.matchMerge.resolve(errors);
+
+    // One buffer for the whole phase, not one per match: an event only needs
+    // its own matchId resolved before it can be sent, which the per-match
+    // loop already guarantees, so chunks may safely span matches.
+    const batch = this.matchEventsImport.createBatch(errors);
 
     for (const [competitionBblId, competition] of competitionsByBblId) {
       const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
@@ -178,6 +188,7 @@ export class BblMatchEventsImportService {
             teamEraIdByCode,
             playerIdsByPid,
             errors,
+            batch,
           });
         } catch (error) {
           errors.push(
@@ -192,15 +203,20 @@ export class BblMatchEventsImportService {
       }
     }
 
+    imported += await this.matchEventsImport.flushBatch(batch);
+
     return { result: this.importResults.result({ imported, errors }) };
   }
 
   /**
-   * Correlate and upsert every event for one match (or merged pair),
+   * Correlate and buffer every event for one match (or merged pair),
    * synthesizing one external id per side present on the event (action side
    * first, then consequence side) with per-(team, category) occurrence indices
    * drawn from one shared counter map, under each occurrence's own source
-   * match bblId. Returns the number of events whose upsert reported success.
+   * match bblId. Each event is fed to the caller's shared batch via
+   * {@link MatchEventsImportService.addToBatch}. Returns the number of events
+   * imported by any chunk that filled up and was sent *during* this call; the
+   * caller's trailing `flushBatch` accounts for the rest.
    */
   private async emitEvents(options: EmitEventsOptions): Promise<number> {
     const {
@@ -210,6 +226,7 @@ export class BblMatchEventsImportService {
       teamEraIdByCode,
       playerIdsByPid,
       errors,
+      batch,
     } = options;
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
@@ -302,9 +319,7 @@ export class BblMatchEventsImportService {
         data.consequencePlayerId = consequencePlayerId;
       }
 
-      if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {
-        imported += 1;
-      }
+      imported += await this.matchEventsImport.addToBatch(batch, data);
     }
 
     return imported;
