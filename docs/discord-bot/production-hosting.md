@@ -34,10 +34,11 @@ The machine never scales to zero (`auto_stop_machines = "off"`,
 persistent connection to Discord's gateway, so a stopped machine is an
 offline bot, not a cold start.
 
-The app has a `.fly.dev` hostname, but nothing answers on it: `fly.toml`
-declares the service's internal port 3000 and a TCP health check against it,
-with no public ports. Making the `/rpc` API reachable for the import tools is
-tracked separately.
+The app has a `.fly.dev` hostname, but nothing answers on it. `fly.toml`
+declares no `[[services]]` block at all — only a top-level `[checks.tcp]`
+health check against port 3000 — so no port is published to the public
+internet. The `/rpc` API is reached instead through a private `flyctl proxy`
+tunnel; see [Running import tools against production](#running-import-tools-against-production).
 
 There is no redundancy, failover, or autoscaling. For a low-traffic hobby
 bot that is a deliberate non-goal, not an oversight. There is also no backup

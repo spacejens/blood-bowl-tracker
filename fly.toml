@@ -19,23 +19,25 @@ primary_region = "arn"
   NODE_ENV = "production"
   PORT = "3000"
 
-[[services]]
-  protocol = "tcp"
-  internal_port = 3000
+# The bot holds a persistent Discord gateway connection, so the machine must
+# never scale to zero the way a stateless web app would.
+auto_stop_machines = "off"
+auto_start_machines = false
+min_machines_running = 1
 
-  # The bot holds a persistent Discord gateway connection, so the machine must
-  # never scale to zero the way a stateless web app would.
-  auto_stop_machines = "off"
-  auto_start_machines = false
-  min_machines_running = 1
-
-  # No [[services.ports]] entries: the RPC endpoint is deliberately not
-  # published to the public internet by this deployment. Making it reachable
-  # for the import tools is issue #356.
-
-  # The app has no HTTP health endpoint, so the check is a plain TCP connect
-  # against the port the RPC server binds.
-  [[services.tcp_checks]]
+# No [[services]] block: the RPC endpoint is deliberately never published to
+# the public internet. Import tools reach it through `flyctl proxy 3000` over
+# Fly's private WireGuard network instead — see
+# docs/discord-bot/production-hosting.md. A [[services]] block with no
+# [[services.ports]] entries is rejected by `flyctl config validate`, so the
+# health check is declared as a top-level check rather than a service check.
+#
+# The app has no HTTP health endpoint, so the check is a plain TCP connect
+# against the port the RPC server binds.
+[checks]
+  [checks.tcp]
+    type = "tcp"
+    port = 3000
     interval = "30s"
     timeout = "5s"
     grace_period = "20s"
