@@ -315,4 +315,26 @@ describe('TpMatchEventsImportService', () => {
 
     expect(result).toBe(CANNED_RESULT);
   });
+
+  it('opens one batch for the run and flushes it once at the end', async () => {
+    const upsertMatchEvent = vi.fn().mockResolvedValue(true);
+    const { service, matchEventsImport } = await makeService(upsertMatchEvent);
+
+    await service.importMatchEvents({
+      matchesByCompetitionId: new Map([
+        [
+          COMPETITION_DB_ID,
+          [matchWithEvents({ id: 566088, events: [TOUCHDOWN] })],
+        ],
+      ]),
+      eraIdByCompetitionId: new Map([[COMPETITION_DB_ID, ERA_ID]]),
+      matchIdsByTpId: new Map([[566088, MATCH_DB_ID]]),
+      teamErasByRosterId: new Map(),
+      playerIdsByLineUpId: new Map(),
+      starPlayerIdsByRosterAndMaster: new Map(),
+    });
+
+    expect(matchEventsImport.createBatch).toHaveBeenCalledTimes(1);
+    expect(matchEventsImport.flushBatch).toHaveBeenCalledTimes(1);
+  });
 });

@@ -80,7 +80,9 @@ export class TpMatchEventsImportService {
    * roster id on the event itself, and compute `casualtyPairing` once for
    * the match. Per event: `TpMatchEventsBuilderService.buildEventData` (see
    * `tp-match-events-builder.service.ts`) maps the event to zero, one, or
-   * two `UpsertMatchEvent`s, each of which is upserted.
+   * two `UpsertMatchEvent`s, each of which is buffered and sent to the
+   * database in chunks (`MatchEventsImportService.createBatch`/`addToBatch`/
+   * `flushBatch`), with the same per-event error reporting.
    *
    * A touchdown's `actingTeamEraId` is the scoring roster's team era and its
    * `actingPlayerId` the scorer (`lineUpId`); mvp_award, completion,
@@ -127,6 +129,7 @@ export class TpMatchEventsImportService {
     } = options;
     let imported = 0;
     const errors: ImportError[] = [];
+    const batch = this.matchEventsImport.createBatch(errors);
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -195,13 +198,13 @@ export class TpMatchEventsImportService {
             foulPairing,
           });
           for (const data of dataList) {
-            if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {
-              imported += 1;
-            }
+            imported += await this.matchEventsImport.addToBatch(batch, data);
           }
         }
       }
     }
+
+    imported += await this.matchEventsImport.flushBatch(batch);
 
     return { result: this.importResults.result({ imported, errors }) };
   }
