@@ -34,25 +34,28 @@ Takes no arguments.
 
    The **union** of the two answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the seven options, including none. No option is gated: "Generate a SchemaSpy diagram" is always offered, regardless of branch contents or whether `postgres` is currently running — the script's own precondition check handles the not-running case (see that section). If the union is empty (nothing selected in either question), report "No action taken" and stop — this is a valid outcome, not an error. This question always runs, regardless of who invoked this skill (directly, or as a sub-skill of `develop-feature` or `handle-pr-reviews`) — do not skip it because a caller already asked something similar.
 
+### Sync gitignored config into the worktree
+
+Run this once, before any of the selected sections below, whenever at least one action was selected in step 0. Skip it entirely when the union was empty.
+
+The config and `.env` files these actions need — `apps/discord-bot/.env`, each importer's `*-config.json5`, `tools/review-match/review-match-config.json5` — and the large `tools/import-bbl/data` and `tools/import-tp/data` directories are all gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session).
+
+```bash
+pnpm --filter @blood-bowl-tracker/ai-helpers run build
+node tools/ai-helpers/dist/main.js sync-gitignored
+```
+
+The build is needed because a fresh worktree may only have run `pnpm install`, not `pnpm build`; if the build fails because dependencies are missing, run `pnpm install` first. The sync only fills in what is missing — it never overwrites a file or symlink already present, in case the developer deliberately set one up differently — and it is a no-op outside a worktree. It prints `{"copied": [...], "symlinked": [...], "skipped": [...]}`; report the counts and continue. The canonical lists live in `tools/ai-helpers/src/shared/gitignored-files.ts`, so a new tool's config is added there, not here.
+
+The `data/` directories hold the actual BBL/TP downloads and can be very large, so they are symlinked, never copied. Because each importer's `dataDir` is typically a relative path resolved against its own working directory, the symlinked `data/` mirrors the main checkout's structure closely enough that an existing relative value keeps resolving correctly with no rewriting needed. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `tools/import-manual/data` is tracked by git, so a worktree checkout already has it.
+
+If a file is missing from the main checkout too, nothing is copied and the relevant section below handles it — `docker compose up` fails with its own clear "env file not found" error, and each importer section falls back to copying its committed `*-config.example.json5` template.
+
 ### Deploy the stack
 
 Run this section only if "Deploy the stack" was selected in step 0 above.
 
-1. `.env` files `docker-compose.yml` needs (currently just `apps/discord-bot/.env`) are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, fill in what's missing from the main checkout before building:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for env_file in apps/discord-bot/.env; do
-       if [ ! -f "$WORKTREE_ROOT/$env_file" ] && [ -f "$MAIN_ROOT/$env_file" ]; then
-         cp "$MAIN_ROOT/$env_file" "$WORKTREE_ROOT/$env_file"
-       fi
-     done
-   fi
-   ```
-   Never overwrite a `.env` already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. If the main checkout doesn't have the file either, step 3's `docker compose up` fails with its own clear "env file not found" error — same as running it directly, so no special handling is needed for that case.
-
-   Once a `.env` is in place (synced or pre-existing), confirm it sets `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, and `API_TOKEN_IMPORT_MANUAL` to non-empty values that are not still the `.env.example` placeholders (`your-import-bbl-token-here`, etc.):
+1. Confirm `apps/discord-bot/.env` sets `API_TOKEN_IMPORT_BBL`, `API_TOKEN_IMPORT_TP`, and `API_TOKEN_IMPORT_MANUAL` to non-empty values that are not still the `.env.example` placeholders (`your-import-bbl-token-here`, etc.). If `apps/discord-bot/.env` does not exist at all after the shared sync section ran, say so and note that step 3's `docker compose up` will fail with its own "env file not found" error:
    ```bash
    grep -E '^API_TOKEN_IMPORT_(BBL|TP|MANUAL)=' apps/discord-bot/.env
    ```
@@ -106,18 +109,7 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
 
 Run this section only if "Run the manual import (before other importers)" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to seed hand-authored data into an already-running instance before the system-specific importers.
 
-1. `tools/import-manual/import-manual-config.json5` is gitignored, so a git worktree created fresh from a branch won't have it even though the main checkout might. (`tools/import-manual/data` needs no sync — it is committed to git, so a worktree checkout already has it.) `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create. If running from a worktree, copy the config from the main checkout:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     if [ ! -f "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" ]; then
-       cp "$MAIN_ROOT/tools/import-manual/import-manual-config.json5" "$WORKTREE_ROOT/tools/import-manual/import-manual-config.json5"
-     fi
-   fi
-   ```
-   Never overwrite an `import-manual-config.json5` already present in the worktree — only fill in what's missing. (`tools/import-manual/data` is tracked by git, unlike `tools/import-bbl/data` and `tools/import-tp/data`, which stay gitignored and keep their own symlink sync in the sections below.)
-2. Check `tools/import-manual/import-manual-config.json5` is usable:
+1. Check `tools/import-manual/import-manual-config.json5` is usable:
    ```bash
    cat tools/import-manual/import-manual-config.json5 2>/dev/null
    ```
@@ -128,32 +120,18 @@ Run this section only if "Run the manual import (before other importers)" was se
    fi
    ```
    The `apiToken` value must also match `API_TOKEN_IMPORT_MANUAL` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — a valid-looking but mismatched token also fails with `401`.
-3. Build and run the import against the "before" directory — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+2. Build and run the import against the "before" directory — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
    ( cd tools/import-manual && node dist/main.js data/before-other-importers )
    ```
-4. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+3. Report the outcome to the developer. Per `tools/import-manual/src/main.ts`, the tool exits `0` and prints `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable, a malformed data file, or a missing directory). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the BBL import
 
 Run this section only if "Run the BBL import" was selected in step 0 above. Runs after the "Deploy the stack" section if both were selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to import into an instance already deployed from a previous run.
 
-1. `tools/import-bbl/import-bbl-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout does. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session). If running from a worktree, sync both from the main checkout:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     if [ ! -f "$WORKTREE_ROOT/tools/import-bbl/import-bbl-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-bbl/import-bbl-config.json5" ]; then
-       cp "$MAIN_ROOT/tools/import-bbl/import-bbl-config.json5" "$WORKTREE_ROOT/tools/import-bbl/import-bbl-config.json5"
-     fi
-     if [ ! -e "$WORKTREE_ROOT/tools/import-bbl/data" ] && [ -d "$MAIN_ROOT/tools/import-bbl/data" ]; then
-       ln -s "$MAIN_ROOT/tools/import-bbl/data" "$WORKTREE_ROOT/tools/import-bbl/data"
-     fi
-   fi
-   ```
-   Never overwrite an `import-bbl-config.json5` or `data` entry already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. `data/` holds the actual BBL data download and can be very large, so it is symlinked, never copied — same pattern `develop-feature` uses for `docs/plans`. Because `dataDir` (see step 2) is typically a relative path resolved against `tools/import-bbl/`'s working directory, the symlinked `data/` directory mirrors the main checkout's structure closely enough that an existing relative value keeps resolving correctly with no rewriting needed.
-2. Check `tools/import-bbl/import-bbl-config.json5` is usable:
+1. Check `tools/import-bbl/import-bbl-config.json5` is usable:
    ```bash
    cat tools/import-bbl/import-bbl-config.json5 2>/dev/null
    ```
@@ -166,32 +144,18 @@ Run this section only if "Run the BBL import" was selected in step 0 above. Runs
    followed by setting the `dataDir` field in that file to the path the developer gave, replacing the existing `dataDir:` value (a single flat quoted string, e.g. `dataDir: 'data/tloeg.bbleague.se',`).
 
    Also confirm `connection.apiToken` is not still the `import-bbl-config.example.json5` placeholder (`your-import-bbl-token-here`) and matches `API_TOKEN_IMPORT_BBL` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
-3. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+2. Build and run the import — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run build
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
-4. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+3. Report the outcome to the developer. Per `tools/import-bbl/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> coach(es) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the TP import
 
 Run this section only if "Run the TP import" was selected in step 0 above. Runs after the "Deploy the stack" and "Run the BBL import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected.
 
-1. `tools/import-tp/import-tp-config.json5` and its `data/` folder are gitignored, so a git worktree created fresh from a branch won't have them even though the main checkout might. `develop-feature` now normally performs this same sync in its Phase 1 at worktree-creation time, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create (e.g. a manual `git worktree add`, or an existing worktree from a prior session) — same pattern as the BBL config/data sync above. If running from a worktree, sync both from the main checkout:
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     if [ ! -f "$WORKTREE_ROOT/tools/import-tp/import-tp-config.json5" ] && [ -f "$MAIN_ROOT/tools/import-tp/import-tp-config.json5" ]; then
-       cp "$MAIN_ROOT/tools/import-tp/import-tp-config.json5" "$WORKTREE_ROOT/tools/import-tp/import-tp-config.json5"
-     fi
-     if [ ! -e "$WORKTREE_ROOT/tools/import-tp/data" ] && [ -d "$MAIN_ROOT/tools/import-tp/data" ]; then
-       ln -s "$MAIN_ROOT/tools/import-tp/data" "$WORKTREE_ROOT/tools/import-tp/data"
-     fi
-   fi
-   ```
-   Never overwrite an `import-tp-config.json5` or `data` entry already present in the worktree — only fill in what's missing, in case the developer deliberately set one up differently there. `data/` holds the actual TP data download and can be very large, so it is symlinked, never copied — same pattern used for `tools/import-bbl/data`.
-2. Check `tools/import-tp/import-tp-config.json5` is usable:
+1. Check `tools/import-tp/import-tp-config.json5` is usable:
    ```bash
    cat tools/import-tp/import-tp-config.json5 2>/dev/null
    ```
@@ -204,42 +168,30 @@ Run this section only if "Run the TP import" was selected in step 0 above. Runs 
    followed by setting the `eras` array in that file to the confirmed `{ name, dataSubdir }` entries.
 
    Also confirm `connection.apiToken` is not still the `import-tp-config.example.json5` placeholder (`your-import-tp-token-here`) and matches `API_TOKEN_IMPORT_TP` in `apps/discord-bot/.env` (see the "Deploy the stack" section's `.env` check above) — an unchanged or mismatched value is syntactically valid and only surfaces as a `401` from the api-server at request time, not a config error.
-3. Build and run the import script — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+2. Build and run the import script — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-tp run build
    ( cd tools/import-tp && node dist/main.js )
    ```
-4. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
+3. Report the outcome to the developer. Per `tools/import-tp/src/main.ts`, the tool exits `0` and prints a one-line success summary (`Imported <N> record(s) successfully.`) on stdout; or exits `1`, either printing per-error detail (`Import completed with <N> errors:` followed by each error message) on stderr for errors the import collected, or printing `Import failed:` with the thrown error for an unexpected failure (e.g. the API is unreachable). Report the exit code and the captured output either way. Because this import performs real database writes, a failure partway through may leave earlier steps' writes in place — there is no automatic rollback. Do not tear down any containers regardless of the import's outcome — same non-goal as the "Deploy the stack" section.
 
 ### Run the manual import (after other importers)
 
 Run this section only if "Run the manual import (after other importers)" was selected in step 0 above. Runs after the "Deploy the stack", "Run the manual import (before other importers)", "Run the BBL import", and "Run the TP import" sections if those were also selected; runs standalone (no docker steps at all) if only this was selected — e.g. the developer wants to clean up names or attach external IDs after the system-specific importers already ran.
 
-1. Perform the same worktree config sync as the "before" subsection (identical commands — copy `tools/import-manual/import-manual-config.json5` from the main checkout only when missing).
-2. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 2).
-3. Build and run the import against the "after" directory:
+1. Check `tools/import-manual/import-manual-config.json5` is usable, copying the template if absent (identical to the "before" subsection's step 1).
+2. Build and run the import against the "after" directory:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build
    ( cd tools/import-manual && node dist/main.js data/after-other-importers )
    ```
-4. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 4. No automatic rollback; never tear down containers regardless of outcome.
+3. Report the outcome to the developer using the same success/error/`Import failed:` message formats as the "before" subsection's step 3. No automatic rollback; never tear down containers regardless of outcome.
 
 ### Run the match-event review tool
 
 Run this section only if "Run the match-event review tool" was selected in step 0 above. Runs after the "Deploy the stack" and every import section if those were also selected — the report reflects whatever is in the database at that point — and runs standalone (no docker steps of its own) if only this was selected.
 
-1. `tools/review-match/review-match-config.json5` is gitignored, so a git worktree created fresh from a branch won't have it even though the main checkout might. `develop-feature` normally performs this same sync in its Phase 1, so in a worktree it created this block is a no-op; it is kept here as a fallback for worktrees `develop-feature` did not create — same pattern as the BBL/TP config syncs above. No `data/` symlink is needed: this tool's config points at `tools/import-bbl/data` and `tools/import-tp/data`, which the BBL and TP sections above already sync.
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     if [ ! -f "$WORKTREE_ROOT/tools/review-match/review-match-config.json5" ] && [ -f "$MAIN_ROOT/tools/review-match/review-match-config.json5" ]; then
-       cp "$MAIN_ROOT/tools/review-match/review-match-config.json5" "$WORKTREE_ROOT/tools/review-match/review-match-config.json5"
-     fi
-   fi
-   ```
-   Never overwrite a `review-match-config.json5` already present in the worktree — only fill in what's missing.
-2. Check `tools/review-match/review-match-config.json5` is usable:
+1. Check `tools/review-match/review-match-config.json5` is usable:
    ```bash
    cat tools/review-match/review-match-config.json5 2>/dev/null
    ```
@@ -250,17 +202,17 @@ Run this section only if "Run the match-event review tool" was selected in step 
    fi
    ```
    Then confirm, per `docs/review-match/index.md`, that `database.url` points at the running stack (`postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl` for the docker-compose stack) and that `bbl.dataDir` and `tp.dataDir` point at directories that exist — the template's defaults (`../import-bbl/data/tloeg.bbleague.se` and `../import-tp/data`) are correct whenever the BBL/TP sections' `data` symlinks are in place. If a `dataDir` doesn't exist, ask the developer for the right path and write it into the file before running.
-3. Build and run the tool — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
+2. Build and run the tool — a fresh worktree only ran `pnpm install` (no build) during setup, so `dist/` may not exist yet:
    ```bash
    pnpm --filter @blood-bowl-tracker/review-match run build
    pnpm --filter @blood-bowl-tracker/review-match run start
    ```
-4. On success, open the report automatically — asking for the review is a request to look at it. Each run writes its own timestamped file under `tools/review-match/output/` rather than a fixed name, so open the exact path printed by step 3's command (the line reading `Reviewed <N> match(es); report written to <path>.`) — do not assume `report.html`:
+3. On success, open the report automatically — asking for the review is a request to look at it. Each run writes its own timestamped file under `tools/review-match/output/` rather than a fixed name, so open the exact path printed by step 2's command (the line reading `Reviewed <N> match(es); report written to <path>.`) — do not assume `report.html`:
    ```bash
    open <path from the tool's own output>
    ```
    Run this from the repo root (this worktree's root, not the main checkout's).
-5. Report the outcome to the developer. Per `tools/review-match/src/main.ts`, the tool exits `0` and prints `Reviewed <N> match(es); report written to <path>.` on stdout, preceded by one `Warning [BBL|TP]: <reason>` line per gap (a stratum with no matching data, or an override id not in the database — neither is a failure); or exits `1` printing `Review failed:` with the thrown error (most often an unreachable database or an unusable config). Report the exit code, any warnings, and the report path. The tool only reads game data itself (it connects via `packages/db`'s `DbModule`, which applies any pending migrations on connect — a no-op against a stack deployed from the same branch), so a failure leaves nothing to clean up. Do not tear down any containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
+4. Report the outcome to the developer. Per `tools/review-match/src/main.ts`, the tool exits `0` and prints `Reviewed <N> match(es); report written to <path>.` on stdout, preceded by one `Warning [BBL|TP]: <reason>` line per gap (a stratum with no matching data, or an override id not in the database — neither is a failure); or exits `1` printing `Review failed:` with the thrown error (most often an unreachable database or an unusable config). Report the exit code, any warnings, and the report path. The tool only reads game data itself (it connects via `packages/db`'s `DbModule`, which applies any pending migrations on connect — a no-op against a stack deployed from the same branch), so a failure leaves nothing to clean up. Do not tear down any containers regardless of the outcome — same non-goal as the "Deploy the stack" section.
 
 ### Generate a SchemaSpy diagram
 
