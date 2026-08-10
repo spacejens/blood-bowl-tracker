@@ -1,9 +1,14 @@
 import type {
   UpsertCompetition,
+  UpsertMatch,
   UpsertRace,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ImportResultService,
@@ -45,6 +50,7 @@ interface SyncMatchTeamsOptions {
   teamEraIdByTeamId: Map<string, number>;
   competitionIdsByBblId: Map<string, number>;
   merges: MatchMergeResolution;
+  matchBatch: BatchBuffer<UpsertMatch>;
   errors: ImportError[];
 }
 
@@ -108,6 +114,7 @@ export class BblTeamParticipationImportService {
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const matchBatch = this.matchesImport.createBatch(errors);
     const teamEraIdsByCompetitionBblId = new Map<string, Map<string, number>>();
 
     const matchesByCompetitionId =
@@ -202,9 +209,14 @@ export class BblTeamParticipationImportService {
         teamEraIdByTeamId,
         competitionIdsByBblId,
         merges,
+        matchBatch,
         errors,
       });
     }
+
+    // Return value discarded on purpose: `imported` counts competitions only
+    // — match re-upserts never incremented it on the single-item path either.
+    await this.matchesImport.flushBatch(matchBatch);
 
     for (const [raceId, eraIds] of eraIdsByRaceId) {
       const race = racesByRaceId.get(raceId);
@@ -239,6 +251,7 @@ export class BblTeamParticipationImportService {
       teamEraIdByTeamId,
       competitionIdsByBblId,
       merges,
+      matchBatch,
       errors,
     } = options;
     const competitionId = competitionIdsByBblId.get(competitionBblId);
@@ -270,16 +283,13 @@ export class BblTeamParticipationImportService {
         );
         continue;
       }
-      await this.matchesImport.upsertMatch(
-        {
-          competitionId,
-          playedAt: merges.effectivePlayedAt(match.bblId, match.date),
-          name: teams.name,
-          externalIds: [{ externalSystemId, externalId: match.bblId }],
-          teamEraIds: [homeTeamEraId, awayTeamEraId],
-        },
-        errors,
-      );
+      await this.matchesImport.addToBatch(matchBatch, {
+        competitionId,
+        playedAt: merges.effectivePlayedAt(match.bblId, match.date),
+        name: teams.name,
+        externalIds: [{ externalSystemId, externalId: match.bblId }],
+        teamEraIds: [homeTeamEraId, awayTeamEraId],
+      });
     }
   }
 
