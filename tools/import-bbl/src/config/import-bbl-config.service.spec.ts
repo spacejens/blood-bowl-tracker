@@ -1,13 +1,16 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { Test } from '@nestjs/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  DEFAULT_IMPORT_BBL_CONFIG_PATH,
   IMPORT_BBL_CONFIG_PATH,
   ImportBblConfigService,
+  PRODUCTION_IMPORT_BBL_CONFIG_PATH,
+  resolveImportBblConfigPath,
 } from './import-bbl-config.service';
 
 describe('ImportBblConfigService', () => {
@@ -134,6 +137,38 @@ describe('ImportBblConfigService', () => {
     const service = await makeService(path);
     expect(() => service.getApiToken()).toThrow(
       'connection.apiToken is not set in import-bbl-config.json5',
+    );
+  });
+});
+
+describe('resolveImportBblConfigPath', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('resolves the default config path when IMPORT_CONFIG_ENV is unset', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', undefined);
+    expect(resolveImportBblConfigPath()).toBe(DEFAULT_IMPORT_BBL_CONFIG_PATH);
+  });
+
+  it('resolves the default config path for a value other than production', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', 'staging');
+    expect(resolveImportBblConfigPath()).toBe(DEFAULT_IMPORT_BBL_CONFIG_PATH);
+  });
+
+  it('resolves the production config path when IMPORT_CONFIG_ENV is production', () => {
+    vi.stubEnv('IMPORT_CONFIG_ENV', 'production');
+    expect(resolveImportBblConfigPath()).toBe(
+      PRODUCTION_IMPORT_BBL_CONFIG_PATH,
+    );
+  });
+
+  it('points the two paths at sibling files in the working directory', () => {
+    expect(DEFAULT_IMPORT_BBL_CONFIG_PATH).toBe(
+      resolve(process.cwd(), 'import-bbl-config.json5'),
+    );
+    expect(PRODUCTION_IMPORT_BBL_CONFIG_PATH).toBe(
+      resolve(process.cwd(), 'import-bbl-config.production.json5'),
     );
   });
 });

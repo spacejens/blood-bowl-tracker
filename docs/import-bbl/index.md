@@ -6,8 +6,14 @@ via the API. The source data is a `wget` mirror: a folder of HTML pages named
 
 ## Configuration
 
-Configuration is supplied through a JSON5 file, `import-bbl-config.json5`, in
-the tool directory (`tools/import-bbl/`). JSON5 allows comments and multi-line
+Configuration is supplied through a JSON5 file in the tool directory
+(`tools/import-bbl/`): `import-bbl-config.json5` by default, or
+`import-bbl-config.production.json5` when the tool is run with the
+environment variable `IMPORT_CONFIG_ENV=production`. Both files have exactly
+the same shape and the same committed template
+(`import-bbl-config.example.json5`); they differ only in the values they
+carry, so a production run can point at the production api-server without
+disturbing the local-development config. JSON5 allows comments and multi-line
 structured values, so the era and match-merge lists can be documented and
 formatted inline. The file is the sole configuration source. Top-level keys are
 camelCase, grouped into nested objects by concern:
@@ -27,8 +33,11 @@ camelCase, grouped into nested objects by concern:
   - `apiToken` — **required.** The bearer token this tool authenticates with;
     the api-server rejects unauthenticated requests with `401`. Must match the
     `API_TOKEN_IMPORT_BBL` value in `apps/discord-bot/.env` (see
-    [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
-    `import-bbl-config.json5` is git-ignored, so it is never committed.
+    [RPC conventions](../api/rpc-conventions.md)) — or, in
+    `import-bbl-config.production.json5`, the `API_TOKEN_IMPORT_BBL` value in
+    `apps/discord-bot/.env.production`. Treat it like a password — both
+    `import-bbl-config.json5` and `import-bbl-config.production.json5` are
+    git-ignored, so they are never committed.
 - `leagues` — an array of the leagues the BBL data covers. Each entry has a
   `leagueName` and an `eras` array. The BBL data mirror covers a single league
   whose name is not present in the data, so league names are supplied here. Each
@@ -136,6 +145,12 @@ camelCase, grouped into nested objects by concern:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-bbl run start
    ```
+
+To import into the production api-server instead, keep a second config file
+`tools/import-bbl/import-bbl-config.production.json5` (copied from the same
+example template), run `flyctl proxy 3000` from the repository root in another
+terminal, and set `IMPORT_CONFIG_ENV=production` for the run. See
+[Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
 
 ## Architecture
 

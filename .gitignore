@@ -38,9 +38,10 @@ tmp/
 tools/import-bbl/data
 tools/import-tp/data
 
-# tools/import-bbl real config (the committed template is
-# import-bbl-config.example.json5)
+# tools/import-bbl real configs, local and production (the committed template
+# for both is import-bbl-config.example.json5)
 tools/import-bbl/import-bbl-config.json5
+tools/import-bbl/import-bbl-config.production.json5
 
 # tools/import-tp real config (the committed template is
 # import-tp-config.example.json5)
