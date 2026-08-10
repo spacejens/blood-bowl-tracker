@@ -73,7 +73,10 @@ describe('CheckMainStrayService', () => {
 
     await expect(service.run()).resolves.toEqual({
       isWorktree: true,
-      uncommittedFiles: ['apps/discord-bot/src/main.ts', 'notes.txt'],
+      uncommittedFiles: [
+        { status: ' M', path: 'apps/discord-bot/src/main.ts' },
+        { status: '??', path: 'notes.txt' },
+      ],
       strayCommits: [
         { sha: 'abc1234', subject: 'fix: stray commit on main' },
         { sha: 'def5678', subject: 'chore: another' },

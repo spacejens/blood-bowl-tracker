@@ -9,10 +9,17 @@ export interface StrayCommit {
   readonly subject: string;
 }
 
+/** One uncommitted entry from `git status --porcelain` in the main checkout. */
+export interface UncommittedFile {
+  /** Raw 2-character porcelain status code, e.g. `" M"`, `"??"`, `"A "`. */
+  readonly status: string;
+  readonly path: string;
+}
+
 export interface CheckMainStrayResult {
   readonly isWorktree: boolean;
   /** Omitted entirely when not running in a worktree. */
-  readonly uncommittedFiles?: readonly string[];
+  readonly uncommittedFiles?: readonly UncommittedFile[];
   /** Omitted entirely when not running in a worktree. */
   readonly strayCommits?: readonly StrayCommit[];
 }
@@ -67,8 +74,11 @@ export class CheckMainStrayService {
     };
   }
 
-  private parseStatus(stdout: string): readonly string[] {
-    return this.lines(stdout).map((line) => line.slice(3).trim());
+  private parseStatus(stdout: string): readonly UncommittedFile[] {
+    return this.lines(stdout).map((line) => ({
+      status: line.slice(0, 2),
+      path: line.slice(3).trim(),
+    }));
   }
 
   private parseLog(stdout: string): readonly StrayCommit[] {
