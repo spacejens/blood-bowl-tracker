@@ -11,6 +11,7 @@ files are JSON.
 Configuration is supplied through a JSON5 file, `import-tp-config.json5`, in the
 tool directory (`tools/import-tp/`). JSON5 allows comments and trailing commas,
 so the era list can be documented inline.
+
 Running the tool with the environment variable `IMPORT_CONFIG_ENV=production`
 makes it read `import-tp-config.production.json5` from the same directory
 instead. Both files have exactly the same shape and the same committed
