@@ -63,50 +63,53 @@ Run this section only if "Check deployment status" was selected in step 0 above.
    ```bash
    fly status
    ```
-   A healthy deployment shows exactly one machine in state `started`.
-2. Read a bounded slice of recent logs. Do **not** run bare `fly logs` — it streams forever and will hang:
+   A healthy deployment shows **two** machines, both in state `started` — one active (connected to Discord), one standby. If only one machine is listed, this app hasn't been scaled to the 2-machine setup yet; see the note at the top of `docs/discord-bot/production-hosting.md`'s "Active and standby" section (`fly scale count 2`, a one-time step) rather than treating it as a fault.
+2. Read a bounded slice of recent logs from both machines. Do **not** run bare `fly logs` — it streams forever and will hang:
    ```bash
    fly logs --no-tail
    ```
+   Output interleaves both machines, each line prefixed with its machine id — use that prefix to tell which machine did what.
 3. Summarize for the developer:
-   - The machine id, its state, and the release version `fly status` reports.
-   - Whether the logs show a healthy startup: drizzle migrations applying (or nothing pending), the bot logging in to Discord's gateway, and the startup insight posted to `STARTUP_MESSAGE_DISCORD_CHANNEL`.
+   - Each machine's id, state, and role (active or standby — see below), and the release version `fly status` reports.
+   - Whether the logs show a healthy startup on each machine: drizzle migrations applying (or nothing pending), then either `Acquired the leader lock; becoming active` → Discord gateway login → `Posted active startup message`, or `Another machine holds the leader lock; standing by` → the standby message. A machine is active if its logs show the former; standby if the latter. Exactly one of the two machines should be active — flag it explicitly if both or neither are (see `docs/discord-bot/production-hosting.md`'s "Common failures" entry "Both machines standby, none active").
    - Any of the failure signatures documented in `docs/discord-bot/production-hosting.md`'s "Checking on the deployment" section, named explicitly when matched:
      - **Crash loop from missing or invalid configuration** — a thrown startup error such as `DATABASE_URL is not configured`, with `fly status` showing repeated restarts. The fix is to correct `apps/discord-bot/.env.production` and re-run `fly secrets import < apps/discord-bot/.env.production` by hand; this skill does not push secrets (see Non-goals).
      - **Stopped after max restarts** — `fly status` shows `stopped` and the logs show "machine has reached its max restart count". Fixing the secret alone does not bring it back; offer the "Restart the machine" action.
      - **Database unreachable** — a connection error during migration. Note that Neon's free tier autosuspends its compute after inactivity, so the first connection after a quiet period is slow by design and is not itself a failure.
+     - **`Lost the leader lock while active; exiting`** or **`Failed to complete startup after connecting to Discord; exiting`** — the active machine exited by design after losing the advisory lock or failing a step after connecting. A single occurrence is the intended reaction, and the standby should already have taken over; a repeating loop on the same machine points at the database dropping connections or a persistent Discord-side error worth reading from the surrounding log lines.
 4. This section never changes anything. If it finds a problem, report it and let the developer decide — do not restart, redeploy, or reset on your own initiative.
 
 ### Restart the machine
 
 Run this section only if "Restart the machine" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
 
-1. Find the machine and its current state, in machine-readable form:
+A healthy deployment has **two** machines (active + standby, see "Check deployment status"). This section restarts either a single stopped machine or all machines, never a subset chosen arbitrarily — a partial restart of "just the active one" isn't offered here because killing the active machine is exactly the leader-election failover path already exercised automatically (see `docs/discord-bot/production-hosting.md`'s "Active and standby"); use that machine's own crash/restart, not a manual restart of only it, if the intent is to force a handover.
+
+1. Find every machine and its current state, in machine-readable form:
    ```bash
    fly status --json
    ```
-   Read the machine's `id` and `state` from the JSON. If more than one machine is listed, stop and report — `fly.toml` describes a single always-on machine, so several machines means something unexpected happened and the developer should look before anything is restarted.
-2. Pick the command by state, and tell the developer which one you are running and why:
-   - State `stopped` (the max-restart-count case): start it explicitly.
-     ```bash
-     fly machine start <machine-id-from-step-1>
-     ```
-   - State `started` (a live restart, e.g. to clear a stuck gateway connection): replace the running machine in place.
-     ```bash
-     fly apps restart blood-bowl-tracker-discord-bot
-     ```
-   - Any other state (`starting`, `replacing`, …): report the state and stop. A machine mid-transition should be allowed to settle rather than have a second operation stacked on it; suggest re-running "Check deployment status" in a moment.
-3. Wait for the machine to come back, polling rather than sleeping blindly:
+   Read each machine's `id` and `state` from the JSON. Zero or one machine listed means this app has not been scaled to two machines yet (see the "Check deployment status" section's note on `fly scale count 2`) — that's a scaling gap, not something this action fixes; report it and stop rather than restarting a partial deployment. More than two machines is unexpected and worth reporting before proceeding.
+2. If any machine is in state `stopped` (the max-restart-count case), start each one explicitly:
+   ```bash
+   fly machine start <machine-id>
+   ```
+   Otherwise, for a live restart of everything (e.g. to clear a stuck gateway connection on the active machine, or roll both machines through a fresh boot), replace all running machines in place — this restarts both machines, not just one:
+   ```bash
+   fly apps restart blood-bowl-tracker-discord-bot
+   ```
+   If any machine is in another state (`starting`, `replacing`, …), report the state and stop for that machine — mid-transition machines should be allowed to settle rather than have a second operation stacked on them; suggest re-running "Check deployment status" in a moment.
+3. Wait for both machines to come back, polling rather than sleeping blindly:
    ```bash
    fly status
    ```
-   Retry every few seconds up to about 60 seconds, until exactly one machine reports `started`.
-4. Confirm the restart actually produced a healthy boot:
+   Retry every few seconds up to about 60 seconds, until both machines report `started`.
+4. Confirm the restart actually produced a healthy boot on both machines:
    ```bash
    fly logs --no-tail
    ```
-   Look for the same healthy-startup markers as the "Check deployment status" section (migrations, Discord gateway login, startup message posted). A machine in state `started` whose logs show a thrown startup error is a crash loop, not a successful restart — report it that way.
-5. Report the outcome: which command was run, the machine's final state, and what the logs showed. A restart does not change the deployed image; if the underlying problem is the code or config that was deployed, say so and point at the rollback and redeploy actions.
+   Look for the same healthy-startup markers as the "Check deployment status" section on each machine (migrations, then either the active or standby leader-election outcome). A machine restarting both at once means both race for the advisory lock fresh — expect exactly one to win and log `Acquired the leader lock; becoming active`, the other to log `Another machine holds the leader lock; standing by`; which one wins is not deterministic and does not need to match which one was active before. A machine in state `started` whose logs show a thrown startup error is a crash loop, not a successful restart — report it that way. A one-off migration error on one of the two machines immediately after a simultaneous restart is the documented migration-race failure mode (see `docs/discord-bot/production-hosting.md`'s "Common failures") and self-heals on Fly's automatic retry; a repeating loop does not.
+5. Report the outcome: which command was run, each machine's final state and role (active/standby), and what the logs showed. A restart does not change the deployed image; if the underlying problem is the code or config that was deployed, say so and point at the rollback and redeploy actions.
 
 ### Roll back to a previous release
 
@@ -130,7 +133,7 @@ Run this section only if "Roll back to a previous release" was selected in step 
    fly status
    fly logs --no-tail
    ```
-   Expect one machine in state `started` and a healthy startup. `fly releases` now shows a *new* release whose image is the old one — Fly records the rollback as a new release rather than reverting to the old release number.
+   Expect both machines in state `started` and a healthy startup on each (see "Check deployment status" for what that looks like across two machines). `fly releases` now shows a _new_ release whose image is the old one — Fly records the rollback as a new release rather than reverting to the old release number.
 7. Report to the developer: which release was rolled back to, its image reference, the new release version Fly created, and a reminder that `main` still carries the bad code.
 
 ### Trigger a redeploy without a new merge
@@ -201,7 +204,9 @@ Run this section only if "Drop and recreate the production database" was selecte
    ```
 
    Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections **except** the four "against production" import actions — if any of those were also selected in step 0, do not run them automatically. Report that they were skipped because the reset they were expected to follow did not happen, and that the developer can re-invoke the skill to run them deliberately against the existing, unmodified production data if that is actually what they want.
+
 4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable. Validate the extracted value before connecting: `cut -d= -f2-` does not strip a dotenv-style surrounding quote pair or a trailing CRLF, and `psql` given an empty or malformed connection string does not error — it silently falls back to libpq's local-connection defaults, which could drop schemas in a local database while this step reports success against production, so abort rather than let that happen:
+
    ```bash
    DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e 's/\r$//')
    case "$DATABASE_URL" in
@@ -213,20 +218,22 @@ Run this section only if "Drop and recreate the production database" was selecte
      -c 'CREATE SCHEMA public;' \
      -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
    ```
+
    If the `case` aborts, stop and report that `DATABASE_URL` looked empty or malformed after extraction — without ever printing the value itself — and tell the developer to check `apps/discord-bot/.env.production` by hand. Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
 
    If `psql` is not installed, stop and report — this action cannot proceed without it. If it fails to connect, report the error; Neon autosuspends idle compute, so a first connection can be slow, and retrying once is reasonable before giving up.
-5. Restart the machine so the bot's startup migrations rebuild the schema:
+
+5. Restart both machines so the bot's startup migrations rebuild the schema:
    ```bash
    fly apps restart blood-bowl-tracker-discord-bot
    ```
-   `packages/db`'s `createDb` runs drizzle's `migrate()` before the app serves anything, exactly as it does on a first deploy against an empty database. No separate migration command exists or is needed.
-6. Verify the rebuild, polling until the machine reports `started` (up to about 60 seconds):
+   `packages/db`'s `createDb` runs drizzle's `migrate()` before the app serves anything, exactly as it does on a first deploy against an empty database. No separate migration command exists or is needed. This restarts both machines at the same moment, which is the one scenario where the two machines can race to apply the same migration against the now-empty database (see `docs/discord-bot/production-hosting.md`'s "Common failures" entry on the migration race) — expect this and don't treat one machine briefly crash-looping on a migration error as a failed reset; step 6 covers what to actually check.
+6. Verify the rebuild on both machines, polling until both report `started` (up to about 60 seconds):
    ```bash
    fly status
    fly logs --no-tail
    ```
-   A successful reset shows every migration applying in order (not "nothing pending") and then a normal startup. **"Nothing pending" against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 7 below.
+   A successful reset shows every migration applying in order (not "nothing pending") on at least one machine, then a normal startup with the usual active/standby leader-election outcome across the two. If the other machine's logs show a migration error immediately after the restart, that's the documented race — it should recover on Fly's automatic retry once the winning machine's migration has committed; give it another `fly status`/`fly logs --no-tail` pass before treating it as a real failure. **"Nothing pending" on every machine against a freshly dropped database means the `drizzle` schema survived** — report that specifically rather than as a generic success, and do not chain into the imports. This also means any of the four "against production" import actions that were selected back in step 0 must **not** run automatically either — the reset they were expected to follow did not actually happen. Report the failure, report that those imports were skipped as a result, and stop before reaching any import section; do not proceed to step 7 below.
 7. On success, offer to chain straight into the production imports — otherwise production sits empty until someone remembers to re-import. Skip any import action already selected in step 0 (it will run on its own below), and skip this question entirely if all four were already selected. Ask with `AskUserQuestion`, `multiSelect: true`, `question`: "The database is empty. Which imports should I run now?", offering the not-already-selected subset of exactly these four options, in this order:
    - **Run the manual import (before other importers) against production**
    - **Run the BBL import against production**
@@ -234,6 +241,7 @@ Run this section only if "Drop and recreate the production database" was selecte
    - **Run the manual import (after other importers) against production**
 
    Add nothing else to that list — no "All", no "None"; deselecting everything already means "none", and that is a valid answer meaning production stays empty for now. Anything selected here joins the set from step 0 and runs in the same fixed order as the sections below.
+
 8. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
 
 ### Production imports: shared setup
@@ -357,7 +365,7 @@ Run this section only if "Production imports: shared setup" ran. Like that secti
 
 ## Non-goals
 
-- **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an *older* image.
+- **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an _older_ image.
 - **No credential management.** The skill never runs `fly tokens create`, `gh secret set`, or `fly secrets import`. Creating the `FLY_API_TOKEN` secret and pushing `.env.production` to Fly stay manual, documented steps in `docs/discord-bot/production-hosting.md`.
 - **No creating of gitignored production config.** `apps/discord-bot/.env.production` and the `tools/import-*/import-*-config.production.json5` files are authored once by a developer. This skill syncs them into a worktree and checks them, but never generates one from a template — same stance `deploy-local` takes on the local equivalents.
 - **No backups.** There is no backup or restore of the Neon database; production data is reproducible by re-import, as `docs/discord-bot/production-hosting.md` documents.
