@@ -50,7 +50,11 @@ export class AdvisoryLockService implements OnModuleDestroy {
     } catch (error) {
       this.logger.warn('Advisory lock query failed', error);
     }
-    reserved.release();
+    try {
+      reserved.release();
+    } catch (error) {
+      this.logger.warn('Failed to release the advisory-lock connection', error);
+    }
     return false;
   }
 
@@ -85,7 +89,11 @@ export class AdvisoryLockService implements OnModuleDestroy {
   release(): Promise<void> {
     const reserved = this.reserved;
     this.reserved = undefined;
-    reserved?.release();
+    try {
+      reserved?.release();
+    } catch (error) {
+      this.logger.warn('Failed to release the advisory-lock connection', error);
+    }
     return Promise.resolve();
   }
 

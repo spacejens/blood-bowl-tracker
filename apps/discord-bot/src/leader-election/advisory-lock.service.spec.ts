@@ -66,6 +66,15 @@ describe('AdvisoryLockService', () => {
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
   });
 
+  it('returns false without throwing when the fallback release throws', async () => {
+    sqlMock.queueRows([{ acquired: false }]);
+    sqlMock.release.mockImplementation(() => {
+      throw new Error('release failed');
+    });
+
+    await expect(service.tryAcquire()).resolves.toBe(false);
+  });
+
   it('confirms the lock is still held on the reserved connection', async () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
@@ -103,6 +112,16 @@ describe('AdvisoryLockService', () => {
 
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
     await expect(service.isStillHeld()).resolves.toBe(false);
+  });
+
+  it('resolves without throwing when release() itself throws', async () => {
+    sqlMock.queueRows([{ acquired: true }]);
+    await service.tryAcquire();
+    sqlMock.release.mockImplementation(() => {
+      throw new Error('release failed');
+    });
+
+    await expect(service.release()).resolves.toBeUndefined();
   });
 
   it('is a no-op to release when nothing was acquired', async () => {
