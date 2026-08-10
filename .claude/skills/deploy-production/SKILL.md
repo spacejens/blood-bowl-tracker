@@ -108,6 +108,67 @@ Run this section only if "Restart the machine" was selected in step 0 above. Run
    Look for the same healthy-startup markers as the "Check deployment status" section (migrations, Discord gateway login, startup message posted). A machine in state `started` whose logs show a thrown startup error is a crash loop, not a successful restart — report it that way.
 5. Report the outcome: which command was run, the machine's final state, and what the logs showed. A restart does not change the deployed image; if the underlying problem is the code or config that was deployed, say so and point at the rollback and redeploy actions.
 
+### Roll back to a previous release
+
+Run this section only if "Roll back to a previous release" was selected in step 0 above. Runs after the "Check deployment status" and "Restart the machine" sections if those were also selected; runs standalone if it is the only one picked.
+
+1. List the release history with image references:
+   ```bash
+   fly releases --json
+   ```
+   Each entry carries a version, a status, a creation timestamp, and the image reference that release deployed (the `ImageRef` field). If the JSON shape is not what you expect, fall back to the human-readable `fly releases` table and say so in your report rather than guessing at a field name.
+2. If there is only one release, or none, stop and report that there is nothing to roll back to. This is the state right after a first deploy, and it is not an error.
+3. Otherwise ask the developer which release to roll back to, using `AskUserQuestion` with the **four most recent releases other than the currently deployed one** as options (`AskUserQuestion` allows at most 4 options; if fewer than four exist, offer what exists — but note the tool needs at least 2 options, so with exactly one candidate use a plain conversational confirmation instead of the tool). Label each option with its version and creation timestamp, and put the image reference and status in the option's description so the developer can see what they are choosing. Do not preselect or recommend one — only the developer knows which release was good.
+4. Warn before running anything, in the same message as the confirmation: a rollback deploys from this machine and therefore sits outside the GitHub Actions deploy path, so **the next merge to `main` redeploys the newest code over it**. A rollback buys time; the offending change still has to be reverted or fixed on `main`.
+5. Deploy the chosen image from the repository root:
+   ```bash
+   fly deploy --image <image-ref-from-the-chosen-release>
+   ```
+   This skips the build entirely — the image already exists in Fly's registry.
+6. Verify the rollback landed:
+   ```bash
+   fly status
+   fly logs --no-tail
+   ```
+   Expect one machine in state `started` and a healthy startup. `fly releases` now shows a *new* release whose image is the old one — Fly records the rollback as a new release rather than reverting to the old release number.
+7. Report to the developer: which release was rolled back to, its image reference, the new release version Fly created, and a reminder that `main` still carries the bad code.
+
+### Trigger a redeploy without a new merge
+
+Run this section only if "Trigger a redeploy without a new merge" was selected in step 0 above. Runs after the "Check deployment status", "Restart the machine", and "Roll back to a previous release" sections if those were also selected; runs standalone if it is the only one picked.
+
+This dispatches the same `.github/workflows/deploy.yml` workflow that merges to `main` trigger, so it deploys whatever `main` currently points at — useful after pushing changed Fly secrets, after a rollback that needs undoing, or to retry a deploy that failed transiently. It is not a way to deploy a branch: the workflow always builds the ref it is dispatched against, and this skill always dispatches `main`.
+
+1. Note the current release version first, so the new one is distinguishable:
+   ```bash
+   fly status
+   ```
+2. Dispatch the workflow:
+   ```bash
+   gh workflow run deploy.yml --ref main
+   ```
+   If this fails with a "workflow does not exist" style error, the workflow file has not reached `main` yet (it only becomes dispatchable once merged) — report that rather than retrying.
+3. Find the run that was just created. `gh workflow run` prints no run id, and the run takes a moment to appear, so poll:
+   ```bash
+   gh run list --workflow=deploy.yml --limit 1 --json databaseId,status,createdAt,url
+   ```
+   Retry every few seconds for up to about 30 seconds until a run appears whose `createdAt` is after step 2. If none appears, report that the dispatch did not produce a run and stop.
+4. Follow it to completion:
+   ```bash
+   gh run watch <databaseId-from-step-3> --exit-status
+   ```
+   This exits non-zero if the run fails. On failure, fetch the failing step's log and report it:
+   ```bash
+   gh run view <databaseId-from-step-3> --log-failed
+   ```
+   The most common failure is an expired or missing `FLY_API_TOKEN` secret, which surfaces as an authentication error from `flyctl`. Fixing it is a manual step (see `docs/discord-bot/production-hosting.md`'s "First-time setup") — this skill does not mint or store tokens.
+5. On success, verify the deployment the same way the rollback section does:
+   ```bash
+   fly status
+   fly logs --no-tail
+   ```
+6. Report to the developer: the run URL, its conclusion, the release version before and after, and what the logs showed.
+
 ## Non-goals
 
 - **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an *older* image.
