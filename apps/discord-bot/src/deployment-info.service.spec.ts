@@ -79,7 +79,7 @@ describe('DeploymentInfoService', () => {
     expect(execFileSync).toHaveBeenCalledTimes(2);
   });
 
-  it('describes an active machine with every available field', () => {
+  it('describes an active machine as an embed with one line per field', () => {
     withEnv({
       FLY_MACHINE_ID: '148e123456',
       FLY_APP_NAME: 'blood-bowl-tracker-discord-bot',
@@ -87,10 +87,19 @@ describe('DeploymentInfoService', () => {
       GIT_BRANCH: 'main',
     });
 
-    expect(service.describe('active')).toBe(
-      'Bot starting as **active** (machine 148e123456, ' +
-        'app blood-bowl-tracker-discord-bot, branch main, commit abcdef1)',
-    );
+    expect(service.describe('active')).toEqual({
+      embeds: [
+        {
+          title: 'Bot starting as active',
+          description: [
+            'Machine: 148e123456',
+            'App: blood-bowl-tracker-discord-bot',
+            'Branch: main',
+            'Commit: abcdef1',
+          ].join('\n'),
+        },
+      ],
+    });
   });
 
   it('describes a standby machine with only the fields it has', () => {
@@ -99,16 +108,20 @@ describe('DeploymentInfoService', () => {
       throw new Error('not a git repository');
     });
 
-    expect(service.describe('standby')).toBe(
-      'Bot starting as **standby** (branch main)',
-    );
+    expect(service.describe('standby')).toEqual({
+      embeds: [
+        { title: 'Bot starting as standby', description: 'Branch: main' },
+      ],
+    });
   });
 
-  it('describes the role alone when no field resolves', () => {
+  it('omits the description when no field resolves', () => {
     vi.mocked(execFileSync).mockImplementation(() => {
       throw new Error('not a git repository');
     });
 
-    expect(service.describe('active')).toBe('Bot starting as **active**');
+    expect(service.describe('active')).toEqual({
+      embeds: [{ title: 'Bot starting as active' }],
+    });
   });
 });

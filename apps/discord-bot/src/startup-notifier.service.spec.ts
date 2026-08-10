@@ -20,7 +20,9 @@ describe('StartupNotifierService', () => {
     config.getStartupMessageDiscordChannel.mockReturnValue('42');
     config.getDiscordBotToken.mockReturnValue('the-token');
     deploymentInfo = mock<DeploymentInfoService>();
-    deploymentInfo.describe.mockReturnValue('Bot starting as **active**');
+    deploymentInfo.describe.mockReturnValue({
+      embeds: [{ title: 'Bot starting as active' }],
+    });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -38,12 +40,12 @@ describe('StartupNotifierService', () => {
   });
 
   describe('active path', () => {
-    it('posts the deployment status line to the configured channel', async () => {
+    it('posts the deployment status embed to the configured channel', async () => {
       await service.postActiveStartupMessage();
 
       expect(deploymentInfo.describe).toHaveBeenCalledWith('active');
       expect(discordClient.sendMessage.mock.calls).toEqual([
-        ['42', 'Bot starting as **active**'],
+        ['42', { embeds: [{ title: 'Bot starting as active' }] }],
       ]);
     });
 
@@ -68,8 +70,10 @@ describe('StartupNotifierService', () => {
   });
 
   describe('standby path', () => {
-    it('posts the status line over REST without touching the gateway', async () => {
-      deploymentInfo.describe.mockReturnValue('Bot starting as **standby**');
+    it('posts the status embed over REST without touching the gateway', async () => {
+      deploymentInfo.describe.mockReturnValue({
+        embeds: [{ title: 'Bot starting as standby' }],
+      });
       const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
       vi.stubGlobal('fetch', fetchMock);
 
@@ -84,7 +88,9 @@ describe('StartupNotifierService', () => {
             Authorization: 'Bot the-token',
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ content: 'Bot starting as **standby**' }),
+          body: JSON.stringify({
+            embeds: [{ title: 'Bot starting as standby' }],
+          }),
         },
       );
       expect(discordClient.sendMessage).not.toHaveBeenCalled();

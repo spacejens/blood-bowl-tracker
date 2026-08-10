@@ -19,6 +19,16 @@ export interface DeploymentInfo {
 /** How many leading characters of the commit SHA the message shows. */
 const SHORT_SHA_LENGTH = 7;
 
+/**
+ * A Discord embed shaped for both send paths this app uses: `discord.js`'s
+ * gateway `sendMessage` accepts this as part of `InteractionReplyOptions`,
+ * and the standby path's raw REST message-create call accepts the identical
+ * shape as its JSON body — so one value serves both without translation.
+ */
+export interface StartupEmbedMessage {
+  embeds: [{ title: string; description?: string }];
+}
+
 @Injectable()
 export class DeploymentInfoService {
   private cached?: DeploymentInfo;
@@ -35,18 +45,28 @@ export class DeploymentInfoService {
     return this.cached;
   }
 
-  /** One-line startup status message, omitting every unresolved field. */
-  describe(role: 'active' | 'standby'): string {
+  /**
+   * The startup status embed: one `Label: value` line per resolved field, so
+   * it's readable at a glance instead of packed into one sentence. A field
+   * that didn't resolve is omitted rather than shown as blank.
+   */
+  describe(role: 'active' | 'standby'): StartupEmbedMessage {
     const info = this.getDeploymentInfo();
-    const parts: string[] = [];
-    if (info.machineId) parts.push(`machine ${info.machineId}`);
-    if (info.appName) parts.push(`app ${info.appName}`);
-    if (info.branch) parts.push(`branch ${info.branch}`);
+    const lines: string[] = [];
+    if (info.machineId) lines.push(`Machine: ${info.machineId}`);
+    if (info.appName) lines.push(`App: ${info.appName}`);
+    if (info.branch) lines.push(`Branch: ${info.branch}`);
     if (info.commitSha) {
-      parts.push(`commit ${info.commitSha.slice(0, SHORT_SHA_LENGTH)}`);
+      lines.push(`Commit: ${info.commitSha.slice(0, SHORT_SHA_LENGTH)}`);
     }
-    const suffix = parts.length > 0 ? ` (${parts.join(', ')})` : '';
-    return `Bot starting as **${role}**${suffix}`;
+    return {
+      embeds: [
+        {
+          title: `Bot starting as ${role}`,
+          ...(lines.length > 0 ? { description: lines.join('\n') } : {}),
+        },
+      ],
+    };
   }
 
   private resolve(): DeploymentInfo {

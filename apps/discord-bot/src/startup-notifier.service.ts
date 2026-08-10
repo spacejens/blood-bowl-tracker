@@ -55,9 +55,11 @@ export class StartupNotifierService {
             Authorization: `Bot ${this.config.getDiscordBotToken()}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            content: this.deploymentInfo.describe('standby'),
-          }),
+          // `describe()` already returns `{ embeds: [...] }`, which is
+          // exactly the shape Discord's message-create endpoint expects —
+          // the same value the active path passes straight to
+          // discordClient.sendMessage as InteractionReplyOptions.
+          body: JSON.stringify(this.deploymentInfo.describe('standby')),
         },
       );
       if (!response.ok) {

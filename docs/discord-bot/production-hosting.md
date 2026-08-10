@@ -101,11 +101,18 @@ The implementation lives in `apps/discord-bot/src/leader-election/`.
 
 ### The startup message
 
-Each machine posts a status line when it starts, so it is clear at a glance
-whether something new was deployed, rolled back, or merely restarted:
+Each machine posts a status embed when it starts, so it is clear at a glance
+whether something new was deployed, rolled back, or merely restarted. The
+title names the role; the description has one `Label: value` line per field
+that resolved:
 
 ```
-Bot starting as **active** (machine 148e123456, app blood-bowl-tracker-discord-bot, branch main, commit abcdef1)
+Bot starting as active
+────────────────────────
+Machine: 148e123456
+App: blood-bowl-tracker-discord-bot
+Branch: main
+Commit: abcdef1
 ```
 
 | Field          | Source in production                                                     |
@@ -114,7 +121,7 @@ Bot starting as **active** (machine 148e123456, app blood-bowl-tracker-discord-b
 | App name       | `FLY_APP_NAME`, injected by Fly                                          |
 | Branch         | `GIT_BRANCH` build arg, from `github.ref_name`                           |
 | Commit SHA     | `GIT_SHA` build arg, from `github.sha` (shown as the first 7 characters) |
-| Active/standby | which side of the election this machine ended up on                      |
+| Active/standby | which side of the election this machine ended up on, shown in the title  |
 
 The two `GIT_*` values are baked into the image by
 `.github/workflows/deploy.yml` at build time, because `.dockerignore` excludes
@@ -122,12 +129,12 @@ The two `GIT_*` values are baked into the image by
 the `deploy-local` skill exports the same two variables from the host
 checkout, and a bare `pnpm start:dev` falls back to running
 `git rev-parse HEAD` / `git branch --show-current` directly. Any field that
-cannot be resolved is left out of the message; none is required, and none can
-fail startup.
+cannot be resolved is left off the embed rather than shown blank; none is
+required, and none can fail startup.
 
 This is the only message either machine posts on startup — the previous
 behavior of also posting the unfiltered `stats` insight was dropped, since
-the status line alone already answers "what is running right now."
+the status embed alone already answers "what is running right now."
 
 ## Configuration and secrets
 
