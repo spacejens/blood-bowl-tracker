@@ -198,11 +198,11 @@ Run this section only if "Drop and recreate the production database" was selecte
    Say plainly in the same message what will be destroyed (all production data in the Neon database), that there are no backups, and that recovery means a full re-import. Use a plain conversational prompt here rather than `AskUserQuestion` — a button is too easy to click through by habit, which is the entire point of a typed phrase, and `CLAUDE.md` explicitly allows a plain prompt when there is only one path forward. Compare the developer's reply to the phrase exactly, character for character. Anything else — a paraphrase, a "yes", the app name with different capitalisation or stray punctuation — is a refusal: abandon this section, report that nothing was changed, and continue with any other selected sections.
 4. Drop and recreate the schemas. Run this as a **single** shell invocation so `DATABASE_URL` stays in scope — shell state does not persist between separate command calls — and never echo the variable:
    ```bash
-   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2-) \
-     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
-       -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
-       -c 'CREATE SCHEMA public;' \
-       -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
+   DATABASE_URL=$(grep -m1 '^DATABASE_URL=' apps/discord-bot/.env.production | cut -d= -f2-)
+   psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+     -c 'DROP SCHEMA IF EXISTS public CASCADE;' \
+     -c 'CREATE SCHEMA public;' \
+     -c 'DROP SCHEMA IF EXISTS drizzle CASCADE;'
    ```
    Both schemas must go. The application tables live in `public`, but drizzle-orm records which migrations have already run in `drizzle.__drizzle_migrations` (see `packages/db/src/db.ts`). Dropping `public` alone would leave that journal asserting every migration was applied, so the restart in step 5 would rebuild nothing and leave an empty database the bot starts against perfectly happily — a silent failure. This mirrors `docker compose down -v` locally, which wipes the whole volume.
 
