@@ -1,7 +1,8 @@
 # Production hosting
 
 The production Discord bot runs as two always-on containers on
-[Fly.io](https://fly.io/) — one active, one standby —, backed by a managed PostgreSQL database on
+[Fly.io](https://fly.io/) — one active, one standby — backed by a managed
+PostgreSQL database on
 [Neon](https://neon.tech/). This page covers the hosting setup itself: what
 exists where, how configuration reaches the running app, and how to check
 on or roll back a deployment.
@@ -236,13 +237,15 @@ practice, every pull request merged with GitHub's merge-commit button — and
 runs `flyctl deploy --remote-only` from the repository root, where
 `fly.toml` lives. Fly builds `apps/discord-bot/Dockerfile` with the repo
 root as build context on Fly's own builders, pushes the image, and replaces
-the running machine.
+both running machines, one at a time — see
+[Active and standby](#active-and-standby) for what that overlap means for
+which machine ends up active afterward.
 
 The workflow authenticates with the `FLY_API_TOKEN` repository secret
 created in [First-time setup](#first-time-setup). Its `deploy-production`
 concurrency group deliberately does not cancel in-progress runs, so two
 deploys queue rather than race — cancelling a deploy mid-flight can leave
-the machine half-replaced.
+a machine half-replaced.
 
 Nothing about CI gates the deploy. `.github/workflows/ci.yml` runs on pull
 requests, so lint, typecheck, and tests have already passed on the branch
