@@ -41,7 +41,7 @@ Most often triggered conversationally — when the developer says something like
    fi
    ```
    Apply the same logic as the pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main (`git -C "$MAIN_ROOT" restore <paths>`, reset redundant commits); if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
-4. **Check for gitignored config drift** — changes to gitignored config/env files that live only inside this worktree and would be lost when it is removed. `git status` never surfaces these, so they need their own check.
+4. Check for gitignored config drift — changes to gitignored config/env files that live only inside this worktree and would be lost when it is removed. `git status` never surfaces these, so they need their own check.
 
    This step runs **only inside a git worktree** — detect worktree context the same way Phase 2's Docker step does (this session entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`). In a plain main checkout there is no second copy to compare against, so skip this step silently.
 
@@ -90,7 +90,7 @@ Most often triggered conversationally — when the developer says something like
 
    For **each** flagged file, first show the developer what is at stake:
 
-   - **DRIFTED** — show the actual differences:
+   - **DRIFTED** — show the actual differences (`<` lines are the main checkout's copy, `>` lines are this worktree's):
      ```bash
      diff "$MAIN_ROOT/<file>" "$WORKTREE_ROOT/<file>"
      ```
