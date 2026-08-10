@@ -55,6 +55,59 @@ These apply to every action below. Check them once, before step 0's question, an
 
    The **union** of the three answers determines which sections below run; the split is purely a presentation constraint and carries no meaning of its own. The developer may select any combination of the nine options, including none. Sections run in the order they appear below, which is the order the options are listed above. No option is gated on any other: each section runs standalone if it is the only one picked. If the union is empty (nothing selected in any of the three questions), report "No action taken" and stop — this is a valid outcome, not an error.
 
+### Check deployment status
+
+Run this section only if "Check deployment status" was selected in step 0 above. Runs first when several actions were selected — it is read-only, and its output is the context every other action is judged against. Runs standalone if it is the only one picked.
+
+1. Get the machine list and state:
+   ```bash
+   fly status
+   ```
+   A healthy deployment shows exactly one machine in state `started`.
+2. Read a bounded slice of recent logs. Do **not** run bare `fly logs` — it streams forever and will hang:
+   ```bash
+   fly logs --no-tail
+   ```
+3. Summarize for the developer:
+   - The machine id, its state, and the release version `fly status` reports.
+   - Whether the logs show a healthy startup: drizzle migrations applying (or nothing pending), the bot logging in to Discord's gateway, and the startup insight posted to `STARTUP_MESSAGE_DISCORD_CHANNEL`.
+   - Any of the failure signatures documented in `docs/discord-bot/production-hosting.md`'s "Checking on the deployment" section, named explicitly when matched:
+     - **Crash loop from missing or invalid configuration** — a thrown startup error such as `DATABASE_URL is not configured`, with `fly status` showing repeated restarts. The fix is to correct `apps/discord-bot/.env.production` and re-run `fly secrets import < apps/discord-bot/.env.production` by hand; this skill does not push secrets (see Non-goals).
+     - **Stopped after max restarts** — `fly status` shows `stopped` and the logs show "machine has reached its max restart count". Fixing the secret alone does not bring it back; offer the "Restart the machine" action.
+     - **Database unreachable** — a connection error during migration. Note that Neon's free tier autosuspends its compute after inactivity, so the first connection after a quiet period is slow by design and is not itself a failure.
+4. This section never changes anything. If it finds a problem, report it and let the developer decide — do not restart, redeploy, or reset on your own initiative.
+
+### Restart the machine
+
+Run this section only if "Restart the machine" was selected in step 0 above. Runs after "Check deployment status" if both were selected; runs standalone if it is the only one picked.
+
+1. Find the machine and its current state, in machine-readable form:
+   ```bash
+   fly status --json
+   ```
+   Read the machine's `id` and `state` from the JSON. If more than one machine is listed, stop and report — `fly.toml` describes a single always-on machine, so several machines means something unexpected happened and the developer should look before anything is restarted.
+2. Pick the command by state, and tell the developer which one you are running and why:
+   - State `stopped` (the max-restart-count case): start it explicitly.
+     ```bash
+     fly machine start <machine-id-from-step-1>
+     ```
+   - State `started` (a live restart, e.g. to clear a stuck gateway connection): replace the running machine in place.
+     ```bash
+     fly apps restart blood-bowl-tracker-discord-bot
+     ```
+   - Any other state (`starting`, `replacing`, …): report the state and stop. A machine mid-transition should be allowed to settle rather than have a second operation stacked on it; suggest re-running "Check deployment status" in a moment.
+3. Wait for the machine to come back, polling rather than sleeping blindly:
+   ```bash
+   fly status
+   ```
+   Retry every few seconds up to about 60 seconds, until exactly one machine reports `started`.
+4. Confirm the restart actually produced a healthy boot:
+   ```bash
+   fly logs --no-tail
+   ```
+   Look for the same healthy-startup markers as the "Check deployment status" section (migrations, Discord gateway login, startup message posted). A machine in state `started` whose logs show a thrown startup error is a crash loop, not a successful restart — report it that way.
+5. Report the outcome: which command was run, the machine's final state, and what the logs showed. A restart does not change the deployed image; if the underlying problem is the code or config that was deployed, say so and point at the rollback and redeploy actions.
+
 ## Non-goals
 
 - **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an *older* image.
