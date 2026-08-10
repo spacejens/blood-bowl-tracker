@@ -1,10 +1,11 @@
 # Discord Bot
 
 The `apps/discord-bot` application connects to Discord using a bot account. On
-launch it posts a random fact from a tree of tracked-data insights to a
-configured channel, and it serves slash commands such as `/insights`. This
-page explains how to set up the bot on the Discord side and how to configure
-the application.
+launch it posts a deployment status message to a configured channel, it posts
+scheduled random facts from a tree of tracked-data insights on a cron
+schedule, and it serves slash commands such as `/insights`. This page
+explains how to set up the bot on the Discord side and how to configure the
+application.
 
 ## 1. Create a Discord application and bot
 
@@ -23,7 +24,7 @@ the application.
    (e.g. `/insights`) to register.
 3. Under **Bot Permissions**, select at least **Send Messages**, **Embed
    Links** (the startup message and most `/insights` facts are embeds), and
-   **View Channel** for the target channel.
+   **View Channel** for the target channels.
 4. Copy the generated URL, open it in a browser, choose your server, and
    authorize. You need **Manage Server** permission on that server to add the
    bot.
@@ -44,8 +45,9 @@ the application.
    channel is fine for purely local development.
 4. Make sure the bot can see and post in those channels (channel permissions
    must allow the bot's role to View Channel, Send Messages, and Embed Links —
-   the startup message is posted as a plain channel message, so it needs Embed
-   Links whenever it's an embed, unlike slash-command replies).
+   both the startup message and the scheduled insights are posted as plain
+   channel messages, not slash-command replies, so they need Embed Links
+   rather than relying on Discord's own interaction-response handling).
 
 ## 4. Configure the application
 
@@ -57,8 +59,8 @@ Configuration is supplied through an environment file in the app directory.
    ```
 2. Edit `apps/discord-bot/.env` and set:
    - `DISCORD_BOT_TOKEN` — the token from step 1.
-   - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from step 3. The bot
-     posts the unfiltered `stats` insight here on every startup.
+   - `STARTUP_MESSAGE_DISCORD_CHANNEL` — the channel id from section 3. The
+     bot posts a deployment status message here on every startup.
    - `RANDOM_INSIGHTS_CRON` — when the bot posts a scheduled random insight,
      as a standard 5-field cron expression (an optional sixth leading field is
      seconds), in the bot process's local time zone (in the Docker deployment
@@ -68,7 +70,7 @@ Configuration is supplied through an environment file in the app directory.
      serving real members generally wants a far lower frequency, such as once
      a day (`0 8 * * *`).
    - `RANDOM_INSIGHTS_DISCORD_CHANNEL` — the channel the scheduled random
-     insights are posted to, from step 3. Once the bot is released to real
+     insights are posted to, from section 3. Once the bot is released to real
      members this is its own dedicated channel, separate from the startup
      channel.
    - `RANDOM_INSIGHTS_FILTER_PROBABILITY` — percent chance (integer 0-100)
@@ -101,10 +103,10 @@ With Docker Compose:
 docker compose up discord-bot
 ```
 
-On startup the bot logs in and posts a random fact drawn from `/insights` to
-the configured channel. If the token or channel id is missing or invalid,
-startup fails with an error in the logs (the bot is intentionally fail-fast
-about misconfiguration).
+On startup the bot logs in and posts a deployment status message to
+`STARTUP_MESSAGE_DISCORD_CHANNEL`. If a required token or channel id is
+missing or invalid, startup fails with an error in the logs (the bot is
+intentionally fail-fast about misconfiguration).
 
 For the production deployment — the Fly.io app, the Neon database, and how
 production configuration and secrets get there — see
