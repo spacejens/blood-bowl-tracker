@@ -108,13 +108,21 @@ describe('AdvisoryLockService', () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
 
+    // Records how many queries had already run by the time `release()` was
+    // called on the connection — proves the ORDER, not just that both
+    // happened. Releasing first would let a `max: 1` pool hand the same
+    // connection to the next reserve() while still holding the lock, so
+    // this must be 2 (the acquire query plus the unlock query), never 1.
+    let queryCountAtRelease = -1;
+    sqlMock.release.mockImplementation(() => {
+      queryCountAtRelease = sqlMock.queries.length;
+    });
+
     await service.release();
 
     expect(sqlMock.queries[1]).toContain('pg_advisory_unlock');
     expect(sqlMock.values[1]).toEqual([LOCK_CLASS_ID, LOCK_OBJECT_ID]);
-    // The unlock query must run BEFORE the connection is returned to the
-    // pool — releasing first would let a `max: 1` pool hand the same
-    // connection to the next reserve() while still holding the lock.
+    expect(queryCountAtRelease).toBe(2);
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
     await expect(service.isStillHeld()).resolves.toBe(false);
   });

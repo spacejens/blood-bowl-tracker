@@ -406,6 +406,14 @@ configured`, and similar) and the machine crash-loops. `fly status` shows
   design. A single occurrence is the intended reaction to a blip and the
   standby will already have taken over; a repeating loop points at the
   database dropping connections.
+- **A machine restarting after `Failed to complete startup after connecting
+to Discord; exiting`** — a step after a successful gateway connection
+  (registering slash commands, starting the cron, or posting the startup
+  message) failed. This is fatal by design too, for the same reason as
+  above: once connected, releasing the lock and retrying would risk two
+  live gateway sessions instead of one. Fly restarts the machine and it
+  rejoins the election. Check the logged error for the underlying cause
+  (a Discord API error, a misconfigured channel id, and similar).
 - **A migration error in `fly logs` from one of two simultaneously-starting
   machines** — `packages/db`'s migration step runs unconditionally on both
   machines at boot, and drizzle's migrator takes no lock of its own. A

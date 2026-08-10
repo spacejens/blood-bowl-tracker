@@ -87,25 +87,35 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
   /**
    * Opens the gateway session and resolves once the client is ready. Called
    * exactly once, by the leader-election service, after this instance wins the
-   * advisory lock. Rejecting here is recoverable: the caller releases the lock
-   * and re-enters the election rather than crashing the process.
+   * advisory lock. Rejecting here is recoverable — the caller releases the
+   * lock and re-enters the election rather than crashing the process — but
+   * only if the login is actually abandoned first: a bare timeout would leave
+   * `login()` in flight, and a login that later succeeds after this machine
+   * has already released the lock (and a standby has become active) opens the
+   * exact duplicate gateway session leader election exists to prevent. Both
+   * the timeout and the `ready` listener are torn down here so neither can
+   * fire after this method has settled.
    */
   async connect(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
+      const onReady = () => {
+        clearTimeout(timeout);
+        this.logger.log(`Logged in as ${this.client.user?.tag ?? 'unknown'}`);
+        resolve();
+      };
       const timeout = setTimeout(() => {
+        this.client.off('ready', onReady);
+        void this.client.destroy();
         reject(
           new Error(
             `Discord client did not become ready within ${READY_TIMEOUT_MS}ms`,
           ),
         );
       }, READY_TIMEOUT_MS);
-      this.client.once('ready', () => {
-        clearTimeout(timeout);
-        this.logger.log(`Logged in as ${this.client.user?.tag ?? 'unknown'}`);
-        resolve();
-      });
+      this.client.once('ready', onReady);
       this.client.login(this.token).catch((error: unknown) => {
         clearTimeout(timeout);
+        this.client.off('ready', onReady);
         reject(error instanceof Error ? error : new Error(String(error)));
       });
     });

@@ -17,10 +17,12 @@ export const LOCK_RETRY_INTERVAL_MS = 15_000;
  * Deliberately shorter than `LOCK_RETRY_INTERVAL_MS`: if the active machine's
  * lock connection drops without killing the process, Postgres frees the lock
  * immediately and a standby can acquire it (opening its own gateway session)
- * within one retry interval. This machine must notice it lost the lock and
- * exit before that window closes, or both machines briefly hold live gateway
- * sessions at once — exactly what leader election exists to prevent. The
- * health check is one cheap query, so checking often costs little.
+ * within one retry interval. Polling on both sides can't close that window
+ * entirely — a standby's retry can land right after the drop, before this
+ * machine's next check fires — but keeping this interval well below the
+ * retry interval shrinks the overlap to at most one health-check interval
+ * instead of leaving it as large as a full retry interval. The health check
+ * is one cheap query, so checking often costs little.
  */
 export const LOCK_HEALTH_CHECK_INTERVAL_MS = 5_000;
 

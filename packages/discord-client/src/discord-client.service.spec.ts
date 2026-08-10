@@ -17,6 +17,7 @@ interface MockClient {
   guilds: { cache: Map<string, MockGuild> };
   once: ReturnType<typeof vi.fn>;
   on: ReturnType<typeof vi.fn>;
+  off: ReturnType<typeof vi.fn>;
   login: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   user: { tag: string | undefined };
@@ -33,6 +34,7 @@ const mockClient: MockClient = {
   guilds: { cache: new Map<string, MockGuild>() },
   once: vi.fn(),
   on: vi.fn(),
+  off: vi.fn(),
   login: vi.fn(),
   destroy: vi.fn(),
   user: { tag: 'test-bot#0001' },
@@ -246,7 +248,11 @@ describe('DiscordClientService', () => {
   it('rejects init when the client never becomes ready', async () => {
     vi.useFakeTimers();
     try {
-      mockClient.once.mockImplementation(() => mockClient);
+      let readyHandler: (() => void) | undefined;
+      mockClient.once.mockImplementation((event: string, cb: () => void) => {
+        if (event === 'ready') readyHandler = cb;
+        return mockClient;
+      });
       mockClient.login.mockReturnValue(new Promise<string>(() => {}));
       service.onModuleInit();
       const initPromise = service.connect();
@@ -255,6 +261,13 @@ describe('DiscordClientService', () => {
       );
       await vi.advanceTimersByTimeAsync(30_000);
       await assertion;
+
+      // The login promise above never resolves, so a later `ready` event
+      // would still be possible unless the timeout tore both down — a
+      // duplicate gateway session if this machine has already released the
+      // lock and a standby has taken over.
+      expect(mockClient.off).toHaveBeenCalledWith('ready', readyHandler);
+      expect(mockClient.destroy).toHaveBeenCalled();
     } finally {
       vi.useRealTimers();
     }
