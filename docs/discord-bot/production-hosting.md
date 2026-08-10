@@ -42,9 +42,14 @@ tunnel; see [Running import tools against production](#running-import-tools-agai
 
 There is no redundancy, failover, or autoscaling. For a low-traffic hobby
 bot that is a deliberate non-goal, not an oversight. There is also no backup
-strategy for the Neon database: production data is fully reproducible by
-re-running the `tools/import-*` importers, so nothing here needs its own
-backups.
+strategy for the Neon database: production data is reproducible by re-running
+the `tools/import-*` importers, so nothing here needs its own backups. This is
+an emergency recovery option, not a routine one, though: each importer writes
+one record at a time over the `flyctl proxy` tunnel (see
+[Running import tools against production](#running-import-tools-against-production)),
+so a full re-import of the whole dataset takes considerably longer against
+production than it does locally, and the bot serves stale or empty data for
+that whole window.
 
 ## Configuration and secrets
 
