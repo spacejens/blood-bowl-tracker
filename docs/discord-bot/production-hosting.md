@@ -87,10 +87,15 @@ Done once, by a developer with accounts on both providers:
    ```bash
    flyctl auth login
    ```
-   (`flyctl auth signup` if you do not have a Fly account yet.)
+   (`flyctl auth signup` if you do not have a Fly account yet.) This opens a
+   browser for OAuth, so it needs a real interactive terminal — it does not
+   work from a non-interactive/headless shell.
 2. Sign up for Neon, create a project named `blood-bowl-tracker` in region
    `eu-central-1`, and copy its **direct** connection string.
-3. Create the Fly app:
+3. Fly requires billing info on file before it will create apps, even at
+   this low usage tier. Add a card at
+   `https://fly.io/dashboard/<your-org>/billing` if you have not already.
+   Then create the Fly app:
    ```bash
    flyctl apps create blood-bowl-tracker-discord-bot
    ```
@@ -137,7 +142,11 @@ Common failures and where they surface:
   fail-fast, so a missing variable throws at startup (`DATABASE_URL is not
   configured`, and similar) and the machine crash-loops. `fly status` shows
   repeated restarts; `fly logs` shows the thrown error. Fix the value and
-  re-run `fly secrets import`.
+  re-run `fly secrets import`. If the machine already hit Fly's max restart
+  count (`fly status` shows `stopped` and `fly logs` shows "machine has
+  reached its max restart count"), fixing the secret alone does not bring it
+  back — explicitly restart it with
+  `fly machine start <machine-id-from-fly-status>`.
 - **Database unreachable** — a wrong or pooled `DATABASE_URL`, or a
   suspended Neon project, shows as a connection error during migration in
   `fly logs`.
