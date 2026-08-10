@@ -61,6 +61,14 @@ that whole window.
 
 ## Active and standby
 
+**A deployment that predates this section is still running as a single
+machine.** Deploying new code never changes machine count on its own — Fly
+just replaces the machine(s) that already exist. If `fly status` shows only
+one machine, run `fly scale count 2` once (see
+[First-time setup](#first-time-setup) step 4 — the same command applies
+whether the app is brand new or already running) to bring it up to the
+2-machine setup this page describes.
+
 Both machines run the same image, and both start their HTTP/RPC server
 immediately — the TCP health check and the `flyctl proxy` import endpoint are
 live on both at all times, regardless of which one is active.
