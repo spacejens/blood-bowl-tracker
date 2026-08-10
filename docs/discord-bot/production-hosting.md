@@ -29,21 +29,29 @@ directory containing `fly.toml` as the Docker build context, and
 `apps/discord-bot/Dockerfile` builds from the monorepo root — the same
 context `docker-compose.yml` uses.
 
-The machine never scales to zero (`auto_stop_machines = "off"`,
-`min_machines_running = 1`). Unlike a stateless web app, the bot holds a
-persistent connection to Discord's gateway, so a stopped machine is an
-offline bot, not a cold start.
+The machine never scales to zero. `fly.toml` declares no `[[services]]` block
+(see below), and Fly's autostop/autostart machinery only acts on machines
+behind a declared service — with none declared, there is nothing for it to
+stop, so the single machine simply keeps running once started. Unlike a
+stateless web app, the bot holds a persistent connection to Discord's
+gateway, so a stopped machine is an offline bot, not a cold start.
 
-The app has a `.fly.dev` hostname, but nothing answers on it: `fly.toml`
-declares the service's internal port 3000 and a TCP health check against it,
-with no public ports. Making the `/rpc` API reachable for the import tools is
-tracked separately.
+The app has a `.fly.dev` hostname, but nothing answers on it. `fly.toml`
+declares no `[[services]]` block at all — only a top-level `[checks.tcp]`
+health check against port 3000 — so no port is published to the public
+internet. The `/rpc` API is reached instead through a private `flyctl proxy`
+tunnel; see [Running import tools against production](#running-import-tools-against-production).
 
 There is no redundancy, failover, or autoscaling. For a low-traffic hobby
 bot that is a deliberate non-goal, not an oversight. There is also no backup
-strategy for the Neon database: production data is fully reproducible by
-re-running the `tools/import-*` importers, so nothing here needs its own
-backups.
+strategy for the Neon database: production data is reproducible by re-running
+the `tools/import-*` importers, so nothing here needs its own backups. This is
+an emergency recovery option, not a routine one, though: each importer writes
+one record at a time over the `flyctl proxy` tunnel (see
+[Running import tools against production](#running-import-tools-against-production)),
+so a full re-import of the whole dataset takes considerably longer against
+production than it does locally, and the bot serves stale or empty data for
+that whole window.
 
 ## Configuration and secrets
 
@@ -132,6 +140,82 @@ context, pushes the image, and replaces the running machine. Automating
 repeatable deploys is tracked separately; there is deliberately no GitHub
 Actions deploy workflow, so there is one place responsible for the deploy
 mechanism rather than two parallel paths.
+
+## Running import tools against production
+
+The `tools/import-*` importers write to the api-server hosted in-process by
+the bot, and that server is not published to the internet. Reach it with a
+private tunnel instead: `flyctl proxy` connects over Fly's WireGuard network
+and forwards a local port to the machine, so nothing is ever exposed
+publicly. This was chosen over publishing a TCP/HTTPS port (bearer-token auth
+alone does not justify an unrestricted RPC surface on the open internet) and
+over a persistent WireGuard peer via `flyctl wireguard create` (more standing
+setup than an occasional, developer-initiated import run needs).
+
+Because the tunnel listens on `localhost:3000`, an importer's production
+`apiBaseUrl` is the same `http://localhost:3000` as its local-development
+one — only the backend behind it differs. What must differ is the bearer
+token: production `apiToken` values come from the `API_TOKEN_IMPORT_*`
+secrets in `apps/discord-bot/.env.production`, not from the local `.env`.
+
+Each importer therefore keeps a second, git-ignored config file next to its
+default one:
+
+| Tool | Local config | Production config |
+|------|--------------|-------------------|
+| `tools/import-bbl` | `import-bbl-config.json5` | `import-bbl-config.production.json5` |
+| `tools/import-tp` | `import-tp-config.json5` | `import-tp-config.production.json5` |
+| `tools/import-manual` | `import-manual-config.json5` | `import-manual-config.production.json5` |
+
+Both variants share one committed template per tool — the existing
+`import-*-config.example.json5`, copied twice — because the file shape is
+identical and only the values differ. Setting `IMPORT_CONFIG_ENV=production`
+for a run makes that tool read its `.production.json5` file; unset (or any
+other value) reads the default one. This mirrors the
+`.env` / `.env.production` split used for the bot itself.
+
+To run an import against production:
+
+1. Create the production config files once, from the same templates as the
+   local ones, and fill in the production `apiToken` values:
+   ```bash
+   cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.production.json5
+   cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.production.json5
+   cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.production.json5
+   ```
+2. Build the tools:
+   ```bash
+   pnpm build
+   ```
+3. Open the tunnel in its own terminal, from the repository root where
+   `fly.toml` lives, and leave it running:
+   ```bash
+   flyctl proxy 3000
+   ```
+4. In a second terminal, run the importers in the same order the
+   `deploy-local` skill uses locally — manual "before", BBL, TP, manual
+   "after" — each from its own tool directory:
+   ```bash
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+   ( cd tools/import-bbl    && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ( cd tools/import-tp     && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/after-other-importers )
+   ```
+5. Stop the tunnel (Ctrl-C) when the imports are done.
+
+Common failures:
+
+- **`ECONNREFUSED` on `localhost:3000`** — the tunnel is not running, or it
+  died. Check the `flyctl proxy` terminal. Note that a locally running
+  docker-compose stack also binds port 3000; stop it before opening the
+  tunnel, or the importer will silently write to the local database instead.
+- **`401`** — the `apiToken` in the `.production.json5` file does not match
+  the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
+- **Wrong data imported** — `IMPORT_CONFIG_ENV` was not set (or was set in a
+  different shell than the one that ran the tool), so the default config file
+  was used.
+
+Automating this as a `deploy-production` skill is deliberately not done here.
 
 ## Checking on the deployment
 

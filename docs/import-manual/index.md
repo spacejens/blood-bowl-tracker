@@ -32,6 +32,13 @@ Top-level keys:
     [RPC conventions](../api/rpc-conventions.md)). Treat it like a password —
     `import-manual-config.json5` is git-ignored, so it is never committed.
 
+Running the tool with the environment variable `IMPORT_CONFIG_ENV=production`
+makes it read `import-manual-config.production.json5` from the same directory
+instead. Both files have exactly the same shape and the same committed
+template (`import-manual-config.example.json5`); they differ only in the
+values they carry, so a production run can point at the production api-server
+without disturbing the local-development config. Both are git-ignored.
+
 See `import-manual-config.example.json5` for a worked example.
 
 ## Data files
@@ -255,6 +262,17 @@ point the tool at any other directory by passing its path.
    `Import completed with <N> errors:`; an unexpected failure (missing argument,
    unreachable API, malformed JSON5, invalid file shape) is printed as
    `Import failed:`.
+
+To import into the production api-server instead, keep a second config file
+`tools/import-manual/import-manual-config.production.json5` (copied from the
+same example template), run `flyctl proxy 3000` from the repository root in
+another terminal, and set `IMPORT_CONFIG_ENV=production` for the run:
+
+```bash
+( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+```
+
+See [Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
 
 ## Architecture
 
