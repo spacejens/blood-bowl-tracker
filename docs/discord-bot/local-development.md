@@ -20,7 +20,8 @@ instances then try to answer the same interaction: whichever replies first
 wins, the other's reply fails, and which one that is varies from one
 interaction to the next. There is no way to tell Discord "only the local
 session should handle this" while the two share a token, so the only
-reliable fix is a second application with a token of its own.
+reliable fix that keeps the production bot running is a second application
+with a token of its own.
 
 A separate dev-only server matters for the same reason from the other
 direction: even with its own token, a dev bot invited to the real server
@@ -48,6 +49,12 @@ is free to be reconfigured or wiped at will.
    server.
 4. Copy the channel ids from the dev server, following
    [Find the channel id](index.md#3-find-the-channel-id).
+
+Because slash commands are registered globally per application (see
+[Slash commands](index.md#slash-commands)), the freshly created dev
+application takes up to about an hour to show its command definitions the
+first time the bot starts — the same propagation delay `index.md` describes
+for changes to an existing application, not something specific to a new one.
 
 ## Configuration
 
