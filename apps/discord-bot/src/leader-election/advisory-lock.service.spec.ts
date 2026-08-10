@@ -104,14 +104,28 @@ describe('AdvisoryLockService', () => {
     await expect(service.isStillHeld()).resolves.toBe(false);
   });
 
-  it('releases the reserved connection', async () => {
+  it('unlocks on the reserved connection before releasing it', async () => {
     sqlMock.queueRows([{ acquired: true }]);
     await service.tryAcquire();
 
     await service.release();
 
+    expect(sqlMock.queries[1]).toContain('pg_advisory_unlock');
+    expect(sqlMock.values[1]).toEqual([LOCK_CLASS_ID, LOCK_OBJECT_ID]);
+    // The unlock query must run BEFORE the connection is returned to the
+    // pool — releasing first would let a `max: 1` pool hand the same
+    // connection to the next reserve() while still holding the lock.
     expect(sqlMock.release).toHaveBeenCalledTimes(1);
     await expect(service.isStillHeld()).resolves.toBe(false);
+  });
+
+  it('still releases the connection when the unlock query throws', async () => {
+    sqlMock.queueRows([{ acquired: true }]);
+    await service.tryAcquire();
+    sqlMock.queriesFail(new Error('connection terminated'));
+
+    await expect(service.release()).resolves.toBeUndefined();
+    expect(sqlMock.release).toHaveBeenCalledTimes(1);
   });
 
   it('resolves without throwing when release() itself throws', async () => {

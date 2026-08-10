@@ -126,15 +126,20 @@ describe('LeaderElectionService', () => {
     expect(processExit.exit).not.toHaveBeenCalled();
   });
 
-  it('releases the lock and retries when the active announcement fails', async () => {
-    startupNotifier.postActiveStartupMessage
-      .mockRejectedValueOnce(new Error('channel not found'))
-      .mockResolvedValueOnce(undefined);
+  it('exits fatally without releasing the lock when a step after connect fails', async () => {
+    // Once connect() has succeeded, the gateway session is open — retrying by
+    // releasing the lock and looping back would either leave two live
+    // sessions or fail to reconnect an already-open Client. This must be
+    // fatal instead, exactly like losing the lock while active.
+    startupNotifier.postActiveStartupMessage.mockRejectedValueOnce(
+      new Error('channel not found'),
+    );
 
     await service.run();
 
-    expect(lock.release).toHaveBeenCalledTimes(1);
-    expect(lock.tryAcquire).toHaveBeenCalledTimes(2);
+    expect(processExit.exit).toHaveBeenCalledTimes(1);
+    expect(processExit.exit).toHaveBeenCalledWith(1);
+    expect(lock.release).not.toHaveBeenCalled();
   });
 
   it('exits fatally when the lock is lost while active', async () => {
@@ -160,5 +165,15 @@ describe('LeaderElectionService', () => {
 
     resolveAcquire(true);
     await Promise.resolve();
+  });
+
+  it('exits fatally if the election loop throws unexpectedly', async () => {
+    lock.tryAcquire.mockRejectedValue(new Error('unexpected bug'));
+
+    service.onApplicationBootstrap();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(processExit.exit).toHaveBeenCalledWith(1);
   });
 });

@@ -399,6 +399,17 @@ configured`, and similar) and the machine crash-loops. `fly status` shows
   design. A single occurrence is the intended reaction to a blip and the
   standby will already have taken over; a repeating loop points at the
   database dropping connections.
+- **A migration error in `fly logs` from one of two simultaneously-starting
+  machines** — `packages/db`'s migration step runs unconditionally on both
+  machines at boot, and drizzle's migrator takes no lock of its own. A
+  rolling deploy staggers the two machines (the second isn't replaced until
+  the first passes its health check, which happens after migrations run), so
+  this is not a concern for the normal deploy path. It can happen if both
+  machines restart at the same moment with a pending migration — `fly scale
+count 2`, `fly apps restart`, or a coincidental simultaneous crash-restart
+  of both machines. The machine that lost the race crash-loops until Fly
+  restarts it into the now-migrated database; the other proceeds normally.
+  No manual fix is needed beyond letting Fly's restart machinery catch up.
 
 ## Rolling back
 

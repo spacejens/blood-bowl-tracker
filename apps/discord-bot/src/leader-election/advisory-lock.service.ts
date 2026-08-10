@@ -83,18 +83,37 @@ export class AdvisoryLockService implements OnModuleDestroy {
   }
 
   /**
-   * Releases the lock by dropping the reserved connection, so a standby can
-   * take over. Safe to call when nothing is held.
+   * Releases the lock so a standby can take over, then returns the reserved
+   * connection to the pool. Safe to call when nothing is held.
+   *
+   * `reserved.release()` alone is NOT enough: it only returns the connection
+   * object to `postgres.js`'s pool, it does not close the underlying
+   * connection or end the Postgres session — and an advisory lock is
+   * session-scoped, held until `pg_advisory_unlock` runs or the session ends.
+   * With `max: 1`, the very next `reserve()` hands back this same physical
+   * connection, so without an explicit unlock this machine would silently
+   * keep the lock across "releases" (`pg_try_advisory_lock` on an
+   * already-held session just re-increments its hold count) and a standby
+   * could never take over.
    */
-  release(): Promise<void> {
+  async release(): Promise<void> {
     const reserved = this.reserved;
     this.reserved = undefined;
+    if (!reserved) {
+      return;
+    }
     try {
-      reserved?.release();
+      await reserved`
+        SELECT pg_advisory_unlock(${LOCK_CLASS_ID}, ${LOCK_OBJECT_ID})
+      `;
+    } catch (error) {
+      this.logger.warn('Failed to unlock the advisory lock', error);
+    }
+    try {
+      reserved.release();
     } catch (error) {
       this.logger.warn('Failed to release the advisory-lock connection', error);
     }
-    return Promise.resolve();
   }
 
   async onModuleDestroy(): Promise<void> {
