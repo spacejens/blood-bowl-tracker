@@ -120,6 +120,16 @@ describe('createApiClient', () => {
       'teams',
     ]);
   });
+
+  it('matchEvents client has an upsertBatch method', () => {
+    const client = createApiClient('http://localhost:3000', 'a-token');
+    expect(typeof client.matchEvents.upsertBatch).toBe('function');
+  });
+
+  it('externalSystems client has an upsertBatch method', () => {
+    const client = createApiClient('http://localhost:3000', 'a-token');
+    expect(typeof client.externalSystems.upsertBatch).toBe('function');
+  });
 });
 
 describe('ApiClientModule', () => {
