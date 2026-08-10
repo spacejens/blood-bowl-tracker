@@ -41,6 +41,71 @@ Most often triggered conversationally — when the developer says something like
    fi
    ```
    Apply the same logic as the pre-push check: for each stray item, if it is **already part of the merged / worktree work** (the same content is committed on the merged branch or worktree — restoring on main loses nothing) it is safe to auto-clean on main (`git -C "$MAIN_ROOT" restore <paths>`, reset redundant commits); if its **provenance is unclear**, surface it and ask via `AskUserQuestion` — **never auto-discard**. This complements the worktree-side check above rather than replacing it. Do not proceed to Phase 2 until any stray main-checkout work is resolved.
+4. Check for gitignored config drift — changes to gitignored config/env files that live only inside this worktree and would be lost when it is removed. `git status` never surfaces these, so they need their own check.
+
+   This step runs **only inside a git worktree** — detect worktree context the same way Phase 2's Docker step does (this session entered via `EnterWorktree`, or `git rev-parse --git-common-dir` differs from `git rev-parse --git-dir`). In a plain main checkout there is no second copy to compare against, so skip this step silently.
+
+   Compare a **fixed list** of gitignored files between this worktree and the main checkout. The list mirrors the files `develop-feature`'s Phase 1 setup syncs *into* a fresh worktree, plus the production config variants:
+
+   - `apps/discord-bot/.env`
+   - `apps/discord-bot/.env.production`
+   - `tools/download-tp/download-tp-config.json5`
+   - `tools/import-bbl/import-bbl-config.json5`
+   - `tools/import-bbl/import-bbl-config.production.json5`
+   - `tools/import-tp/import-tp-config.json5`
+   - `tools/import-tp/import-tp-config.production.json5`
+   - `tools/import-manual/import-manual-config.json5`
+   - `tools/import-manual/import-manual-config.production.json5`
+   - `tools/review-match/review-match-config.json5`
+
+   The list is hardcoded here on purpose, matching how `develop-feature` hardcodes its own copy — keep the two in sync by eye when a new tool config appears. The `tools/import-bbl/data` and `tools/import-tp/data` directories are deliberately **excluded**: `develop-feature` symlinks them into the worktree rather than copying, so they always read through to the main checkout's files and cannot drift.
+
+   Classify each listed file:
+
+   ```bash
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     for f in apps/discord-bot/.env apps/discord-bot/.env.production \
+              tools/download-tp/download-tp-config.json5 \
+              tools/import-bbl/import-bbl-config.json5 \
+              tools/import-bbl/import-bbl-config.production.json5 \
+              tools/import-tp/import-tp-config.json5 \
+              tools/import-tp/import-tp-config.production.json5 \
+              tools/import-manual/import-manual-config.json5 \
+              tools/import-manual/import-manual-config.production.json5 \
+              tools/review-match/review-match-config.json5; do
+       if [ ! -e "$WORKTREE_ROOT/$f" ]; then
+         continue                                  # not in the worktree — nothing to check
+       elif [ ! -e "$MAIN_ROOT/$f" ]; then
+         echo "WORKTREE-ONLY: $f"
+       elif ! diff -q "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f" >/dev/null; then
+         echo "DRIFTED: $f"
+       fi
+     done
+   fi
+   ```
+
+   Always decide by running `diff` on the two files — never by eyeballing their contents from separate reads, which has produced a false "identical" conclusion before.
+
+   For **each** flagged file, first show the developer what is at stake:
+
+   - **DRIFTED** — show the actual differences (`<` lines are the main checkout's copy, `>` lines are this worktree's):
+     ```bash
+     diff "$MAIN_ROOT/<file>" "$WORKTREE_ROOT/<file>"
+     ```
+   - **WORKTREE-ONLY** — state that the file exists only in this worktree and has no counterpart in the main checkout, so removing the worktree destroys the entire file, not just the latest edits.
+
+   Then ask via `AskUserQuestion`, **one question per flagged file**, with these two genuine options (recommended first, per this project's `AskUserQuestion` convention):
+
+   1. **"Copy into main checkout"** (recommended) — overwrite the main checkout's copy with the worktree's version, creating it (and any missing parent directory) in the worktree-only case, then report what was copied:
+      ```bash
+      mkdir -p "$(dirname "$MAIN_ROOT/<file>")"
+      cp "$WORKTREE_ROOT/<file>" "$MAIN_ROOT/<file>"
+      ```
+   2. **"Leave it"** — the worktree's version is not wanted in the main checkout.
+
+   Never auto-resolve one of these files: they are gitignored, so there is no history to recover them from if the wrong copy wins. Do not proceed to Phase 2 until every flagged file has been resolved.
 
 ## Phase 2: Offer cleanup
 
