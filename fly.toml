@@ -1,0 +1,47 @@
+# Fly.io configuration for the production Discord bot deployment.
+#
+# This file lives at the repo root (not in apps/discord-bot/) because Fly uses
+# the directory containing fly.toml as the Docker build context, and
+# apps/discord-bot/Dockerfile builds from the monorepo root — the same context
+# docker-compose.yml uses.
+#
+# Secrets (DISCORD_BOT_TOKEN, DATABASE_URL, channel ids, API tokens) are NOT in
+# this file. They live in the git-ignored apps/discord-bot/.env.production and
+# are pushed with `fly secrets import`. See docs/discord-bot/production-hosting.md.
+
+app = "blood-bowl-tracker-discord-bot"
+primary_region = "arn"
+
+[build]
+  dockerfile = "apps/discord-bot/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  # The bot holds a persistent Discord gateway connection, so the machine must
+  # never scale to zero the way a stateless web app would.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  # No [[services.ports]] entries: the RPC endpoint is deliberately not
+  # published to the public internet by this deployment. Making it reachable
+  # for the import tools is issue #356.
+
+  # The app has no HTTP health endpoint, so the check is a plain TCP connect
+  # against the port the RPC server binds.
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "20s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
