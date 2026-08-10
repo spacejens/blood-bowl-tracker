@@ -7,6 +7,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DeploymentInfoService } from './deployment-info.service';
 import { DiscordBotConfigModule } from './discord-bot-config.module';
 import { DiscordBotConfigService } from './discord-bot-config.service';
 import { InsightsModule } from './insights/insights.module';
@@ -35,6 +36,7 @@ import { StartupNotifierService } from './startup-notifier.service';
   controllers: [AppController],
   providers: [
     AppService,
+    DeploymentInfoService,
     StartupNotifierService,
     RandomInsightsSchedulerService,
   ],
