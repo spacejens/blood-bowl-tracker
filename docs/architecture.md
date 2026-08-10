@@ -10,7 +10,7 @@ Overview of the technical stack and package structure for this project.
 - **API contract:** [oRPC](https://orpc.dev/) — a typed contract shared between server and client, dispatched over oRPC's native RPC transport (not REST/OpenAPI), enforced at compile time
 - **Testing:** Vitest
 - **Package manager:** pnpm 11 with workspaces
-- **Deployment:** Docker, with a root `compose.yaml` for local development
+- **Deployment:** Docker, with a root `compose.yaml` for local development and on Fly.io + Neon in production (see `docs/discord-bot/production-hosting.md`)
 
 ## Repository structure
 

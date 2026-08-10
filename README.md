@@ -77,7 +77,7 @@ pnpm run test:e2e     # e2e tests
 
 ### Running with Docker Compose
 
-> **Note:** The Docker Compose setup is intended for local development and testing of the production build. The Docker images themselves are designed for future production/public deployment — the Compose file is just a convenient way to run them locally.
+> **Note:** The Docker Compose setup is intended for local development and testing of the production build. The same image runs in production on Fly.io against a Neon database — see [docs/discord-bot/production-hosting.md](docs/discord-bot/production-hosting.md) — so the Compose file is just a convenient way to run it locally.
 
 `docker-compose.yml` defines two services:
 

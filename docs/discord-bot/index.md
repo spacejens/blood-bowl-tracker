@@ -90,6 +90,10 @@ the configured channel. If the token or channel id is missing or invalid,
 startup fails with an error in the logs (the bot is intentionally fail-fast
 about misconfiguration).
 
+For the production deployment — the Fly.io app, the Neon database, and how
+production configuration and secrets get there — see
+[Production hosting](production-hosting.md).
+
 ## Slash commands
 
 The bot registers these slash commands globally rather than per server, so they
