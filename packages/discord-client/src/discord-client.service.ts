@@ -66,7 +66,14 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
     this.client = new Client({ intents: [GatewayIntentBits.Guilds] });
   }
 
-  async onModuleInit(): Promise<void> {
+  /**
+   * Only wires up event listeners. Logging in is deliberately NOT done here:
+   * two machines run this app at once and only the one that wins leader
+   * election may open a gateway session, since Discord delivers every gateway
+   * event to every connected session of an unsharded bot. The elected machine
+   * calls `connect()` explicitly.
+   */
+  onModuleInit(): void {
     this.client.on('error', (error) => {
       this.logger.error('Discord client error', error);
     });
@@ -75,6 +82,15 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
         this.logger.error('Unhandled interaction error', error);
       });
     });
+  }
+
+  /**
+   * Opens the gateway session and resolves once the client is ready. Called
+   * exactly once, by the leader-election service, after this instance wins the
+   * advisory lock. Rejecting here is recoverable: the caller releases the lock
+   * and re-enters the election rather than crashing the process.
+   */
+  async connect(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(
@@ -152,7 +168,7 @@ export class DiscordClientService implements OnModuleInit, OnModuleDestroy {
       integrationTypes: [ApplicationIntegrationType.GuildInstall],
     }));
     // `application` is only null before the client is ready, and this method
-    // is always called after `onModuleInit` awaited the `ready` event.
+    // is always called after `connect()` awaited the `ready` event.
     await this.client.application!.commands.set(commandData);
     for (const guild of this.client.guilds.cache.values()) {
       try {
