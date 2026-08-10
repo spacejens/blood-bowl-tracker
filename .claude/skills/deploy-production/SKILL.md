@@ -227,6 +227,123 @@ Run this section only if "Drop and recreate the production database" was selecte
    Add nothing else to that list — no "All", no "None"; deselecting everything already means "none", and that is a valid answer meaning production stays empty for now. Anything selected here joins the set from step 0 and runs in the same fixed order as the sections below.
 8. Report to the developer: that the schemas were dropped and recreated, what the restart's migration output showed, and which imports (if any) are about to run or were declined.
 
+### Production imports: shared setup
+
+Run this section only if at least one of the four "against production" import actions was selected in step 0 (or chained from the database reset above). It is not a menu option of its own — it is the setup those actions share, run once no matter how many of them were selected, immediately before the first of them.
+
+Everything here automates the flow documented in `docs/discord-bot/production-hosting.md`'s "Running import tools against production" section; read that section when something here fails.
+
+1. Sync the gitignored production config files and data directories that a fresh worktree lacks. Copy configs only when missing, symlink the (potentially very large) data directories rather than copying them, and never overwrite anything already present:
+   ```bash
+   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
+   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
+   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
+     for cfg in tools/import-manual/import-manual-config.production.json5 \
+                tools/import-bbl/import-bbl-config.production.json5 \
+                tools/import-tp/import-tp-config.production.json5; do
+       if [ ! -f "$WORKTREE_ROOT/$cfg" ] && [ -f "$MAIN_ROOT/$cfg" ]; then
+         cp "$MAIN_ROOT/$cfg" "$WORKTREE_ROOT/$cfg"
+       fi
+     done
+     for data in tools/import-bbl/data tools/import-tp/data; do
+       if [ ! -e "$WORKTREE_ROOT/$data" ] && [ -d "$MAIN_ROOT/$data" ]; then
+         ln -s "$MAIN_ROOT/$data" "$WORKTREE_ROOT/$data"
+       fi
+     done
+   fi
+   ```
+   (`tools/import-manual/data` is committed to git, so it needs no sync.)
+2. Check that the production config each selected import needs exists:
+   ```bash
+   ls tools/import-manual/import-manual-config.production.json5 \
+      tools/import-bbl/import-bbl-config.production.json5 \
+      tools/import-tp/import-tp-config.production.json5 2>&1
+   ```
+   If the file a selected import needs is missing, stop that import and tell the developer to create it once, from the same `import-*-config.example.json5` template as the local config, filling in the production `apiToken` from the matching `API_TOKEN_IMPORT_*` value in `apps/discord-bot/.env.production` — see `docs/discord-bot/production-hosting.md`. **Do not create it from the template yourself**: a config copied from the example would carry a placeholder token and fail with `401`, and authoring production credentials is a developer's job, not this skill's (see Non-goals). A missing file for one tool does not block the other tools' imports.
+3. Make sure nothing else is already bound to port 3000 — a locally running docker-compose stack binds it, and the tunnel would then either fail to bind or, worse, the importers would silently write to the **local** database:
+   ```bash
+   lsof -nP -iTCP:3000 -sTCP:LISTEN
+   ```
+   If anything is listening, stop and report what holds the port (typically the `deploy-local` stack, cleared with `docker compose down`). Do not kill the process yourself.
+4. Build the tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
+   pnpm --filter @blood-bowl-tracker/import-bbl run build      # if the BBL import was selected
+   pnpm --filter @blood-bowl-tracker/import-tp run build       # if the TP import was selected
+   ```
+5. Open the private tunnel to the production machine, from the repository root where `fly.toml` lives. Start it as a **background** command — it runs until killed and would otherwise block everything after it:
+   ```bash
+   flyctl proxy 3000
+   ```
+6. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://localhost:3000/rpc
+   ```
+   Any HTTP status at all (including `404` or `405`) means the tunnel is up — the RPC server answered. `curl` exiting with a connection error means it is not up yet. If it never comes up, report the tunnel command's own output, kill it (see "Production imports: closing the tunnel" below), and stop — running an importer against a dead tunnel just produces `ECONNREFUSED` for every record.
+
+### Run the manual import (before other importers) against production
+
+Run this section only if "Run the manual import (before other importers) against production" was selected in step 0 (or chained from the database reset). It runs after "Production imports: shared setup", which must have completed successfully. Runs standalone (no other import) if it is the only import picked — the shared setup and teardown still run around it.
+
+1. Run the importer against the "before" data directory, with the production config selected by the environment variable:
+   ```bash
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
+   ```
+   `IMPORT_CONFIG_ENV` must be set on the same command as the tool — setting it in an earlier, separate shell call has no effect, and the tool would then silently use the local config and write to whatever `apiBaseUrl` that names.
+2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
+3. Interpret common failures against production specifically, per `docs/discord-bot/production-hosting.md`: `ECONNREFUSED` on `localhost:3000` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
+4. These are real writes to the production database with no rollback, so a failure partway through leaves earlier records in place. Do not attempt to undo them. If the developer wants a clean slate, that is the "Drop and recreate the production database" action, chosen deliberately.
+5. A failure here does **not** skip the remaining selected imports — report it and continue to the next section, then close the tunnel as usual.
+
+### Run the BBL import against production
+
+Run this section only if "Run the BBL import against production" was selected in step 0 (or chained from the database reset). Runs after "Production imports: shared setup" and after the manual "before" import if that was also selected; runs standalone if it is the only import picked.
+
+1. Run the importer:
+   ```bash
+   ( cd tools/import-bbl && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ```
+2. Report the outcome. Per `tools/import-bbl/src/main.ts` the tool exits `0` printing `Imported <N> coach(es) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
+3. This import is by far the longest of the four against production — each record is a separate call over the tunnel, so a full run takes considerably longer than it does locally. Do not treat a long-running import as a hang; only a stalled tunnel (repeated `ECONNREFUSED`) is a failure.
+4. The same production failure interpretations, no-rollback caveat, and continue-on-failure behaviour as the manual "before" section apply here.
+
+### Run the TP import against production
+
+Run this section only if "Run the TP import against production" was selected in step 0 (or chained from the database reset). Runs after "Production imports: shared setup", the manual "before" import, and the BBL import if those were also selected; runs standalone if it is the only import picked.
+
+1. Run the importer:
+   ```bash
+   ( cd tools/import-tp && IMPORT_CONFIG_ENV=production node dist/main.js )
+   ```
+2. Report the outcome. Per `tools/import-tp/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error. Report the exit code and the captured output.
+3. The same production failure interpretations, no-rollback caveat, and continue-on-failure behaviour as the manual "before" section apply here.
+
+### Run the manual import (after other importers) against production
+
+Run this section only if "Run the manual import (after other importers) against production" was selected in step 0 (or chained from the database reset). Runs last of the four imports, after every other selected import — its whole purpose is to clean up names and attach external IDs once the system-specific importers have run. Runs standalone if it is the only import picked.
+
+1. Run the importer against the "after" data directory:
+   ```bash
+   ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/after-other-importers )
+   ```
+2. Report the outcome using the same success/error/`Import failed:` formats as the manual "before" section, plus the same production failure interpretations and no-rollback caveat.
+
+### Production imports: closing the tunnel
+
+Run this section only if "Production imports: shared setup" ran. Like that section it is not a menu option — it is the teardown the import actions share, run once after the last selected import finishes, **regardless of whether the imports succeeded or failed**, and also on any early stop inside an import section.
+
+1. Stop the background `flyctl proxy` started in the shared setup:
+   ```bash
+   pkill -f 'flyctl proxy 3000'
+   ```
+   This targets only tunnels for port 3000. `pkill` exits non-zero when nothing matched, which is fine — it means the tunnel was already gone.
+2. Confirm the port is free again:
+   ```bash
+   lsof -nP -iTCP:3000 -sTCP:LISTEN
+   ```
+   Expected: no output. If something is still listening, tell the developer explicitly — a leftover tunnel will collide with the next `deploy-local` stack.
+3. Report a combined summary of every import that ran: which ones, their exit codes, record counts, and any errors. Say explicitly that the tunnel is closed, so the developer knows no private connection to production was left open.
+
 ## Non-goals
 
 - **No normal deploys.** Merging to `main` deploys; this skill never runs `flyctl deploy` except as the mechanism of the rollback action, which deliberately deploys an *older* image.
