@@ -66,20 +66,36 @@ Run this section only if "Deploy the stack" was selected in step 0 above.
    docker rm <exited-container-name> [<other-exited-container-name>]
    ```
    (only removes the stopped containers — the named `postgres_data` volume and its data are untouched). If either is listed as anything other than `Exited` (i.e. already running), stop and report that to the developer instead of removing it — it may be a deployment they're actively using.
-3. Build and start both services in the background:
+3. Export the checkout's commit identity so the image records which code it
+   was built from, then build and start both services in the background:
    ```bash
+   export GIT_SHA=$(git rev-parse HEAD)
+   export GIT_BRANCH=$(git branch --show-current)
    docker compose up -d --build
    ```
+   Both variables feed `docker-compose.yml`'s build args and end up as env
+   vars in the image, which the bot reports in its startup message. A detached
+   HEAD makes `git branch --show-current` print nothing; that is fine — the
+   startup message just omits the branch.
 4. Poll container status until `postgres` reports healthy and `discord-bot` is `Up` (not `Restarting` or `Exited`):
    ```bash
    docker compose ps
    ```
    Retry every few seconds, up to a reasonable timeout (e.g. 60 seconds). If `discord-bot` is `Restarting` or `Exited`, or `postgres` never reports healthy within the timeout, stop and report the failure along with the relevant `docker compose logs <service>` output.
-5. Confirm `discord-bot` connected successfully by checking its logs for the startup notifier's success line, with no fatal error logged first:
+5. Confirm `discord-bot` connected successfully by checking its logs for the
+   startup notifier's success line, with no fatal error logged first:
    ```bash
    docker compose logs discord-bot
    ```
-   Look for a line containing `Posted startup message to channel`. If it's missing after the containers have been up for a few seconds, report what the logs show instead — this usually indicates a missing or invalid Discord token in `apps/discord-bot/.env`.
+   Look for `Acquired the leader lock; becoming active` followed by
+   `Posted active startup message to channel`. If they're missing after the
+   containers have been up for a few seconds, report what the logs show
+   instead — this usually indicates a missing or invalid Discord token in
+   `apps/discord-bot/.env`. A line reading
+   `Another machine holds the leader lock; standing by` means a second
+   instance is already running against the same database and holds the leader
+   lock (see `docs/discord-bot/production-hosting.md` on active/standby); stop
+   that instance, or accept that this container is the standby.
 6. Report to the developer:
    - Which containers are up and their health status.
    - The Postgres connection string for manual inspection: `postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl` (matches `docker-compose.yml`'s host port mapping).
