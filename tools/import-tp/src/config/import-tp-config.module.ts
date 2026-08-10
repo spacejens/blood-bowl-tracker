@@ -1,9 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 
 import {
-  DEFAULT_IMPORT_TP_CONFIG_PATH,
   IMPORT_TP_CONFIG_PATH,
   ImportTpConfigService,
+  resolveImportTpConfigPath,
 } from './import-tp-config.service';
 
 @Global()
@@ -11,7 +11,7 @@ import {
   providers: [
     {
       provide: IMPORT_TP_CONFIG_PATH,
-      useValue: DEFAULT_IMPORT_TP_CONFIG_PATH,
+      useFactory: resolveImportTpConfigPath,
     },
     ImportTpConfigService,
   ],

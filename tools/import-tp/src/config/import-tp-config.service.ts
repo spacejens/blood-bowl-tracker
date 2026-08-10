@@ -17,6 +17,33 @@ export const DEFAULT_IMPORT_TP_CONFIG_PATH = resolve(
   'import-tp-config.json5',
 );
 
+/**
+ * Config-file location used when `IMPORT_CONFIG_ENV=production`:
+ * `import-tp-config.production.json5` in the current working directory,
+ * a sibling of the default file. Git-ignored like the default one, and holds
+ * the production api-server's bearer token (see
+ * docs/discord-bot/production-hosting.md).
+ */
+export const PRODUCTION_IMPORT_TP_CONFIG_PATH = resolve(
+  process.cwd(),
+  'import-tp-config.production.json5',
+);
+
+/**
+ * Pick the config file for this run: the `.production.json5` variant when
+ * `IMPORT_CONFIG_ENV` is exactly `production`, the default file otherwise
+ * (including when the variable is unset or holds any other value).
+ *
+ * A loose function rather than a service because it is a module `useFactory`
+ * that bootstraps the very provider DI would otherwise inject — see
+ * CLAUDE.md, "Service vs. loose function", case 3.
+ */
+export function resolveImportTpConfigPath(): string {
+  return process.env.IMPORT_CONFIG_ENV === 'production'
+    ? PRODUCTION_IMPORT_TP_CONFIG_PATH
+    : DEFAULT_IMPORT_TP_CONFIG_PATH;
+}
+
 @Injectable()
 export class ImportTpConfigService {
   private readonly config: Record<string, unknown>;

@@ -10,7 +10,15 @@ files are JSON.
 
 Configuration is supplied through a JSON5 file, `import-tp-config.json5`, in the
 tool directory (`tools/import-tp/`). JSON5 allows comments and trailing commas,
-so the era list can be documented inline. Top-level keys:
+so the era list can be documented inline.
+Running the tool with the environment variable `IMPORT_CONFIG_ENV=production`
+makes it read `import-tp-config.production.json5` from the same directory
+instead. Both files have exactly the same shape and the same committed
+template (`import-tp-config.example.json5`); they differ only in the values
+they carry, so a production run can point at the production api-server
+without disturbing the local-development config. Both are git-ignored.
+
+Top-level keys:
 
 - `connection` — runtime settings for reaching the api-server to import into.
   The group itself is required.
@@ -93,6 +101,11 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
    Imported 5 record(s) successfully.
    ```
    On failure, the tool exits with a non-zero status and prints each error.
+3. To import into the production api-server instead, keep a second config file
+   `tools/import-tp/import-tp-config.production.json5` (copied from the same
+   example template), run `flyctl proxy 3000` from the repository root in another
+   terminal, and set `IMPORT_CONFIG_ENV=production` for the run. See
+   [Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
 
 ## Architecture
 
