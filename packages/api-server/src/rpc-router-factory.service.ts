@@ -70,6 +70,17 @@ export class RpcRouterFactoryService {
               },
             ),
         ),
+        upsertBatch: implement(contract.coaches.upsertBatch).handler(
+          ({ input }) =>
+            this.upsertHandler.runBatch(
+              CoachUpsertConflictError,
+              input.map((item) => async () => {
+                const { coach, created } =
+                  await this.coachesService.upsert(item);
+                return { entity: coach, created };
+              }),
+            ),
+        ),
       },
       leagues: {
         upsert: implement(contract.leagues.upsert).handler(
@@ -216,6 +227,22 @@ export class RpcRouterFactoryService {
               await this.externalSystemsService.upsert(input);
             return { ...system, created };
           },
+        ),
+        // No conflict-error class, for the same reason its single-item
+        // sibling declares no CONFLICT error: an external system is matched
+        // by name alone, so there is no ambiguity between existing rows.
+        // Passing `undefined` keeps that omission explicit while still
+        // reusing the shared per-item failure handling.
+        upsertBatch: implement(contract.externalSystems.upsertBatch).handler(
+          ({ input }) =>
+            this.upsertHandler.runBatch(
+              undefined,
+              input.map((item) => async () => {
+                const { system, created } =
+                  await this.externalSystemsService.upsert(item);
+                return { entity: system, created };
+              }),
+            ),
         ),
       },
     };
