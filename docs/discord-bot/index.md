@@ -94,6 +94,11 @@ For the production deployment — the Fly.io app, the Neon database, and how
 production configuration and secrets get there — see
 [Production hosting](production-hosting.md).
 
+For local development alongside the always-on production bot — why a local
+instance needs its own Discord application and its own dev-only server, and
+how to set them up — see
+[Local development bot identity](local-development.md).
+
 ## Slash commands
 
 The bot registers these slash commands globally rather than per server, so they

@@ -7,7 +7,9 @@ exists where, how configuration reaches the running app, and how to check
 on or roll back a deployment.
 
 For setting the bot up on the Discord side (application, token, invite,
-channel ids), see [the Discord Bot page](index.md).
+channel ids), see [the Discord Bot page](index.md). For running a second,
+isolated bot identity locally alongside this production deployment, see
+[Local development bot identity](local-development.md).
 
 ## What is deployed where
 
