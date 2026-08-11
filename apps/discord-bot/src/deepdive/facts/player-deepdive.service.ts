@@ -11,6 +11,7 @@ import {
   DEEPDIVE_PLAYER_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import {
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -23,16 +24,20 @@ type Player = {
   raceName: string;
   raceId: number;
   positionName: string;
+  eraName: string;
+  eraId: number;
 };
 type CategoryCount = { label: string; count: number };
 
 /**
- * Composes the player header (team, race, position) and per-category event
+ * Composes the player header (team, era, race, position) and per-category event
  * counts into a single embed. Shared by `/deepdive player:<id>` and the player
  * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
  * `null` sentinel so a timeout is distinguishable from a genuine "not found"
  * (`undefined`). Only non-zero categories are listed; an all-zero player shows
- * a short placeholder instead of an empty list.
+ * a short placeholder instead of an empty list. Team, era and race each get a
+ * drill-down button, in the same order as the header lines; position has no
+ * deepdive target, so it gets none.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -56,6 +61,7 @@ export class PlayerDeepdiveService {
 
     const header = [
       `Team: ${player.teamName}`,
+      `Era: ${player.eraName}`,
       `Race: ${player.raceName}`,
       `Position: ${player.positionName}`,
     ];
@@ -80,6 +86,11 @@ export class PlayerDeepdiveService {
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(player.teamId),
           label: player.teamName,
+        },
+        {
+          customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+          entityId: String(player.eraId),
+          label: player.eraName,
         },
         {
           customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
