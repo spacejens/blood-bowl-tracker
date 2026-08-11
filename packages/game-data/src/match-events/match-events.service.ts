@@ -91,10 +91,18 @@ export class MatchEventsService {
   /**
    * The event's SPP award. An explicitly supplied value always wins — a
    * source that reports its own figure (TP) is never second-guessed by a
-   * recomputation. Only a caller that asked for computation and gave an
-   * acting player and an action type gets one; everything else returns
-   * `undefined`, which upsertByExternalIds strips so the column is left
-   * alone rather than nulled.
+   * recomputation, and no computation is attempted when it wasn't requested:
+   * `undefined` here, which `upsertByExternalIds` strips so the column is
+   * left alone rather than nulled.
+   *
+   * Once computation IS requested, though, every other outcome writes `null`
+   * rather than leaving the column alone: an event with no acting player or
+   * action type cannot earn SPP, and a resolvable player/action pair the
+   * award table has no row for currently earns none either. Both are real
+   * answers ("this event awards no SPP"), not "unknown" — and treating them
+   * as unknown would let a stale `spp_value` survive a re-import that
+   * downgrades a previously SPP-earning event (e.g. a BBL correction changing
+   * its action type), which `SppTotalsService` would then keep counting.
    */
   private async resolveSppValue(
     data: UpsertMatchEvent,
@@ -102,19 +110,23 @@ export class MatchEventsService {
     if (data.sppValue !== undefined) {
       return data.sppValue;
     }
+    if (data.computeSppValue !== true) {
+      return undefined;
+    }
     if (
-      data.computeSppValue !== true ||
       data.actingPlayerId === undefined ||
       data.actingPlayerId === null ||
       data.actionType === undefined ||
       data.actionType === null
     ) {
-      return undefined;
+      return null;
     }
-    return this.sppAwardValues.resolveSppValue({
-      actingPlayerId: data.actingPlayerId,
-      actionType: data.actionType,
-    });
+    return (
+      (await this.sppAwardValues.resolveSppValue({
+        actingPlayerId: data.actingPlayerId,
+        actionType: data.actionType,
+      })) ?? null
+    );
   }
 
   private async loadMatchTeams(matchId: number): Promise<Map<number, number>> {

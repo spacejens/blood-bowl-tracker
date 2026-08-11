@@ -292,7 +292,7 @@ describe('MatchEventsService', () => {
     expect(call?.values).toMatchObject({ sppValue: 5 });
   });
 
-  it('omits sppValue when computeSppValue is set but the event has no acting player', async () => {
+  it('writes a null sppValue when computeSppValue is set but the event has no acting player', async () => {
     await service.upsert({
       matchId: 10,
       actionType: 'inducements',
@@ -303,15 +303,52 @@ describe('MatchEventsService', () => {
 
     expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
     const call = insertCalls.find((c) => c.table === matchEvents);
-    expect(Object.keys(call?.values as object)).not.toContain('sppValue');
+    expect(call?.values).toMatchObject({ sppValue: null });
   });
 
-  it('omits sppValue when the award table has no row for the event', async () => {
+  it('writes a null sppValue when computeSppValue is set on an event with an explicit null acting player', async () => {
+    await service.upsert({
+      ...baseData,
+      actingPlayerId: null,
+      computeSppValue: true,
+    });
+
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({ sppValue: null });
+  });
+
+  it('writes a null sppValue when computeSppValue is set on a consequence-only event', async () => {
+    await service.upsert({
+      matchId: 10,
+      consequenceTeamEraId: 500,
+      consequencePlayerId: 9,
+      consequenceType: 'casualty',
+      computeSppValue: true,
+      externalIds: [{ externalSystemId: 1, externalId: 'bbl-cas-suffered-1' }],
+    });
+
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({ sppValue: null });
+  });
+
+  it('writes a null sppValue when computation was requested but the award table has no row for the event', async () => {
     sppAwardValues.resolveSppValue.mockResolvedValue(undefined);
 
     await service.upsert({ ...baseData, computeSppValue: true });
 
     const call = insertCalls.find((c) => c.table === matchEvents);
-    expect(Object.keys(call?.values as object)).not.toContain('sppValue');
+    expect(call?.values).toMatchObject({ sppValue: null });
+  });
+
+  it('clears a stale sppValue on update when a re-import finds no award for the event', async () => {
+    externalIdRows = [{ ownerId: 1 }];
+    sppAwardValues.resolveSppValue.mockResolvedValue(undefined);
+
+    await service.upsert({ ...baseData, computeSppValue: true });
+
+    const call = updateCalls.find((c) => c.table === matchEvents);
+    expect(call?.set).toMatchObject({ sppValue: null });
   });
 });
