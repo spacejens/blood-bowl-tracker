@@ -323,26 +323,33 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    **Each iteration:**
 
-   a. **Wait for a review.** Immediately before waiting — not as a separate step done earlier — record the iteration start time, so only reviews submitted after this moment count and a previous iteration's review is never re-consumed:
+   a. **Wait for a review.** The threshold for "new" reviews is a watermark carried across iterations, not a freshly captured timestamp each time — see why below.
+      - **First iteration only:** immediately before waiting, capture the current time as the watermark:
+        ```bash
+        cd <worktree-path> && date +%s
+        ```
+      - **Every later iteration:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark instead of capturing a new one:
+        ```bash
+        cd <worktree-path> && node -e "console.log(Math.floor(new Date('<submittedAt>').getTime() / 1000))"
+        ```
+        Substitute `<submittedAt>` with the exact ISO-8601 value from the previous iteration's found `review.submittedAt`.
+
+      Then wait for a submitted review by someone other than the developer, posted after that watermark, with a single command:
       ```bash
-      cd <worktree-path> && date +%s
+      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch>
       ```
-      Then wait for a submitted review by someone other than the developer, posted after that instant, with a single command:
-      ```bash
-      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <iteration-start-epoch>
-      ```
-      Substitute the PR number from step 3, the login captured before the loop, and the epoch captured just above. The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
-      - `{"found": true, "review": {...}}` — a qualifying review exists. Stop waiting and go to (c).
+      Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch from above. The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
+      - `{"found": true, "review": {...}}` — a qualifying review exists. Record `review.submittedAt` as the next iteration's watermark input, stop waiting, and go to (c).
       - `{"found": false, "timedOut": true}` — the 10 minutes elapsed with nothing. Go to (b).
 
       Run it via `Bash` with `run_in_background: true` — this command produces exactly one result at exit, which is what `run_in_background` is for; a foreground `Bash` call would race the wait's own 10-minute budget against `Bash`'s own 10-minute cap, and `Monitor`'s default `timeout_ms` is only 5 minutes (its max is 60 minutes, but only if raised explicitly), so an unmodified `Monitor` call would be killed before the wait can report its own timeout. Because this is a single command, worktree isolation accepts it — unlike the inline multi-line poll loop it replaces, which a worktree-isolated session refuses to run (see "Worktree isolation and shell commands" above). **Do not use `ScheduleWakeup` for this wait** — it only works inside an active `/loop` session and errors otherwise. Backgrounding the command means it does not block — wait for the harness's own completion notification for that background task, then read the printed JSON result (from the notification, or the task's output file) as the outcome to branch on in (b)/(c) below; do not try to poll or inspect it before that notification arrives.
 
-      Capturing the epoch here, immediately before waiting, rather than at the top of the iteration (i.e. before the previous iteration's `handle-pr-reviews` call — including its own reply-posting and `deploy-local` hand-off — has returned) closes a gap where a bot's re-review submitted during that call would be timestamped before the epoch and go unseen.
+      **Why a carried-forward watermark, not a freshly captured timestamp:** capturing `date +%s` at the top of each iteration has a blind spot in both directions. Capture it *before* handing off to `handle-pr-reviews`, and a bot's re-review submitted while that call is still running predates the epoch and is never seen by any later wait. Capture it *after* `handle-pr-reviews` and `deploy-local` return instead (this section's earlier approach), and the opposite gap opens: a re-review submitted *during* that same processing window now predates the freshly-captured epoch too, for the same reason — it already happened before "now". Either way, any review landing in that processing window falls between the wait that already exited (having found the previous review) and the threshold the next wait applies. Anchoring the watermark to the last *handled* review's own `submittedAt` — rather than to whenever the loop happens to resume polling — closes the gap: any review submitted after it, even one landing mid-processing, has a later `submittedAt` and is still picked up by the next wait.
 
       This check is bot-agnostic by construction: it never looks for a particular bot's name or API, only for *some* formal review object from a non-author. Any tool that submits a review when it finishes satisfies it. A formal review object — not a raw comment count — is the signal, because bots submit one when their pass completes, distinct from individual comments that may stream in while the review is still in progress. Keep it that way: do not add a bot-name filter.
 
    b. **Timeout handling.** If the command returns `{"found": false, "timedOut": true}`, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
-      - **Keep waiting** — re-run the identical `wait-for-pr-review` command with the same `<iteration-start-epoch>` for another 10 minutes (this does not consume an extra loop iteration; the since-threshold does not change, only the wait continues).
+      - **Keep waiting** — re-run the identical `wait-for-pr-review` command with the same watermark epoch for another 10 minutes (this does not consume an extra loop iteration; the watermark does not change, only the wait continues).
       - **Skip the review loop** — leave the loop immediately and continue to step 5.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
