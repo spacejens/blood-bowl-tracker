@@ -167,7 +167,9 @@ a genuinely new entity.
 (issue #379). Each entry is `{ rulesSet, race?, actionType, sppValue }`:
 `rulesSet` is an external-id pair pointing at a rules set, `race` is an
 optional external-id pair pointing at a race, `actionType` is one of the
-`action_type` enum values, and `sppValue` is the SPP awarded. An entry that
+action types that award Star Player Points (not every match-event action
+type — a foul, for example, earns no SPP), and `sppValue` is the SPP
+awarded. An entry that
 omits `race` is that rules set's baseline, applying to every race with no more
 specific entry; an entry naming a race overrides the baseline for it. This
 section is processed last, since it references both rules sets and races.
