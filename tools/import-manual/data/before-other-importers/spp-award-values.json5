@@ -18,8 +18,9 @@
 //   CRP / CRP+ / BB2016 : touchdown 3, casualty 2, completion 1,
 //                         interception 2, MVP 5 (no deflection -- the event
 //                         type did not exist)
-//   BB2020 / DB2021 / BB2025 : touchdown 3, casualty 2, completion 1,
-//                         interception 2, deflection 1, MVP 4
+//   BB2020 / BB2025 : touchdown 3, casualty 2, completion 1, interception 2,
+//                         deflection 1, MVP 4
+//   DB2021 : same as BB2020/BB2025 except touchdown 5
 //   BB2025 "Brawlin' Brutes" (Black Orc, Dwarf, Khorne, Nurgle, Ogre, Orc):
 //                         touchdown 2, casualty 3 -- the baseline pair
 //                         swapped; every other action keeps the baseline.
@@ -87,8 +88,8 @@
     { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'serious_injury', sppValue: 2 },
     { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'death', sppValue: 2 },
 
-    // --- DB2021 (identical to BB2020) ---
-    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'touchdown', sppValue: 3 },
+    // --- DB2021 (same as BB2020 except touchdown, worth 5 SPP here) ---
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'touchdown', sppValue: 5 },
     { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'completion', sppValue: 1 },
     { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'interception', sppValue: 2 },
     { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'deflection', sppValue: 1 },
