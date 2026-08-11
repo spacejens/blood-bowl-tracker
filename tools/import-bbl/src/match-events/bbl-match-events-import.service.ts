@@ -272,6 +272,12 @@ export class BblMatchEventsImportService {
       const data: UpsertMatchEvent = {
         matchId,
         externalIds,
+        // BBL reports no Star Player Points of its own, so every event asks
+        // the server to resolve one from the standardised award table. The
+        // flag is unconditional on purpose: the server owns the list of
+        // SPP-earning action types and leaves spp_value null for the rest,
+        // so the importer holds no duplicate copy of that rules knowledge.
+        computeSppValue: true,
       };
       if (event.actionType !== undefined) {
         data.actionType = event.actionType;
