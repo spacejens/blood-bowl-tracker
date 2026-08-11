@@ -113,7 +113,7 @@ A comment is **unhandled** if its `body` does not start with `**Comment by Claud
 ```bash
 gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha'
 ```
-Record the printed value as `HEAD_SHA`.
+Record the printed value as `HEAD_SHA`, the same way as `OWNER`/`REPO` above: substitute it literally into the command below — `$HEAD_SHA` is not a live shell variable, since these two commands do not run in the same shell invocation.
 ```bash
 gh api "repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs" --jq '.check_runs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .name != "gatekeeper")'
 ```
