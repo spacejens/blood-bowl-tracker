@@ -44,19 +44,25 @@ interface WriteFileInput {
 const WAIT_FOR_PR_REVIEW_USAGE =
   'Usage: node dist/main.js wait-for-pr-review <pr-number> ' +
   '<developer-login> <since-epoch-seconds> ' +
-  '[--timeout-ms=600000] [--interval-ms=30000]';
+  '[--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>]';
 
 /** Below this, `--interval-ms` would hammer `gh` in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
 
-/** Reads `--<name>=<integer>`; undefined when the flag is absent. */
-function readMsFlag(name: string, minimum: number): number | undefined {
+/** Reads `--<name>=<value>` from the flags region of argv; undefined when absent. */
+function readFlag(name: string): string | undefined {
   const prefix = `--${name}=`;
   const flag = process.argv.slice(6).find((arg) => arg.startsWith(prefix));
-  if (flag === undefined) {
+  return flag === undefined ? undefined : flag.slice(prefix.length);
+}
+
+/** Reads `--<name>=<integer>`; undefined when the flag is absent. */
+function readMsFlag(name: string, minimum: number): number | undefined {
+  const raw = readFlag(name);
+  if (raw === undefined) {
     return undefined;
   }
-  const value = Number(flag.slice(prefix.length));
+  const value = Number(raw);
   if (!Number.isInteger(value) || value < minimum) {
     throw new Error(`${WAIT_FOR_PR_REVIEW_USAGE} (bad --${name} value)`);
   }
@@ -76,12 +82,14 @@ function readWaitForPrReviewInput(): WaitForPrReviewOptions {
   ) {
     throw new Error(WAIT_FOR_PR_REVIEW_USAGE);
   }
+  const excludeReviewId = readFlag('exclude-review-id');
   return {
     prNumber,
     developerLogin,
     sinceEpochSeconds,
     timeoutMs: readMsFlag('timeout-ms', 0),
     intervalMs: readMsFlag('interval-ms', MIN_INTERVAL_MS),
+    ...(excludeReviewId === undefined ? {} : { excludeReviewId }),
   };
 }
 

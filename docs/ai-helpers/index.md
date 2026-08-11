@@ -35,13 +35,14 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 ### `wait-for-pr-review` usage
 
 ```bash
-node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000]
+node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>]
 ```
 
 - `<pr-number>` — the PR to poll.
 - `<developer-login>` — the PR author's own login, excluded as a reviewer.
-- `<since-epoch-seconds>` — only reviews submitted after this instant qualify.
+- `<since-epoch-seconds>` — only reviews submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
 - `--timeout-ms` (default 600000, 10 minutes) / `--interval-ms` (default 30000, 30 seconds) — optional overrides; `--interval-ms` has a 1000ms minimum.
+- `--exclude-review-id` — excludes one review by its `id`, regardless of its `submittedAt`. Needed alongside the inclusive threshold above: pass the previously-found review's own `id` here (e.g. across develop-feature's Phase 6 iterations) so that same review isn't matched again forever just because the threshold is inclusive.
 
 Prints `{"found": true, "review": {...}}` once a qualifying review appears, or `{"found": false, "timedOut": true}` once the timeout elapses.
 

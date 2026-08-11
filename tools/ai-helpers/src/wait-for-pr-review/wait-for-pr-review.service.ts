@@ -7,8 +7,17 @@ export interface WaitForPrReviewOptions {
   readonly prNumber: string;
   /** The PR author's own login — their own reviews never qualify. */
   readonly developerLogin: string;
-  /** Only reviews submitted strictly after this instant qualify. */
+  /**
+   * Reviews submitted at or after this instant qualify. Inclusive (`>=`),
+   * not strict: `sinceEpochSeconds` has only second precision, so a strict
+   * `>` would silently exclude a distinct review submitted in the same
+   * second as the watermark it was derived from. `excludeReviewId` is what
+   * actually prevents re-matching the review the watermark came from —
+   * this bound alone cannot tell same-second reviews apart.
+   */
   readonly sinceEpochSeconds: number;
+  /** The review this wait's own watermark was derived from, if any — excluded even when it falls at or after `sinceEpochSeconds`. */
+  readonly excludeReviewId?: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
 }
@@ -113,10 +122,15 @@ export class WaitForPrReviewService {
    */
   private filter(options: WaitForPrReviewOptions): string {
     const login = JSON.stringify(options.developerLogin);
+    const excludeClause =
+      options.excludeReviewId === undefined
+        ? ''
+        : ` and .id != ${JSON.stringify(options.excludeReviewId)}`;
     return (
       '[.reviews[] | select(.submittedAt != null) | ' +
       `select(.author.login != ${login} and ` +
-      `(.submittedAt | fromdateiso8601) > ${options.sinceEpochSeconds})] | first`
+      `(.submittedAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
+      `${excludeClause})] | first`
     );
   }
 

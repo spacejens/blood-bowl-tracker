@@ -324,27 +324,29 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    **Each iteration:**
 
    a. **Wait for a review.** The threshold for "new" reviews is a watermark carried across iterations, not a freshly captured timestamp each time — see why below.
-      - **First iteration only:** immediately before waiting, capture the current time as the watermark:
+      - **First iteration only:** immediately before waiting, capture the current time as the watermark; there is no previous review yet, so there is no id to exclude:
         ```bash
         cd <worktree-path> && date +%s
         ```
-      - **Every later iteration:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark instead of capturing a new one:
+      - **Every later iteration:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark, and also carry forward its `id` to exclude:
         ```bash
         cd <worktree-path> && node -e "console.log(Math.floor(new Date('<submittedAt>').getTime() / 1000))"
         ```
-        Substitute `<submittedAt>` with the exact ISO-8601 value from the previous iteration's found `review.submittedAt`.
+        Substitute `<submittedAt>` with the exact ISO-8601 value from the previous iteration's found `review.submittedAt`. Keep the previous iteration's `review.id` too — it becomes `<exclude-review-id>` below.
 
-      Then wait for a submitted review by someone other than the developer, posted after that watermark, with a single command:
+      Then wait for a submitted review by someone other than the developer, posted at or after that watermark, with a single command:
       ```bash
-      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch>
+      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id>
       ```
-      Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch from above. The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
-      - `{"found": true, "review": {...}}` — a qualifying review exists. Record `review.submittedAt` as the next iteration's watermark input, stop waiting, and go to (c).
+      Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch and previous review id from above. Omit `--exclude-review-id` entirely on the first iteration (nothing to exclude yet). The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
+      - `{"found": true, "review": {...}}` — a qualifying review exists. Record both `review.submittedAt` and `review.id` for the next iteration, stop waiting, and go to (c).
       - `{"found": false, "timedOut": true}` — the 10 minutes elapsed with nothing. Go to (b).
 
       Run it via `Bash` with `run_in_background: true` — this command produces exactly one result at exit, which is what `run_in_background` is for; a foreground `Bash` call would race the wait's own 10-minute budget against `Bash`'s own 10-minute cap, and `Monitor`'s default `timeout_ms` is only 5 minutes (its max is 60 minutes, but only if raised explicitly), so an unmodified `Monitor` call would be killed before the wait can report its own timeout. Because this is a single command, worktree isolation accepts it — unlike the inline multi-line poll loop it replaces, which a worktree-isolated session refuses to run (see "Worktree isolation and shell commands" above). **Do not use `ScheduleWakeup` for this wait** — it only works inside an active `/loop` session and errors otherwise. Backgrounding the command means it does not block — wait for the harness's own completion notification for that background task, then read the printed JSON result (from the notification, or the task's output file) as the outcome to branch on in (b)/(c) below; do not try to poll or inspect it before that notification arrives.
 
       **Why a carried-forward watermark, not a freshly captured timestamp:** capturing `date +%s` at the top of each iteration has a blind spot in both directions. Capture it *before* handing off to `handle-pr-reviews`, and a bot's re-review submitted while that call is still running predates the epoch and is never seen by any later wait. Capture it *after* `handle-pr-reviews` and `deploy-local` return instead (this section's earlier approach), and the opposite gap opens: a re-review submitted *during* that same processing window now predates the freshly-captured epoch too, for the same reason — it already happened before "now". Either way, any review landing in that processing window falls between the wait that already exited (having found the previous review) and the threshold the next wait applies. Anchoring the watermark to the last *handled* review's own `submittedAt` — rather than to whenever the loop happens to resume polling — closes the gap: any review submitted after it, even one landing mid-processing, has a later `submittedAt` and is still picked up by the next wait. This can occasionally re-find a review that `handle-pr-reviews` already handled during the previous iteration's processing window — harmless: that call reports nothing unhandled, and exit check (d) below leaves the loop on exactly that signal, costing at most one iteration.
+
+      **Why `--exclude-review-id`, not just the watermark:** `wait-for-pr-review`'s threshold is inclusive (`submittedAt >= watermark`), not strict — the watermark only has second precision, so a strict `>` would silently exclude a *different* review submitted in the same second as the one the watermark came from. Being inclusive fixes that, but on its own would also re-match the very review the watermark was derived from, on every later poll, forever. Excluding it explicitly by `id` — rather than by time at all — is what actually distinguishes "the review already handled" from "a new review that happens to share its second."
 
       This check is bot-agnostic by construction: it never looks for a particular bot's name or API, only for *some* formal review object from a non-author. Any tool that submits a review when it finishes satisfies it. A formal review object — not a raw comment count — is the signal, because bots submit one when their pass completes, distinct from individual comments that may stream in while the review is still in progress. Keep it that way: do not add a bot-name filter.
 

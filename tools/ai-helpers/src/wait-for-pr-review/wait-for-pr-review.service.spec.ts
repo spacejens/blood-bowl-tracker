@@ -9,6 +9,7 @@ import {
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 
 const REVIEW = {
+  id: 'PRR_review1',
   author: { login: 'coderabbitai' },
   state: 'COMMENTED',
   submittedAt: '2026-08-11T10:00:00Z',
@@ -88,7 +89,36 @@ describe('WaitForPrReviewService', () => {
       '--jq',
     ]);
     expect(args[6]).toContain('.author.login != "spacejens"');
-    expect(args[6]).toContain('fromdateiso8601) > 1760000000');
+    expect(args[6]).toContain('fromdateiso8601) >= 1760000000');
+  });
+
+  it('includes a review submitted in the same second as sinceEpochSeconds', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait(OPTIONS);
+
+    const [, args] = processRunner.run.mock.calls[0];
+    // Strict '>' would exclude a review submitted in the watermark's own
+    // second; the filter must use '>=' so same-second reviews still qualify.
+    expect(args[6]).not.toContain('fromdateiso8601) > 1760000000');
+  });
+
+  it('excludes the review passed as excludeReviewId, even at the same instant', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({ ...OPTIONS, excludeReviewId: 'PRR_review1' });
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).toContain('.id != "PRR_review1"');
+  });
+
+  it('omits the id exclusion clause when excludeReviewId is not given', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait(OPTIONS);
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).not.toContain('.id !=');
   });
 
   it('keeps polling on the interval until a review appears', async () => {
