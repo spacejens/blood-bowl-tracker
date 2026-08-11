@@ -111,30 +111,32 @@ export class TpTeamParticipationImportService {
     const errors: ImportError[] = [];
     const matchBatch = this.matchesImport.createBatch(errors);
 
-    for (const [tpId, entry] of competitionsByTpId) {
-      const upserted = await this.syncCompetitionTeams({
-        entry,
-        teamErasByRosterId,
-        rosters,
-        errors,
-      });
-      if (upserted) {
-        imported += 1;
+    try {
+      for (const [tpId, entry] of competitionsByTpId) {
+        const upserted = await this.syncCompetitionTeams({
+          entry,
+          teamErasByRosterId,
+          rosters,
+          errors,
+        });
+        if (upserted) {
+          imported += 1;
+        }
+        await this.syncMatchTeams({
+          tpId,
+          entry,
+          competitionIdsByTpId,
+          matchesByCompetitionId,
+          teamErasByRosterId,
+          matchBatch,
+          errors,
+        });
       }
-      await this.syncMatchTeams({
-        tpId,
-        entry,
-        competitionIdsByTpId,
-        matchesByCompetitionId,
-        teamErasByRosterId,
-        matchBatch,
-        errors,
-      });
+    } finally {
+      // Return value discarded on purpose: `imported` counts competitions
+      // only, exactly as it did on the single-item path.
+      await this.matchesImport.flushBatch(matchBatch);
     }
-
-    // Return value discarded on purpose: `imported` counts competitions only,
-    // exactly as it did on the single-item path.
-    await this.matchesImport.flushBatch(matchBatch);
 
     return { result: this.importResults.result({ imported, errors }) };
   }

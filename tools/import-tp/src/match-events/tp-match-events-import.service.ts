@@ -129,7 +129,6 @@ export class TpMatchEventsImportService {
     } = options;
     let imported = 0;
     const errors: ImportError[] = [];
-    const batch = this.matchEventsImport.createBatch(errors);
 
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
@@ -141,70 +140,74 @@ export class TpMatchEventsImportService {
     }
     const [tpSystemId] = bootstrap.ids;
 
-    for (const [competitionId, matches] of matchesByCompetitionId) {
-      const eraId = eraIdByCompetitionId.get(competitionId);
-      if (eraId === undefined) {
-        errors.push(
-          this.importResults.error({
-            item: { competitionId },
-            message: `Skipping match events for competition "${competitionId}": could not resolve its era.`,
-          }),
-        );
-        continue;
-      }
+    const batch = this.matchEventsImport.createBatch(errors);
 
-      for (const match of matches) {
-        const matchId = matchIdsByTpId.get(match.id);
-        if (matchId === undefined) {
+    try {
+      for (const [competitionId, matches] of matchesByCompetitionId) {
+        const eraId = eraIdByCompetitionId.get(competitionId);
+        if (eraId === undefined) {
           errors.push(
             this.importResults.error({
-              item: { match: match.id },
-              message: `Skipping match events for match "${match.id}": it has no imported match id.`,
+              item: { competitionId },
+              message: `Skipping match events for competition "${competitionId}": could not resolve its era.`,
             }),
           );
           continue;
         }
 
-        const homeTeamEraId = this.eventsBuilder.resolveTeamEraId({
-          teamErasByRosterId,
-          rosterId: match.homeTeamTpId,
-          eraId,
-        });
-        const awayTeamEraId = this.eventsBuilder.resolveTeamEraId({
-          teamErasByRosterId,
-          rosterId: match.awayTeamTpId,
-          eraId,
-        });
-        const casualtyPairing = this.eventsCorrelation.correlateCasualties(
-          match.matchEvents,
-        );
-        const foulPairing = this.eventsCorrelation.correlateFouls(
-          match.matchEvents,
-          casualtyPairing,
-        );
+        for (const match of matches) {
+          const matchId = matchIdsByTpId.get(match.id);
+          if (matchId === undefined) {
+            errors.push(
+              this.importResults.error({
+                item: { match: match.id },
+                message: `Skipping match events for match "${match.id}": it has no imported match id.`,
+              }),
+            );
+            continue;
+          }
 
-        for (const event of match.matchEvents) {
-          const dataList = this.eventsBuilder.buildEventData({
-            event,
-            matchId,
-            eraId,
-            tpSystemId,
+          const homeTeamEraId = this.eventsBuilder.resolveTeamEraId({
             teamErasByRosterId,
-            playerIdsByLineUpId,
-            homeTeamEraId,
-            awayTeamEraId,
-            errors,
-            casualtyPairing,
-            foulPairing,
+            rosterId: match.homeTeamTpId,
+            eraId,
           });
-          for (const data of dataList) {
-            imported += await this.matchEventsImport.addToBatch(batch, data);
+          const awayTeamEraId = this.eventsBuilder.resolveTeamEraId({
+            teamErasByRosterId,
+            rosterId: match.awayTeamTpId,
+            eraId,
+          });
+          const casualtyPairing = this.eventsCorrelation.correlateCasualties(
+            match.matchEvents,
+          );
+          const foulPairing = this.eventsCorrelation.correlateFouls(
+            match.matchEvents,
+            casualtyPairing,
+          );
+
+          for (const event of match.matchEvents) {
+            const dataList = this.eventsBuilder.buildEventData({
+              event,
+              matchId,
+              eraId,
+              tpSystemId,
+              teamErasByRosterId,
+              playerIdsByLineUpId,
+              homeTeamEraId,
+              awayTeamEraId,
+              errors,
+              casualtyPairing,
+              foulPairing,
+            });
+            for (const data of dataList) {
+              imported += await this.matchEventsImport.addToBatch(batch, data);
+            }
           }
         }
       }
+    } finally {
+      imported += await this.matchEventsImport.flushBatch(batch);
     }
-
-    imported += await this.matchEventsImport.flushBatch(batch);
 
     return { result: this.importResults.result({ imported, errors }) };
   }

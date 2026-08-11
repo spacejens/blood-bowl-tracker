@@ -110,100 +110,102 @@ export class BblMatchEventsImportService {
     // loop already guarantees, so chunks may safely span matches.
     const batch = this.matchEventsImport.createBatch(errors);
 
-    for (const [competitionBblId, competition] of competitionsByBblId) {
-      const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
-      const externalSystemId = competition.externalIds[0].externalSystemId;
-      // Team-era ids only depend on the competition's era, so memoize per
-      // competition to avoid re-upserting a team shared across its matches.
-      const teamEraIdCache = new Map<string, number | undefined>();
+    try {
+      for (const [competitionBblId, competition] of competitionsByBblId) {
+        const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
+        const externalSystemId = competition.externalIds[0].externalSystemId;
+        // Team-era ids only depend on the competition's era, so memoize per
+        // competition to avoid re-upserting a team shared across its matches.
+        const teamEraIdCache = new Map<string, number | undefined>();
 
-      for (const match of matches) {
-        try {
-          const matchId = matchIdsByBblId.get(match.bblId);
-          if (matchId === undefined) {
-            errors.push(
-              this.importResults.error({
-                item: { competition: competition.name, match: match.bblId },
-                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": it has no imported match id.`,
-              }),
-            );
-            continue;
-          }
-
-          // A secondary pair member's occurrences are folded into its primary's
-          // combined pass, so skip it here.
-          if (merges.isSecondary(match.bblId)) {
-            continue;
-          }
-
-          const ownEvents = eventsByBblId.get(match.bblId);
-          const partnerBblId = merges.partnerBblId(match.bblId);
-          const partnerEvents =
-            partnerBblId !== undefined
-              ? eventsByBblId.get(partnerBblId)
-              : undefined;
-          const sources = [ownEvents, partnerEvents].filter(
-            (e): e is BblMatchEvents => e !== undefined,
-          );
-          if (sources.length === 0) {
-            continue;
-          }
-          for (const source of sources) {
-            this.reportAnnotationErrors(source, errors);
-          }
-          const combined = this.matchEventCorrelation.combineOccurrences(
-            ...sources,
-          );
-
-          const teamEraIdByCode = new Map<string, number>();
-          let unresolvedTeam = false;
-          for (const code of combined.teamCodes) {
-            const teamEraId = await this.resolveTeamEraId({
-              code,
-              competition,
-              teamsByCode,
-              teamEraIdByCode: teamEraIdCache,
-              errors,
-            });
-            if (teamEraId === undefined) {
-              unresolvedTeam = true;
-            } else {
-              teamEraIdByCode.set(code, teamEraId);
+        for (const match of matches) {
+          try {
+            const matchId = matchIdsByBblId.get(match.bblId);
+            if (matchId === undefined) {
+              errors.push(
+                this.importResults.error({
+                  item: { competition: competition.name, match: match.bblId },
+                  message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": it has no imported match id.`,
+                }),
+              );
+              continue;
             }
-          }
-          if (unresolvedTeam) {
+
+            // A secondary pair member's occurrences are folded into its primary's
+            // combined pass, so skip it here.
+            if (merges.isSecondary(match.bblId)) {
+              continue;
+            }
+
+            const ownEvents = eventsByBblId.get(match.bblId);
+            const partnerBblId = merges.partnerBblId(match.bblId);
+            const partnerEvents =
+              partnerBblId !== undefined
+                ? eventsByBblId.get(partnerBblId)
+                : undefined;
+            const sources = [ownEvents, partnerEvents].filter(
+              (e): e is BblMatchEvents => e !== undefined,
+            );
+            if (sources.length === 0) {
+              continue;
+            }
+            for (const source of sources) {
+              this.reportAnnotationErrors(source, errors);
+            }
+            const combined = this.matchEventCorrelation.combineOccurrences(
+              ...sources,
+            );
+
+            const teamEraIdByCode = new Map<string, number>();
+            let unresolvedTeam = false;
+            for (const code of combined.teamCodes) {
+              const teamEraId = await this.resolveTeamEraId({
+                code,
+                competition,
+                teamsByCode,
+                teamEraIdByCode: teamEraIdCache,
+                errors,
+              });
+              if (teamEraId === undefined) {
+                unresolvedTeam = true;
+              } else {
+                teamEraIdByCode.set(code, teamEraId);
+              }
+            }
+            if (unresolvedTeam) {
+              errors.push(
+                this.importResults.error({
+                  item: { competition: competition.name, match: match.bblId },
+                  message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
+                }),
+              );
+              continue;
+            }
+
+            imported += await this.emitEvents({
+              combined,
+              matchId,
+              externalSystemId,
+              teamEraIdByCode,
+              playerIdsByPid,
+              errors,
+              batch,
+            });
+          } catch (error) {
             errors.push(
               this.importResults.error({
                 item: { competition: competition.name, match: match.bblId },
-                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
+                message: `Failed to import events for match "${match.bblId}": ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
               }),
             );
-            continue;
           }
-
-          imported += await this.emitEvents({
-            combined,
-            matchId,
-            externalSystemId,
-            teamEraIdByCode,
-            playerIdsByPid,
-            errors,
-            batch,
-          });
-        } catch (error) {
-          errors.push(
-            this.importResults.error({
-              item: { competition: competition.name, match: match.bblId },
-              message: `Failed to import events for match "${match.bblId}": ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }),
-          );
         }
       }
+    } finally {
+      imported += await this.matchEventsImport.flushBatch(batch);
     }
-
-    imported += await this.matchEventsImport.flushBatch(batch);
 
     return { result: this.importResults.result({ imported, errors }) };
   }
