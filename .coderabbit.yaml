@@ -1,0 +1,72 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# CodeRabbit configuration for blood-bowl-tracker.
+#
+# Reviews in this repo are consumed automatically: the develop-feature skill
+# waits for a submitted review after opening a PR and drives it to completion
+# through the handle-pr-reviews skill. See docs/development-workflow.md.
+language: en-US
+early_access: false
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  review_status: true
+  poem: false
+
+  auto_review:
+    # Every PR in this repo is opened by Claude through the developer's own
+    # authenticated gh account. There is no human-authored PR path to
+    # distinguish from, so auto-review must never be conditioned on author.
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+  path_instructions:
+    - path: "**/*.ts"
+      instructions: |
+        Review against this repository's own conventions, documented in
+        CLAUDE.md at the repo root — they take precedence over generic
+        TypeScript/NestJS defaults, and several of them are deliberate choices
+        that generic advice would wrongly flag.
+
+        Key conventions to enforce:
+        - Logic lives in NestJS @Injectable() services. A loose exported
+          function is only acceptable in the four cases CLAUDE.md enumerates
+          (generic over entity/table type; pure assembly wrapped by a factory
+          service; a module's useFactory provider bootstrap; a
+          framework-agnostic package). A function that takes an
+          already-injected provider as a parameter and calls it must be a
+          service.
+        - Functions and methods take at most 3 parameters; beyond that, use a
+          single named options object. NestJS DI constructors are exempt.
+        - Source *.ts files stay under 500 lines and *.spec.ts under 1000
+          lines, excluding blank and comment lines. Suggest splitting a file
+          rather than raising or suppressing the limit.
+        - Do not suggest adding dependencies, changing the package manager
+          (pnpm 11 workspaces), or restructuring the workspace layout.
+    - path: "**/*.spec.ts"
+      instructions: |
+        Tests follow the patterns in CLAUDE.md ("Testing services"):
+        - Every service spec builds the subject through
+          Test.createTestingModule with the service under test as the only
+          real provider, compiled fresh per test. Direct instantiation
+          (new XService(...)) is forbidden and lint-enforced.
+        - Injected dependencies are vitest-mock-extended mocks (mock<T>(), or
+          mockDeep<T>() when the test reaches through nested properties),
+          created fresh per test — never module-level, never a real
+          collaborator.
+        - A mock returns canned values; it must not reimplement the
+          collaborator's real algorithm.
+        - Deliberate exceptions: *.module.spec.ts files compile the real
+          module with real providers on purpose, and a pure dependency-free
+          formatting service may be passed as a real provider.
+        - Every package enforces a 90% coverage threshold, so flag new
+          branches and error paths that no test covers.
+    - path: "docs/**/*.md"
+      instructions: |
+        Documentation follows docs/spec-conventions.md: brief, current, and
+        descriptive of intent rather than exhaustive implementation detail.
+        Flag statements that contradict the code in this PR.

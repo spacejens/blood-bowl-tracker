@@ -1,5 +1,6 @@
 import { oc } from '@orpc/contract';
 
+import { batchUpsertProcedure } from './batch-upsert-procedure';
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
 import {
   CompetitionSchema,
@@ -39,18 +40,23 @@ import {
 export const contract = {
   coaches: {
     upsert: upsertProcedure(UpsertCoachSchema, CoachSchema),
+    upsertBatch: batchUpsertProcedure(UpsertCoachSchema, CoachSchema),
   },
   leagues: {
     upsert: upsertProcedure(UpsertLeagueSchema, LeagueSchema),
+    upsertBatch: batchUpsertProcedure(UpsertLeagueSchema, LeagueSchema),
   },
   races: {
     upsert: upsertProcedure(UpsertRaceSchema, RaceSchema),
+    upsertBatch: batchUpsertProcedure(UpsertRaceSchema, RaceSchema),
   },
   players: {
     upsert: upsertProcedure(UpsertPlayerSchema, PlayerSchema),
+    upsertBatch: batchUpsertProcedure(UpsertPlayerSchema, PlayerSchema),
   },
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
+    upsertBatch: batchUpsertProcedure(UpsertPositionSchema, PositionSchema),
     // Not an upsert: this adds position-race-era availability links without
     // ever removing or overwriting existing ones (see
     // PositionsService.syncRaceEras), so there's no conflict to detect and
@@ -61,15 +67,22 @@ export const contract = {
   },
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
+    upsertBatch: batchUpsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
   },
   eras: {
     upsert: upsertProcedure(UpsertEraSchema, EraSchema),
+    upsertBatch: batchUpsertProcedure(UpsertEraSchema, EraSchema),
   },
   competitions: {
     upsert: upsertProcedure(UpsertCompetitionSchema, CompetitionSchema),
+    upsertBatch: batchUpsertProcedure(
+      UpsertCompetitionSchema,
+      CompetitionSchema,
+    ),
   },
   matches: {
     upsert: upsertProcedure(UpsertMatchSchema, MatchSchema),
+    upsertBatch: batchUpsertProcedure(UpsertMatchSchema, MatchSchema),
     // Not an upsert: this recomputes an already-imported competition's match
     // scores and winners in place, so there is no entity+created shape to
     // return and no external-id conflict to detect. Matches it cannot resolve
@@ -81,15 +94,24 @@ export const contract = {
   },
   matchEvents: {
     upsert: upsertProcedure(UpsertMatchEventSchema, MatchEventSchema),
+    upsertBatch: batchUpsertProcedure(UpsertMatchEventSchema, MatchEventSchema),
   },
   teams: {
     upsert: upsertProcedure(UpsertTeamSchema, TeamSchema),
+    upsertBatch: batchUpsertProcedure(UpsertTeamSchema, TeamSchema),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched
     // by name alone (see ExternalSystemsService.upsert), so there's no
     // possibility of multiple existing rows to conflict between.
     upsert: upsertProcedureWithoutConflict(
+      UpsertExternalSystemSchema,
+      ExternalSystemSchema,
+    ),
+    // Uses the same builder as every other entity: batch results carry
+    // failures as per-item error strings, so there is no CONFLICT error to
+    // omit here.
+    upsertBatch: batchUpsertProcedure(
       UpsertExternalSystemSchema,
       ExternalSystemSchema,
     ),

@@ -1,5 +1,9 @@
 import type { UpsertMatchEvent } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
   ImportResultService,
@@ -190,11 +194,25 @@ export async function makeService(
   service: TpMatchEventsImportService;
   importResults: MockProxy<ImportResultService>;
   eventsBuilder: MockProxy<TpMatchEventsBuilderService>;
+  matchEventsImport: MockProxy<MatchEventsImportService>;
 }> {
   const matchEventsImport = mock<MatchEventsImportService>();
-  matchEventsImport.upsertMatchEvent.mockImplementation(
-    upsertMatchEvent as MatchEventsImportService['upsertMatchEvent'],
-  );
+  // The parameter still means "what happens to each event"; it just arrives
+  // through the batch buffer now. The fake buffer is inert state, and
+  // addToBatch forwards each event to the supplied fn, reporting 1 import
+  // per accepted event so `imported` accounting is exercised as before.
+  const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatchEvent>;
+  matchEventsImport.createBatch.mockReturnValue(batch);
+  matchEventsImport.addToBatch.mockImplementation(async (_batch, data) => {
+    const accepted = await (
+      upsertMatchEvent as (
+        d: UpsertMatchEvent,
+        e: ImportError[],
+      ) => Promise<boolean>
+    )(data, []);
+    return accepted ? 1 : 0;
+  });
+  matchEventsImport.flushBatch.mockResolvedValue(0);
   const externalSystemBootstrap = mock<ExternalSystemBootstrapService>();
   externalSystemBootstrap.bootstrap.mockResolvedValue(
     options?.bootstrapResult ?? { ok: true, ids: [TP_SYSTEM_ID] },
@@ -235,6 +253,7 @@ export async function makeService(
     service: moduleRef.get(TpMatchEventsImportService),
     importResults,
     eventsBuilder,
+    matchEventsImport,
   };
 }
 

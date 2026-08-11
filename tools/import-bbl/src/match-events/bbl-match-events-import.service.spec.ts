@@ -2,7 +2,11 @@ import type {
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchEventsImportService,
@@ -198,10 +202,13 @@ async function runImport(
   }
 
   const captured: UpsertMatchEvent[] = [];
-  mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
+  const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatchEvent>;
+  mocks.matchEventsImport.createBatch.mockReturnValue(batch);
+  mocks.matchEventsImport.addToBatch.mockImplementation((_batch, data) => {
     captured.push(data);
-    return Promise.resolve(true);
+    return Promise.resolve(1);
   });
+  mocks.matchEventsImport.flushBatch.mockResolvedValue(0);
   mocks.teamsImport.upsertTeam.mockImplementation(
     overrides.upsertTeam ??
       ((data) => {
@@ -478,7 +485,7 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
+    expect(mocks.matchEventsImport.addToBatch).not.toHaveBeenCalled();
     expect(resultArgs.errors).toHaveLength(1);
     expect(resultArgs.errors[0].message).toContain('no imported match id');
     // The match is skipped before correlation is even consulted.
@@ -493,7 +500,7 @@ describe('BblMatchEventsImportService', () => {
     );
 
     expect(captured).toHaveLength(0);
-    expect(mocks.matchEventsImport.upsertMatchEvent).not.toHaveBeenCalled();
+    expect(mocks.matchEventsImport.addToBatch).not.toHaveBeenCalled();
     expect(
       resultArgs.errors.some((e) =>
         e.message.includes('could not resolve all'),
@@ -504,6 +511,30 @@ describe('BblMatchEventsImportService', () => {
     );
     // The unresolved team short-circuits before events are correlated.
     expect(mocks.correlation.correlateEvents).not.toHaveBeenCalled();
+  });
+
+  it('opens one batch for the run and flushes the trailing chunk once', async () => {
+    const { resultArgs, mocks } = await runImport(
+      makeEvents({}),
+      { p1: 11, p2: 12, p3: 13 },
+      {
+        correlatedEvents: [
+          {
+            actionType: 'touchdown',
+            actingTeamCode: 'hme',
+            actingSourceBblId: MATCH_BBL_ID,
+            actingPid: 'p1',
+          },
+        ],
+      },
+    );
+
+    expect(mocks.matchEventsImport.createBatch).toHaveBeenCalledTimes(1);
+    expect(mocks.matchEventsImport.flushBatch).toHaveBeenCalledTimes(1);
+    expect(mocks.matchEventsImport.flushBatch).toHaveBeenCalledWith(
+      mocks.matchEventsImport.createBatch.mock.results[0].value,
+    );
+    expect(resultArgs.imported).toBeGreaterThan(0);
   });
 
   it('records an error and skips a match when a team upsert resolves to no era', async () => {
@@ -569,10 +600,13 @@ describe('BblMatchEventsImportService', () => {
       ),
     );
     const captured: UpsertMatchEvent[] = [];
-    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
+    const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatchEvent>;
+    mocks.matchEventsImport.createBatch.mockReturnValue(batch);
+    mocks.matchEventsImport.addToBatch.mockImplementation((_batch, data) => {
       captured.push(data);
-      return Promise.resolve(true);
+      return Promise.resolve(1);
     });
+    mocks.matchEventsImport.flushBatch.mockResolvedValue(0);
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [
@@ -710,10 +744,13 @@ describe('BblMatchEventsImportService', () => {
       ),
     );
     const captured: UpsertMatchEvent[] = [];
-    mocks.matchEventsImport.upsertMatchEvent.mockImplementation((data) => {
+    const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatchEvent>;
+    mocks.matchEventsImport.createBatch.mockReturnValue(batch);
+    mocks.matchEventsImport.addToBatch.mockImplementation((_batch, data) => {
       captured.push(data);
-      return Promise.resolve(true);
+      return Promise.resolve(1);
     });
+    mocks.matchEventsImport.flushBatch.mockResolvedValue(0);
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       new Map([
         [

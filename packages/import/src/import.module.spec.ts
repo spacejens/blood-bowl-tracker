@@ -4,6 +4,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mockDeep } from 'vitest-mock-extended';
 
+import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
@@ -26,6 +27,7 @@ import { TeamsImportService } from './teams-import.service';
 const providers = [
   ImportRunnerService,
   ImportResultService,
+  BatchBufferService,
   CoachesImportService,
   CompetitionsImportService,
   LeaguesImportService,

@@ -1,9 +1,14 @@
 import type {
   UpsertCompetition,
+  UpsertMatch,
   UpsertRace,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ImportResultService,
@@ -45,6 +50,7 @@ interface SyncMatchTeamsOptions {
   teamEraIdByTeamId: Map<string, number>;
   competitionIdsByBblId: Map<string, number>;
   merges: MatchMergeResolution;
+  matchBatch: BatchBuffer<UpsertMatch>;
   errors: ImportError[];
 }
 
@@ -108,102 +114,110 @@ export class BblTeamParticipationImportService {
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
+    const matchBatch = this.matchesImport.createBatch(errors);
     const teamEraIdsByCompetitionBblId = new Map<string, Map<string, number>>();
-
-    const matchesByCompetitionId =
-      await this.matchListReader.getMatchesByCompetitionId(errors);
-    const matchTeamsByBblId =
-      await this.matchDetailReader.getMatchTeamsByBblId(errors);
-    const merges = await this.matchMerge.resolve(errors);
-
-    const teamIdsByCompetitionId = this.collectTeamIds({
-      competitionsByBblId,
-      matchesByCompetitionId,
-      matchTeamsByBblId,
-      errors,
-    });
-
-    const registeredTeamIdsByCompetitionId =
-      await this.competitionStandingsReader.getRegisteredTeamIdsByCompetitionId(
-        errors,
-      );
-    for (const [bblId, registeredIds] of registeredTeamIdsByCompetitionId) {
-      const ids = teamIdsByCompetitionId.get(bblId) ?? new Set<string>();
-      for (const id of registeredIds) {
-        ids.add(id);
-      }
-      teamIdsByCompetitionId.set(bblId, ids);
-    }
-
     const eraIdsByRaceId = new Map<number, Set<number>>();
 
-    for (const [bblId, competition] of competitionsByBblId) {
-      const teamIds = teamIdsByCompetitionId.get(bblId);
-      if (!teamIds || teamIds.size === 0) {
-        continue;
-      }
+    try {
+      const matchesByCompetitionId =
+        await this.matchListReader.getMatchesByCompetitionId(errors);
+      const matchTeamsByBblId =
+        await this.matchDetailReader.getMatchTeamsByBblId(errors);
+      const merges = await this.matchMerge.resolve(errors);
 
-      const teamEraIds: number[] = [];
-      const teamEraIdByTeamId = new Map<string, number>();
-      for (const id of teamIds) {
-        const team = teamsByCode.get(id);
-        if (!team) {
-          errors.push(
-            this.importResults.error({
-              item: { competition: competition.name, team: id },
-              message: `Skipping match participation in competition "${competition.name}": could not resolve team id "${id}" to an imported team.`,
-            }),
-          );
-          continue;
-        }
-
-        const competitionEraId =
-          this.upsertFieldNarrowing.resolveDefiniteEraId(competition);
-        const upsertedTeam = await this.teamsImport.upsertTeam(
-          { ...team, eras: [competitionEraId] },
-          errors,
-        );
-        if (!upsertedTeam) {
-          continue;
-        }
-
-        const teamEra = upsertedTeam.eras.find(
-          (e) => e.eraId === competitionEraId,
-        );
-        if (teamEra) {
-          teamEraIds.push(teamEra.id);
-          teamEraIdByTeamId.set(id, teamEra.id);
-        }
-
-        const teamRaceId =
-          this.upsertFieldNarrowing.resolveDefiniteRaceId(team);
-        const eras = eraIdsByRaceId.get(teamRaceId) ?? new Set<number>();
-        eras.add(competitionEraId);
-        eraIdsByRaceId.set(teamRaceId, eras);
-      }
-
-      teamEraIdsByCompetitionBblId.set(bblId, teamEraIdByTeamId);
-
-      if (teamEraIds.length > 0) {
-        const success = await this.competitionsImport.upsertCompetition(
-          { ...competition, teamEraIds },
-          errors,
-        );
-        if (success) {
-          imported += 1;
-        }
-      }
-
-      await this.syncMatchTeams({
-        competitionBblId: bblId,
-        competition,
-        matches: matchesByCompetitionId.get(bblId) ?? [],
+      const teamIdsByCompetitionId = this.collectTeamIds({
+        competitionsByBblId,
+        matchesByCompetitionId,
         matchTeamsByBblId,
-        teamEraIdByTeamId,
-        competitionIdsByBblId,
-        merges,
         errors,
       });
+
+      const registeredTeamIdsByCompetitionId =
+        await this.competitionStandingsReader.getRegisteredTeamIdsByCompetitionId(
+          errors,
+        );
+      for (const [bblId, registeredIds] of registeredTeamIdsByCompetitionId) {
+        const ids = teamIdsByCompetitionId.get(bblId) ?? new Set<string>();
+        for (const id of registeredIds) {
+          ids.add(id);
+        }
+        teamIdsByCompetitionId.set(bblId, ids);
+      }
+
+      for (const [bblId, competition] of competitionsByBblId) {
+        const teamIds = teamIdsByCompetitionId.get(bblId);
+        if (!teamIds || teamIds.size === 0) {
+          continue;
+        }
+
+        const teamEraIds: number[] = [];
+        const teamEraIdByTeamId = new Map<string, number>();
+        for (const id of teamIds) {
+          const team = teamsByCode.get(id);
+          if (!team) {
+            errors.push(
+              this.importResults.error({
+                item: { competition: competition.name, team: id },
+                message: `Skipping match participation in competition "${competition.name}": could not resolve team id "${id}" to an imported team.`,
+              }),
+            );
+            continue;
+          }
+
+          const competitionEraId =
+            this.upsertFieldNarrowing.resolveDefiniteEraId(competition);
+          const upsertedTeam = await this.teamsImport.upsertTeam(
+            { ...team, eras: [competitionEraId] },
+            errors,
+          );
+          if (!upsertedTeam) {
+            continue;
+          }
+
+          const teamEra = upsertedTeam.eras.find(
+            (e) => e.eraId === competitionEraId,
+          );
+          if (teamEra) {
+            teamEraIds.push(teamEra.id);
+            teamEraIdByTeamId.set(id, teamEra.id);
+          }
+
+          const teamRaceId =
+            this.upsertFieldNarrowing.resolveDefiniteRaceId(team);
+          const eras = eraIdsByRaceId.get(teamRaceId) ?? new Set<number>();
+          eras.add(competitionEraId);
+          eraIdsByRaceId.set(teamRaceId, eras);
+        }
+
+        teamEraIdsByCompetitionBblId.set(bblId, teamEraIdByTeamId);
+
+        if (teamEraIds.length > 0) {
+          const success = await this.competitionsImport.upsertCompetition(
+            { ...competition, teamEraIds },
+            errors,
+          );
+          if (success) {
+            imported += 1;
+          }
+        }
+
+        await this.syncMatchTeams({
+          competitionBblId: bblId,
+          competition,
+          matches: matchesByCompetitionId.get(bblId) ?? [],
+          matchTeamsByBblId,
+          teamEraIdByTeamId,
+          competitionIdsByBblId,
+          merges,
+          matchBatch,
+          errors,
+        });
+      }
+    } finally {
+      // Return value discarded on purpose: `imported` counts competitions
+      // only — match re-upserts never incremented it on the single-item
+      // path either.
+      await this.matchesImport.flushBatch(matchBatch);
     }
 
     for (const [raceId, eraIds] of eraIdsByRaceId) {
@@ -239,6 +253,7 @@ export class BblTeamParticipationImportService {
       teamEraIdByTeamId,
       competitionIdsByBblId,
       merges,
+      matchBatch,
       errors,
     } = options;
     const competitionId = competitionIdsByBblId.get(competitionBblId);
@@ -270,16 +285,13 @@ export class BblTeamParticipationImportService {
         );
         continue;
       }
-      await this.matchesImport.upsertMatch(
-        {
-          competitionId,
-          playedAt: merges.effectivePlayedAt(match.bblId, match.date),
-          name: teams.name,
-          externalIds: [{ externalSystemId, externalId: match.bblId }],
-          teamEraIds: [homeTeamEraId, awayTeamEraId],
-        },
-        errors,
-      );
+      await this.matchesImport.addToBatch(matchBatch, {
+        competitionId,
+        playedAt: merges.effectivePlayedAt(match.bblId, match.date),
+        name: teams.name,
+        externalIds: [{ externalSystemId, externalId: match.bblId }],
+        teamEraIds: [homeTeamEraId, awayTeamEraId],
+      });
     }
   }
 
