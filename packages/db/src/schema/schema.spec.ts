@@ -166,6 +166,13 @@ describe('schema', () => {
     expect(matchEventExternalIds.externalId).toBeDefined();
   });
 
+  it('match_events has a nullable spp_value column', () => {
+    const config = getTableConfig(matchEvents);
+    const sppValue = config.columns.find((c) => c.name === 'spp_value');
+    expect(sppValue).toBeDefined();
+    expect(sppValue!.notNull).toBe(false);
+  });
+
   it('match_teams has a non-null score column', () => {
     const config = getTableConfig(matchTeams);
     const score = config.columns.find((c) => c.name === 'score');
