@@ -113,16 +113,22 @@ export class RaceDeepdiveService {
     }
 
     const entries: EntityComponentEntry[] = [
-      ...eraRows.map((era) => ({
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: String(era.id),
-        label: era.name,
-      })),
-      ...ranked.map((team) => ({
-        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: String(team.id),
-        label: team.name,
-      })),
+      ...eraRows.map(
+        (era) =>
+          ({
+            customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(era.id),
+            label: era.name,
+          }) satisfies EntityComponentEntry,
+      ),
+      ...ranked.map(
+        (team) =>
+          ({
+            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+            entityId: String(team.id),
+            label: team.name,
+          }) satisfies EntityComponentEntry,
+      ),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);

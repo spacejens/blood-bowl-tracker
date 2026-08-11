@@ -153,11 +153,14 @@ export class TeamDeepdiveService {
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents([
         ...headerEntries,
-        ...ranked.map((row) => ({
-          customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
-          entityId: String(row.playerId),
-          label: row.name,
-        })),
+        ...ranked.map(
+          (row) =>
+            ({
+              customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+              entityId: String(row.playerId),
+              label: row.name,
+            }) satisfies EntityComponentEntry,
+        ),
       ]);
 
     const description = [

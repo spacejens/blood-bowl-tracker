@@ -8,11 +8,12 @@ import {
   RACE_TOPLIST_NO_DATA_MESSAGE,
   RACE_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 
 @Injectable()
 export class RaceToplistService {
-  private readonly raceLink = {
+  private readonly raceLink: EntityLink<{ raceId: number }> = {
     customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
     entityId: (row: { raceId: number }) => row.raceId,
   };

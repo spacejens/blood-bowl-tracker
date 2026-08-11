@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ButtonStyle, ComponentType } from 'discord.js';
 
+import type { ButtonCustomIdPrefix } from './deepdive/button-custom-ids';
+
 /** Discord allows at most 5 buttons per action row and 5 action rows per message. */
 const MAX_BUTTONS_PER_ROW = 5;
 const MAX_ACTION_ROWS = 5;
@@ -26,7 +28,7 @@ const BLANK_LABEL = '\u200b';
 
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
-  customIdPrefix: string;
+  customIdPrefix: ButtonCustomIdPrefix;
   entityId: string;
   label: string;
 }

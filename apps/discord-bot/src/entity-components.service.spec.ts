@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ButtonCustomIdPrefix } from './deepdive/button-custom-ids';
 import type {
   EntityButtonRow,
   EntityComponentEntry,
@@ -14,7 +15,7 @@ const ERA = 'deepdive:era:';
 
 function entries(
   count: number,
-  customIdPrefix = TEAM,
+  customIdPrefix: ButtonCustomIdPrefix = TEAM,
   firstId = 1,
 ): EntityComponentEntry[] {
   return Array.from({ length: count }, (unused, index) => ({

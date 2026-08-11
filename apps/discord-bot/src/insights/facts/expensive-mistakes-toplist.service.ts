@@ -9,6 +9,7 @@ import {
   TEAM_TOPLIST_NO_DATA_MESSAGE,
   TEAM_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { TeamContextService } from '../team-context.service';
 import { MatchCategoryLabelService } from './match-category-label.service';
@@ -32,7 +33,7 @@ type BiggestMistakeRow = MistakeRow & {
  */
 @Injectable()
 export class ExpensiveMistakesToplistService {
-  private readonly teamLink = {
+  private readonly teamLink: EntityLink<{ teamId: number }> = {
     customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
     entityId: (row: { teamId: number }) => row.teamId,
   };
