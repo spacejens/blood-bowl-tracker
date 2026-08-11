@@ -11,4 +11,5 @@ export * from './schemas/player';
 export * from './schemas/position';
 export * from './schemas/race';
 export * from './schemas/rules-set';
+export * from './schemas/spp-award-value';
 export * from './schemas/team';
