@@ -6,6 +6,7 @@ import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
+import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
 import { WriteFileService } from './write-file/write-file.service';
 
 @Module({
@@ -17,6 +18,7 @@ import { WriteFileService } from './write-file/write-file.service';
     CheckDriftService,
     WriteFileService,
     WaitForPrReviewService,
+    WaitForPrReviewArgsService,
   ],
 })
 export class AppModule {}

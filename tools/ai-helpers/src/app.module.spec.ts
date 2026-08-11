@@ -8,6 +8,7 @@ import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
+import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
 import { WriteFileService } from './write-file/write-file.service';
 
 describe('AppModule', () => {
@@ -30,6 +31,9 @@ describe('AppModule', () => {
     expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
     expect(moduleRef.get(WaitForPrReviewService)).toBeInstanceOf(
       WaitForPrReviewService,
+    );
+    expect(moduleRef.get(WaitForPrReviewArgsService)).toBeInstanceOf(
+      WaitForPrReviewArgsService,
     );
   });
 });
