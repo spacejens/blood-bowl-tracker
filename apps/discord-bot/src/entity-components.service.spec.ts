@@ -2,6 +2,15 @@ import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { ButtonCustomIdPrefix } from './deepdive/button-custom-ids';
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from './deepdive/button-custom-ids';
 import type {
   EntityButtonRow,
   EntityComponentEntry,
@@ -9,12 +18,9 @@ import type {
 } from './entity-components.service';
 import { EntityComponentsService } from './entity-components.service';
 
-const TEAM = 'deepdive:team:';
-const ERA = 'deepdive:era:';
-
 function entries(
   count: number,
-  customIdPrefix = TEAM,
+  customIdPrefix: ButtonCustomIdPrefix = TEAM_BUTTON_CUSTOM_ID_PREFIX,
   firstId = 1,
 ): EntityComponentEntry[] {
   return Array.from({ length: count }, (unused, index) => ({
@@ -56,17 +62,57 @@ describe('EntityComponentsService', () => {
     expect(second.components).toHaveLength(2);
     expect(first.components[0]).toEqual({
       type: ComponentType.Button,
-      style: ButtonStyle.Primary,
+      style: ButtonStyle.Success,
       label: 'Entity 1',
       custom_id: 'deepdive:team:1',
     });
   });
 
+  it('gives each destination type its own button colour', () => {
+    // One entry per destination type, in the design's mapping-table order.
+    const cases: [ButtonCustomIdPrefix, ButtonStyle][] = [
+      [ERA_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
+      [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
+      [COACH_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
+      [TEAM_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
+      [PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Primary],
+      [RACE_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
+    ];
+    const { components } = service.buildEntityComponents(
+      cases.map(([customIdPrefix], index) => ({
+        customIdPrefix,
+        entityId: String(index + 1),
+        label: `Entity ${index + 1}`,
+      })),
+    );
+    const buttons = (components as EntityButtonRow[]).flatMap(
+      (row) => row.components,
+    );
+    expect(buttons.map((button) => [button.custom_id, button.style])).toEqual(
+      cases.map(([customIdPrefix, style], index) => [
+        `${customIdPrefix}${index + 1}`,
+        style,
+      ]),
+    );
+  });
+
   it('drops duplicate entries, keeping the first occurrence', () => {
     const { components } = service.buildEntityComponents([
-      { customIdPrefix: TEAM, entityId: '1', label: 'First' },
-      { customIdPrefix: TEAM, entityId: '1', label: 'Duplicate' },
-      { customIdPrefix: ERA, entityId: '1', label: 'Different prefix' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'First',
+      },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'Duplicate',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'Different prefix',
+      },
     ]);
     const [row] = components as EntityButtonRow[];
     expect(row.components.map((button) => button.label)).toEqual([
@@ -145,7 +191,11 @@ describe('EntityComponentsService', () => {
 
   it('gives each customId prefix its own select menu, in first-appearance order', () => {
     const { components, overflowNote } = service.buildEntityComponents([
-      { customIdPrefix: ERA, entityId: '9', label: 'tLoEG First' },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '9',
+        label: 'tLoEG First',
+      },
       ...entries(30),
     ]);
     expect(overflowNote).toBeNull();
@@ -163,7 +213,11 @@ describe('EntityComponentsService', () => {
 
   it('counts entries dropped when prefix groups exhaust the five action rows', () => {
     const { components, overflowNote } = service.buildEntityComponents([
-      { customIdPrefix: ERA, entityId: '9', label: 'tLoEG First' },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '9',
+        label: 'tLoEG First',
+      },
       ...entries(120),
     ]);
     // One row goes to the era menu, leaving four rows (100 options) for teams.
@@ -173,12 +227,16 @@ describe('EntityComponentsService', () => {
 
   it('falls back to a non-breaking space for an empty button label', () => {
     const { components } = service.buildEntityComponents([
-      { customIdPrefix: TEAM, entityId: '1', label: '' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: '',
+      },
     ]);
     const [row] = components as EntityButtonRow[];
     expect(row.components[0]).toEqual({
       type: ComponentType.Button,
-      style: ButtonStyle.Primary,
+      style: ButtonStyle.Success,
       label: BLANK_LABEL,
       custom_id: 'deepdive:team:1',
     });
@@ -186,7 +244,11 @@ describe('EntityComponentsService', () => {
 
   it('treats a whitespace-only button label as blank', () => {
     const { components } = service.buildEntityComponents([
-      { customIdPrefix: TEAM, entityId: '1', label: '   ' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: '   ',
+      },
     ]);
     const [row] = components as EntityButtonRow[];
     expect(row.components[0].label).toBe(BLANK_LABEL);
@@ -194,7 +256,11 @@ describe('EntityComponentsService', () => {
 
   it('trims incidental whitespace around a real button label', () => {
     const { components } = service.buildEntityComponents([
-      { customIdPrefix: TEAM, entityId: '1', label: '  Bob  ' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: '  Bob  ',
+      },
     ]);
     const [row] = components as EntityButtonRow[];
     expect(row.components[0].label).toBe('Bob');
@@ -202,7 +268,11 @@ describe('EntityComponentsService', () => {
 
   it('leaves an ordinary button label untouched', () => {
     const { components } = service.buildEntityComponents([
-      { customIdPrefix: TEAM, entityId: '1', label: 'Entity 1' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '1',
+        label: 'Entity 1',
+      },
     ]);
     const [row] = components as EntityButtonRow[];
     expect(row.components[0].label).toBe('Entity 1');
@@ -212,7 +282,11 @@ describe('EntityComponentsService', () => {
     // 26 entries forces the select-menu path; the blank one lands in menu 1.
     const { components, overflowNote } = service.buildEntityComponents([
       ...entries(25),
-      { customIdPrefix: TEAM, entityId: '26', label: '' },
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '26',
+        label: '',
+      },
     ]);
     expect(overflowNote).toBeNull();
     const rows = components as EntitySelectRow[];

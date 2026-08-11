@@ -102,7 +102,7 @@ export class CompetitionDeepdiveService {
         entityId: String(competition.eraId),
         label: competition.eraName,
       },
-      ...teams.map((team) => ({
+      ...teams.map((team): EntityComponentEntry => ({
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: String(team.id),
         label: team.name,

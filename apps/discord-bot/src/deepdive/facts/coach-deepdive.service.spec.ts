@@ -110,7 +110,10 @@ describe('CoachDeepdiveService', () => {
         components: [
           {
             type: ComponentType.Button as const,
-            style: ButtonStyle.Primary as const,
+            // Canned fixture data, never asserted on directly — `result` is
+            // compared against this same object by toEqual/toBe, so any
+            // concrete ButtonStyle works here.
+            style: ButtonStyle.Primary,
             label: 'canned',
             custom_id: 'canned',
           },

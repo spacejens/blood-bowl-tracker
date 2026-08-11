@@ -5,6 +5,7 @@ import { CheckMainStrayService } from './check-main-stray/check-main-stray.servi
 import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
+import { WriteFileService } from './write-file/write-file.service';
 
 @Module({
   providers: [
@@ -13,6 +14,7 @@ import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service
     CheckMainStrayService,
     SyncGitignoredService,
     CheckDriftService,
+    WriteFileService,
   ],
 })
 export class AppModule {}
