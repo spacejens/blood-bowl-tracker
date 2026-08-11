@@ -140,6 +140,34 @@ describe('WaitForPrReviewService', () => {
     expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 
+  it('passes the remaining time budget to each gh call, shrinking toward the deadline', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+
+    await runWait({ ...OPTIONS, timeoutMs: 90_000, intervalMs: 30_000 });
+
+    const budgets = processRunner.run.mock.calls.map((call) => call[2]);
+    expect(budgets).toEqual([90_000, 60_000, 30_000, 0]);
+  });
+
+  it('treats a gh call killed by its own timeout as not found, and times out once the deadline is reached', async () => {
+    // Mirrors what ProcessRunnerService resolves with when its own timeoutMs
+    // kills a stalled `gh` call — never a rejection, so this must not crash
+    // the wait, and a stalled/late call must never surface as `found`.
+    processRunner.run.mockResolvedValue({
+      exitCode: -1,
+      stdout: '',
+      stderr: '',
+    });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
   it('defaults to a 10-minute timeout and a 30-second interval', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
 

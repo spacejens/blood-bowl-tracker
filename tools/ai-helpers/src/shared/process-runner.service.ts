@@ -9,6 +9,9 @@ export interface ProcessResult {
   readonly stderr: string;
 }
 
+/** `exitCode` used for a process killed by our own `timeoutMs`, never a real exit code. */
+const TIMED_OUT_EXIT_CODE = -1;
+
 /**
  * Thin `child_process.execFile` wrapper. Every git/diff call in this package
  * goes through it so services can be unit-tested against a mock instead of a
@@ -17,19 +20,40 @@ export interface ProcessResult {
  * A non-zero exit is a normal, resolved result — `git log @{u}..HEAD` exits 1
  * when there is no upstream, and `diff` exits 1 precisely when two files
  * differ, so callers need the code rather than an exception. Only a process
- * that could not be spawned (or was killed by a signal) rejects.
+ * that could not be spawned, or was killed by a signal we did not request via
+ * `timeoutMs`, rejects — a process killed by our own `timeoutMs` resolves
+ * with `TIMED_OUT_EXIT_CODE` instead, so a caller polling on a deadline (e.g.
+ * `WaitForPrReviewService`) can treat "took too long" the same way it treats
+ * any other non-zero exit, without an unhandled rejection.
  */
 @Injectable()
 export class ProcessRunnerService {
-  run(command: string, args: readonly string[]): Promise<ProcessResult> {
+  run(
+    command: string,
+    args: readonly string[],
+    timeoutMs?: number,
+  ): Promise<ProcessResult> {
     return new Promise<ProcessResult>((resolve, reject) => {
       execFile(
         command,
         [...args],
-        { maxBuffer: 32 * 1024 * 1024 },
+        {
+          maxBuffer: 32 * 1024 * 1024,
+          ...(timeoutMs === undefined
+            ? {}
+            : { timeout: timeoutMs, killSignal: 'SIGTERM' as const }),
+        },
         (error, stdout, stderr) => {
           if (!error) {
             resolve({ exitCode: 0, stdout, stderr });
+            return;
+          }
+          if (
+            timeoutMs !== undefined &&
+            error.killed === true &&
+            error.signal === 'SIGTERM'
+          ) {
+            resolve({ exitCode: TIMED_OUT_EXIT_CODE, stdout, stderr });
             return;
           }
           // `error.code` is a number for a normal non-zero exit and a string

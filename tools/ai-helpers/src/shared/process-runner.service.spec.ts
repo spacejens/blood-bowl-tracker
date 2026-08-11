@@ -38,4 +38,24 @@ describe('ProcessRunnerService', () => {
       service.run('definitely-not-a-real-binary-xyz', []),
     ).rejects.toThrow();
   });
+
+  it('resolves with a non-zero exit code (rather than hanging or rejecting) when timeoutMs elapses', async () => {
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'setTimeout(() => {}, 5000)'],
+      50,
+    );
+
+    expect(result.exitCode).not.toBe(0);
+  });
+
+  it('does not time out a command that finishes within timeoutMs', async () => {
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'process.stdout.write("hello")'],
+      5000,
+    );
+
+    expect(result).toEqual({ exitCode: 0, stdout: 'hello', stderr: '' });
+  });
 });

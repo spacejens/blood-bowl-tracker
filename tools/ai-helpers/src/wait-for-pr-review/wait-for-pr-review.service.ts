@@ -44,7 +44,7 @@ export class WaitForPrReviewService {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     for (;;) {
-      const review = await this.poll(options);
+      const review = await this.poll(options, deadline);
       if (review !== undefined) {
         return { found: true, review };
       }
@@ -56,21 +56,32 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * One `gh` query. Returns the first qualifying review, or `undefined` when
-   * there is none *or* the call did not produce usable output — a transient
-   * `gh` failure is a reason to retry on the next interval, never to abort
-   * the wait.
+   * One `gh` query, bounded to the time left before `deadline`. Returns the
+   * first qualifying review, or `undefined` when there is none, the call
+   * failed, or it did not finish before `deadline` — a transient or stalled
+   * `gh` call is a reason to retry on the next interval, never to abort the
+   * wait. Capping the call at the remaining budget (rather than letting it
+   * run unbounded) guarantees a result can never arrive *after* `deadline`
+   * and be mistaken for a fresh `found`.
    */
-  private async poll(options: WaitForPrReviewOptions): Promise<unknown> {
-    const result = await this.processRunner.run('gh', [
-      'pr',
-      'view',
-      options.prNumber,
-      '--json',
-      'reviews',
-      '--jq',
-      this.filter(options),
-    ]);
+  private async poll(
+    options: WaitForPrReviewOptions,
+    deadline: number,
+  ): Promise<unknown> {
+    const remainingMs = Math.max(0, deadline - Date.now());
+    const result = await this.processRunner.run(
+      'gh',
+      [
+        'pr',
+        'view',
+        options.prNumber,
+        '--json',
+        'reviews',
+        '--jq',
+        this.filter(options),
+      ],
+      remainingMs,
+    );
     if (result.exitCode !== 0) {
       return undefined;
     }
