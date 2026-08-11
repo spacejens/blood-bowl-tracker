@@ -118,15 +118,17 @@ export class TeamDeepdiveService {
       return DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE;
     }
     if (span === undefined) {
-      const { components } =
+      const { components, overflowNote } =
         this.entityComponents.buildEntityComponents(headerEntries);
       return {
         embeds: [
           {
             title: team.name,
-            description: [...header, DEEPDIVE_TEAM_NO_MATCHES_MESSAGE].join(
-              '\n',
-            ),
+            description: [
+              ...header,
+              DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
+              ...(overflowNote === null ? [] : [overflowNote]),
+            ].join('\n'),
           },
         ],
         components,
