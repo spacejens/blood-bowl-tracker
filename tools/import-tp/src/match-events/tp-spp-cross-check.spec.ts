@@ -12,14 +12,20 @@ import {
 } from './tp-match-event-kind-builders.test-helpers';
 
 /**
- * Cross-check, not a unit test of one builder: TP reports each player's SPP
- * for a match on `lineUps[].starPlayerPoints`, independently of the
- * individual match events. Summing the `sppValue` the importer writes for
- * one player's events must reproduce that number. Its purpose is to catch
- * gaps in WHICH SPP-earning events the importer captures — if a kind stops
- * being emitted, or a paired casualty's points stop travelling onto the
- * merged injury row, this sum drifts from TP's own figure and the test
- * fails.
+ * Integration-style test of the real event-builder dispatch/aggregation
+ * path, not a unit test of one builder in isolation: it runs a transcribed
+ * real match's events for one player through `TpMatchEventsBuilderService`'s
+ * actual builders and asserts the sum of the resulting `sppValue`s matches
+ * the arithmetically expected total given each event's own `starPoints`.
+ *
+ * There is no independent TP-reported figure to cross-check against here —
+ * `lineUps[].starPlayerPoints` was investigated as a candidate ground truth
+ * and found not to correspond to SPP earned in the match it's attached to
+ * (see the parse-tp commit removing it). This test is still valuable as a
+ * regression guard on WHICH SPP-earning events the importer captures and how
+ * it aggregates them: if a kind stops being emitted, or a paired casualty's
+ * points stop travelling onto the merged injury row, this sum drifts from
+ * the expected total and the test fails.
  *
  * The events below are transcribed from a real match in the TP mirror
  * (`tools/import-tp/data/fourth-era/.../match_576238.json`), narrowed to one
@@ -32,10 +38,10 @@ import {
  * is exercised by the sum rather than assumed.
  */
 describe('TP SPP cross-check', () => {
-  /** TP's own independent figure for this player in this match. */
-  const TP_REPORTED_STAR_PLAYER_POINTS = 6;
+  /** Sum of the events' own starPoints below: 3 + 1 + 0 + 2. */
+  const EXPECTED_TOTAL_SPP = 6;
 
-  it("sums the imported per-event spp values to TP's own per-match figure", async () => {
+  it('sums the imported per-event spp values to the expected total', async () => {
     const service = await makeKindBuilders();
     const built: UpsertMatchEvent[] = [];
 
@@ -128,6 +134,6 @@ describe('TP SPP cross-check', () => {
       .filter((event) => event.actingPlayerId === ACTOR_PLAYER_ID)
       .reduce((sum, event) => sum + (event.sppValue ?? 0), 0);
 
-    expect(total).toBe(TP_REPORTED_STAR_PLAYER_POINTS);
+    expect(total).toBe(EXPECTED_TOTAL_SPP);
   });
 });
