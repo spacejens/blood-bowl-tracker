@@ -101,15 +101,12 @@ export class CompetitionDeepdiveService {
         customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
         entityId: String(competition.eraId),
         label: competition.eraName,
-      } satisfies EntityComponentEntry,
-      ...teams.map(
-        (team) =>
-          ({
-            customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
-            entityId: String(team.id),
-            label: team.name,
-          }) satisfies EntityComponentEntry,
-      ),
+      },
+      ...teams.map((team): EntityComponentEntry => ({
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(team.id),
+        label: team.name,
+      })),
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
