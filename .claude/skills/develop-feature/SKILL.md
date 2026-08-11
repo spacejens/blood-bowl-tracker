@@ -325,7 +325,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    a. **Wait for a review.** Immediately before waiting — not as a separate step done earlier — record the iteration start time, so only reviews submitted after this moment count and a previous iteration's review is never re-consumed:
       ```bash
-      date +%s
+      cd <worktree-path> && date +%s
       ```
       Then wait for a submitted review by someone other than the developer, posted after that instant, with a single command:
       ```bash
