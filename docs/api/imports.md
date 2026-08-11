@@ -38,7 +38,12 @@ list. The one behavioural difference is a failure mode with no single-item
 equivalent — if a whole batched request fails (timeout, dropped connection),
 every record in that chunk is reported as failed, so a transient network
 blip costs a chunk rather than a single record. A smaller chunk size trades
-round trips for a smaller blast radius.
+round trips for a smaller blast radius. Chunk duration is a separate factor
+worth watching too: a full chunk means up to 500 sequential server-side
+upserts inside one HTTP request, and over a slower network hop — such as a
+flyctl proxy tunnel to production — that request could plausibly run tens of
+seconds. Treat a first production import as a chance to calibrate chunk size
+against the connection in use, rather than assuming the 500 default is safe.
 
 ### Upserts overlay, they do not replace
 
