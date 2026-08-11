@@ -7,6 +7,7 @@ import type { EntityComponentEntry } from '../../entity-components.service';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
+  DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
@@ -20,6 +21,7 @@ import {
 import { PlayerContextService } from '../../insights/player-context.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -33,6 +35,7 @@ type Team = {
   coachId: number;
 };
 type CareerSpan = { start: string; end: string };
+type Era = { id: number; name: string };
 type TopPlayer = {
   playerId: number;
   name: string;
@@ -44,11 +47,11 @@ type TopPlayer = {
 const TOP_PLAYERS_TOP_ENTRIES = 5;
 
 /**
- * Composes the team header (race + coach), career span, and top-players list
- * into a single embed. Shared by `/deepdive team:<id>` and the team deepdive
- * buttons. Each DB call is wrapped in `databaseTimeout.run` with a `null`
- * sentinel so a timeout is distinguishable from a genuine "not found" / "no
- * matches" (`undefined`).
+ * Composes the team header (race + coach + eras), career span, and top-players
+ * list into a single embed. Shared by `/deepdive team:<id>` and the team
+ * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
+ * `null` sentinel so a timeout is distinguishable from a genuine "not found" /
+ * "no matches" (`undefined`).
  */
 @Injectable()
 export class TeamDeepdiveService {
@@ -72,7 +75,23 @@ export class TeamDeepdiveService {
       return DEEPDIVE_TEAM_NOT_FOUND_MESSAGE;
     }
 
-    const header = [`Race: ${team.raceName}`, `Coach: ${team.coachName}`];
+    const eraRows: Era[] | null = await this.databaseTimeout.run(
+      this.teams.listEras(teamId),
+      null,
+    );
+    if (eraRows === null) {
+      return DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE;
+    }
+    const eraNames =
+      eraRows.length > 0
+        ? eraRows.map((era) => era.name).join(', ')
+        : 'None recorded';
+
+    const header = [
+      `Race: ${team.raceName}`,
+      `Coach: ${team.coachName}`,
+      `Eras: ${eraNames}`,
+    ];
     const headerEntries: EntityComponentEntry[] = [
       {
         customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,
@@ -84,6 +103,11 @@ export class TeamDeepdiveService {
         entityId: String(team.coachId),
         label: team.coachName,
       },
+      ...eraRows.map((era): EntityComponentEntry => ({
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(era.id),
+        label: era.name,
+      })),
     ];
 
     const span: CareerSpan | undefined | null = await this.databaseTimeout.run(
