@@ -31,6 +31,10 @@ import {
 } from './schemas/position';
 import { RaceSchema, UpsertRaceSchema } from './schemas/race';
 import { RulesSetSchema, UpsertRulesSetSchema } from './schemas/rules-set';
+import {
+  SyncSppAwardValuesResultSchema,
+  SyncSppAwardValuesSchema,
+} from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 import {
   upsertProcedure,
@@ -68,6 +72,14 @@ export const contract = {
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
     upsertBatch: batchUpsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
+  },
+  sppAwardValues: {
+    // Not an upsert: an award value has no external ids — it is keyed by
+    // (rulesSetId, raceId, actionType) — so there is no conflict to detect
+    // and no entity+created shape to return, only the resulting row ids.
+    sync: oc
+      .input(SyncSppAwardValuesSchema)
+      .output(SyncSppAwardValuesResultSchema),
   },
   eras: {
     upsert: upsertProcedure(UpsertEraSchema, EraSchema),

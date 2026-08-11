@@ -140,4 +140,8 @@ describe('contract', () => {
       ]).success,
     ).toBe(true);
   });
+
+  it('exposes a sppAwardValues.sync procedure', () => {
+    expect(contract.sppAwardValues.sync).toBeDefined();
+  });
 });

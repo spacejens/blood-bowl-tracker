@@ -1,4 +1,7 @@
-import { ExternalSystemCategorySchema } from '@blood-bowl-tracker/api-contract';
+import {
+  ExternalSystemCategorySchema,
+  SppEarningActionTypeSchema,
+} from '@blood-bowl-tracker/api-contract';
 import { z } from 'zod';
 
 /** An external-id pair, both in an entry's own externalIds and in a
@@ -83,6 +86,19 @@ const CompetitionEntrySchema = z.object({
   externalIds,
 });
 
+/**
+ * One standardised SPP award. `race` is optional and its absence is
+ * meaningful: an entry with no `race` is the rules set's baseline for that
+ * action type, applying to every race with no more specific entry, while an
+ * entry naming a race overrides that baseline for it.
+ */
+const SppAwardValueEntrySchema = z.object({
+  rulesSet: ExternalRefSchema,
+  race: ExternalRefSchema.optional(),
+  actionType: SppEarningActionTypeSchema,
+  sppValue: z.number().int(),
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -94,9 +110,11 @@ export const ManualDataFileSchema = z
     coaches: z.array(CoachEntrySchema).default([]),
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
+    sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
   })
   .strict();
 
 export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;
+export type SppAwardValueEntry = z.infer<typeof SppAwardValueEntrySchema>;

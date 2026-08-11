@@ -21,6 +21,7 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAwardValuesService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -48,6 +49,7 @@ describe('RpcRouterFactoryService', () => {
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
+  let sppAwardValuesService: MockProxy<SppAwardValuesService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
 
   beforeEach(async () => {
@@ -64,6 +66,7 @@ describe('RpcRouterFactoryService', () => {
     matchOutcomesService = mock<MatchOutcomesService>();
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
+    sppAwardValuesService = mock<SppAwardValuesService>();
     upsertHandler = mock<UpsertHandlerService>();
     // Mirrors UpsertHandlerService's real implementation (see
     // upsert-handler.service.ts / its own spec for coverage of this logic in
@@ -103,6 +106,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
+        { provide: SppAwardValuesService, useValue: sppAwardValuesService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
       ],
     }).compile();
@@ -818,6 +822,7 @@ describe('RpcRouterFactoryService', () => {
         dedicatedFans: null,
         secretObjective: null,
         expensiveMistake: null,
+        sppValue: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -874,5 +879,24 @@ describe('RpcRouterFactoryService', () => {
         externalIds: [{ externalSystemId: 1, externalId: '1000-vor-td-0' }],
       }),
     ).rejects.toThrow('db unavailable');
+  });
+
+  it('routes sppAwardValues.sync to SppAwardValuesService.sync', async () => {
+    sppAwardValuesService.sync.mockResolvedValue({ sppAwardValueIds: [11] });
+
+    const input = {
+      values: [
+        {
+          rulesSetId: 1,
+          raceId: null,
+          actionType: 'touchdown' as const,
+          sppValue: 3,
+        },
+      ],
+    };
+    const result = await call(router.sppAwardValues.sync, input);
+
+    expect(result).toEqual({ sppAwardValueIds: [11] });
+    expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
   });
 });

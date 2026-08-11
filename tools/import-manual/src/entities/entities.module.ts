@@ -10,6 +10,7 @@ import { LeaguesProcessor } from './leagues.processor';
 import { PositionsProcessor } from './positions.processor';
 import { RacesProcessor } from './races.processor';
 import { RulesSetsProcessor } from './rules-sets.processor';
+import { SppAwardValuesProcessor } from './spp-award-values.processor';
 import { TeamsProcessor } from './teams.processor';
 
 const processors = [
@@ -22,6 +23,7 @@ const processors = [
   CoachesProcessor,
   TeamsProcessor,
   CompetitionsProcessor,
+  SppAwardValuesProcessor,
 ];
 
 @Module({

@@ -210,6 +210,21 @@ const matchEventsTable = historyTrackedTable({
     secretObjective: secretObjectiveEnum('secret_objective'),
     /** Gold pieces lost to the roll, not the Expensive Mistakes table tier rolled. */
     expensiveMistake: integer('expensive_mistake'),
+    /**
+     * Star Player Points this event awarded its acting player. TP-sourced
+     * events carry TP's own reported figure verbatim, regardless of action
+     * type -- TP is authoritative and the importer holds no duplicate copy
+     * of the SPP-earning-action-type rules, so a TP-sourced `foul` or other
+     * normally-non-SPP-earning kind can legitimately carry a nonzero value
+     * here. BBL-sourced events are instead resolved from
+     * `spp_award_values`, and only for every SPP-earning action type
+     * (touchdown, completion, interception, deflection, mvp_award and every
+     * casualty-caused severity); NULL for `foul` and for every non-actor
+     * event kind (weather, inducements, winnings, ...) is guaranteed only on
+     * that BBL-computed path. A player's SPP total is a plain SUM over this
+     * column — see packages/game-data SppTotalsService.
+     */
+    sppValue: integer('spp_value'),
   },
   extraConfig: (t) => ({
     actionOrConsequence: check(
