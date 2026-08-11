@@ -46,6 +46,8 @@ export default tseslint.config(
             'tools/download-tp/test/*.ts',
             'tools/download-tp/vitest.config.ts',
             'tools/eslint-rules/vitest.config.ts',
+            'tools/ai-helpers/test/*.ts',
+            'tools/ai-helpers/vitest.config.ts',
             'tools/import-bbl/test/*.ts',
             'tools/import-bbl/vitest.config.ts',
             'tools/import-manual/test/*.ts',

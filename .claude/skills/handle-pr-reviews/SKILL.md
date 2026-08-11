@@ -157,23 +157,33 @@ git merge origin/main
 - **Clean merge** (no conflicts): run `pnpm verify` from the repo root. If it fails, fix the regression the merge introduced, commit, and continue. If it passes, continue directly.
 - **Conflict:** attempt an automated resolution — read both sides of each conflicting hunk, resolve, then run `pnpm verify`. If the correct resolution isn't clear from the diffs, or `pnpm verify` doesn't come back clean afterward, **stop**, report the conflicting files, and wait for the developer to resolve manually before continuing.
 
-Before pushing, run the **pre-push main-checkout check**: verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
+Before pushing, run the **pre-push main-checkout check**: verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`. This depends on `tools/ai-helpers` already being built — the "Sync with `main`" step above always runs `pnpm verify` first, which builds it, so no separate build command is needed here.
 
-- Locate the main checkout root:
-  ```bash
-  MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-  ```
-  If `MAIN_ROOT` equals the current worktree root (`git rev-parse --show-toplevel`), work is happening in place — **skip this check**.
-- Inspect the main checkout's checked-out branch for stray work:
-  ```bash
-  git -C "$MAIN_ROOT" status --porcelain
-  git -C "$MAIN_ROOT" log --oneline @{u}..HEAD 2>/dev/null
-  ```
+```bash
+node tools/ai-helpers/dist/main.js check-main-stray
+```
+
+This prints JSON. If it prints `{"isWorktree": false}`, work is happening in place — **skip this check**. Otherwise it prints:
+
+```json
+{
+  "isWorktree": true,
+  "uncommittedFiles": [{ "status": " M", "path": "path/to/file" }],
+  "strayCommits": [{ "sha": "abc1234", "subject": "commit subject" }]
+}
+```
+
+`status` is the raw 2-character `git status --porcelain` code (e.g. `" M"`, `"??"`, `"A "`) — needed below to tell a restorable edit apart from an untracked file. If both arrays are empty, there is nothing stray — proceed to the push. Run this via the CLI rather than `git -C "$MAIN_ROOT" ...` directly: the harness blocks a worktree-isolated session from running git against another checkout, even read-only, so the inline form this replaces could not actually execute here.
+
 - For each stray item, decide whether it is **already part of this worktree's work**:
-  - **Uncommitted edit on main** — the same content is already committed on the worktree branch (restoring the file on main would lose nothing). Compare the main checkout's working-tree content for the affected paths against the worktree branch's committed content.
-  - **Committed on main** — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
-- Act on each item:
-  - **Already in the worktree** → safe to clean up on main automatically: `git -C "$MAIN_ROOT" restore <paths>` (or `git -C "$MAIN_ROOT" checkout -- <paths>`) for uncommitted edits, and reset the redundant stray commits. Report what was cleaned.
+  - **Uncommitted edit on main** (an entry in `uncommittedFiles`) — the same content is already committed on the worktree branch (restoring the file on main would lose nothing). Compare the main checkout's working-tree content for the affected paths against the worktree branch's committed content.
+  - **Committed on main** (an entry in `strayCommits`) — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
+- Act on each item. Cleanup runs against the main checkout, so first resolve its path:
+  ```bash
+  node tools/ai-helpers/dist/main.js resolve-main-root
+  ```
+  and use the printed `mainRoot` value as `<main-root>` below.
+  - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
   - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
 
 Then push every new commit together in a single push — a single push sending multiple commits is normal and expected; do not squash or combine Phase 2's separate per-item commits into one before pushing:

@@ -94,30 +94,27 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-9. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for f in apps/discord-bot/.env tools/download-tp/download-tp-config.json5 tools/import-bbl/import-bbl-config.json5 tools/import-tp/import-tp-config.json5 tools/import-manual/import-manual-config.json5 tools/review-match/review-match-config.json5; do
-       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
-         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
-       fi
-     done
-     for d in tools/import-bbl/data tools/import-tp/data; do
-       if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
-         ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
-       fi
-     done
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
-10. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+9. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 10 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+10. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+   ```bash
+   node tools/ai-helpers/dist/main.js sync-gitignored
+   ```
+   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 8. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+
+   It prints JSON to stdout, e.g.:
+   ```json
+   {
+     "copied": ["apps/discord-bot/.env"],
+     "symlinked": ["tools/import-bbl/data"],
+     "skipped": ["tools/review-match/review-match-config.json5"]
+   }
+   ```
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 11's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
 11. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 **Ad-hoc mode:**
@@ -148,30 +145,27 @@ This applies to every subagent dispatched from any phase below while working in 
    fi
    ```
    If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` already equals the current directory and this step is a no-op.
-6. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored `apps/discord-bot/.env`, `tools/download-tp/download-tp-config.json5`, `tools/import-bbl/import-bbl-config.json5`, `tools/import-bbl/data/`, `tools/import-tp/import-tp-config.json5`, `tools/import-tp/data/`, `tools/import-manual/import-manual-config.json5`, and `tools/review-match/review-match-config.json5` that the main checkout has. This runs only in a worktree and only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently). Both `data/` directories can be very large, so they are symlinked rather than copied — same rationale as the `docs/plans` link above. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` performs the same sync as a fallback for worktrees this skill did not create; because both syncs are idempotent, that later pass is a no-op when this one already ran.
-   ```bash
-   MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-   WORKTREE_ROOT=$(git rev-parse --show-toplevel)
-   if [ "$MAIN_ROOT" != "$WORKTREE_ROOT" ]; then
-     for f in apps/discord-bot/.env tools/download-tp/download-tp-config.json5 tools/import-bbl/import-bbl-config.json5 tools/import-tp/import-tp-config.json5 tools/import-manual/import-manual-config.json5 tools/review-match/review-match-config.json5; do
-       if [ ! -f "$WORKTREE_ROOT/$f" ] && [ -f "$MAIN_ROOT/$f" ]; then
-         cp "$MAIN_ROOT/$f" "$WORKTREE_ROOT/$f"
-       fi
-     done
-     for d in tools/import-bbl/data tools/import-tp/data; do
-       if [ ! -e "$WORKTREE_ROOT/$d" ] && [ -d "$MAIN_ROOT/$d" ]; then
-         ln -s "$MAIN_ROOT/$d" "$WORKTREE_ROOT/$d"
-       fi
-     done
-   fi
-   ```
-   If no worktree was created (the developer declined worktree creation in Step 0 of `using-git-worktrees`), `MAIN_ROOT` equals `WORKTREE_ROOT` and this step is a no-op.
-7. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
+6. Install dependencies and build the whole application so later tasks don't fail due to an unbuilt workspace dependency, and so `tools/ai-helpers` (which step 7 invokes) exists as compiled output. `superpowers:using-git-worktrees`'s own generic project-setup step runs plain `npm install`, which is wrong for this pnpm workspace — always (re-)install with pnpm here rather than relying on that step:
    ```bash
    pnpm install
    pnpm build
    ```
    If either command fails, report the failure and stop — do not proceed into Phase 2 with a broken baseline.
+7. **Sync gitignored worktree files** so later phases can touch BBL/TP data and config-dependent tooling without hitting "file not found" — a fresh worktree lacks the gitignored config files and data directories the main checkout has. Run:
+   ```bash
+   node tools/ai-helpers/dist/main.js sync-gitignored
+   ```
+   The canonical file and directory lists live in `tools/ai-helpers/src/shared/gitignored-files.ts` — add a new tool's config there, not here. The command only fills in what is missing; it never overwrites a file or symlink already present (a developer may have deliberately set one up differently), and it is a no-op outside a worktree. The large `tools/import-bbl/data` and `tools/import-tp/data` directories are symlinked rather than copied — same rationale as the `docs/plans` link in step 5. `tools/review-match` needs no `data/` symlink of its own — its config points at `tools/import-bbl/data` and `tools/import-tp/data`. `deploy-local` runs the same command as a fallback for worktrees this skill did not create; because it is idempotent, that later pass is a no-op when this one already ran.
+
+   It prints JSON to stdout, e.g.:
+   ```json
+   {
+     "copied": ["apps/discord-bot/.env"],
+     "symlinked": ["tools/import-bbl/data"],
+     "skipped": ["tools/review-match/review-match-config.json5"]
+   }
+   ```
+   `skipped` covers both "already present in the worktree" and "absent from the main checkout too" — neither is an error, so report the counts in step 8's status line and continue. If the command exits non-zero it prints `{"error": "<message>"}` on stderr; report that and stop.
 8. Print a brief status line confirming the worktree path, build result, and baseline test result, then continue immediately into Phase 2.
 
 ---
@@ -237,21 +231,27 @@ This applies to every subagent dispatched from any phase below while working in 
    - **Clean merge** (no conflicts): run `pnpm verify` from the repo root. If it fails, fix the regression the merge introduced, commit, and continue. If it passes, continue directly.
    - **Conflict:** attempt an automated resolution — read both sides of each conflicting hunk, resolve, then run `pnpm verify`. If the correct resolution isn't clear from the diffs, or `pnpm verify` doesn't come back clean afterward, **stop**, report the conflicting files, and wait for the developer to resolve manually before continuing.
 2. **Pre-push check — no stray work in the main checkout.** Before `gh pr create` pushes the branch, verify nothing was accidentally left in the **main checkout** (the repo's primary working tree, distinct from this worktree) — the usual cause is a subagent dropping its `cd <worktree>` prefix and editing/committing against `main`.
-   - Locate the main checkout root:
-     ```bash
-     MAIN_ROOT=$(dirname "$(git rev-parse --path-format=absolute --git-common-dir)")
-     ```
-     If `MAIN_ROOT` equals the current worktree root (`git rev-parse --show-toplevel`), work is happening in place — **skip this check**.
-   - Inspect the main checkout's checked-out branch for stray work:
-     ```bash
-     git -C "$MAIN_ROOT" status --porcelain
-     git -C "$MAIN_ROOT" log --oneline @{u}..HEAD 2>/dev/null
-     ```
+   ```bash
+   node tools/ai-helpers/dist/main.js check-main-stray
+   ```
+   This prints JSON. If it prints `{"isWorktree": false}`, work is happening in place — **skip the rest of this step**. Otherwise it prints:
+   ```json
+   {
+     "isWorktree": true,
+     "uncommittedFiles": [{ "status": " M", "path": "path/to/file" }],
+     "strayCommits": [{ "sha": "abc1234", "subject": "commit subject" }]
+   }
+   ```
+   `status` is the raw 2-character `git status --porcelain` code (e.g. `" M"`, `"??"`, `"A "`) — needed below to tell a restorable edit apart from an untracked file. If both arrays are empty, there is nothing stray — continue to step 3. Run this via the CLI rather than `git -C "$MAIN_ROOT" ...` directly: the harness blocks a worktree-isolated session from running git against another checkout, even read-only, so the inline form this replaces could not actually execute here.
    - For each stray item, decide whether it is **already part of this worktree's work**:
-     - **Uncommitted edit on main** — the same content is already committed on the worktree branch (restoring the file on main would lose nothing). Compare the main checkout's working-tree content for the affected paths against the worktree branch's committed content.
-     - **Committed on main** — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
-   - Act on each item:
-     - **Already in the worktree** → safe to clean up on main automatically: `git -C "$MAIN_ROOT" restore <paths>` (or `git -C "$MAIN_ROOT" checkout -- <paths>`) for uncommitted edits, and reset the redundant stray commits. Report what was cleaned.
+     - **Uncommitted edit on main** (an entry in `uncommittedFiles`) — the same content is already committed on the worktree branch (restoring the file on main would lose nothing). Compare the main checkout's working-tree content for the affected paths against the worktree branch's committed content.
+     - **Committed on main** (an entry in `strayCommits`) — the commit's patch is already present on the worktree branch (cherry-pick-equivalent — `git cherry` / patch-id match, or the identical diff already committed here).
+   - Act on each item. Cleanup runs against the main checkout, so first resolve its path:
+     ```bash
+     node tools/ai-helpers/dist/main.js resolve-main-root
+     ```
+     and use the printed `mainRoot` value as `<main-root>` below.
+     - **Already in the worktree** → safe to clean up on main automatically. For an `uncommittedFiles` entry whose `status` starts with `?` (untracked — `git restore`/`checkout --` is a no-op on these), delete it directly: `rm "<main-root>/<path>"`. For every other status code, use `git -C "<main-root>" restore <paths>` (or `git -C "<main-root>" checkout -- <paths>`); reset the redundant stray commits the same way. Report what was cleaned. If the `git -C "<main-root>" ...` command itself is refused by the harness (worktree isolation), do not silently skip cleanup — print the exact command to the developer and ask them to run it themselves, e.g. by typing `! <command>` in their prompt (which runs it in their own session and returns its output into the conversation).
      - **Provenance unclear** (not found in the worktree) → **never auto-discard**. Surface the paths / commit summaries and ask the developer via `AskUserQuestion` how to proceed — the change may be their own unrelated work.
 3. Create the PR using the appropriate command for the active mode:
 
