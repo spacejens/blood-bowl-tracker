@@ -6,7 +6,10 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
+import { SppAwardValuesService } from '../spp/spp-award-values.service';
 import {
   MatchEventsService,
   MatchEventUpsertConflictError,
@@ -36,12 +39,15 @@ describe('MatchEventsService', () => {
   let matchTeamRows: { id: number; teamEraId: number }[];
   let insertCalls: { table: unknown; values: unknown }[];
   let updateCalls: { table: unknown; set: unknown }[];
+  let sppAwardValues: MockProxy<SppAwardValuesService>;
 
   beforeEach(async () => {
     externalIdRows = [];
     matchTeamRows = [{ id: 100, teamEraId: 500 }];
     insertCalls = [];
     updateCalls = [];
+    sppAwardValues = mock<SppAwardValuesService>();
+    sppAwardValues.resolveSppValue.mockResolvedValue(undefined);
 
     const mockDb = {
       select: () => ({
@@ -67,7 +73,11 @@ describe('MatchEventsService', () => {
     };
 
     const module = await Test.createTestingModule({
-      providers: [MatchEventsService, { provide: DB, useValue: mockDb }],
+      providers: [
+        MatchEventsService,
+        { provide: DB, useValue: mockDb },
+        { provide: SppAwardValuesService, useValue: sppAwardValues },
+      ],
     }).compile();
 
     service = module.get(MatchEventsService);
@@ -243,5 +253,65 @@ describe('MatchEventsService', () => {
 
     const call = updateCalls.find((c) => c.table === matchEvents);
     expect(call?.set).toMatchObject({ actingUnidentifiedKind: null });
+  });
+
+  it('passes a supplied sppValue straight through to the insert', async () => {
+    await service.upsert({ ...baseData, sppValue: 3 });
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({ sppValue: 3 });
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+  });
+
+  it('does not resolve an spp value when computeSppValue is not set', async () => {
+    await service.upsert(baseData);
+
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(Object.keys(call?.values as object)).not.toContain('sppValue');
+  });
+
+  it('resolves and writes an spp value when computeSppValue is set', async () => {
+    sppAwardValues.resolveSppValue.mockResolvedValue(3);
+
+    await service.upsert({ ...baseData, computeSppValue: true });
+
+    expect(sppAwardValues.resolveSppValue).toHaveBeenCalledWith({
+      actingPlayerId: 9,
+      actionType: 'touchdown',
+    });
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({ sppValue: 3 });
+  });
+
+  it('lets an explicit sppValue win over computeSppValue', async () => {
+    await service.upsert({ ...baseData, computeSppValue: true, sppValue: 5 });
+
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(call?.values).toMatchObject({ sppValue: 5 });
+  });
+
+  it('omits sppValue when computeSppValue is set but the event has no acting player', async () => {
+    await service.upsert({
+      matchId: 10,
+      actionType: 'inducements',
+      inducementsCost: 100,
+      computeSppValue: true,
+      externalIds: [{ externalSystemId: 1, externalId: 'bbl-ind-1' }],
+    });
+
+    expect(sppAwardValues.resolveSppValue).not.toHaveBeenCalled();
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(Object.keys(call?.values as object)).not.toContain('sppValue');
+  });
+
+  it('omits sppValue when the award table has no row for the event', async () => {
+    sppAwardValues.resolveSppValue.mockResolvedValue(undefined);
+
+    await service.upsert({ ...baseData, computeSppValue: true });
+
+    const call = insertCalls.find((c) => c.table === matchEvents);
+    expect(Object.keys(call?.values as object)).not.toContain('sppValue');
   });
 });
