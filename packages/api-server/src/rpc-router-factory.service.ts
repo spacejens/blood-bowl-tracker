@@ -22,6 +22,7 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAwardValuesService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -44,6 +45,7 @@ export class RpcRouterFactoryService {
     private readonly leaguesService: LeaguesService,
     private readonly racesService: RacesService,
     private readonly rulesSetsService: RulesSetsService,
+    private readonly sppAwardValuesService: SppAwardValuesService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
@@ -201,6 +203,15 @@ export class RpcRouterFactoryService {
                 return { entity: rulesSet, created };
               }),
             ),
+        ),
+      },
+      sppAwardValues: {
+        // Not routed through the upsert handler: award values are keyed by
+        // (rulesSetId, raceId, actionType) rather than external ids, so there
+        // is no CONFLICT error to map and no entity+created shape to return
+        // — same shape as positions.syncRaceEras.
+        sync: implement(contract.sppAwardValues.sync).handler(({ input }) =>
+          this.sppAwardValuesService.sync(input),
         ),
       },
       eras: {
