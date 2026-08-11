@@ -46,15 +46,18 @@ const WAIT_FOR_PR_REVIEW_USAGE =
   '<developer-login> <since-epoch-seconds> ' +
   '[--timeout-ms=600000] [--interval-ms=30000]';
 
+/** Below this, `--interval-ms` would hammer `gh` in a tight loop. */
+const MIN_INTERVAL_MS = 1000;
+
 /** Reads `--<name>=<integer>`; undefined when the flag is absent. */
-function readMsFlag(name: string): number | undefined {
+function readMsFlag(name: string, minimum: number): number | undefined {
   const prefix = `--${name}=`;
   const flag = process.argv.slice(6).find((arg) => arg.startsWith(prefix));
   if (flag === undefined) {
     return undefined;
   }
   const value = Number(flag.slice(prefix.length));
-  if (!Number.isInteger(value) || value < 0) {
+  if (!Number.isInteger(value) || value < minimum) {
     throw new Error(`${WAIT_FOR_PR_REVIEW_USAGE} (bad --${name} value)`);
   }
   return value;
@@ -77,8 +80,8 @@ function readWaitForPrReviewInput(): WaitForPrReviewOptions {
     prNumber,
     developerLogin,
     sinceEpochSeconds,
-    timeoutMs: readMsFlag('timeout-ms'),
-    intervalMs: readMsFlag('interval-ms'),
+    timeoutMs: readMsFlag('timeout-ms', 0),
+    intervalMs: readMsFlag('interval-ms', MIN_INTERVAL_MS),
   };
 }
 

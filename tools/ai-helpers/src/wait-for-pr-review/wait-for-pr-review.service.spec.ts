@@ -139,4 +139,15 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: true, review: REVIEW });
     expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
+
+  it('defaults to a 10-minute timeout and a 30-second interval', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    // Default timeout 600_000ms / interval 30_000ms: polls at
+    // 0/30s/60s/.../600s — 21 polls before the deadline is hit.
+    expect(processRunner.run).toHaveBeenCalledTimes(21);
+  });
 });
