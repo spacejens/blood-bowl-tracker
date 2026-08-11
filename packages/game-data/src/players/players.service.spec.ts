@@ -168,17 +168,37 @@ describe('PlayersService', () => {
         raceName: 'Human',
         raceId: 4,
         positionName: 'Blitzer',
+        eraName: 'Season 5',
+        eraId: 7,
       };
       const { db, chains } = await build([row]);
       await expect(service.findById(1)).resolves.toEqual(row);
-      expect(chains[0].innerJoin).toHaveBeenCalledTimes(4);
+      expect(chains[0].innerJoin).toHaveBeenCalledTimes(5);
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(1);
       const selectArg = firstCallArg(db.select, 0, 0) as Record<
         string,
         unknown
       >;
       expect(Object.keys(selectArg)).toEqual(
-        expect.arrayContaining(['teamId', 'raceId']),
+        expect.arrayContaining(['teamId', 'raceId', 'eraName', 'eraId']),
+      );
+    });
+
+    it('joins the era through the player team-era', async () => {
+      // Every player has exactly one team-era and therefore exactly one era,
+      // so this is an inner join like the others; asserting the joined columns
+      // (rather than only the join count) pins it to team_eras.era_id -> eras.id
+      // instead of any other pair of columns that would also raise the count.
+      const { chains } = await build([]);
+      await service.findById(1);
+      const joinConditions = chains[0].innerJoin.mock.calls.map(
+        (call: unknown[]) => call[1],
+      );
+      const joinedColumnSets = joinConditions.map((condition) =>
+        extractJoinColumns(condition),
+      );
+      expect(joinedColumnSets).toContainEqual(
+        expect.arrayContaining(['eras.id', 'team_eras.era_id']),
       );
     });
 
