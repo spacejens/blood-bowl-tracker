@@ -3,6 +3,14 @@ import { ButtonStyle, ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { ButtonCustomIdPrefix } from './deepdive/button-custom-ids';
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from './deepdive/button-custom-ids';
 import type {
   EntityButtonRow,
   EntityComponentEntry,
@@ -57,10 +65,38 @@ describe('EntityComponentsService', () => {
     expect(second.components).toHaveLength(2);
     expect(first.components[0]).toEqual({
       type: ComponentType.Button,
-      style: ButtonStyle.Primary,
+      style: ButtonStyle.Success,
       label: 'Entity 1',
       custom_id: 'deepdive:team:1',
     });
+  });
+
+  it('gives each destination type its own button colour', () => {
+    // One entry per destination type, in the design's mapping-table order.
+    const cases: [ButtonCustomIdPrefix, ButtonStyle][] = [
+      [ERA_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
+      [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
+      [COACH_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
+      [TEAM_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
+      [PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Primary],
+      [RACE_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Danger],
+    ];
+    const { components } = service.buildEntityComponents(
+      cases.map(([customIdPrefix], index) => ({
+        customIdPrefix,
+        entityId: String(index + 1),
+        label: `Entity ${index + 1}`,
+      })),
+    );
+    const buttons = (components as EntityButtonRow[]).flatMap(
+      (row) => row.components,
+    );
+    expect(buttons.map((button) => [button.custom_id, button.style])).toEqual(
+      cases.map(([customIdPrefix, style], index) => [
+        `${customIdPrefix}${index + 1}`,
+        style,
+      ]),
+    );
   });
 
   it('drops duplicate entries, keeping the first occurrence', () => {
@@ -179,7 +215,7 @@ describe('EntityComponentsService', () => {
     const [row] = components as EntityButtonRow[];
     expect(row.components[0]).toEqual({
       type: ComponentType.Button,
-      style: ButtonStyle.Primary,
+      style: ButtonStyle.Success,
       label: BLANK_LABEL,
       custom_id: 'deepdive:team:1',
     });
