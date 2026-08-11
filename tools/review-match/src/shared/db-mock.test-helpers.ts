@@ -16,7 +16,7 @@ import { mock } from 'vitest-mock-extended';
  * file lives inside another workspace's `src/` and is not reachable through
  * its package entry point. Test-only; excluded from coverage.
  */
-export type QueryChain = Record<string, Mock> & {
+type QueryChain = Record<string, Mock> & {
   then: <TResult1 = unknown, TResult2 = never>(
     resolve?: (value: unknown) => TResult1 | PromiseLike<TResult1>,
     reject?: (reason: unknown) => TResult2 | PromiseLike<TResult2>,
