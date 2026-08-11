@@ -3,6 +3,7 @@ import { FACT_SCOPE_ALL_TIME } from '@blood-bowl-tracker/game-data';
 import { describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
+import type { EntityLink } from '../leaderboard.service';
 import {
   LeaderboardService,
   TOPLIST_FETCH_LIMIT,
@@ -111,7 +112,11 @@ describe('makeToplistResolvers', () => {
           limit: number,
         ) => Promise<{ teamId: number; name: string; count: number }[]>;
       }
-      const entityLink = {
+      const entityLink: EntityLink<{
+        teamId: number;
+        name: string;
+        count: number;
+      }> = {
         customIdPrefix: 'deepdive:team:',
         entityId: (row: { teamId: number; name: string; count: number }) =>
           row.teamId,

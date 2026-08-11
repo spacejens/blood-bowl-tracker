@@ -7,6 +7,7 @@ import {
   PLAYER_TOPLIST_NO_DATA_MESSAGE,
   PLAYER_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import { PlayerContextService } from '../player-context.service';
 import type { ScopedCountMethods, ToplistResolver } from './toplist-factory';
@@ -37,7 +38,7 @@ export class PlayerToplistService {
     ToplistResolver<PlayersService>
   >;
 
-  private readonly playerLink = {
+  private readonly playerLink: EntityLink<{ playerId: number }> = {
     customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
     entityId: (row: { playerId: number }) => row.playerId,
   };
