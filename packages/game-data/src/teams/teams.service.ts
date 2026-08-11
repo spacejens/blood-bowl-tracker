@@ -129,6 +129,15 @@ export class TeamsService {
     return rows[0];
   }
 
+  async listEras(teamId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: eras.id, name: eras.name })
+      .from(teamEras)
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(eq(teamEras.teamId, teamId))
+      .orderBy(eras.startDate, eras.name);
+  }
+
   async getCareerSpan(
     teamId: number,
   ): Promise<{ start: string; end: string } | undefined> {
