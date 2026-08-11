@@ -11,6 +11,7 @@ import { LeaguesProcessor } from '../entities/leagues.processor';
 import { PositionsProcessor } from '../entities/positions.processor';
 import { RacesProcessor } from '../entities/races.processor';
 import { RulesSetsProcessor } from '../entities/rules-sets.processor';
+import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
@@ -28,16 +29,20 @@ export class ManualImportService {
     private readonly coaches: CoachesProcessor,
     private readonly teams: TeamsProcessor,
     private readonly competitions: CompetitionsProcessor,
+    private readonly sppAwardValues: SppAwardValuesProcessor,
     private readonly importResults: ImportResultService,
   ) {}
 
   /**
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
-   * it references, then process each entity section in dependency order,
-   * sharing one ExternalIdMap and error collector so cross-references resolve
-   * and one bad entry never aborts the rest. Reference-resolution and upsert
-   * failures are collected; a missing directory, malformed file, or unreachable
-   * API throws out of here to be reported as an unexpected failure.
+   * it references, then process each entity section in dependency order —
+   * rulesSets, leagues, eras, races, positions, coaches, teams, competitions,
+   * sppAwardValues, with sppAwardValues running last because it references
+   * both rulesSets and races — sharing one ExternalIdMap and error collector
+   * so cross-references resolve and one bad entry never aborts the rest.
+   * Reference-resolution and upsert failures are collected; a missing
+   * directory, malformed file, or unreachable API throws out of here to be
+   * reported as an unexpected failure.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);
@@ -60,6 +65,7 @@ export class ManualImportService {
     imported += await this.coaches.process(ctx);
     imported += await this.teams.process(ctx);
     imported += await this.competitions.process(ctx);
+    imported += await this.sppAwardValues.process(ctx);
 
     return this.importResults.result({ imported, errors });
   }

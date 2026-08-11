@@ -31,6 +31,7 @@ function touchdown(options: {
   tpEventId: number;
   lineUpId: number;
   rosterId: number;
+  starPoints?: number;
 }): Extract<TpMatchEvent, { type: 'touchdown' }> {
   return { type: 'touchdown', instant: 'x', ...options };
 }
@@ -39,6 +40,7 @@ function sentOff(options: {
   tpEventId: number;
   lineUpId: number;
   rosterId: number;
+  starPoints?: number;
 }): Extract<TpMatchEvent, { type: 'sent_off' }> {
   return { type: 'sent_off', instant: 'x', ...options };
 }
@@ -47,6 +49,7 @@ function casualtyCaused(options: {
   tpEventId: number;
   lineUpId: number;
   rosterId: number;
+  starPoints?: number;
 }): CasualtyEvent {
   return { type: 'casualty_caused', instant: 'x', turnNumber: 5, ...options };
 }
@@ -55,6 +58,7 @@ function foulEvent(options: {
   tpEventId: number;
   lineUpId: number;
   rosterId: number;
+  starPoints?: number;
 }): Extract<TpMatchEvent, { type: 'foul' }> {
   return { type: 'foul', instant: 'x', turnNumber: 5, ...options };
 }
@@ -65,6 +69,7 @@ function injury(options: {
   rosterId: number;
   turnRosterId?: number;
   injuryType: TpInjuryType;
+  starPoints?: number;
 }): InjuryEvent {
   return { type: 'injury', instant: 'x', turnNumber: 5, ...options };
 }
@@ -162,6 +167,69 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
         lineUpId: UNKNOWN_LINE_UP_ID,
       });
     });
+
+    it("carries TP's reported starPoints onto the event as sppValue", () => {
+      const events = service.buildSimpleActionEvent(
+        buildOptions({
+          event: touchdown({
+            tpEventId: 5,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+            starPoints: 3,
+          }),
+        }),
+        'touchdown',
+      );
+
+      expect(events[0]).toMatchObject({ sppValue: 3 });
+    });
+
+    it('carries a reported starPoints of 0 through as sppValue 0', () => {
+      const events = service.buildSimpleActionEvent(
+        buildOptions({
+          event: touchdown({
+            tpEventId: 6,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+            starPoints: 0,
+          }),
+        }),
+        'touchdown',
+      );
+
+      expect(events[0]).toMatchObject({ sppValue: 0 });
+    });
+
+    it('omits sppValue entirely when TP reported no starPoints', () => {
+      const events = service.buildSimpleActionEvent(
+        buildOptions({
+          event: touchdown({
+            tpEventId: 7,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+          }),
+        }),
+        'touchdown',
+      );
+
+      expect(events[0]).not.toHaveProperty('sppValue');
+    });
+
+    it('never asks the server to compute an spp value for a TP event', () => {
+      const events = service.buildSimpleActionEvent(
+        buildOptions({
+          event: touchdown({
+            tpEventId: 8,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+            starPoints: 3,
+          }),
+        }),
+        'touchdown',
+      );
+
+      expect(events[0]).not.toHaveProperty('computeSppValue');
+    });
   });
 
   describe('buildSentOffEvent', () => {
@@ -188,6 +256,23 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
         },
       ]);
       expect(events[0].actionType).toBeUndefined();
+    });
+
+    it('never writes sppValue, even when TP reports starPoints on the event', () => {
+      const [data] = service.buildSentOffEvent(
+        buildOptions({
+          event: sentOff({
+            tpEventId: 12,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+            starPoints: 0,
+          }),
+        }),
+      );
+
+      // A sent_off event has no acting player -- only a consequencePlayerId
+      // -- so it cannot own an SPP award attributed to an actor.
+      expect(data.sppValue).toBeUndefined();
     });
 
     it('omits the unresolved team-era and player, recording a non-fatal error for the player', () => {
@@ -554,6 +639,50 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
 
       expect(data.actionType).toBe('serious_injury');
       expect(data.actingTeamEraId).toBe(HOME_TEAM_ERA_ID);
+    });
+
+    it("carries the paired casualty-causer's starPoints onto the merged injury row", () => {
+      // The paired casualty_caused event is not emitted on its own — its SPP
+      // belongs to the causer on the merged row, or the causer's total
+      // silently loses it.
+      const paired = casualtyCaused({
+        tpEventId: 60,
+        lineUpId: ACTOR_LINE_UP_ID,
+        rosterId: HOME_ROSTER_ID,
+        starPoints: 2,
+      });
+      const events = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 61,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            turnRosterId: HOME_ROSTER_ID,
+            injuryType: 'NigglingInjury',
+          }),
+          casualtyPairing: {
+            casualtyByInjuryEventId: new Map([[61, paired]]),
+            pairedCasualtyEventIds: new Set([60]),
+          },
+        }),
+      );
+
+      expect(events[0]).toMatchObject({ sppValue: 2 });
+    });
+
+    it('leaves sppValue unset on an unpaired injury with no acting player', () => {
+      const events = service.buildInjuryEvent(
+        buildOptions({
+          event: injury({
+            tpEventId: 62,
+            lineUpId: VICTIM_LINE_UP_ID,
+            rosterId: AWAY_ROSTER_ID,
+            injuryType: 'None',
+          }),
+        }),
+      );
+
+      expect(events[0]).not.toHaveProperty('sppValue');
     });
   });
 });

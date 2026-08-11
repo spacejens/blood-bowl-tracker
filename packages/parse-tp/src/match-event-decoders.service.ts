@@ -29,12 +29,14 @@ const touchdownRaw = z.object({
   instant: z.string(),
   lineUpId: z.number(),
   rosterId: z.number(),
+  starPoints: z.number().optional(),
 });
 const mvpAwardRaw = z.object({
   id: z.number(),
   instant: z.string(),
   lineUpId: z.number(),
   rosterId: z.number(),
+  starPoints: z.number().optional(),
 });
 const injuryRaw = z.object({
   id: z.number(),
@@ -44,6 +46,7 @@ const injuryRaw = z.object({
   turnRosterId: z.number().nullish(),
   turnNumber: z.number().nullish(),
   injuryType: injuryTypeSchema,
+  starPoints: z.number().optional(),
 });
 const casualtyCausedRaw = z.object({
   id: z.number(),
@@ -51,6 +54,7 @@ const casualtyCausedRaw = z.object({
   lineUpId: z.number(),
   rosterId: z.number(),
   turnNumber: z.number().nullish(),
+  starPoints: z.number().optional(),
 });
 /**
  * Code 31 (`foul`) carries turn fields that the previously-shared
@@ -66,6 +70,7 @@ const foulRaw = z.object({
   rosterId: z.number(),
   turnNumber: z.number().nullish(),
   turnRosterId: z.number().nullish(),
+  starPoints: z.number().optional(),
 });
 const weatherRaw = z.object({
   id: z.number(),
@@ -197,6 +202,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -207,6 +213,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -217,6 +224,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -228,6 +236,7 @@ export class MatchEventDecodersService {
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
           ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -238,6 +247,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -251,6 +261,7 @@ export class MatchEventDecodersService {
           ...(v.turnRosterId != null ? { turnRosterId: v.turnRosterId } : {}),
           ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
           injuryType: v.injuryType,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -352,6 +363,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -375,6 +387,7 @@ export class MatchEventDecodersService {
           rosterId: v.rosterId,
           ...(v.turnNumber != null ? { turnNumber: v.turnNumber } : {}),
           ...(v.turnRosterId != null ? { turnRosterId: v.turnRosterId } : {}),
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -385,6 +398,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
       [
@@ -407,6 +421,7 @@ export class MatchEventDecodersService {
           instant: v.instant,
           lineUpId: v.lineUpId,
           rosterId: v.rosterId,
+          ...(v.starPoints != null ? { starPoints: v.starPoints } : {}),
         })),
       ],
     ]);

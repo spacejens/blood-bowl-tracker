@@ -51,15 +51,18 @@ names are not unique across teams):
   the career span and player list, but still shows its race and coach.
 - **A team that matches nothing** — the bot replies with a not-found message.
 - **`player:<player>`** — the bot replies with an embed for that player: the
-  player name as the title, then `Team: <team>`, `Race: <race>`, and
-  `Position: <position>` (every player always has all three), a blank line, and
-  one line per non-zero event category the player caused, formatted
+  player name as the title, then `Team: <team>`, `Era: <era>`, `Race: <race>`,
+  and `Position: <position>` (every player always has all four — a player
+  belongs to exactly one team-era, and therefore to exactly one era), a blank
+  line, and one line per non-zero event category the player caused, formatted
   `<label>: <count>`. The categories are the nine acting-role tallies: MVP
   awards, touchdowns scored, completions, interceptions, deflections,
   casualties inflicted, serious injuries inflicted, opponents killed, and fouls
   committed — things the player did, never things done to them. Zero categories
   are omitted; a player with nothing in any category shows a short
-  nothing-memorable-yet-style message instead of an empty list.
+  nothing-memorable-yet-style message instead of an empty list. The team, era
+  and race are each rendered as a drill-down button, in the same order as the
+  header lines; position has no deepdive target, so it has no button.
 - **A player that matches nothing** — the bot replies with a not-found message.
 - **`race:<race>`** — the bot replies with an embed for that race: the race
   name as the title, then `Eras: <eras>` (the eras this race has appeared in,

@@ -220,6 +220,23 @@ An injury's `injuryType` maps to a `consequence_type` via:
 `None` used to be skipped entirely (treated as "no injury happened"); it is
 in fact a genuine Badly Hurt result and is now always imported.
 
+`matchEvents[].starPoints` — the [Star Player Points](../glossary.md#star-player-points-spp)
+TP itself says this event awarded its acting player — is carried on every
+modeled action/consequence event kind (completion, touchdown, interception,
+deflection, foul, mvp_award, successful landing, sent off, casualty_caused,
+and injury via its paired actor), though TP omits it even on those kinds
+sometimes and it is `undefined` on every administrative kind. `0` is a real
+award of nothing, not "no data" — absent and `0` are different answers, so
+the field is optional rather than defaulted. It is imported verbatim onto
+`match_events.spp_value` rather than recomputed from the standardised
+`spp_award_values` table: TP's figure already reflects race-specific and
+random-event rules the table does not model, and the observed data contains
+legitimate non-standard values (a 5-point touchdown, a 3-point casualty).
+The one exception is `sent_off`: although TP can carry a `starPoints` value
+on it, a sent-off event has no acting player (only a consequence player), so
+it structurally cannot own an SPP award and the importer never writes
+`spp_value` for it.
+
 ### Casualty/injury correlation (code 6 ↔ code 8)
 
 A code-6 `casualty_caused` event is the ACTION of a specific player breaking

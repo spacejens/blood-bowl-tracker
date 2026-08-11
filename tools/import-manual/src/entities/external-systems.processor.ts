@@ -58,6 +58,10 @@ function collectSystemNames(data: ManualDataFile): string[] {
     addAll(entry.externalIds);
     addIfPresent(entry.era);
   }
+  for (const entry of data.sppAwardValues) {
+    add(entry.rulesSet);
+    addIfPresent(entry.race);
+  }
   return [...names];
 }
 

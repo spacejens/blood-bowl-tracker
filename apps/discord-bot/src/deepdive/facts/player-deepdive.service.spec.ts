@@ -19,6 +19,7 @@ import {
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import {
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -32,6 +33,8 @@ const griff = {
   raceName: 'Human',
   raceId: 4,
   positionName: 'Blitzer',
+  eraName: 'Season 5',
+  eraId: 7,
 };
 
 async function makeService(
@@ -62,6 +65,8 @@ function makePlayers(options: {
     raceName: string;
     raceId: number;
     positionName: string;
+    eraName: string;
+    eraId: number;
   };
   counts?: { label: string; count: number }[];
 }): PlayersService {
@@ -102,6 +107,7 @@ describe('PlayerDeepdiveService', () => {
           title: 'Griff Oberwald',
           description: [
             'Team: Reikland Reavers',
+            'Era: Season 5',
             'Race: Human',
             'Position: Blitzer',
             '',
@@ -132,6 +138,7 @@ describe('PlayerDeepdiveService', () => {
           title: 'Griff Oberwald',
           description: [
             'Team: Reikland Reavers',
+            'Era: Season 5',
             'Race: Human',
             'Position: Blitzer',
             '',
@@ -145,9 +152,10 @@ describe('PlayerDeepdiveService', () => {
   // EntityComponentsService's own dedupe/cap/chunk/select logic is covered
   // by entity-components.service.spec.ts. Here `entityComponents` is a mock
   // returning a canned component list, so this test asserts only what
-  // PlayerDeepdiveService itself owns: the team-then-race entry pool (in
-  // that order, with the right ids/labels) it hands to buildEntityComponents.
-  it('builds a team entry then a race entry from the header', async () => {
+  // PlayerDeepdiveService itself owns: the team-then-era-then-race entry pool
+  // (in that order, matching the header lines, with the right ids/labels) it
+  // hands to buildEntityComponents.
+  it('builds team, era, and race entries from the header, in header order', async () => {
     const entityComponents = mock<EntityComponentsService>();
     const cannedComponents = [
       {
@@ -163,15 +171,7 @@ describe('PlayerDeepdiveService', () => {
     });
     const { service } = await makeService(
       makePlayers({
-        player: {
-          id: 1,
-          name: 'Griff Oberwald',
-          teamName: 'Reikland Reavers',
-          teamId: 11,
-          raceName: 'Human',
-          raceId: 4,
-          positionName: 'Blitzer',
-        },
+        player: griff,
         counts: [{ label: 'Touchdowns', count: 3 }],
       }),
       undefined,
@@ -187,6 +187,11 @@ describe('PlayerDeepdiveService', () => {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '11',
         label: 'Reikland Reavers',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '7',
+        label: 'Season 5',
       },
       {
         customIdPrefix: RACE_BUTTON_CUSTOM_ID_PREFIX,

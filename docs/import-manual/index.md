@@ -58,6 +58,7 @@ positions
 coaches
 teams
 competitions
+sppAwardValues
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -160,6 +161,19 @@ a genuinely new entity.
 }
 ```
 
+### SPP award values
+
+`sppAwardValues` entries seed the standardised Star Player Points award table
+(issue #379). Each entry is `{ rulesSet, race?, actionType, sppValue }`:
+`rulesSet` is an external-id pair pointing at a rules set, `race` is an
+optional external-id pair pointing at a race, `actionType` is one of the
+action types that award Star Player Points (not every match-event action
+type — a foul, for example, earns no SPP), and `sppValue` is the SPP
+awarded. An entry that
+omits `race` is that rules set's baseline, applying to every race with no more
+specific entry; an entry naming a race overrides the baseline for it. This
+section is processed last, since it references both rules sets and races.
+
 ## Known before-other-importers dedup files
 
 A few `data/before-other-importers/*.json5` files exist specifically to unify
@@ -184,6 +198,10 @@ real-world entity differently:
   deliberately left unmerged rather than guessed at, for the same reason
   `races-and-positions.json5` leaves ambiguous position renames unpaired: a
   wrong guess would silently conflate two different star players' rows.
+- `spp-award-values.json5` — the standardised SPP award table, plus the
+  rules-set rows it references — see issue #379. It declares rules sets under
+  the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
+  BBL/TP importers' later upserts match the same rows.
 
 ## Known after-other-importers cleanup files
 
