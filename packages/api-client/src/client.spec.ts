@@ -117,6 +117,7 @@ describe('createApiClient', () => {
       'positions',
       'races',
       'rulesSets',
+      'sppAwardValues',
       'teams',
     ]);
   });
