@@ -307,7 +307,7 @@ This applies to every subagent dispatched from any phase below while working in 
       ```bash
       date +%s
       ```
-      Then poll every **30 seconds**, for up to **10 minutes** total, for a submitted review by someone other than the developer, posted after the iteration start time. Use a non-blocking wait mechanism between polls (e.g. this platform's `Monitor` tool driving an until-loop) — a blind foreground `sleep` loop is not available in this harness:
+      Then poll every **30 seconds**, for up to **20 minutes** total, for a submitted review by someone other than the developer, posted after the iteration start time. Use a non-blocking wait mechanism between polls (e.g. this platform's `Monitor` tool driving an until-loop) — a blind foreground `sleep` loop is not available in this harness:
       ```bash
       gh pr view <PR> --json reviews --jq \
         '.reviews[] | select(.submittedAt != null) | select(.author.login != "<developer-login>" and (.submittedAt | fromdateiso8601) > <iteration-start-epoch>)'
@@ -316,8 +316,8 @@ This applies to every subagent dispatched from any phase below while working in 
 
       This check is bot-agnostic by construction: it never looks for a particular bot's name or API, only for *some* formal review object from a non-author. Any tool that submits a review when it finishes satisfies it. A formal review object — not a raw comment count — is the signal, because bots submit one when their pass completes, distinct from individual comments that may stream in while the review is still in progress. Keep it that way: do not add a bot-name filter.
 
-   b. **Timeout handling.** If the full 10 minutes elapse with no qualifying review, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
-      - **Keep waiting** — poll for another 10 minutes under the same conditions (this does not consume an extra loop iteration).
+   b. **Timeout handling.** If the full 20 minutes elapse with no qualifying review, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
+      - **Keep waiting** — poll for another 20 minutes under the same conditions (this does not consume an extra loop iteration).
       - **Skip the review loop** — leave the loop immediately and continue to step 5.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
