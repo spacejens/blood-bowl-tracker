@@ -35,7 +35,7 @@
     "madge": "8.0.0",
     "npm-check-updates": "22.2.9",
     "prettier": "^3.9.6",
-    "syncpack": "15.3.2",
+    "syncpack": "15.3.3",
     "typescript-eslint": "^8.65.0"
   }
 }
