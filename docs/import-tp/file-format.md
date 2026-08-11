@@ -220,6 +220,19 @@ An injury's `injuryType` maps to a `consequence_type` via:
 `None` used to be skipped entirely (treated as "no injury happened"); it is
 in fact a genuine Badly Hurt result and is now always imported.
 
+`matchEvents[].starPoints` — the [Star Player Points](../glossary.md#star-player-points-spp)
+TP itself says this event awarded its acting player — is carried on every
+modeled action/consequence event kind (completion, touchdown, interception,
+deflection, foul, mvp_award, successful landing, sent off, casualty_caused,
+and injury via its paired actor), though TP omits it even on those kinds
+sometimes and it is `undefined` on every administrative kind. `0` is a real
+award of nothing, not "no data" — absent and `0` are different answers, so
+the field is optional rather than defaulted. It is imported verbatim onto
+`match_events.spp_value` rather than recomputed from the standardised
+`spp_award_values` table: TP's figure already reflects race-specific and
+random-event rules the table does not model, and the observed data contains
+legitimate non-standard values (a 5-point touchdown, a 3-point casualty).
+
 ### Casualty/injury correlation (code 6 ↔ code 8)
 
 A code-6 `casualty_caused` event is the ACTION of a specific player breaking
@@ -429,6 +442,17 @@ number, lineUpMasterId, rosterId, fallbackPositionName, isBigGuy }`. `id` is
   carried straight from the entry's own `position`/`isBigGuy` fields
   (present on every `lineUps[]` entry, standalone or match-embedded) — see
   "Mercenary Big Guys" below for why.
+- `lineUps[].starPlayerPoints` / `.totalStarPlayerPoints` — TP's own
+  [Star Player Points](../glossary.md#star-player-points-spp) figures for
+  this player, reported independently of `matchEvents[]`: `starPlayerPoints`
+  for the match this line-up snapshot belongs to, `totalStarPlayerPoints`
+  running across the player's career. Nothing in production code consumes
+  them; they exist as a ground-truth cross-check that summing the imported
+  per-event `starPoints` reproduces TP's own number (see
+  `tp-spp-cross-check.spec.ts`). The spec that originally described this data
+  expected it under a `squadMatches` field, but the real mirror carries it on
+  `lineUps[]` instead — `squadMatches` is present on every match file but
+  always empty.
 
 **Races** (via `TpRacesImportService`) group by `raceName` (not code), so all
 rule-set-variant codes of one logical race merge onto one row, each code kept

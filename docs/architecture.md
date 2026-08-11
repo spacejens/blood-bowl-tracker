@@ -211,6 +211,29 @@ moment it's created — so deleting a tracked row is always blocked, not
 just rows that have accumulated history. This is intentional and
 permanent: there is no supported way to hard-delete a tracked row.
 
+### Star Player Points
+
+[Star Player Points](glossary.md#star-player-points-spp) are denormalized
+onto `match_events.spp_value` at import time, in the same spirit as
+`match_teams.score` — a player's total is a plain `SUM` over their events
+rather than a live re-derivation of rules-set-and-race-specific award rules.
+
+`spp_award_values` holds the standardised award table, keyed
+`(rules_set_id, race_id, action_type)`: a row with `race_id IS NULL` is that
+rules set's baseline value for the action, and a non-null `race_id` row is a
+per-race override. The table is unique on that key with `NULLS NOT DISTINCT`,
+so the baseline row itself is unique per `(rules_set_id, action_type)` rather
+than colliding with every override.
+
+TP's own reported figure always wins over the table: BBL-sourced events,
+which have no such figure, set `computeSppValue` and let the server resolve
+a value from `spp_award_values`; TP-sourced events supply `sppValue`
+directly, which takes precedence even if `computeSppValue` is also set.
+
+`spp_award_values` is seeded by `tools/import-manual` in the
+`before-other-importers` phase, so the table exists before any BBL or TP
+match data is imported.
+
 ## Discord bot user-facing messages
 
 Every error or status message the Discord bot can send to a user lives in
