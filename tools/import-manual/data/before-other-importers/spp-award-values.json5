@@ -1,0 +1,150 @@
+// Standardised Star Player Points award values (issue #379).
+//
+// One entry per (rules set, race, action type). An entry with no `race` is
+// that rules set's baseline, applying to every race with no more specific
+// entry; an entry naming a race overrides the baseline for it.
+//
+// Rules sets are declared here rather than referenced, because nothing has
+// created them yet at before-other-importers time: the BBL and TP importers
+// create them later from their own configs. Each is keyed under the "Name"
+// system by its bare name -- exactly what NameExternalIdService.forRulesSet
+// returns -- so those later upserts land on these same rows.
+//
+// Races are NOT declared here: races-and-positions.json5 in this same
+// directory already creates them, and this file references them by the
+// tloeg.bbleague.se numeric ids that file declares.
+//
+// Values per the design spec, docs/plans/2026-08-11-standardised-spp-totals-design.md:
+//   CRP / CRP+ / BB2016 : touchdown 3, casualty 2, completion 1,
+//                         interception 2, MVP 5 (no deflection -- the event
+//                         type did not exist)
+//   BB2020 / DB2021 / BB2025 : touchdown 3, casualty 2, completion 1,
+//                         interception 2, deflection 1, MVP 4
+//   BB2025 "Brawlin' Brutes" (Black Orc, Dwarf, Khorne, Nurgle, Ogre, Orc):
+//                         touchdown 2, casualty 3 -- the baseline pair
+//                         swapped; every other action keeps the baseline.
+//
+// `foul` deliberately has no rows at any rules set: Blood Bowl awards no SPP
+// for a foul.
+//
+// Every casualty severity (casualty / badly_hurt / serious_injury / death)
+// carries the same value: they are one award in the rules, stored per
+// severity only because the action_type enum models them separately.
+{
+  externalSystems: [
+    { name: 'Name', category: 'bookkeeping' },
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+  ],
+
+  rulesSets: [
+    { name: 'CRP', externalIds: [{ system: 'Name', id: 'CRP' }] },
+    { name: 'CRP+', externalIds: [{ system: 'Name', id: 'CRP+' }] },
+    { name: 'BB2016', externalIds: [{ system: 'Name', id: 'BB2016' }] },
+    { name: 'BB2020', externalIds: [{ system: 'Name', id: 'BB2020' }] },
+    { name: 'DB2021', externalIds: [{ system: 'Name', id: 'DB2021' }] },
+    { name: 'BB2025', externalIds: [{ system: 'Name', id: 'BB2025' }] },
+  ],
+
+  sppAwardValues: [
+    // --- CRP ---
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'mvp_award', sppValue: 5 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP' }, actionType: 'death', sppValue: 2 },
+
+    // --- CRP+ (identical to CRP) ---
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'mvp_award', sppValue: 5 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'CRP+' }, actionType: 'death', sppValue: 2 },
+
+    // --- BB2016 (identical to CRP) ---
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'mvp_award', sppValue: 5 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2016' }, actionType: 'death', sppValue: 2 },
+
+    // --- BB2020 ---
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'deflection', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'mvp_award', sppValue: 4 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2020' }, actionType: 'death', sppValue: 2 },
+
+    // --- DB2021 (identical to BB2020) ---
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'deflection', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'mvp_award', sppValue: 4 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'DB2021' }, actionType: 'death', sppValue: 2 },
+
+    // --- BB2025 baseline (identical to BB2020) ---
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'touchdown', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'completion', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'interception', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'deflection', sppValue: 1 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'mvp_award', sppValue: 4 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'casualty', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'badly_hurt', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'serious_injury', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, actionType: 'death', sppValue: 2 },
+
+    // --- BB2025 "Brawlin' Brutes" overrides: touchdown 2, casualty 3 ---
+    // Black Orc (tloeg.bbleague.se 44)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '44' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '44' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '44' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '44' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '44' }, actionType: 'death', sppValue: 3 },
+    // Dwarf (5)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '5' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '5' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '5' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '5' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '5' }, actionType: 'death', sppValue: 3 },
+    // Khorne (46)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '46' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '46' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '46' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '46' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '46' }, actionType: 'death', sppValue: 3 },
+    // Nurgle (15)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '15' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '15' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '15' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '15' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '15' }, actionType: 'death', sppValue: 3 },
+    // Ogre (21)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '21' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '21' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '21' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '21' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '21' }, actionType: 'death', sppValue: 3 },
+    // Orc (16)
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '16' }, actionType: 'touchdown', sppValue: 2 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '16' }, actionType: 'casualty', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '16' }, actionType: 'badly_hurt', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '16' }, actionType: 'serious_injury', sppValue: 3 },
+    { rulesSet: { system: 'Name', id: 'BB2025' }, race: { system: 'tloeg.bbleague.se', id: '16' }, actionType: 'death', sppValue: 3 },
+  ],
+}
