@@ -2,7 +2,11 @@ import type {
   UpsertCompetition,
   UpsertMatch,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ImportResultService,
@@ -53,6 +57,7 @@ interface SyncMatchTeamsOptions {
   competitionIdsByTpId: Map<number, number>;
   matchesByCompetitionId: Map<number, TpMatch[]>;
   teamErasByRosterId: Map<number, TeamEra[]>;
+  matchBatch: BatchBuffer<UpsertMatch>;
   errors: ImportError[];
 }
 
@@ -104,6 +109,7 @@ export class TpTeamParticipationImportService {
     } = options;
     let imported = 0;
     const errors: ImportError[] = [];
+    const matchBatch = this.matchesImport.createBatch(errors);
 
     for (const [tpId, entry] of competitionsByTpId) {
       const upserted = await this.syncCompetitionTeams({
@@ -121,9 +127,14 @@ export class TpTeamParticipationImportService {
         competitionIdsByTpId,
         matchesByCompetitionId,
         teamErasByRosterId,
+        matchBatch,
         errors,
       });
     }
+
+    // Return value discarded on purpose: `imported` counts competitions only,
+    // exactly as it did on the single-item path.
+    await this.matchesImport.flushBatch(matchBatch);
 
     return { result: this.importResults.result({ imported, errors }) };
   }
@@ -213,6 +224,7 @@ export class TpTeamParticipationImportService {
       competitionIdsByTpId,
       matchesByCompetitionId,
       teamErasByRosterId,
+      matchBatch,
       errors,
     } = options;
     const { upsert } = entry;
@@ -256,7 +268,7 @@ export class TpTeamParticipationImportService {
         externalIds: [{ externalSystemId, externalId: String(match.id) }],
         teamEraIds: [homeTeamEraId, awayTeamEraId],
       };
-      await this.matchesImport.upsertMatch(data, errors);
+      await this.matchesImport.addToBatch(matchBatch, data);
     }
   }
 }
