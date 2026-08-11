@@ -21,7 +21,7 @@
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.29",
     "json5": "^2.2.3",
-    "puppeteer": "^24.34.0",
+    "puppeteer": "^25.5.0",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
