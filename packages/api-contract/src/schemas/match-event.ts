@@ -199,6 +199,26 @@ export const UpsertMatchEventSchema = z
      */
     secretObjective: SecretObjectiveSchema.nullable().optional(),
     expensiveMistake: z.number().int().nullable().optional(),
+    /**
+     * Star Player Points this event awarded its acting player. A column
+     * value, so all three states are expressible: a number writes it, null
+     * clears it, omission leaves the stored value alone. The TP importer
+     * supplies TP's own reported figure here; the BBL importer supplies
+     * nothing and sets `computeSppValue` instead.
+     */
+    sppValue: z.number().int().nullable().optional(),
+    /**
+     * A resolution input rather than a column value — like `matchId` and
+     * `actingTeamEraId` above, it addresses the operation instead of being
+     * row data. `true` asks the server to resolve `sppValue` from
+     * `spp_award_values` (by the acting player's era rules set and team
+     * race) for SPP-earning action types, and to leave it null otherwise.
+     * An explicitly supplied `sppValue` always wins, so a source with its
+     * own figure is never overwritten by a recomputation. Sources with no
+     * SPP data of their own (BBL) set this; sources with their own figure
+     * (TP) never do.
+     */
+    computeSppValue: z.boolean().optional(),
     externalIds: z.array(ExternalIdSchema).min(1),
   })
   .refine(

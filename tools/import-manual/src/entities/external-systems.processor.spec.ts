@@ -18,6 +18,7 @@ function emptyData(): ManualDataFile {
     coaches: [],
     teams: [],
     competitions: [],
+    sppAwardValues: [],
   };
 }
 
@@ -297,5 +298,26 @@ describe('ExternalSystemsProcessor', () => {
     const systemIds = await processor.bootstrap(data);
 
     expect([...systemIds.keys()]).toEqual(['Name']);
+  });
+
+  it('bootstraps the systems an sppAwardValues entry references', async () => {
+    externalSystemsImport.upsertExternalSystem.mockResolvedValue(1);
+    const data = emptyData();
+    data.externalSystems = [
+      { name: 'RulesSys', category: 'imported_data_source' },
+      { name: 'RaceSys', category: 'imported_data_source' },
+    ];
+    data.sppAwardValues = [
+      {
+        rulesSet: { system: 'RulesSys', id: 'rs:crp' },
+        race: { system: 'RaceSys', id: 'id:9' },
+        actionType: 'touchdown',
+        sppValue: 3,
+      },
+    ];
+
+    const systemIds = await processor.bootstrap(data);
+
+    expect([...systemIds.keys()].sort()).toEqual(['RaceSys', 'RulesSys']);
   });
 });

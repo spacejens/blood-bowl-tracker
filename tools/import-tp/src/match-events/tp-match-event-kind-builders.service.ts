@@ -216,6 +216,11 @@ export class TpMatchEventKindBuildersService {
         errors,
       }),
     );
+    // TP's own reported figure, passed through verbatim: it already accounts
+    // for race-specific and random-event awards the standardised table does
+    // not model. `setIfDefined` keeps a reported 0 (a real award of nothing)
+    // and drops an absent value, which leaves the column alone.
+    this.setIfDefined(data, 'sppValue', event.starPoints);
     return [data];
   }
 
@@ -264,6 +269,9 @@ export class TpMatchEventKindBuildersService {
         errors,
       }),
     );
+    // A sent_off event has no acting player -- only a consequencePlayerId --
+    // so it cannot own an SPP award attributed to an actor. sppValue is
+    // intentionally not written here.
     return [data];
   }
 
@@ -312,6 +320,11 @@ export class TpMatchEventKindBuildersService {
         errors,
       }),
     );
+    // TP's own reported figure, passed through verbatim: it already accounts
+    // for race-specific and random-event awards the standardised table does
+    // not model. `setIfDefined` keeps a reported 0 (a real award of nothing)
+    // and drops an absent value, which leaves the column alone.
+    this.setIfDefined(data, 'sppValue', event.starPoints);
     return [data];
   }
 
@@ -444,6 +457,16 @@ export class TpMatchEventKindBuildersService {
     }
     // else: self-inflicted or unattributable — consequence-only. Normal and
     // expected (e.g. a player falling on their own, or a random event).
+
+    // A paired casualty_caused / foul is folded into this row instead of
+    // being emitted separately, so its SPP has to travel with it — the
+    // merged row's acting player IS the causer. Only the injury's own figure
+    // is used when nothing was folded in.
+    this.setIfDefined(
+      data,
+      'sppValue',
+      pairedActor?.starPoints ?? event.starPoints,
+    );
     return [data];
   }
 

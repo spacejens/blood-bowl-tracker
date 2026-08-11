@@ -112,7 +112,7 @@ See [game-concepts/competitions](game-concepts/competitions/index.md).
 
 ## Star Player Points (SPP)
 
-Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills.
+Experience points earned by individual [players](#player) during [matches](#match) for scoring [touchdowns](#touchdown), completing passes, causing [casualties](#casualty), and similar achievements. Accumulated SPP allow a player to level up and gain new skills. The tracker stores each award on the [match event](game-concepts/match-events/index.md) that earned it, so a player's total is a running sum rather than a live re-derivation; see [architecture.md](architecture.md#star-player-points) for how the standardised award values and each source's own reported figures are reconciled.
 
 ## Team Era
 

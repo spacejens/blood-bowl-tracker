@@ -11,12 +11,16 @@ import { eq } from 'drizzle-orm';
 
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+import { SppAwardValuesService } from '../spp/spp-award-values.service';
 
 export class MatchEventUpsertConflictError extends UpsertConflictError {}
 
 @Injectable()
 export class MatchEventsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly sppAwardValues: SppAwardValuesService,
+  ) {}
 
   async upsert(
     data: UpsertMatchEvent,
@@ -31,6 +35,8 @@ export class MatchEventsService {
       matchTeamIdByTeamEraId,
       data.consequenceTeamEraId,
     );
+
+    const sppValue = await this.resolveSppValue(data);
 
     // Every field is passed through exactly as supplied: `undefined` means the
     // payload said nothing about that column and upsertByExternalIds strips it,
@@ -58,6 +64,7 @@ export class MatchEventsService {
       dedicatedFans: data.dedicatedFans,
       secretObjective: data.secretObjective,
       expensiveMistake: data.expensiveMistake,
+      sppValue,
     };
 
     const { row: matchEvent, created } = await upsertByExternalIds<
@@ -79,6 +86,47 @@ export class MatchEventsService {
     });
 
     return { matchEvent, created };
+  }
+
+  /**
+   * The event's SPP award. An explicitly supplied value always wins — a
+   * source that reports its own figure (TP) is never second-guessed by a
+   * recomputation, and no computation is attempted when it wasn't requested:
+   * `undefined` here, which `upsertByExternalIds` strips so the column is
+   * left alone rather than nulled.
+   *
+   * Once computation IS requested, though, every other outcome writes `null`
+   * rather than leaving the column alone: an event with no acting player or
+   * action type cannot earn SPP, and a resolvable player/action pair the
+   * award table has no row for currently earns none either. Both are real
+   * answers ("this event awards no SPP"), not "unknown" — and treating them
+   * as unknown would let a stale `spp_value` survive a re-import that
+   * downgrades a previously SPP-earning event (e.g. a BBL correction changing
+   * its action type), which `SppTotalsService` would then keep counting.
+   */
+  private async resolveSppValue(
+    data: UpsertMatchEvent,
+  ): Promise<number | null | undefined> {
+    if (data.sppValue !== undefined) {
+      return data.sppValue;
+    }
+    if (data.computeSppValue !== true) {
+      return undefined;
+    }
+    if (
+      data.actingPlayerId === undefined ||
+      data.actingPlayerId === null ||
+      data.actionType === undefined ||
+      data.actionType === null
+    ) {
+      return null;
+    }
+    return (
+      (await this.sppAwardValues.resolveSppValue({
+        actingPlayerId: data.actingPlayerId,
+        actionType: data.actionType,
+      })) ?? null
+    );
   }
 
   private async loadMatchTeams(matchId: number): Promise<Map<number, number>> {

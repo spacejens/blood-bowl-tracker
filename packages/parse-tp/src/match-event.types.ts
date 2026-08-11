@@ -28,6 +28,17 @@ interface TpMatchEventBase {
   tpEventId: number;
   /** `matchEvents[].instant`. */
   instant: string;
+  /**
+   * `matchEvents[].starPoints` — the Star Player Points TP itself says this
+   * event awarded its acting player. Optional because TP reports it only on
+   * event kinds that can award SPP (and not always even there); absent on
+   * every administrative kind. Read rather than recomputed: TP's figure
+   * already reflects race-specific and random-event rules the tracker's own
+   * award table does not model, and the observed data contains legitimate
+   * non-standard values (a 5-point touchdown, a 3-point casualty) and
+   * legitimate zeroes. `0` and absent are therefore different answers.
+   */
+  starPoints?: number;
 }
 
 /**

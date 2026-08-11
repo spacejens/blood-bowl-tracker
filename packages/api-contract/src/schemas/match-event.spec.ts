@@ -258,4 +258,57 @@ describe('UpsertMatchEventSchema', () => {
     });
     expect(parsed.consequenceType).toBe('casualty_avoided');
   });
+
+  it('accepts an sppValue on an acting event', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      matchId: 1,
+      actionType: 'touchdown',
+      actingPlayerId: 9,
+      sppValue: 3,
+      externalIds: [{ externalSystemId: 1, externalId: 'tp-1' }],
+    });
+    expect(parsed.sppValue).toBe(3);
+  });
+
+  it('accepts an explicit null sppValue so a caller can clear it', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      matchId: 1,
+      actionType: 'touchdown',
+      sppValue: null,
+      externalIds: [{ externalSystemId: 1, externalId: 'tp-1' }],
+    });
+    expect(parsed.sppValue).toBeNull();
+  });
+
+  it('rejects a non-integer sppValue', () => {
+    expect(() =>
+      UpsertMatchEventSchema.parse({
+        matchId: 1,
+        actionType: 'touchdown',
+        sppValue: 1.5,
+        externalIds: [{ externalSystemId: 1, externalId: 'tp-1' }],
+      }),
+    ).toThrow();
+  });
+
+  it('accepts computeSppValue as a resolution input', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      matchId: 1,
+      actionType: 'touchdown',
+      actingPlayerId: 9,
+      computeSppValue: true,
+      externalIds: [{ externalSystemId: 1, externalId: 'bbl-1' }],
+    });
+    expect(parsed.computeSppValue).toBe(true);
+  });
+
+  it('leaves sppValue and computeSppValue undefined when omitted', () => {
+    const parsed = UpsertMatchEventSchema.parse({
+      matchId: 1,
+      actionType: 'touchdown',
+      externalIds: [{ externalSystemId: 1, externalId: 'tp-1' }],
+    });
+    expect(parsed.sppValue).toBeUndefined();
+    expect(parsed.computeSppValue).toBeUndefined();
+  });
 });

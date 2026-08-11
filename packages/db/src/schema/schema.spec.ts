@@ -21,6 +21,7 @@ import {
   raceEras,
   races,
   rulesSets,
+  sppAwardValues,
   teamEras,
   teams,
 } from './index';
@@ -165,6 +166,13 @@ describe('schema', () => {
     expect(matchEventExternalIds.externalId).toBeDefined();
   });
 
+  it('match_events has a nullable spp_value column', () => {
+    const config = getTableConfig(matchEvents);
+    const sppValue = config.columns.find((c) => c.name === 'spp_value');
+    expect(sppValue).toBeDefined();
+    expect(sppValue!.notNull).toBe(false);
+  });
+
   it('match_teams has a non-null score column', () => {
     const config = getTableConfig(matchTeams);
     const score = config.columns.find((c) => c.name === 'score');
@@ -191,5 +199,37 @@ describe('schema', () => {
     expect(reference.foreignColumns.map((column) => column.name)).toEqual([
       'id',
     ]);
+  });
+
+  it('exports sppAwardValues table', () => {
+    expect(sppAwardValues.id).toBeDefined();
+    expect(sppAwardValues.rulesSetId).toBeDefined();
+    expect(sppAwardValues.raceId).toBeDefined();
+    expect(sppAwardValues.actionType).toBeDefined();
+    expect(sppAwardValues.sppValue).toBeDefined();
+  });
+
+  it('spp_award_values has a nullable race_id and non-null rules_set_id/action_type/spp_value', () => {
+    const config = getTableConfig(sppAwardValues);
+    const byName = new Map(config.columns.map((c) => [c.name, c]));
+    expect(byName.get('race_id')!.notNull).toBe(false);
+    expect(byName.get('rules_set_id')!.notNull).toBe(true);
+    expect(byName.get('action_type')!.notNull).toBe(true);
+    expect(byName.get('spp_value')!.notNull).toBe(true);
+  });
+
+  it('spp_award_values is unique on (rules_set_id, race_id, action_type) with NULLS NOT DISTINCT', () => {
+    const config = getTableConfig(sppAwardValues);
+    const unique = config.uniqueConstraints[0];
+    expect(unique).toBeDefined();
+    expect(unique.columns.map((c) => c.name)).toEqual([
+      'rules_set_id',
+      'race_id',
+      'action_type',
+    ]);
+    // NULLS NOT DISTINCT, not Postgres's NULLS DISTINCT default: without it two
+    // baseline rows (both race_id NULL) could coexist for one rules set and
+    // action type, and onConflictDoUpdate could never match a baseline row.
+    expect(unique.nullsNotDistinct).toBe(true);
   });
 });

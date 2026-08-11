@@ -24,6 +24,7 @@ export * from './race-external-ids';
 export * from './races';
 export * from './rules-sets';
 export * from './rules-sets-external-ids';
+export * from './spp-award-values';
 export * from './team-eras';
 export * from './team-external-ids';
 export * from './teams';
