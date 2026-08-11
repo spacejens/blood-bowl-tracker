@@ -76,7 +76,7 @@ describe('EntityComponentsService', () => {
       [COACH_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [TEAM_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Primary],
-      [RACE_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Danger],
+      [RACE_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
     ];
     const { components } = service.buildEntityComponents(
       cases.map(([customIdPrefix], index) => ({

@@ -38,9 +38,13 @@ const BLANK_LABEL = '\u200b';
  * The button colour each destination type gets, so a coach can tell coach
  * buttons from team buttons from player buttons at a glance without reading
  * every label. Discord offers only four usable styles (Link navigates to a
- * URL and Premium is for purchases), so with six destination types three
- * pairs share a colour: the two "container" types (era, competition) share
- * Secondary and the two "who played" types (coach, team) share Success.
+ * URL and Premium is for purchases), so with six destination types some
+ * share a colour: the two "container" types (era, competition) share
+ * Secondary, and the three "who played" types (coach, team, race) share
+ * Success \u2014 race used to be Danger, but red read as a destructive-action
+ * colour for what is just normal navigation. Player is the sole user of
+ * Primary. Danger is unused by design: not a reserved fallback, just that no
+ * current destination type happens to warrant it.
  *
  * The `Record<ButtonCustomIdPrefix, ButtonStyle>` annotation is deliberate:
  * TypeScript requires every member of the union to appear as a key, so adding
@@ -54,7 +58,7 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
   [COACH_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
   [TEAM_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
   [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Primary,
-  [RACE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Danger,
+  [RACE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
 };
 
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */

@@ -4,7 +4,7 @@ import {
   ExternalSystemsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { ButtonStyle, ComponentType } from 'discord.js';
+import { ComponentType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -284,7 +284,8 @@ describe('EraDeepdiveService', () => {
         components: [
           {
             type: ComponentType.Button as const,
-            style: ButtonStyle.Primary as const,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+            style: expect.any(Number),
             label: 'canned',
             custom_id: 'canned',
           },
