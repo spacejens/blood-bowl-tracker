@@ -114,6 +114,18 @@ describe('WriteFileService', () => {
     await expect(service.run('', 'x')).rejects.toThrow(/path/i);
   });
 
+  it('rejects empty content without writing a file', async () => {
+    await expect(service.run('notes.md', '')).rejects.toThrow(/content|empty/i);
+    expect(existsSync(join(worktreeRoot, 'notes.md'))).toBe(false);
+  });
+
+  it('rejects whitespace-only content without writing a file', async () => {
+    await expect(service.run('notes.md', '   \n\t ')).rejects.toThrow(
+      /content|empty/i,
+    );
+    expect(existsSync(join(worktreeRoot, 'notes.md'))).toBe(false);
+  });
+
   it('rejects a path whose resolved parent escapes both roots', async () => {
     const outside = join(fixture, 'outside');
     mkdirSync(outside, { recursive: true });

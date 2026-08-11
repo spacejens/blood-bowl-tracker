@@ -27,6 +27,7 @@ export class WriteFileService {
 
   async run(path: string, content: string): Promise<WriteFileResult> {
     this.validate(path);
+    this.validateContent(path, content);
 
     const { mainRoot, worktreeRoot } = await this.gitRoots.resolve();
     const target = join(worktreeRoot, path);
@@ -68,6 +69,14 @@ export class WriteFileService {
     if (path.split(/[\\/]/).includes('..')) {
       throw new Error(
         `Refusing to write '${path}': paths containing '..' are not allowed`,
+      );
+    }
+  }
+
+  private validateContent(path: string, content: string): void {
+    if (content.trim() === '') {
+      throw new Error(
+        `Refusing to write '${path}': no content given (empty stdin?)`,
       );
     }
   }
