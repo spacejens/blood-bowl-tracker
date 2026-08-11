@@ -176,29 +176,4 @@ describe('RosterParserService', () => {
   it('returns an empty players array when lineUps is empty', () => {
     expect(service.parse(rosterBody({ lineUps: [] })).players).toEqual([]);
   });
-
-  it("parses a line-up's own star player point figures", () => {
-    const roster = service.parse(
-      rosterBody({
-        lineUps: [
-          {
-            id: 2412443,
-            name: 'The Agitated Deviation',
-            number: 1,
-            lineUpMasterId: 952,
-            rosterId: 123,
-            position: 'Dwarf Lineman',
-            isBigGuy: false,
-            starPlayerPoints: 2,
-            totalStarPlayerPoints: 20,
-          },
-        ],
-      }),
-    );
-
-    expect(roster.players[0]).toMatchObject({
-      starPlayerPoints: 2,
-      totalStarPlayerPoints: 20,
-    });
-  });
 });

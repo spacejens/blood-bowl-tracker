@@ -234,12 +234,6 @@ export class MatchParserService {
       rosterId: entry.rosterId ?? fallbackRosterId,
       fallbackPositionName: entry.position,
       isBigGuy: entry.isBigGuy ?? false,
-      ...(entry.starPlayerPoints !== undefined && {
-        starPlayerPoints: entry.starPlayerPoints,
-      }),
-      ...(entry.totalStarPlayerPoints !== undefined && {
-        totalStarPlayerPoints: entry.totalStarPlayerPoints,
-      }),
     });
     return {
       id: matchId,
