@@ -41,7 +41,7 @@ const BLANK_LABEL = '\u200b';
  * URL and Premium is for purchases), so with six destination types some
  * share a colour: the two "container" types (era, competition) share
  * Secondary, and the three "who played" types (coach, team, race) share
- * Success \u2014 race used to be Danger, but red read as a destructive-action
+ * Success — race used to be Danger, but red read as a destructive-action
  * colour for what is just normal navigation. Player is the sole user of
  * Primary. Danger is unused by design: not a reserved fallback, just that no
  * current destination type happens to warrant it.
@@ -49,7 +49,7 @@ const BLANK_LABEL = '\u200b';
  * The `Record<ButtonCustomIdPrefix, ButtonStyle>` annotation is deliberate:
  * TypeScript requires every member of the union to appear as a key, so adding
  * a seventh prefix constant fails the build here until someone chooses its
- * colour. Do not add a runtime fallback \u2014 that would let a new destination
+ * colour. Do not add a runtime fallback — that would let a new destination
  * type ship silently mis-coloured.
  */
 const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
