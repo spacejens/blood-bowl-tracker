@@ -1,4 +1,13 @@
-import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  constants as fsConstants,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  realpathSync,
+  writeSync,
+} from 'node:fs';
 import { dirname, isAbsolute, join, sep } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -49,10 +58,24 @@ export class WriteFileService {
       path,
     });
 
-    // No-op when the parent already exists, including when it is a symlink.
-    mkdirSync(parent, { recursive: true });
+    // If the destination itself already exists as a symlink, don't write
+    // through it blindly — a symlink swapped in at `target` (e.g.
+    // `docs/plans/spec.md -> /etc/passwd`) would otherwise let a write
+    // silently overwrite a file outside the repo. Resolve it and validate
+    // containment on the resolved path; a symlink resolving inside the repo
+    // (e.g. a deliberate `docs/plans/latest.md -> real-file.md`) is still
+    // fine to write through — `writeTarget` becomes that resolved path.
+    const writeTarget = this.resolveWriteTarget({
+      target,
+      worktreeRoot,
+      mainRoot,
+      path,
+    });
 
-    writeFileSync(target, content, 'utf8');
+    // No-op when the parent already exists, including when it is a symlink.
+    mkdirSync(dirname(writeTarget), { recursive: true });
+
+    this.writeNoFollow(writeTarget, content, path);
 
     return { written: path, bytes: Buffer.byteLength(content, 'utf8') };
   }
@@ -127,5 +150,77 @@ export class WriteFileService {
     // against a raw root would reject legitimate writes.
     const base = realpathSync(root);
     return candidate === base || candidate.startsWith(base + sep);
+  }
+
+  /**
+   * If `target` already exists as a symlink, resolves it and validates the
+   * resolved path's containment (same rule as `assertInside`), returning the
+   * resolved path to write to instead of the symlink itself. A non-symlink
+   * `target` (existing file, or nothing there yet) is returned unchanged.
+   */
+  private resolveWriteTarget(options: {
+    target: string;
+    worktreeRoot: string;
+    mainRoot: string;
+    path: string;
+  }): string {
+    const { target, worktreeRoot, mainRoot, path } = options;
+    if (!existsSync(target) || !lstatSync(target).isSymbolicLink()) {
+      return target;
+    }
+    const resolved = realpathSync(target);
+    if (
+      !this.isInside(resolved, worktreeRoot) &&
+      !this.isInside(resolved, mainRoot)
+    ) {
+      throw new Error(
+        `Refusing to write '${path}': it is a symlink to '${resolved}', ` +
+          `which is outside both the worktree ('${worktreeRoot}') and the ` +
+          `main checkout ('${mainRoot}')`,
+      );
+    }
+    return resolved;
+  }
+
+  /**
+   * Writes `content` to `writeTarget` without following a symlink at
+   * `writeTarget` itself, closing the TOCTOU gap between
+   * `resolveWriteTarget` and the write: even if a symlink is swapped in at
+   * that exact path after the check runs, the kernel refuses to open through
+   * it here (`O_NOFOLLOW`), and this throws instead of silently writing
+   * through it. `writeTarget` is never itself a symlink in the legitimate
+   * case — `resolveWriteTarget` already followed any symlink chain — so this
+   * is pure defense-in-depth against that narrow race, not a normal path.
+   */
+  private writeNoFollow(
+    writeTarget: string,
+    content: string,
+    path: string,
+  ): void {
+    let fd: number;
+    try {
+      fd = openSync(
+        writeTarget,
+        fsConstants.O_WRONLY |
+          fsConstants.O_CREAT |
+          fsConstants.O_TRUNC |
+          fsConstants.O_NOFOLLOW,
+      );
+    } catch (error: unknown) {
+      if (error instanceof Error && 'code' in error && error.code === 'ELOOP') {
+        throw new Error(
+          `Refusing to write '${path}': its destination changed to a ` +
+            `symlink during the write; rejected to avoid following it ` +
+            `outside the repo`,
+          { cause: error },
+        );
+      }
+      throw error;
+    }
+    try {
+      writeSync(fd, content, null, 'utf8');
+    } finally {
+      closeSync(fd);
+    }
   }
 }

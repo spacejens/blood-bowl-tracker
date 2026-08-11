@@ -148,4 +148,28 @@ describe('WriteFileService', () => {
     expect(existsSync(join(outside, 'newdir'))).toBe(false);
     expect(existsSync(join(outside, 'newdir', 'file.md'))).toBe(false);
   });
+
+  it('rejects writing through a destination file that is itself a symlink escaping both roots', async () => {
+    const outside = join(fixture, 'outside');
+    mkdirSync(outside, { recursive: true });
+    const outsideFile = join(outside, 'secret.md');
+    writeFileSync(outsideFile, 'original', 'utf8');
+    symlinkSync(outsideFile, join(worktreeRoot, 'notes.md'));
+
+    await expect(service.run('notes.md', 'attacker content')).rejects.toThrow(
+      /outside|symlink/i,
+    );
+    expect(readFileSync(outsideFile, 'utf8')).toBe('original');
+  });
+
+  it('allows overwriting a destination symlink that resolves inside the repo roots', async () => {
+    mkdirSync(join(mainRoot, 'docs/plans'), { recursive: true });
+    const realFile = join(mainRoot, 'docs/plans/real.md');
+    writeFileSync(realFile, 'old', 'utf8');
+    symlinkSync(realFile, join(worktreeRoot, 'notes.md'));
+
+    await service.run('notes.md', 'new');
+
+    expect(readFileSync(realFile, 'utf8')).toBe('new');
+  });
 });
