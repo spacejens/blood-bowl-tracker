@@ -1,4 +1,4 @@
-import { mkdirSync, realpathSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, sep } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -32,23 +32,24 @@ export class WriteFileService {
     const target = join(worktreeRoot, path);
     const parent = dirname(target);
 
+    // A surprising symlink must not land the write outside the repo. The
+    // intentional `docs/plans -> main checkout` link resolves under
+    // `mainRoot`, so it still passes. Validate containment BEFORE creating
+    // anything: `mkdirSync(..., { recursive: true })` would otherwise create
+    // real directories outside the repo for a multi-segment escaping path
+    // before the check below ever runs. `realpathSync` requires an existing
+    // path, so walk up from `parent` to the nearest ancestor that already
+    // exists (this always terminates at `worktreeRoot` or above, since
+    // `worktreeRoot` itself always exists) and check containment there.
+    this.assertInside({
+      resolvableAncestor: this.nearestExistingAncestor(parent),
+      worktreeRoot,
+      mainRoot,
+      path,
+    });
+
     // No-op when the parent already exists, including when it is a symlink.
     mkdirSync(parent, { recursive: true });
-
-    // Defense in depth: a surprising symlink must not land the write outside
-    // the repo. The intentional `docs/plans -> main checkout` link resolves
-    // under `mainRoot`, so it still passes.
-    const resolvedParent = realpathSync(parent);
-    if (
-      !this.isInside(resolvedParent, worktreeRoot) &&
-      !this.isInside(resolvedParent, mainRoot)
-    ) {
-      throw new Error(
-        `Refusing to write '${path}': its parent resolves to ` +
-          `'${resolvedParent}', which is outside both the worktree ` +
-          `('${worktreeRoot}') and the main checkout ('${mainRoot}')`,
-      );
-    }
 
     writeFileSync(target, content, 'utf8');
 
@@ -67,6 +68,46 @@ export class WriteFileService {
     if (path.split(/[\\/]/).includes('..')) {
       throw new Error(
         `Refusing to write '${path}': paths containing '..' are not allowed`,
+      );
+    }
+  }
+
+  /**
+   * Walks up from `start` until it finds a path that already exists on disk.
+   * `realpathSync` can only resolve paths that exist, so this finds the
+   * deepest ancestor safe to realpath before any directory is created.
+   * Always terminates at `worktreeRoot` or above, since that always exists.
+   */
+  private nearestExistingAncestor(start: string): string {
+    let current = start;
+    while (!existsSync(current)) {
+      const next = dirname(current);
+      if (next === current) {
+        // Reached the filesystem root without finding anything that exists;
+        // this should be unreachable in practice.
+        break;
+      }
+      current = next;
+    }
+    return current;
+  }
+
+  private assertInside(options: {
+    resolvableAncestor: string;
+    worktreeRoot: string;
+    mainRoot: string;
+    path: string;
+  }): void {
+    const { resolvableAncestor, worktreeRoot, mainRoot, path } = options;
+    const resolved = realpathSync(resolvableAncestor);
+    if (
+      !this.isInside(resolved, worktreeRoot) &&
+      !this.isInside(resolved, mainRoot)
+    ) {
+      throw new Error(
+        `Refusing to write '${path}': its parent resolves to ` +
+          `'${resolved}', which is outside both the worktree ` +
+          `('${worktreeRoot}') and the main checkout ('${mainRoot}')`,
       );
     }
   }

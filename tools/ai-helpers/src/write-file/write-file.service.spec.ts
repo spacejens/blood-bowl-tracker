@@ -124,4 +124,16 @@ describe('WriteFileService', () => {
     );
     expect(existsSync(join(outside, 'file.md'))).toBe(false);
   });
+
+  it('rejects a multi-segment path escaping both roots without creating any directory outside the repo', async () => {
+    const outside = join(fixture, 'outside');
+    mkdirSync(outside, { recursive: true });
+    symlinkSync(outside, join(worktreeRoot, 'escape'));
+
+    await expect(service.run('escape/newdir/file.md', 'x')).rejects.toThrow(
+      /outside/i,
+    );
+    expect(existsSync(join(outside, 'newdir'))).toBe(false);
+    expect(existsSync(join(outside, 'newdir', 'file.md'))).toBe(false);
+  });
 });
