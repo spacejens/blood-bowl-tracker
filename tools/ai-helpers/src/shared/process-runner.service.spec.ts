@@ -1,7 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ProcessRunnerService } from './process-runner.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from './process-runner.service';
 
 describe('ProcessRunnerService', () => {
   let service: ProcessRunnerService;
@@ -37,5 +40,40 @@ describe('ProcessRunnerService', () => {
     await expect(
       service.run('definitely-not-a-real-binary-xyz', []),
     ).rejects.toThrow();
+  });
+
+  it('resolves with TIMED_OUT_EXIT_CODE (rather than hanging or rejecting) when timeoutMs elapses', async () => {
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'setTimeout(() => {}, 5000)'],
+      50,
+    );
+
+    expect(result.exitCode).toBe(TIMED_OUT_EXIT_CODE);
+  });
+
+  it('does not time out a command that finishes within timeoutMs', async () => {
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'process.stdout.write("hello")'],
+      5000,
+    );
+
+    expect(result).toEqual({ exitCode: 0, stdout: 'hello', stderr: '' });
+  });
+
+  it('escalates to SIGKILL (and still resolves, bounded) when the child ignores SIGTERM', async () => {
+    const startedAt = Date.now();
+
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);'],
+      50,
+    );
+
+    expect(result.exitCode).toBe(TIMED_OUT_EXIT_CODE);
+    // Bounded by timeoutMs + the SIGKILL grace period, not left hanging
+    // indefinitely because the child trapped SIGTERM.
+    expect(Date.now() - startedAt).toBeLessThan(4_000);
   });
 });

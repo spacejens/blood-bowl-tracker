@@ -42,15 +42,19 @@ Work through each phase in order.
 
 ### Phase 0: Pre-flight
 
-1. Resolve the target PR and repository:
+1. Resolve the target PR and repository. Run these as separate commands — a worktree-isolated session can refuse a shell block combining multiple statements (see `develop-feature/SKILL.md`'s "Worktree isolation and shell commands" section) — and, since shell state does not persist between separate command invocations, record each command's printed output rather than relying on a `VAR=$(...)` assignment surviving into later commands:
    ```bash
-   OWNER=$(gh repo view --json owner --jq '.owner.login')
-   REPO=$(gh repo view --json name --jq '.name')
+   gh repo view --json owner --jq '.owner.login'
    ```
+   Record the printed value as `OWNER`.
+   ```bash
+   gh repo view --json name --jq '.name'
+   ```
+   Record the printed value as `REPO`.
    - No argument: `gh pr view --json number,headRefName`
    - `<N>` given: `gh pr view <N> --json number,headRefName`
 
-   If this fails (no PR found for the current branch, or `<N>` doesn't exist), report the error and **stop**. Otherwise record the PR number as `PR` and its branch as `HEAD_REF`.
+   If this fails (no PR found for the current branch, or `<N>` doesn't exist), report the error and **stop**. Otherwise record the PR number as `PR` and its branch as `HEAD_REF`. Every `$OWNER`/`$REPO`/`$PR`/`$HEAD_REF` reference in the commands below stands for these recorded values, substituted in literally — not a live shell variable, since none of these commands run in the same shell session.
 2. Verify the current branch matches the PR's branch:
    ```bash
    git branch --show-current
@@ -105,11 +109,13 @@ gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
 ```
 A comment is **unhandled** if its `body` does not start with `**Comment by Claude**`, and no later comment in the list that does start with `**Comment by Claude**` contains this comment's `html_url` as a backlink.
 
-**Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup:
+**Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup. Run these as separate commands, for the same reason as Phase 0 step 1 above:
 ```bash
-HEAD_SHA=$(gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha')
-gh api "repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs" \
-  --jq '.check_runs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .name != "gatekeeper")'
+gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha'
+```
+Record the printed value as `HEAD_SHA`, the same way as `OWNER`/`REPO` above: substitute it literally into the command below — `$HEAD_SHA` is not a live shell variable, since these two commands do not run in the same shell invocation.
+```bash
+gh api "repos/$OWNER/$REPO/commits/$HEAD_SHA/check-runs" --jq '.check_runs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .name != "gatekeeper")'
 ```
 Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` such as `failure`, `timed_out`, `cancelled`, or `action_required`) becomes one unhandled item. Matching on "not a success" rather than only `"failure"` keeps discovery in sync with what actually turns `gatekeeper` red (its guard fails on `failure` *or* `cancelled`, and other non-success conclusions are just as broken). `gatekeeper` is excluded deliberately — it is only a rollup of the other three, not an independently fixable failure. Check-runs are scoped to the PR's current head commit (fetched from the server rather than assumed from local `HEAD`, since local `HEAD` may not match what was actually pushed), so any non-passing check found this way is inherently unhandled: a new push always produces fresh check-runs, and no prior-attempt tracking is needed (unlike comments). Record each check's `name` and its `id` — for GitHub-Actions-generated check-runs, this `id` **is the Actions job id**, used to fetch the job's log below.
 
