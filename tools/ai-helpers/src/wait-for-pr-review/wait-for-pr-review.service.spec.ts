@@ -303,4 +303,83 @@ describe('WaitForPrReviewService', () => {
     expect(result).toMatchObject({ found: false, rateLimited: true });
     expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
+
+  /** Builds a `gh` result whose only match is a rate-limit comment with the given body. */
+  function rateLimitedWithBody(body: string) {
+    return {
+      exitCode: 0,
+      stdout: JSON.stringify({
+        review: null,
+        rateLimitComment: { ...RATE_LIMIT_COMMENT, body },
+      }),
+      stderr: '',
+    };
+  }
+
+  it('parses a minutes wait out of the rate-limit comment body', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody('Reviews will be available again in 45 minutes.'),
+    );
+    const now = Math.floor(Date.now() / 1000);
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(now + 45 * 60);
+  });
+
+  it('parses an hours wait out of the rate-limit comment body', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody('Please retry in 2 hours.'),
+    );
+    const now = Math.floor(Date.now() / 1000);
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(now + 120 * 60);
+  });
+
+  it('parses a singular unit and matches keywords case-insensitively', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody('The limit RESETS in 1 hour.'),
+    );
+    const now = Math.floor(Date.now() / 1000);
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(now + 60 * 60);
+  });
+
+  it('ignores a duration in a sentence with no wait-time keyword', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody('This review took 3 minutes of processing.'),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBeUndefined();
+    expect(result.rateLimited).toBe(true);
+  });
+
+  it('omits the wait time when no duration can be parsed', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody('Rate limit exceeded. Try again later.'),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBeUndefined();
+  });
+
+  it('takes the first keyword sentence that carries a duration', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody(
+        'Rate limit exceeded.\nReviews are available again in 30 minutes.\nRetry in 90 minutes if it persists.',
+      ),
+    );
+    const now = Math.floor(Date.now() / 1000);
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(now + 30 * 60);
+  });
 });

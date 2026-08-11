@@ -42,6 +42,13 @@ export interface WaitForPrReviewResult {
   readonly rateLimited?: boolean;
   /** Present only when `rateLimited` is true. */
   readonly rateLimitComment?: RateLimitComment;
+  /**
+   * Best-effort epoch parsed from the comment body when it states a relative
+   * duration ("available again in 45 minutes", "retry in 2 hours"). Absent
+   * when no duration could be parsed — the caller is expected to fall back to
+   * a default wait.
+   */
+  readonly availableAtEpochSeconds?: number;
 }
 
 /** What one poll saw; both fields absent means "nothing qualifying yet". */
@@ -56,6 +63,11 @@ interface PollOutcome {
  * phrases (case-insensitive) qualifies.
  */
 const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
+
+/** A sentence must mention one of these to be read as stating a wait time. */
+const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets)\b/i;
+/** The duration itself: a number followed by a minute/hour unit. */
+const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
 
 /** 10 minutes — matches develop-feature Phase 6's original wait. */
 const DEFAULT_TIMEOUT_MS = 600_000;
@@ -91,11 +103,7 @@ export class WaitForPrReviewService {
         return { found: true, review: outcome.review };
       }
       if (outcome?.rateLimitComment !== undefined) {
-        return {
-          found: false,
-          rateLimited: true,
-          rateLimitComment: outcome.rateLimitComment,
-        };
+        return this.rateLimitedResult(outcome.rateLimitComment);
       }
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
@@ -214,6 +222,44 @@ export class WaitForPrReviewService {
       `${excludeClause}) | ` +
       '{id: .id, body: .body, submittedAt: .createdAt}] | first'
     );
+  }
+
+  private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {
+    const availableAtEpochSeconds = this.parseAvailableAt(comment.body);
+    return {
+      found: false,
+      rateLimited: true,
+      rateLimitComment: comment,
+      ...(availableAtEpochSeconds === undefined
+        ? {}
+        : { availableAtEpochSeconds }),
+    };
+  }
+
+  /**
+   * Best-effort only. Splits the body into sentences (and lines), keeps those
+   * that mention a wait-time keyword, and takes the first duration found in
+   * one of them — scoping it this way keeps an unrelated "3 minutes"
+   * elsewhere in the comment from being read as the wait. First match wins;
+   * hours convert to minutes. No match means the caller applies its own
+   * default.
+   */
+  private parseAvailableAt(body: string): number | undefined {
+    for (const sentence of body.split(/(?<=[.!?])\s+|\n+/)) {
+      if (!WAIT_TIME_KEYWORDS.test(sentence)) {
+        continue;
+      }
+      const match = WAIT_TIME_DURATION.exec(sentence);
+      if (match === null) {
+        continue;
+      }
+      const minutes =
+        match[2].toLowerCase() === 'hour'
+          ? Number(match[1]) * 60
+          : Number(match[1]);
+      return Math.floor(Date.now() / 1000) + minutes * 60;
+    }
+    return undefined;
   }
 
   private sleep(milliseconds: number): Promise<void> {
