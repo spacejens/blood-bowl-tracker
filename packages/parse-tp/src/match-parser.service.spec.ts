@@ -219,6 +219,35 @@ describe('MatchParserService', () => {
     ]);
   });
 
+  it("parses a line-up's own star player point figures for homeRosterPlayers/awayRosterPlayers", () => {
+    const result = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 2412443,
+                name: 'The Agitated Deviation',
+                number: 1,
+                lineUpMasterId: 952,
+                rosterId: 10,
+                position: 'Dwarf Lineman',
+                isBigGuy: false,
+                starPlayerPoints: 2,
+                totalStarPlayerPoints: 20,
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(result.homeRosterPlayers[0]).toMatchObject({
+      starPlayerPoints: 2,
+      totalStarPlayerPoints: 20,
+    });
+  });
+
   it('returns empty homeRosterPlayers/awayRosterPlayers when lineUps is an empty array', () => {
     const result = service.parse(matchBody());
     expect(result.homeRosterPlayers).toEqual([]);

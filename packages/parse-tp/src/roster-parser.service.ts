@@ -34,6 +34,16 @@ export interface TpRosterPlayer {
   rosterId: number;
   fallbackPositionName: string;
   isBigGuy: boolean;
+  /**
+   * TP's own Star Player Points figures for this player: `starPlayerPoints`
+   * for this match alone, `totalStarPlayerPoints` running. Reported
+   * independently of the individual match events, which is exactly what
+   * makes them usable as a ground-truth cross-check on the per-event values
+   * the importer writes (see tp-spp-cross-check.spec.ts). Nothing in
+   * production code consumes them.
+   */
+  starPlayerPoints?: number;
+  totalStarPlayerPoints?: number;
 }
 
 /**
@@ -73,6 +83,16 @@ export const LineUpSchema = z.object({
   rosterId: z.number(),
   position: z.string(),
   isBigGuy: z.boolean().optional(),
+  /**
+   * TP's own Star Player Points figures for this player: `starPlayerPoints`
+   * for this match alone, `totalStarPlayerPoints` running. Reported
+   * independently of the individual match events, which is exactly what makes
+   * them usable as a ground-truth cross-check on the per-event values the
+   * importer writes (see tp-spp-cross-check.spec.ts). Nothing in production
+   * code consumes them.
+   */
+  starPlayerPoints: z.number().optional(),
+  totalStarPlayerPoints: z.number().optional(),
 });
 
 const RosterSchema = z.object({
@@ -132,6 +152,12 @@ export class RosterParserService {
         rosterId: entry.rosterId,
         fallbackPositionName: entry.position,
         isBigGuy: entry.isBigGuy ?? false,
+        ...(entry.starPlayerPoints !== undefined && {
+          starPlayerPoints: entry.starPlayerPoints,
+        }),
+        ...(entry.totalStarPlayerPoints !== undefined && {
+          totalStarPlayerPoints: entry.totalStarPlayerPoints,
+        }),
       })),
     };
   }
