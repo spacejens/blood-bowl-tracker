@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.29",
-    "@swc/core": "^1.15.46",
+    "@swc/core": "^1.15.47",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
     "typescript": "^6.0.3",
