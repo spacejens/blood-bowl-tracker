@@ -29,6 +29,10 @@ Work through each phase in order. Some phase transitions require the developer's
 
 This applies to every subagent dispatched from any phase below while working in a worktree — the planning subagent in Phase 3, implementer, task reviewer, and fixer subagents in Phase 4, and the self-review subagent in Phase 5. Every shell command in its dispatch prompt must be prefixed with `cd <worktree-path> &&` — do not rely on a one-time "work from `<path>`" instruction. Subagent shell sessions do not reliably persist a starting directory across tool calls, and a dropped `cd` can silently commit to the wrong checkout (e.g. `main` in the primary repo instead of the feature branch). After each subagent reports a commit, verify with `git log --oneline -1` and `git branch --show-current` (run from the worktree) that the commit actually landed on the expected branch before trusting the report.
 
+## Worktree isolation and shell commands
+
+A worktree-isolated session refuses to execute any multi-line or multi-command shell script — even a read-only one that touches no git state — because it cannot verify the whole script stays inside the worktree. When a step needs logic more involved than a single command, do not write an inline multi-line block: put the logic behind **one** command invocation, either a `tools/ai-helpers` subcommand (`node tools/ai-helpers/dist/main.js <subcommand> ...` — build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build` if `dist/main.js` is missing) or a script file invoked as a single command. The same isolation is why `docs/plans` writes go through the `write-file` subcommand instead of the Write tool (Phases 2 and 3 below), and why Phase 6's review wait is a single `wait-for-pr-review` invocation instead of an inline poll loop.
+
 ---
 
 ### Phase 1: Setup
@@ -317,21 +321,26 @@ This applies to every subagent dispatched from any phase below while working in 
 
    **Each iteration:**
 
-   a. **Wait for a review.** Immediately before polling — not as a separate step done earlier — record the iteration start time, so only reviews submitted after this moment count and a previous iteration's review is never re-consumed:
+   a. **Wait for a review.** Immediately before waiting — not as a separate step done earlier — record the iteration start time, so only reviews submitted after this moment count and a previous iteration's review is never re-consumed:
       ```bash
       date +%s
       ```
-      Then poll every **30 seconds**, for up to **10 minutes** total, for a submitted review by someone other than the developer, posted after the iteration start time. Use a non-blocking wait mechanism between polls (e.g. this platform's `Monitor` tool driving an until-loop) — a blind foreground `sleep` loop is not available in this harness:
+      Then wait for a submitted review by someone other than the developer, posted after that instant, with a single command:
       ```bash
-      gh pr view <PR> --json reviews --jq \
-        '.reviews[] | select(.submittedAt != null) | select(.author.login != "<developer-login>" and (.submittedAt | fromdateiso8601) > <iteration-start-epoch>)'
+      cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <iteration-start-epoch>
       ```
-      Substitute the PR number from step 3, the login captured before the loop, and the epoch captured just above. A non-empty result means a qualifying review exists — stop polling and go to (c). Capturing the epoch here, immediately before polling, rather than at the top of the iteration (i.e. before the previous iteration's `handle-pr-reviews` call — including its own reply-posting and `deploy-local` hand-off — has returned) closes a gap where a bot's re-review submitted during that call would be timestamped before the epoch and go unseen by this poll.
+      Substitute the PR number from step 3, the login captured before the loop, and the epoch captured just above. The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
+      - `{"found": true, "review": {...}}` — a qualifying review exists. Stop waiting and go to (c).
+      - `{"found": false, "timedOut": true}` — the 10 minutes elapsed with nothing. Go to (b).
+
+      Run it via `Monitor` (or plain `Bash` with `run_in_background`, per its own single-notification guidance). Because this is a single command, worktree isolation accepts it — unlike the inline multi-line poll loop it replaces, which a worktree-isolated session refuses to run (see "Worktree isolation and shell commands" above). **Do not use `ScheduleWakeup` for this wait** — it only works inside an active `/loop` session and errors otherwise.
+
+      Capturing the epoch here, immediately before waiting, rather than at the top of the iteration (i.e. before the previous iteration's `handle-pr-reviews` call — including its own reply-posting and `deploy-local` hand-off — has returned) closes a gap where a bot's re-review submitted during that call would be timestamped before the epoch and go unseen.
 
       This check is bot-agnostic by construction: it never looks for a particular bot's name or API, only for *some* formal review object from a non-author. Any tool that submits a review when it finishes satisfies it. A formal review object — not a raw comment count — is the signal, because bots submit one when their pass completes, distinct from individual comments that may stream in while the review is still in progress. Keep it that way: do not add a bot-name filter.
 
-   b. **Timeout handling.** If the full 10 minutes elapse with no qualifying review, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
-      - **Keep waiting** — poll for another 10 minutes under the same conditions (this does not consume an extra loop iteration).
+   b. **Timeout handling.** If the command returns `{"found": false, "timedOut": true}`, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
+      - **Keep waiting** — re-run the identical `wait-for-pr-review` command with the same `<iteration-start-epoch>` for another 10 minutes (this does not consume an extra loop iteration; the since-threshold does not change, only the wait continues).
       - **Skip the review loop** — leave the loop immediately and continue to step 5.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
