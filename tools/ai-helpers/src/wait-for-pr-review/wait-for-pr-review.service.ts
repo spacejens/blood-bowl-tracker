@@ -58,12 +58,12 @@ export class WaitForPrReviewService {
   /**
    * One `gh` query, bounded to the time left before `deadline` — or, once
    * that budget is already exhausted, to one more `intervalMs` rather than
-   * left unbounded. `execFile`'s own `timeout` option treats `0` as "no
-   * timeout", so passing the exhausted (zero or negative) remaining budget
-   * through as-is would leave exactly the loop's last poll free to block
-   * indefinitely — the last-chance floor at `intervalMs` closes that gap
-   * while still guaranteeing at least one poll happens, unbounded-free, even
-   * for a zero/tiny overall `timeoutMs`.
+   * a near-zero budget. `ProcessRunnerService` clamps a zero/negative
+   * `timeoutMs` to effectively "kill it almost immediately" rather than
+   * "no timeout" — passing the exhausted remaining budget through as-is
+   * would deny the loop's last poll any real chance to complete. The
+   * last-chance floor at `intervalMs` gives it one, while still guaranteeing
+   * at least one poll happens even for a zero/tiny overall `timeoutMs`.
    *
    * Returns the first qualifying review, or `undefined` when there is none,
    * the call failed, or it did not finish before its own bound — a

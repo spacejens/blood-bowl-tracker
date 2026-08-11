@@ -56,12 +56,12 @@ export class ProcessRunnerService {
         (error, stdout, stderr) => {
           clearTimeout(killTimer);
           clearTimeout(escalateTimer);
-          if (timedOut) {
-            resolve({ exitCode: TIMED_OUT_EXIT_CODE, stdout, stderr });
-            return;
-          }
           if (!error) {
             resolve({ exitCode: 0, stdout, stderr });
+            return;
+          }
+          if (timedOut) {
+            resolve({ exitCode: TIMED_OUT_EXIT_CODE, stdout, stderr });
             return;
           }
           // `error.code` is a number for a normal non-zero exit and a string
