@@ -60,6 +60,8 @@ export class PlayersService {
         raceName: string;
         raceId: number;
         positionName: string;
+        eraName: string;
+        eraId: number;
       }
     | undefined
   > {
@@ -72,12 +74,15 @@ export class PlayersService {
         raceName: races.name,
         raceId: races.id,
         positionName: positions.name,
+        eraName: eras.name,
+        eraId: eras.id,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
       .innerJoin(teams, eq(teams.id, teamEras.teamId))
       .innerJoin(races, eq(races.id, teams.raceId))
       .innerJoin(positions, eq(positions.id, players.positionId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .where(eq(players.id, id));
     return rows[0];
   }
