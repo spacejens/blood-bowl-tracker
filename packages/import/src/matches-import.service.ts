@@ -3,6 +3,8 @@ import { API_CLIENT } from '@blood-bowl-tracker/api-client';
 import type { UpsertMatch } from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
+import type { BatchBuffer } from './batch-buffer.service';
+import { BatchBufferService } from './batch-buffer.service';
 import { ImportRunnerService } from './import-runner.service';
 import type { ImportError } from './types';
 
@@ -11,6 +13,7 @@ export class MatchesImportService {
   constructor(
     @Inject(API_CLIENT) private readonly client: ApiClient,
     private readonly importRunner: ImportRunnerService,
+    private readonly batchBuffer: BatchBufferService,
   ) {}
 
   private static errorMessage(data: UpsertMatch) {
@@ -43,5 +46,33 @@ export class MatchesImportService {
       errors,
       buildErrorMessage: MatchesImportService.errorMessage(data),
     });
+  }
+
+  /**
+   * Opens a batch of match upserts sharing one `errors` list. Used by the
+   * match-teams sync loops, whose iterations do not consume the upsert's
+   * result; call sites that need the new match's DB id keep
+   * {@link upsertMatchResult}.
+   */
+  createBatch(errors: ImportError[]): BatchBuffer<UpsertMatch> {
+    return this.batchBuffer.create({
+      upsertBatch: (items) => this.client.matches.upsertBatch(items),
+      errors,
+      buildErrorMessage: (item, message) =>
+        `Failed to import match "${item.externalIds[0]?.externalId}": ${message}`,
+    });
+  }
+
+  /** Buffers one match; returns how many items an auto-flush imported (0 if none). */
+  addToBatch(
+    batch: BatchBuffer<UpsertMatch>,
+    data: UpsertMatch,
+  ): Promise<number> {
+    return this.batchBuffer.add(batch, data);
+  }
+
+  /** Sends the trailing partial chunk; returns how many items it imported. */
+  flushBatch(batch: BatchBuffer<UpsertMatch>): Promise<number> {
+    return this.batchBuffer.flush(batch);
   }
 }

@@ -1,3 +1,12 @@
+export type {
+  BatchBuffer,
+  BatchUpsertOutcome,
+  CreateBatchOptions,
+} from './batch-buffer.service';
+export {
+  BatchBufferService,
+  DEFAULT_BATCH_CHUNK_SIZE,
+} from './batch-buffer.service';
 export { CoachesImportService } from './coaches-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ErasImportService } from './eras-import.service';

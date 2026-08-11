@@ -1,9 +1,14 @@
 import type {
   UpsertCompetition,
+  UpsertMatch,
   UpsertRace,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ImportResultService,
@@ -133,7 +138,11 @@ async function makeService(opts: {
   const racesImport = mock<RacesImportService>();
 
   const matchesImport = mock<MatchesImportService>();
-  matchesImport.upsertMatch.mockResolvedValue(true);
+  matchesImport.createBatch.mockReturnValue({
+    pending: [],
+  } as unknown as BatchBuffer<UpsertMatch>);
+  matchesImport.addToBatch.mockResolvedValue(0);
+  matchesImport.flushBatch.mockResolvedValue(0);
 
   const matchMerge = mock<MatchMergeService>();
   matchMerge.resolve.mockResolvedValue(noMergeResolution());
@@ -596,7 +605,8 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
-    expect(mocks.matchesImport.upsertMatch).toHaveBeenCalledWith(
+    expect(mocks.matchesImport.addToBatch).toHaveBeenCalledWith(
+      expect.anything(),
       {
         competitionId: 42,
         playedAt: new Date(Date.UTC(2021, 9, 1)),
@@ -604,8 +614,52 @@ describe('BblTeamParticipationImportService', () => {
         externalIds: [{ externalSystemId: 1, externalId: 'm1' }],
         teamEraIds: [1001, 1002],
       },
-      expect.any(Array),
     );
+  });
+
+  it('buffers each match-teams re-upsert and flushes once at the end', async () => {
+    const { service, mocks } = await makeService({
+      matches: { '1': [{ bblId: 'm1', date: new Date(Date.UTC(2021, 9, 1)) }] },
+      matchTeamsByBblId: { m1: matchTeams('m1', 'sew', 'vor') },
+    });
+    mocks.teamsImport.upsertTeam.mockImplementation((data) =>
+      Promise.resolve(
+        data.name === 'Sewerton Scavengers'
+          ? makeTeamRecord({ id: 1, eras: [{ id: 1001, eraId: 200 }] })
+          : makeTeamRecord({ id: 2, eras: [{ id: 1002, eraId: 200 }] }),
+      ),
+    );
+    mocks.competitionsImport.upsertCompetition.mockResolvedValue(true);
+    mocks.racesImport.upsertRace.mockResolvedValue(makeRaceRecord(1));
+
+    const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatch>;
+    const captured: UpsertMatch[] = [];
+    mocks.matchesImport.createBatch.mockReturnValue(batch);
+    mocks.matchesImport.addToBatch.mockImplementation((_batch, data) => {
+      captured.push(data);
+      return Promise.resolve(0);
+    });
+    mocks.matchesImport.flushBatch.mockResolvedValue(0);
+
+    await service.importTeamParticipation({
+      competitionsByBblId: new Map([['1', competition]]),
+      teamsByCode: new Map([
+        ['sew', home],
+        ['vor', away],
+      ]),
+      racesByRaceId,
+      eraIdsByName,
+      competitionIdsByBblId: new Map([['1', 42]]),
+    });
+
+    expect(mocks.matchesImport.createBatch).toHaveBeenCalledTimes(1);
+    expect(mocks.matchesImport.upsertMatch).not.toHaveBeenCalled();
+    expect(captured).toEqual([
+      expect.objectContaining({
+        teamEraIds: [1001, 1002],
+      }),
+    ]);
+    expect(mocks.matchesImport.flushBatch).toHaveBeenCalledWith(batch);
   });
 
   it('records an error and skips match teams when a team era does not resolve', async () => {
@@ -627,7 +681,7 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
-    expect(mocks.matchesImport.upsertMatch).not.toHaveBeenCalled();
+    expect(mocks.matchesImport.addToBatch).not.toHaveBeenCalled();
     expect(
       resultArgs(mocks.importResults).errors.some((e) =>
         e.message.includes('could not resolve both team eras'),
@@ -654,7 +708,7 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map(),
     });
 
-    expect(mocks.matchesImport.upsertMatch).not.toHaveBeenCalled();
+    expect(mocks.matchesImport.addToBatch).not.toHaveBeenCalled();
     expect(
       resultArgs(mocks.importResults).errors.some((e) =>
         e.message.includes('no imported competition id'),
@@ -754,8 +808,8 @@ describe('BblTeamParticipationImportService', () => {
       competitionIdsByBblId: new Map([['1', 42]]),
     });
 
-    const matchCalls = mocks.matchesImport.upsertMatch.mock.calls.map(
-      (c) => c[0] as { playedAt: Date; teamEraIds: number[] },
+    const matchCalls = mocks.matchesImport.addToBatch.mock.calls.map(
+      (c) => c[1] as { playedAt: Date; teamEraIds: number[] },
     );
     expect(matchCalls).toHaveLength(2);
     // Both members use the earliest of the pair's dates (2016-09-24).

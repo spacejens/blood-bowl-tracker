@@ -1,5 +1,6 @@
 import type { AnyContractProcedure } from '@orpc/contract';
 import { describe, expect, it } from 'vitest';
+import { z } from 'zod';
 
 import { contract } from './contract';
 import { UpsertCoachSchema } from './schemas/coach';
@@ -99,5 +100,44 @@ describe('contract', () => {
     });
     expect(parsed.success).toBe(true);
     expect((parsed.data as Record<string, unknown>).races).toBeUndefined();
+  });
+
+  it('defines an upsertBatch for every entity router', () => {
+    const routers = [
+      contract.coaches,
+      contract.leagues,
+      contract.races,
+      contract.players,
+      contract.positions,
+      contract.rulesSets,
+      contract.eras,
+      contract.competitions,
+      contract.matches,
+      contract.matchEvents,
+      contract.teams,
+      contract.externalSystems,
+    ];
+    for (const router of routers) {
+      expect(router).toHaveProperty('upsertBatch');
+    }
+  });
+
+  it('defines coaches.upsertBatch with no declared errors', () => {
+    expect(errorCodesOf(contract.coaches.upsertBatch)).toEqual([]);
+  });
+
+  it('matchEvents.upsertBatch rejects an empty batch', () => {
+    const inputSchema = contract.matchEvents.upsertBatch['~orpc']
+      .inputSchema as z.ZodType;
+    expect(inputSchema.safeParse([]).success).toBe(false);
+    expect(
+      inputSchema.safeParse([
+        {
+          matchId: 1,
+          actionType: 'touchdown',
+          externalIds: [{ externalSystemId: 1, externalId: 'e1' }],
+        },
+      ]).success,
+    ).toBe(true);
   });
 });

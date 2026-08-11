@@ -3,7 +3,11 @@ import type {
   UpsertMatchEvent,
   UpsertTeam,
 } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   ImportResultService,
   MatchEventsImportService,
@@ -30,6 +34,7 @@ interface EmitEventsOptions {
   teamEraIdByCode: Map<string, number>;
   playerIdsByPid: Map<string, number>;
   errors: ImportError[];
+  batch: BatchBuffer<UpsertMatchEvent>;
 }
 
 interface ImportMatchEventsOptions {
@@ -100,107 +105,120 @@ export class BblMatchEventsImportService {
       await this.matchEventsReader.getMatchEventsByBblId(errors);
     const merges = await this.matchMerge.resolve(errors);
 
-    for (const [competitionBblId, competition] of competitionsByBblId) {
-      const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
-      const externalSystemId = competition.externalIds[0].externalSystemId;
-      // Team-era ids only depend on the competition's era, so memoize per
-      // competition to avoid re-upserting a team shared across its matches.
-      const teamEraIdCache = new Map<string, number | undefined>();
+    // One buffer for the whole phase, not one per match: an event only needs
+    // its own matchId resolved before it can be sent, which the per-match
+    // loop already guarantees, so chunks may safely span matches.
+    const batch = this.matchEventsImport.createBatch(errors);
 
-      for (const match of matches) {
-        try {
-          const matchId = matchIdsByBblId.get(match.bblId);
-          if (matchId === undefined) {
-            errors.push(
-              this.importResults.error({
-                item: { competition: competition.name, match: match.bblId },
-                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": it has no imported match id.`,
-              }),
-            );
-            continue;
-          }
+    try {
+      for (const [competitionBblId, competition] of competitionsByBblId) {
+        const matches = matchesByCompetitionId.get(competitionBblId) ?? [];
+        const externalSystemId = competition.externalIds[0].externalSystemId;
+        // Team-era ids only depend on the competition's era, so memoize per
+        // competition to avoid re-upserting a team shared across its matches.
+        const teamEraIdCache = new Map<string, number | undefined>();
 
-          // A secondary pair member's occurrences are folded into its primary's
-          // combined pass, so skip it here.
-          if (merges.isSecondary(match.bblId)) {
-            continue;
-          }
-
-          const ownEvents = eventsByBblId.get(match.bblId);
-          const partnerBblId = merges.partnerBblId(match.bblId);
-          const partnerEvents =
-            partnerBblId !== undefined
-              ? eventsByBblId.get(partnerBblId)
-              : undefined;
-          const sources = [ownEvents, partnerEvents].filter(
-            (e): e is BblMatchEvents => e !== undefined,
-          );
-          if (sources.length === 0) {
-            continue;
-          }
-          for (const source of sources) {
-            this.reportAnnotationErrors(source, errors);
-          }
-          const combined = this.matchEventCorrelation.combineOccurrences(
-            ...sources,
-          );
-
-          const teamEraIdByCode = new Map<string, number>();
-          let unresolvedTeam = false;
-          for (const code of combined.teamCodes) {
-            const teamEraId = await this.resolveTeamEraId({
-              code,
-              competition,
-              teamsByCode,
-              teamEraIdByCode: teamEraIdCache,
-              errors,
-            });
-            if (teamEraId === undefined) {
-              unresolvedTeam = true;
-            } else {
-              teamEraIdByCode.set(code, teamEraId);
+        for (const match of matches) {
+          try {
+            const matchId = matchIdsByBblId.get(match.bblId);
+            if (matchId === undefined) {
+              errors.push(
+                this.importResults.error({
+                  item: { competition: competition.name, match: match.bblId },
+                  message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": it has no imported match id.`,
+                }),
+              );
+              continue;
             }
-          }
-          if (unresolvedTeam) {
+
+            // A secondary pair member's occurrences are folded into its primary's
+            // combined pass, so skip it here.
+            if (merges.isSecondary(match.bblId)) {
+              continue;
+            }
+
+            const ownEvents = eventsByBblId.get(match.bblId);
+            const partnerBblId = merges.partnerBblId(match.bblId);
+            const partnerEvents =
+              partnerBblId !== undefined
+                ? eventsByBblId.get(partnerBblId)
+                : undefined;
+            const sources = [ownEvents, partnerEvents].filter(
+              (e): e is BblMatchEvents => e !== undefined,
+            );
+            if (sources.length === 0) {
+              continue;
+            }
+            for (const source of sources) {
+              this.reportAnnotationErrors(source, errors);
+            }
+            const combined = this.matchEventCorrelation.combineOccurrences(
+              ...sources,
+            );
+
+            const teamEraIdByCode = new Map<string, number>();
+            let unresolvedTeam = false;
+            for (const code of combined.teamCodes) {
+              const teamEraId = await this.resolveTeamEraId({
+                code,
+                competition,
+                teamsByCode,
+                teamEraIdByCode: teamEraIdCache,
+                errors,
+              });
+              if (teamEraId === undefined) {
+                unresolvedTeam = true;
+              } else {
+                teamEraIdByCode.set(code, teamEraId);
+              }
+            }
+            if (unresolvedTeam) {
+              errors.push(
+                this.importResults.error({
+                  item: { competition: competition.name, match: match.bblId },
+                  message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
+                }),
+              );
+              continue;
+            }
+
+            imported += await this.emitEvents({
+              combined,
+              matchId,
+              externalSystemId,
+              teamEraIdByCode,
+              playerIdsByPid,
+              errors,
+              batch,
+            });
+          } catch (error) {
             errors.push(
               this.importResults.error({
                 item: { competition: competition.name, match: match.bblId },
-                message: `Skipping match events for match "${match.bblId}" in competition "${competition.name}": could not resolve all team eras.`,
+                message: `Failed to import events for match "${match.bblId}": ${
+                  error instanceof Error ? error.message : String(error)
+                }`,
               }),
             );
-            continue;
           }
-
-          imported += await this.emitEvents({
-            combined,
-            matchId,
-            externalSystemId,
-            teamEraIdByCode,
-            playerIdsByPid,
-            errors,
-          });
-        } catch (error) {
-          errors.push(
-            this.importResults.error({
-              item: { competition: competition.name, match: match.bblId },
-              message: `Failed to import events for match "${match.bblId}": ${
-                error instanceof Error ? error.message : String(error)
-              }`,
-            }),
-          );
         }
       }
+    } finally {
+      imported += await this.matchEventsImport.flushBatch(batch);
     }
 
     return { result: this.importResults.result({ imported, errors }) };
   }
 
   /**
-   * Correlate and upsert every event for one match (or merged pair),
+   * Correlate and buffer every event for one match (or merged pair),
    * synthesizing one external id per side present on the event (action side
    * first, then consequence side) with per-(team, category) occurrence indices
    * drawn from one shared counter map, under each occurrence's own source
-   * match bblId. Returns the number of events whose upsert reported success.
+   * match bblId. Each event is fed to the caller's shared batch via
+   * {@link MatchEventsImportService.addToBatch}. Returns the number of events
+   * imported by any chunk that filled up and was sent *during* this call; the
+   * caller's trailing `flushBatch` accounts for the rest.
    */
   private async emitEvents(options: EmitEventsOptions): Promise<number> {
     const {
@@ -210,6 +228,7 @@ export class BblMatchEventsImportService {
       teamEraIdByCode,
       playerIdsByPid,
       errors,
+      batch,
     } = options;
     const occurrenceCounters = new Map<string, number>();
     let imported = 0;
@@ -302,9 +321,7 @@ export class BblMatchEventsImportService {
         data.consequencePlayerId = consequencePlayerId;
       }
 
-      if (await this.matchEventsImport.upsertMatchEvent(data, errors)) {
-        imported += 1;
-      }
+      imported += await this.matchEventsImport.addToBatch(batch, data);
     }
 
     return imported;

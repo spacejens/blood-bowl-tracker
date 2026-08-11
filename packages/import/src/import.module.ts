@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 
+import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
@@ -22,6 +23,7 @@ import { TeamsImportService } from './teams-import.service';
   providers: [
     ImportRunnerService,
     ImportResultService,
+    BatchBufferService,
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,
@@ -41,6 +43,7 @@ import { TeamsImportService } from './teams-import.service';
   exports: [
     ImportRunnerService,
     ImportResultService,
+    BatchBufferService,
     CoachesImportService,
     CompetitionsImportService,
     LeaguesImportService,

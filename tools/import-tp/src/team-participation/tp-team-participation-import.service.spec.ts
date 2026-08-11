@@ -1,5 +1,12 @@
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  UpsertCompetition,
+  UpsertMatch,
+} from '@blood-bowl-tracker/api-contract';
+import type {
+  BatchBuffer,
+  ImportError,
+  ImportResult,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ImportResultService,
@@ -30,6 +37,10 @@ const CANNED_RESULT: ImportResult = {
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
 
+/** team_eras ids the fixtures below resolve roster 1 and roster 2 to. */
+const HOME_TEAM_ERA_ID = 700;
+const AWAY_TEAM_ERA_ID = 701;
+
 /** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
 function resultArgs(importResults: MockProxy<ImportResultService>): {
   imported: number;
@@ -40,19 +51,21 @@ function resultArgs(importResults: MockProxy<ImportResultService>): {
 
 async function makeService(opts: {
   upsertCompetition: ReturnType<typeof vi.fn>;
-  upsertMatch?: ReturnType<typeof vi.fn>;
 }): Promise<{
   service: TpTeamParticipationImportService;
   importResults: MockProxy<ImportResultService>;
+  matchesImport: MockProxy<MatchesImportService>;
 }> {
   const competitionsImport = mock<CompetitionsImportService>();
   competitionsImport.upsertCompetition.mockImplementation(
     asProviderMethod(opts.upsertCompetition),
   );
   const matchesImport = mock<MatchesImportService>();
-  matchesImport.upsertMatch.mockImplementation(
-    asProviderMethod(opts.upsertMatch ?? vi.fn().mockResolvedValue(true)),
-  );
+  matchesImport.createBatch.mockReturnValue({
+    pending: [],
+  } as unknown as BatchBuffer<UpsertMatch>);
+  matchesImport.addToBatch.mockResolvedValue(0);
+  matchesImport.flushBatch.mockResolvedValue(0);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
@@ -71,6 +84,7 @@ async function makeService(opts: {
   return {
     service: moduleRef.get(TpTeamParticipationImportService),
     importResults,
+    matchesImport,
   };
 }
 
@@ -217,10 +231,8 @@ describe('TpTeamParticipationImportService', () => {
   });
 
   it('re-upserts each match with both resolved team eras and a TP external id', async () => {
-    const upsertMatch = vi.fn().mockResolvedValue(true);
-    const { service } = await makeService({
+    const { service, matchesImport } = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
-      upsertMatch,
     });
 
     await service.importTeamParticipation({
@@ -246,16 +258,59 @@ describe('TpTeamParticipationImportService', () => {
       ],
     });
 
-    expect(upsertMatch).toHaveBeenCalledWith(
-      {
-        competitionId: 42,
-        playedAt: new Date('2021-05-15T18:00:00Z'),
-        name: 'Round 1',
-        externalIds: [{ externalSystemId: 1, externalId: '500' }],
-        teamEraIds: [700, 701],
-      },
-      expect.any(Array),
-    );
+    expect(matchesImport.addToBatch).toHaveBeenCalledWith(expect.anything(), {
+      competitionId: 42,
+      playedAt: new Date('2021-05-15T18:00:00Z'),
+      name: 'Round 1',
+      externalIds: [{ externalSystemId: 1, externalId: '500' }],
+      teamEraIds: [700, 701],
+    });
+  });
+
+  it('buffers each match-teams re-upsert and flushes once at the end', async () => {
+    const batch = { pending: [] } as unknown as BatchBuffer<UpsertMatch>;
+    const captured: UpsertMatch[] = [];
+    const { service, matchesImport } = await makeService({
+      upsertCompetition: vi.fn().mockResolvedValue(true),
+    });
+    matchesImport.createBatch.mockReturnValue(batch);
+    matchesImport.addToBatch.mockImplementation((_batch, data) => {
+      captured.push(data);
+      return Promise.resolve(0);
+    });
+    matchesImport.flushBatch.mockResolvedValue(0);
+
+    await service.importTeamParticipation({
+      competitionsByTpId: new Map([
+        [
+          111,
+          {
+            upsert: competition(),
+            era: 'Fourth era',
+            competition: 'chaos-cup-8',
+          },
+        ],
+      ]),
+      competitionIdsByTpId: new Map([[111, 42]]),
+      matchesByCompetitionId: new Map([[42, [tpMatch(500, 1, 2)]]]),
+      teamErasByRosterId: new Map([
+        [1, [{ id: 700, eraId: 100 }]],
+        [2, [{ id: 701, eraId: 100 }]],
+      ]),
+      rosters: [
+        roster('Fourth era', 'chaos-cup-8', 1),
+        roster('Fourth era', 'chaos-cup-8', 2),
+      ],
+    });
+
+    expect(matchesImport.createBatch).toHaveBeenCalledTimes(1);
+    expect(matchesImport.upsertMatch).not.toHaveBeenCalled();
+    expect(captured).toHaveLength(1);
+    expect(captured[0].teamEraIds).toEqual([
+      HOME_TEAM_ERA_ID,
+      AWAY_TEAM_ERA_ID,
+    ]);
+    expect(matchesImport.flushBatch).toHaveBeenCalledWith(batch);
   });
 
   it('records an error and skips a roster id it cannot resolve, still upserting the rest', async () => {
@@ -296,10 +351,8 @@ describe('TpTeamParticipationImportService', () => {
   });
 
   it('records an error and skips a match when its home team era does not resolve', async () => {
-    const upsertMatch = vi.fn().mockResolvedValue(true);
-    const { service, importResults } = await makeService({
+    const { service, importResults, matchesImport } = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
-      upsertMatch,
     });
 
     await service.importTeamParticipation({
@@ -319,7 +372,7 @@ describe('TpTeamParticipationImportService', () => {
       rosters: [roster('Fourth era', 'chaos-cup-8', 2)],
     });
 
-    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(matchesImport.addToBatch).not.toHaveBeenCalled();
     expect(
       resultArgs(importResults).errors.some((e) =>
         e.message.includes('could not resolve both team eras'),
@@ -328,10 +381,8 @@ describe('TpTeamParticipationImportService', () => {
   });
 
   it('records an error and skips a match when its away team era does not resolve', async () => {
-    const upsertMatch = vi.fn().mockResolvedValue(true);
-    const { service } = await makeService({
+    const { service, matchesImport } = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
-      upsertMatch,
     });
 
     await service.importTeamParticipation({
@@ -351,15 +402,13 @@ describe('TpTeamParticipationImportService', () => {
       rosters: [roster('Fourth era', 'chaos-cup-8', 1)],
     });
 
-    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(matchesImport.addToBatch).not.toHaveBeenCalled();
   });
 
   it('skips a competition with no matching rosters and no matches (no upsert)', async () => {
     const upsertCompetition = vi.fn();
-    const upsertMatch = vi.fn();
-    const { service, importResults } = await makeService({
+    const { service, importResults, matchesImport } = await makeService({
       upsertCompetition,
-      upsertMatch,
     });
 
     await service.importTeamParticipation({
@@ -383,14 +432,12 @@ describe('TpTeamParticipationImportService', () => {
 
     expect(resultArgs(importResults).imported).toBe(0);
     expect(upsertCompetition).not.toHaveBeenCalled();
-    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(matchesImport.addToBatch).not.toHaveBeenCalled();
   });
 
   it('records an error and skips match teams for a competition with no imported db id', async () => {
-    const upsertMatch = vi.fn();
-    const { service, importResults } = await makeService({
+    const { service, importResults, matchesImport } = await makeService({
       upsertCompetition: vi.fn().mockResolvedValue(true),
-      upsertMatch,
     });
 
     await service.importTeamParticipation({
@@ -417,7 +464,7 @@ describe('TpTeamParticipationImportService', () => {
       ],
     });
 
-    expect(upsertMatch).not.toHaveBeenCalled();
+    expect(matchesImport.addToBatch).not.toHaveBeenCalled();
     expect(
       resultArgs(importResults).errors.some((e) =>
         e.message.includes('no imported competition id'),
