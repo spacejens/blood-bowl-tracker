@@ -179,7 +179,15 @@ This applies to every subagent dispatched from any phase below while working in 
    - Turn those findings into specific questions and ask them via `AskUserQuestion` — e.g. "The same match results are also available in TP data. Import them there too?" or "How should the new match results be shown in review-match?". Ask only about findings that genuinely warrant a decision; drop a finding that turns out to be a non-issue (the sibling importer already behaves the same way) rather than manufacturing a question for every related tool/app found. A question that cannot name the specific tool and the specific behavior is not ready to be asked — never fall back to a generic "should this be broader in scope?". Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
    - Carry the answers into step 2 as part of the starting context.
 2. **REQUIRED SUB-SKILL:** Use `superpowers:brainstorming` with the issue content (issue mode) or provided text (ad-hoc mode) — plus any answers from step 1 — as starting context
-3. **Override the brainstorming skill's default spec save location:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. Note the exact saved filename — Phase 3 needs it.
+3. **Override the brainstorming skill's default spec save location, and save the spec with the `write-file` CLI:** save the spec to `docs/plans/` (gitignored), not `docs/superpowers/specs/`. **Do not use the Write tool for this** — in a worktree, `docs/plans` is a symlink to the main checkout, and the Write tool refuses to write through it (it looks like escaping the worktree) and errors instead. Write the spec by piping it into the `write-file` subcommand:
+
+   ```bash
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<spec-filename>.md <<'SPECEOF'
+   ...full spec markdown...
+   SPECEOF
+   ```
+
+   It prints `{"written": "...", "bytes": N}` on success. If `dist/main.js` is missing, build it first with `pnpm --filter @blood-bowl-tracker/ai-helpers build`. Note the exact saved filename — Phase 3 needs it.
 4. **Pause** — ask the developer to review the written spec via `AskUserQuestion`, offering two genuine options: "Approve, move to planning" (proceed to Phase 3) and "Revise the spec" (return to `superpowers:brainstorming` to make changes, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
 ---
@@ -188,7 +196,13 @@ This applies to every subagent dispatched from any phase below while working in 
 
 1. Dispatch a foreground `Agent` call (`model: "opus"`, `run_in_background: false` — Phase 4 depends on its output) to run `superpowers:writing-plans` against the approved spec. Every shell command in its dispatch prompt must be prefixed with `cd <worktree-path> &&`, per the "Subagent dispatch discipline" section above. The dispatch prompt must tell the agent to:
    - Read the approved spec at `docs/plans/<spec-filename>.md` (pass the exact filename from Phase 2)
-   - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location
+   - Follow `superpowers:writing-plans`, saving the plan to `docs/plans/` (gitignored) instead of that skill's own default location. Tell the agent explicitly **not to use its Write tool** for that save — `docs/plans` is a symlink to the main checkout and the Write tool refuses to write through it — and to use the `write-file` subcommand instead:
+
+     ```bash
+     cd <worktree-path> && node tools/ai-helpers/dist/main.js write-file docs/plans/<plan-filename>.md <<'PLANEOF'
+     ...full plan markdown...
+     PLANEOF
+     ```
    - Skip its "Execution Handoff" question — this workflow always uses `subagent-driven-development` (see Phase 4) — and report back only the saved plan's filename
    Planning is delegated to Opus (rather than Phase 2's brainstorming, which stays inline) because it's a bounded, non-interactive task — turning an already-approved spec into a plan file — while brainstorming needs live back-and-forth with the developer that a dispatched subagent handles poorly. This targets the extra reasoning power at one focused step without spending it on the token-heavy implementation phase.
 2. After the agent reports its saved plan filename, verify the file exists at that path in the worktree before continuing (`test -f "<worktree-path>/docs/plans/<filename>.md"`) — do not trust the report alone. A `git status` check would not work here: `docs/plans` is gitignored and symlinked to the main checkout, so git reports nothing for it either way.
