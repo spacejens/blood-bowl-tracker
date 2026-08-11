@@ -34,7 +34,7 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 
 ### `wait-for-pr-review` usage
 
-```
+```bash
 node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000]
 ```
 
