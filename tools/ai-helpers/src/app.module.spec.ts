@@ -7,6 +7,7 @@ import { CheckMainStrayService } from './check-main-stray/check-main-stray.servi
 import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
+import { WriteFileService } from './write-file/write-file.service';
 
 describe('AppModule', () => {
   it('wires every subcommand service with its dependencies resolved', async () => {
@@ -25,5 +26,6 @@ describe('AppModule', () => {
       SyncGitignoredService,
     );
     expect(moduleRef.get(CheckDriftService)).toBeInstanceOf(CheckDriftService);
+    expect(moduleRef.get(WriteFileService)).toBeInstanceOf(WriteFileService);
   });
 });
