@@ -22,6 +22,15 @@ export interface WaitForPrReviewOptions {
   readonly excludeCommentId?: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
+  /**
+   * When set, one `@coderabbitai review` comment is posted on the first poll
+   * at or after this instant, and polling then continues to the deadline. The
+   * caller is responsible for passing a `timeoutMs` large enough to cover both
+   * the wait until this instant and a normal review window after it — this
+   * service only acts once the clock crosses the epoch, it never extends its
+   * own deadline for it.
+   */
+  readonly triggerAfterEpochSeconds?: number;
 }
 
 /** A CodeRabbit comment reporting that its review rate limit was hit. */
@@ -74,6 +83,9 @@ const DEFAULT_TIMEOUT_MS = 600_000;
 /** 30 seconds — matches develop-feature Phase 6's original poll interval. */
 const DEFAULT_INTERVAL_MS = 30_000;
 
+/** What a triggered review is asked for with; CodeRabbit's own command. */
+const TRIGGER_REVIEW_BODY = '@coderabbitai review';
+
 /**
  * Waits until someone other than the PR's author submits a review, or until
  * a timeout elapses. Exists as a single-command CLI subcommand because a
@@ -97,6 +109,7 @@ export class WaitForPrReviewService {
   async run(options: WaitForPrReviewOptions): Promise<WaitForPrReviewResult> {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    let triggered = false;
     for (;;) {
       const outcome = await this.poll(options, deadline, intervalMs);
       if (outcome?.review !== undefined) {
@@ -104,6 +117,15 @@ export class WaitForPrReviewService {
       }
       if (outcome?.rateLimitComment !== undefined) {
         return this.rateLimitedResult(outcome.rateLimitComment);
+      }
+      if (!triggered && this.shouldTrigger(options)) {
+        // Set before awaiting: a slow or failing post must not be retried on
+        // every interval for the rest of the wait.
+        triggered = true;
+        await this.triggerReview(
+          options.prNumber,
+          this.budgetMs(deadline, intervalMs),
+        );
       }
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
@@ -113,14 +135,7 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * One `gh` query, bounded to the time left before `deadline` — or, once
-   * that budget is already exhausted, to one more `intervalMs` rather than
-   * a near-zero budget. `ProcessRunnerService` clamps a zero/negative
-   * `timeoutMs` to effectively "kill it almost immediately" rather than
-   * "no timeout" — passing the exhausted remaining budget through as-is
-   * would deny the loop's last poll any real chance to complete. The
-   * last-chance floor at `intervalMs` gives it one, while still guaranteeing
-   * at least one poll happens even for a zero/tiny overall `timeoutMs`.
+   * One `gh` query, bounded to the time left before `deadline`.
    *
    * Returns the first qualifying review, or `undefined` when there is none,
    * the call failed, or it did not finish before its own bound — a
@@ -137,7 +152,6 @@ export class WaitForPrReviewService {
     deadline: number,
     intervalMs: number,
   ): Promise<PollOutcome | undefined> {
-    const remainingMs = deadline - Date.now();
     const result = await this.processRunner.run(
       'gh',
       [
@@ -149,7 +163,7 @@ export class WaitForPrReviewService {
         '--jq',
         this.filter(options),
       ],
-      remainingMs > 0 ? remainingMs : intervalMs,
+      this.budgetMs(deadline, intervalMs),
     );
     if (result.exitCode !== 0) {
       return undefined;
@@ -222,6 +236,44 @@ export class WaitForPrReviewService {
       `${excludeClause}) | ` +
       '{id: .id, body: .body, submittedAt: .createdAt}] | first'
     );
+  }
+
+  private shouldTrigger(options: WaitForPrReviewOptions): boolean {
+    return (
+      options.triggerAfterEpochSeconds !== undefined &&
+      Date.now() >= options.triggerAfterEpochSeconds * 1000
+    );
+  }
+
+  /**
+   * Failure is deliberately swallowed: a trigger that could not be posted is
+   * no reason to abort a wait that may still see a review, and the caller
+   * learns the outcome from the wait's own result either way.
+   */
+  private async triggerReview(
+    prNumber: string,
+    timeoutMs: number,
+  ): Promise<void> {
+    try {
+      await this.processRunner.run(
+        'gh',
+        ['pr', 'comment', prNumber, '--body', TRIGGER_REVIEW_BODY],
+        timeoutMs,
+      );
+    } catch {
+      // Nothing to do — see above.
+    }
+  }
+
+  /**
+   * The time left before `deadline`, or one interval once that budget is
+   * exhausted. `ProcessRunnerService` treats a zero/negative bound as "kill
+   * almost immediately", so an exhausted budget passed through as-is would
+   * deny the call any real chance to complete.
+   */
+  private budgetMs(deadline: number, intervalMs: number): number {
+    const remainingMs = deadline - Date.now();
+    return remainingMs > 0 ? remainingMs : intervalMs;
   }
 
   private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {

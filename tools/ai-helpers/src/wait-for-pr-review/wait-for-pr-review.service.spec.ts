@@ -382,4 +382,105 @@ describe('WaitForPrReviewService', () => {
 
     expect(result.availableAtEpochSeconds).toBe(now + 30 * 60);
   });
+
+  /** Picks out the `gh pr comment` calls from everything the runner was asked to run. */
+  function triggerCalls() {
+    return processRunner.run.mock.calls.filter(
+      (call) => call[1][1] === 'comment',
+    );
+  }
+
+  it('posts one review trigger once the trigger instant passes, then keeps polling', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+    const triggerAfterEpochSeconds = Math.floor(Date.now() / 1000) + 60;
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds,
+      timeoutMs: 180_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(triggerCalls()[0][0]).toBe('gh');
+    expect(triggerCalls()[0][1]).toEqual([
+      'pr',
+      'comment',
+      '392',
+      '--body',
+      '@coderabbitai review',
+    ]);
+    // Polling continued to the deadline afterwards rather than returning early.
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('does not trigger a review before the trigger instant', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+
+    await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000) + 600,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(0);
+  });
+
+  it('never triggers a review when no trigger instant is given', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+
+    await runWait({ ...OPTIONS, timeoutMs: 60_000, intervalMs: 30_000 });
+
+    expect(triggerCalls()).toHaveLength(0);
+  });
+
+  it('does not retry the trigger when posting it fails', async () => {
+    processRunner.run.mockResolvedValue(EMPTY);
+    processRunner.run.mockImplementation((_command, args) =>
+      args[1] === 'comment'
+        ? Promise.resolve({ exitCode: 1, stdout: '', stderr: 'no such PR' })
+        : Promise.resolve(EMPTY),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 120_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('survives a rejected trigger post and keeps polling', async () => {
+    processRunner.run.mockImplementation((_command, args) =>
+      args[1] === 'comment'
+        ? Promise.reject(new Error('spawn gh ENOENT'))
+        : Promise.resolve(EMPTY),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('does not trigger a review when a qualifying review is found first', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(0);
+  });
 });
