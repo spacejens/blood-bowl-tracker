@@ -44,6 +44,23 @@ export const SERIOUS_INJURY_CAUSED_TYPES: readonly ActionType[] = [
 ];
 export const DEATH_CAUSED_TYPES: readonly ActionType[] = ['death'];
 
+/**
+ * Every action type that awards Star Player Points to its acting player, and
+ * therefore the only ones `spp_award_values` holds rows for and the only ones
+ * `match_events.spp_value` is ever non-null on. Built from
+ * {@link CASUALTY_CAUSED_TYPES} so the casualty severities cannot drift apart
+ * between the two lists. `'foul'` is excluded for the same reason it is
+ * excluded there: Blood Bowl awards no credit for a foul.
+ */
+export const SPP_EARNING_ACTION_TYPES: readonly ActionType[] = [
+  'touchdown',
+  'completion',
+  'interception',
+  'deflection',
+  'mvp_award',
+  ...CASUALTY_CAUSED_TYPES,
+];
+
 // --- Consequence-role type sets (filtered on matchEvents.consequenceType) ---
 
 export const EXPENSIVE_MISTAKE_TYPES: readonly ConsequenceType[] = [
