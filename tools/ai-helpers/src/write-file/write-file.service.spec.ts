@@ -183,4 +183,33 @@ describe('WriteFileService', () => {
 
     expect(readFileSync(realFile, 'utf8')).toBe('new');
   });
+
+  it('rejects opening a write target that is a symlink, closing the TOCTOU gap after resolveWriteTarget', () => {
+    // resolveWriteTarget always hands writeNoFollow a path it has already
+    // confirmed isn't a symlink — this simulates the only way writeNoFollow's
+    // own defense can fire: a symlink swapped in at that exact path between
+    // the check and the open. Calling the private method directly with a
+    // real symlink reproduces that outcome deterministically, without
+    // needing an actual concurrent race.
+    const outside = join(fixture, 'outside');
+    mkdirSync(outside, { recursive: true });
+    const outsideFile = join(outside, 'secret.md');
+    writeFileSync(outsideFile, 'original', 'utf8');
+    const swapped = join(worktreeRoot, 'swapped.md');
+    symlinkSync(outsideFile, swapped);
+
+    type WriteNoFollow = (
+      writeTarget: string,
+      content: string,
+      path: string,
+    ) => void;
+    const privateService = service as unknown as {
+      writeNoFollow: WriteNoFollow;
+    };
+
+    expect(() =>
+      privateService.writeNoFollow(swapped, 'attacker content', 'swapped.md'),
+    ).toThrow(/changed to a symlink during the write/);
+    expect(readFileSync(outsideFile, 'utf8')).toBe('original');
+  });
 });
