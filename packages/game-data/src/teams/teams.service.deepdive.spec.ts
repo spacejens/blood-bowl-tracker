@@ -10,6 +10,7 @@ import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
 import {
   extractFilterValues,
+  extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { TeamsService } from './teams.service';
@@ -77,6 +78,50 @@ describe('TeamsService lookups', () => {
       const { chains } = await build([]);
       await expect(service.findById(999)).resolves.toBeUndefined();
       expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(999);
+    });
+  });
+
+  describe('listEras', () => {
+    it('returns the id/name rows the query resolves to', async () => {
+      const rows = [
+        { id: 3, name: 'BB2016' },
+        { id: 4, name: 'BB2020' },
+      ];
+      await build(rows);
+      await expect(service.listEras(7)).resolves.toEqual(rows);
+    });
+
+    it('returns an empty array when the team is linked to no eras', async () => {
+      await build([]);
+      await expect(service.listEras(7)).resolves.toEqual([]);
+    });
+
+    it('filters by the requested team id', async () => {
+      const { chains } = await build([]);
+
+      await service.listEras(7);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+    });
+
+    it('joins team_eras to eras and orders chronologically by start date, then name', async () => {
+      const rows = [
+        { id: 4, name: 'BB2020' },
+        { id: 3, name: 'BB2016' },
+      ];
+      const { chains } = await build(rows);
+
+      await service.listEras(7);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'team_eras.era_id']);
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['eras.name'],
+      );
     });
   });
 
