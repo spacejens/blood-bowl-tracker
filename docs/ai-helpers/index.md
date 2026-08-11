@@ -29,6 +29,19 @@ node tools/ai-helpers/dist/main.js <subcommand>
 
 Run from the repo root; every subcommand prints JSON on stdout.
 
+### `wait-for-pr-review` usage
+
+```
+node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000]
+```
+
+- `<pr-number>` — the PR to poll.
+- `<developer-login>` — the PR author's own login, excluded as a reviewer.
+- `<since-epoch-seconds>` — only reviews submitted after this instant qualify.
+- `--timeout-ms` (default 600000, 10 minutes) / `--interval-ms` (default 30000, 30 seconds) — optional overrides; `--interval-ms` has a 1000ms minimum.
+
+Prints `{"found": true, "review": {...}}` once a qualifying review appears, or `{"found": false, "timedOut": true}` once the timeout elapses.
+
 ## Development
 
 ```bash
