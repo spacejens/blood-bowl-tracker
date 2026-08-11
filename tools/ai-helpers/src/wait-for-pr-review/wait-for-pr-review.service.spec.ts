@@ -15,12 +15,28 @@ const REVIEW = {
   submittedAt: '2026-08-11T10:00:00Z',
 };
 
-/** A `gh` invocation that found nothing: jq's `first` on an empty array. */
-const EMPTY = { exitCode: 0, stdout: 'null\n', stderr: '' };
-/** A `gh` invocation that found a qualifying review. */
+const RATE_LIMIT_COMMENT = {
+  id: 'IC_comment1',
+  body: '> [!WARNING]\n> Rate limit exceeded.',
+  submittedAt: '2026-08-11T10:00:00Z',
+};
+
+/** A `gh` invocation that found nothing: both halves of the filter are null. */
+const EMPTY = {
+  exitCode: 0,
+  stdout: '{"review":null,"rateLimitComment":null}\n',
+  stderr: '',
+};
+/** A `gh` invocation that found a qualifying review and no rate-limit comment. */
 const FOUND = {
   exitCode: 0,
-  stdout: `${JSON.stringify(REVIEW, null, 2)}\n`,
+  stdout: `${JSON.stringify({ review: REVIEW, rateLimitComment: null }, null, 2)}\n`,
+  stderr: '',
+};
+/** A `gh` invocation that found a rate-limit comment and no review. */
+const RATE_LIMITED = {
+  exitCode: 0,
+  stdout: `${JSON.stringify({ review: null, rateLimitComment: RATE_LIMIT_COMMENT }, null, 2)}\n`,
   stderr: '',
 };
 
@@ -85,7 +101,7 @@ describe('WaitForPrReviewService', () => {
       'view',
       '392',
       '--json',
-      'reviews',
+      'reviews,comments',
       '--jq',
     ]);
     expect(args[6]).toContain('.author.login != "spacejens"');
@@ -221,5 +237,70 @@ describe('WaitForPrReviewService', () => {
     // Default timeout 600_000ms / interval 30_000ms: polls at
     // 0/30s/60s/.../600s — 21 polls before the deadline is hit.
     expect(processRunner.run).toHaveBeenCalledTimes(21);
+  });
+
+  it('returns immediately when a qualifying rate-limit comment is found', async () => {
+    processRunner.run.mockResolvedValue(RATE_LIMITED);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({
+      found: false,
+      rateLimited: true,
+      rateLimitComment: RATE_LIMIT_COMMENT,
+    });
+    // Returns on the first poll rather than waiting out the full timeout.
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers a review over a rate-limit comment found in the same poll', async () => {
+    processRunner.run.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        review: REVIEW,
+        rateLimitComment: RATE_LIMIT_COMMENT,
+      }),
+      stderr: '',
+    });
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  it('asks gh for comments too, filtered to CodeRabbit rate-limit wording at or after the watermark', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait(OPTIONS);
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[4]).toBe('reviews,comments');
+    expect(args[6]).toContain('.comments[]');
+    expect(args[6]).toContain('test("coderabbit"; "i")');
+    expect(args[6]).toContain(
+      'test("rate limit|rate-limit|review limit|usage limit"; "i")',
+    );
+    expect(args[6]).toContain('(.createdAt | fromdateiso8601) >= 1760000000');
+    expect(args[6]).toContain('submittedAt: .createdAt');
+  });
+
+  it('excludes the comment passed as excludeCommentId', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({ ...OPTIONS, excludeCommentId: 'IC_comment1' });
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).toContain('.id != "IC_comment1"');
+  });
+
+  it('keeps polling when neither a review nor a rate-limit comment qualifies', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(EMPTY)
+      .mockResolvedValue(RATE_LIMITED);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toMatchObject({ found: false, rateLimited: true });
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 });

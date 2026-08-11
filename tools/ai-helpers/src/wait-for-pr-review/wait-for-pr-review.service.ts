@@ -18,8 +18,18 @@ export interface WaitForPrReviewOptions {
   readonly sinceEpochSeconds: number;
   /** The review this wait's own watermark was derived from, if any — excluded even when it falls at or after `sinceEpochSeconds`. */
   readonly excludeReviewId?: string;
+  /** A rate-limit comment already surfaced to the caller — excluded so a re-run does not re-match it forever. */
+  readonly excludeCommentId?: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
+}
+
+/** A CodeRabbit comment reporting that its review rate limit was hit. */
+export interface RateLimitComment {
+  readonly id: string;
+  readonly body: string;
+  /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
+  readonly submittedAt: string;
 }
 
 export interface WaitForPrReviewResult {
@@ -28,7 +38,24 @@ export interface WaitForPrReviewResult {
   readonly review?: unknown;
   /** Present (and true) only when the wait ended on its timeout. */
   readonly timedOut?: boolean;
+  /** True only when a qualifying CodeRabbit rate-limit comment was found instead of a review. */
+  readonly rateLimited?: boolean;
+  /** Present only when `rateLimited` is true. */
+  readonly rateLimitComment?: RateLimitComment;
 }
+
+/** What one poll saw; both fields absent means "nothing qualifying yet". */
+interface PollOutcome {
+  readonly review?: unknown;
+  readonly rateLimitComment?: RateLimitComment;
+}
+
+/**
+ * Tolerant, deliberately CodeRabbit-specific wording match. The exact
+ * rate-limit comment text is unknown and may drift, so any one of these
+ * phrases (case-insensitive) qualifies.
+ */
+const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
 
 /** 10 minutes — matches develop-feature Phase 6's original wait. */
 const DEFAULT_TIMEOUT_MS = 600_000;
@@ -44,6 +71,12 @@ const DEFAULT_INTERVAL_MS = 30_000;
  *
  * Bot-agnostic by construction — it looks for *some* formal review object
  * from a non-author, never for a particular bot's name.
+ *
+ * The one exception is rate-limit detection: CodeRabbit answers its own
+ * per-developer review rate limit with a top-level PR comment instead of a
+ * review, so each poll also looks for that comment — narrowly, by
+ * CodeRabbit's own login and wording — and returns immediately when it finds
+ * one, rather than running out the whole timeout with nothing to report.
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -53,9 +86,16 @@ export class WaitForPrReviewService {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     for (;;) {
-      const review = await this.poll(options, deadline, intervalMs);
-      if (review !== undefined) {
-        return { found: true, review };
+      const outcome = await this.poll(options, deadline, intervalMs);
+      if (outcome?.review !== undefined) {
+        return { found: true, review: outcome.review };
+      }
+      if (outcome?.rateLimitComment !== undefined) {
+        return {
+          found: false,
+          rateLimited: true,
+          rateLimitComment: outcome.rateLimitComment,
+        };
       }
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
@@ -80,12 +120,15 @@ export class WaitForPrReviewService {
    * interval, never to abort the wait. Bounding every call this way
    * guarantees a result can never arrive long after `deadline` and be
    * mistaken for a fresh `found`.
+   *
+   * Both halves of the filter come back in one object, so rate-limit
+   * detection costs no extra `gh` call.
    */
   private async poll(
     options: WaitForPrReviewOptions,
     deadline: number,
     intervalMs: number,
-  ): Promise<unknown> {
+  ): Promise<PollOutcome | undefined> {
     const remainingMs = deadline - Date.now();
     const result = await this.processRunner.run(
       'gh',
@@ -94,7 +137,7 @@ export class WaitForPrReviewService {
         'view',
         options.prNumber,
         '--json',
-        'reviews',
+        'reviews,comments',
         '--jq',
         this.filter(options),
       ],
@@ -107,20 +150,40 @@ export class WaitForPrReviewService {
     if (stdout === '' || stdout === 'null') {
       return undefined;
     }
+    let parsed: PollOutcome | null;
     try {
-      return JSON.parse(stdout) as unknown;
+      parsed = JSON.parse(stdout) as PollOutcome | null;
     } catch {
       return undefined;
     }
+    if (parsed === null || typeof parsed !== 'object') {
+      return undefined;
+    }
+    // jq emits `null` for an empty half; normalise both to `undefined` so
+    // callers can test them with a single `!== undefined`.
+    return {
+      ...(parsed.review == null ? {} : { review: parsed.review }),
+      ...(parsed.rateLimitComment == null
+        ? {}
+        : { rateLimitComment: parsed.rateLimitComment }),
+    };
   }
 
   /**
-   * Wrapped in `[...] | first` so a poll emits exactly one JSON value (the
-   * first qualifying review, or `null`). A bare `.reviews[] | select(...)`
-   * streams one document per match, which is not parseable as a whole when
-   * more than one review qualifies.
+   * One object per poll, holding both halves of the query. Each half is
+   * wrapped in `[...] | first` so it emits exactly one JSON value (the first
+   * match, or `null`). A bare `.reviews[] | select(...)` streams one document
+   * per match, which is not parseable as a whole when more than one matches.
    */
   private filter(options: WaitForPrReviewOptions): string {
+    return (
+      `{review: (${this.reviewFilter(options)}), ` +
+      `rateLimitComment: (${this.rateLimitFilter(options)})}`
+    );
+  }
+
+  /** Bot-agnostic by construction: any formal review object from a non-author. */
+  private reviewFilter(options: WaitForPrReviewOptions): string {
     const login = JSON.stringify(options.developerLogin);
     const excludeClause =
       options.excludeReviewId === undefined
@@ -131,6 +194,25 @@ export class WaitForPrReviewService {
       `select(.author.login != ${login} and ` +
       `(.submittedAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause})] | first`
+    );
+  }
+
+  /**
+   * Deliberately CodeRabbit-specific — this failure mode and its comment
+   * shape are CodeRabbit's own behaviour, unlike review detection above.
+   */
+  private rateLimitFilter(options: WaitForPrReviewOptions): string {
+    const excludeClause =
+      options.excludeCommentId === undefined
+        ? ''
+        : ` and .id != ${JSON.stringify(options.excludeCommentId)}`;
+    return (
+      '[.comments[] | select(.createdAt != null) | ' +
+      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
+      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
+      `${excludeClause}) | ` +
+      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
     );
   }
 
