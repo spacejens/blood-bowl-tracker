@@ -69,7 +69,7 @@ function readWaitForPrReviewInput(): WaitForPrReviewOptions {
   const sinceEpochSeconds = Number(process.argv[5]);
   if (
     prNumber === undefined ||
-    prNumber === '' ||
+    !/^[1-9]\d*$/.test(prNumber) ||
     developerLogin === undefined ||
     developerLogin === '' ||
     !Number.isInteger(sinceEpochSeconds)
