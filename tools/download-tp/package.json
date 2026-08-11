@@ -17,15 +17,15 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.28",
+    "@nestjs/common": "^11.1.29",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.28",
+    "@nestjs/core": "^11.1.29",
     "json5": "^2.2.3",
     "puppeteer": "^24.34.0",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.28",
+    "@nestjs/testing": "^11.1.29",
     "@swc/core": "^1.15.46",
     "@types/node": "^26.1.0",
     "@vitest/coverage-v8": "^4.1.10",
