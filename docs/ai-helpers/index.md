@@ -2,12 +2,15 @@
 
 `tools/ai-helpers` is a NestJS CLI application providing worktree-aware
 helpers the Claude Code skills in `.claude/skills/` call instead of
-hand-rolling the equivalent shell. It exists because a worktree-isolated
-session refuses to run shell commands complex enough that it cannot verify
-they stay inside the worktree — see `develop-feature/SKILL.md`'s "Worktree
-isolation and shell commands" section for what that means in practice. Each
-subcommand below packages logic that would otherwise need a multi-statement
-shell script into a single command invocation.
+hand-rolling the equivalent shell. Worktree isolation is one reason for this:
+a worktree-isolated session refuses to run shell commands complex enough that
+it cannot verify they stay inside the worktree — see `develop-feature/SKILL.md`'s
+"Worktree isolation and shell commands" section for what that means in
+practice. But the pattern is also useful on its own merits, independent of
+that constraint: packaging multi-step logic (a poll loop, a directory sync,
+a stray-work check) behind one tested command is more repeatable and
+reliable than re-deriving the equivalent shell inline every time a skill
+needs it.
 
 ## Subcommands
 
