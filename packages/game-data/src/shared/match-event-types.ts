@@ -45,12 +45,17 @@ export const SERIOUS_INJURY_CAUSED_TYPES: readonly ActionType[] = [
 export const DEATH_CAUSED_TYPES: readonly ActionType[] = ['death'];
 
 /**
- * Every action type that awards Star Player Points to its acting player, and
- * therefore the only ones `spp_award_values` holds rows for and the only ones
- * `match_events.spp_value` is ever non-null on. Built from
- * {@link CASUALTY_CAUSED_TYPES} so the casualty severities cannot drift apart
- * between the two lists. `'foul'` is excluded for the same reason it is
- * excluded there: Blood Bowl awards no credit for a foul.
+ * Every action type that earns Star Player Points under the standardised
+ * award table, and therefore the only ones `spp_award_values` holds rows for
+ * and the only ones a BBL-computed `match_events.spp_value` is ever non-null
+ * on. NOT the only action types `spp_value` can be non-null on overall: a
+ * TP-sourced event carries TP's own reported figure verbatim regardless of
+ * action type, so a type absent from this list (e.g. a successful landing)
+ * can still have one from TP. Built from {@link CASUALTY_CAUSED_TYPES} so the
+ * casualty severities cannot drift apart between the two lists. `'foul'` is
+ * excluded for the same reason it is excluded there: Blood Bowl awards no
+ * credit for a foul under the standardised table (TP may still report a
+ * figure for one, which is imported as-is).
  */
 export const SPP_EARNING_ACTION_TYPES: readonly ActionType[] = [
   'touchdown',
