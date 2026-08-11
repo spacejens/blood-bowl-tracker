@@ -24,7 +24,7 @@ type BblRowKind = 'action' | 'consequence';
  * an unexpected annotation must never abort a page — and surfaced by
  * `BblMatchEventsImportService` alongside its other import errors.
  */
-export interface BblCellAnnotationError {
+interface BblCellAnnotationError {
   label: string;
   side: BblEventSide;
   text: string;

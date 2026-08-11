@@ -26,7 +26,7 @@ import type { FactScope } from './fact-scope';
  * records the outcome as a single nullable `winningMatchTeamId`, so all three
  * outcomes are read off that one column relative to the side being counted.
  */
-export type MatchOutcome = 'won' | 'lost' | 'drawn';
+type MatchOutcome = 'won' | 'lost' | 'drawn';
 
 /**
  * The outcome predicate for the side represented by the joined `matchTeams`

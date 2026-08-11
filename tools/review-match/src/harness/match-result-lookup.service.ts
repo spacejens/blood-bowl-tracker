@@ -9,7 +9,7 @@ import {
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, inArray } from 'drizzle-orm';
 
-export interface MatchResultTeam {
+interface MatchResultTeam {
   matchTeamId: number;
   teamName: string;
   score: number;

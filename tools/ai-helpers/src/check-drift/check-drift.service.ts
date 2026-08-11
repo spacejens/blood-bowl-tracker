@@ -7,7 +7,7 @@ import { GitRootsService } from '../shared/git-roots.service';
 import { GITIGNORED_DRIFT_FILES } from '../shared/gitignored-files';
 import { ProcessRunnerService } from '../shared/process-runner.service';
 
-export interface DriftedFile {
+interface DriftedFile {
   /** Repo-relative path. */
   readonly path: string;
   /** `diff` output; `<` lines are the main checkout, `>` are the worktree. */
