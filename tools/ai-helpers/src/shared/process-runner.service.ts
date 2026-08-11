@@ -10,7 +10,7 @@ export interface ProcessResult {
 }
 
 /** `exitCode` used for a process killed by our own `timeoutMs`, never a real exit code. */
-const TIMED_OUT_EXIT_CODE = -1;
+export const TIMED_OUT_EXIT_CODE = -1;
 
 /**
  * Thin `child_process.execFile` wrapper. Every git/diff call in this package

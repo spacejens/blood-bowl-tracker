@@ -1,7 +1,10 @@
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { ProcessRunnerService } from './process-runner.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from './process-runner.service';
 
 describe('ProcessRunnerService', () => {
   let service: ProcessRunnerService;
@@ -39,14 +42,14 @@ describe('ProcessRunnerService', () => {
     ).rejects.toThrow();
   });
 
-  it('resolves with a non-zero exit code (rather than hanging or rejecting) when timeoutMs elapses', async () => {
+  it('resolves with TIMED_OUT_EXIT_CODE (rather than hanging or rejecting) when timeoutMs elapses', async () => {
     const result = await service.run(
       process.execPath,
       ['-e', 'setTimeout(() => {}, 5000)'],
       50,
     );
 
-    expect(result.exitCode).not.toBe(0);
+    expect(result.exitCode).toBe(TIMED_OUT_EXIT_CODE);
   });
 
   it('does not time out a command that finishes within timeoutMs', async () => {

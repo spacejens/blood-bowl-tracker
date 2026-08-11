@@ -2,7 +2,10 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
-import { ProcessRunnerService } from '../shared/process-runner.service';
+import {
+  ProcessRunnerService,
+  TIMED_OUT_EXIT_CODE,
+} from '../shared/process-runner.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 
 const REVIEW = {
@@ -140,13 +143,24 @@ describe('WaitForPrReviewService', () => {
     expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 
-  it('passes the remaining time budget to each gh call, shrinking toward the deadline', async () => {
+  it('passes the remaining time budget to each gh call, shrinking toward the deadline, floored at one interval once exhausted', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
 
     await runWait({ ...OPTIONS, timeoutMs: 90_000, intervalMs: 30_000 });
 
     const budgets = processRunner.run.mock.calls.map((call) => call[2]);
-    expect(budgets).toEqual([90_000, 60_000, 30_000, 0]);
+    // The 4th poll's remaining budget is exactly 0 (deadline reached) —
+    // execFile's `timeout: 0` means "no timeout", so it floors to
+    // intervalMs instead of being left unbounded.
+    expect(budgets).toEqual([90_000, 60_000, 30_000, 30_000]);
+  });
+
+  it('bounds even a zero-budget wait to one interval, never leaving the single poll unbounded', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({ ...OPTIONS, timeoutMs: 0, intervalMs: 30_000 });
+
+    expect(processRunner.run.mock.calls[0][2]).toBe(30_000);
   });
 
   it('treats a gh call killed by its own timeout as not found, and times out once the deadline is reached', async () => {
@@ -154,7 +168,7 @@ describe('WaitForPrReviewService', () => {
     // kills a stalled `gh` call — never a rejection, so this must not crash
     // the wait, and a stalled/late call must never surface as `found`.
     processRunner.run.mockResolvedValue({
-      exitCode: -1,
+      exitCode: TIMED_OUT_EXIT_CODE,
       stdout: '',
       stderr: '',
     });

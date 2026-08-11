@@ -44,7 +44,7 @@ export class WaitForPrReviewService {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     for (;;) {
-      const review = await this.poll(options, deadline);
+      const review = await this.poll(options, deadline, intervalMs);
       if (review !== undefined) {
         return { found: true, review };
       }
@@ -56,19 +56,28 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * One `gh` query, bounded to the time left before `deadline`. Returns the
-   * first qualifying review, or `undefined` when there is none, the call
-   * failed, or it did not finish before `deadline` — a transient or stalled
-   * `gh` call is a reason to retry on the next interval, never to abort the
-   * wait. Capping the call at the remaining budget (rather than letting it
-   * run unbounded) guarantees a result can never arrive *after* `deadline`
-   * and be mistaken for a fresh `found`.
+   * One `gh` query, bounded to the time left before `deadline` — or, once
+   * that budget is already exhausted, to one more `intervalMs` rather than
+   * left unbounded. `execFile`'s own `timeout` option treats `0` as "no
+   * timeout", so passing the exhausted (zero or negative) remaining budget
+   * through as-is would leave exactly the loop's last poll free to block
+   * indefinitely — the last-chance floor at `intervalMs` closes that gap
+   * while still guaranteeing at least one poll happens, unbounded-free, even
+   * for a zero/tiny overall `timeoutMs`.
+   *
+   * Returns the first qualifying review, or `undefined` when there is none,
+   * the call failed, or it did not finish before its own bound — a
+   * transient or stalled `gh` call is a reason to retry on the next
+   * interval, never to abort the wait. Bounding every call this way
+   * guarantees a result can never arrive long after `deadline` and be
+   * mistaken for a fresh `found`.
    */
   private async poll(
     options: WaitForPrReviewOptions,
     deadline: number,
+    intervalMs: number,
   ): Promise<unknown> {
-    const remainingMs = Math.max(0, deadline - Date.now());
+    const remainingMs = deadline - Date.now();
     const result = await this.processRunner.run(
       'gh',
       [
@@ -80,7 +89,7 @@ export class WaitForPrReviewService {
         '--jq',
         this.filter(options),
       ],
-      remainingMs,
+      remainingMs > 0 ? remainingMs : intervalMs,
     );
     if (result.exitCode !== 0) {
       return undefined;
