@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type { InteractionReplyOptions } from 'discord.js';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
+import type { ButtonCustomIdPrefix } from '../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../entity-components.service';
 
 /**
@@ -45,7 +46,7 @@ type TieRemainder = { type: 'exact'; count: number } | { type: 'approximate' };
 
 /** How a leaderboard row turns into a drill-down link: routing prefix plus the row's entity id. */
 export interface EntityLink<T> {
-  customIdPrefix: string;
+  customIdPrefix: ButtonCustomIdPrefix;
   entityId: (row: T) => number | string;
 }
 

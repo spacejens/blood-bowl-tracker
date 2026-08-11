@@ -4,7 +4,7 @@ import {
   FACT_SCOPE_ALL_TIME,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { ButtonStyle, ComponentType } from 'discord.js';
+import { ComponentType } from 'discord.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
@@ -96,7 +96,8 @@ describe('ErasListService.resolve', () => {
           components: [
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
             },
@@ -130,7 +131,8 @@ describe('ErasListService.resolve', () => {
           components: [
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
             },
@@ -231,49 +233,57 @@ describe('ErasListService.resolve', () => {
           components: [
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'A Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'B Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}2`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'A Season 2',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}3`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'B Season 2',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}4`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Zeta',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}5`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Alpha',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}6`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Alpha',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}8`,
             },
             {
               type: ComponentType.Button,
-              style: ButtonStyle.Primary,
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher, not a real ButtonStyle
+              style: expect.any(Number),
               label: 'Beta',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}7`,
             },

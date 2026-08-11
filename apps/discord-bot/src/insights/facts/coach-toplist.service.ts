@@ -9,6 +9,7 @@ import {
   COACH_TOPLIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { DayCountFormatterService } from '../day-count-formatter.service';
+import type { EntityLink } from '../leaderboard.service';
 import { LeaderboardService } from '../leaderboard.service';
 import type { ToplistResolver } from './toplist-factory';
 import { makeToplistResolvers } from './toplist-factory';
@@ -35,7 +36,7 @@ export class CoachToplistService {
     ToplistResolver<CoachesService>
   >;
 
-  private readonly coachLink = {
+  private readonly coachLink: EntityLink<{ coachId: number }> = {
     customIdPrefix: COACH_BUTTON_CUSTOM_ID_PREFIX,
     entityId: (row: { coachId: number }) => row.coachId,
   };

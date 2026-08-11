@@ -1,6 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { ButtonStyle, ComponentType } from 'discord.js';
 
+import type { ButtonCustomIdPrefix } from './deepdive/button-custom-ids';
+import {
+  COACH_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  ERA_BUTTON_CUSTOM_ID_PREFIX,
+  PLAYER_BUTTON_CUSTOM_ID_PREFIX,
+  RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
+} from './deepdive/button-custom-ids';
+
 /** Discord allows at most 5 buttons per action row and 5 action rows per message. */
 const MAX_BUTTONS_PER_ROW = 5;
 const MAX_ACTION_ROWS = 5;
@@ -24,16 +34,43 @@ const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
  */
 const BLANK_LABEL = '\u200b';
 
+/**
+ * The button colour each destination type gets, so a coach can tell coach
+ * buttons from team buttons from player buttons at a glance without reading
+ * every label. Discord offers only four usable styles (Link navigates to a
+ * URL and Premium is for purchases), so with six destination types some
+ * share a colour: the two "container" types (era, competition) share
+ * Secondary, and the three "who played" types (coach, team, race) share
+ * Success — race used to be Danger, but red read as a destructive-action
+ * colour for what is just normal navigation. Player is the sole user of
+ * Primary. Danger is unused by design: not a reserved fallback, just that no
+ * current destination type happens to warrant it.
+ *
+ * The `Record<ButtonCustomIdPrefix, ButtonStyle>` annotation is deliberate:
+ * TypeScript requires every member of the union to appear as a key, so adding
+ * a seventh prefix constant fails the build here until someone chooses its
+ * colour. Do not add a runtime fallback — that would let a new destination
+ * type ship silently mis-coloured.
+ */
+const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
+  [ERA_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
+  [COMPETITION_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Secondary,
+  [COACH_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
+  [TEAM_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
+  [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Primary,
+  [RACE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
+};
+
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
-  customIdPrefix: string;
+  customIdPrefix: ButtonCustomIdPrefix;
   entityId: string;
   label: string;
 }
 
 interface EntityButton {
   type: ComponentType.Button;
-  style: ButtonStyle.Primary;
+  style: ButtonStyle;
   label: string;
   custom_id: string;
 }
@@ -128,7 +165,7 @@ export class EntityComponentsService {
       type: ComponentType.ActionRow as const,
       components: chunkEntries.map((entry) => ({
         type: ComponentType.Button as const,
-        style: ButtonStyle.Primary as const,
+        style: BUTTON_STYLE_BY_PREFIX[entry.customIdPrefix],
         label: entry.label,
         custom_id: `${entry.customIdPrefix}${entry.entityId}`,
       })),
