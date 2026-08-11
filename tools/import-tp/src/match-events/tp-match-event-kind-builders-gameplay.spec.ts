@@ -40,6 +40,7 @@ function sentOff(options: {
   tpEventId: number;
   lineUpId: number;
   rosterId: number;
+  starPoints?: number;
 }): Extract<TpMatchEvent, { type: 'sent_off' }> {
   return { type: 'sent_off', instant: 'x', ...options };
 }
@@ -255,6 +256,23 @@ describe('TpMatchEventKindBuildersService gameplay events', () => {
         },
       ]);
       expect(events[0].actionType).toBeUndefined();
+    });
+
+    it('never writes sppValue, even when TP reports starPoints on the event', () => {
+      const [data] = service.buildSentOffEvent(
+        buildOptions({
+          event: sentOff({
+            tpEventId: 12,
+            lineUpId: ACTOR_LINE_UP_ID,
+            rosterId: HOME_ROSTER_ID,
+            starPoints: 0,
+          }),
+        }),
+      );
+
+      // A sent_off event has no acting player -- only a consequencePlayerId
+      // -- so it cannot own an SPP award attributed to an actor.
+      expect(data.sppValue).toBeUndefined();
     });
 
     it('omits the unresolved team-era and player, recording a non-fatal error for the player', () => {

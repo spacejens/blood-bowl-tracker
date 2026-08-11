@@ -269,11 +269,9 @@ export class TpMatchEventKindBuildersService {
         errors,
       }),
     );
-    // TP's own reported figure, passed through verbatim: it already accounts
-    // for race-specific and random-event awards the standardised table does
-    // not model. `setIfDefined` keeps a reported 0 (a real award of nothing)
-    // and drops an absent value, which leaves the column alone.
-    this.setIfDefined(data, 'sppValue', event.starPoints);
+    // A sent_off event has no acting player -- only a consequencePlayerId --
+    // so it cannot own an SPP award attributed to an actor. sppValue is
+    // intentionally not written here.
     return [data];
   }
 
