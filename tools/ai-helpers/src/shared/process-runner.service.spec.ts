@@ -61,4 +61,19 @@ describe('ProcessRunnerService', () => {
 
     expect(result).toEqual({ exitCode: 0, stdout: 'hello', stderr: '' });
   });
+
+  it('escalates to SIGKILL (and still resolves, bounded) when the child ignores SIGTERM', async () => {
+    const startedAt = Date.now();
+
+    const result = await service.run(
+      process.execPath,
+      ['-e', 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);'],
+      50,
+    );
+
+    expect(result.exitCode).toBe(TIMED_OUT_EXIT_CODE);
+    // Bounded by timeoutMs + the SIGKILL grace period, not left hanging
+    // indefinitely because the child trapped SIGTERM.
+    expect(Date.now() - startedAt).toBeLessThan(4_000);
+  });
 });
