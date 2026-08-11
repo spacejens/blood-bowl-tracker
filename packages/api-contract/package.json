@@ -17,7 +17,7 @@
     "verify": "pnpm run build && pnpm run lint && pnpm run typecheck && pnpm run format && pnpm run test"
   },
   "dependencies": {
-    "@orpc/contract": "^1.14.8",
+    "@orpc/contract": "^1.15.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

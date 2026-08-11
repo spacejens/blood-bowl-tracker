@@ -19,8 +19,8 @@
     "@blood-bowl-tracker/api-contract": "workspace:*",
     "@nestjs/common": "^11.1.29",
     "@nestjs/config": "^4.0.4",
-    "@orpc/client": "^1.14.8",
-    "@orpc/contract": "^1.14.8",
+    "@orpc/client": "^1.15.0",
+    "@orpc/contract": "^1.15.0",
     "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
