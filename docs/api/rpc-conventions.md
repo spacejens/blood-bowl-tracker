@@ -37,6 +37,22 @@ record with an added `created` boolean field, distinguishing "a new record
 was created" from "an existing record was found and updated" without
 relying on a status code.
 
+Every entity that exposes `upsert` also exposes `upsertBatch`, which takes a
+non-empty array of the same inputs and answers with an array of per-item
+results, index-aligned with the request. Batching exists because the import
+tools otherwise make one network round trip per record — hours of wall-clock
+time on a full production import. It collapses network round trips only: the
+server still performs one database upsert per item, sequentially, in input
+order.
+
+A per-item result is either `{ "success": true, …the record…, "created":
+<bool> }` or `{ "success": false, "error": "<message>" }`. Batch procedures
+therefore declare no `CONFLICT` or `BAD_REQUEST` contract errors: those
+failure modes are per-item, so one bad item never costs its siblings their
+upserts. An unexpected server error is not downgraded that way — it is thrown
+as a normal RPC error and fails the whole batch, because a partial import
+must never be reported as a complete one.
+
 ## Error responses
 
 Procedures declare their possible errors on the oRPC contract itself (see
@@ -46,3 +62,7 @@ request's candidate external IDs match more than one existing record;
 nothing is changed in that case. Validation errors (malformed input) are
 rejected before reaching application code, per the `zod` schemas in
 `packages/api-contract`.
+
+Batch procedures move these domain failures into the per-item `error` string
+instead (see above); validation of the array itself — including its
+non-empty requirement — still happens before application code runs.
