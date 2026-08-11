@@ -8,9 +8,15 @@ import { EntityComponentsService } from './entity-components.service';
  * An `EntityComponentsService` mock canned to echo its entries back as a
  * single button action row, with no overflow note. It does NOT reproduce the
  * real dedupe/cap/chunk/select logic — that is covered by
- * `entity-components.service.spec.ts`. This neutral stand-in exists only so a
- * consumer's own entry-composition logic can be exercised on the entries a
- * test supplies.
+ * `entity-components.service.spec.ts`. Nor does it reproduce the real
+ * per-destination-type button colouring: every button here is
+ * `ButtonStyle.Primary` whatever its customId prefix, which is why consumer
+ * specs using this stub still expect `Primary` everywhere. Do not "fix" that
+ * to match the real mapping — those tests are about their own service's
+ * entry-composition logic, not about button colour.
+ *
+ * This neutral stand-in exists only so a consumer's own entry-composition
+ * logic can be exercised on the entries a test supplies.
  *
  * Test-only. Do not import from production code.
  */
