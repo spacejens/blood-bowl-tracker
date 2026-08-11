@@ -59,6 +59,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:49:00Z',
         lineUpId: 2442075,
         rosterId: 164868,
+        starPoints: 1,
       }),
     ).toEqual({
       type: 'completion',
@@ -66,6 +67,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:49:00Z',
       lineUpId: 2442075,
       rosterId: 164868,
+      starPoints: 1,
     });
   });
 
@@ -76,6 +78,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:50:14Z',
         lineUpId: 2442075,
         rosterId: 164868,
+        starPoints: 5,
       }),
     ).toEqual({
       type: 'touchdown',
@@ -83,6 +86,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:50:14Z',
       lineUpId: 2442075,
       rosterId: 164868,
+      starPoints: 5,
     });
   });
 
@@ -93,6 +97,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:49:10Z',
         lineUpId: 2442076,
         rosterId: 167242,
+        starPoints: 2,
       }),
     ).toEqual({
       type: 'interception',
@@ -100,6 +105,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:49:10Z',
       lineUpId: 2442076,
       rosterId: 167242,
+      starPoints: 2,
     });
   });
 
@@ -110,6 +116,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:49:20Z',
         lineUpId: 2442077,
         rosterId: 164868,
+        starPoints: 3,
       }),
     ).toEqual({
       type: 'casualty_caused',
@@ -117,6 +124,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:49:20Z',
       lineUpId: 2442077,
       rosterId: 164868,
+      starPoints: 3,
     });
   });
 
@@ -146,6 +154,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:54:42.4449189+00:00',
         lineUpId: 2442076,
         rosterId: 164868,
+        starPoints: 4,
       }),
     ).toEqual({
       type: 'mvp_award',
@@ -153,6 +162,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:54:42.4449189+00:00',
       lineUpId: 2442076,
       rosterId: 164868,
+      starPoints: 4,
     });
   });
 
@@ -165,6 +175,7 @@ describe('MatchEventDecodersService', () => {
         rosterId: 167242,
         turnRosterId: 168304,
         injuryType: 'Dead',
+        starPoints: 0,
       }),
     ).toEqual({
       type: 'injury',
@@ -174,6 +185,7 @@ describe('MatchEventDecodersService', () => {
       rosterId: 167242,
       turnRosterId: 168304,
       injuryType: 'Dead',
+      starPoints: 0,
     });
   });
 
@@ -229,6 +241,50 @@ describe('MatchEventDecodersService', () => {
     });
     expect(event).toMatchObject({ type: 'injury', injuryType: 'None' });
   });
+
+  it('omits starPoints when the raw event does not report it', () => {
+    const decoded = decode(8, {
+      id: 7147568,
+      instant: '2026-01-17T16:32:44Z',
+      lineUpId: 2459782,
+      rosterId: 167242,
+      turnRosterId: 168304,
+      injuryType: 'Dead',
+    });
+    expect(decoded).not.toHaveProperty('starPoints');
+  });
+
+  it('keeps a reported starPoints of 0 rather than dropping it', () => {
+    const decoded = decode(4, {
+      id: 7150327,
+      instant: '2026-01-17T18:50:14Z',
+      lineUpId: 2442075,
+      rosterId: 164868,
+      starPoints: 0,
+    });
+    expect(decoded).toMatchObject({ starPoints: 0 });
+  });
+
+  it.each([
+    ['completion', 3],
+    ['touchdown', 4],
+    ['interception', 5],
+    ['mvp_award', 7],
+    ['deflection', 25],
+    ['sent_off', 32],
+    ['successful_landing', 46],
+  ] as const)(
+    'omits starPoints on a %s (code %d) when the raw event does not report it',
+    (_type, code) => {
+      const decoded = decode(code, {
+        id: 1,
+        instant: 'x',
+        lineUpId: 1,
+        rosterId: 2,
+      });
+      expect(decoded).not.toHaveProperty('starPoints');
+    },
+  );
 
   it('decodes a weather roll (code 10) by delegating the table and raw code to WeatherTypeService', () => {
     weatherType.decode.mockReturnValue('perfect_conditions');
@@ -478,6 +534,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:49:30Z',
         lineUpId: 2442078,
         rosterId: 167242,
+        starPoints: 1,
       }),
     ).toEqual({
       type: 'deflection',
@@ -485,6 +542,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:49:30Z',
       lineUpId: 2442078,
       rosterId: 167242,
+      starPoints: 1,
     });
   });
 
@@ -519,6 +577,7 @@ describe('MatchEventDecodersService', () => {
         rosterId: 165280,
         turnNumber: 10,
         turnRosterId: 165280,
+        starPoints: 0,
       }),
     ).toEqual({
       type: 'foul',
@@ -528,6 +587,7 @@ describe('MatchEventDecodersService', () => {
       rosterId: 165280,
       turnNumber: 10,
       turnRosterId: 165280,
+      starPoints: 0,
     });
   });
 
@@ -568,6 +628,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:49:50Z',
         lineUpId: 2442079,
         rosterId: 164868,
+        starPoints: 0,
       }),
     ).toEqual({
       type: 'sent_off',
@@ -575,6 +636,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:49:50Z',
       lineUpId: 2442079,
       rosterId: 164868,
+      starPoints: 0,
     });
   });
 
@@ -605,6 +667,7 @@ describe('MatchEventDecodersService', () => {
         instant: '2026-01-17T18:50:00Z',
         lineUpId: 2442075,
         rosterId: 164868,
+        starPoints: 1,
       }),
     ).toEqual({
       type: 'successful_landing',
@@ -612,6 +675,7 @@ describe('MatchEventDecodersService', () => {
       instant: '2026-01-17T18:50:00Z',
       lineUpId: 2442075,
       rosterId: 164868,
+      starPoints: 1,
     });
   });
 
