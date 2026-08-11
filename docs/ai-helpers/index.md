@@ -30,7 +30,7 @@ pnpm build
 node tools/ai-helpers/dist/main.js <subcommand>
 ```
 
-Run from the repo root; every subcommand prints JSON on stdout.
+Run from the repo root. On success, every subcommand prints JSON on stdout; failures print a JSON error on stderr and exit with status 1.
 
 ### `wait-for-pr-review` usage
 
