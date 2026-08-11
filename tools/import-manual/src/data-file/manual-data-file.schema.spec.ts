@@ -15,6 +15,7 @@ describe('ManualDataFileSchema', () => {
       coaches: [],
       teams: [],
       competitions: [],
+      sppAwardValues: [],
     });
   });
 
@@ -214,6 +215,49 @@ describe('ManualDataFileSchema', () => {
     expect(() =>
       ManualDataFileSchema.parse({
         coaches: [{ externalIds: [{ system: 'Name', id: 'bob' }] }],
+      }),
+    ).toThrow();
+  });
+
+  it('parses an sppAwardValues section with a baseline and an override entry', () => {
+    const parsed = ManualDataFileSchema.parse({
+      sppAwardValues: [
+        {
+          rulesSet: { system: 'Name', id: 'CRP' },
+          actionType: 'touchdown',
+          sppValue: 3,
+        },
+        {
+          rulesSet: { system: 'Name', id: 'BB2025' },
+          race: { system: 'tloeg.bbleague.se', id: '16' },
+          actionType: 'touchdown',
+          sppValue: 2,
+        },
+      ],
+    });
+
+    expect(parsed.sppAwardValues).toHaveLength(2);
+    expect(parsed.sppAwardValues[0].race).toBeUndefined();
+    expect(parsed.sppAwardValues[1].race).toEqual({
+      system: 'tloeg.bbleague.se',
+      id: '16',
+    });
+  });
+
+  it('defaults sppAwardValues to an empty array', () => {
+    expect(ManualDataFileSchema.parse({}).sppAwardValues).toEqual([]);
+  });
+
+  it('rejects an sppAwardValues entry whose action type earns no SPP', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        sppAwardValues: [
+          {
+            rulesSet: { system: 'Name', id: 'CRP' },
+            actionType: 'foul',
+            sppValue: 0,
+          },
+        ],
       }),
     ).toThrow();
   });

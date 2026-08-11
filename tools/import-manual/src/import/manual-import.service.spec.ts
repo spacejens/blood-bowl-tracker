@@ -14,6 +14,7 @@ import { LeaguesProcessor } from '../entities/leagues.processor';
 import { PositionsProcessor } from '../entities/positions.processor';
 import { RacesProcessor } from '../entities/races.processor';
 import { RulesSetsProcessor } from '../entities/rules-sets.processor';
+import { SppAwardValuesProcessor } from '../entities/spp-award-values.processor';
 import { TeamsProcessor } from '../entities/teams.processor';
 import type { ProcessContext } from '../references/process-context';
 import { ManualImportService } from './manual-import.service';
@@ -29,6 +30,7 @@ function emptyData(): ManualDataFile {
     coaches: [],
     teams: [],
     competitions: [],
+    sppAwardValues: [],
   };
 }
 
@@ -48,6 +50,7 @@ interface ProcessorMocks {
   coaches: MockProxy<CoachesProcessor>;
   teams: MockProxy<TeamsProcessor>;
   competitions: MockProxy<CompetitionsProcessor>;
+  sppAwardValues: MockProxy<SppAwardValuesProcessor>;
 }
 
 function processImpl(name: string, overrides: Overrides) {
@@ -84,6 +87,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
     coaches: mock<CoachesProcessor>(),
     teams: mock<TeamsProcessor>(),
     competitions: mock<CompetitionsProcessor>(),
+    sppAwardValues: mock<SppAwardValuesProcessor>(),
   };
   procs.rulesSets.process.mockImplementation(
     processImpl('rulesSets', overrides),
@@ -98,6 +102,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   procs.teams.process.mockImplementation(processImpl('teams', overrides));
   procs.competitions.process.mockImplementation(
     processImpl('competitions', overrides),
+  );
+  procs.sppAwardValues.process.mockImplementation(
+    processImpl('sppAwardValues', overrides),
   );
 
   const importResults = mock<ImportResultService>();
@@ -120,6 +127,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
       { provide: CoachesProcessor, useValue: procs.coaches },
       { provide: TeamsProcessor, useValue: procs.teams },
       { provide: CompetitionsProcessor, useValue: procs.competitions },
+      { provide: SppAwardValuesProcessor, useValue: procs.sppAwardValues },
       { provide: ImportResultService, useValue: importResults },
     ],
   }).compile();
@@ -143,12 +151,13 @@ describe('ManualImportService', () => {
         coaches: 1,
         teams: 1,
         competitions: 1,
+        sppAwardValues: 1,
       },
     });
 
     const result = await service.run('/data/dir');
 
-    expect(result.imported).toBe(8);
+    expect(result.imported).toBe(9);
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -201,6 +210,10 @@ describe('ManualImportService', () => {
       order.push('competitions');
       return Promise.resolve(0);
     });
+    procs.sppAwardValues.process.mockImplementation(() => {
+      order.push('sppAwardValues');
+      return Promise.resolve(0);
+    });
 
     await service.run('/data/dir');
 
@@ -213,6 +226,7 @@ describe('ManualImportService', () => {
       'coaches',
       'teams',
       'competitions',
+      'sppAwardValues',
     ]);
   });
 
