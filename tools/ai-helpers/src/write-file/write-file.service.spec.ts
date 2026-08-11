@@ -157,9 +157,20 @@ describe('WriteFileService', () => {
     symlinkSync(outsideFile, join(worktreeRoot, 'notes.md'));
 
     await expect(service.run('notes.md', 'attacker content')).rejects.toThrow(
-      /outside|symlink/i,
+      /is a symlink to/,
     );
     expect(readFileSync(outsideFile, 'utf8')).toBe('original');
+  });
+
+  it('rejects writing through a dangling destination symlink rather than guessing where it points', async () => {
+    symlinkSync(
+      join(fixture, 'nowhere', 'gone.md'),
+      join(worktreeRoot, 'notes.md'),
+    );
+
+    await expect(service.run('notes.md', 'x')).rejects.toThrow(
+      /symlink.*(dangling|broken)/i,
+    );
   });
 
   it('allows overwriting a destination symlink that resolves inside the repo roots', async () => {

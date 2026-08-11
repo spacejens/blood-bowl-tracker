@@ -27,8 +27,9 @@ export interface WriteFileResult {
  * OS process. This exists because the Claude Code harness's Write tool refuses
  * to write through the `docs/plans` symlink a worktree has pointing at the main
  * checkout — it looks like escaping the worktree. The OS follows symlinked
- * parent directories transparently, so no symlink-resolution logic is needed
- * here; the checks below only keep the write inside the repo.
+ * *parent* directories transparently, so no resolution logic is needed for
+ * those (e.g. `docs/plans` itself); a symlinked *destination file*, however,
+ * is explicitly resolved and validated below before any write touches it.
  */
 @Injectable()
 export class WriteFileService {
@@ -157,6 +158,14 @@ export class WriteFileService {
    * resolved path's containment (same rule as `assertInside`), returning the
    * resolved path to write to instead of the symlink itself. A non-symlink
    * `target` (existing file, or nothing there yet) is returned unchanged.
+   *
+   * Uses `lstatSync` (not `existsSync`, which follows symlinks) to detect a
+   * symlink even when it's dangling — otherwise a dangling symlink would
+   * skip this check entirely and reach `writeNoFollow`'s `O_NOFOLLOW` open,
+   * which fails with an ELOOP message claiming the destination "changed to
+   * a symlink during the write," which isn't true: it was a symlink all
+   * along. A dangling symlink can't be resolved to judge containment, so it
+   * is rejected outright rather than guessed at.
    */
   private resolveWriteTarget(options: {
     target: string;
@@ -165,10 +174,22 @@ export class WriteFileService {
     path: string;
   }): string {
     const { target, worktreeRoot, mainRoot, path } = options;
-    if (!existsSync(target) || !lstatSync(target).isSymbolicLink()) {
+    const stat = lstatSync(target, { throwIfNoEntry: false });
+    if (stat === undefined || !stat.isSymbolicLink()) {
       return target;
     }
-    const resolved = realpathSync(target);
+
+    let resolved: string;
+    try {
+      resolved = realpathSync(target);
+    } catch (error: unknown) {
+      throw new Error(
+        `Refusing to write '${path}': it is a symlink that cannot be ` +
+          `resolved (dangling or broken)`,
+        { cause: error },
+      );
+    }
+
     if (
       !this.isInside(resolved, worktreeRoot) &&
       !this.isInside(resolved, mainRoot)
