@@ -10,6 +10,10 @@ import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
+import {
+  WaitForPrReviewOptions,
+  WaitForPrReviewService,
+} from './wait-for-pr-review/wait-for-pr-review.service';
 import { WriteFileService } from './write-file/write-file.service';
 
 const SUBCOMMANDS = [
@@ -18,6 +22,7 @@ const SUBCOMMANDS = [
   'sync-gitignored',
   'check-drift',
   'write-file',
+  'wait-for-pr-review',
 ] as const;
 
 type Subcommand = (typeof SUBCOMMANDS)[number];
@@ -36,10 +41,52 @@ interface WriteFileInput {
   readonly content: string;
 }
 
+const WAIT_FOR_PR_REVIEW_USAGE =
+  'Usage: node dist/main.js wait-for-pr-review <pr-number> ' +
+  '<developer-login> <since-epoch-seconds> ' +
+  '[--timeout-ms=600000] [--interval-ms=30000]';
+
+/** Reads `--<name>=<integer>`; undefined when the flag is absent. */
+function readMsFlag(name: string): number | undefined {
+  const prefix = `--${name}=`;
+  const flag = process.argv.slice(6).find((arg) => arg.startsWith(prefix));
+  if (flag === undefined) {
+    return undefined;
+  }
+  const value = Number(flag.slice(prefix.length));
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`${WAIT_FOR_PR_REVIEW_USAGE} (bad --${name} value)`);
+  }
+  return value;
+}
+
+function readWaitForPrReviewInput(): WaitForPrReviewOptions {
+  const prNumber = process.argv[3];
+  const developerLogin = process.argv[4];
+  const sinceEpochSeconds = Number(process.argv[5]);
+  if (
+    prNumber === undefined ||
+    prNumber === '' ||
+    developerLogin === undefined ||
+    developerLogin === '' ||
+    !Number.isInteger(sinceEpochSeconds)
+  ) {
+    throw new Error(WAIT_FOR_PR_REVIEW_USAGE);
+  }
+  return {
+    prNumber,
+    developerLogin,
+    sinceEpochSeconds,
+    timeoutMs: readMsFlag('timeout-ms'),
+    intervalMs: readMsFlag('interval-ms'),
+  };
+}
+
 interface DispatchOptions {
   readonly app: INestApplicationContext;
   readonly subcommand: Subcommand;
   readonly writeFile?: WriteFileInput;
+  readonly waitForPrReview?: WaitForPrReviewOptions;
 }
 
 function readWriteFileInput(): WriteFileInput {
@@ -70,6 +117,12 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .get(WriteFileService)
         .run(options.writeFile.path, options.writeFile.content);
     }
+    case 'wait-for-pr-review': {
+      if (options.waitForPrReview === undefined) {
+        throw new Error(WAIT_FOR_PR_REVIEW_USAGE);
+      }
+      return app.get(WaitForPrReviewService).run(options.waitForPrReview);
+    }
   }
 }
 
@@ -86,12 +139,16 @@ async function run(): Promise<unknown> {
 
   const writeFile =
     subcommand === 'write-file' ? readWriteFileInput() : undefined;
+  const waitForPrReview =
+    subcommand === 'wait-for-pr-review'
+      ? readWaitForPrReviewInput()
+      : undefined;
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
   });
   try {
-    return await dispatch({ app, subcommand, writeFile });
+    return await dispatch({ app, subcommand, writeFile, waitForPrReview });
   } finally {
     await app.close();
   }
