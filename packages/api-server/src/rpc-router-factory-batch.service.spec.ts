@@ -201,6 +201,7 @@ describe('RpcRouterFactoryService batch upserts', () => {
         name: 'Griff Oberwald',
         teamEraId: 10,
         positionId: 20,
+        sppTotal: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,

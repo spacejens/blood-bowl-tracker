@@ -130,6 +130,7 @@ const rosters: RosterEntry[] = [
           rosterId: 123,
           fallbackPositionName: 'Dwarf Lineman',
           isBigGuy: false,
+          totalStarPlayerPoints: 23,
         },
       ],
     },
@@ -157,6 +158,7 @@ describe('TpPlayersImportService', () => {
         name: 'The Agitated Deviation',
         teamEraId: 5000,
         positionId: 200,
+        sppTotal: 23,
         externalIds: [{ externalSystemId: 1, externalId: '2412443' }],
       },
       expect.anything(),
@@ -186,6 +188,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Dwarf Lineman',
               isBigGuy: false,
+              totalStarPlayerPoints: 12,
             },
           ],
         ],
@@ -227,6 +230,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Dwarf Lineman',
               isBigGuy: false,
+              totalStarPlayerPoints: 7,
             },
           ],
         ],
@@ -591,6 +595,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: "Morg 'n' Thorg",
               isBigGuy: false,
+              totalStarPlayerPoints: 88,
             },
           ],
         },
@@ -611,6 +616,7 @@ describe('TpPlayersImportService', () => {
         name: "Morg 'n' Thorg",
         teamEraId: 5000,
         positionId: 700,
+        sppTotal: 88,
         externalIds: [{ externalSystemId: 1, externalId: '3000001' }],
       },
       expect.anything(),
@@ -643,6 +649,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Akhorne the Squirrel',
               isBigGuy: false,
+              totalStarPlayerPoints: 55,
             },
           ],
         ],
@@ -692,6 +699,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Giant Mercenary',
               isBigGuy: true,
+              totalStarPlayerPoints: 41,
             },
           ],
         },
@@ -724,6 +732,7 @@ describe('TpPlayersImportService', () => {
         name: 'Giant',
         teamEraId: 5000,
         positionId: 800,
+        sppTotal: 41,
         externalIds: [{ externalSystemId: 1, externalId: '1399322' }],
       },
       expect.anything(),
@@ -762,6 +771,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Giant Mercenary',
               isBigGuy: true,
+              totalStarPlayerPoints: 41,
             },
             {
               id: 1970614,
@@ -771,6 +781,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Giant Mercenary',
               isBigGuy: true,
+              totalStarPlayerPoints: 19,
             },
           ],
         },
@@ -817,6 +828,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Giant Mercenary',
               isBigGuy: true,
+              totalStarPlayerPoints: 41,
             },
           ],
         },
@@ -901,6 +913,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'x',
               isBigGuy: false,
+              totalStarPlayerPoints: 30,
             },
           ],
         },
@@ -948,6 +961,7 @@ describe('TpPlayersImportService', () => {
               rosterId: 123,
               fallbackPositionName: 'Giant',
               isBigGuy: true,
+              totalStarPlayerPoints: 8,
             },
           ],
         },
@@ -1000,6 +1014,49 @@ describe('TpPlayersImportService', () => {
     expect(starPositionUsages).toHaveLength(1);
   });
 
+  it('uses the MAXIMUM totalStarPlayerPoints seen for a player id across sources, regardless of which source carries the higher value', async () => {
+    // Same player id (2412443) recurs via roster.players and
+    // matchEmbeddedPlayersByRosterId with differing totals. Two runs below
+    // swap which source reports the higher figure, proving the max wins
+    // either way -- not just "whichever source is processed last".
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
+    const { service } = await makeService({ upsertPlayerResult });
+    const base = rosters[0].roster.players[0];
+    const embedded = (total: number) => [
+      { ...base, totalStarPlayerPoints: total },
+    ];
+    const options = (rosterEntries: RosterEntry[], embeddedTotal: number) => ({
+      rosters: rosterEntries,
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map([[952, 200]]),
+      matchEmbeddedPlayersByRosterId: new Map([[123, embedded(embeddedTotal)]]),
+    });
+
+    // roster.players (23) is lower than matchEmbedded (99).
+    await service.importPlayers(options(rosters, 99));
+    expect(upsertPlayerResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sppTotal: 99 }),
+      expect.anything(),
+    );
+
+    // roster.players (99) is higher than matchEmbedded (23).
+    const higherRosters: RosterEntry[] = [
+      {
+        ...rosters[0],
+        roster: {
+          ...rosters[0].roster,
+          players: [{ ...base, totalStarPlayerPoints: 99 }],
+        },
+      },
+    ];
+    await service.importPlayers(options(higherRosters, 23));
+    expect(upsertPlayerResult).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sppTotal: 99 }),
+      expect.anything(),
+    );
+  });
+
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 900 });
     const { service } = await makeService({ upsertPlayerResult });
@@ -1012,5 +1069,37 @@ describe('TpPlayersImportService', () => {
     });
 
     expect(result).toBe(CANNED_RESULT);
+  });
+
+  it('passes no sppTotal for an induced star player, whose TP data has no total', async () => {
+    // TpInducedStarPlayer carries no totalStarPlayerPoints, so the column is
+    // left untouched (NULL) rather than being written a made-up 0.
+    const upsertPlayerResult = vi.fn().mockResolvedValue({ id: 950 });
+    const upsertPosition = vi.fn().mockResolvedValue({ id: 300 });
+    const { service } = await makeService({
+      upsertPlayerResult,
+      upsertPosition,
+    });
+
+    await service.importPlayers({
+      rosters: [],
+      teamErasByRosterId: new Map([[123, [{ id: 5000, eraId: 500 }]]]),
+      eraIdsByName: new Map([['Third Era', 500]]),
+      positionIdsByTpPositionId: new Map(),
+      inducedStarPlayerHireGroups: [
+        {
+          rosterId: 123,
+          eraId: 500,
+          starPlayers: [
+            { name: "Morg 'n' Thorg", lineUpMasterId: 5002, number: 16 },
+          ],
+        },
+      ],
+    });
+
+    const payload = upsertPlayerResult.mock.calls[0][0] as {
+      sppTotal?: number;
+    };
+    expect('sppTotal' in payload).toBe(false);
   });
 });

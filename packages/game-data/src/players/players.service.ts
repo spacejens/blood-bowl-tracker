@@ -174,6 +174,7 @@ export class PlayersService {
       name: data.name,
       teamEraId: data.teamEraId,
       positionId: data.positionId,
+      sppTotal: data.sppTotal,
     };
 
     const { row: player, created } = await upsertByExternalIds<
