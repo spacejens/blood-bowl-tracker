@@ -279,17 +279,17 @@ Everything here automates the flow documented in `docs/discord-bot/production-ho
       tools/import-tp/import-tp-config.production.json5 2>&1
    ```
    If the file a selected import needs is missing, stop that import and tell the developer to create it once, from the same `import-*-config.example.json5` template as the local config, filling in the production `apiToken` from the matching `API_TOKEN_IMPORT_*` value in `apps/discord-bot/.env.production` — see `docs/discord-bot/production-hosting.md`. **Do not create it from the template yourself**: a config copied from the example would carry a placeholder token and fail with `401`, and authoring production credentials is a developer's job, not this skill's (see Non-goals). A missing file for one tool does not block the other tools' imports.
-3. For each selected import whose production config exists (from step 2), check that its `apiBaseUrl` points at the tunnel's local port rather than a stale pre-migration value:
+3. For each selected import whose production config exists (from step 2), check that its `apiBaseUrl` is exactly the tunnel's local port rather than a stale pre-migration value. The check anchors on the `apiBaseUrl` key itself (not a bare substring search), so a `localhost:30010` value or a `localhost:3001` mention elsewhere in the file (e.g. a comment) cannot pass it:
    ```bash
    for cfg in tools/import-manual/import-manual-config.production.json5 \
               tools/import-bbl/import-bbl-config.production.json5 \
               tools/import-tp/import-tp-config.production.json5; do
-     if [ -f "$cfg" ] && ! grep -q 'localhost:3001' "$cfg"; then
-       echo "STALE: $cfg does not reference localhost:3001"
+     if [ -f "$cfg" ] && ! grep -qE "apiBaseUrl:[[:space:]]*'http://localhost:3001'" "$cfg"; then
+       echo "STALE: $cfg's apiBaseUrl is not exactly 'http://localhost:3001'"
      fi
    done
    ```
-   If a config exists but does not contain `localhost:3001` (it very likely still has `localhost:3000` from before the tunnel's local port moved), stop that import and tell the developer their production config's `apiBaseUrl` is stale and needs manual updating to `http://localhost:3001` — see the migration note in `docs/discord-bot/production-hosting.md` for the full explanation. **Do not edit the file yourself** — same stance as the missing-file case in step 2 (see Non-goals). A stale config for one tool does not block the other tools' imports.
+   If a config exists but its `apiBaseUrl` doesn't match exactly (it very likely still has `localhost:3000` from before the tunnel's local port moved), stop that import and tell the developer their production config's `apiBaseUrl` is stale and needs manual updating to `http://localhost:3001` — see the migration note in `docs/discord-bot/production-hosting.md` for the full explanation. **Do not edit the file yourself** — same stance as the missing-file case in step 2 (see Non-goals). A stale config for one tool does not block the other tools' imports.
 4. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
    ```bash
    lsof -nP -iTCP:3001 -sTCP:LISTEN
