@@ -241,6 +241,10 @@ export class TpPlayersImportService {
             name: player.name,
             teamEraId: teamEra.id,
             positionId,
+            // TP reports the player's career SPP total directly. The
+            // induced-star-player path below has no such field and passes
+            // none, leaving players.spp_total NULL for those.
+            sppTotal: player.totalStarPlayerPoints,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],
