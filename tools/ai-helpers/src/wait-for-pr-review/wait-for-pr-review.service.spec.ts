@@ -170,8 +170,10 @@ describe('WaitForPrReviewService', () => {
     });
 
     expect(result).toEqual({ found: false, timedOut: true });
-    // Polls at 0/30s/60s/90s: the 90s poll happens, then the deadline is hit.
-    expect(processRunner.run).toHaveBeenCalledTimes(4);
+    // Polls at 0/30s/60s: after the 60s poll, sleeping 30s more resumes
+    // exactly at the 90s deadline — the wait must not issue a further `gh`
+    // call at that point, only report the timeout.
+    expect(processRunner.run).toHaveBeenCalledTimes(3);
   });
 
   it('tolerates a failing gh call and retries on the next interval', async () => {
@@ -206,10 +208,10 @@ describe('WaitForPrReviewService', () => {
     await runWait({ ...OPTIONS, timeoutMs: 90_000, intervalMs: 30_000 });
 
     const budgets = processRunner.run.mock.calls.map((call) => call[2]);
-    // The 4th poll's remaining budget is exactly 0 (deadline reached) —
-    // execFile's `timeout: 0` means "no timeout", so it floors to
-    // intervalMs instead of being left unbounded.
-    expect(budgets).toEqual([90_000, 60_000, 30_000, 30_000]);
+    // Only 3 polls happen: sleeping after the 3rd poll resumes exactly at
+    // the deadline, which is reported as a timeout rather than issuing a
+    // 4th `gh` call.
+    expect(budgets).toEqual([90_000, 60_000, 30_000]);
   });
 
   it('bounds even a zero-budget wait to one interval, never leaving the single poll unbounded', async () => {
@@ -246,8 +248,10 @@ describe('WaitForPrReviewService', () => {
 
     expect(result).toEqual({ found: false, timedOut: true });
     // Default timeout 600_000ms / interval 30_000ms: polls at
-    // 0/30s/60s/.../600s — 21 polls before the deadline is hit.
-    expect(processRunner.run).toHaveBeenCalledTimes(21);
+    // 0/30s/60s/.../570s — 20 polls. Sleeping after the 20th poll resumes
+    // exactly at the 600s deadline, which is reported as a timeout rather
+    // than issuing a 21st `gh` call.
+    expect(processRunner.run).toHaveBeenCalledTimes(20);
   });
 
   it('returns immediately when a qualifying rate-limit comment is found', async () => {

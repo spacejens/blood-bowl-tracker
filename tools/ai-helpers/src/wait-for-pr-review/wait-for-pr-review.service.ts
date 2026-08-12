@@ -131,6 +131,14 @@ export class WaitForPrReviewService {
         return { found: false, timedOut: true };
       }
       await this.sleep(intervalMs);
+      // `sleep` can resume at or after the deadline (real-timer drift, a
+      // slow event loop) even though the check above passed just before it
+      // started — re-check here so a late wake-up cannot trigger one more
+      // `gh` call, and possibly return a review that arrived after the
+      // caller's own timeout had already elapsed.
+      if (Date.now() >= deadline) {
+        return { found: false, timedOut: true };
+      }
     }
   }
 
