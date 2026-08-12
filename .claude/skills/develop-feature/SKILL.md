@@ -340,6 +340,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       ```
       Substitute the PR number from step 3, the login captured before the loop, and the watermark epoch and previous review id from above. Omit `--exclude-review-id` entirely on the first iteration (nothing to exclude yet). The command polls internally every 30 seconds for up to 10 minutes and stays silent until it exits; if `dist/main.js` is missing, build it first with `cd <worktree-path> && pnpm --filter @blood-bowl-tracker/ai-helpers run build`. It prints one JSON object:
       - `{"found": true, "review": {...}}` — a qualifying review exists. Record both `review.submittedAt` and `review.id` for the next iteration, stop waiting, and go to (c).
+      - `{"found": false, "rateLimited": true, "rateLimitComment": {...}}` — CodeRabbit answered with a rate-limit warning comment instead of a review, so the wait returned early rather than running out its remaining time. The result may also carry `availableAtEpochSeconds`, a best-effort epoch parsed from the comment. Go to (b2).
       - `{"found": false, "timedOut": true}` — the 10 minutes elapsed with nothing. Go to (b).
 
       Run it via `Bash` with `run_in_background: true` — this command produces exactly one result at exit, which is what `run_in_background` is for; a foreground `Bash` call would race the wait's own 10-minute budget against `Bash`'s own 10-minute cap, and `Monitor`'s default `timeout_ms` is only 5 minutes (its max is 60 minutes, but only if raised explicitly), so an unmodified `Monitor` call would be killed before the wait can report its own timeout. Because this is a single command, worktree isolation accepts it — unlike the inline multi-line poll loop it replaces, which a worktree-isolated session refuses to run (see "Worktree isolation and shell commands" above). **Do not use `ScheduleWakeup` for this wait** — it only works inside an active `/loop` session and errors otherwise. Backgrounding the command means it does not block — wait for the harness's own completion notification for that background task, then read the printed JSON result (from the notification, or the task's output file) as the outcome to branch on in (b)/(c) below; do not try to poll or inspect it before that notification arrives.
@@ -355,6 +356,34 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       - **Skip the review loop** — leave the loop immediately and continue to step 5.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+
+   b2. **Rate-limit handling.** If the command returns `{"found": false, "rateLimited": true, ...}`, CodeRabbit hit its own per-developer review rate limit and posted a warning comment instead of reviewing. Report the wait time first:
+      - If `availableAtEpochSeconds` is present, convert and show it, e.g. "CodeRabbit reports reviews will resume around `<that instant, formatted>`":
+        ```bash
+        cd <worktree-path> && node -e "console.log(new Date(<availableAtEpochSeconds> * 1000).toString())"
+        ```
+      - If it is absent, say so plainly: "CodeRabbit's rate-limit comment didn't include a specific wait time — defaulting to a 10-minute wait."
+
+      Then **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
+      - **Wait for it, then trigger a review** — this retry's watermark is the rate-limit comment's own `submittedAt` (converted to epoch seconds), not the watermark that led into (a). Mirror (a)'s later-iteration step:
+        ```bash
+        cd <worktree-path> && node -e "console.log(Math.floor(new Date('<rateLimitComment.submittedAt>').getTime() / 1000))"
+        ```
+        Substitute `<rateLimitComment.submittedAt>` with the exact ISO-8601 value from this round's `rateLimitComment.submittedAt`.
+
+        Then re-run `wait-for-pr-review` with that as the watermark and the same `--exclude-review-id` as before, plus the two flags below. Like "Keep waiting" in (b), this does **not** consume a loop iteration.
+        ```bash
+        cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
+        ```
+        - Include `--exclude-review-id` only when a previous review's `id` already exists to exclude (i.e. this isn't the very first iteration's wait). Omit it entirely when the rate limit was hit on step (a)'s first iteration, consistent with how (a) itself omits it there.
+        - `<comment-watermark-epoch>` is the value just computed above, not the watermark from (a).
+        - `<trigger-epoch>` is `availableAtEpochSeconds` when present, otherwise the current epoch plus 600 (a 10-minute default).
+        - `<timeout>` is `(<trigger-epoch> − now) × 1000 + 600000` — the wait until reviews resume, plus the standard 10-minute review window that follows the trigger. `wait-for-pr-review` does not compute this itself; it only posts the trigger once the clock crosses `--trigger-after` and keeps polling until its own deadline, so too small a `--timeout-ms` would expire before the triggered review can land.
+        - **Why the comment's own `submittedAt`, not the watermark from (a):** `--exclude-comment-id` only ever excludes one id, and the jq filter picks the chronologically-*first* qualifying comment. If a *third* consecutive round reused the original watermark from (a) on every retry, excluding only the newest comment's id would leave the original (now-stale) first comment eligible again — the wait could never progress. Advancing the watermark to the just-found comment's own `submittedAt` on each retry closes that gap, the same way (a)'s carried-forward watermark closes it for reviews (see "Why a carried-forward watermark" above); `--exclude-comment-id` then only has to cover the same-second tie-break case, exactly as `--exclude-review-id` does for reviews.
+        - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark) if CodeRabbit reports the limit again with a *new* comment.
+      - **Skip the review loop** — leave the loop immediately and continue to step 5.
+
+      This is a Pause rather than an automatic decision for the same reason as (b): the wait may be long enough that the developer would rather move on, and only they can judge that. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
    c. **Handle the review.** **REQUIRED SUB-SKILL:** Use the `handle-pr-reviews` skill, targeting this PR by number, to discover and triage everything outstanding — inline review comments, top-level comments, and failing CI checks alike, exactly as it does when a developer runs it standalone. Nothing about its own discovery, triage, or reply behavior changes here; the loop only calls it.
 

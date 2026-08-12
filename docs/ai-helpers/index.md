@@ -35,16 +35,24 @@ Run from the repo root. On success, every subcommand prints JSON on stdout; fail
 ### `wait-for-pr-review` usage
 
 ```bash
-node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>]
+node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-login> <since-epoch-seconds> [--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>] [--exclude-comment-id=<id>] [--trigger-after=<epoch-seconds>]
 ```
 
 - `<pr-number>` — the PR to poll.
 - `<developer-login>` — the PR author's own login, excluded as a reviewer.
-- `<since-epoch-seconds>` — only reviews submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
+- `<since-epoch-seconds>` — only reviews (or rate-limit comments) submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
 - `--timeout-ms` (default 600000, 10 minutes) / `--interval-ms` (default 30000, 30 seconds) — optional overrides; `--interval-ms` has a 1000ms minimum.
 - `--exclude-review-id` — excludes one review by its `id`, regardless of its `submittedAt`. Needed alongside the inclusive threshold above: pass the previously-found review's own `id` here (e.g. across develop-feature's Phase 6 iterations) so that same review isn't matched again forever just because the threshold is inclusive.
+- `--exclude-comment-id` — the same exclusion, but for a CodeRabbit rate-limit comment's `id` instead of a review's, for the same reason.
+- `--trigger-after` — once the clock crosses this epoch, the first poll at or after it posts a `@coderabbitai review` comment on the PR, then polling continues to the deadline as normal. Used to nudge CodeRabbit into reviewing again once its rate limit is expected to have cleared.
 
-Prints `{"found": true, "review": {...}}` once a qualifying review appears, or `{"found": false, "timedOut": true}` once the timeout elapses.
+Prints one of three JSON outcomes:
+- `{"found": true, "review": {...}}` — a qualifying review was found.
+- `{"found": false, "timedOut": true}` — the timeout elapsed with nothing found.
+- `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time. `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, and the key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
+  ```json
+  {"found": false, "rateLimited": true, "rateLimitComment": {...}}
+  ```
 
 ## Development
 

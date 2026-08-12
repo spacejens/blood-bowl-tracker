@@ -18,8 +18,27 @@ export interface WaitForPrReviewOptions {
   readonly sinceEpochSeconds: number;
   /** The review this wait's own watermark was derived from, if any — excluded even when it falls at or after `sinceEpochSeconds`. */
   readonly excludeReviewId?: string;
+  /** A rate-limit comment already surfaced to the caller — excluded so a re-run does not re-match it forever. */
+  readonly excludeCommentId?: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
+  /**
+   * When set, one `@coderabbitai review` comment is posted on the first poll
+   * at or after this instant, and polling then continues to the deadline. The
+   * caller is responsible for passing a `timeoutMs` large enough to cover both
+   * the wait until this instant and a normal review window after it — this
+   * service only acts once the clock crosses the epoch, it never extends its
+   * own deadline for it.
+   */
+  readonly triggerAfterEpochSeconds?: number;
+}
+
+/** A CodeRabbit comment reporting that its review rate limit was hit. */
+export interface RateLimitComment {
+  readonly id: string;
+  readonly body: string;
+  /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
+  readonly submittedAt: string;
 }
 
 export interface WaitForPrReviewResult {
@@ -28,12 +47,55 @@ export interface WaitForPrReviewResult {
   readonly review?: unknown;
   /** Present (and true) only when the wait ended on its timeout. */
   readonly timedOut?: boolean;
+  /** True only when a qualifying CodeRabbit rate-limit comment was found instead of a review. */
+  readonly rateLimited?: boolean;
+  /** Present only when `rateLimited` is true. */
+  readonly rateLimitComment?: RateLimitComment;
+  /**
+   * Best-effort epoch parsed from the comment body when it states a relative
+   * duration ("available again in 45 minutes", "retry in 2 hours"). Absent
+   * when no duration could be parsed — the caller is expected to fall back to
+   * a default wait.
+   */
+  readonly availableAtEpochSeconds?: number;
 }
+
+/** What one poll saw; both fields absent means "nothing qualifying yet". */
+interface PollOutcome {
+  readonly review?: unknown;
+  readonly rateLimitComment?: RateLimitComment;
+}
+
+/**
+ * Tolerant, deliberately CodeRabbit-specific wording match. The exact
+ * rate-limit comment text is unknown and may drift, so any one of these
+ * phrases (case-insensitive) qualifies.
+ */
+const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
+/**
+ * Mirrors `RATE_LIMIT_PHRASES` for a second, stricter check in TypeScript
+ * (see `hasGenuineRateLimitPhrase`) — `gh`/jq's own phrase test is a coarse
+ * first pass and can be fooled by a phrase appearing only inside markdown
+ * code formatting (e.g. a branch name quoted in an inline code span).
+ */
+const RATE_LIMIT_PHRASE_REGEX = new RegExp(RATE_LIMIT_PHRASES, 'i');
+/** A fenced code block: three backticks, any content, three backticks. */
+const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
+/** An inline code span: a backtick, no-backtick content, a backtick. */
+const INLINE_CODE_SPAN = /`[^`]*`/g;
+
+/** A sentence must mention one of these to be read as stating a wait time. */
+const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets|wait|before)\b/i;
+/** The duration itself: a number followed by a minute/hour unit. */
+const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
 
 /** 10 minutes — matches develop-feature Phase 6's original wait. */
 const DEFAULT_TIMEOUT_MS = 600_000;
 /** 30 seconds — matches develop-feature Phase 6's original poll interval. */
 const DEFAULT_INTERVAL_MS = 30_000;
+
+/** What a triggered review is asked for with; CodeRabbit's own command. */
+const TRIGGER_REVIEW_BODY = '@coderabbitai review';
 
 /**
  * Waits until someone other than the PR's author submits a review, or until
@@ -44,6 +106,12 @@ const DEFAULT_INTERVAL_MS = 30_000;
  *
  * Bot-agnostic by construction — it looks for *some* formal review object
  * from a non-author, never for a particular bot's name.
+ *
+ * The one exception is rate-limit detection: CodeRabbit answers its own
+ * per-developer review rate limit with a top-level PR comment instead of a
+ * review, so each poll also looks for that comment — narrowly, by
+ * CodeRabbit's own login and wording — and returns immediately when it finds
+ * one, rather than running out the whole timeout with nothing to report.
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -52,27 +120,41 @@ export class WaitForPrReviewService {
   async run(options: WaitForPrReviewOptions): Promise<WaitForPrReviewResult> {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+    let triggered = false;
     for (;;) {
-      const review = await this.poll(options, deadline, intervalMs);
-      if (review !== undefined) {
-        return { found: true, review };
+      const outcome = await this.poll(options, deadline, intervalMs);
+      if (outcome?.review !== undefined) {
+        return { found: true, review: outcome.review };
+      }
+      if (outcome?.rateLimitComment !== undefined) {
+        return this.rateLimitedResult(outcome.rateLimitComment);
+      }
+      if (!triggered && this.shouldTrigger(options)) {
+        // Set before awaiting: a slow or failing post must not be retried on
+        // every interval for the rest of the wait.
+        triggered = true;
+        await this.triggerReview(
+          options.prNumber,
+          this.budgetMs(deadline, intervalMs),
+        );
       }
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
       }
       await this.sleep(intervalMs);
+      // `sleep` can resume at or after the deadline (real-timer drift, a
+      // slow event loop) even though the check above passed just before it
+      // started — re-check here so a late wake-up cannot trigger one more
+      // `gh` call, and possibly return a review that arrived after the
+      // caller's own timeout had already elapsed.
+      if (Date.now() >= deadline) {
+        return { found: false, timedOut: true };
+      }
     }
   }
 
   /**
-   * One `gh` query, bounded to the time left before `deadline` — or, once
-   * that budget is already exhausted, to one more `intervalMs` rather than
-   * a near-zero budget. `ProcessRunnerService` clamps a zero/negative
-   * `timeoutMs` to effectively "kill it almost immediately" rather than
-   * "no timeout" — passing the exhausted remaining budget through as-is
-   * would deny the loop's last poll any real chance to complete. The
-   * last-chance floor at `intervalMs` gives it one, while still guaranteeing
-   * at least one poll happens even for a zero/tiny overall `timeoutMs`.
+   * One `gh` query, bounded to the time left before `deadline`.
    *
    * Returns the first qualifying review, or `undefined` when there is none,
    * the call failed, or it did not finish before its own bound — a
@@ -80,13 +162,15 @@ export class WaitForPrReviewService {
    * interval, never to abort the wait. Bounding every call this way
    * guarantees a result can never arrive long after `deadline` and be
    * mistaken for a fresh `found`.
+   *
+   * Both halves of the filter come back in one object, so rate-limit
+   * detection costs no extra `gh` call.
    */
   private async poll(
     options: WaitForPrReviewOptions,
     deadline: number,
     intervalMs: number,
-  ): Promise<unknown> {
-    const remainingMs = deadline - Date.now();
+  ): Promise<PollOutcome | undefined> {
     const result = await this.processRunner.run(
       'gh',
       [
@@ -94,11 +178,11 @@ export class WaitForPrReviewService {
         'view',
         options.prNumber,
         '--json',
-        'reviews',
+        'reviews,comments',
         '--jq',
         this.filter(options),
       ],
-      remainingMs > 0 ? remainingMs : intervalMs,
+      this.budgetMs(deadline, intervalMs),
     );
     if (result.exitCode !== 0) {
       return undefined;
@@ -107,20 +191,58 @@ export class WaitForPrReviewService {
     if (stdout === '' || stdout === 'null') {
       return undefined;
     }
+    let parsed: PollOutcome | null;
     try {
-      return JSON.parse(stdout) as unknown;
+      parsed = JSON.parse(stdout) as PollOutcome | null;
     } catch {
       return undefined;
     }
+    if (parsed === null || typeof parsed !== 'object') {
+      return undefined;
+    }
+    // jq emits `null` for an empty half; normalise both to `undefined` so
+    // callers can test them with a single `!== undefined`. A rate-limit
+    // candidate is also re-checked here — jq's own phrase test is coarse
+    // and can be fooled by a phrase appearing only inside markdown code
+    // formatting (a quoted branch name, file path, or snippet).
+    const rateLimitComment =
+      parsed.rateLimitComment != null &&
+      this.hasGenuineRateLimitPhrase(parsed.rateLimitComment.body)
+        ? parsed.rateLimitComment
+        : undefined;
+    return {
+      ...(parsed.review == null ? {} : { review: parsed.review }),
+      ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
+    };
   }
 
   /**
-   * Wrapped in `[...] | first` so a poll emits exactly one JSON value (the
-   * first qualifying review, or `null`). A bare `.reviews[] | select(...)`
-   * streams one document per match, which is not parseable as a whole when
-   * more than one review qualifies.
+   * Strips fenced code blocks and inline code spans before testing for a
+   * rate-limit phrase — a genuine CodeRabbit rate-limit warning is prose,
+   * not code, so this narrows matching without weakening real detection.
+   */
+  private hasGenuineRateLimitPhrase(body: string): boolean {
+    const prose = body
+      .replace(FENCED_CODE_BLOCK, '')
+      .replace(INLINE_CODE_SPAN, '');
+    return RATE_LIMIT_PHRASE_REGEX.test(prose);
+  }
+
+  /**
+   * One object per poll, holding both halves of the query. Each half is
+   * wrapped in `[...] | first` so it emits exactly one JSON value (the first
+   * match, or `null`). A bare `.reviews[] | select(...)` streams one document
+   * per match, which is not parseable as a whole when more than one matches.
    */
   private filter(options: WaitForPrReviewOptions): string {
+    return (
+      `{review: (${this.reviewFilter(options)}), ` +
+      `rateLimitComment: (${this.rateLimitFilter(options)})}`
+    );
+  }
+
+  /** Bot-agnostic by construction: any formal review object from a non-author. */
+  private reviewFilter(options: WaitForPrReviewOptions): string {
     const login = JSON.stringify(options.developerLogin);
     const excludeClause =
       options.excludeReviewId === undefined
@@ -132,6 +254,108 @@ export class WaitForPrReviewService {
       `(.submittedAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause})] | first`
     );
+  }
+
+  /**
+   * Deliberately CodeRabbit-specific — this failure mode and its comment
+   * shape are CodeRabbit's own behaviour, unlike review detection above.
+   */
+  private rateLimitFilter(options: WaitForPrReviewOptions): string {
+    const excludeClause =
+      options.excludeCommentId === undefined
+        ? ''
+        : ` and .id != ${JSON.stringify(options.excludeCommentId)}`;
+    return (
+      '[.comments[] | select(.createdAt != null) | ' +
+      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
+      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
+      `${excludeClause}) | ` +
+      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
+    );
+  }
+
+  private shouldTrigger(options: WaitForPrReviewOptions): boolean {
+    return (
+      options.triggerAfterEpochSeconds !== undefined &&
+      Date.now() >= options.triggerAfterEpochSeconds * 1000
+    );
+  }
+
+  /**
+   * Failure is deliberately swallowed: a trigger that could not be posted is
+   * no reason to abort a wait that may still see a review, and the caller
+   * learns the outcome from the wait's own result either way.
+   */
+  private async triggerReview(
+    prNumber: string,
+    timeoutMs: number,
+  ): Promise<void> {
+    try {
+      await this.processRunner.run(
+        'gh',
+        ['pr', 'comment', prNumber, '--body', TRIGGER_REVIEW_BODY],
+        timeoutMs,
+      );
+    } catch {
+      // Nothing to do — see above.
+    }
+  }
+
+  /**
+   * The time left before `deadline`, or one interval once that budget is
+   * exhausted. `ProcessRunnerService` treats a zero/negative bound as "kill
+   * almost immediately", so an exhausted budget passed through as-is would
+   * deny the call any real chance to complete.
+   */
+  private budgetMs(deadline: number, intervalMs: number): number {
+    const remainingMs = deadline - Date.now();
+    return remainingMs > 0 ? remainingMs : intervalMs;
+  }
+
+  private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {
+    const availableAtEpochSeconds = this.parseAvailableAt(comment);
+    return {
+      found: false,
+      rateLimited: true,
+      rateLimitComment: comment,
+      ...(availableAtEpochSeconds === undefined
+        ? {}
+        : { availableAtEpochSeconds }),
+    };
+  }
+
+  /**
+   * Best-effort only. Splits the body into sentences (and lines), keeps those
+   * that mention a wait-time keyword, and takes the first duration found in
+   * one of them — scoping it this way keeps an unrelated "3 minutes"
+   * elsewhere in the comment from being read as the wait. First match wins;
+   * hours convert to minutes. No match means the caller applies its own
+   * default.
+   *
+   * Anchored to the comment's own `submittedAt`, not `Date.now()`: a
+   * stale/re-matched comment (e.g. re-found across a retry) must not be
+   * read as if its wait were freshly starting now.
+   */
+  private parseAvailableAt(comment: RateLimitComment): number | undefined {
+    for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
+      if (!WAIT_TIME_KEYWORDS.test(sentence)) {
+        continue;
+      }
+      const match = WAIT_TIME_DURATION.exec(sentence);
+      if (match === null) {
+        continue;
+      }
+      const minutes =
+        match[2].toLowerCase() === 'hour'
+          ? Number(match[1]) * 60
+          : Number(match[1]);
+      return (
+        Math.floor(new Date(comment.submittedAt).getTime() / 1000) +
+        minutes * 60
+      );
+    }
+    return undefined;
   }
 
   private sleep(milliseconds: number): Promise<void> {
