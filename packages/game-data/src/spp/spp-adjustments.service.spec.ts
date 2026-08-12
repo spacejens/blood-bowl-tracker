@@ -146,6 +146,49 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
     expect(h.totals.totalsForPlayers).not.toHaveBeenCalled();
   });
 
+  it('issues every grouped update inside one transaction', async () => {
+    // The write-back spans one UPDATE per distinct written value; they must
+    // all land or none of them, so applyWrites runs them in a transaction.
+    const h = await makeService(mockDb([{ id: 1 }], [{ id: 2 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 10],
+        [2, 10],
+      ]),
+    );
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 10],
+        [2, 10],
+      ]),
+    );
+
+    const result = await h.service.syncScrapedAdjustments({
+      players: [
+        { playerId: 1, scrapedTotal: 12 },
+        { playerId: 2, scrapedTotal: 15 },
+      ],
+    });
+
+    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
+    expect(h.db.transaction).toHaveBeenCalledTimes(1);
+    // Both distinct writes were issued, and only from inside the callback.
+    expect(h.db.chains).toHaveLength(2);
+  });
+
+  it('propagates a failing transaction rather than reporting a partial write', async () => {
+    const h = await makeService(mockDb([{ id: 1 }]));
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 10]]));
+    h.forcedRate.forcedRateSumsForPlayers.mockResolvedValue(new Map([[1, 10]]));
+    h.db.transaction.mockRejectedValue(new Error('connection lost'));
+
+    await expect(
+      h.service.syncScrapedAdjustments({
+        players: [{ playerId: 1, scrapedTotal: 12 }],
+      }),
+    ).rejects.toThrow('connection lost');
+  });
+
   it('treats a player missing from either sum map as contributing 0', async () => {
     // Neither map has an entry for player 1, exercising the `?? 0`
     // fallbacks for both the era-correct sum and the forced-rate sum.
@@ -239,6 +282,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     expect(result).toEqual({ updatedPlayerIds: [1, 2] });
     expect(h.db.chains).toHaveLength(2);
     expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 2 }]);
+    expect(h.db.transaction).toHaveBeenCalledTimes(1);
   });
 
   it('issues no query for an empty id list', async () => {

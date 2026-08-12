@@ -140,15 +140,20 @@ export class SppAdjustmentsService {
       }
     }
 
-    const updatedPlayerIds: number[] = [];
-    for (const { write, ids } of idsByWrite.values()) {
-      const updated = await this.db
-        .update(players)
-        .set(write)
-        .where(inArray(players.id, ids))
-        .returning({ id: players.id });
-      updatedPlayerIds.push(...updated.map((row) => row.id));
-    }
-    return { updatedPlayerIds: updatedPlayerIds.sort((a, b) => a - b) };
+    // One transaction around every group: a failure part-way through would
+    // otherwise leave the earlier groups' UPDATEs committed while the sync
+    // reports failure, i.e. a partially adjusted batch.
+    return this.db.transaction(async (tx) => {
+      const updatedPlayerIds: number[] = [];
+      for (const { write, ids } of idsByWrite.values()) {
+        const updated = await tx
+          .update(players)
+          .set(write)
+          .where(inArray(players.id, ids))
+          .returning({ id: players.id });
+        updatedPlayerIds.push(...updated.map((row) => row.id));
+      }
+      return { updatedPlayerIds: updatedPlayerIds.sort((a, b) => a - b) };
+    });
   }
 }
