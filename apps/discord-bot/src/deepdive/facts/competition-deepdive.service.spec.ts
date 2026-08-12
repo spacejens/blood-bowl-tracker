@@ -91,7 +91,7 @@ describe('CompetitionDeepdiveService', () => {
   // CompetitionDeepdiveService itself owns: the type/era/teams description
   // text, and the era-then-teams entry pool (in that order, with the right
   // ids/labels) it hands to buildEntityComponents.
-  it('renders the type, era line, and participating-teams list (with context suffix), with the era entry before team entries', async () => {
+  it('renders the type, era line, and participating-teams list (with context suffix), with the team entries before the era entry', async () => {
     const entityComponents = mock<EntityComponentsService>();
     const cannedComponents = [
       {
@@ -142,11 +142,6 @@ describe('CompetitionDeepdiveService', () => {
     const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
     expect(entries).toEqual([
       {
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: '20',
-        label: 'BB2020',
-      },
-      {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '5',
         label: 'Gouged Eye',
@@ -155,6 +150,11 @@ describe('CompetitionDeepdiveService', () => {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '9',
         label: 'Reikland Reavers',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
       },
     ]);
   });
@@ -270,14 +270,14 @@ describe('CompetitionDeepdiveService', () => {
     const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
     expect(entries).toEqual([
       {
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: '20',
-        label: 'BB2020',
-      },
-      {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '5',
         label: 'Gouged Eye',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
       },
     ]);
   });
