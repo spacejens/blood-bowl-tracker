@@ -1,0 +1,50 @@
+// Configuration for tools/review-player.
+//
+// Copy this file to `review-player-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/review-player/review-player-config.example.json5 tools/review-player/review-player-config.json5
+//
+// `review-player-config.json5` is git-ignored. See docs/review-player/index.md
+// for configuration details and how to run the tool.
+{
+  // The database the imported data was imported into. This tool only reads
+  // game data itself, but connects via packages/db's DbModule, which applies
+  // any pending migrations on connect (a no-op against a stack deployed from
+  // the same branch).
+  database: {
+    url: 'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+  },
+
+  // How many players the random-sample stratum picks, per source. Defaults
+  // to 3. The SPP-discrepancy stratum ignores this: it always reports every
+  // player whose totals disagree.
+  playersPerStratum: 3,
+
+  // Where each source's raw downloaded data lives. Relative paths resolve
+  // against the current working directory, which is tools/review-player/ when
+  // the tool is run as documented.
+  bbl: {
+    // The folder that directly contains the BBL `default.asp?p=...` files.
+    dataDir: '../import-bbl/data/tloeg.bbleague.se',
+    externalSystemName: 'BBL',
+  },
+  tp: {
+    // The folder that directly contains one subdirectory per era; each era
+    // directory holds one subdirectory per competition, holding the
+    // `match_<id>.json` files.
+    dataDir: '../import-tp/data',
+    externalSystemName: 'TP',
+  },
+
+  // Players always included in the report regardless of the strata sample,
+  // given as each source's own external player id (BBL: the `pid` page
+  // parameter; TP: the line-up `id` inside a match file's roster).
+  overrides: {
+    bbl: [],
+    tp: [],
+  },
+
+  // Base path each generated report is written next to -- a timestamp is
+  // inserted before the extension. Defaults to 'output/report.html'.
+  outputPath: 'output/report.html',
+}
