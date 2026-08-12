@@ -21,6 +21,7 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAdjustmentsService,
   SppAwardValuesService,
   SppTotalsService,
   TeamsService,
@@ -50,6 +51,7 @@ describe('RpcRouterFactoryService', () => {
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
+  let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
   let sppTotalsService: MockProxy<SppTotalsService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
@@ -68,6 +70,7 @@ describe('RpcRouterFactoryService', () => {
     matchOutcomesService = mock<MatchOutcomesService>();
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
+    sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
     sppTotalsService = mock<SppTotalsService>();
     upsertHandler = mock<UpsertHandlerService>();
@@ -109,6 +112,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
+        { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
         { provide: SppTotalsService, useValue: sppTotalsService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
@@ -915,5 +919,38 @@ describe('RpcRouterFactoryService', () => {
 
     expect(result).toEqual({ updatedPlayerIds: [1, 2] });
     expect(sppTotalsService.syncComputedTotals).toHaveBeenCalledWith(input);
+  });
+
+  it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {
+    sppAdjustmentsService.syncScrapedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+    });
+
+    const input = {
+      players: [
+        { playerId: 1, scrapedTotal: 16 },
+        { playerId: 2, scrapedTotal: null },
+      ],
+    };
+    const result = await call(router.players.syncScrapedSppAdjustments, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
+    expect(sppAdjustmentsService.syncScrapedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
+  });
+
+  it('routes players.syncReportedSppAdjustments to SppAdjustmentsService.syncReportedAdjustments', async () => {
+    sppAdjustmentsService.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [3],
+    });
+
+    const input = { playerIds: [3, 4] };
+    const result = await call(router.players.syncReportedSppAdjustments, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [3] });
+    expect(sppAdjustmentsService.syncReportedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
   });
 });

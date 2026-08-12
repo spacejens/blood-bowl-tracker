@@ -22,6 +22,7 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAdjustmentsService,
   SppAwardValuesService,
   SppTotalsService,
   TeamsService,
@@ -48,6 +49,7 @@ export class RpcRouterFactoryService {
     private readonly rulesSetsService: RulesSetsService,
     private readonly sppAwardValuesService: SppAwardValuesService,
     private readonly sppTotalsService: SppTotalsService,
+    private readonly sppAdjustmentsService: SppAdjustmentsService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
@@ -160,6 +162,19 @@ export class RpcRouterFactoryService {
           contract.players.syncComputedSppTotals,
         ).handler(({ input }) =>
           this.sppTotalsService.syncComputedTotals(input),
+        ),
+        // Not routed through the upsert handler, for the same reason
+        // syncComputedSppTotals is not: no external-id conflict to map and
+        // no entity+created shape to return.
+        syncScrapedSppAdjustments: implement(
+          contract.players.syncScrapedSppAdjustments,
+        ).handler(({ input }) =>
+          this.sppAdjustmentsService.syncScrapedAdjustments(input),
+        ),
+        syncReportedSppAdjustments: implement(
+          contract.players.syncReportedSppAdjustments,
+        ).handler(({ input }) =>
+          this.sppAdjustmentsService.syncReportedAdjustments(input),
         ),
       },
       positions: {
