@@ -1,6 +1,6 @@
 import { PlayersService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -74,10 +74,10 @@ function makePlayers(options: {
   };
   counts?: { label: string; count: number }[];
 }): PlayersService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.player),
-    getDeepdiveCategoryCounts: vi.fn().mockResolvedValue(options.counts ?? []),
-  } as unknown as PlayersService;
+  const players = mock<PlayersService>();
+  players.findById.mockResolvedValue(options.player);
+  players.getDeepdiveCategoryCounts.mockResolvedValue(options.counts ?? []);
+  return players;
 }
 
 async function describeFor(spp: {
