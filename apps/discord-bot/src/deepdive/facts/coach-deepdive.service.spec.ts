@@ -454,6 +454,40 @@ describe('CoachDeepdiveService', () => {
     });
   });
 
+  // The no-matches early return builds its own components (header-only, since
+  // no leaderboard data has been fetched yet) and threads the overflow note
+  // into the description. The shared entity-components stubs hardcode
+  // `overflowNote: null`, so this branch needs a per-test override to be
+  // exercised with a note present.
+  it('appends the overflow note on the no-matches path', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 3 more without a link.',
+    });
+    const { service } = await makeService({
+      coaches: makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        span: undefined,
+      }),
+      entityComponents,
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Roze Madder',
+          description: [
+            'Eras: BB2020',
+            DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
+            '…and 3 more without a link.',
+          ].join('\n'),
+        },
+      ],
+    });
+  });
+
   it('builds the team component entries ahead of the era entries', async () => {
     const leaderboard = mock<LeaderboardService>();
     const rankedTeams = [{ id: 10, name: 'Gouged Eyes', count: 12, rank: 1 }];
