@@ -365,6 +365,39 @@ describe('TeamDeepdiveService', () => {
     expect(teams.getTopPlayersByMatchEventCount).not.toHaveBeenCalled();
   });
 
+  // The no-matches early return builds its own components (header-only, since
+  // no leaderboard data has been fetched yet) and threads the overflow note
+  // into the description. The shared entity-components stubs hardcode
+  // `overflowNote: null`, so this branch needs a per-test override to be
+  // exercised with a note present.
+  it('appends the overflow note on the no-matches path', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 4 more without a link.',
+    });
+    const { service } = await makeService({
+      teams: makeTeams({ team: grinders, span: undefined }),
+      entityComponents,
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: '40 grinders',
+          description: [
+            'Race: Dwarf',
+            'Coach: Roze Madder',
+            'Eras: None recorded',
+            DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
+            '…and 4 more without a link.',
+          ].join('\n'),
+        },
+      ],
+      components: [],
+    });
+  });
+
   it('falls back to the team timeout message when the team lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
