@@ -36,6 +36,45 @@ export class SppTotalsService {
   }
 
   /**
+   * The era-correct SPP sum for a batch of players: one grouped query over
+   * `match_events.spp_value`, keyed by acting player id. Every requested id
+   * is present in the returned map — a player with no SPP-earning events
+   * gets 0, the same "no events → 0" rule {@link totalForPlayer} applies.
+   */
+  async totalsForPlayers(playerIds: number[]): Promise<Map<number, number>> {
+    const totals = new Map<number, number>();
+    const ids = [...new Set(playerIds)];
+    if (ids.length === 0) {
+      return totals;
+    }
+
+    const rows = await this.db
+      .select({
+        playerId: matchEvents.actingPlayerId,
+        total: sum(matchEvents.sppValue),
+      })
+      .from(matchEvents)
+      .where(inArray(matchEvents.actingPlayerId, ids))
+      .groupBy(matchEvents.actingPlayerId);
+
+    // row.playerId is typed nullable because match_events.acting_player_id
+    // is a nullable FK in general, but every row here came back through the
+    // inArray filter above, whose values are all real player ids.
+    for (const row of rows) {
+      totals.set(
+        row.playerId as number,
+        row.total === null ? 0 : Number(row.total),
+      );
+    }
+    for (const id of ids) {
+      if (!totals.has(id)) {
+        totals.set(id, 0);
+      }
+    }
+    return totals;
+  }
+
+  /**
    * Recompute and persist `players.spp_total` for a batch of players as the
    * sum of their own `match_events.spp_value` — the same figure
    * {@link totalForPlayer} computes on demand, written down so it can be
