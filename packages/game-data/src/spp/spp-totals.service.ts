@@ -1,7 +1,18 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matchEvents } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eras,
+  matches,
+  matchEvents,
+  matchTeams,
+  players,
+  teamEras,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, inArray, sum } from 'drizzle-orm';
+import { desc, eq, gt, inArray, sql, sum } from 'drizzle-orm';
+
+import type { FactScope } from '../shared/fact-scope';
+import { matchScopeFilter } from '../shared/match-event-counts';
 
 /**
  * A player's Star Player Points total: the sum of the per-event awards
@@ -68,5 +79,39 @@ export class SppTotalsService {
       }
     }
     return totals;
+  }
+
+  /**
+   * Players ranked by the SPP they earned *within a scope*, most first.
+   *
+   * Used for the competition- and match-category-scoped SPP toplist, where
+   * `players.spp_total` cannot be used: it includes manual adjustments whose
+   * originating match — and therefore competition or category — is unknown,
+   * so an adjustment cannot be attributed to a narrower scope than the
+   * player's own era. Summing the per-event values is the attributable part.
+   *
+   * Unlike every `count*` query on this join graph there is no action-type
+   * restriction: SPP-earning events are not one fixed type set. Players whose
+   * scoped sum is 0 are dropped (`HAVING`), mirroring the null-`spp_total`
+   * exclusion on the stored-total path.
+   */
+  topPlayersBySppSum(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    const total = sql<number>`coalesce(sum(${matchEvents.sppValue}), 0)::int`;
+    return this.db
+      .select({ playerId: players.id, name: players.name, count: total })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(matchTeams, eq(matchTeams.id, matchEvents.actingMatchTeamId))
+      .innerJoin(matches, eq(matches.id, matchTeams.matchId))
+      .innerJoin(teamEras, eq(teamEras.id, matchTeams.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(matchScopeFilter(scope))
+      .groupBy(players.id, players.name)
+      .having(gt(total, 0))
+      .orderBy(desc(total))
+      .limit(limit);
   }
 }
