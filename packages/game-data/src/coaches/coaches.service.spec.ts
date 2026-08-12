@@ -546,6 +546,79 @@ describe('CoachesService', () => {
     });
   });
 
+  describe('listEras', () => {
+    it('returns the id/name rows the query resolves to', async () => {
+      const rows = [
+        { id: 3, name: 'BB2016' },
+        { id: 4, name: 'BB2020' },
+      ];
+      await build(rows);
+      await expect(service.listEras(7)).resolves.toEqual(rows);
+    });
+
+    it('returns an empty array when the coach has no teams in any era', async () => {
+      await build([]);
+      await expect(service.listEras(7)).resolves.toEqual([]);
+    });
+
+    it('filters by the requested coach id, not a team id', async () => {
+      const { chains } = await build([]);
+
+      await service.listEras(7);
+
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
+      expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+        'teams.coach_id',
+      ]);
+    });
+
+    it('joins team_eras to eras and on to teams, so several teams of one coach are covered', async () => {
+      const { chains } = await build([]);
+
+      await service.listEras(7);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'team_eras.era_id']);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['teams.id', 'team_eras.team_id']);
+    });
+
+    // A coach with two teams in the same era produces two joined rows, which
+    // would list that era twice. The dedup is PostgreSQL's, via GROUP BY, so
+    // mockDb (which just replays canned rows) cannot demonstrate it by
+    // returning duplicates — asserting the grouping columns is what actually
+    // pins the guarantee. Real duplicate collapsing is PostgreSQL's own
+    // behaviour, not this service's.
+    it('groups by era so an era shared by two of the coach teams is listed once', async () => {
+      const { chains } = await build([{ id: 4, name: 'BB2020' }]);
+
+      await expect(service.listEras(7)).resolves.toEqual([
+        { id: 4, name: 'BB2020' },
+      ]);
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 0))).toEqual(
+        ['eras.id'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].groupBy, 0, 1))).toEqual(
+        ['eras.name'],
+      );
+    });
+
+    it('orders chronologically by era start date, then name', async () => {
+      const { chains } = await build([]);
+
+      await service.listEras(7);
+
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 0))).toEqual(
+        ['eras.start_date'],
+      );
+      expect(extractJoinColumns(firstCallArg(chains[0].orderBy, 0, 1))).toEqual(
+        ['eras.name'],
+      );
+    });
+  });
+
   describe('searchByNamePrefix', () => {
     it('returns id/name choices for a name prefix, capped to the limit', async () => {
       const rows = [
