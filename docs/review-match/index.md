@@ -21,9 +21,9 @@ deliberately duplicated from the Discord bot's own label service of the same
 name rather than shared — the six-word title-casing it does isn't behaviour
 worth coupling two independent tools over.
 
-Scope today is match events; the tool is structured so a future data type
-(rosters, standings) plugs in as another module without touching the harness
-services.
+Scope today is match events and star player point totals; the tool is
+structured so a future data type (rosters, standings) plugs in as another
+module without touching the harness services.
 
 ## What it does
 
@@ -93,6 +93,19 @@ services.
      collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
+   - **spp-totals** — a second panel pair for the same match, comparing each
+     player's SPP two ways: the left panel sums `match_events.spp_value` over
+     the events where the player is the *acting* participant (this tool's own
+     query, not `packages/game-data`'s `SppTotalsService`), the right panel
+     shows the stored `players.spp_total` / `spp_adjustment`. Both panels are
+     database-derived, so they carry their own headings ("Computed from match
+     events (database)" / "Stored player totals (database)") rather than the
+     harness's raw/imported wording. Scope is every player with an event in
+     the match, plus every player on either roster already carrying a non-zero
+     stored total — a cumulative disagreement is worth seeing even when the
+     player earned nothing in this particular match. A player whose two
+     figures disagree — including one with no stored total at all — is shown
+     with a highlighted row and an explicit `MISMATCH` label in both panels.
 6. Writes the report under `tools/review-match/output/` (gitignored) with a
    timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
    so successive runs don't overwrite each other's reports, and prints where

@@ -8,6 +8,8 @@ import { MergedMatchStratificationService } from '../match-events/merged-match-s
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { MATCH_STRATIFIERS } from '../shared/match-stratifier';
 import { SharedModule } from '../shared/shared.module';
+import { SppTotalsModule } from '../spp-totals/spp-totals.module';
+import { SppTotalsReviewerService } from '../spp-totals/spp-totals-reviewer.service';
 import { MatchLookupService } from './match-lookup.service';
 import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
@@ -23,7 +25,7 @@ import { ReviewService } from './review.service';
  * harness service.
  */
 @Module({
-  imports: [SharedModule, MatchEventsModule],
+  imports: [SharedModule, MatchEventsModule, SppTotalsModule],
   providers: [
     MatchLookupService,
     MatchResultLookupService,
@@ -33,8 +35,11 @@ import { ReviewService } from './review.service';
     ReviewService,
     {
       provide: DATA_TYPE_REVIEWERS,
-      useFactory: (matchEvents: MatchEventsReviewerService) => [matchEvents],
-      inject: [MatchEventsReviewerService],
+      useFactory: (
+        matchEvents: MatchEventsReviewerService,
+        sppTotals: SppTotalsReviewerService,
+      ) => [matchEvents, sppTotals],
+      inject: [MatchEventsReviewerService, SppTotalsReviewerService],
     },
     {
       provide: MATCH_STRATIFIERS,
