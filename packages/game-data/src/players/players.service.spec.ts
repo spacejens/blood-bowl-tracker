@@ -25,6 +25,7 @@ import {
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayersService, PlayerUpsertConflictError } from './players.service';
 
 const fakePlayer = {
@@ -48,6 +49,7 @@ describe('PlayersService', () => {
       providers: [
         PlayersService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: SppTotalsService, useValue: mock<SppTotalsService>() },
         { provide: DB, useValue: db },
       ],
     }).compile();

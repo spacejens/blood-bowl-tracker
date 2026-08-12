@@ -395,6 +395,13 @@ export function buildFactTree(deps: FactTreeDeps): FactNode {
           supportsMatchCategory: true,
           resolve: (scope) => deps.playerToplist.resolveTimesSentOff(scope),
         },
+        totalSpp: {
+          supportsLeague: true,
+          supportsEra: true,
+          supportsCompetition: true,
+          supportsMatchCategory: true,
+          resolve: (scope) => deps.playerToplist.resolveTotalSpp(scope),
+        },
       },
     },
     race: {

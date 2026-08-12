@@ -12,7 +12,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq, ilike } from 'drizzle-orm';
+import { and, count, desc, eq, ilike, isNotNull, sql } from 'drizzle-orm';
 
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
@@ -41,6 +41,7 @@ import type { PlayerContextNames } from '../shared/player-context-names';
 import { getPlayerContextNamesByIds as queryPlayerContextNamesByIds } from '../shared/player-context-names';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
+import { SppTotalsService } from '../spp/spp-totals.service';
 
 export class PlayerUpsertConflictError extends UpsertConflictError {}
 
@@ -49,6 +50,7 @@ export class PlayersService {
   constructor(
     @Inject(DB) private readonly db: Db,
     private readonly likePattern: LikePatternService,
+    private readonly sppTotals: SppTotalsService,
   ) {}
 
   async findById(id: number): Promise<
@@ -387,5 +389,50 @@ export class PlayersService {
       )
       .where(eq(competitionTeams.competitionId, competitionId));
     return row.count;
+  }
+
+  /**
+   * Players ranked by total Star Player Points, most first.
+   *
+   * Two calculations, chosen by scope — `FactScope`'s fields are mutually
+   * exclusive, so this is a plain two-way branch:
+   *
+   * - All-time, league or era: the stored `players.spp_total`, which already
+   *   includes manual adjustments (`players.spp_adjustment`). A player belongs
+   *   to a league/era purely through their own `players.team_era_id`; no match
+   *   event is involved. A NULL total means no source has populated one, so
+   *   there is nothing to rank and the player is excluded.
+   * - Competition or match category: those scopes are narrower than an era and
+   *   an adjustment cannot be attributed to one, so the per-event sum is used
+   *   instead — see SppTotalsService.topPlayersBySppSum.
+   */
+  topPlayersByTotalSpp(
+    scope: FactScope,
+    limit: number,
+  ): Promise<{ playerId: number; name: string; count: number }[]> {
+    if (scope.competitionId !== undefined || scope.category !== undefined) {
+      return this.sppTotals.topPlayersBySppSum(scope, limit);
+    }
+    // Typed through sql<number> because the column is nullable in general;
+    // the isNotNull guard below is what makes every returned row a number.
+    const total = sql<number>`${players.sppTotal}`;
+    return this.db
+      .select({ playerId: players.id, name: players.name, count: total })
+      .from(players)
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .where(
+        and(
+          isNotNull(players.sppTotal),
+          scope.leagueId === undefined
+            ? undefined
+            : eq(eras.leagueId, scope.leagueId),
+          scope.eraId === undefined
+            ? undefined
+            : eq(teamEras.eraId, scope.eraId),
+        ),
+      )
+      .orderBy(desc(players.sppTotal))
+      .limit(limit);
   }
 }

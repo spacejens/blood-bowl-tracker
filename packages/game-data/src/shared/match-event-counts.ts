@@ -29,6 +29,27 @@ export type MatchEventSelector =
   | { role: 'consequence'; types: readonly ConsequenceType[] };
 
 /**
+ * The league/era/competition/match-category narrowing shared by every scoped
+ * query over this join graph. Exported because the SPP sum in
+ * `SppTotalsService` needs exactly this narrowing without any event-type
+ * restriction — SPP-earning events are not one fixed type set.
+ */
+export function matchScopeFilter(scope: FactScope): SQL | undefined {
+  return and(
+    scope.leagueId === undefined
+      ? undefined
+      : eq(eras.leagueId, scope.leagueId),
+    scope.eraId === undefined ? undefined : eq(teamEras.eraId, scope.eraId),
+    scope.competitionId === undefined
+      ? undefined
+      : eq(matches.competitionId, scope.competitionId),
+    scope.category === undefined
+      ? undefined
+      : eq(matches.category, scope.category),
+  );
+}
+
+/**
  * The where clause shared by every match-event count: the type filter for the
  * given selector's role, optionally narrowed to a league, era, competition
  * and/or match category. `undefined` for any scope field means "no filter",
@@ -42,16 +63,7 @@ function matchEventFilter(
     selector.role === 'acting'
       ? inArray(matchEvents.actionType, selector.types)
       : inArray(matchEvents.consequenceType, selector.types),
-    scope.leagueId === undefined
-      ? undefined
-      : eq(eras.leagueId, scope.leagueId),
-    scope.eraId === undefined ? undefined : eq(teamEras.eraId, scope.eraId),
-    scope.competitionId === undefined
-      ? undefined
-      : eq(matches.competitionId, scope.competitionId),
-    scope.category === undefined
-      ? undefined
-      : eq(matches.category, scope.category),
+    matchScopeFilter(scope),
   );
 }
 
