@@ -34,7 +34,7 @@ type ParticipatingTeam = { id: number; name: string };
  * `databaseTimeout.run` with a `null` sentinel so a timeout is distinguishable
  * from a genuine "not found" (`undefined`). The era (always present) and each
  * participating team are rendered as drill-down buttons in one combined pool,
- * era first.
+ * teams first so they take component priority over the era header entry.
  */
 @Injectable()
 export class CompetitionDeepdiveService {
@@ -96,17 +96,20 @@ export class CompetitionDeepdiveService {
       ...teamLines,
     ];
 
+    // Team-list entries first: buildEntityComponents has no internal
+    // prioritisation (first-N / first-group wins), so the participating-teams
+    // list gets drill-down controls before the era header entry does.
     const entries: EntityComponentEntry[] = [
-      {
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: String(competition.eraId),
-        label: competition.eraName,
-      },
       ...teams.map((team): EntityComponentEntry => ({
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: String(team.id),
         label: team.name,
       })),
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(competition.eraId),
+        label: competition.eraName,
+      },
     ];
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(entries);
