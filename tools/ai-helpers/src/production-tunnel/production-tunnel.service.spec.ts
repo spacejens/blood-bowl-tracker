@@ -113,5 +113,25 @@ describe('ProductionTunnelService', () => {
       expect(childProcess.kill).not.toHaveBeenCalled();
       expect(result).toEqual({ stopped: false });
     });
+
+    it('never signals anything for an empty pid file — Number("") is 0, which targets the whole process group', async () => {
+      mkdirSync(dirname(pidFilePath), { recursive: true });
+      writeFileSync(pidFilePath, '', 'utf8');
+
+      const result = await service.stop();
+
+      expect(childProcess.kill).not.toHaveBeenCalled();
+      expect(result).toEqual({ stopped: false });
+    });
+
+    it('never signals anything for a negative pid — that targets every process the caller can signal', async () => {
+      mkdirSync(dirname(pidFilePath), { recursive: true });
+      writeFileSync(pidFilePath, '-1', 'utf8');
+
+      const result = await service.stop();
+
+      expect(childProcess.kill).not.toHaveBeenCalled();
+      expect(result).toEqual({ stopped: false });
+    });
   });
 });

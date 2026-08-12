@@ -65,7 +65,10 @@ export class ProductionTunnelService {
     }
     const pid = Number(readFileSync(pidFile, 'utf8').trim());
     rmSync(pidFile, { force: true });
-    if (!Number.isInteger(pid)) {
+    // A pid of 0 or negative is not a real process id we ever wrote — signal
+    // 0 targets the whole process group, and a negative pid targets every
+    // process the caller can signal. Neither is safe to pass through.
+    if (!Number.isInteger(pid) || pid <= 0) {
       return { stopped: false };
     }
     return { stopped: this.childProcess.kill(pid) };

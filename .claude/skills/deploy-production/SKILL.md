@@ -272,35 +272,39 @@ Everything here automates the flow documented in `docs/discord-bot/production-ho
    fi
    ```
    (`tools/import-manual/data` is committed to git, so it needs no sync.)
-2. Check that the production config each selected import needs exists:
+2. Build `tools/ai-helpers` if `dist/main.js` is missing — a fresh worktree only ran `pnpm install`, and steps 3, 6, and the teardown section below all invoke it:
+   ```bash
+   pnpm --filter @blood-bowl-tracker/ai-helpers run build
+   ```
+3. Check that the production config each selected import needs exists:
    ```bash
    ls tools/import-manual/import-manual-config.production.json5 \
       tools/import-bbl/import-bbl-config.production.json5 \
       tools/import-tp/import-tp-config.production.json5 2>&1
    ```
    If the file a selected import needs is missing, stop that import and tell the developer to create it once, from the same `import-*-config.example.json5` template as the local config, filling in the production `apiToken` from the matching `API_TOKEN_IMPORT_*` value in `apps/discord-bot/.env.production` — see `docs/discord-bot/production-hosting.md`. **Do not create it from the template yourself**: a config copied from the example would carry a placeholder token and fail with `401`, and authoring production credentials is a developer's job, not this skill's (see Non-goals). A missing file for one tool does not block the other tools' imports.
-3. For each selected import whose production config exists (from step 2), check that its `apiBaseUrl` is exactly the tunnel's local port rather than a stale pre-migration value. This parses each config with JSON5 and compares `connection.apiBaseUrl` exactly, so a `localhost:30010` value or a `localhost:3001` mention elsewhere in the file (e.g. a comment) cannot pass it — the check lives in `tools/ai-helpers` (see `check-production-config-port.service.ts`), not inline here, so it stays unit tested:
+4. For each selected import whose production config exists (from step 3), check that its `apiBaseUrl` is exactly the tunnel's local port rather than a stale pre-migration value. This parses each config with JSON5 and compares `connection.apiBaseUrl` exactly, so a `localhost:30010` value or a `localhost:3001` mention elsewhere in the file (e.g. a comment) cannot pass it — the check lives in `tools/ai-helpers` (see `check-production-config-port.service.ts`), not inline here, so it stays unit tested:
    ```bash
    node tools/ai-helpers/dist/main.js check-production-config-port http://localhost:3001
    ```
-   It prints `{"stale": [...]}` — an empty array means every existing production config already points at the right port. Each entry names a config whose `apiBaseUrl` doesn't match exactly (it very likely still has `localhost:3000` from before the tunnel's local port moved); stop that import and tell the developer their production config's `apiBaseUrl` is stale and needs manual updating to `http://localhost:3001` — see the migration note in `docs/discord-bot/production-hosting.md` for the full explanation. **Do not edit the file yourself** — same stance as the missing-file case in step 2 (see Non-goals). A stale config for one tool does not block the other tools' imports.
-4. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
+   It prints `{"stale": [...]}` — an empty array means every existing production config already points at the right port. An entry here only matters for a *selected* import; a stale config for an import the developer didn't choose to run is not this run's problem. Most entries name a config whose `apiBaseUrl` doesn't match exactly (it very likely still has `localhost:3000` from before the tunnel's local port moved); an entry can also carry a `parseError` instead, when the file isn't valid JSON5 at all — either way, stop that import and tell the developer: for a mismatched `apiBaseUrl`, that it needs manual updating to `http://localhost:3001` (see the migration note in `docs/discord-bot/production-hosting.md`); for a `parseError`, the parse error itself, since the file needs fixing by hand before it can be checked at all. **Do not edit the file yourself** — same stance as the missing-file case in step 3 (see Non-goals). A stale config for one tool does not block the other tools' imports, and one unparseable config does not stop the others from being checked.
+5. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
    ```bash
    lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
    If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001:3000` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
-5. Build the tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
+6. Build the import tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
    pnpm --filter @blood-bowl-tracker/import-bbl run build      # if the BBL import was selected
    pnpm --filter @blood-bowl-tracker/import-tp run build       # if the TP import was selected
    ```
-6. Open the private tunnel to the production machine. This spawns `flyctl proxy 3001:3000` detached (so it keeps running after this command returns) and persists its pid to a worktree-scoped, gitignored file, so the teardown section can target this run's own tunnel specifically rather than matching any process by command line — the logic lives in `tools/ai-helpers` (see `production-tunnel.service.ts`), not as an inline shell script here, both because spawning a detached process and persisting its pid across separate tool invocations needs real process control a shell one-liner can't give it, and so it stays unit tested:
+7. Open the private tunnel to the production machine. This spawns `flyctl proxy 3001:3000` detached (so it keeps running after this command returns) and persists its pid to a worktree-scoped, gitignored file, so the teardown section can target this run's own tunnel specifically rather than matching any process by command line — the logic lives in `tools/ai-helpers` (see `production-tunnel.service.ts`), not as an inline shell script here, both because spawning a detached process and persisting its pid across separate tool invocations needs real process control a shell one-liner can't give it, and so it stays unit tested:
    ```bash
    node tools/ai-helpers/dist/main.js start-production-tunnel 3001 3000
    ```
-   It prints `{"pid": <n>}`. `3001` is the local port this tunnel listens on; `3000` is the production machine's own listening port (see `fly.toml`), which is unrelated to this change and stays `3000`. Because step 4's pre-flight check already refused to proceed if port 3001 was already bound, no other `flyctl proxy 3001:3000` can have bound it between then and this command running — the pid captured here is this run's own tunnel, unambiguously, even if that tunnel later dies and a different one starts on the now-free port before teardown runs.
-7. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
+   It prints `{"pid": <n>}`. `3001` is the local port this tunnel listens on; `3000` is the production machine's own listening port (see `fly.toml`), which is unrelated to this change and stays `3000`. Because step 5's pre-flight check already refused to proceed if port 3001 was already bound, no other `flyctl proxy 3001:3000` can have bound it between then and this command running — the pid captured here is this run's own tunnel, unambiguously, even if that tunnel later dies and a different one starts on the now-free port before teardown runs.
+8. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
    ```bash
    curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://localhost:3001/rpc
    ```

@@ -12,6 +12,13 @@ export interface StaleProductionConfig {
   readonly path: string;
   /** The config's actual `connection.apiBaseUrl`, or `undefined` if unset. */
   readonly actualApiBaseUrl: string | undefined;
+  /**
+   * Set instead of `actualApiBaseUrl` being meaningful when the file could
+   * not be parsed as JSON5 at all — a malformed file is reported as stale
+   * (it certainly isn't confirmed correct) rather than aborting the check
+   * for every other config.
+   */
+  readonly parseError?: string;
 }
 
 export interface CheckProductionConfigPortResult {
@@ -44,7 +51,14 @@ export class CheckProductionConfigPortService {
       if (!existsSync(fullPath)) {
         continue;
       }
-      const parsed: unknown = JSON5.parse(readFileSync(fullPath, 'utf8'));
+      let parsed: unknown;
+      try {
+        parsed = JSON5.parse(readFileSync(fullPath, 'utf8'));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        stale.push({ path, actualApiBaseUrl: undefined, parseError: message });
+        continue;
+      }
       const actualApiBaseUrl = this.readApiBaseUrl(parsed);
       if (actualApiBaseUrl !== expectedApiBaseUrl) {
         stale.push({ path, actualApiBaseUrl });

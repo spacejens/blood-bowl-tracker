@@ -35,9 +35,20 @@ describe('ChildProcessService', () => {
     const service = await makeService();
     const pid = service.spawnDetached(process.execPath, ['-e', '']);
 
-    await new Promise<void>((resolve) => setTimeout(resolve, 200));
+    // Poll rather than sleep a fixed interval — a slow CI box could still
+    // have this short-lived process alive after any fixed delay, which
+    // would fail the assertion below for reasons unrelated to `kill` itself.
+    const deadline = Date.now() + 5000;
+    let stillAlive = service.kill(pid);
+    while (stillAlive) {
+      if (Date.now() > deadline) {
+        throw new Error(`pid ${pid} did not exit within the test's deadline`);
+      }
+      await new Promise<void>((resolve) => setTimeout(resolve, 10));
+      stillAlive = service.kill(pid);
+    }
 
-    expect(service.kill(pid)).toBe(false);
+    expect(stillAlive).toBe(false);
   });
 
   it('kill rethrows an error that is not the process-already-gone case', async () => {

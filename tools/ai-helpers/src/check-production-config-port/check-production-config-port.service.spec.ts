@@ -84,6 +84,23 @@ describe('CheckProductionConfigPortService', () => {
     expect(result.stale).toEqual([]);
   });
 
+  it('reports an unparseable config as stale, without aborting the check for the other configs', async () => {
+    const badPath = 'tools/import-bbl/import-bbl-config.production.json5';
+    mkdirSync(dirname(join(worktreeRoot, badPath)), { recursive: true });
+    writeFileSync(join(worktreeRoot, badPath), '{ not valid json5 !!', 'utf8');
+    writeConfig(
+      'tools/import-tp/import-tp-config.production.json5',
+      'http://localhost:3001',
+    );
+
+    const result = await service.run('http://localhost:3001');
+
+    expect(result.stale).toHaveLength(1);
+    expect(result.stale[0].path).toBe(badPath);
+    expect(result.stale[0].actualApiBaseUrl).toBeUndefined();
+    expect(result.stale[0].parseError).toBeDefined();
+  });
+
   it('reports a config whose top-level content is not an object as stale, with an undefined apiBaseUrl', async () => {
     const path = 'tools/import-bbl/import-bbl-config.production.json5';
     mkdirSync(dirname(join(worktreeRoot, path)), { recursive: true });
