@@ -132,6 +132,29 @@ describe('schema', () => {
     expect(players.positionId).toBeDefined();
   });
 
+  it('exports players.spp_total as a nullable integer column', () => {
+    const config = getTableConfig(players);
+    const sppTotal = config.columns.find((c) => c.name === 'spp_total');
+    expect(sppTotal).toBeDefined();
+    // Nullable on purpose: NULL means no source has reported or computed a
+    // total for this player yet (e.g. a TP induced star player).
+    expect(sppTotal!.notNull).toBe(false);
+    expect(sppTotal!.getSQLType()).toBe('integer');
+  });
+
+  it('exports players.spp_adjustment as a nullable integer column', () => {
+    const config = getTableConfig(players);
+    const sppAdjustment = config.columns.find(
+      (c) => c.name === 'spp_adjustment',
+    );
+    expect(sppAdjustment).toBeDefined();
+    // Nullable on purpose, mirroring spp_total: NULL means no source has
+    // computed an adjustment for this player yet. A computed 0 is a real,
+    // confirmed "no unexplained SPP" answer and is stored as 0, not NULL.
+    expect(sppAdjustment!.notNull).toBe(false);
+    expect(sppAdjustment!.getSQLType()).toBe('integer');
+  });
+
   it('exports matches table', () => {
     expect(matches.id).toBeDefined();
     expect(matches.competitionId).toBeDefined();

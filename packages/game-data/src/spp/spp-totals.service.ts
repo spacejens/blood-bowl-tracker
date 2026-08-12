@@ -1,7 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, matchEvents } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq, sum } from 'drizzle-orm';
+import { eq, inArray, sum } from 'drizzle-orm';
 
 /**
  * A player's Star Player Points total: the sum of the per-event awards
@@ -29,5 +29,44 @@ export class SppTotalsService {
 
     const total = rows[0]?.total;
     return total === null || total === undefined ? 0 : Number(total);
+  }
+
+  /**
+   * The era-correct SPP sum for a batch of players: one grouped query over
+   * `match_events.spp_value`, keyed by acting player id. Every requested id
+   * is present in the returned map — a player with no SPP-earning events
+   * gets 0, the same "no events → 0" rule {@link totalForPlayer} applies.
+   */
+  async totalsForPlayers(playerIds: number[]): Promise<Map<number, number>> {
+    const totals = new Map<number, number>();
+    const ids = [...new Set(playerIds)];
+    if (ids.length === 0) {
+      return totals;
+    }
+
+    const rows = await this.db
+      .select({
+        playerId: matchEvents.actingPlayerId,
+        total: sum(matchEvents.sppValue),
+      })
+      .from(matchEvents)
+      .where(inArray(matchEvents.actingPlayerId, ids))
+      .groupBy(matchEvents.actingPlayerId);
+
+    // row.playerId is typed nullable because match_events.acting_player_id
+    // is a nullable FK in general, but every row here came back through the
+    // inArray filter above, whose values are all real player ids.
+    for (const row of rows) {
+      totals.set(
+        row.playerId as number,
+        row.total === null ? 0 : Number(row.total),
+      );
+    }
+    for (const id of ids) {
+      if (!totals.has(id)) {
+        totals.set(id, 0);
+      }
+    }
+    return totals;
   }
 }

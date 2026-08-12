@@ -21,6 +21,7 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAdjustmentsService,
   SppAwardValuesService,
   TeamsService,
   TeamUpsertConflictError,
@@ -49,6 +50,7 @@ describe('RpcRouterFactoryService', () => {
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
+  let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
 
@@ -66,6 +68,7 @@ describe('RpcRouterFactoryService', () => {
     matchOutcomesService = mock<MatchOutcomesService>();
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
+    sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
     upsertHandler = mock<UpsertHandlerService>();
     // Mirrors UpsertHandlerService's real implementation (see
@@ -106,6 +109,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
+        { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
       ],
@@ -754,6 +758,8 @@ describe('RpcRouterFactoryService', () => {
         name: 'Griff Oberwald',
         teamEraId: 10,
         positionId: 20,
+        sppTotal: null,
+        sppAdjustment: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -898,5 +904,38 @@ describe('RpcRouterFactoryService', () => {
 
     expect(result).toEqual({ sppAwardValueIds: [11] });
     expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
+  });
+
+  it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {
+    sppAdjustmentsService.syncScrapedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+    });
+
+    const input = {
+      players: [
+        { playerId: 1, scrapedTotal: 16 },
+        { playerId: 2, scrapedTotal: null },
+      ],
+    };
+    const result = await call(router.players.syncScrapedSppAdjustments, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
+    expect(sppAdjustmentsService.syncScrapedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
+  });
+
+  it('routes players.syncReportedSppAdjustments to SppAdjustmentsService.syncReportedAdjustments', async () => {
+    sppAdjustmentsService.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [3],
+    });
+
+    const input = { playerIds: [3, 4] };
+    const result = await call(router.players.syncReportedSppAdjustments, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [3] });
+    expect(sppAdjustmentsService.syncReportedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
   });
 });

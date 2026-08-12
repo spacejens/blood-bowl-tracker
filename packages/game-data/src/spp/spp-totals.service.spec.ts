@@ -44,3 +44,55 @@ describe('SppTotalsService', () => {
     expect(await service.totalForPlayer(9)).toBe(0);
   });
 });
+
+describe('SppTotalsService.totalsForPlayers', () => {
+  it('returns each requested player their own grouped sum', async () => {
+    const db = mockDb([
+      { playerId: 1, total: '17' },
+      { playerId: 2, total: '4' },
+    ]);
+    const service = await makeService(db);
+
+    const totals = await service.totalsForPlayers([1, 2]);
+
+    expect(totals).toEqual(
+      new Map([
+        [1, 17],
+        [2, 4],
+      ]),
+    );
+  });
+
+  it('fills in 0 for a requested player with no rows and for a NULL sum', async () => {
+    const db = mockDb([{ playerId: 1, total: null }]);
+    const service = await makeService(db);
+
+    const totals = await service.totalsForPlayers([1, 2]);
+
+    expect(totals).toEqual(
+      new Map([
+        [1, 0],
+        [2, 0],
+      ]),
+    );
+  });
+
+  it('issues no query and returns an empty map for an empty id list', async () => {
+    const db = mockDb();
+    const service = await makeService(db);
+
+    expect(await service.totalsForPlayers([])).toEqual(new Map());
+    expect(db.chains).toHaveLength(0);
+  });
+
+  it('deduplicates the requested ids before querying', async () => {
+    const db = mockDb([{ playerId: 1, total: '3' }]);
+    const service = await makeService(db);
+
+    await service.totalsForPlayers([1, 1, 2]);
+
+    expect(extractAllFilterValues(firstCallArg(db.chains[0].where))).toEqual([
+      1, 2,
+    ]);
+  });
+});

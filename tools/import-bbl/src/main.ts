@@ -12,6 +12,7 @@ import { BblMatchEventsImportService } from './match-events/bbl-match-events-imp
 import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
+import { BblSppAdjustmentsImportService } from './players/bbl-spp-adjustments-import.service';
 import { BblPositionRaceErasImportService } from './positions/bbl-position-race-eras-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
@@ -90,6 +91,15 @@ async function run(): Promise<ImportResult> {
         playerIdsByPid: playerOutcome.playerIdsByPid,
       });
 
+    // Runs after the match-events step because it depends on the spp_value
+    // those events just wrote. BBL's own displayed career total (scraped by
+    // the players step) is not stored directly — the server uses it to
+    // recover spp_adjustment, then rebuilds spp_total as the era-correct
+    // event sum plus that adjustment.
+    const sppAdjustmentsOutcome = await app
+      .get(BblSppAdjustmentsImportService)
+      .importSppAdjustments(playerOutcome.scrapedSppTotalsByPlayerId);
+
     // Match outcomes run last: scores are counted from the touchdown events
     // imported just above, and a tied knock-out match's winner is traced
     // through sibling matches that must already exist.
@@ -117,6 +127,7 @@ async function run(): Promise<ImportResult> {
       playerOutcome.result,
       positionRaceErasOutcome.result,
       matchEventsOutcome.result,
+      sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
     ];
     return {

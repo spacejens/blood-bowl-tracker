@@ -292,6 +292,7 @@ describe('BblPositionsImportService', () => {
             name: 'Minotaur 2',
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
+            sppTotal: null,
           }),
         ],
       ),
@@ -368,6 +369,7 @@ describe('BblPositionsImportService', () => {
             name: 'Minotaur 2',
             typId: '60',
             teamCode: 'knu', // -> race 140 (Norse Team, bblId '14'), NOT listed
+            sppTotal: null,
           }),
         ],
       ),
@@ -449,6 +451,7 @@ describe('BblPositionsImportService', () => {
             name: 'Goblin Linemen',
             typId: '33',
             teamCode: 'col', // -> race 480 (College of Shadow, bblId '48') = already listed
+            sppTotal: null,
           }),
         ],
       ),
@@ -507,12 +510,14 @@ describe('BblPositionsImportService', () => {
             name: 'Wilhelm Chaney',
             typId: '99',
             teamCode: 'knu',
+            sppTotal: null,
           }),
           plPage({
             pid: '123',
             name: 'Wilhelm Chaney',
             typId: '99',
             teamCode: 'col',
+            sppTotal: null,
           }),
         ],
       ),
@@ -581,6 +586,7 @@ describe('BblPositionsImportService', () => {
             name: 'Norse Catchers',
             typId: '121',
             teamCode: 'knu',
+            sppTotal: null,
           }),
         ],
       ),
@@ -688,6 +694,7 @@ describe('BblPositionsImportService', () => {
             name: 'Grotty',
             typId: '99',
             teamCode: 'unknown-code',
+            sppTotal: null,
           }),
         ],
       ),
@@ -820,6 +827,7 @@ describe('BblPositionsImportService', () => {
             name: 'Lineman',
             typId: '10',
             teamCode: 'ghost', // not in teamRaceIdsByCode
+            sppTotal: null,
           }),
         ],
       ),
@@ -863,6 +871,7 @@ describe('BblPositionsImportService', () => {
             name: 'Lineman',
             typId: '10',
             teamCode: 'orphan', // -> db id 999, absent from racesByBblId
+            sppTotal: null,
           }),
         ],
       ),

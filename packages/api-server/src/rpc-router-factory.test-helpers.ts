@@ -13,6 +13,7 @@ import {
   PositionsService,
   RacesService,
   RulesSetsService,
+  SppAdjustmentsService,
   SppAwardValuesService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
@@ -47,6 +48,7 @@ export async function createRouterHarness() {
     matchOutcomesService: mock<MatchOutcomesService>(),
     playersService: mock<PlayersService>(),
     matchEventsService: mock<MatchEventsService>(),
+    sppAdjustmentsService: mock<SppAdjustmentsService>(),
     sppAwardValuesService: mock<SppAwardValuesService>(),
     upsertHandler: mock<UpsertHandlerService>(),
   };
@@ -119,6 +121,10 @@ export async function createRouterHarness() {
       { provide: MatchOutcomesService, useValue: mocks.matchOutcomesService },
       { provide: PlayersService, useValue: mocks.playersService },
       { provide: MatchEventsService, useValue: mocks.matchEventsService },
+      {
+        provide: SppAdjustmentsService,
+        useValue: mocks.sppAdjustmentsService,
+      },
       {
         provide: SppAwardValuesService,
         useValue: mocks.sppAwardValuesService,
