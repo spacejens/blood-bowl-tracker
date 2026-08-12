@@ -306,11 +306,14 @@ alone does not justify an unrestricted RPC surface on the open internet) and
 over a persistent WireGuard peer via `flyctl wireguard create` (more standing
 setup than an occasional, developer-initiated import run needs).
 
-Because the tunnel listens on `localhost:3000`, an importer's production
-`apiBaseUrl` is the same `http://localhost:3000` as its local-development
-one — only the backend behind it differs. What must differ is the bearer
-token: production `apiToken` values come from the `API_TOKEN_IMPORT_*`
-secrets in `apps/discord-bot/.env.production`, not from the local `.env`.
+The tunnel listens on `localhost:3001` — deliberately not the `3000` the
+local docker-compose stack binds, so a production import that runs for an
+hour or more does not block local development in the meantime. An
+importer's production `apiBaseUrl` is therefore `http://localhost:3001`,
+while its local-development `apiBaseUrl` stays `http://localhost:3000`. The
+bearer token differs too: production `apiToken` values come from the
+`API_TOKEN_IMPORT_*` secrets in `apps/discord-bot/.env.production`, not from
+the local `.env`.
 
 Each importer therefore keeps a second, git-ignored config file next to its
 default one:
@@ -331,12 +334,16 @@ other value) reads the default one. This mirrors the
 To run an import against production:
 
 1. Create the production config files once, from the same templates as the
-   local ones, and fill in the production `apiToken` values:
+   local ones:
    ```bash
    cp tools/import-bbl/import-bbl-config.example.json5 tools/import-bbl/import-bbl-config.production.json5
    cp tools/import-tp/import-tp-config.example.json5 tools/import-tp/import-tp-config.production.json5
    cp tools/import-manual/import-manual-config.example.json5 tools/import-manual/import-manual-config.production.json5
    ```
+   Then edit each newly created file: fill in the production `apiToken`
+   value, **and** change `apiBaseUrl` to `http://localhost:3001`. The shared
+   template ships `http://localhost:3000`, which is correct for the local
+   config but wrong for the production one — the tunnel listens on `3001`.
 2. Build the tools:
    ```bash
    pnpm build
@@ -344,7 +351,7 @@ To run an import against production:
 3. Open the tunnel in its own terminal, from the repository root where
    `fly.toml` lives, and leave it running:
    ```bash
-   flyctl proxy 3000
+   flyctl proxy 3001
    ```
 4. In a second terminal, run the importers in the same order the
    `deploy-local` skill uses locally — manual "before", BBL, TP, manual
@@ -357,12 +364,18 @@ To run an import against production:
    ```
 5. Stop the tunnel (Ctrl-C) when the imports are done.
 
+**If you already have `*-config.production.json5` files** from before the
+tunnel moved to `3001`, they still point at `http://localhost:3000` and will
+now write to your local stack (or fail to connect). Update `apiBaseUrl` to
+`http://localhost:3001` in each of them by hand — they are git-ignored, so
+no change to this repository can do it for you.
+
 Common failures:
 
-- **`ECONNREFUSED` on `localhost:3000`** — the tunnel is not running, or it
-  died. Check the `flyctl proxy` terminal. Note that a locally running
-  docker-compose stack also binds port 3000; stop it before opening the
-  tunnel, or the importer will silently write to the local database instead.
+- **`ECONNREFUSED` on `localhost:3001`** — the tunnel is not running, or it
+  died. Check the `flyctl proxy` terminal. A locally running docker-compose
+  stack is not the cause: it binds `3000`, and the tunnel deliberately does
+  not.
 - **`401`** — the `apiToken` in the `.production.json5` file does not match
   the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
 - **Wrong data imported** — `IMPORT_CONFIG_ENV` was not set (or was set in a
@@ -372,8 +385,8 @@ Common failures:
 The `deploy-production` skill automates this flow: it opens the tunnel,
 runs the importers in the order above with `IMPORT_CONFIG_ENV=production`,
 and closes the tunnel afterwards, in any combination of the four import
-steps. It also checks first that nothing else holds port 3000, since a
-running local stack there would silently take the writes instead.
+steps. It also checks first that nothing else holds port 3001, since another
+production tunnel left running would stop this one from binding.
 
 The manual steps above stay documented because they are what the skill does
 under the hood — which is what you need when an automated run fails partway
