@@ -82,6 +82,8 @@ export const DEEPDIVE_COACH_TIMEOUT_MESSAGE =
   'The coach is still lost somewhere in the locker-room corridors.';
 export const DEEPDIVE_COACH_NO_MATCHES_MESSAGE =
   'This coach has yet to send a single team onto the pitch.';
+export const DEEPDIVE_COACH_ERAS_TIMEOUT_MESSAGE =
+  'The league registrar is still digging out which eras this coach signed up for.';
 export const DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE =
   "The archivist is still leafing through this coach's match ledger.";
 export const DEEPDIVE_COACH_TEAMS_TIMEOUT_MESSAGE =

@@ -75,6 +75,24 @@ export class CoachesService {
     return rows[0];
   }
 
+  /**
+   * Every era any of this coach's teams belongs to, oldest first. Joins through
+   * `teams` rather than filtering `teamEras.teamId` directly (as the team-side
+   * sibling `TeamsService.listEras` does) because a coach can own several
+   * teams; `groupBy` then collapses an era that two of those teams share, which
+   * would otherwise be listed twice.
+   */
+  async listEras(coachId: number): Promise<{ id: number; name: string }[]> {
+    return this.db
+      .select({ id: eras.id, name: eras.name })
+      .from(teamEras)
+      .innerJoin(eras, eq(eras.id, teamEras.eraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(eq(teams.coachId, coachId))
+      .groupBy(eras.id, eras.name)
+      .orderBy(eras.startDate, eras.name);
+  }
+
   searchByNamePrefix(
     prefix: string,
     limit: number,
