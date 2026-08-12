@@ -12,9 +12,12 @@ Finds unhandled review feedback on a pull request, resolves each item with a ver
 ```
 /handle-pr-reviews
 /handle-pr-reviews <N>
+/handle-pr-reviews <N> --skip-deploy-local
 ```
 
 With no argument, the target PR is resolved from the current git branch. With a PR number `<N>`, that PR is used instead.
+
+`--skip-deploy-local` skips Phase 6 entirely: no `deploy-local` hand-off is offered, whatever this run did. It exists for `develop-feature`'s Phase 6 automated review loop, which dispatches this skill unattended after each push — an interactive `deploy-local` offer there would stall the loop waiting on a developer decision nobody is present to make. Nothing is lost by skipping it: `develop-feature` makes its own `deploy-local` offer once its loop ends. Report the skip and its reason in Phase 7 rather than silently doing nothing, so the summary and the developer both have a clear record of what happened and why. The two invocation forms above never carry this flag, so a developer running this skill standalone is unaffected.
 
 ## Comment tag convention
 
@@ -238,7 +241,11 @@ Reply content:
 
 ### Phase 6: Local deploy
 
+Skip this phase if `--skip-deploy-local` was passed on invocation (see "Invocation" above) — then report the skip and its reason in Phase 7.
+
 Skip this phase if no commits were made in Phase 2.
+
+These two skip conditions are independent: either one on its own is reason enough to skip the phase, and neither depends on the other.
 
 **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
@@ -247,5 +254,7 @@ Skip this phase if no commits were made in Phase 2.
 ### Phase 7: Summary
 
 Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL.
+
+If Phase 6 was skipped because `--skip-deploy-local` was passed, say so and why — e.g. "Local deploy: skipped (`--skip-deploy-local`) — running under `develop-feature`'s automated review loop." A Phase 6 skipped because no commits were made needs no such line; that is already implied by reporting that nothing was pushed.
 
 **Skill ends** — human review of the pushed changes and replies happens outside this workflow. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
