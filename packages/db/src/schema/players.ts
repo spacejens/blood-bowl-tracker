@@ -17,6 +17,13 @@ const playersTable = historyTrackedTable({
     positionId: integer('position_id')
       .references(() => positions.id)
       .notNull(),
+    // A player's Star Player Points total, sourced independently of the
+    // per-event `match_events.spp_value` sum: TP reports it directly, and
+    // BBL's own published total is not imported (it may have been corrupted
+    // by the site's BB2016-to-BB2020 migration), so BBL's is instead
+    // recomputed as a plain SUM over that column. Nullable: NULL means no
+    // source has populated it.
+    sppTotal: integer('spp_total'),
   },
 });
 

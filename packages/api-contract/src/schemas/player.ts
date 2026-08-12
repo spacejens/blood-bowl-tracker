@@ -16,8 +16,33 @@ export const UpsertPlayerSchema = z.object({
   name: z.string().optional(),
   teamEraId: z.number().int().optional(),
   positionId: z.number().int().optional(),
+  // The source's own reported Star Player Points total, where the source
+  // publishes one (TP does; BBL's own total is not imported here, since it
+  // may have been corrupted by the site's BB2016-to-BB2020 migration — BBL's
+  // total is instead computed server-side from match_events.spp_value).
+  // Optional in the "no instruction about that column" sense: an omitted
+  // value leaves any previously-stored total untouched.
+  sppTotal: z.number().int().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
+});
+
+/**
+ * Recompute `players.spp_total` for these players from the sum of their own
+ * `match_events.spp_value`. Not an upsert (same rationale as
+ * `positions.syncRaceEras` / `sppAwardValues.sync`): no external ids, no
+ * conflict to detect, no entity+created shape to return.
+ */
+export const SyncComputedSppTotalsSchema = z.object({
+  playerIds: z.array(z.number().int()),
+});
+
+export const SyncComputedSppTotalsResultSchema = z.object({
+  updatedPlayerIds: z.array(z.number().int()),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
 export type UpsertPlayer = z.infer<typeof UpsertPlayerSchema>;
+export type SyncComputedSppTotals = z.infer<typeof SyncComputedSppTotalsSchema>;
+export type SyncComputedSppTotalsResult = z.infer<
+  typeof SyncComputedSppTotalsResultSchema
+>;

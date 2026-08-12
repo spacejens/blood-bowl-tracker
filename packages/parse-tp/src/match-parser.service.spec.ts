@@ -139,6 +139,7 @@ describe('MatchParserService', () => {
                 rosterId: 10,
                 position: 'Dwarf Lineman',
                 isBigGuy: false,
+                totalStarPlayerPoints: 23,
               },
             ],
           },
@@ -155,6 +156,7 @@ describe('MatchParserService', () => {
                 rosterId: 20,
                 position: 'Dwarf Runner',
                 isBigGuy: false,
+                totalStarPlayerPoints: 35,
               },
             ],
           },
@@ -170,6 +172,7 @@ describe('MatchParserService', () => {
         rosterId: 10,
         fallbackPositionName: 'Dwarf Lineman',
         isBigGuy: false,
+        totalStarPlayerPoints: 23,
       },
     ]);
     expect(result.awayRosterPlayers).toEqual([
@@ -181,6 +184,7 @@ describe('MatchParserService', () => {
         rosterId: 20,
         fallbackPositionName: 'Dwarf Runner',
         isBigGuy: false,
+        totalStarPlayerPoints: 35,
       },
     ]);
   });
@@ -200,6 +204,7 @@ describe('MatchParserService', () => {
                 rosterId: 20,
                 position: 'Giant Mercenary',
                 isBigGuy: true,
+                totalStarPlayerPoints: 10,
               },
             ],
           },
@@ -215,6 +220,7 @@ describe('MatchParserService', () => {
         rosterId: 20,
         fallbackPositionName: 'Giant Mercenary',
         isBigGuy: true,
+        totalStarPlayerPoints: 10,
       },
     ]);
   });
@@ -238,6 +244,7 @@ describe('MatchParserService', () => {
                 number: 1,
                 lineUpMasterId: 325,
                 position: 'Blitzer',
+                totalStarPlayerPoints: 15,
                 // rosterId intentionally omitted -- matches real TP data.
               },
             ],
@@ -254,6 +261,7 @@ describe('MatchParserService', () => {
         rosterId: 47062,
         fallbackPositionName: 'Blitzer',
         isBigGuy: false,
+        totalStarPlayerPoints: 15,
       },
     ]);
   });

@@ -12,6 +12,7 @@ import { BblMatchEventsImportService } from './match-events/bbl-match-events-imp
 import { BblMatchOutcomesImportService } from './matches/bbl-match-outcomes-import.service';
 import { BblMatchesImportService } from './matches/bbl-matches-import.service';
 import { BblPlayersImportService } from './players/bbl-players-import.service';
+import { BblSppTotalsImportService } from './players/bbl-spp-totals-import.service';
 import { BblPositionRaceErasImportService } from './positions/bbl-position-race-eras-import.service';
 import { BblPositionsImportService } from './positions/bbl-positions-import.service';
 import { BblRacesImportService } from './races/bbl-races-import.service';
@@ -90,6 +91,14 @@ async function run(): Promise<ImportResult> {
         playerIdsByPid: playerOutcome.playerIdsByPid,
       });
 
+    // Runs after the match-events step because it sums the spp_value those
+    // events just wrote. BBL's own published per-player total is not
+    // scraped — it may be corrupted post-migration — so the column is
+    // reconciled to the computed sum instead.
+    const sppTotalsOutcome = await app
+      .get(BblSppTotalsImportService)
+      .importSppTotals([...playerOutcome.playerIdsByPid.values()]);
+
     // Match outcomes run last: scores are counted from the touchdown events
     // imported just above, and a tied knock-out match's winner is traced
     // through sibling matches that must already exist.
@@ -117,6 +126,7 @@ async function run(): Promise<ImportResult> {
       playerOutcome.result,
       positionRaceErasOutcome.result,
       matchEventsOutcome.result,
+      sppTotalsOutcome.result,
       matchOutcomesOutcome.result,
     ];
     return {

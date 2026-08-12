@@ -22,7 +22,12 @@ import {
   MatchEventSchema,
   UpsertMatchEventSchema,
 } from './schemas/match-event';
-import { PlayerSchema, UpsertPlayerSchema } from './schemas/player';
+import {
+  PlayerSchema,
+  SyncComputedSppTotalsResultSchema,
+  SyncComputedSppTotalsSchema,
+  UpsertPlayerSchema,
+} from './schemas/player';
 import {
   PositionSchema,
   SyncPositionRaceErasResultSchema,
@@ -57,6 +62,13 @@ export const contract = {
   players: {
     upsert: upsertProcedure(UpsertPlayerSchema, PlayerSchema),
     upsertBatch: batchUpsertProcedure(UpsertPlayerSchema, PlayerSchema),
+    // Not an upsert: this recomputes an already-imported player's SPP total
+    // in place from their own match events, so there is no external-id
+    // conflict to detect and no entity+created shape to return — only the
+    // ids actually written. Same shape as positions.syncRaceEras.
+    syncComputedSppTotals: oc
+      .input(SyncComputedSppTotalsSchema)
+      .output(SyncComputedSppTotalsResultSchema),
   },
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
