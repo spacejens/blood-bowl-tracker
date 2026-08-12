@@ -1,4 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -154,5 +160,114 @@ describe('TpRawPlayerIndexService', () => {
     const service = await makeService();
 
     expect(await service.aggregateFor('2477481')).toBeNull();
+  });
+
+  it('returns null for a non-numeric external id', async () => {
+    const service = await makeService();
+
+    expect(await service.aggregateFor('not-a-number')).toBeNull();
+  });
+
+  it('ignores a subdirectory and a non-match file inside a competition folder', async () => {
+    mkdirSync(join(dir, 'fourth-era', 'season-30', 'nested'));
+    writeFileSync(
+      join(dir, 'fourth-era', 'season-30', 'notes.txt'),
+      'not a match file',
+      'utf8',
+    );
+    writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
+    const service = await makeService();
+
+    expect(await service.aggregateFor('2477481')).not.toBeNull();
+  });
+
+  it('ignores a line-up entry missing an id or a name', async () => {
+    writeMatch(1, {
+      inscriptionLocal: {
+        roster: { lineUps: [{ position: 'Flesh Golem' }] },
+      },
+      inscriptionVisitor: { roster: { lineUps: [] } },
+      matchEvents: [],
+    });
+    const service = await makeService();
+
+    expect(await service.aggregateFor('2477481')).toBeNull();
+  });
+
+  it('falls back to unknown position and a null total when the current match omits them', async () => {
+    writeMatch(1, {
+      inscriptionLocal: {
+        roster: { lineUps: [{ id: 2477481, name: 'Hubert Hårdråde' }] },
+      },
+      inscriptionVisitor: { roster: { lineUps: [] } },
+      matchEvents: [],
+    });
+    const service = await makeService();
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate).toMatchObject({
+      position: 'unknown',
+      totalStarPlayerPoints: null,
+    });
+  });
+
+  it('skips updating a player from a match id lower than the latest already seen', async () => {
+    writeMatch(10, matchFile({ lineUpTotal: 12, events: [] }));
+    writeMatch(2, {
+      inscriptionLocal: {
+        roster: { lineUps: [{ id: 2477481, name: 'Someone Else' }] },
+      },
+      inscriptionVisitor: { roster: { lineUps: [] } },
+      matchEvents: [],
+    });
+    const service = await makeService();
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate).toMatchObject({
+      name: 'Hubert Hårdråde',
+      totalStarPlayerPoints: 12,
+    });
+  });
+
+  it('ignores match events missing a numeric event type or star points', async () => {
+    writeMatch(
+      1,
+      matchFile({
+        lineUpTotal: 8,
+        events: [{ lineUpId: 2477481, matchEventType: 4 }],
+      }),
+    );
+    const service = await makeService();
+
+    const aggregate = await service.aggregateFor('2477481');
+
+    expect(aggregate?.starPointsFromEvents).toBe(0);
+    expect(aggregate?.eventCounts.get(4)).toBe(1);
+  });
+
+  it('treats a non-array lineUps or matchEvents property as empty', async () => {
+    writeMatch(1, {
+      inscriptionLocal: { roster: { lineUps: 'nope' } },
+      inscriptionVisitor: { roster: { lineUps: [] } },
+      matchEvents: 'nope',
+    });
+    const service = await makeService();
+
+    expect(await service.aggregateFor('2477481')).toBeNull();
+  });
+
+  it('rethrows a directory-scan failure that is not a missing directory', async () => {
+    writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
+    const seasonDir = join(dir, 'fourth-era', 'season-30');
+    chmodSync(seasonDir, 0o000);
+    const service = await makeService();
+
+    try {
+      await expect(service.aggregateFor('2477481')).rejects.toThrow();
+    } finally {
+      chmodSync(seasonDir, 0o755);
+    }
   });
 });

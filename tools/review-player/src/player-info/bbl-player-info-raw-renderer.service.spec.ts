@@ -90,4 +90,12 @@ describe('BblPlayerInfoRawRendererService', () => {
     expect(html).toContain('<td>Position</td><td>—</td>');
     expect(html).toContain('<td>Career SPP (BBL)</td><td>—</td>');
   });
+
+  it('shows an em dash for the name when the page has no h1', async () => {
+    const { service } = await makeService('<p>No name here</p>');
+
+    const html = await service.render('7');
+
+    expect(html).toContain('<td>Name</td><td>—</td>');
+  });
 });

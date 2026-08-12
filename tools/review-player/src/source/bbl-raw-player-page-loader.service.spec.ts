@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -63,5 +63,12 @@ describe('BblRawPlayerPageLoaderService', () => {
     const service = await makeService();
 
     expect(await service.loadPlayerPage('../secret')).toBeNull();
+  });
+
+  it('rethrows a read failure that is not a missing file', async () => {
+    mkdirSync(join(dir, 'default.asp?p=pl&pid=9999'));
+    const service = await makeService();
+
+    await expect(service.loadPlayerPage('9999')).rejects.toThrow();
   });
 });

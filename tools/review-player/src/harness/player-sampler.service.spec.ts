@@ -132,6 +132,43 @@ describe('PlayerSamplerService', () => {
     expect(players[0].selectedFor).toEqual(['override']);
   });
 
+  it('orders players by source, then name, then id', async () => {
+    const stratifier = mock<PlayerStratifier>();
+    stratifier.listStrata.mockReturnValue([
+      { id: 'random', label: 'Random sample', sources: ['bbl', 'tp'] },
+    ]);
+    stratifier.sampleStratum.mockImplementation(({ source }) =>
+      Promise.resolve(
+        source === 'bbl'
+          ? [
+              reviewPlayer({ playerId: 5, playerName: 'Beta' }),
+              reviewPlayer({ playerId: 2, playerName: 'Beta' }),
+              reviewPlayer({ playerId: 9, playerName: 'Alpha' }),
+            ]
+          : [reviewPlayer({ source: 'tp', playerId: 1, playerName: 'Zoe' })],
+      ),
+    );
+    const config = mock<ReviewPlayerConfigService>();
+    config.getPlayersPerStratum.mockReturnValue(3);
+    config.getOverrides.mockReturnValue([]);
+    const service = await makeService({ stratifier, config });
+
+    const { players } = await service.sample();
+
+    expect(
+      players.map((player) => [
+        player.source,
+        player.playerName,
+        player.playerId,
+      ]),
+    ).toEqual([
+      ['bbl', 'Alpha', 9],
+      ['bbl', 'Beta', 2],
+      ['bbl', 'Beta', 5],
+      ['tp', 'Zoe', 1],
+    ]);
+  });
+
   it('records a gap for an override that is not in the database', async () => {
     const stratifier = mock<PlayerStratifier>();
     stratifier.listStrata.mockReturnValue([]);

@@ -75,11 +75,27 @@ describe('ReviewPlayerConfigService', () => {
     expect(service.getDataDir('bbl')).toBe(resolve('../import-bbl/data'));
   });
 
+  it('throws a helpful error when a data dir is missing', async () => {
+    const service = await makeService('{}');
+
+    expect(() => service.getDataDir('bbl')).toThrow(
+      /bbl\.dataDir is not set in review-player-config\.json5/,
+    );
+  });
+
   it('defaults each external system name', async () => {
     const service = await makeService('{}');
 
     expect(service.getExternalSystemName('bbl')).toBe('BBL');
     expect(service.getExternalSystemName('tp')).toBe('TP');
+  });
+
+  it('uses a configured external system name over the default', async () => {
+    const service = await makeService(
+      "{ bbl: { externalSystemName: 'BBL Legacy' } }",
+    );
+
+    expect(service.getExternalSystemName('bbl')).toBe('BBL Legacy');
   });
 
   it('reads per-source overrides as strings', async () => {
@@ -103,8 +119,20 @@ describe('ReviewPlayerConfigService', () => {
     expect(service.getOutputPath()).toBe(resolve('output/report.html'));
   });
 
+  it('resolves a configured output path over the default', async () => {
+    const service = await makeService("{ outputPath: 'out/custom.html' }");
+
+    expect(service.getOutputPath()).toBe(resolve('out/custom.html'));
+  });
+
   it('treats a missing config file as empty', async () => {
     const service = await makeService();
+
+    expect(service.getPlayersPerStratum()).toBe(3);
+  });
+
+  it('treats a non-object top-level config value as empty', async () => {
+    const service = await makeService('42');
 
     expect(service.getPlayersPerStratum()).toBe(3);
   });

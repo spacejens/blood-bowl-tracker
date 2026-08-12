@@ -89,6 +89,28 @@ describe('PlayerInfoDbRendererService', () => {
     expect(html).toContain('<td>External id (TP)</td><td>2477481</td>');
   });
 
+  it('shows a star player position as yes', async () => {
+    const service = await makeService(
+      mockDb(
+        [
+          {
+            playerId: 42,
+            playerName: 'Janhorgh',
+            teamName: 'Bockar',
+            positionName: 'Star player',
+            isStarPlayer: true,
+            eraName: 'Third Era',
+          },
+        ],
+        [],
+      ),
+    );
+
+    const html = await service.render(player);
+
+    expect(html).toContain('<td>Star player position</td><td>yes</td>');
+  });
+
   it('notes a sampled player that is no longer in the database', async () => {
     const service = await makeService(mockDb([]));
 
