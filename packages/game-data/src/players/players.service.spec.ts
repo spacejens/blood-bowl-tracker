@@ -156,6 +156,25 @@ describe('PlayersService', () => {
         name: 'Griff Oberwald II',
       });
     });
+
+    it('writes sppTotal through to the entity columns', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, sppTotal: 176, externalIds });
+
+      // chains[1] is the insert; its .values() carries the entity columns.
+      expect(firstCallArg(chains[1].values)).toMatchObject({ sppTotal: 176 });
+    });
+
+    it('leaves sppTotal undefined in the columns when the caller omits it', async () => {
+      const { chains } = await build([], [fakePlayer]);
+
+      await service.upsert({ ...base, externalIds });
+
+      expect(
+        (firstCallArg(chains[1].values) as { sppTotal?: number }).sppTotal,
+      ).toBeUndefined();
+    });
   });
 
   describe('findById', () => {
