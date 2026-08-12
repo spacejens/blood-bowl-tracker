@@ -105,4 +105,11 @@ describe('SyncComputedSppTotals schemas', () => {
       SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [7, 8] }),
     ).toEqual({ updatedPlayerIds: [7, 8] });
   });
+
+  it('rejects a non-integer updated player id', () => {
+    // updatedPlayerIds are database serial ids, always integers.
+    expect(() =>
+      SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [1.5] }),
+    ).toThrow();
+  });
 });

@@ -37,7 +37,7 @@ export const SyncComputedSppTotalsSchema = z.object({
 });
 
 export const SyncComputedSppTotalsResultSchema = z.object({
-  updatedPlayerIds: z.array(z.number()),
+  updatedPlayerIds: z.array(z.number().int()),
 });
 
 export type Player = z.infer<typeof PlayerSchema>;
