@@ -154,9 +154,9 @@ const RATE_LIMIT_PHRASE_REGEX = new RegExp(RATE_LIMIT_PHRASES, 'i');
  * and a typographic apostrophe.
  */
 const COMMENT_UPDATE_FAILED_PHRASES =
-  "couldn['']t update its existing comment|" +
+  "couldn['’]t update its existing comment|" +
   'could not update its existing comment|' +
-  "can['']t update its existing comment|" +
+  "can['’]t update its existing comment|" +
   'cannot update its existing comment';
 /** Mirrors `COMMENT_UPDATE_FAILED_PHRASES` for the stricter TypeScript re-check. */
 const COMMENT_UPDATE_FAILED_PHRASE_REGEX = new RegExp(

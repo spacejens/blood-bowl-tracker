@@ -618,6 +618,19 @@ describe('WaitForPrReviewService', () => {
     expect(result).toMatchObject({ found: false, commentUpdateFailed: true });
   });
 
+  it('detects the failure when CodeRabbit uses a typographic apostrophe', async () => {
+    processRunner.run.mockResolvedValue(
+      commentUpdateFailedWithBody(
+        'CodeRabbit couldn’t update its existing comment. Error details: ' +
+          'putComment timed out.',
+      ),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toMatchObject({ found: false, commentUpdateFailed: true });
+  });
+
   it('discards a comment-update-failure candidate whose body is missing, not throws', async () => {
     // The reviews half's shape is asserted, not checked, by its `as
     // PollOutcome` cast — a malformed response from a future gh/jq change
