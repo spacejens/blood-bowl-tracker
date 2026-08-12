@@ -13,6 +13,7 @@ import { EntityComponentsService } from '../../entity-components.service';
 import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
+  DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE,
@@ -71,11 +72,13 @@ function makeTeams(options: {
     coachName: string;
     coachId: number;
   };
+  eras?: { id: number; name: string }[];
   span?: { start: string; end: string };
   topPlayers?: { playerId: number; name: string; count: number }[];
 }): TeamsService {
   return {
     findById: vi.fn().mockResolvedValue(options.team),
+    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
     getCareerSpan: vi.fn().mockResolvedValue(options.span),
     getTopPlayersByMatchEventCount: vi
       .fn()
@@ -105,9 +108,9 @@ describe('TeamDeepdiveService', () => {
   // leaderboard.service.spec.ts. `passthroughLeaderboard()` cans it to simply
   // echo its inputs, and `passthroughEntityComponents()` cans component
   // building the same way, so this test asserts only what TeamDeepdiveService
-  // itself owns: joining the race/coach/career/ranked-row lines, and building
-  // the race-then-coach-then-player component-entry pool (in that order) that
-  // it hands to buildEntityComponents.
+  // itself owns: joining the race/coach/eras/career/ranked-row lines, and
+  // building the race-then-coach-then-era-then-player component-entry pool
+  // (in that order) that it hands to buildEntityComponents.
   it('renders the race, coach, career span and top-players list, with header components before player components', async () => {
     const { service } = await makeService({
       teams: makeTeams({
@@ -128,6 +131,7 @@ describe('TeamDeepdiveService', () => {
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
+            'Eras: None recorded',
             'Career: 2021-09-01 – 2023-06-10',
             '',
             'Top players by match events:',
@@ -159,6 +163,118 @@ describe('TeamDeepdiveService', () => {
               label: 'Morg',
               custom_id: 'deepdive:player:8',
             },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('renders the eras line after the coach line and an era button per era', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        eras: [
+          { id: 3, name: 'BB2016' },
+          { id: 4, name: 'BB2020' },
+        ],
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: '40 grinders',
+          description: [
+            'Race: Dwarf',
+            'Coach: Roze Madder',
+            'Eras: BB2016, BB2020',
+            'Career: 2021-09-01 – 2023-06-10',
+            '',
+            'Top players by match events:',
+            '1. Griff — 20',
+          ].join('\n'),
+        },
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
+            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
+            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Griff',
+              custom_id: 'deepdive:player:5',
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('shows "None recorded" when the team is linked to no eras', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        eras: [],
+        span: { start: '2021-09-01', end: '2023-06-10' },
+        topPlayers: [{ playerId: 5, name: 'Griff', count: 20 }],
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')[2]).toBe(
+      'Eras: None recorded',
+    );
+  });
+
+  it('renders the eras line and era buttons on the no-matches path too', async () => {
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        eras: [{ id: 4, name: 'BB2020' }],
+        span: undefined,
+      }),
+      leaderboard: passthroughLeaderboard(),
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: '40 grinders',
+          description: [
+            'Race: Dwarf',
+            'Coach: Roze Madder',
+            'Eras: BB2020',
+            DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
+          ].join('\n'),
+        },
+      ],
+      components: [
+        {
+          type: 1,
+          components: [
+            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
+            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
           ],
         },
       ],
@@ -225,6 +341,7 @@ describe('TeamDeepdiveService', () => {
           description: [
             'Race: Dwarf',
             'Coach: Roze Madder',
+            'Eras: None recorded',
             DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
           ].join('\n'),
         },
@@ -263,11 +380,30 @@ describe('TeamDeepdiveService', () => {
     );
   });
 
-  it('falls back to the career timeout message when the span lookup times out', async () => {
+  it('falls back to the eras timeout message when the era lookup times out', async () => {
     await expectTimeoutFallback(
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run.mockImplementationOnce(async (work) => work);
+        stubDatabaseTimeoutOnce(databaseTimeout);
+        const { service } = await makeService({
+          teams: makeTeams({ team: grinders }),
+          databaseTimeout,
+        });
+        return service.resolve(1);
+      },
+      () => undefined,
+      DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('falls back to the career timeout message when the span lookup times out', async () => {
+    await expectTimeoutFallback(
+      async () => {
+        const databaseTimeout = mockDatabaseTimeout();
+        databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
+          .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
           teams: makeTeams({ team: grinders }),
@@ -285,6 +421,7 @@ describe('TeamDeepdiveService', () => {
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work);
         stubDatabaseTimeoutOnce(databaseTimeout);
@@ -384,6 +521,7 @@ describe('TeamDeepdiveService', () => {
       async () => {
         const databaseTimeout = mockDatabaseTimeout();
         databaseTimeout.run
+          .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work)
           .mockImplementationOnce(async (work) => work);
