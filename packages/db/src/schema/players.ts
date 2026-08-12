@@ -17,6 +17,12 @@ const playersTable = historyTrackedTable({
     positionId: integer('position_id')
       .references(() => positions.id)
       .notNull(),
+    // A player's Star Player Points total, sourced independently of the
+    // per-event `match_events.spp_value` sum: TP reports it directly, BBL's
+    // is recomputed from that sum (see
+    // docs/plans/2026-08-12-import-trusted-spp-totals-design.md). Nullable:
+    // NULL means no source has populated it.
+    sppTotal: integer('spp_total'),
   },
 });
 
