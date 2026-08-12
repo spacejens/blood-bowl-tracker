@@ -71,6 +71,8 @@ export class ReviewService {
       dataTypeId: reviewer.id,
       rawHtml: await this.fragment(() => reviewer.getRawSource(match)),
       importedHtml: await this.fragment(() => reviewer.getImportedView(match)),
+      rawLabel: reviewer.rawPanelLabel,
+      importedLabel: reviewer.importedPanelLabel,
     };
   }
 

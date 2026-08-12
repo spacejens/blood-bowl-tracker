@@ -37,6 +37,8 @@ async function makeHarness(): Promise<Harness> {
   sampler.sample.mockResolvedValue({ matches: [match], gaps: [] });
   const reviewer = mock<DataTypeReviewer>();
   Object.defineProperty(reviewer, 'id', { value: 'match-events' });
+  Object.defineProperty(reviewer, 'rawPanelLabel', { value: undefined });
+  Object.defineProperty(reviewer, 'importedPanelLabel', { value: undefined });
   reviewer.getRawSource.mockResolvedValue('<p>raw</p>');
   reviewer.getImportedView.mockResolvedValue('<p>imported</p>');
   const builder = mock<ReportBuilderService>();
@@ -83,6 +85,8 @@ describe('ReviewService', () => {
             dataTypeId: 'match-events',
             rawHtml: '<p>raw</p>',
             importedHtml: '<p>imported</p>',
+            rawLabel: undefined,
+            importedLabel: undefined,
           },
         ],
       },
@@ -171,5 +175,44 @@ describe('ReviewService', () => {
         ],
       }),
     );
+  });
+
+  it("copies a reviewer's panel labels onto the panel it builds", async () => {
+    const sampler = mock<MatchSamplerService>();
+    sampler.sample.mockResolvedValue({ matches: [match], gaps: [] });
+    const reviewer = mock<DataTypeReviewer>();
+    Object.assign(reviewer, {
+      id: 'spp-totals',
+      rawPanelLabel: 'Computed from match events (database)',
+      importedPanelLabel: 'Stored player totals (database)',
+    });
+    reviewer.getRawSource.mockResolvedValue('<p>left</p>');
+    reviewer.getImportedView.mockResolvedValue('<p>right</p>');
+    const builder = mock<ReportBuilderService>();
+    builder.build.mockReturnValue('<html></html>');
+    const writer = mock<ReportWriterService>();
+    writer.write.mockResolvedValue('/tmp/report.html');
+    const resultLookup = mock<MatchResultLookupService>();
+    resultLookup.findByMatchIds.mockResolvedValue(new Map());
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ReviewService,
+        { provide: MatchSamplerService, useValue: sampler },
+        { provide: DATA_TYPE_REVIEWERS, useValue: [reviewer] },
+        { provide: ReportBuilderService, useValue: builder },
+        { provide: ReportWriterService, useValue: writer },
+        HtmlService,
+        { provide: MatchResultLookupService, useValue: resultLookup },
+      ],
+    }).compile();
+    const service = moduleRef.get(ReviewService);
+
+    await service.run();
+
+    const report = builder.build.mock.calls[0][0];
+    expect(report.matches[0].panels[0]).toMatchObject({
+      rawLabel: 'Computed from match events (database)',
+      importedLabel: 'Stored player totals (database)',
+    });
   });
 });

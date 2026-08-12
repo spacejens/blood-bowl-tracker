@@ -221,4 +221,50 @@ describe('ReportBuilderService', () => {
 
     expect(html).toMatch(/<h2>[^<]*<\/h2>\s*<p class="result">/);
   });
+
+  it("uses a panel pair's own labels when the reviewer supplied them", () => {
+    const html = service.build({
+      matches: [
+        {
+          match,
+          panels: [
+            {
+              dataTypeId: 'spp-totals',
+              rawHtml: '<p>left</p>',
+              importedHtml: '<p>right</p>',
+              rawLabel: 'Computed from match events (database)',
+              importedLabel: 'Stored player totals (database)',
+            },
+          ],
+        },
+      ],
+      gaps: [],
+      generatedAt: new Date('2026-08-12T10:00:00.000Z'),
+    });
+
+    expect(html).toContain('<h4>Computed from match events (database)</h4>');
+    expect(html).toContain('<h4>Stored player totals (database)</h4>');
+  });
+
+  it('falls back to the source-derived labels when none were supplied', () => {
+    const html = service.build({
+      matches: [
+        {
+          match,
+          panels: [
+            {
+              dataTypeId: 'match-events',
+              rawHtml: '<p>left</p>',
+              importedHtml: '<p>right</p>',
+            },
+          ],
+        },
+      ],
+      gaps: [],
+      generatedAt: new Date('2026-08-12T10:00:00.000Z'),
+    });
+
+    expect(html).toContain('<h4>Raw source (BBL)</h4>');
+    expect(html).toContain('<h4>Imported (database)</h4>');
+  });
 });

@@ -12,6 +12,10 @@ export interface ReviewPanel {
   rawHtml: string;
   /** Opaque HTML fragment from the reviewer — inserted verbatim. */
   importedHtml: string;
+  /** Reviewer-supplied heading for the left panel, when it has one. */
+  rawLabel?: string;
+  /** Reviewer-supplied heading for the right panel, when it has one. */
+  importedLabel?: string;
 }
 
 export interface ReviewedMatch {
@@ -137,10 +141,13 @@ ${panels.map((panel) => this.panelPair(panel, match)).join('\n')}
   }
 
   private panelPair(panel: ReviewPanel, match: SampledMatch): string {
+    const rawLabel =
+      panel.rawLabel ?? `Raw source (${match.source.toUpperCase()})`;
+    const importedLabel = panel.importedLabel ?? 'Imported (database)';
     return `<h3>${this.html.escape(panel.dataTypeId)}</h3>
 <div class="panels">
-<div class="panel"><h4>Raw source (${this.html.escape(match.source.toUpperCase())})</h4>${panel.rawHtml}</div>
-<div class="panel"><h4>Imported (database)</h4>${panel.importedHtml}</div>
+<div class="panel"><h4>${this.html.escape(rawLabel)}</h4>${panel.rawHtml}</div>
+<div class="panel"><h4>${this.html.escape(importedLabel)}</h4>${panel.importedHtml}</div>
 </div>`;
   }
 }
