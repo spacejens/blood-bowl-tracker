@@ -43,6 +43,8 @@ const STYLES = `
   table { border-collapse: collapse; font-size: 0.8rem; width: 100%; }
   th, td { border: 1px solid #ddd; padding: 2px 4px; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; }
+  tr.mismatch td { background: #ffe8e8; }
+  tr.mismatch td:last-child { font-weight: 600; color: #a00; }
   .note { color: #a00; font-style: italic; }
   .cell-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; }
   details summary { cursor: pointer; color: #06c; }

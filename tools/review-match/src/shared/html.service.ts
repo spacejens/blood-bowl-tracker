@@ -27,6 +27,17 @@ export type TableCell =
     };
 
 /**
+ * One table row: either the cells themselves, or the cells wrapped with a
+ * highlight marker for a row the reviewer must not miss (a value that
+ * disagrees with its trusted counterpart). Highlighting is never the only
+ * signal — a highlighted row also carries an explicit textual label in one of
+ * its cells, so the report stays readable without colour.
+ */
+export type TableRow =
+  | readonly TableCell[]
+  | { readonly cells: readonly TableCell[]; readonly highlight: true };
+
+/**
  * Builds the small HTML fragments every renderer needs. Escaping lives here
  * (rather than in each renderer) so raw source text — which routinely
  * contains markup, ampersands and quotes — can never break the report.
@@ -44,23 +55,20 @@ export class HtmlService {
   }
 
   /** A table of cells; every header and cell is escaped here. */
-  table(
-    headers: readonly TableCell[],
-    rows: readonly (readonly TableCell[])[],
-  ): string {
+  table(headers: readonly TableCell[], rows: readonly TableRow[]): string {
     if (rows.length === 0) {
       return this.note('No rows.');
     }
     const head = headers
       .map((header) => `<th>${this.cellHtml(header)}</th>`)
       .join('');
-    const body = rows
-      .map(
-        (row) =>
-          `<tr>${row.map((cell) => `<td>${this.cellHtml(cell)}</td>`).join('')}</tr>`,
-      )
-      .join('');
+    const body = rows.map((row) => this.rowHtml(row)).join('');
     return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+  }
+
+  /** Mark a row as disagreeing with its trusted counterpart. */
+  highlight(cells: readonly TableCell[]): TableRow {
+    return { cells, highlight: true };
   }
 
   /** An inline explanatory note (missing source file, gap, render error). */
@@ -80,6 +88,17 @@ export class HtmlService {
    */
   details(summary: string, body: TableCell): TableCell {
     return { details: { summary, body } };
+  }
+
+  private rowHtml(row: TableRow): string {
+    const highlighted = !Array.isArray(row);
+    const cells = highlighted
+      ? (row as { readonly cells: readonly TableCell[] }).cells
+      : (row as readonly TableCell[]);
+    const open = highlighted ? '<tr class="mismatch">' : '<tr>';
+    return `${open}${cells
+      .map((cell) => `<td>${this.cellHtml(cell)}</td>`)
+      .join('')}</tr>`;
   }
 
   private cellHtml(cell: TableCell): string {
