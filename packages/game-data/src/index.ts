@@ -55,6 +55,12 @@ export { MissingRequiredFieldError } from './shared/missing-required-field-error
 export type { PlayerContextNames } from './shared/player-context-names';
 export type { TeamRaceAndCoachNames } from './shared/team-race-coach-names';
 export { SppModule } from './spp/spp.module';
+export type {
+  ReportedSppAdjustmentsData,
+  ScrapedSppAdjustmentsData,
+  SppAdjustmentsResult,
+} from './spp/spp-adjustments.service';
+export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
 export {
