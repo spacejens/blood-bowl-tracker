@@ -81,13 +81,21 @@ function readExpectedApiBaseUrl(): string {
   return expectedApiBaseUrl;
 }
 
+function isValidPort(value: string | undefined): value is string {
+  if (value === undefined || value === '') {
+    return false;
+  }
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535;
+}
+
 function readStartProductionTunnelInput(): StartProductionTunnelInput {
-  const localPort = Number(process.argv[3]);
-  const remotePort = Number(process.argv[4]);
-  if (!Number.isInteger(localPort) || !Number.isInteger(remotePort)) {
+  const localPortArg = process.argv[3];
+  const remotePortArg = process.argv[4];
+  if (!isValidPort(localPortArg) || !isValidPort(remotePortArg)) {
     throw new Error(START_PRODUCTION_TUNNEL_USAGE);
   }
-  return { localPort, remotePort };
+  return { localPort: Number(localPortArg), remotePort: Number(remotePortArg) };
 }
 
 function dispatch(options: DispatchOptions): Promise<unknown> {

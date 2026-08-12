@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -73,6 +74,18 @@ describe('ProductionTunnelService', () => {
 
       expect(readFileSync(pidFilePath, 'utf8')).toBe('999');
     });
+
+    it('kills the spawned process and rethrows when the pid cannot be persisted', async () => {
+      // Make the pid file's own path a directory instead of a writable file,
+      // so writeFileSync throws EISDIR — a real, portable failure mode
+      // rather than a mocked one.
+      mkdirSync(pidFilePath, { recursive: true });
+      childProcess.spawnDetached.mockReturnValue(555);
+
+      await expect(service.start(3001, 3000)).rejects.toThrow();
+
+      expect(childProcess.kill).toHaveBeenCalledWith(555);
+    });
   });
 
   describe('stop', () => {
@@ -85,6 +98,7 @@ describe('ProductionTunnelService', () => {
 
       expect(childProcess.kill).toHaveBeenCalledWith(12345);
       expect(result).toEqual({ stopped: true });
+      expect(existsSync(pidFilePath)).toBe(false);
     });
 
     it('reports stopped: false when no pid file exists — nothing to stop', async () => {

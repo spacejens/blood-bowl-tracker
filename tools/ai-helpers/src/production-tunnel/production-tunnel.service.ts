@@ -48,13 +48,24 @@ export class ProductionTunnelService {
     localPort: number,
     remotePort: number,
   ): Promise<StartProductionTunnelResult> {
+    // Resolve the pid file's location and create its directory before
+    // spawning anything, so a failure here (e.g. an unwritable worktree)
+    // never leaves a detached tunnel with nowhere to record its pid.
+    const pidFile = await this.pidFilePath();
+    mkdirSync(dirname(pidFile), { recursive: true });
+
     const pid = this.childProcess.spawnDetached('flyctl', [
       'proxy',
       `${localPort}:${remotePort}`,
     ]);
-    const pidFile = await this.pidFilePath();
-    mkdirSync(dirname(pidFile), { recursive: true });
-    writeFileSync(pidFile, String(pid), 'utf8');
+    try {
+      writeFileSync(pidFile, String(pid), 'utf8');
+    } catch (error) {
+      // A tunnel we can no longer track is worse than no tunnel — stop it
+      // rather than leave it running with no way to find it again.
+      this.childProcess.kill(pid);
+      throw error;
+    }
     return { pid };
   }
 
