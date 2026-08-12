@@ -68,9 +68,16 @@ describe('BblSppTotalsImportService', () => {
       { length: DEFAULT_BATCH_CHUNK_SIZE + 10 },
       (_, i) => i + 1,
     );
-    sppTotals.syncComputedSppTotals.mockImplementation((input) =>
-      Promise.resolve({ updatedPlayerIds: input.playerIds }),
-    );
+    // Canned per-chunk results, not derived from the call's own input --
+    // the assertions below must exercise the service's own summing logic,
+    // not just echo back what was sent.
+    sppTotals.syncComputedSppTotals
+      .mockResolvedValueOnce({
+        updatedPlayerIds: playerIds.slice(0, DEFAULT_BATCH_CHUNK_SIZE),
+      })
+      .mockResolvedValueOnce({
+        updatedPlayerIds: playerIds.slice(DEFAULT_BATCH_CHUNK_SIZE),
+      });
 
     const outcome = await service.importSppTotals(playerIds);
 
@@ -83,13 +90,24 @@ describe('BblSppTotalsImportService', () => {
     expect(outcome.result).toBe(CANNED_RESULT);
   });
 
-  it('still attempts and counts a later chunk when an earlier chunk fails', async () => {
+  it('still attempts and counts a later chunk when an earlier chunk fails, forwarding the failure into errors', async () => {
     const playerIds = Array.from(
       { length: DEFAULT_BATCH_CHUNK_SIZE + 5 },
       (_, i) => i + 1,
     );
+    const cannedChunkError: ImportError = {
+      item: { playerIds: playerIds.slice(0, DEFAULT_BATCH_CHUNK_SIZE) },
+      message: 'canned chunk failure',
+    };
     sppTotals.syncComputedSppTotals
-      .mockResolvedValueOnce(undefined) // first chunk fails
+      // The real SppTotalsImportService pushes its own ImportError onto the
+      // shared `errors` array before resolving to undefined on failure --
+      // mirror that here instead of only returning undefined, so this test
+      // can assert the failure actually reaches the final result.
+      .mockImplementationOnce((_input, errors) => {
+        errors.push(cannedChunkError);
+        return Promise.resolve(undefined);
+      })
       .mockResolvedValueOnce({
         updatedPlayerIds: [
           DEFAULT_BATCH_CHUNK_SIZE + 1,
@@ -103,6 +121,7 @@ describe('BblSppTotalsImportService', () => {
     // Only the second chunk's 2 updated ids are counted; the first chunk's
     // failure neither crashes the loop nor is double-counted.
     expect(resultArgs().imported).toBe(2);
+    expect(resultArgs().errors).toEqual([cannedChunkError]);
   });
 
   it('counts nothing when the sync call failed', async () => {
