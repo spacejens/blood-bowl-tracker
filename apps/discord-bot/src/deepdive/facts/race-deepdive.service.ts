@@ -112,16 +112,19 @@ export class RaceDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    // Leaderboard entries first: buildEntityComponents has no internal
+    // prioritisation (first-N / first-group wins), so the top-teams list gets
+    // drill-down controls before the era header entries do.
     const entries: EntityComponentEntry[] = [
-      ...eraRows.map((era): EntityComponentEntry => ({
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: String(era.id),
-        label: era.name,
-      })),
       ...ranked.map((team): EntityComponentEntry => ({
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: String(team.id),
         label: team.name,
+      })),
+      ...eraRows.map((era): EntityComponentEntry => ({
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: String(era.id),
+        label: era.name,
       })),
     ];
     const { components, overflowNote } =

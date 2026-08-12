@@ -92,7 +92,7 @@ describe('RaceDeepdiveService', () => {
   // itself owns: joining the eras/career lines, and building the
   // era-then-team component-entry pool (in that order) that it hands to
   // buildEntityComponents.
-  it('renders the eras list and top-teams list, with era components before team components', async () => {
+  it('renders the eras list and top-teams list, with team components before era components', async () => {
     const leaderboard = passthroughLeaderboard();
     const { service } = await makeService({
       races: makeRaces({
@@ -126,8 +126,6 @@ describe('RaceDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
-            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
             {
               type: 2,
               style: 1,
@@ -140,6 +138,8 @@ describe('RaceDeepdiveService', () => {
               label: 'Da Deff Skwad',
               custom_id: 'deepdive:team:10',
             },
+            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
+            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
           ],
         },
       ],
