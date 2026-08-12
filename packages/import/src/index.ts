@@ -27,6 +27,7 @@ export { PositionsImportService } from './positions-import.service';
 export { RacesImportService } from './races-import.service';
 export { RulesSetsImportService } from './rules-sets-import.service';
 export { SppAwardValuesImportService } from './spp-award-values-import.service';
+export { SppTotalsImportService } from './spp-totals-import.service';
 export { TeamsImportService } from './teams-import.service';
 export * from './types';
 export {
