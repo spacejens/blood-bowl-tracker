@@ -60,6 +60,17 @@ describe('SppAdjustmentsImportService', () => {
     expect(errors[0].message).toContain('boom');
   });
 
+  it('stringifies a non-Error rejection from the scraped sync call', async () => {
+    client.players.syncScrapedSppAdjustments.mockRejectedValue('nope');
+
+    await service.syncScrapedSppAdjustments(
+      { players: [{ playerId: 1, scrapedTotal: 16 }] },
+      errors,
+    );
+
+    expect(errors[0].message).toContain('nope');
+  });
+
   it('passes the reported-adjustment payload through to the client', async () => {
     client.players.syncReportedSppAdjustments.mockResolvedValue({
       updatedPlayerIds: [2],
