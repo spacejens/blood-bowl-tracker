@@ -160,6 +160,35 @@ export class TpPlayersImportService {
       [...eraIdsByName].map(([name, id]) => [id, name]),
     );
 
+    // Star Player Points is a career total that only ever increases. The
+    // same player (lineUp) id can legitimately recur across multiple
+    // roster/match-embedded sources -- each a snapshot in time -- with
+    // different totalStarPlayerPoints values, so the correct sppTotal is the
+    // MAXIMUM seen across every occurrence, not whichever source happens to
+    // be processed last. Pre-scan every source before the main upsert loop
+    // below (which still uses each roster entry's own data for everything
+    // else) so the loop can look up the max instead of the entry's own,
+    // possibly-stale, value.
+    const maxSppTotalByPlayerId = new Map<number, number>();
+    const noteSppTotal = (playerId: number, total: number): void => {
+      const existing = maxSppTotalByPlayerId.get(playerId);
+      if (existing === undefined || total > existing) {
+        maxSppTotalByPlayerId.set(playerId, total);
+      }
+    };
+    for (const { roster } of rosters) {
+      for (const player of roster.players) {
+        noteSppTotal(player.id, player.totalStarPlayerPoints);
+      }
+    }
+    if (matchEmbeddedPlayersByRosterId) {
+      for (const players of matchEmbeddedPlayersByRosterId.values()) {
+        for (const player of players) {
+          noteSppTotal(player.id, player.totalStarPlayerPoints);
+        }
+      }
+    }
+
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: tpSystemName, category: 'imported_data_source' },
@@ -241,10 +270,16 @@ export class TpPlayersImportService {
             name: player.name,
             teamEraId: teamEra.id,
             positionId,
-            // TP reports the player's career SPP total directly. The
-            // induced-star-player path below has no such field and passes
-            // none, leaving players.spp_total NULL for those.
-            sppTotal: player.totalStarPlayerPoints,
+            // TP reports the player's career SPP total directly, but the
+            // same player id can recur across roster/match-embedded sources
+            // with a different total each time (see maxSppTotalByPlayerId's
+            // doc comment above) -- use the precomputed maximum, not this
+            // entry's own value. The induced-star-player path below has no
+            // such field and passes none, leaving players.spp_total NULL for
+            // those.
+            sppTotal:
+              maxSppTotalByPlayerId.get(player.id) ??
+              player.totalStarPlayerPoints,
             externalIds: [
               { externalSystemId: tpSystemId, externalId: String(player.id) },
             ],
