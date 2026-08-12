@@ -138,14 +138,17 @@ export class CoachDeepdiveService {
       teamLines.push(`…and ${truncatedCount} more tied.`);
     }
 
+    // Leaderboard entries first: buildEntityComponents has no internal
+    // prioritisation (first-N / first-group wins), so the top-teams list gets
+    // drill-down controls before the era header entries do.
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents([
-        ...headerEntries,
         ...ranked.map((row): EntityComponentEntry => ({
           customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
           entityId: String(row.id),
           label: row.name,
         })),
+        ...headerEntries,
       ]);
 
     const description = [

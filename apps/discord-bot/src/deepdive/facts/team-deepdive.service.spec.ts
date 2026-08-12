@@ -1,6 +1,6 @@
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -76,14 +76,14 @@ function makeTeams(options: {
   span?: { start: string; end: string };
   topPlayers?: { playerId: number; name: string; count: number }[];
 }): TeamsService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.team),
-    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
-    getCareerSpan: vi.fn().mockResolvedValue(options.span),
-    getTopPlayersByMatchEventCount: vi
-      .fn()
-      .mockResolvedValue(options.topPlayers ?? []),
-  } as unknown as TeamsService;
+  const teams = mock<TeamsService>();
+  teams.findById.mockResolvedValue(options.team);
+  teams.listEras.mockResolvedValue(options.eras ?? []);
+  teams.getCareerSpan.mockResolvedValue(options.span);
+  teams.getTopPlayersByMatchEventCount.mockResolvedValue(
+    options.topPlayers ?? [],
+  );
+  return teams;
 }
 
 const grinders = {
@@ -109,9 +109,10 @@ describe('TeamDeepdiveService', () => {
   // echo its inputs, and `passthroughEntityComponents()` cans component
   // building the same way, so this test asserts only what TeamDeepdiveService
   // itself owns: joining the race/coach/eras/career/ranked-row lines, and
-  // building the race-then-coach-then-era-then-player component-entry pool
-  // (in that order) that it hands to buildEntityComponents.
-  it('renders the race, coach, career span and top-players list, with header components before player components', async () => {
+  // building the player-then-race-then-coach-then-era component-entry pool
+  // (in that order — leaderboard entries take component priority over header
+  // entries) that it hands to buildEntityComponents.
+  it('renders the race, coach, career span and top-players list, with player components before header components', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -144,13 +145,6 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
-            {
-              type: 2,
-              style: 1,
-              label: 'Roze Madder',
-              custom_id: 'deepdive:coach:12',
-            },
             {
               type: 2,
               style: 1,
@@ -163,13 +157,20 @@ describe('TeamDeepdiveService', () => {
               label: 'Morg',
               custom_id: 'deepdive:player:8',
             },
+            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
           ],
         },
       ],
     });
   });
 
-  it('renders the eras line after the coach line and an era button per era', async () => {
+  it('renders the eras line after the coach line, with era buttons after the player buttons', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -202,6 +203,12 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'Griff',
+              custom_id: 'deepdive:player:5',
+            },
             { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
             {
               type: 2,
@@ -211,12 +218,6 @@ describe('TeamDeepdiveService', () => {
             },
             { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
             { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
-            {
-              type: 2,
-              style: 1,
-              label: 'Griff',
-              custom_id: 'deepdive:player:5',
-            },
           ],
         },
       ],
@@ -362,6 +363,39 @@ describe('TeamDeepdiveService', () => {
       ],
     });
     expect(teams.getTopPlayersByMatchEventCount).not.toHaveBeenCalled();
+  });
+
+  // The no-matches early return builds its own components (header-only, since
+  // no leaderboard data has been fetched yet) and threads the overflow note
+  // into the description. The shared entity-components stubs hardcode
+  // `overflowNote: null`, so this branch needs a per-test override to be
+  // exercised with a note present.
+  it('appends the overflow note on the no-matches path', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 4 more without a link.',
+    });
+    const { service } = await makeService({
+      teams: makeTeams({ team: grinders, span: undefined }),
+      entityComponents,
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: '40 grinders',
+          description: [
+            'Race: Dwarf',
+            'Coach: Roze Madder',
+            'Eras: None recorded',
+            DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
+            '…and 4 more without a link.',
+          ].join('\n'),
+        },
+      ],
+      components: [],
+    });
   });
 
   it('falls back to the team timeout message when the team lookup times out', async () => {

@@ -1,7 +1,7 @@
 import { CoachesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -78,14 +78,12 @@ function makeCoaches(options: {
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
 }): CoachesService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.coach),
-    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
-    getCareerSpan: vi.fn().mockResolvedValue(options.span),
-    getTopTeamsByMatchesPlayed: vi
-      .fn()
-      .mockResolvedValue(options.topTeams ?? []),
-  } as unknown as CoachesService;
+  const coaches = mock<CoachesService>();
+  coaches.findById.mockResolvedValue(options.coach);
+  coaches.listEras.mockResolvedValue(options.eras ?? []);
+  coaches.getCareerSpan.mockResolvedValue(options.span);
+  coaches.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);
+  return coaches;
 }
 
 describe('CoachDeepdiveService', () => {
@@ -327,9 +325,10 @@ describe('CoachDeepdiveService', () => {
   // it does NOT reproduce EntityComponentsService's real dedupe/cap/chunk
   // logic (covered by entity-components.service.spec.ts) or its real per-prefix
   // button colours, so `style` is asserted loosely. What this test owns is
-  // CoachDeepdiveService's own composition: the eras line's position and the
-  // era-before-team ordering of the component entries.
-  it('renders the eras line before the career line and an era button per era', async () => {
+  // CoachDeepdiveService's own composition: the eras line's position in the
+  // description, and the team-before-era ordering of the component entries
+  // (leaderboard entries take component priority over header entries).
+  it('renders the eras line before the career line, with era buttons after the team buttons', async () => {
     const leaderboard = mock<LeaderboardService>();
     const rankedTeams = [
       { id: 11, name: 'Reikland Reavers', count: 12, rank: 1 },
@@ -373,6 +372,12 @@ describe('CoachDeepdiveService', () => {
             {
               type: 2,
               style: expect.any(Number) as number,
+              label: 'Reikland Reavers',
+              custom_id: 'deepdive:team:11',
+            },
+            {
+              type: 2,
+              style: expect.any(Number) as number,
               label: 'BB2016',
               custom_id: 'deepdive:era:3',
             },
@@ -381,12 +386,6 @@ describe('CoachDeepdiveService', () => {
               style: expect.any(Number) as number,
               label: 'BB2020',
               custom_id: 'deepdive:era:4',
-            },
-            {
-              type: 2,
-              style: expect.any(Number) as number,
-              label: 'Reikland Reavers',
-              custom_id: 'deepdive:team:11',
             },
           ],
         },
@@ -453,7 +452,41 @@ describe('CoachDeepdiveService', () => {
     });
   });
 
-  it('builds the era component entries keyed by era id, ahead of the team entries', async () => {
+  // The no-matches early return builds its own components (header-only, since
+  // no leaderboard data has been fetched yet) and threads the overflow note
+  // into the description. The shared entity-components stubs hardcode
+  // `overflowNote: null`, so this branch needs a per-test override to be
+  // exercised with a note present.
+  it('appends the overflow note on the no-matches path', async () => {
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: '…and 3 more without a link.',
+    });
+    const { service } = await makeService({
+      coaches: makeCoaches({
+        coach: { id: 1, name: 'Roze Madder' },
+        eras: [{ id: 4, name: 'BB2020' }],
+        span: undefined,
+      }),
+      entityComponents,
+    });
+    const result = await service.resolve(1);
+    expect(result).toEqual({
+      embeds: [
+        {
+          title: 'Roze Madder',
+          description: [
+            'Eras: BB2020',
+            DEEPDIVE_COACH_NO_MATCHES_MESSAGE,
+            '…and 3 more without a link.',
+          ].join('\n'),
+        },
+      ],
+    });
+  });
+
+  it('builds the team component entries ahead of the era entries', async () => {
     const leaderboard = mock<LeaderboardService>();
     const rankedTeams = [{ id: 10, name: 'Gouged Eyes', count: 12, rank: 1 }];
     leaderboard.topRanksWithTies.mockReturnValue({
@@ -476,14 +509,14 @@ describe('CoachDeepdiveService', () => {
     const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
     expect(entries).toEqual([
       {
-        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
-        entityId: '3',
-        label: 'BB2016',
-      },
-      {
         customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '10',
         label: 'Gouged Eyes',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '3',
+        label: 'BB2016',
       },
     ]);
   });
