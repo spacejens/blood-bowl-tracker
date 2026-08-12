@@ -375,6 +375,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         ```bash
         cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
         ```
+        - Include `--exclude-review-id` only when a previous review's `id` already exists to exclude (i.e. this isn't the very first iteration's wait). Omit it entirely when the rate limit was hit on step (a)'s first iteration, consistent with how (a) itself omits it there.
         - `<comment-watermark-epoch>` is the value just computed above, not the watermark from (a).
         - `<trigger-epoch>` is `availableAtEpochSeconds` when present, otherwise the current epoch plus 600 (a 10-minute default).
         - `<timeout>` is `(<trigger-epoch> − now) × 1000 + 600000` — the wait until reviews resume, plus the standard 10-minute review window that follows the trigger. `wait-for-pr-review` does not compute this itself; it only posts the trigger once the clock crosses `--trigger-after` and keeps polling until its own deadline, so too small a `--timeout-ms` would expire before the triggered review can land.
