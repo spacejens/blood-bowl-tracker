@@ -1,0 +1,52 @@
+import { DB } from '@blood-bowl-tracker/db';
+import { Test } from '@nestjs/testing';
+import { describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
+
+import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+import type { MockDbResult } from './db-mock.test-helpers';
+import { mockDb } from './db-mock.test-helpers';
+import { ExternalSystemLookupService } from './external-system-lookup.service';
+
+async function makeService(dbResult: MockDbResult): Promise<{
+  service: ExternalSystemLookupService;
+  config: MockProxy<ReviewPlayerConfigService>;
+}> {
+  const config = mock<ReviewPlayerConfigService>();
+  config.getExternalSystemName.mockReturnValue('BBL');
+  const moduleRef = await Test.createTestingModule({
+    providers: [
+      ExternalSystemLookupService,
+      { provide: DB, useValue: dbResult.db },
+      { provide: ReviewPlayerConfigService, useValue: config },
+    ],
+  }).compile();
+  return { service: moduleRef.get(ExternalSystemLookupService), config };
+}
+
+describe('ExternalSystemLookupService', () => {
+  it('resolves the configured system name to its id', async () => {
+    const { service } = await makeService(mockDb([{ id: 3 }]));
+
+    expect(await service.getSystemId('bbl')).toBe(3);
+  });
+
+  it('queries once and memoizes per source', async () => {
+    const dbResult = mockDb([{ id: 3 }], [{ id: 3 }]);
+    const { service } = await makeService(dbResult);
+
+    await service.getSystemId('bbl');
+    await service.getSystemId('bbl');
+
+    expect(dbResult.chains).toHaveLength(1);
+  });
+
+  it('throws a helpful error when the system is not in the database', async () => {
+    const { service } = await makeService(mockDb([]));
+
+    await expect(service.getSystemId('bbl')).rejects.toThrow(
+      /No external system named "BBL" exists/,
+    );
+  });
+});
