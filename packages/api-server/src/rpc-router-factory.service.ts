@@ -156,16 +156,8 @@ export class RpcRouterFactoryService {
             ),
         ),
         // Not routed through the upsert handler, for the same reason
-        // sppAwardValues.sync is not: there is no external-id conflict to
-        // map and no entity+created shape to return.
-        syncComputedSppTotals: implement(
-          contract.players.syncComputedSppTotals,
-        ).handler(({ input }) =>
-          this.sppTotalsService.syncComputedTotals(input),
-        ),
-        // Not routed through the upsert handler, for the same reason
-        // syncComputedSppTotals is not: no external-id conflict to map and
-        // no entity+created shape to return.
+        // sppAwardValues.sync is not: no external-id conflict to map and no
+        // entity+created shape to return.
         syncScrapedSppAdjustments: implement(
           contract.players.syncScrapedSppAdjustments,
         ).handler(({ input }) =>

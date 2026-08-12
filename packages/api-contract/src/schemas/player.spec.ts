@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import {
   PlayerSchema,
-  SyncComputedSppTotalsResultSchema,
-  SyncComputedSppTotalsSchema,
   SyncReportedSppAdjustmentsSchema,
   SyncScrapedSppAdjustmentsSchema,
   SyncSppAdjustmentsResultSchema,
@@ -78,41 +76,6 @@ describe('player schemas', () => {
         sppTotal: 1.5,
         externalIds: [{ externalSystemId: 1, externalId: 'x' }],
       }),
-    ).toThrow();
-  });
-});
-
-describe('SyncComputedSppTotals schemas', () => {
-  it('parses a list of player ids', () => {
-    expect(SyncComputedSppTotalsSchema.parse({ playerIds: [1, 2, 3] })).toEqual(
-      {
-        playerIds: [1, 2, 3],
-      },
-    );
-  });
-
-  it('accepts an empty player id list', () => {
-    expect(SyncComputedSppTotalsSchema.parse({ playerIds: [] })).toEqual({
-      playerIds: [],
-    });
-  });
-
-  it('rejects a non-integer player id', () => {
-    expect(() =>
-      SyncComputedSppTotalsSchema.parse({ playerIds: [1.5] }),
-    ).toThrow();
-  });
-
-  it('parses a result of updated player ids', () => {
-    expect(
-      SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [7, 8] }),
-    ).toEqual({ updatedPlayerIds: [7, 8] });
-  });
-
-  it('rejects a non-integer updated player id', () => {
-    // updatedPlayerIds are database serial ids, always integers.
-    expect(() =>
-      SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [1.5] }),
     ).toThrow();
   });
 });

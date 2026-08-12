@@ -763,6 +763,7 @@ describe('RpcRouterFactoryService', () => {
         teamEraId: 10,
         positionId: 20,
         sppTotal: null,
+        sppAdjustment: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -907,18 +908,6 @@ describe('RpcRouterFactoryService', () => {
 
     expect(result).toEqual({ sppAwardValueIds: [11] });
     expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
-  });
-
-  it('routes players.syncComputedSppTotals to SppTotalsService.syncComputedTotals', async () => {
-    sppTotalsService.syncComputedTotals.mockResolvedValue({
-      updatedPlayerIds: [1, 2],
-    });
-
-    const input = { playerIds: [1, 2] };
-    const result = await call(router.players.syncComputedSppTotals, input);
-
-    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
-    expect(sppTotalsService.syncComputedTotals).toHaveBeenCalledWith(input);
   });
 
   it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {
