@@ -40,28 +40,27 @@ and truncates via `topRanksWithTies`, exactly as the count toplists do.
 
 ## Total SPP: one toplist, two calculations
 
-The player toplist ranking by total Star Player Points is the one `/insights`
-query whose meaning changes with its scope, because SPP has two sources: a
-player's stored career total (`players.spp_total`, which already folds in any
-manual adjustment recorded outside match events — see the `players.spp_total`
-and `players.spp_adjustment` column comments in
-`packages/db/src/schema/players.ts` for how each source computes it) and the
-sum of per-event awards (`match_events.spp_value`).
+The player toplist ranking by total
+[Star Player Points](../glossary.md#star-player-points-spp) is the one
+`/insights` query whose meaning changes with its scope, because SPP has two
+sources: a player's stored career total, which already folds in any
+adjustment recorded outside match events, and the sum of the SPP awarded by
+that player's own events.
 
-- **All-time, league, or era scope:** ranks by the stored `players.spp_total`,
+- **All-time, league, or era scope:** ranks by the stored career total,
   including adjustments. A player qualifies for a league/era-scoped list
-  through their own `players.team_era_id` — never through a match they
-  played — so no match-event join is involved. A player with no stored total
-  (`NULL`) is excluded.
+  through the [team era](../glossary.md#team-era) their own player record
+  belongs to — never through a match they played. A player with no stored
+  total is excluded.
 - **Competition or match-category scope:** these are narrower than an era,
   and an adjustment's originating match is unknown, so it cannot be
-  attributed to a competition or category. This scope instead sums
-  `match_events.spp_value` for the acting player over the usual
-  scope-narrowed join, with no restriction to a fixed set of event types —
-  SPP is awarded across many action types, not one selector's worth. A
-  player whose scoped sum is zero is excluded, for the same "nothing to
-  rank" reason as the `NULL`-total case above.
+  attributed to a competition or category. This scope instead sums the SPP
+  earned by that player's own events within the scope, across every event
+  type that awards SPP rather than one fixed set. A player whose scoped sum
+  is zero is excluded, for the same "nothing to rank" reason as the
+  no-stored-total case above.
 
-`FactScope`'s fields are mutually exclusive, so the choice between the two
-calculations is a plain two-way branch on whether a competition or match
-category is set — never a blend of both.
+The `/insights` command only ever resolves a single league, era, competition,
+or match category for one request, so the choice between the two
+calculations above is a plain two-way branch — never a blend of more than
+one scope at once.
