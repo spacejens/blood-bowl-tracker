@@ -32,22 +32,29 @@ const RATE_LIMIT_COMMENT_EPOCH_SECONDS = Math.floor(
   new Date(RATE_LIMIT_COMMENT.submittedAt).getTime() / 1000,
 );
 
+/**
+ * The PR's current head commit, as `gh pr view --json headRefOid` would
+ * report it. Real second SHA from the "Reviewing files that changed... between
+ * X and Y" sentence observed on PR #402.
+ */
+const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
+
 /** A `gh` invocation that found nothing: both halves of the filter are null. */
 const EMPTY = {
   exitCode: 0,
-  stdout: '{"review":null,"rateLimitComment":null}\n',
+  stdout: `{"review":null,"rateLimitComment":null,"headRefOid":"${HEAD_REF_OID}"}\n`,
   stderr: '',
 };
 /** A `gh` invocation that found a qualifying review and no rate-limit comment. */
 const FOUND = {
   exitCode: 0,
-  stdout: `${JSON.stringify({ review: REVIEW, rateLimitComment: null }, null, 2)}\n`,
+  stdout: `${JSON.stringify({ review: REVIEW, rateLimitComment: null, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
   stderr: '',
 };
 /** A `gh` invocation that found a rate-limit comment and no review. */
 const RATE_LIMITED = {
   exitCode: 0,
-  stdout: `${JSON.stringify({ review: null, rateLimitComment: RATE_LIMIT_COMMENT }, null, 2)}\n`,
+  stdout: `${JSON.stringify({ review: null, rateLimitComment: RATE_LIMIT_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
   stderr: '',
 };
 
@@ -60,10 +67,15 @@ const OPTIONS = {
 /**
  * The bounded `<!-- recent_review_start -->…<!-- recent_review_end -->` body
  * of CodeRabbit's rolling walkthrough comment, as jq extracts it — real text
- * observed on PR #402.
+ * observed on PR #402. Includes the "Reviewing files that changed... between
+ * X and Y" sentence so the section covers the current head commit
+ * (`HEAD_REF_OID`, the later of the two SHAs) — required for the freshness
+ * cross-check added alongside `updated_at`.
  */
 const COMPLETION_SECTION =
-  '\n\nNo actionable comments were generated in the recent review. 🎉\n\n';
+  '\n\nNo actionable comments were generated in the recent review. 🎉\n\n' +
+  'Reviewing files that changed from the base of the PR and between ' +
+  `\`e44832555c4036093c6dcb7c9ad9da576c8f6adc\` and \`${HEAD_REF_OID}\`.\n\n`;
 /** What the completion jq filter emits for a qualifying comment. */
 const COMPLETION_CANDIDATE = {
   id: '5263781074@1786521319',
@@ -166,11 +178,12 @@ describe('WaitForPrReviewService', () => {
       'view',
       '392',
       '--json',
-      'reviews,comments',
+      'reviews,comments,headRefOid',
       '--jq',
     ]);
     expect(args[6]).toContain('.author.login != "spacejens"');
     expect(args[6]).toContain('fromdateiso8601) >= 1760000000');
+    expect(args[6]).toContain('headRefOid: .headRefOid');
   });
 
   it('includes a review submitted in the same second as sinceEpochSeconds', async () => {
@@ -348,7 +361,7 @@ describe('WaitForPrReviewService', () => {
     await runWait(OPTIONS);
 
     const [, args] = processRunner.run.mock.calls[0];
-    expect(args[4]).toBe('reviews,comments');
+    expect(args[4]).toBe('reviews,comments,headRefOid');
     expect(args[6]).toContain('.comments[]');
     expect(args[6]).toContain('test("coderabbit"; "i")');
     expect(args[6]).toContain(
@@ -766,13 +779,71 @@ describe('WaitForPrReviewService', () => {
       EMPTY,
       completionWithSection(
         'No actionable comments were generated in the recent review. ' +
-          '**Run ID**: `3ce701f8-21ed-4b28-9c81-506c53e9c0a3`',
+          '**Run ID**: `3ce701f8-21ed-4b28-9c81-506c53e9c0a3`. ' +
+          'Reviewing files that changed from the base of the PR and between ' +
+          `\`e44832555c4036093c6dcb7c9ad9da576c8f6adc\` and \`${HEAD_REF_OID}\`.`,
       ),
     );
 
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toMatchObject({ found: true });
+  });
+
+  it('recognizes a completion candidate whose section covers the PR current head commit', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    // EMPTY carries headRefOid = HEAD_REF_OID, and COMPLETION_SECTION
+    // contains that SHA verbatim, so the candidate is fresh.
+    expect(result).toEqual({ found: true, review: COMPLETION_REVIEW });
+  });
+
+  it('does not treat a completion candidate as found when its section does not cover the PR current head commit', async () => {
+    // The comment's `updated_at` advanced (e.g. an unrelated walkthrough
+    // refresh) but the recent_review section still describes a stale pass:
+    // it names some other SHA, never the PR's actual head commit.
+    mockPoll(
+      EMPTY,
+      completionWithSection(
+        'No actionable comments were generated in the recent review. ' +
+          'Reviewing files that changed from the base of the PR and between ' +
+          '`e44832555c4036093c6dcb7c9ad9da576c8f6adc` and ' +
+          '`0000000000000000000000000000000000000000`.',
+      ),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    // Not found — the candidate is stale, so polling continues to timeout.
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('does not treat a completion candidate as found when the current head commit is unknown', async () => {
+    // The reviews call's own headRefOid field failed to parse (e.g. the
+    // widened --json output was somehow malformed) — fail closed rather than
+    // trust an unverifiable completion candidate.
+    mockPoll(
+      {
+        exitCode: 0,
+        stdout: '{"review":null,"rateLimitComment":null}\n',
+        stderr: '',
+      },
+      completionResult(COMPLETION_CANDIDATE),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
   });
 
   it('ignores a completion payload missing the fields the filter should have produced', async () => {

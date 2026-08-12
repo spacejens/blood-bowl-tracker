@@ -64,6 +64,23 @@ export interface WaitForPrReviewResult {
 interface PollOutcome {
   readonly review?: unknown;
   readonly rateLimitComment?: RateLimitComment;
+  /**
+   * The PR's current head commit, read from the same `gh pr view` call
+   * (widened to also request `headRefOid`) — carried through so the
+   * completion-comment check below can cross-check freshness against it.
+   */
+  readonly headRefOid?: string;
+}
+
+/**
+ * `pollCompletionComment`'s inputs bundled into one object: `options` alone
+ * plus `headRefOid` would be a 4th positional parameter, over this repo's
+ * 3-parameter limit (`local/max-function-params`).
+ */
+interface CompletionPollContext {
+  readonly options: WaitForPrReviewOptions;
+  /** The PR's current head commit; `undefined` when the reviews call could not report it. */
+  readonly headRefOid: string | undefined;
 }
 
 /**
@@ -242,7 +259,7 @@ export class WaitForPrReviewService {
       return outcome;
     }
     const review = await this.pollCompletionComment(
-      options,
+      { options, headRefOid: outcome.headRefOid },
       deadline,
       intervalMs,
     );
@@ -268,7 +285,10 @@ export class WaitForPrReviewService {
         'view',
         options.prNumber,
         '--json',
-        'reviews,comments',
+        // headRefOid is requested here — not in a separate `gh` call — so
+        // the completion-comment check below can cross-check freshness
+        // against the PR's *current* head commit at no extra cost.
+        'reviews,comments,headRefOid',
         '--jq',
         this.filter(options),
       ],
@@ -292,9 +312,12 @@ export class WaitForPrReviewService {
       this.hasProsePhrase(parsed.rateLimitComment.body, RATE_LIMIT_PHRASE_REGEX)
         ? parsed.rateLimitComment
         : undefined;
+    const headRefOid =
+      typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
     return {
       ...(parsed.review == null ? {} : { review: parsed.review }),
       ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
+      ...(headRefOid === undefined ? {} : { headRefOid }),
     };
   }
 
@@ -306,14 +329,16 @@ export class WaitForPrReviewService {
    * carries `createdAt` only, and the comment is created on the *first*
    * pass), so this reads the issue-comments REST endpoint instead.
    *
-   * Returns `undefined` for a failed call, no match, or a coarse jq match
-   * the stricter prose re-check rejects.
+   * Returns `undefined` for a failed call, no match, a coarse jq match the
+   * stricter prose re-check rejects, or a candidate whose section does not
+   * cover the PR's current head commit (see `coversHeadCommit`).
    */
   private async pollCompletionComment(
-    options: WaitForPrReviewOptions,
+    context: CompletionPollContext,
     deadline: number,
     intervalMs: number,
   ): Promise<CompletionReview | undefined> {
+    const { options, headRefOid } = context;
     const result = await this.processRunner.run(
       'gh',
       [
@@ -333,7 +358,8 @@ export class WaitForPrReviewService {
       !this.hasProsePhrase(
         candidate.section,
         NO_ACTIONABLE_COMMENTS_PHRASE_REGEX,
-      )
+      ) ||
+      !this.coversHeadCommit(candidate, headRefOid)
     ) {
       return undefined;
     }
@@ -342,6 +368,30 @@ export class WaitForPrReviewService {
       submittedAt: candidate.submittedAt,
       author: { login: candidate.author.login },
     };
+  }
+
+  /**
+   * GitHub gives one `updated_at` for CodeRabbit's whole rolling walkthrough
+   * comment. If CodeRabbit edits *any* part of it — e.g. refreshing the
+   * walkthrough/commits list while a new review pass is still running —
+   * `updated_at` advances even though the `recent_review` section still
+   * describes the *previous*, already-stale pass. Without this check, that
+   * edit could be misread as a fresh "nothing to report" signal for commits
+   * CodeRabbit has not actually reviewed yet.
+   *
+   * Real CodeRabbit output states the reviewed commit range in prose
+   * ("Reviewing files that changed from the base of the PR and between
+   * `<base>` and `<head>`"), but that wording is not guaranteed stable.
+   * Requiring the PR's full 40-char head SHA to appear verbatim in the
+   * section is a much more robust freshness signal than parsing that
+   * sentence's structure. An unknown `headRefOid` (the reviews call could
+   * not report it) fails closed rather than trust an unverifiable candidate.
+   */
+  private coversHeadCommit(
+    candidate: CompletionCandidate,
+    headRefOid: string | undefined,
+  ): boolean {
+    return headRefOid !== undefined && candidate.section.includes(headRefOid);
   }
 
   /**
@@ -421,7 +471,8 @@ export class WaitForPrReviewService {
   private filter(options: WaitForPrReviewOptions): string {
     return (
       `{review: (${this.reviewFilter(options)}), ` +
-      `rateLimitComment: (${this.rateLimitFilter(options)})}`
+      `rateLimitComment: (${this.rateLimitFilter(options)}), ` +
+      `headRefOid: .headRefOid}`
     );
   }
 
