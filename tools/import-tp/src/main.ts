@@ -17,6 +17,7 @@ import { TpMatchEventsImportService } from './match-events/tp-match-events-impor
 import { TpMatchOutcomesImportService } from './matches/tp-match-outcomes-import.service';
 import { TpMatchesImportService } from './matches/tp-matches-import.service';
 import { TpPlayersImportService } from './players/tp-players-import.service';
+import { TpSppAdjustmentsImportService } from './players/tp-spp-adjustments-import.service';
 import { TpPositionRaceErasImportService } from './positions/tp-position-race-eras-import.service';
 import { TpPositionsImportService } from './positions/tp-positions-import.service';
 import { TpRacesImportService } from './races/tp-races-import.service';
@@ -288,6 +289,18 @@ async function run(): Promise<ImportResult> {
         starPlayerIdsByRosterAndMaster,
       });
 
+    // Runs after the match-events step: the adjustment is the gap between
+    // TP's own reported career total (already stored on players.spp_total by
+    // the players step) and the sum of the spp_value those events just
+    // wrote. Star players hired via an inducements_roll carry no reported
+    // total, so the server skips them and their adjustment stays NULL.
+    const sppAdjustmentsOutcome = await app
+      .get(TpSppAdjustmentsImportService)
+      .importSppAdjustments([
+        ...playerIdsByLineUpId.values(),
+        ...starPlayerIdsByRosterAndMaster.values(),
+      ]);
+
     // Match outcomes run last: scores are counted from the touchdown events
     // imported just above, and TP's own `winner` field per match is used
     // directly as a tie-break -- no bracket reconstruction needed, since TP
@@ -316,6 +329,7 @@ async function run(): Promise<ImportResult> {
       positionRaceErasOutcome.result,
       teamParticipationOutcome.result,
       matchEventsOutcome.result,
+      sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
     ];
     return {
