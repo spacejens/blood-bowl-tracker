@@ -115,10 +115,14 @@ A comment is **unhandled** if its `body` does not start with `**Comment by Claud
 **Review body findings** — a submitted review's own `body` text can carry findings that exist nowhere else. When a reviewer (e.g. CodeRabbit) has a finding it cannot anchor to a line in the diff — such as an "outside diff range" observation — GitHub gives it no inline comment to attach to, so the finding only ever appears in the review body, invisible to both scans above. Fetch every review on the PR:
 ```bash
 gh api graphql -f query='
-  query($owner: String!, $repo: String!, $pr: Int!) {
+  query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $pr) {
-        reviews(first: 100) {
+        reviews(first: 100, after: $after) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
           nodes {
             id
             url
@@ -130,9 +134,9 @@ gh api graphql -f query='
         }
       }
     }
-  }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR"
+  }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR" -f after="$AFTER"
 ```
-Discard any node whose `state` is `PENDING` — an unsubmitted review the author is still editing, excluded for exactly the same reason as the pending inline comments above — and any node whose `body` is empty or whitespace-only. Everything that survives is a candidate, judged below.
+Start with `$AFTER` unset (omit `-f after=`, or pass an empty string — either leaves GraphQL's `after` argument null for the first page). If the response's `pageInfo.hasNextPage` is `true`, repeat the query with `$AFTER` set to `pageInfo.endCursor` and append the new page's `nodes` to the ones already collected; stop once `hasNextPage` is `false`. A PR rarely accumulates more than 100 submitted reviews, but silently truncating at exactly 100 would reintroduce the same silent-miss failure this scan exists to prevent, just at a larger scale — so treat every page as mandatory, not an optimization. Once every page is collected, discard any node whose `state` is `PENDING` — an unsubmitted review the author is still editing, excluded for exactly the same reason as the pending inline comments above — and any node whose `body` is empty or whitespace-only. Everything that survives is a candidate, judged below.
 
 Deciding whether a candidate body actually contains findings is a **semantic judgment — read the body and decide; do not pattern-match on section headings or apply a regex.** Most of a review body is not a finding: run configuration, an "Actionable comments posted: N" summary, autofix links, files-skipped notices. Findings the same review also posted inline are already covered by the `reviewThreads` scan above, and must not be counted twice here. There is no reliable mechanical marker for "this section is a genuinely new finding" that generalizes across reviewers or survives a bot rewording its own output, so read each candidate `body` and judge whether it describes concrete findings **not** already surfaced by that review's inline threads or by a top-level comment. A body that is only boilerplate — for example a `COMMENTED` review whose body is just an empty diff-scan summary — is not unhandled: skip it silently, exactly as an empty result from the other scans produces no items.
 
