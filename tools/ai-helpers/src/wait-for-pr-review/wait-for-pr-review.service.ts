@@ -554,7 +554,8 @@ export class WaitForPrReviewService {
         ? ''
         : ` | select(.id != ${JSON.stringify(options.excludeReviewId)})`;
     return (
-      '[.[] | select((.user.login // "") | test("coderabbit"; "i")) | ' +
+      '[.[] | select(.updated_at != null) | ' +
+      'select((.user.login // "") | test("coderabbit"; "i")) | ' +
       `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)})) | ` +
       `select((.updated_at | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
       '{id: ((.id | tostring) + "@" + ((.updated_at | fromdateiso8601) | tostring)), ' +

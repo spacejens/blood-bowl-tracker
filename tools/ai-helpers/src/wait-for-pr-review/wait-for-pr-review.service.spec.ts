@@ -658,6 +658,7 @@ describe('WaitForPrReviewService', () => {
     );
     expect(args[2]).toBe('--jq');
     expect(args[3]).toContain('test("coderabbit"; "i")');
+    expect(args[3]).toContain('select(.updated_at != null)');
     expect(args[3]).toContain('contains("<!-- recent_review_start -->")');
     expect(args[3]).toContain('(.updated_at | fromdateiso8601) >= 1760000000');
     expect(args[3]).toContain('<!-- recent_review_end -->');
