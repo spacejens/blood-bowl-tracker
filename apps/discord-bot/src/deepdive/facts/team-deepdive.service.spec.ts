@@ -109,9 +109,10 @@ describe('TeamDeepdiveService', () => {
   // echo its inputs, and `passthroughEntityComponents()` cans component
   // building the same way, so this test asserts only what TeamDeepdiveService
   // itself owns: joining the race/coach/eras/career/ranked-row lines, and
-  // building the race-then-coach-then-era-then-player component-entry pool
-  // (in that order) that it hands to buildEntityComponents.
-  it('renders the race, coach, career span and top-players list, with header components before player components', async () => {
+  // building the player-then-race-then-coach-then-era component-entry pool
+  // (in that order — leaderboard entries take component priority over header
+  // entries) that it hands to buildEntityComponents.
+  it('renders the race, coach, career span and top-players list, with player components before header components', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -144,13 +145,6 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
-            {
-              type: 2,
-              style: 1,
-              label: 'Roze Madder',
-              custom_id: 'deepdive:coach:12',
-            },
             {
               type: 2,
               style: 1,
@@ -163,13 +157,20 @@ describe('TeamDeepdiveService', () => {
               label: 'Morg',
               custom_id: 'deepdive:player:8',
             },
+            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Roze Madder',
+              custom_id: 'deepdive:coach:12',
+            },
           ],
         },
       ],
     });
   });
 
-  it('renders the eras line after the coach line and an era button per era', async () => {
+  it('renders the eras line after the coach line, with era buttons after the player buttons', async () => {
     const { service } = await makeService({
       teams: makeTeams({
         team: grinders,
@@ -202,6 +203,12 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
+            {
+              type: 2,
+              style: 1,
+              label: 'Griff',
+              custom_id: 'deepdive:player:5',
+            },
             { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
             {
               type: 2,
@@ -211,12 +218,6 @@ describe('TeamDeepdiveService', () => {
             },
             { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
             { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
-            {
-              type: 2,
-              style: 1,
-              label: 'Griff',
-              custom_id: 'deepdive:player:5',
-            },
           ],
         },
       ],
