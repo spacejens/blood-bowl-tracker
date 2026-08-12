@@ -72,6 +72,17 @@ interface PollOutcome {
  * phrases (case-insensitive) qualifies.
  */
 const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
+/**
+ * Mirrors `RATE_LIMIT_PHRASES` for a second, stricter check in TypeScript
+ * (see `hasGenuineRateLimitPhrase`) — `gh`/jq's own phrase test is a coarse
+ * first pass and can be fooled by a phrase appearing only inside markdown
+ * code formatting (e.g. a branch name quoted in an inline code span).
+ */
+const RATE_LIMIT_PHRASE_REGEX = new RegExp(RATE_LIMIT_PHRASES, 'i');
+/** A fenced code block: three backticks, any content, three backticks. */
+const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
+/** An inline code span: a backtick, no-backtick content, a backtick. */
+const INLINE_CODE_SPAN = /`[^`]*`/g;
 
 /** A sentence must mention one of these to be read as stating a wait time. */
 const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets|wait|before)\b/i;
@@ -190,13 +201,31 @@ export class WaitForPrReviewService {
       return undefined;
     }
     // jq emits `null` for an empty half; normalise both to `undefined` so
-    // callers can test them with a single `!== undefined`.
+    // callers can test them with a single `!== undefined`. A rate-limit
+    // candidate is also re-checked here — jq's own phrase test is coarse
+    // and can be fooled by a phrase appearing only inside markdown code
+    // formatting (a quoted branch name, file path, or snippet).
+    const rateLimitComment =
+      parsed.rateLimitComment != null &&
+      this.hasGenuineRateLimitPhrase(parsed.rateLimitComment.body)
+        ? parsed.rateLimitComment
+        : undefined;
     return {
       ...(parsed.review == null ? {} : { review: parsed.review }),
-      ...(parsed.rateLimitComment == null
-        ? {}
-        : { rateLimitComment: parsed.rateLimitComment }),
+      ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
     };
+  }
+
+  /**
+   * Strips fenced code blocks and inline code spans before testing for a
+   * rate-limit phrase — a genuine CodeRabbit rate-limit warning is prose,
+   * not code, so this narrows matching without weakening real detection.
+   */
+  private hasGenuineRateLimitPhrase(body: string): boolean {
+    const prose = body
+      .replace(FENCED_CODE_BLOCK, '')
+      .replace(INLINE_CODE_SPAN, '');
+    return RATE_LIMIT_PHRASE_REGEX.test(prose);
   }
 
   /**

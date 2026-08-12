@@ -331,9 +331,46 @@ describe('WaitForPrReviewService', () => {
     };
   }
 
+  it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
+    // Real false positive from PR #399: CodeRabbit's own "review in
+    // progress" status comment echoes this branch's name in a checkbox's
+    // inline code, and the branch name happens to contain "rate-limit".
+    // `gh`/jq's own coarse phrase test can still surface this as a
+    // candidate — the service itself must discard it once it strips code
+    // formatting and re-checks.
+    processRunner.run
+      .mockResolvedValueOnce(
+        rateLimitedWithBody(
+          'Currently processing new changes in this PR. This may take a ' +
+            'few minutes, please wait...\n\n' +
+            'Commit unit tests in branch `issue-397-review-wait-coderabbit-rate-limit`',
+        ),
+      )
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
+  });
+
+  it('still detects a rate limit stated in prose alongside an unrelated code span', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody(
+        'Rate limit exceeded. See branch `issue-397-review-wait-coderabbit-rate-limit`.',
+      ),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toMatchObject({ found: false, rateLimited: true });
+  });
+
   it('parses a minutes wait out of the rate-limit comment body', async () => {
     processRunner.run.mockResolvedValue(
-      rateLimitedWithBody('Reviews will be available again in 45 minutes.'),
+      rateLimitedWithBody(
+        'Rate limit exceeded. Reviews will be available again in 45 minutes.',
+      ),
     );
 
     const result = await runWait(OPTIONS);
@@ -345,7 +382,7 @@ describe('WaitForPrReviewService', () => {
 
   it('parses an hours wait out of the rate-limit comment body', async () => {
     processRunner.run.mockResolvedValue(
-      rateLimitedWithBody('Please retry in 2 hours.'),
+      rateLimitedWithBody('Rate limit exceeded. Please retry in 2 hours.'),
     );
 
     const result = await runWait(OPTIONS);
@@ -357,7 +394,7 @@ describe('WaitForPrReviewService', () => {
 
   it('parses a singular unit and matches keywords case-insensitively', async () => {
     processRunner.run.mockResolvedValue(
-      rateLimitedWithBody('The limit RESETS in 1 hour.'),
+      rateLimitedWithBody('Rate limit exceeded. The limit RESETS in 1 hour.'),
     );
 
     const result = await runWait(OPTIONS);
@@ -370,7 +407,7 @@ describe('WaitForPrReviewService', () => {
   it('parses a realistic "wait ... before" rate-limit sentence', async () => {
     processRunner.run.mockResolvedValue(
       rateLimitedWithBody(
-        'Please wait 12 minutes before requesting another review.',
+        'Rate limit exceeded. Please wait 12 minutes before requesting another review.',
       ),
     );
 
@@ -383,7 +420,9 @@ describe('WaitForPrReviewService', () => {
 
   it('ignores a duration in a sentence with no wait-time keyword', async () => {
     processRunner.run.mockResolvedValue(
-      rateLimitedWithBody('This review took 3 minutes of processing.'),
+      rateLimitedWithBody(
+        'Rate limit exceeded. This review took 3 minutes of processing.',
+      ),
     );
 
     const result = await runWait(OPTIONS);
