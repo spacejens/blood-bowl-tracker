@@ -81,7 +81,7 @@ export const LineUpSchema = z.object({
   rosterId: z.number(),
   position: z.string(),
   isBigGuy: z.boolean().optional(),
-  totalStarPlayerPoints: z.number(),
+  totalStarPlayerPoints: z.number().int(),
 });
 
 const RosterSchema = z.object({

@@ -202,4 +202,26 @@ describe('RosterParserService', () => {
       ),
     ).toThrow(/totalStarPlayerPoints/);
   });
+
+  it('rejects a fractional totalStarPlayerPoints', () => {
+    // Star Player Points are always whole numbers.
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              isBigGuy: false,
+              totalStarPlayerPoints: 1.5,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/totalStarPlayerPoints/);
+  });
 });
