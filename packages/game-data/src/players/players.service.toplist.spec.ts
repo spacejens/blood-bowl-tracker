@@ -15,11 +15,13 @@ import {
   extractJoinColumns,
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
+import { SppTotalsService } from '../spp/spp-totals.service';
 import { PlayersService } from './players.service';
 
 describe('PlayersService toplist queries', () => {
   let service: PlayersService;
   let likePattern: MockProxy<LikePatternService>;
+  let sppTotals: MockProxy<SppTotalsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -30,6 +32,7 @@ describe('PlayersService toplist queries', () => {
       providers: [
         PlayersService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: SppTotalsService, useValue: sppTotals },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -39,6 +42,7 @@ describe('PlayersService toplist queries', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    sppTotals = mock<SppTotalsService>();
   });
 
   it('countMvpAwardsByPlayer returns the rows the query resolves to', async () => {
@@ -620,5 +624,81 @@ describe('PlayersService toplist queries', () => {
       'touchdown',
       9,
     ]);
+  });
+
+  it('topPlayersByTotalSpp ranks by the stored spp_total for the all-time scope', async () => {
+    const rows = [
+      { playerId: 1, name: 'Griff Oberwald', count: 128 },
+      { playerId: 2, name: 'Morg n Thorg', count: 96 },
+    ];
+    const { db, chains } = await build(rows);
+
+    await expect(
+      service.topPlayersByTotalSpp(FACT_SCOPE_ALL_TIME, 21),
+    ).resolves.toEqual(rows);
+    expect(db.select).toHaveBeenCalledTimes(1);
+    expect(sppTotals.topPlayersBySppSum).not.toHaveBeenCalled();
+    expect(chains[0].limit).toHaveBeenCalledWith(21);
+    // players -> teamEras -> eras, so a league scope can filter on eras.
+    expect(chains[0].innerJoin).toHaveBeenCalledTimes(2);
+    expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
+      ['team_eras.id', 'players.team_era_id'],
+    );
+  });
+
+  it('topPlayersByTotalSpp excludes players with no stored spp_total', async () => {
+    const { chains } = await build([]);
+
+    await service.topPlayersByTotalSpp(FACT_SCOPE_ALL_TIME, 21);
+
+    expect(chains[0].where).toHaveBeenCalledTimes(1);
+    // The only clause is the IS NOT NULL guard, which binds no value.
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
+  });
+
+  it('topPlayersByTotalSpp filters by the era the player record belongs to', async () => {
+    const { chains } = await build([]);
+
+    await service.topPlayersByTotalSpp({ eraId: 20 }, 21);
+
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([20]);
+  });
+
+  it('topPlayersByTotalSpp filters by league through the player era', async () => {
+    const { chains } = await build([]);
+
+    await service.topPlayersByTotalSpp({ leagueId: 9 }, 21);
+
+    expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([9]);
+  });
+
+  it('topPlayersByTotalSpp sums match events instead when a competition is scoped', async () => {
+    const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 12 }];
+    const { db } = await build([]);
+    sppTotals.topPlayersBySppSum.mockResolvedValue(rows);
+
+    await expect(
+      service.topPlayersByTotalSpp({ competitionId: 30 }, 21),
+    ).resolves.toEqual(rows);
+    expect(sppTotals.topPlayersBySppSum).toHaveBeenCalledWith(
+      { competitionId: 30 },
+      21,
+    );
+    expect(db.select).not.toHaveBeenCalled();
+  });
+
+  it('topPlayersByTotalSpp sums match events instead when a match category is scoped', async () => {
+    const rows = [{ playerId: 1, name: 'Griff Oberwald', count: 5 }];
+    const { db } = await build([]);
+    sppTotals.topPlayersBySppSum.mockResolvedValue(rows);
+
+    await expect(
+      service.topPlayersByTotalSpp({ category: 'season_final' }, 21),
+    ).resolves.toEqual(rows);
+    expect(sppTotals.topPlayersBySppSum).toHaveBeenCalledWith(
+      { category: 'season_final' },
+      21,
+    );
+    expect(db.select).not.toHaveBeenCalled();
   });
 });
