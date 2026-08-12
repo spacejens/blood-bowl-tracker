@@ -351,8 +351,11 @@ To run an import against production:
 3. Open the tunnel in its own terminal, from the repository root where
    `fly.toml` lives, and leave it running:
    ```bash
-   flyctl proxy 3001
+   flyctl proxy 3001:3000
    ```
+   `3001` is the local port the tunnel listens on; `3000` after the colon is
+   the production machine's own listening port (see `fly.toml`), which is
+   unrelated to this change and stays `3000`.
 4. In a second terminal, run the importers in the same order the
    `deploy-local` skill uses locally — manual "before", BBL, TP, manual
    "after" — each from its own tool directory:

@@ -279,22 +279,34 @@ Everything here automates the flow documented in `docs/discord-bot/production-ho
       tools/import-tp/import-tp-config.production.json5 2>&1
    ```
    If the file a selected import needs is missing, stop that import and tell the developer to create it once, from the same `import-*-config.example.json5` template as the local config, filling in the production `apiToken` from the matching `API_TOKEN_IMPORT_*` value in `apps/discord-bot/.env.production` — see `docs/discord-bot/production-hosting.md`. **Do not create it from the template yourself**: a config copied from the example would carry a placeholder token and fail with `401`, and authoring production credentials is a developer's job, not this skill's (see Non-goals). A missing file for one tool does not block the other tools' imports.
-3. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
+3. For each selected import whose production config exists (from step 2), check that its `apiBaseUrl` points at the tunnel's local port rather than a stale pre-migration value:
+   ```bash
+   for cfg in tools/import-manual/import-manual-config.production.json5 \
+              tools/import-bbl/import-bbl-config.production.json5 \
+              tools/import-tp/import-tp-config.production.json5; do
+     if [ -f "$cfg" ] && ! grep -q 'localhost:3001' "$cfg"; then
+       echo "STALE: $cfg does not reference localhost:3001"
+     fi
+   done
+   ```
+   If a config exists but does not contain `localhost:3001` (it very likely still has `localhost:3000` from before the tunnel's local port moved), stop that import and tell the developer their production config's `apiBaseUrl` is stale and needs manual updating to `http://localhost:3001` — see the migration note in `docs/discord-bot/production-hosting.md` for the full explanation. **Do not edit the file yourself** — same stance as the missing-file case in step 2 (see Non-goals). A stale config for one tool does not block the other tools' imports.
+4. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
    ```bash
    lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
-   If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
-4. Build the tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
+   If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001:3000` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
+5. Build the tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
    pnpm --filter @blood-bowl-tracker/import-bbl run build      # if the BBL import was selected
    pnpm --filter @blood-bowl-tracker/import-tp run build       # if the TP import was selected
    ```
-5. Open the private tunnel to the production machine, from the repository root where `fly.toml` lives. Start it as a **background** command — it runs until killed and would otherwise block everything after it:
+6. Open the private tunnel to the production machine, from the repository root where `fly.toml` lives. Start it as a **background** command — it runs until killed and would otherwise block everything after it:
    ```bash
-   flyctl proxy 3001
+   flyctl proxy 3001:3000
    ```
-6. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
+   `3001` is the local port this tunnel listens on; `3000` after the colon is the production machine's own listening port (see `fly.toml`), which is unrelated to this change and stays `3000`.
+7. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
    ```bash
    curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://localhost:3001/rpc
    ```
@@ -353,9 +365,9 @@ Run this section only if "Production imports: shared setup" ran. Like that secti
 
 1. Stop the background `flyctl proxy` started in the shared setup:
    ```bash
-   pkill -f 'flyctl proxy 3001'
+   pkill -f 'flyctl proxy 3001:3000'
    ```
-   This targets only tunnels for port 3001. `pkill` exits non-zero when nothing matched, which is fine — it means the tunnel was already gone.
+   This targets only tunnels for the `3001:3000` mapping. `pkill` exits non-zero when nothing matched, which is fine — it means the tunnel was already gone.
 2. Confirm the port is free again:
    ```bash
    lsof -nP -iTCP:3001 -sTCP:LISTEN
