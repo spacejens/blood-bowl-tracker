@@ -22,8 +22,8 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAdjustmentsService,
   SppAwardValuesService,
-  SppTotalsService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -47,7 +47,7 @@ export class RpcRouterFactoryService {
     private readonly racesService: RacesService,
     private readonly rulesSetsService: RulesSetsService,
     private readonly sppAwardValuesService: SppAwardValuesService,
-    private readonly sppTotalsService: SppTotalsService,
+    private readonly sppAdjustmentsService: SppAdjustmentsService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
@@ -154,12 +154,17 @@ export class RpcRouterFactoryService {
             ),
         ),
         // Not routed through the upsert handler, for the same reason
-        // sppAwardValues.sync is not: there is no external-id conflict to
-        // map and no entity+created shape to return.
-        syncComputedSppTotals: implement(
-          contract.players.syncComputedSppTotals,
+        // sppAwardValues.sync is not: no external-id conflict to map and no
+        // entity+created shape to return.
+        syncScrapedSppAdjustments: implement(
+          contract.players.syncScrapedSppAdjustments,
         ).handler(({ input }) =>
-          this.sppTotalsService.syncComputedTotals(input),
+          this.sppAdjustmentsService.syncScrapedAdjustments(input),
+        ),
+        syncReportedSppAdjustments: implement(
+          contract.players.syncReportedSppAdjustments,
+        ).handler(({ input }) =>
+          this.sppAdjustmentsService.syncReportedAdjustments(input),
         ),
       },
       positions: {

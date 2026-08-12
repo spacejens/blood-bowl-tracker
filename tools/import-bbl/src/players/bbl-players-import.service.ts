@@ -59,12 +59,17 @@ export class BblPlayersImportService {
     playerIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;
     racesActiveByEra: Set<string>;
+    scrapedSppTotalsByPlayerId: Map<number, number | null>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByPid = new Map<string, number>();
     const positionsUsedByEra = new Set<string>();
     const racesActiveByEra = new Set<string>();
+    // BBL's own displayed career total per imported player, keyed by DB id.
+    // Only an input to the spp_adjustment computation — never stored as
+    // players.spp_total, since BBL's figure mixes award rates across eras.
+    const scrapedSppTotalsByPlayerId = new Map<number, number | null>();
 
     const bblSystemName = this.externalSystemName.getBblSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap(
@@ -78,6 +83,7 @@ export class BblPlayersImportService {
         playerIdsByPid,
         positionsUsedByEra,
         racesActiveByEra,
+        scrapedSppTotalsByPlayerId,
       };
     }
     const [bblSystemId] = bootstrap.ids;
@@ -212,6 +218,7 @@ export class BblPlayersImportService {
           playerIdsByPid.set(player.pid, upserted.id);
           positionsUsedByEra.add(`${positionId}:${eraId}`);
           racesActiveByEra.add(`${team.raceId}:${eraId}`);
+          scrapedSppTotalsByPlayerId.set(upserted.id, player.sppTotal);
         }
       } catch (error) {
         errors.push(this.pageParseError.build(page.params, 'player', error));
@@ -224,6 +231,7 @@ export class BblPlayersImportService {
       playerIdsByPid,
       positionsUsedByEra,
       racesActiveByEra,
+      scrapedSppTotalsByPlayerId,
     };
   }
 }

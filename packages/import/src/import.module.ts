@@ -17,8 +17,8 @@ import { PlayersImportService } from './players-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
+import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
-import { SppTotalsImportService } from './spp-totals-import.service';
 import { TeamsImportService } from './teams-import.service';
 
 @Module({
@@ -39,8 +39,8 @@ import { TeamsImportService } from './teams-import.service';
     ExternalSystemsImportService,
     ExternalSystemBootstrapService,
     RulesSetsImportService,
+    SppAdjustmentsImportService,
     SppAwardValuesImportService,
-    SppTotalsImportService,
     ErasImportService,
     TeamsImportService,
   ],
@@ -61,8 +61,8 @@ import { TeamsImportService } from './teams-import.service';
     ExternalSystemsImportService,
     ExternalSystemBootstrapService,
     RulesSetsImportService,
+    SppAdjustmentsImportService,
     SppAwardValuesImportService,
-    SppTotalsImportService,
     ErasImportService,
     TeamsImportService,
   ],

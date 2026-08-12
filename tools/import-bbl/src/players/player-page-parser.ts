@@ -14,6 +14,17 @@ export interface BblPlayer {
   name: string;
   typId: string;
   teamCode: string;
+  /**
+   * BBL's own displayed career SPP total — the parenthesized figure on the
+   * "Unspent SPP" row (the middle cell is unspent SPP, which can be
+   * negative, and is not this). `null` when the row is absent or carries no
+   * parenthesized figure. Used only as an input to computing
+   * `players.spp_adjustment`; it is never stored as `players.spp_total`,
+   * because BBL's figure mixes award rates across eras — its site
+   * recalculated pre-BB2020 totals at BB2020 rates, so the raw scraped
+   * number isn't the era-correct total this repo wants `spp_total` to mean.
+   */
+  sppTotal: number | null;
 }
 
 @Injectable()
@@ -59,6 +70,24 @@ export class PlayerPageParser {
     if (!pid || $('h1').length === 0 || !typId || !teamCode) {
       return null;
     }
-    return { pid, name, typId, teamCode };
+    return { pid, name, typId, teamCode, sppTotal: this.extractSppTotal($) };
+  }
+
+  /**
+   * The career SPP total from the "Unspent SPP" row: find the label cell,
+   * then read the first parenthesized integer in that row. A missing row (or
+   * a row with no parenthesized figure) is not an error — the caller treats
+   * it as "no total scraped".
+   */
+  private extractSppTotal($: ReturnType<BblPage['load']>): number | null {
+    for (const element of $('td').toArray()) {
+      if (this.normalizeText.normalize($(element).text()) !== 'Unspent SPP:') {
+        continue;
+      }
+      const rowText = this.normalizeText.normalize($(element).parent().text());
+      const match = /\((\d+)\)/.exec(rowText);
+      return match ? Number(match[1]) : null;
+    }
+    return null;
   }
 }

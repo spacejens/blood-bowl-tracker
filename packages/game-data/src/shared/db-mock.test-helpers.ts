@@ -1,5 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import type { Mock } from 'vitest';
+import { vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
 /**
@@ -26,6 +27,16 @@ export interface MockDbResult {
   db: Db;
   /** One entry per issued query, in call order. */
   chains: QueryChain[];
+  /**
+   * The mocked `db.transaction`. Unlike every other db method (which falls
+   * through to the generic chain-returning fallback), this one really invokes
+   * its callback, handing it the same mock db as `tx`, so queries issued
+   * inside a transaction land in `chains` exactly like queries issued outside
+   * one, and resolves to whatever the callback returns. Specs assert on it to
+   * prove a write path is transactional, and may `mockRejectedValue(...)` it
+   * to simulate the transaction failing.
+   */
+  transaction: Mock;
 }
 
 function makeChain(rows: unknown[]): QueryChain {
@@ -60,9 +71,19 @@ export function mockDb(...rowsPerQuery: unknown[][]): MockDbResult {
     chains.push(chain);
     return chain;
   };
-  const db = mock<Record<string, Mock>>(
-    {},
-    { fallbackMockImplementation: () => next() },
+  // `transaction` is defined explicitly rather than auto-created: the generic
+  // fallback ignores its arguments and would return an unrelated chain without
+  // ever running the callback, so code under test would silently issue none of
+  // its queries. Passing the mock db back as `tx` keeps every query inside the
+  // callback flowing through the same chain-creation machinery.
+  const transaction: Mock = vi.fn(
+    async (callback: (tx: unknown) => unknown) => await callback(db),
   );
-  return { db: db as unknown as Db, chains };
+  const db = mock<Record<string, Mock>>(
+    { transaction },
+    {
+      fallbackMockImplementation: () => next(),
+    },
+  );
+  return { db: db as unknown as Db, chains, transaction };
 }

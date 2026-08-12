@@ -21,8 +21,8 @@ import {
   RaceUpsertConflictError,
   RulesSetsService,
   RulesSetUpsertConflictError,
+  SppAdjustmentsService,
   SppAwardValuesService,
-  SppTotalsService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -50,8 +50,8 @@ describe('RpcRouterFactoryService', () => {
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
+  let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
-  let sppTotalsService: MockProxy<SppTotalsService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
 
   beforeEach(async () => {
@@ -68,8 +68,8 @@ describe('RpcRouterFactoryService', () => {
     matchOutcomesService = mock<MatchOutcomesService>();
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
+    sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
-    sppTotalsService = mock<SppTotalsService>();
     upsertHandler = mock<UpsertHandlerService>();
     // Mirrors UpsertHandlerService's real implementation (see
     // upsert-handler.service.ts / its own spec for coverage of this logic in
@@ -109,8 +109,8 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
+        { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
-        { provide: SppTotalsService, useValue: sppTotalsService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
       ],
     }).compile();
@@ -759,6 +759,7 @@ describe('RpcRouterFactoryService', () => {
         teamEraId: 10,
         positionId: 20,
         sppTotal: null,
+        sppAdjustment: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -905,15 +906,36 @@ describe('RpcRouterFactoryService', () => {
     expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
   });
 
-  it('routes players.syncComputedSppTotals to SppTotalsService.syncComputedTotals', async () => {
-    sppTotalsService.syncComputedTotals.mockResolvedValue({
+  it('routes players.syncScrapedSppAdjustments to SppAdjustmentsService.syncScrapedAdjustments', async () => {
+    sppAdjustmentsService.syncScrapedAdjustments.mockResolvedValue({
       updatedPlayerIds: [1, 2],
     });
 
-    const input = { playerIds: [1, 2] };
-    const result = await call(router.players.syncComputedSppTotals, input);
+    const input = {
+      players: [
+        { playerId: 1, scrapedTotal: 16 },
+        { playerId: 2, scrapedTotal: null },
+      ],
+    };
+    const result = await call(router.players.syncScrapedSppAdjustments, input);
 
     expect(result).toEqual({ updatedPlayerIds: [1, 2] });
-    expect(sppTotalsService.syncComputedTotals).toHaveBeenCalledWith(input);
+    expect(sppAdjustmentsService.syncScrapedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
+  });
+
+  it('routes players.syncReportedSppAdjustments to SppAdjustmentsService.syncReportedAdjustments', async () => {
+    sppAdjustmentsService.syncReportedAdjustments.mockResolvedValue({
+      updatedPlayerIds: [3],
+    });
+
+    const input = { playerIds: [3, 4] };
+    const result = await call(router.players.syncReportedSppAdjustments, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [3] });
+    expect(sppAdjustmentsService.syncReportedAdjustments).toHaveBeenCalledWith(
+      input,
+    );
   });
 });
