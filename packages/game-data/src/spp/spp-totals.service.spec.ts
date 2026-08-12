@@ -88,6 +88,20 @@ describe('SppTotalsService.syncComputedTotals', () => {
     );
   });
 
+  it('writes 0 for a player whose group row has a SQL NULL total', async () => {
+    // Unlike the no-row case above, here the grouped select returns a row
+    // for the player (they acted in at least one match event), but every
+    // one of those events has a NULL spp_value (e.g. only fouls, which earn
+    // no SPP) -- SUM() over an all-NULL group is SQL NULL, not 0.
+    const db = mockDb([{ playerId: 1, total: null }], [{ id: 1 }]);
+    const service = await makeService(db);
+
+    const result = await service.syncComputedTotals({ playerIds: [1] });
+
+    expect(result).toEqual({ updatedPlayerIds: [1] });
+    expect(firstCallArg(db.chains[1].set)).toEqual({ sppTotal: 0 });
+  });
+
   it('groups players sharing a total into a single update', async () => {
     const db = mockDb(
       [

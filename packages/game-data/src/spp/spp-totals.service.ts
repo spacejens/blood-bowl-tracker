@@ -66,11 +66,15 @@ export class SppTotalsService {
       .where(inArray(matchEvents.actingPlayerId, playerIds))
       .groupBy(matchEvents.actingPlayerId);
 
+    // row.playerId is typed nullable (matchEvents.actingPlayerId is a
+    // nullable FK generally), but every row here came back through the
+    // inArray(matchEvents.actingPlayerId, playerIds) filter above, whose
+    // values are all real, non-null player ids -- so it can never actually
+    // be null here.
     const totalsByPlayerId = new Map<number, number>();
     for (const row of rows) {
-      if (row.playerId === null) continue;
       totalsByPlayerId.set(
-        row.playerId,
+        row.playerId as number,
         row.total === null ? 0 : Number(row.total),
       );
     }
