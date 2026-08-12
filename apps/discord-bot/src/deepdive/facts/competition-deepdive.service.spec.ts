@@ -89,7 +89,8 @@ describe('CompetitionDeepdiveService', () => {
   // by entity-components.service.spec.ts. Here `entityComponents` is a mock
   // returning a canned component list, so this test asserts only what
   // CompetitionDeepdiveService itself owns: the type/era/teams description
-  // text, and the era-then-teams entry pool (in that order, with the right
+  // text, and the teams-then-era entry pool (in that order — leaderboard
+  // entries take component priority over header entries, with the right
   // ids/labels) it hands to buildEntityComponents.
   it('renders the type, era line, and participating-teams list (with context suffix), with the team entries before the era entry', async () => {
     const entityComponents = mock<EntityComponentsService>();
