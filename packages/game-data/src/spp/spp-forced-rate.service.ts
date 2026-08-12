@@ -64,8 +64,9 @@ export class SppForcedRateService {
 
   /**
    * The forced-rate event sum per player. Every requested id is present in
-   * the returned map; a player with no SPP-earning events (or no resolvable
-   * era context) gets 0.
+   * the returned map; a player with no SPP-earning events gets 0. A player
+   * whose era context cannot be resolved keeps their stored `spp_value`
+   * sums unchanged, for the same reason an unmodelled action type does.
    */
   async forcedRateSumsForPlayers(
     playerIds: number[],

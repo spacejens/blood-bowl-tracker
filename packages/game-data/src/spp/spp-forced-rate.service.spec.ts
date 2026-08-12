@@ -154,6 +154,23 @@ describe('SppForcedRateService', () => {
     );
   });
 
+  it('keeps a player’s stored sum unchanged when no era context resolves, unlike the no-events case', async () => {
+    // Player 1 has an mvp_award event group but no context row at all, so
+    // playerContext is undefined. That must NOT be treated as "0 events":
+    // the stored sum is kept unchanged, the same as an unmodelled action
+    // type would be.
+    const db = db3(
+      [],
+      [{ playerId: 1, actionType: 'mvp_award', eventCount: 1, storedSum: '5' }],
+      [BB2020_MVP],
+    );
+    const service = await makeService(db);
+
+    expect(await service.forcedRateSumsForPlayers([1])).toEqual(
+      new Map([[1, 5]]),
+    );
+  });
+
   it('falls back to an earlier context row’s race when a later row has a null race', async () => {
     // Player 1 has two CRP-era context rows: the first carries the real
     // race id (44), the second's race id is null. The second row must fall
