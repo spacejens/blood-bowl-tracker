@@ -644,6 +644,10 @@ describe('PlayersService toplist queries', () => {
     expect(extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1))).toEqual(
       ['team_eras.id', 'players.team_era_id'],
     );
+    expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+    expect(extractJoinColumns(firstCallArg(chains[0].orderBy))).toEqual([
+      'players.spp_total',
+    ]);
   });
 
   it('topPlayersByTotalSpp excludes players with no stored spp_total', async () => {
@@ -654,6 +658,9 @@ describe('PlayersService toplist queries', () => {
     expect(chains[0].where).toHaveBeenCalledTimes(1);
     // The only clause is the IS NOT NULL guard, which binds no value.
     expect(extractAllFilterValues(firstCallArg(chains[0].where))).toEqual([]);
+    expect(extractJoinColumns(firstCallArg(chains[0].where))).toEqual([
+      'players.spp_total',
+    ]);
   });
 
   it('topPlayersByTotalSpp filters by the era the player record belongs to', async () => {

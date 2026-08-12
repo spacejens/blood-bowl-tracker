@@ -9,7 +9,7 @@ import {
   teamEras,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { desc, eq, gt, inArray, sql, sum } from 'drizzle-orm';
+import { desc, eq, inArray, ne, sql, sum } from 'drizzle-orm';
 
 import type { FactScope } from '../shared/fact-scope';
 import { matchScopeFilter } from '../shared/match-event-counts';
@@ -92,8 +92,11 @@ export class SppTotalsService {
    *
    * Unlike every `count*` query on this join graph there is no action-type
    * restriction: SPP-earning events are not one fixed type set. Players whose
-   * scoped sum is 0 are dropped (`HAVING`), mirroring the null-`spp_total`
-   * exclusion on the stored-total path.
+   * scoped sum is 0 are dropped (`HAVING ... <> 0`, not `> 0`: SPP values are
+   * never negative in practice, but excluding "not zero" rather than
+   * "positive" costs nothing and doesn't silently hide a negative sum if that
+   * assumption is ever wrong), mirroring the null-`spp_total` exclusion on
+   * the stored-total path.
    */
   topPlayersBySppSum(
     scope: FactScope,
@@ -110,7 +113,7 @@ export class SppTotalsService {
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .where(matchScopeFilter(scope))
       .groupBy(players.id, players.name)
-      .having(gt(total, 0))
+      .having(ne(total, 0))
       .orderBy(desc(total))
       .limit(limit);
   }

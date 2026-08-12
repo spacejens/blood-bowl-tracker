@@ -9,6 +9,7 @@ import {
   extractAllFilterValues,
   extractJoinColumns,
   firstCallArg,
+  sqlText,
 } from '../shared/query-assertions.test-helpers';
 import { SppTotalsService } from './spp-totals.service';
 
@@ -146,13 +147,25 @@ describe('SppTotalsService.topPlayersBySppSum', () => {
     await service.topPlayersBySppSum({ competitionId: 30 }, 21);
 
     expect(db.chains[0].having).toHaveBeenCalledTimes(1);
-    // gt(sqlExpr, 0) inlines the literal 0 as a raw SQL chunk rather than a
+    // ne(sqlExpr, 0) inlines the literal 0 as a raw SQL chunk rather than a
     // Param (drizzle only parameterizes comparisons against a Column), so
     // extractAllFilterValues (which only recognizes Param) can't see it —
     // walk the condition's own queryChunks for the raw literal instead.
     const condition = firstCallArg(db.chains[0].having);
     expect(is(condition, SQL)).toBe(true);
     expect((condition as SQL).queryChunks).toContainEqual(0);
+  });
+
+  it('orders by the summed SPP, most first', async () => {
+    const db = mockDb([]);
+    const service = await makeService(db);
+
+    await service.topPlayersBySppSum({ competitionId: 30 }, 21);
+
+    expect(db.chains[0].orderBy).toHaveBeenCalledTimes(1);
+    const orderBy = sqlText(firstCallArg(db.chains[0].orderBy));
+    expect(orderBy).toContain('coalesce(sum(');
+    expect(orderBy).toContain(' desc');
   });
 
   it('joins the acting side of the event through to matches and eras', async () => {
