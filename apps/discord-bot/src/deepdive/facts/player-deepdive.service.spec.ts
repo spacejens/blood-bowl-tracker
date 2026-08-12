@@ -304,7 +304,7 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: +2',
+        'Star player points adjustment: +2 (included)',
         'Total star player points: 24',
       ].join('\n'),
     );
@@ -321,7 +321,7 @@ describe('PlayerDeepdiveService', () => {
         '',
         'Touchdowns scored: 3',
         '',
-        'Star player points adjustment: -3',
+        'Star player points adjustment: -3 (included)',
         'Total star player points: 8',
       ].join('\n'),
     );

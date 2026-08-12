@@ -118,7 +118,12 @@ export class PlayerDeepdiveService {
    * The trailing total section: nothing at all when no total has been computed
    * (null), otherwise a blank separator line, an optional adjustment line, and
    * the total. A computed total of 0 is shown — unlike a zero category count,
-   * it is a real value rather than an absence.
+   * it is a real value rather than an absence. `sppTotal` already includes
+   * `sppAdjustment`, so the adjustment line calls that out explicitly rather
+   * than leaving a reader to assume the two lines should be summed.
+   * `sppAdjustment` is clamped non-negative wherever it's written today
+   * (`SppAdjustmentsService`), so the negative-sign branch below is
+   * defensive against a future or manually-edited negative value.
    */
   private buildTotalLines(player: Player): string[] {
     if (player.sppTotal === null) {
@@ -131,7 +136,7 @@ export class PlayerDeepdiveService {
         : [
             `Star player points adjustment: ${
               adjustment > 0 ? `+${adjustment}` : String(adjustment)
-            }`,
+            } (included)`,
           ];
     return [
       '',
