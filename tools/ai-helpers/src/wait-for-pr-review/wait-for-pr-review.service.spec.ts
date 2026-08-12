@@ -21,6 +21,17 @@ const RATE_LIMIT_COMMENT = {
   submittedAt: '2026-08-11T10:00:00Z',
 };
 
+/**
+ * `parseAvailableAt` anchors to the rate-limit comment's own `submittedAt`,
+ * not `Date.now()` — a stale/re-matched comment should not get a
+ * freshly-computed wait. Every parsed-wait-time test below expects its
+ * result relative to this fixed instant, not to whatever "now" is when the
+ * test happens to run.
+ */
+const RATE_LIMIT_COMMENT_EPOCH_SECONDS = Math.floor(
+  new Date(RATE_LIMIT_COMMENT.submittedAt).getTime() / 1000,
+);
+
 /** A `gh` invocation that found nothing: both halves of the filter are null. */
 const EMPTY = {
   exitCode: 0,
@@ -320,33 +331,50 @@ describe('WaitForPrReviewService', () => {
     processRunner.run.mockResolvedValue(
       rateLimitedWithBody('Reviews will be available again in 45 minutes.'),
     );
-    const now = Math.floor(Date.now() / 1000);
 
     const result = await runWait(OPTIONS);
 
-    expect(result.availableAtEpochSeconds).toBe(now + 45 * 60);
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 45 * 60,
+    );
   });
 
   it('parses an hours wait out of the rate-limit comment body', async () => {
     processRunner.run.mockResolvedValue(
       rateLimitedWithBody('Please retry in 2 hours.'),
     );
-    const now = Math.floor(Date.now() / 1000);
 
     const result = await runWait(OPTIONS);
 
-    expect(result.availableAtEpochSeconds).toBe(now + 120 * 60);
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 120 * 60,
+    );
   });
 
   it('parses a singular unit and matches keywords case-insensitively', async () => {
     processRunner.run.mockResolvedValue(
       rateLimitedWithBody('The limit RESETS in 1 hour.'),
     );
-    const now = Math.floor(Date.now() / 1000);
 
     const result = await runWait(OPTIONS);
 
-    expect(result.availableAtEpochSeconds).toBe(now + 60 * 60);
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 60 * 60,
+    );
+  });
+
+  it('parses a realistic "wait ... before" rate-limit sentence', async () => {
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody(
+        'Please wait 12 minutes before requesting another review.',
+      ),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 12 * 60,
+    );
   });
 
   it('ignores a duration in a sentence with no wait-time keyword', async () => {
@@ -376,11 +404,12 @@ describe('WaitForPrReviewService', () => {
         'Rate limit exceeded.\nReviews are available again in 30 minutes.\nRetry in 90 minutes if it persists.',
       ),
     );
-    const now = Math.floor(Date.now() / 1000);
 
     const result = await runWait(OPTIONS);
 
-    expect(result.availableAtEpochSeconds).toBe(now + 30 * 60);
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 30 * 60,
+    );
   });
 
   /** Picks out the `gh pr comment` calls from everything the runner was asked to run. */

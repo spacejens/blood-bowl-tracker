@@ -74,7 +74,7 @@ interface PollOutcome {
 const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
 
 /** A sentence must mention one of these to be read as stating a wait time. */
-const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets)\b/i;
+const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets|wait|before)\b/i;
 /** The duration itself: a number followed by a minute/hour unit. */
 const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
 
@@ -277,7 +277,7 @@ export class WaitForPrReviewService {
   }
 
   private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {
-    const availableAtEpochSeconds = this.parseAvailableAt(comment.body);
+    const availableAtEpochSeconds = this.parseAvailableAt(comment);
     return {
       found: false,
       rateLimited: true,
@@ -295,9 +295,13 @@ export class WaitForPrReviewService {
    * elsewhere in the comment from being read as the wait. First match wins;
    * hours convert to minutes. No match means the caller applies its own
    * default.
+   *
+   * Anchored to the comment's own `submittedAt`, not `Date.now()`: a
+   * stale/re-matched comment (e.g. re-found across a retry) must not be
+   * read as if its wait were freshly starting now.
    */
-  private parseAvailableAt(body: string): number | undefined {
-    for (const sentence of body.split(/(?<=[.!?])\s+|\n+/)) {
+  private parseAvailableAt(comment: RateLimitComment): number | undefined {
+    for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
       if (!WAIT_TIME_KEYWORDS.test(sentence)) {
         continue;
       }
@@ -309,7 +313,10 @@ export class WaitForPrReviewService {
         match[2].toLowerCase() === 'hour'
           ? Number(match[1]) * 60
           : Number(match[1]);
-      return Math.floor(Date.now() / 1000) + minutes * 60;
+      return (
+        Math.floor(new Date(comment.submittedAt).getTime() / 1000) +
+        minutes * 60
+      );
     }
     return undefined;
   }

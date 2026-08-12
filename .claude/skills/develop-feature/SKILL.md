@@ -365,14 +365,21 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
       - If it is absent, say so plainly: "CodeRabbit's rate-limit comment didn't include a specific wait time — defaulting to a 10-minute wait."
 
       Then **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
-      - **Wait for it, then trigger a review** — re-run `wait-for-pr-review` with the same watermark epoch and the same `--exclude-review-id` as before, plus the two flags below. Like "Keep waiting" in (b), this does **not** consume a loop iteration.
+      - **Wait for it, then trigger a review** — this retry's watermark is the rate-limit comment's own `submittedAt` (converted to epoch seconds), not the watermark that led into (a). Mirror (a)'s later-iteration step:
         ```bash
-        cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
+        cd <worktree-path> && node -e "console.log(Math.floor(new Date('<rateLimitComment.submittedAt>').getTime() / 1000))"
         ```
+        Substitute `<rateLimitComment.submittedAt>` with the exact ISO-8601 value from this round's `rateLimitComment.submittedAt`.
+
+        Then re-run `wait-for-pr-review` with that as the watermark and the same `--exclude-review-id` as before, plus the two flags below. Like "Keep waiting" in (b), this does **not** consume a loop iteration.
+        ```bash
+        cd <worktree-path> && node tools/ai-helpers/dist/main.js wait-for-pr-review <PR> <developer-login> <comment-watermark-epoch> --exclude-review-id=<previous-review-id> --exclude-comment-id=<rateLimitComment.id> --trigger-after=<trigger-epoch> --timeout-ms=<timeout>
+        ```
+        - `<comment-watermark-epoch>` is the value just computed above, not the watermark from (a).
         - `<trigger-epoch>` is `availableAtEpochSeconds` when present, otherwise the current epoch plus 600 (a 10-minute default).
         - `<timeout>` is `(<trigger-epoch> − now) × 1000 + 600000` — the wait until reviews resume, plus the standard 10-minute review window that follows the trigger. `wait-for-pr-review` does not compute this itself; it only posts the trigger once the clock crosses `--trigger-after` and keeps polling until its own deadline, so too small a `--timeout-ms` would expire before the triggered review can land.
-        - `--exclude-comment-id` is what stops the same rate-limit comment from being re-matched immediately on the re-run, exactly as `--exclude-review-id` does for a review.
-        - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here if CodeRabbit reports the limit again with a *new* comment.
+        - **Why the comment's own `submittedAt`, not the watermark from (a):** `--exclude-comment-id` only ever excludes one id, and the jq filter picks the chronologically-*first* qualifying comment. If a *third* consecutive round reused the original watermark from (a) on every retry, excluding only the newest comment's id would leave the original (now-stale) first comment eligible again — the wait could never progress. Advancing the watermark to the just-found comment's own `submittedAt` on each retry closes that gap, the same way (a)'s carried-forward watermark closes it for reviews (see "Why a carried-forward watermark" above); `--exclude-comment-id` then only has to cover the same-second tie-break case, exactly as `--exclude-review-id` does for reviews.
+        - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark) if CodeRabbit reports the limit again with a *new* comment.
       - **Skip the review loop** — leave the loop immediately and continue to step 5.
 
       This is a Pause rather than an automatic decision for the same reason as (b): the wait may be long enough that the developer would rather move on, and only they can judge that. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.

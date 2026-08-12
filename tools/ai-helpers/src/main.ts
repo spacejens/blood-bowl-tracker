@@ -74,8 +74,10 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .run(options.writeFile.path, options.writeFile.content);
     }
     case 'wait-for-pr-review': {
-      const options = app.get(WaitForPrReviewArgsService).parse(process.argv);
-      return app.get(WaitForPrReviewService).run(options);
+      const waitOptions = app
+        .get(WaitForPrReviewArgsService)
+        .parse(process.argv);
+      return app.get(WaitForPrReviewService).run(waitOptions);
     }
   }
 }
