@@ -20,8 +20,8 @@ primary_region = "arn"
   PORT = "3000"
 
 # No [[services]] block: the RPC endpoint is deliberately never published to
-# the public internet. Import tools reach it through `flyctl proxy 3000` over
-# Fly's private WireGuard network instead — see
+# the public internet. Import tools reach it through `flyctl proxy 3001:3000`
+# over Fly's private WireGuard network instead — see
 # docs/discord-bot/production-hosting.md. A [[services]] block with no
 # [[services.ports]] entries is rejected by `flyctl config validate`, so the
 # health check is declared as a top-level check rather than a service check.

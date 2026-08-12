@@ -283,8 +283,9 @@ point the tool at any other directory by passing its path.
 
 To import into the production api-server instead, keep a second config file
 `tools/import-manual/import-manual-config.production.json5` (copied from the
-same example template), run `flyctl proxy 3000` from the repository root in
-another terminal, and set `IMPORT_CONFIG_ENV=production` for the run:
+same example template, with `apiBaseUrl` changed to `http://localhost:3001`),
+run `flyctl proxy 3001:3000` from the repository root in another terminal,
+and set `IMPORT_CONFIG_ENV=production` for the run:
 
 ```bash
 ( cd tools/import-manual && IMPORT_CONFIG_ENV=production node dist/main.js data/before-other-importers )
