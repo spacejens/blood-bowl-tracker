@@ -846,6 +846,32 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  it('treats an empty completion-query result as not found', async () => {
+    // The most common real-world response: no qualifying comment, so
+    // `[] | first` prints `null`/empty stdout rather than a JSON object.
+    mockPoll(EMPTY, { exitCode: 0, stdout: '', stderr: '' });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('treats a jq null completion-query result as not found', async () => {
+    mockPoll(EMPTY, { exitCode: 0, stdout: 'null\n', stderr: '' });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
   it('ignores a completion payload missing the fields the filter should have produced', async () => {
     mockPoll(EMPTY, completionResult({ id: 42, submittedAt: null }));
 
