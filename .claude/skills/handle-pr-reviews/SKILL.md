@@ -1,20 +1,23 @@
 ---
 name: handle-pr-reviews
-description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads and top-level PR comments) and failing CI checks, fixes or rejects each with verification, pushes the results, and replies to every comment (or posts a CI-failure summary) tagged as posted by Claude
+description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads, top-level PR comments, and findings embedded in a submitted review's body) and failing CI checks, fixes or rejects each with verification, pushes the results, and replies to every comment (or posts a CI-failure summary) tagged as posted by Claude
 ---
 
 # handle-pr-reviews
 
-Finds unhandled review feedback on a pull request, resolves each item with a verified fix commit or a documented rejection, pushes the results together, and replies to every item — clearly tagged so Claude's comments are never mistaken for the developer's own. This matters most during self-review through GitHub's UI, where both review comments and replies are posted through the same authenticated `gh` account.
+Finds unhandled review feedback on a pull request — inline review threads, top-level PR comments, and findings embedded in a submitted review's own body text — resolves each item with a verified fix commit or a documented rejection, pushes the results together, and replies to every item — clearly tagged so Claude's comments are never mistaken for the developer's own. This matters most during self-review through GitHub's UI, where both review comments and replies are posted through the same authenticated `gh` account.
 
 ## Invocation
 
 ```
 /handle-pr-reviews
 /handle-pr-reviews <N>
+/handle-pr-reviews <N> --skip-deploy-local
 ```
 
 With no argument, the target PR is resolved from the current git branch. With a PR number `<N>`, that PR is used instead.
+
+`--skip-deploy-local` skips Phase 6 entirely: no `deploy-local` hand-off is offered, whatever this run did. It exists for `develop-feature`'s Phase 6 automated review loop, which dispatches this skill unattended after each push — an interactive `deploy-local` offer there would stall the loop waiting on a developer decision nobody is present to make. Nothing is lost by skipping it: `develop-feature` makes its own `deploy-local` offer once its loop ends. Report the skip and its reason in Phase 7 rather than silently doing nothing, so the summary and the developer both have a clear record of what happened and why. The two invocation forms above never carry this flag, so a developer running this skill standalone is unaffected.
 
 ## Comment tag convention
 
@@ -109,6 +112,40 @@ gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
 ```
 A comment is **unhandled** if its `body` does not start with `**Comment by Claude**`, and no later comment in the list that does start with `**Comment by Claude**` contains this comment's `html_url` as a backlink.
 
+One comment is exempt regardless of that rule: **CodeRabbit's rolling completion comment**, which signals that a review pass finished rather than carrying feedback to act on. It gets no reply, no triage, and is not counted as unhandled. Recognize it by exactly this rule — the same one `WaitForPrReviewService`'s `completionFilter` applies in `tools/ai-helpers/src/wait-for-pr-review/wait-for-pr-review.service.ts`, deliberately worded identically in both places so the two can be kept in sync by inspection: the comment's author login matches `coderabbit` (case-insensitive) **and** its `body` contains a `<!-- recent_review_start -->...<!-- recent_review_end -->` section whose contents match a "no actionable comments" style phrase (tolerant wording, case-insensitive). CodeRabbit edits this one comment in place across passes, so it reappears on every run — replying to it would add a fresh boilerplate comment each time for a pass that reported nothing. A pass that *did* find something does not match the phrase, so it still falls through to the normal rule above (and to the inline-thread and review-body scans), unchanged.
+
+**Review body findings** — a submitted review's own `body` text can carry findings that exist nowhere else. When a reviewer (e.g. CodeRabbit) has a finding it cannot anchor to a line in the diff — such as an "outside diff range" observation — GitHub gives it no inline comment to attach to, so the finding only ever appears in the review body, invisible to both scans above. Fetch every review on the PR:
+```bash
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $pr) {
+        reviews(first: 100, after: $after) {
+          pageInfo {
+            hasNextPage
+            endCursor
+          }
+          nodes {
+            id
+            url
+            state
+            body
+            author { login }
+            submittedAt
+          }
+        }
+      }
+    }
+  }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR" -F after=null
+```
+For the first page, pass `-F after=null` exactly as shown — `-F`'s magic type conversion sends GraphQL's actual `null`, whereas `-f after=""` would send the string `""`, which some connections reject as an invalid cursor. If the response's `pageInfo.hasNextPage` is `true`, repeat the query with the trailing flag changed to `-f after="<pageInfo.endCursor value>"` — substituted literally, the same way `$OWNER`/`$REPO`/`$PR` are — and append the new page's `nodes` to the ones already collected; stop once `hasNextPage` is `false`. A PR rarely accumulates more than 100 submitted reviews, but silently truncating at exactly 100 would reintroduce the same silent-miss failure this scan exists to prevent, just at a larger scale — so treat every page as mandatory, not an optimization. Once every page is collected, discard any node whose `state` is `PENDING` — an unsubmitted review the author is still editing, excluded for exactly the same reason as the pending inline comments above — and any node whose `body` is empty or whitespace-only. Everything that survives is a candidate, judged below.
+
+Deciding whether a candidate body actually contains findings is a **semantic judgment — read the body and decide; do not pattern-match on section headings or apply a regex.** Most of a review body is not a finding: run configuration, an "Actionable comments posted: N" summary, autofix links, files-skipped notices. Findings the same review also posted inline are already covered by the `reviewThreads` scan above, and must not be counted twice here. There is no reliable mechanical marker for "this section is a genuinely new finding" that generalizes across reviewers or survives a bot rewording its own output, so read each candidate `body` and judge whether it describes concrete findings **not** already surfaced by that review's inline threads or by a top-level comment. A body that is only boilerplate — for example a `COMMENTED` review whose body is just an empty diff-scan summary — is not unhandled: skip it silently, exactly as an empty result from the other scans produces no items.
+
+A review body is not a comment thread, so there is no per-review reply endpoint Claude could have replied into and no `isResolved` flag to read. Reuse the top-level-comment convention instead: a review's findings are **unhandled** unless a top-level PR comment — from the same `issues/$PR/comments` listing fetched above — has a `body` that starts with `**Comment by Claude**` and contains that review's `url` (e.g. `https://github.com/<owner>/<repo>/pull/<pr>#pullrequestreview-<id>`) as a backlink, matching the full URL rather than a prefix of a longer review's URL (`#pullrequestreview-123` is a substring of `#pullrequestreview-1234` and must not match it). This is the identical rule already applied to top-level comments, matched against a review's `url` instead of a comment's `html_url`.
+
+One review body can hold several distinct findings, at different severities and in different files. Bundling them into a single triage item would force one classification and one reply across findings that may deserve different treatment — one fixed, one rejected — so **each distinct finding in an unhandled review body becomes its own discovery item**, at the same granularity the two scans above produce: file and line if the body states them, the description, and the severity if stated. Record on every extracted item which review it came from (that review's `url`); Phase 5 needs this to group findings back together when replying.
+
 **Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup. Run these as separate commands, for the same reason as Phase 0 step 1 above:
 ```bash
 gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha'
@@ -121,9 +158,9 @@ Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` suc
 
 If a relevant check-run for the current HEAD is still `in_progress` or `queued` (not yet concluded), wait and poll briefly rather than treating it as absent — a not-yet-finished check is not the same as a passing one.
 
-If all three scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases.
+If all four scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases. The review-body scan counts here like any other: it must have produced zero extracted findings for this early exit to apply.
 
-Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2.
+Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2. Findings extracted from review bodies are listed alongside the inline-thread and top-level-comment items, tagged with the surface "review body" so the developer can tell them apart at a glance.
 
 ---
 
@@ -131,7 +168,7 @@ Otherwise, list every unhandled item for the developer (surface, file/line if ap
 
 Process items in the order discovered. For each item:
 
-1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself; for a failing CI check, the failing job's log (fetch it with `gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`, where `<check_run_id>` is the id recorded during discovery).
+1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself; for a review-body finding, the extracted finding text plus the surrounding review body it came from, for context; for a failing CI check, the failing job's log (fetch it with `gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`, where `<check_run_id>` is the id recorded during discovery).
 2. Classify it:
    - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed. A **failing CI check** is always classification (a): fetch its failing log (`gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`), diagnose the failure with `superpowers:systematic-debugging`, fix it under `superpowers:test-driven-development`, and make one commit per failing check (consistent with the one-commit-per-item rule above). There is no comment thread to answer or suggestion to reject for a CI item.
    - **(b) Is a question** — draft an answer. No code change.
@@ -221,6 +258,13 @@ For every item processed in Phase 2 with an outcome (fixed, rejected, or answere
 
   <reply text>"
   ```
+- **Review body findings:** post **one** aggregated top-level comment for the whole review, not one per finding — a separate comment per finding would post as many new top-level comments as the review had findings, which reads as spam for what was a single review. Post it only once **every** finding belonging to that review body has an outcome from Phase 2 and, where applicable, has been verified and pushed in Phases 3–4:
+  ```bash
+  gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude** (re: <the review's url>)
+
+  <one paragraph per finding, each led by that finding's file/line — or a short quoted phrase if no line applies — so a review with several findings stays legible, followed by the same reply-content rules as any other item>"
+  ```
+  Use the review's `url` recorded during discovery — the next run's review-body scan looks for exactly that backlink to decide the **entire review** is handled, so this comment must never be posted until every one of that review's findings has an outcome. If Phase 2's Ambiguous stop was triggered on a finding that came from this review body, **do not post the aggregated comment for that review at all this run** — not even for the findings from it that were already triaged before the ambiguous one. Posting a partial reply would still write the review's `url` as a backlink, which the next run's discovery would then read as proof the whole review is handled, permanently hiding the untriaged finding (and anything after it) exactly the way the missed findings on PR #395 first happened. Leave the review without a backlink instead, so the next run's review-body scan rediscovers and re-extracts all of its findings; any fix commits already made this run for that review's other findings remain in the codebase, and the next triage pass will recognize them as already resolved rather than redo the work. This is stricter than the exclusion rule used for a standalone ambiguous inline or top-level item, precisely because those each have their own independent handled state and a review's findings share one.
 - **Failing CI check:** there is no comment thread to reply to, so post a new top-level PR comment (no backlink — there is no original comment to reference):
   ```bash
   gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude**
@@ -233,12 +277,17 @@ Reply content:
 - Rejected items state the technical reasoning plainly — no performative agreement, no thanks (see `superpowers:receiving-code-review`).
 - Answered items just answer the question.
 - CI-failure items name the check that failed (`lint`/`typecheck`/`test`), summarize the diagnosis, and reference the fixing commit's short SHA.
+- Review-body findings get one paragraph each inside the single aggregated comment, led by that finding's file/line (or a short quoted phrase if no line applies) so multiple findings stay distinguishable, then following the rule above for its own outcome — fixed paragraphs reference the fixing commit's short SHA, rejected paragraphs state the reasoning plainly, answered paragraphs just answer.
 
 ---
 
 ### Phase 6: Local deploy
 
+Skip this phase if `--skip-deploy-local` was passed on invocation (see "Invocation" above) — then report the skip and its reason in Phase 7.
+
 Skip this phase if no commits were made in Phase 2.
+
+These two skip conditions are independent: either one on its own is reason enough to skip the phase, and neither depends on the other.
 
 **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
 
@@ -246,6 +295,8 @@ Skip this phase if no commits were made in Phase 2.
 
 ### Phase 7: Summary
 
-Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL.
+Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL. Findings extracted from review bodies are counted in these same tallies alongside inline-thread, top-level-comment and CI items — there is no separate per-surface count.
+
+If Phase 6 was skipped because `--skip-deploy-local` was passed, say so and why — e.g. "Local deploy: skipped (`--skip-deploy-local`) — running under `develop-feature`'s automated review loop." A Phase 6 skipped because no commits were made needs no such line; that is already implied by reporting that nothing was pushed.
 
 **Skill ends** — human review of the pushed changes and replies happens outside this workflow. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.

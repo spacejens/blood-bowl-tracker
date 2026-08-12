@@ -13,6 +13,17 @@ export const GITIGNORED_SYNC_FILES: readonly string[] = [
 ];
 
 /**
+ * Gitignored production import configs — the `.production.json5` variant of
+ * each importer's config, checked by `check-production-config-port` for a
+ * stale `apiBaseUrl` before `deploy-production` opens the tunnel.
+ */
+export const GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES: readonly string[] = [
+  'tools/import-bbl/import-bbl-config.production.json5',
+  'tools/import-tp/import-tp-config.production.json5',
+  'tools/import-manual/import-manual-config.production.json5',
+];
+
+/**
  * Files `check-drift` compares between the worktree and the main checkout.
  * This is `GITIGNORED_SYNC_FILES` plus the production variants: a developer
  * may have copied one in by hand, and it should still be caught before the
@@ -21,9 +32,7 @@ export const GITIGNORED_SYNC_FILES: readonly string[] = [
 export const GITIGNORED_DRIFT_FILES: readonly string[] = [
   ...GITIGNORED_SYNC_FILES,
   'apps/discord-bot/.env.production',
-  'tools/import-bbl/import-bbl-config.production.json5',
-  'tools/import-tp/import-tp-config.production.json5',
-  'tools/import-manual/import-manual-config.production.json5',
+  ...GITIGNORED_PRODUCTION_IMPORT_CONFIG_FILES,
 ];
 
 /**
