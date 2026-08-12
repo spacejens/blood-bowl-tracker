@@ -85,6 +85,7 @@ describe('WaitForPrReviewArgsService', () => {
     [['abc', 'spacejens', '1760000000']],
     [['392', '', '1760000000']],
     [['392', 'spacejens', 'yesterday']],
+    [['392', 'spacejens', '']],
   ])('rejects bad positional arguments %j', (args) => {
     expect(() => service.parse(argv(...args))).toThrow(/Usage:/);
   });

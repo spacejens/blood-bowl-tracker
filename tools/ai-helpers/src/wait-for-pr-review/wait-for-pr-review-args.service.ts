@@ -24,12 +24,15 @@ export class WaitForPrReviewArgsService {
   parse(argv: readonly string[]): WaitForPrReviewOptions {
     const prNumber = argv[3];
     const developerLogin = argv[4];
-    const sinceEpochSeconds = Number(argv[5]);
+    const sinceEpochSecondsRaw = argv[5];
+    const sinceEpochSeconds = Number(sinceEpochSecondsRaw);
     if (
       prNumber === undefined ||
       !/^[1-9]\d*$/.test(prNumber) ||
       developerLogin === undefined ||
       developerLogin === '' ||
+      sinceEpochSecondsRaw === undefined ||
+      sinceEpochSecondsRaw === '' ||
       !Number.isInteger(sinceEpochSeconds)
     ) {
       throw new Error(WAIT_FOR_PR_REVIEW_USAGE);
