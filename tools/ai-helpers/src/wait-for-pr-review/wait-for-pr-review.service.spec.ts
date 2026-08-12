@@ -57,6 +57,31 @@ const OPTIONS = {
   sinceEpochSeconds: 1_760_000_000,
 };
 
+/**
+ * The bounded `<!-- recent_review_start -->…<!-- recent_review_end -->` body
+ * of CodeRabbit's rolling walkthrough comment, as jq extracts it — real text
+ * observed on PR #402.
+ */
+const COMPLETION_SECTION =
+  '\n\nNo actionable comments were generated in the recent review. 🎉\n\n';
+/** What the completion jq filter emits for a qualifying comment. */
+const COMPLETION_CANDIDATE = {
+  id: '5263781074@1786521319',
+  submittedAt: '2026-08-12T07:55:19Z',
+  author: { login: 'coderabbitai[bot]' },
+  section: COMPLETION_SECTION,
+};
+/**
+ * The review-shaped object the service synthesizes from it. Note the absent
+ * `section`: the extracted walkthrough text is an implementation detail of
+ * the phrase check and must never leak into the caller's result.
+ */
+const COMPLETION_REVIEW = {
+  id: '5263781074@1786521319',
+  submittedAt: '2026-08-12T07:55:19Z',
+  author: { login: 'coderabbitai[bot]' },
+};
+
 describe('WaitForPrReviewService', () => {
   let service: WaitForPrReviewService;
   let processRunner: MockProxy<ProcessRunnerService>;
@@ -89,6 +114,35 @@ describe('WaitForPrReviewService', () => {
     const pending = service.run(options);
     await vi.advanceTimersByTimeAsync(advanceMs);
     return pending;
+  }
+
+  /** A `gh api .../comments` invocation whose jq filter emitted the given value. */
+  function completionResult(candidate: unknown) {
+    return {
+      exitCode: 0,
+      stdout: `${JSON.stringify(candidate)}\n`,
+      stderr: '',
+    };
+  }
+
+  /**
+   * Routes the two `gh` calls one poll can make: `gh pr view` (formal review +
+   * rate-limit comment) and `gh api repos/.../comments` (completion comment).
+   * Every poll answers the same way, so this models a steady state rather than
+   * a sequence.
+   */
+  function mockPoll(
+    prView: Awaited<ReturnType<ProcessRunnerService['run']>>,
+    comments: Awaited<ReturnType<ProcessRunnerService['run']>>,
+  ) {
+    processRunner.run.mockImplementation((_command, args) =>
+      Promise.resolve(args[0] === 'api' ? comments : prView),
+    );
+  }
+
+  /** A completion candidate whose extracted section is replaced wholesale. */
+  function completionWithSection(section: string) {
+    return completionResult({ ...COMPLETION_CANDIDATE, section });
   }
 
   it('returns the parsed review found on the first poll', async () => {
@@ -150,14 +204,16 @@ describe('WaitForPrReviewService', () => {
 
   it('keeps polling on the interval until a review appears', async () => {
     processRunner.run
-      .mockResolvedValueOnce(EMPTY)
-      .mockResolvedValueOnce(EMPTY)
-      .mockResolvedValue(FOUND);
+      .mockResolvedValueOnce(EMPTY) // poll 1: reviews
+      .mockResolvedValueOnce(EMPTY) // poll 1: completion comment
+      .mockResolvedValueOnce(EMPTY) // poll 2: reviews
+      .mockResolvedValueOnce(EMPTY) // poll 2: completion comment
+      .mockResolvedValue(FOUND); // poll 3: reviews
 
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toEqual({ found: true, review: REVIEW });
-    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    expect(processRunner.run).toHaveBeenCalledTimes(5);
   });
 
   it('reports a timeout when no qualifying review ever appears', async () => {
@@ -172,8 +228,9 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
     // Polls at 0/30s/60s: after the 60s poll, sleeping 30s more resumes
     // exactly at the 90s deadline — the wait must not issue a further `gh`
-    // call at that point, only report the timeout.
-    expect(processRunner.run).toHaveBeenCalledTimes(3);
+    // call at that point, only report the timeout. Each of the 3 polls now
+    // makes two calls (reviews, then the completion comment).
+    expect(processRunner.run).toHaveBeenCalledTimes(6);
   });
 
   it('tolerates a failing gh call and retries on the next interval', async () => {
@@ -211,7 +268,9 @@ describe('WaitForPrReviewService', () => {
     // Only 3 polls happen: sleeping after the 3rd poll resumes exactly at
     // the deadline, which is reported as a timeout rather than issuing a
     // 4th `gh` call.
-    expect(budgets).toEqual([90_000, 60_000, 30_000]);
+    // Two calls per poll (reviews, then the completion comment), each bounded by
+    // the time left at the moment it is issued — identical within a poll.
+    expect(budgets).toEqual([90_000, 90_000, 60_000, 60_000, 30_000, 30_000]);
   });
 
   it('bounds even a zero-budget wait to one interval, never leaving the single poll unbounded', async () => {
@@ -250,8 +309,8 @@ describe('WaitForPrReviewService', () => {
     // Default timeout 600_000ms / interval 30_000ms: polls at
     // 0/30s/60s/.../570s — 20 polls. Sleeping after the 20th poll resumes
     // exactly at the 600s deadline, which is reported as a timeout rather
-    // than issuing a 21st `gh` call.
-    expect(processRunner.run).toHaveBeenCalledTimes(20);
+    // than issuing a 21st `gh` call. 20 polls, two calls each.
+    expect(processRunner.run).toHaveBeenCalledTimes(40);
   });
 
   it('returns immediately when a qualifying rate-limit comment is found', async () => {
@@ -316,7 +375,9 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toMatchObject({ found: false, rateLimited: true });
-    expect(processRunner.run).toHaveBeenCalledTimes(2);
+    // Poll 1 makes both calls (reviews, then completion); poll 2 returns on
+    // its first call.
+    expect(processRunner.run).toHaveBeenCalledTimes(3);
   });
 
   /** Builds a `gh` result whose only match is a rate-limit comment with the given body. */
@@ -351,7 +412,9 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result).toEqual({ found: true, review: REVIEW });
-    expect(processRunner.run).toHaveBeenCalledTimes(2);
+    // After the rate-limit candidate is discarded, poll 1 goes on to the
+    // completion query, and poll 2's reviews call finds the review.
+    expect(processRunner.run).toHaveBeenCalledTimes(3);
   });
 
   it('still detects a rate limit stated in prose alongside an unrelated code span', async () => {
@@ -554,5 +617,229 @@ describe('WaitForPrReviewService', () => {
     });
 
     expect(triggerCalls()).toHaveLength(0);
+  });
+
+  it('returns a synthesized review when CodeRabbit reports no actionable comments', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: COMPLETION_REVIEW });
+    // First poll only: the reviews call, then the comments call.
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
+  });
+
+  it('queries the issue-comments endpoint for the completion comment', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    const [command, args] = processRunner.run.mock.calls[1];
+    expect(command).toBe('gh');
+    expect(args[0]).toBe('api');
+    // `since` is backed off one second from the watermark (1_760_000_000), so a
+    // comment edited in the watermark's own second cannot be dropped by
+    // GitHub's own "after the given time" bound.
+    expect(args[1]).toBe(
+      'repos/{owner}/{repo}/issues/392/comments?per_page=100&since=2025-10-09T08:53:19.000Z',
+    );
+    expect(args[2]).toBe('--jq');
+    expect(args[3]).toContain('test("coderabbit"; "i")');
+    expect(args[3]).toContain('contains("<!-- recent_review_start -->")');
+    expect(args[3]).toContain('(.updated_at | fromdateiso8601) >= 1760000000');
+    expect(args[3]).toContain('<!-- recent_review_end -->');
+    expect(args[3]).toContain(
+      'test("no actionable comments|no actionable issues|nothing to report|no comments were generated"; "i")',
+    );
+  });
+
+  it('builds the completion id from the comment id and its updated_at epoch, so an edit in place reads as a new pass', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    const [, args] = processRunner.run.mock.calls[1];
+    expect(args[3]).toContain(
+      '{id: ((.id | tostring) + "@" + ((.updated_at | fromdateiso8601) | tostring))',
+    );
+  });
+
+  it('excludes the completion comment whose composite id was already surfaced', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    await runWait({
+      ...OPTIONS,
+      excludeReviewId: '5263781074@1786521319',
+      intervalMs: 30_000,
+    });
+
+    const [, args] = processRunner.run.mock.calls[1];
+    expect(args[3]).toContain('select(.id != "5263781074@1786521319")');
+  });
+
+  it('omits the completion id exclusion clause when excludeReviewId is not given', async () => {
+    mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
+
+    await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    const [, args] = processRunner.run.mock.calls[1];
+    expect(args[3]).not.toContain('select(.id !=');
+  });
+
+  it('finds a genuinely new pass once the comment updated_at has advanced', async () => {
+    // Same comment id, later `updated_at` — a different composite id, so the
+    // prior pass's exclusion no longer covers it.
+    const advanced = {
+      ...COMPLETION_CANDIDATE,
+      id: '5263781074@1786524000',
+      submittedAt: '2026-08-12T08:40:00Z',
+    };
+    mockPoll(EMPTY, completionResult(advanced));
+
+    const result = await runWait({
+      ...OPTIONS,
+      excludeReviewId: '5263781074@1786521319',
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({
+      found: true,
+      review: {
+        id: '5263781074@1786524000',
+        submittedAt: '2026-08-12T08:40:00Z',
+        author: { login: 'coderabbitai[bot]' },
+      },
+    });
+  });
+
+  it('does not treat a pass that found actionable comments as a completion', async () => {
+    mockPoll(
+      EMPTY,
+      completionWithSection('\n\nActionable comments posted: 3\n\n'),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('does not treat a comment with no bounded section as a completion', async () => {
+    // jq's `capture` found no `<!-- recent_review_end -->`, so the section is
+    // empty and there is nothing to match a phrase against.
+    mockPoll(EMPTY, completionWithSection(''));
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('does not treat a phrase found only inside code formatting as a completion', async () => {
+    // Mirrors the rate-limit false positive from PR #399: jq's own phrase test
+    // is coarse, so the service re-checks the section with code formatting
+    // stripped.
+    mockPoll(
+      EMPTY,
+      completionWithSection(
+        'Reworded the `no actionable comments` branch of the detector.',
+      ),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('still detects a completion stated in prose alongside an unrelated code span', async () => {
+    mockPoll(
+      EMPTY,
+      completionWithSection(
+        'No actionable comments were generated in the recent review. ' +
+          '**Run ID**: `3ce701f8-21ed-4b28-9c81-506c53e9c0a3`',
+      ),
+    );
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toMatchObject({ found: true });
+  });
+
+  it('ignores a completion payload missing the fields the filter should have produced', async () => {
+    mockPoll(EMPTY, completionResult({ id: 42, submittedAt: null }));
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('prefers a formal review over a completion comment, and never even asks for one', async () => {
+    mockPoll(FOUND, completionResult(COMPLETION_CANDIDATE));
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers a rate-limit comment over a completion comment, and never even asks for one', async () => {
+    mockPoll(RATE_LIMITED, completionResult(COMPLETION_CANDIDATE));
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toMatchObject({ found: false, rateLimited: true });
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips the completion query when the reviews call itself failed', async () => {
+    // A broken or stalled `gh` is retried wholesale on the next interval; it
+    // must not also double the number of calls each poll makes.
+    processRunner.run.mockResolvedValue({
+      exitCode: 1,
+      stdout: '',
+      stderr: 'could not resolve host',
+    });
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+    // Two polls, one call each — not four.
+    expect(processRunner.run).toHaveBeenCalledTimes(2);
+  });
+
+  it('tolerates a failing completion query and retries on the next interval', async () => {
+    processRunner.run.mockImplementation((_command, args) =>
+      Promise.resolve(
+        args[0] === 'api'
+          ? { exitCode: 1, stdout: '', stderr: 'HTTP 502' }
+          : EMPTY,
+      ),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
   });
 });
