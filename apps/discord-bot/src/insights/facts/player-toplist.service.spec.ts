@@ -187,6 +187,19 @@ const cases: PlayerCase[] = [
     competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 1 }],
     expectedTitle: 'Players by lasting injuries suffered',
   },
+  {
+    describeName: 'resolveTotalSpp',
+    method: 'topPlayersByTotalSpp',
+    resolve: (service, scope) => service.resolveTotalSpp(scope),
+    rows: [
+      { playerId: 1, name: 'Griff Oberwald', count: 128 },
+      { playerId: 2, name: 'Morg n Thorg', count: 128 },
+      { playerId: 3, name: 'Zug', count: 96 },
+    ],
+    eraRows: [{ playerId: 1, name: 'Griff Oberwald', count: 44 }],
+    competitionRows: [{ playerId: 1, name: 'Griff Oberwald', count: 12 }],
+    expectedTitle: 'Players by total SPP',
+  },
 ];
 
 describe.each(cases)(
