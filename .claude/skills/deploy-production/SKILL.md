@@ -279,11 +279,11 @@ Everything here automates the flow documented in `docs/discord-bot/production-ho
       tools/import-tp/import-tp-config.production.json5 2>&1
    ```
    If the file a selected import needs is missing, stop that import and tell the developer to create it once, from the same `import-*-config.example.json5` template as the local config, filling in the production `apiToken` from the matching `API_TOKEN_IMPORT_*` value in `apps/discord-bot/.env.production` — see `docs/discord-bot/production-hosting.md`. **Do not create it from the template yourself**: a config copied from the example would carry a placeholder token and fail with `401`, and authoring production credentials is a developer's job, not this skill's (see Non-goals). A missing file for one tool does not block the other tools' imports.
-3. Make sure nothing else is already bound to port 3000 — a locally running docker-compose stack binds it, and the tunnel would then either fail to bind or, worse, the importers would silently write to the **local** database:
+3. Make sure nothing else is already bound to port 3001 — the port this tunnel uses. `deploy-local`'s docker-compose stack binds `3000`, not `3001`, so it is deliberately not a source of collision here; what this check guards against is another production tunnel already running (typically a concurrent `deploy-production` run in a different worktree), which would make the `flyctl proxy` below fail to bind:
    ```bash
-   lsof -nP -iTCP:3000 -sTCP:LISTEN
+   lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
-   If anything is listening, stop and report what holds the port (typically the `deploy-local` stack, cleared with `docker compose down`). Do not kill the process yourself.
+   If anything is listening, stop and report what holds the port (typically a leftover `flyctl proxy 3001` from an earlier or concurrent `deploy-production` run — see "Production imports: closing the tunnel"). Do not kill the process yourself.
 4. Build the tools that will run. A fresh worktree only ran `pnpm install`, so `dist/` may not exist yet — build just what is needed:
    ```bash
    pnpm --filter @blood-bowl-tracker/import-manual run build   # if either manual import was selected
@@ -292,11 +292,11 @@ Everything here automates the flow documented in `docs/discord-bot/production-ho
    ```
 5. Open the private tunnel to the production machine, from the repository root where `fly.toml` lives. Start it as a **background** command — it runs until killed and would otherwise block everything after it:
    ```bash
-   flyctl proxy 3000
+   flyctl proxy 3001
    ```
 6. Wait for the tunnel to accept connections before running any importer, polling for up to about 30 seconds:
    ```bash
-   curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://localhost:3000/rpc
+   curl -s -o /dev/null -w '%{http_code}\n' --max-time 5 http://localhost:3001/rpc
    ```
    Any HTTP status at all (including `404` or `405`) means the tunnel is up — the RPC server answered. `curl` exiting with a connection error means it is not up yet. If it never comes up, report the tunnel command's own output, kill it (see "Production imports: closing the tunnel" below), and stop — running an importer against a dead tunnel just produces `ECONNREFUSED` for every record.
 
@@ -310,7 +310,7 @@ Run this section only if "Run the manual import (before other importers) against
    ```
    `IMPORT_CONFIG_ENV` must be set on the same command as the tool — setting it in an earlier, separate shell call has no effect, and the tool would then silently use the local config and write to whatever `apiBaseUrl` that names.
 2. Report the outcome. Per `tools/import-manual/src/main.ts` the tool exits `0` printing `Imported <N> record(s) successfully.` on stdout; or exits `1`, either printing `Import completed with <N> errors:` followed by each error message on stderr, or `Import failed:` with the thrown error for an unexpected failure. Report the exit code and the captured output either way.
-3. Interpret common failures against production specifically, per `docs/discord-bot/production-hosting.md`: `ECONNREFUSED` on `localhost:3000` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
+3. Interpret common failures against production specifically, per `docs/discord-bot/production-hosting.md`: `ECONNREFUSED` on `localhost:3001` means the tunnel died mid-run; `401` means the `apiToken` in the `.production.json5` file does not match the corresponding `API_TOKEN_IMPORT_*` secret pushed to Fly.
 4. These are real writes to the production database with no rollback, so a failure partway through leaves earlier records in place. Do not attempt to undo them. If the developer wants a clean slate, that is the "Drop and recreate the production database" action, chosen deliberately.
 5. A failure here does **not** skip the remaining selected imports — report it and continue to the next section, then close the tunnel as usual.
 
@@ -353,14 +353,14 @@ Run this section only if "Production imports: shared setup" ran. Like that secti
 
 1. Stop the background `flyctl proxy` started in the shared setup:
    ```bash
-   pkill -f 'flyctl proxy 3000'
+   pkill -f 'flyctl proxy 3001'
    ```
-   This targets only tunnels for port 3000. `pkill` exits non-zero when nothing matched, which is fine — it means the tunnel was already gone.
+   This targets only tunnels for port 3001. `pkill` exits non-zero when nothing matched, which is fine — it means the tunnel was already gone.
 2. Confirm the port is free again:
    ```bash
-   lsof -nP -iTCP:3000 -sTCP:LISTEN
+   lsof -nP -iTCP:3001 -sTCP:LISTEN
    ```
-   Expected: no output. If something is still listening, tell the developer explicitly — a leftover tunnel will collide with the next `deploy-local` stack.
+   Expected: no output. If something is still listening, tell the developer explicitly — a leftover tunnel will collide with the next `deploy-production` run's own tunnel. It will not collide with `deploy-local`, which binds `3000`.
 3. Report a combined summary of every import that ran: which ones, their exit codes, record counts, and any errors. Say explicitly that the tunnel is closed, so the developer knows no private connection to production was left open.
 
 ## Non-goals
