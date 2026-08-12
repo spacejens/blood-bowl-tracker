@@ -5,7 +5,7 @@ description: Use when processing review feedback on an open pull request in the 
 
 # handle-pr-reviews
 
-Finds unhandled review feedback on a pull request, resolves each item with a verified fix commit or a documented rejection, pushes the results together, and replies to every item — clearly tagged so Claude's comments are never mistaken for the developer's own. This matters most during self-review through GitHub's UI, where both review comments and replies are posted through the same authenticated `gh` account.
+Finds unhandled review feedback on a pull request — inline review threads, top-level PR comments, and findings embedded in a submitted review's own body text — resolves each item with a verified fix commit or a documented rejection, pushes the results together, and replies to every item — clearly tagged so Claude's comments are never mistaken for the developer's own. This matters most during self-review through GitHub's UI, where both review comments and replies are posted through the same authenticated `gh` account.
 
 ## Invocation
 
@@ -290,7 +290,7 @@ These two skip conditions are independent: either one on its own is reason enoug
 
 ### Phase 7: Summary
 
-Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL.
+Report to the developer: counts of items fixed / rejected / answered / left unhandled (the ambiguous item, plus anything after it in discovery order that triage never reached), whether anything was pushed, and the PR URL. Findings extracted from review bodies are counted in these same tallies alongside inline-thread, top-level-comment and CI items — there is no separate per-surface count.
 
 If Phase 6 was skipped because `--skip-deploy-local` was passed, say so and why — e.g. "Local deploy: skipped (`--skip-deploy-local`) — running under `develop-feature`'s automated review loop." A Phase 6 skipped because no commits were made needs no such line; that is already implied by reporting that nothing was pushed.
 
