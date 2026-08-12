@@ -104,7 +104,8 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
    On failure, the tool exits with a non-zero status and prints each error.
 3. To import into the production api-server instead, keep a second config file
    `tools/import-tp/import-tp-config.production.json5` (copied from the same
-   example template), run `flyctl proxy 3001:3000` from the repository root in another
+   example template, with `apiBaseUrl` changed to `http://localhost:3001`),
+   run `flyctl proxy 3001:3000` from the repository root in another
    terminal, and set `IMPORT_CONFIG_ENV=production` for the run. See
    [Running import tools against production](../discord-bot/production-hosting.md#running-import-tools-against-production).
 
