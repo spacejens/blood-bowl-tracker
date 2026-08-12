@@ -14,6 +14,7 @@ import {
   RacesService,
   RulesSetsService,
   SppAwardValuesService,
+  SppTotalsService,
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -48,6 +49,7 @@ export async function createRouterHarness() {
     playersService: mock<PlayersService>(),
     matchEventsService: mock<MatchEventsService>(),
     sppAwardValuesService: mock<SppAwardValuesService>(),
+    sppTotalsService: mock<SppTotalsService>(),
     upsertHandler: mock<UpsertHandlerService>(),
   };
 
@@ -123,6 +125,7 @@ export async function createRouterHarness() {
         provide: SppAwardValuesService,
         useValue: mocks.sppAwardValuesService,
       },
+      { provide: SppTotalsService, useValue: mocks.sppTotalsService },
       { provide: UpsertHandlerService, useValue: mocks.upsertHandler },
     ],
   }).compile();

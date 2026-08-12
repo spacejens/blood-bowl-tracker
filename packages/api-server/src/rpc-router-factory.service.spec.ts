@@ -22,6 +22,7 @@ import {
   RulesSetsService,
   RulesSetUpsertConflictError,
   SppAwardValuesService,
+  SppTotalsService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -50,6 +51,7 @@ describe('RpcRouterFactoryService', () => {
   let playersService: MockProxy<PlayersService>;
   let matchEventsService: MockProxy<MatchEventsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
+  let sppTotalsService: MockProxy<SppTotalsService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
 
   beforeEach(async () => {
@@ -67,6 +69,7 @@ describe('RpcRouterFactoryService', () => {
     playersService = mock<PlayersService>();
     matchEventsService = mock<MatchEventsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
+    sppTotalsService = mock<SppTotalsService>();
     upsertHandler = mock<UpsertHandlerService>();
     // Mirrors UpsertHandlerService's real implementation (see
     // upsert-handler.service.ts / its own spec for coverage of this logic in
@@ -107,6 +110,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: PlayersService, useValue: playersService },
         { provide: MatchEventsService, useValue: matchEventsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
+        { provide: SppTotalsService, useValue: sppTotalsService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
       ],
     }).compile();
@@ -754,6 +758,7 @@ describe('RpcRouterFactoryService', () => {
         name: 'Griff Oberwald',
         teamEraId: 10,
         positionId: 20,
+        sppTotal: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -898,5 +903,17 @@ describe('RpcRouterFactoryService', () => {
 
     expect(result).toEqual({ sppAwardValueIds: [11] });
     expect(sppAwardValuesService.sync).toHaveBeenCalledWith(input);
+  });
+
+  it('routes players.syncComputedSppTotals to SppTotalsService.syncComputedTotals', async () => {
+    sppTotalsService.syncComputedTotals.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+    });
+
+    const input = { playerIds: [1, 2] };
+    const result = await call(router.players.syncComputedSppTotals, input);
+
+    expect(result).toEqual({ updatedPlayerIds: [1, 2] });
+    expect(sppTotalsService.syncComputedTotals).toHaveBeenCalledWith(input);
   });
 });
