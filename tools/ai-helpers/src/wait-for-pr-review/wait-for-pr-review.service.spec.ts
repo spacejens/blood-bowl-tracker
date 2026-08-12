@@ -591,6 +591,14 @@ describe('WaitForPrReviewService', () => {
     const subFilter = extractCommentUpdateFailedFilter(args[6]);
     expect(subFilter).toContain('test("coderabbit"; "i")');
     expect(subFilter).toContain('fromdateiso8601) >= 1760000000');
+    // CodeRabbit's own rolling walkthrough comment can incidentally contain
+    // this filter's phrase in prose (a summary, a changes table) — notably
+    // on a PR whose diff is about this very phrase — so the filter must
+    // exclude any comment carrying the walkthrough's marker before it could
+    // ever be mistaken for a genuine failure notice.
+    expect(subFilter).toContain(
+      'contains("<!-- recent_review_start -->") | not',
+    );
   });
 
   it('excludes the comment passed as excludeCommentUpdateFailureId', async () => {

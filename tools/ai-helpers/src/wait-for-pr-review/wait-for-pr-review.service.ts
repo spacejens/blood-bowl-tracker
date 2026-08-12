@@ -587,6 +587,16 @@ export class WaitForPrReviewService {
    * narrowing, same watermark bound, same `[...] | first` wrapping — because
    * this is the same kind of signal: a top-level comment CodeRabbit posts
    * *instead of* reviewing. Only the phrase set and the exclusion id differ.
+   *
+   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
+   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
+   * summary, a changes table) can incidentally contain this filter's phrase
+   * — notably on a PR whose diff is *about* this phrase, such as the one
+   * that introduced this filter — which would otherwise abort the wait on a
+   * false positive before any real review or genuine failure notice exists.
+   * The genuine failure notice is always a short, separate comment and never
+   * carries the walkthrough markers, so this guard costs nothing in real
+   * detection.
    */
   private commentUpdateFailedFilter(options: WaitForPrReviewOptions): string {
     const excludeClause =
@@ -596,6 +606,7 @@ export class WaitForPrReviewService {
     return (
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(COMMENT_UPDATE_FAILED_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
