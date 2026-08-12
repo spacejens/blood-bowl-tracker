@@ -4,6 +4,9 @@ import {
   PlayerSchema,
   SyncComputedSppTotalsResultSchema,
   SyncComputedSppTotalsSchema,
+  SyncReportedSppAdjustmentsSchema,
+  SyncScrapedSppAdjustmentsSchema,
+  SyncSppAdjustmentsResultSchema,
   UpsertPlayerSchema,
 } from './player';
 
@@ -111,5 +114,55 @@ describe('SyncComputedSppTotals schemas', () => {
     expect(() =>
       SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [1.5] }),
     ).toThrow();
+  });
+});
+
+describe('SyncScrapedSppAdjustmentsSchema', () => {
+  it('accepts a scraped total and a null scraped total', () => {
+    const parsed = SyncScrapedSppAdjustmentsSchema.parse({
+      players: [
+        { playerId: 1, scrapedTotal: 16 },
+        { playerId: 2, scrapedTotal: null },
+      ],
+    });
+
+    expect(parsed.players).toHaveLength(2);
+    expect(parsed.players[1].scrapedTotal).toBeNull();
+  });
+
+  it('rejects a missing scrapedTotal — omitted and null are different answers', () => {
+    expect(() =>
+      SyncScrapedSppAdjustmentsSchema.parse({ players: [{ playerId: 1 }] }),
+    ).toThrow();
+  });
+
+  it('rejects a non-integer scraped total', () => {
+    expect(() =>
+      SyncScrapedSppAdjustmentsSchema.parse({
+        players: [{ playerId: 1, scrapedTotal: 1.5 }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('SyncReportedSppAdjustmentsSchema', () => {
+  it('accepts a list of player ids', () => {
+    expect(
+      SyncReportedSppAdjustmentsSchema.parse({ playerIds: [1, 2] }),
+    ).toEqual({ playerIds: [1, 2] });
+  });
+
+  it('rejects a non-integer player id', () => {
+    expect(() =>
+      SyncReportedSppAdjustmentsSchema.parse({ playerIds: [1.5] }),
+    ).toThrow();
+  });
+});
+
+describe('SyncSppAdjustmentsResultSchema', () => {
+  it('accepts the updated player ids', () => {
+    expect(
+      SyncSppAdjustmentsResultSchema.parse({ updatedPlayerIds: [3] }),
+    ).toEqual({ updatedPlayerIds: [3] });
   });
 });

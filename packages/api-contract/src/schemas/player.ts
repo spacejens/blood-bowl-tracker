@@ -40,9 +40,50 @@ export const SyncComputedSppTotalsResultSchema = z.object({
   updatedPlayerIds: z.array(z.number().int()),
 });
 
+/**
+ * Recompute `players.spp_adjustment` (and `players.spp_total`) for players
+ * whose source publishes a career SPP total that this repo does not store
+ * verbatim — BBL. `scrapedTotal` is that published figure, or `null` when
+ * the source page had none: `null` is a real instruction ("no evidence"),
+ * which is why it is required rather than optional. Not an upsert (same
+ * rationale as `positions.syncRaceEras`): no external ids, no conflict to
+ * detect, no entity+created shape to return.
+ */
+export const SyncScrapedSppAdjustmentsSchema = z.object({
+  players: z.array(
+    z.object({
+      playerId: z.number().int(),
+      scrapedTotal: z.number().int().nullable(),
+    }),
+  ),
+});
+
+/**
+ * Recompute `players.spp_adjustment` for players whose already-stored
+ * `players.spp_total` is an independently trusted, era-correct figure — TP.
+ * `players.spp_total` itself is left untouched; a player with no stored
+ * total is skipped.
+ */
+export const SyncReportedSppAdjustmentsSchema = z.object({
+  playerIds: z.array(z.number().int()),
+});
+
+export const SyncSppAdjustmentsResultSchema = z.object({
+  updatedPlayerIds: z.array(z.number().int()),
+});
+
 export type Player = z.infer<typeof PlayerSchema>;
 export type UpsertPlayer = z.infer<typeof UpsertPlayerSchema>;
 export type SyncComputedSppTotals = z.infer<typeof SyncComputedSppTotalsSchema>;
 export type SyncComputedSppTotalsResult = z.infer<
   typeof SyncComputedSppTotalsResultSchema
+>;
+export type SyncScrapedSppAdjustments = z.infer<
+  typeof SyncScrapedSppAdjustmentsSchema
+>;
+export type SyncReportedSppAdjustments = z.infer<
+  typeof SyncReportedSppAdjustmentsSchema
+>;
+export type SyncSppAdjustmentsResult = z.infer<
+  typeof SyncSppAdjustmentsResultSchema
 >;

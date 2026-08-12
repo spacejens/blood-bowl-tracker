@@ -1,3 +1,8 @@
+import type {
+  SyncReportedSppAdjustments,
+  SyncScrapedSppAdjustments,
+  SyncSppAdjustmentsResult,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, players } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
@@ -5,18 +10,6 @@ import { and, inArray, isNotNull } from 'drizzle-orm';
 
 import { SppForcedRateService } from './spp-forced-rate.service';
 import { SppTotalsService } from './spp-totals.service';
-
-export interface ScrapedSppAdjustmentsData {
-  players: { playerId: number; scrapedTotal: number | null }[];
-}
-
-export interface ReportedSppAdjustmentsData {
-  playerIds: number[];
-}
-
-export interface SppAdjustmentsResult {
-  updatedPlayerIds: number[];
-}
 
 interface AdjustmentWrite {
   sppAdjustment: number | null;
@@ -53,8 +46,8 @@ export class SppAdjustmentsService {
   ) {}
 
   async syncScrapedAdjustments(
-    data: ScrapedSppAdjustmentsData,
-  ): Promise<SppAdjustmentsResult> {
+    data: SyncScrapedSppAdjustments,
+  ): Promise<SyncSppAdjustmentsResult> {
     // A repeated player id keeps its LAST entry: a later page read is the
     // fresher snapshot of the same player.
     const scrapedByPlayerId = new Map<number, number | null>();
@@ -90,8 +83,8 @@ export class SppAdjustmentsService {
   }
 
   async syncReportedAdjustments(
-    data: ReportedSppAdjustmentsData,
-  ): Promise<SppAdjustmentsResult> {
+    data: SyncReportedSppAdjustments,
+  ): Promise<SyncSppAdjustmentsResult> {
     const ids = [...new Set(data.playerIds)];
     if (ids.length === 0) {
       return { updatedPlayerIds: [] };
@@ -132,7 +125,7 @@ export class SppAdjustmentsService {
    */
   private async applyWrites(
     writes: Map<number, AdjustmentWrite>,
-  ): Promise<SppAdjustmentsResult> {
+  ): Promise<SyncSppAdjustmentsResult> {
     const idsByWrite = new Map<
       string,
       { write: AdjustmentWrite; ids: number[] }
