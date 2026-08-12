@@ -191,6 +191,8 @@ describe('PlayersService', () => {
         positionName: 'Blitzer',
         eraName: 'Season 5',
         eraId: 7,
+        sppTotal: 24,
+        sppAdjustment: 2,
       };
       const { db, chains } = await build([row]);
       await expect(service.findById(1)).resolves.toEqual(row);
@@ -201,8 +203,35 @@ describe('PlayersService', () => {
         unknown
       >;
       expect(Object.keys(selectArg)).toEqual(
-        expect.arrayContaining(['teamId', 'raceId', 'eraName', 'eraId']),
+        expect.arrayContaining([
+          'teamId',
+          'raceId',
+          'eraName',
+          'eraId',
+          'sppTotal',
+          'sppAdjustment',
+        ]),
       );
+    });
+
+    it('passes through null spp columns for a player with no computed total', async () => {
+      // null means "not yet computed" for either column; the deepdive
+      // distinguishes it from a computed 0, so findById must not coerce it.
+      const row = {
+        id: 2,
+        name: 'Nobody Special',
+        teamName: 'Reikland Reavers',
+        teamId: 11,
+        raceName: 'Human',
+        raceId: 4,
+        positionName: 'Lineman',
+        eraName: 'Season 5',
+        eraId: 7,
+        sppTotal: null,
+        sppAdjustment: null,
+      };
+      await build([row]);
+      await expect(service.findById(2)).resolves.toEqual(row);
     });
 
     it('joins the era through the player team-era', async () => {

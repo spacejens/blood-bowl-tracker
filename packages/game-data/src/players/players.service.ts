@@ -64,6 +64,8 @@ export class PlayersService {
         positionName: string;
         eraName: string;
         eraId: number;
+        sppTotal: number | null;
+        sppAdjustment: number | null;
       }
     | undefined
   > {
@@ -78,6 +80,8 @@ export class PlayersService {
         positionName: positions.name,
         eraName: eras.name,
         eraId: eras.id,
+        sppTotal: players.sppTotal,
+        sppAdjustment: players.sppAdjustment,
       })
       .from(players)
       .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
