@@ -35,6 +35,8 @@ const griff = {
   positionName: 'Blitzer',
   eraName: 'Season 5',
   eraId: 7,
+  sppTotal: null as number | null,
+  sppAdjustment: null as number | null,
 };
 
 async function makeService(
@@ -67,6 +69,8 @@ function makePlayers(options: {
     positionName: string;
     eraName: string;
     eraId: number;
+    sppTotal: number | null;
+    sppAdjustment: number | null;
   };
   counts?: { label: string; count: number }[];
 }): PlayersService {
@@ -74,6 +78,22 @@ function makePlayers(options: {
     findById: vi.fn().mockResolvedValue(options.player),
     getDeepdiveCategoryCounts: vi.fn().mockResolvedValue(options.counts ?? []),
   } as unknown as PlayersService;
+}
+
+async function describeFor(spp: {
+  sppTotal: number | null;
+  sppAdjustment: number | null;
+}): Promise<string> {
+  const { service } = await makeService(
+    makePlayers({
+      player: { ...griff, ...spp },
+      counts: [{ label: 'Touchdowns scored', count: 3 }],
+    }),
+  );
+  const result = (await service.resolve(1)) as {
+    embeds: { description: string }[];
+  };
+  return result.embeds[0].description;
 }
 
 describe('PlayerDeepdiveService', () => {
@@ -228,6 +248,113 @@ describe('PlayerDeepdiveService', () => {
       },
       () => undefined,
       DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
+    );
+  });
+
+  it('omits the total section entirely when no total is computed', async () => {
+    const description = await describeFor({
+      sppTotal: null,
+      sppAdjustment: 2,
+    });
+    expect(description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Touchdowns scored: 3',
+      ].join('\n'),
+    );
+  });
+
+  it('shows the total alone when there is no adjustment', async () => {
+    const description = await describeFor({
+      sppTotal: 12,
+      sppAdjustment: null,
+    });
+    expect(description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Touchdowns scored: 3',
+        '',
+        'Total star player points: 12',
+      ].join('\n'),
+    );
+  });
+
+  it('treats a zero adjustment as no adjustment', async () => {
+    const description = await describeFor({ sppTotal: 12, sppAdjustment: 0 });
+    expect(description).not.toContain('Star player points adjustment');
+    expect(description).toContain('Total star player points: 12');
+  });
+
+  it('shows a positive adjustment with an explicit plus sign', async () => {
+    const description = await describeFor({ sppTotal: 24, sppAdjustment: 2 });
+    expect(description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Touchdowns scored: 3',
+        '',
+        'Star player points adjustment: +2',
+        'Total star player points: 24',
+      ].join('\n'),
+    );
+  });
+
+  it('shows a negative adjustment with its own minus sign', async () => {
+    const description = await describeFor({ sppTotal: 8, sppAdjustment: -3 });
+    expect(description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        'Touchdowns scored: 3',
+        '',
+        'Star player points adjustment: -3',
+        'Total star player points: 8',
+      ].join('\n'),
+    );
+  });
+
+  it('shows a computed total of zero rather than omitting it', async () => {
+    // 0 is a real computed value, distinct from null ("not computed"), so
+    // unlike a zero category count it is not suppressed.
+    const description = await describeFor({ sppTotal: 0, sppAdjustment: null });
+    expect(description).toContain('Total star player points: 0');
+  });
+
+  it('appends the total after the no-events placeholder', async () => {
+    const { service } = await makeService(
+      makePlayers({
+        player: { ...griff, sppTotal: 4, sppAdjustment: null },
+        counts: [{ label: 'Touchdowns scored', count: 0 }],
+      }),
+    );
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description).toBe(
+      [
+        'Team: Reikland Reavers',
+        'Era: Season 5',
+        'Race: Human',
+        'Position: Blitzer',
+        '',
+        DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
+        '',
+        'Total star player points: 4',
+      ].join('\n'),
     );
   });
 });

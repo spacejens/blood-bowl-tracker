@@ -26,6 +26,8 @@ type Player = {
   positionName: string;
   eraName: string;
   eraId: number;
+  sppTotal: number | null;
+  sppAdjustment: number | null;
 };
 type CategoryCount = { label: string; count: number };
 
@@ -38,6 +40,8 @@ type CategoryCount = { label: string; count: number };
  * a short placeholder instead of an empty list. Team, era and race each get a
  * drill-down button, in the same order as the header lines; position has no
  * deepdive target, so it gets none.
+ * When the player has a computed `sppTotal`, a trailing section shows any
+ * manual adjustment and the total.
  */
 @Injectable()
 export class PlayerDeepdiveService {
@@ -103,9 +107,36 @@ export class PlayerDeepdiveService {
       ...header,
       '',
       ...categoryLines,
+      ...this.buildTotalLines(player),
       ...(overflowNote === null ? [] : [overflowNote]),
     ].join('\n');
 
     return { embeds: [{ title: player.name, description }], components };
+  }
+
+  /**
+   * The trailing total section: nothing at all when no total has been computed
+   * (null), otherwise a blank separator line, an optional adjustment line, and
+   * the total. A computed total of 0 is shown — unlike a zero category count,
+   * it is a real value rather than an absence.
+   */
+  private buildTotalLines(player: Player): string[] {
+    if (player.sppTotal === null) {
+      return [];
+    }
+    const adjustment = player.sppAdjustment;
+    const adjustmentLines =
+      adjustment === null || adjustment === 0
+        ? []
+        : [
+            `Star player points adjustment: ${
+              adjustment > 0 ? `+${adjustment}` : String(adjustment)
+            }`,
+          ];
+    return [
+      '',
+      ...adjustmentLines,
+      `Total star player points: ${player.sppTotal}`,
+    ];
   }
 }
