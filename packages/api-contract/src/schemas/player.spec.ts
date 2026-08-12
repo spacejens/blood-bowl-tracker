@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { PlayerSchema, UpsertPlayerSchema } from './player';
+import {
+  PlayerSchema,
+  SyncComputedSppTotalsResultSchema,
+  SyncComputedSppTotalsSchema,
+  UpsertPlayerSchema,
+} from './player';
 
 describe('player schemas', () => {
   it('PlayerSchema parses a valid player', () => {
@@ -45,5 +50,59 @@ describe('player schemas', () => {
     expect(parsed.name).toBeUndefined();
     expect(parsed.teamEraId).toBeUndefined();
     expect(parsed.positionId).toBeUndefined();
+  });
+
+  it('UpsertPlayerSchema accepts an optional integer sppTotal', () => {
+    const parsed = UpsertPlayerSchema.parse({
+      sppTotal: 176,
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.sppTotal).toBe(176);
+  });
+
+  it('UpsertPlayerSchema leaves sppTotal undefined when omitted', () => {
+    // "undefined means no instruction about that column" — an omitted
+    // sppTotal must never clobber a previously-set value.
+    const parsed = UpsertPlayerSchema.parse({
+      externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+    });
+    expect(parsed.sppTotal).toBeUndefined();
+  });
+
+  it('UpsertPlayerSchema rejects a non-integer sppTotal', () => {
+    expect(() =>
+      UpsertPlayerSchema.parse({
+        sppTotal: 1.5,
+        externalIds: [{ externalSystemId: 1, externalId: 'x' }],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('SyncComputedSppTotals schemas', () => {
+  it('parses a list of player ids', () => {
+    expect(SyncComputedSppTotalsSchema.parse({ playerIds: [1, 2, 3] })).toEqual(
+      {
+        playerIds: [1, 2, 3],
+      },
+    );
+  });
+
+  it('accepts an empty player id list', () => {
+    expect(SyncComputedSppTotalsSchema.parse({ playerIds: [] })).toEqual({
+      playerIds: [],
+    });
+  });
+
+  it('rejects a non-integer player id', () => {
+    expect(() =>
+      SyncComputedSppTotalsSchema.parse({ playerIds: [1.5] }),
+    ).toThrow();
+  });
+
+  it('parses a result of updated player ids', () => {
+    expect(
+      SyncComputedSppTotalsResultSchema.parse({ updatedPlayerIds: [7, 8] }),
+    ).toEqual({ updatedPlayerIds: [7, 8] });
   });
 });
