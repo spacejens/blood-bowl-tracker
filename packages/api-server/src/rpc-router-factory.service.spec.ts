@@ -23,7 +23,6 @@ import {
   RulesSetUpsertConflictError,
   SppAdjustmentsService,
   SppAwardValuesService,
-  SppTotalsService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -53,7 +52,6 @@ describe('RpcRouterFactoryService', () => {
   let matchEventsService: MockProxy<MatchEventsService>;
   let sppAdjustmentsService: MockProxy<SppAdjustmentsService>;
   let sppAwardValuesService: MockProxy<SppAwardValuesService>;
-  let sppTotalsService: MockProxy<SppTotalsService>;
   let upsertHandler: MockProxy<UpsertHandlerService>;
 
   beforeEach(async () => {
@@ -72,7 +70,6 @@ describe('RpcRouterFactoryService', () => {
     matchEventsService = mock<MatchEventsService>();
     sppAdjustmentsService = mock<SppAdjustmentsService>();
     sppAwardValuesService = mock<SppAwardValuesService>();
-    sppTotalsService = mock<SppTotalsService>();
     upsertHandler = mock<UpsertHandlerService>();
     // Mirrors UpsertHandlerService's real implementation (see
     // upsert-handler.service.ts / its own spec for coverage of this logic in
@@ -114,7 +111,6 @@ describe('RpcRouterFactoryService', () => {
         { provide: MatchEventsService, useValue: matchEventsService },
         { provide: SppAdjustmentsService, useValue: sppAdjustmentsService },
         { provide: SppAwardValuesService, useValue: sppAwardValuesService },
-        { provide: SppTotalsService, useValue: sppTotalsService },
         { provide: UpsertHandlerService, useValue: upsertHandler },
       ],
     }).compile();

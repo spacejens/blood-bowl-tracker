@@ -24,7 +24,6 @@ import {
   RulesSetUpsertConflictError,
   SppAdjustmentsService,
   SppAwardValuesService,
-  SppTotalsService,
   TeamsService,
   TeamUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
@@ -48,7 +47,6 @@ export class RpcRouterFactoryService {
     private readonly racesService: RacesService,
     private readonly rulesSetsService: RulesSetsService,
     private readonly sppAwardValuesService: SppAwardValuesService,
-    private readonly sppTotalsService: SppTotalsService,
     private readonly sppAdjustmentsService: SppAdjustmentsService,
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
