@@ -40,7 +40,7 @@ node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-log
 
 - `<pr-number>` — the PR to poll.
 - `<developer-login>` — the PR author's own login, excluded as a reviewer.
-- `<since-epoch-seconds>` — only reviews submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
+- `<since-epoch-seconds>` — only reviews (or rate-limit comments) submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
 - `--timeout-ms` (default 600000, 10 minutes) / `--interval-ms` (default 30000, 30 seconds) — optional overrides; `--interval-ms` has a 1000ms minimum.
 - `--exclude-review-id` — excludes one review by its `id`, regardless of its `submittedAt`. Needed alongside the inclusive threshold above: pass the previously-found review's own `id` here (e.g. across develop-feature's Phase 6 iterations) so that same review isn't matched again forever just because the threshold is inclusive.
 - `--exclude-comment-id` — the same exclusion, but for a CodeRabbit rate-limit comment's `id` instead of a review's, for the same reason.
@@ -49,7 +49,10 @@ node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-log
 Prints one of three JSON outcomes:
 - `{"found": true, "review": {...}}` — a qualifying review was found.
 - `{"found": false, "timedOut": true}` — the timeout elapsed with nothing found.
-- `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds"?: <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time. `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time; it is absent when no duration could be parsed.
+- `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time. `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, and the key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
+  ```json
+  {"found": false, "rateLimited": true, "rateLimitComment": {...}}
+  ```
 
 ## Development
 
