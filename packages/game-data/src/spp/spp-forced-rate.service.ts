@@ -55,8 +55,6 @@ interface PlayerEventGroup {
  * `SppAwardValuesService.resolveSppValue`). An action type BB2020 has no row
  * for keeps its stored value, so an unmodelled award is never silently
  * dropped to zero.
- *
- * See docs/plans/2026-08-12-manual-spp-adjustments-design.md.
  */
 @Injectable()
 export class SppForcedRateService {

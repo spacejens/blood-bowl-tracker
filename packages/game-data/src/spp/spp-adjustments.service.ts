@@ -19,7 +19,7 @@ interface AdjustmentWrite {
 /**
  * Computes and persists `players.spp_adjustment` — the SPP a player holds
  * that their recorded match events cannot explain — one batch of players at
- * a time (see docs/plans/2026-08-12-manual-spp-adjustments-design.md).
+ * a time.
  *
  * Two sources, two shapes:
  *  - BBL ({@link syncScrapedAdjustments}) supplies the career total scraped

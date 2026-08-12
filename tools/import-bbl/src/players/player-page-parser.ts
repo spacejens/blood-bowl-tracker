@@ -20,8 +20,9 @@ export interface BblPlayer {
    * negative, and is not this). `null` when the row is absent or carries no
    * parenthesized figure. Used only as an input to computing
    * `players.spp_adjustment`; it is never stored as `players.spp_total`,
-   * because BBL's figure mixes award rates across eras (see
-   * docs/plans/2026-08-12-manual-spp-adjustments-design.md).
+   * because BBL's figure mixes award rates across eras — its site
+   * recalculated pre-BB2020 totals at BB2020 rates, so the raw scraped
+   * number isn't the era-correct total this repo wants `spp_total` to mean.
    */
   sppTotal: number | null;
 }
