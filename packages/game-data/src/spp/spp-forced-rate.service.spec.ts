@@ -154,6 +154,82 @@ describe('SppForcedRateService', () => {
     );
   });
 
+  it('falls back to an earlier context row’s race when a later row has a null race', async () => {
+    // Player 1 has two CRP-era context rows: the first carries the real
+    // race id (44), the second's race id is null. The second row must fall
+    // back to the first's already-resolved race rather than clobbering it
+    // with null. Proven by the final sum using race 44's rate (2), not the
+    // baseline rate (3): 2 touchdowns * 2 = 4, not 2 * 3 = 6.
+    const db = db3(
+      [
+        { playerId: 1, raceId: 44, rulesSetName: 'CRP' },
+        { playerId: 1, raceId: null, rulesSetName: 'CRP' },
+      ],
+      [
+        {
+          playerId: 1,
+          actionType: 'touchdown',
+          eventCount: 2,
+          storedSum: '6',
+        },
+      ],
+      [BB2020_TOUCHDOWN, { raceId: 44, actionType: 'touchdown', sppValue: 2 }],
+    );
+    const service = await makeService(db);
+
+    expect(await service.forcedRateSumsForPlayers([1])).toEqual(
+      new Map([[1, 4]]),
+    );
+  });
+
+  it('treats a null stored sum as 0 when no BB2020 rate applies', async () => {
+    // Player 1 is pre-migration (CRP) with an event-group row whose
+    // aggregate storedSum is null (drizzle's sum() returns null when it has
+    // nothing to sum). BB2020 has no rate for 'interception', so the code
+    // falls back to the group's stored sum — which must resolve to 0, not
+    // null, or the total would be NaN/invalid.
+    const db = db3(
+      [{ playerId: 1, raceId: 7, rulesSetName: 'CRP' }],
+      [
+        {
+          playerId: 1,
+          actionType: 'interception',
+          eventCount: 1,
+          storedSum: null,
+        },
+      ],
+      [BB2020_MVP],
+    );
+    const service = await makeService(db);
+
+    expect(await service.forcedRateSumsForPlayers([1])).toEqual(
+      new Map([[1, 0]]),
+    );
+  });
+
+  it('falls back to the baseline BB2020 rate when the player’s resolved race is null', async () => {
+    // Player 1's team has no race (raceId: null), so despite a
+    // race-specific BB2020 touchdown rate existing (for race 44), the
+    // baseline rate (3) must be used: 2 * 3 = 6, not 2 * 2 = 4.
+    const db = db3(
+      [{ playerId: 1, raceId: null, rulesSetName: 'CRP' }],
+      [
+        {
+          playerId: 1,
+          actionType: 'touchdown',
+          eventCount: 2,
+          storedSum: '6',
+        },
+      ],
+      [BB2020_TOUCHDOWN, { raceId: 44, actionType: 'touchdown', sppValue: 2 }],
+    );
+    const service = await makeService(db);
+
+    expect(await service.forcedRateSumsForPlayers([1])).toEqual(
+      new Map([[1, 6]]),
+    );
+  });
+
   it('issues no queries for an empty id list', async () => {
     const db = mockDb();
     const service = await makeService(db);
