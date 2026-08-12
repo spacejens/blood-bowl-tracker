@@ -34,6 +34,14 @@ export interface TpRosterPlayer {
   rosterId: number;
   fallbackPositionName: string;
   isBigGuy: boolean;
+  /**
+   * TP's own reported CAREER Star Player Points total for this player
+   * (`lineUps[].totalStarPlayerPoints`). Distinct from the sibling
+   * `starPlayerPoints` field, which is the unspent figure and was
+   * investigated and rejected as an SPP ground truth -- see
+   * tools/import-tp/src/match-events/tp-spp-cross-check.spec.ts.
+   */
+  totalStarPlayerPoints: number;
 }
 
 /**
@@ -73,6 +81,7 @@ export const LineUpSchema = z.object({
   rosterId: z.number(),
   position: z.string(),
   isBigGuy: z.boolean().optional(),
+  totalStarPlayerPoints: z.number(),
 });
 
 const RosterSchema = z.object({
@@ -132,6 +141,7 @@ export class RosterParserService {
         rosterId: entry.rosterId,
         fallbackPositionName: entry.position,
         isBigGuy: entry.isBigGuy ?? false,
+        totalStarPlayerPoints: entry.totalStarPlayerPoints,
       })),
     };
   }

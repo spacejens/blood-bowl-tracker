@@ -18,6 +18,7 @@ function rosterBody(overrides: Record<string, unknown> = {}) {
         rosterId: 123,
         position: 'Dwarf Lineman',
         isBigGuy: false,
+        totalStarPlayerPoints: 23,
       },
     ],
     rosterMaster: {
@@ -69,6 +70,7 @@ describe('RosterParserService', () => {
           rosterId: 123,
           fallbackPositionName: 'Dwarf Lineman',
           isBigGuy: false,
+          totalStarPlayerPoints: 23,
         },
       ],
     });
@@ -122,6 +124,7 @@ describe('RosterParserService', () => {
         rosterId: 123,
         fallbackPositionName: 'Dwarf Lineman',
         isBigGuy: false,
+        totalStarPlayerPoints: 23,
       },
     ]);
   });
@@ -138,6 +141,7 @@ describe('RosterParserService', () => {
             rosterId: 123,
             position: 'Giant Mercenary',
             isBigGuy: true,
+            totalStarPlayerPoints: 0,
           },
         ],
       }),
@@ -151,6 +155,7 @@ describe('RosterParserService', () => {
         rosterId: 123,
         fallbackPositionName: 'Giant Mercenary',
         isBigGuy: true,
+        totalStarPlayerPoints: 0,
       },
     ]);
   });
@@ -166,6 +171,7 @@ describe('RosterParserService', () => {
             lineUpMasterId: 952,
             rosterId: 123,
             position: 'Dwarf Lineman',
+            totalStarPlayerPoints: 23,
           },
         ],
       }),
@@ -175,5 +181,25 @@ describe('RosterParserService', () => {
 
   it('returns an empty players array when lineUps is empty', () => {
     expect(service.parse(rosterBody({ lineUps: [] })).players).toEqual([]);
+  });
+
+  it('rejects a lineUp missing totalStarPlayerPoints', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              isBigGuy: false,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/totalStarPlayerPoints/);
   });
 });
