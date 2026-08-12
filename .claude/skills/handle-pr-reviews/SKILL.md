@@ -112,6 +112,29 @@ gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
 ```
 A comment is **unhandled** if its `body` does not start with `**Comment by Claude**`, and no later comment in the list that does start with `**Comment by Claude**` contains this comment's `html_url` as a backlink.
 
+**Review body findings** — a submitted review's own `body` text can carry findings that exist nowhere else. When a reviewer (e.g. CodeRabbit) has a finding it cannot anchor to a line in the diff — such as an "outside diff range" observation — GitHub gives it no inline comment to attach to, so the finding only ever appears in the review body, invisible to both scans above. Fetch every review on the PR:
+```bash
+gh api graphql -f query='
+  query($owner: String!, $repo: String!, $pr: Int!) {
+    repository(owner: $owner, name: $repo) {
+      pullRequest(number: $pr) {
+        reviews(first: 100) {
+          nodes {
+            id
+            databaseId
+            url
+            state
+            body
+            author { login }
+            submittedAt
+          }
+        }
+      }
+    }
+  }' -f owner="$OWNER" -f repo="$REPO" -F pr="$PR"
+```
+Discard any node whose `state` is `PENDING` — an unsubmitted review the author is still editing, excluded for exactly the same reason as the pending inline comments above — and any node whose `body` is empty or whitespace-only. Everything that survives is a candidate, judged below.
+
 **Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup. Run these as separate commands, for the same reason as Phase 0 step 1 above:
 ```bash
 gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha'
