@@ -253,6 +253,13 @@ For every item processed in Phase 2 with an outcome (fixed, rejected, or answere
 
   <reply text>"
   ```
+- **Review body findings:** post **one** aggregated top-level comment for the whole review, not one per finding — a separate comment per finding would post as many new top-level comments as the review had findings, which reads as spam for what was a single review. Post it once every finding belonging to that review body has been triaged in Phase 2 and, where applicable, verified and pushed in Phases 3–4:
+  ```bash
+  gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude** (re: <the review's url>)
+
+  <one paragraph per finding, following the same reply-content rules as any other item>"
+  ```
+  Use the review's `url` recorded during discovery — the next run's review-body scan looks for exactly that backlink to decide the review is handled. If Phase 2's Ambiguous stop was triggered on a finding that came from this review body, that finding and anything after it in discovery order is left unhandled and **excluded** from this aggregated reply, consistent with how an ambiguous inline or top-level item is already excluded from this phase; the findings triaged before it are still replied to here.
 - **Failing CI check:** there is no comment thread to reply to, so post a new top-level PR comment (no backlink — there is no original comment to reference):
   ```bash
   gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude**
@@ -265,6 +272,7 @@ Reply content:
 - Rejected items state the technical reasoning plainly — no performative agreement, no thanks (see `superpowers:receiving-code-review`).
 - Answered items just answer the question.
 - CI-failure items name the check that failed (`lint`/`typecheck`/`test`), summarize the diagnosis, and reference the fixing commit's short SHA.
+- Review-body findings get one paragraph each inside the single aggregated comment, each paragraph following the rule above for its own outcome — fixed paragraphs reference the fixing commit's short SHA, rejected paragraphs state the reasoning plainly, answered paragraphs just answer.
 
 ---
 
