@@ -1,5 +1,6 @@
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import { is, SQL } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 
 import type { MockDbResult } from '../shared/db-mock.test-helpers';
@@ -145,9 +146,13 @@ describe('SppTotalsService.topPlayersBySppSum', () => {
     await service.topPlayersBySppSum({ competitionId: 30 }, 21);
 
     expect(db.chains[0].having).toHaveBeenCalledTimes(1);
-    expect(extractAllFilterValues(firstCallArg(db.chains[0].having))).toEqual([
-      0,
-    ]);
+    // gt(sqlExpr, 0) inlines the literal 0 as a raw SQL chunk rather than a
+    // Param (drizzle only parameterizes comparisons against a Column), so
+    // extractAllFilterValues (which only recognizes Param) can't see it —
+    // walk the condition's own queryChunks for the raw literal instead.
+    const condition = firstCallArg(db.chains[0].having);
+    expect(is(condition, SQL)).toBe(true);
+    expect((condition as SQL).queryChunks).toContainEqual(0);
   });
 
   it('joins the acting side of the event through to matches and eras', async () => {
