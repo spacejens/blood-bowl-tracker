@@ -77,47 +77,49 @@ export class SppForcedRateService {
       return sums;
     }
 
-    const contextRows = await this.db
-      .select({
-        playerId: players.id,
-        raceId: teams.raceId,
-        rulesSetName: rulesSets.name,
-      })
-      .from(players)
-      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(eraRulesSets, eq(eraRulesSets.eraId, teamEras.eraId))
-      .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
-      .where(inArray(players.id, ids));
+    const [contextRows, eventRows, rateRows] = await Promise.all([
+      this.db
+        .select({
+          playerId: players.id,
+          raceId: teams.raceId,
+          rulesSetName: rulesSets.name,
+        })
+        .from(players)
+        .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+        .innerJoin(teams, eq(teams.id, teamEras.teamId))
+        .innerJoin(eraRulesSets, eq(eraRulesSets.eraId, teamEras.eraId))
+        .innerJoin(rulesSets, eq(rulesSets.id, eraRulesSets.rulesSetId))
+        .where(inArray(players.id, ids)),
 
-    // Only events that actually earned SPP matter: a NULL spp_value means
-    // the action earns none (e.g. a foul), and counting it at a forced rate
-    // would invent SPP the player never had.
-    const eventRows = await this.db
-      .select({
-        playerId: matchEvents.actingPlayerId,
-        actionType: matchEvents.actionType,
-        eventCount: count(),
-        storedSum: sum(matchEvents.sppValue),
-      })
-      .from(matchEvents)
-      .where(
-        and(
-          inArray(matchEvents.actingPlayerId, ids),
-          isNotNull(matchEvents.sppValue),
-        ),
-      )
-      .groupBy(matchEvents.actingPlayerId, matchEvents.actionType);
+      // Only events that actually earned SPP matter: a NULL spp_value means
+      // the action earns none (e.g. a foul), and counting it at a forced
+      // rate would invent SPP the player never had.
+      this.db
+        .select({
+          playerId: matchEvents.actingPlayerId,
+          actionType: matchEvents.actionType,
+          eventCount: count(),
+          storedSum: sum(matchEvents.sppValue),
+        })
+        .from(matchEvents)
+        .where(
+          and(
+            inArray(matchEvents.actingPlayerId, ids),
+            isNotNull(matchEvents.sppValue),
+          ),
+        )
+        .groupBy(matchEvents.actingPlayerId, matchEvents.actionType),
 
-    const rateRows = await this.db
-      .select({
-        raceId: sppAwardValues.raceId,
-        actionType: sppAwardValues.actionType,
-        sppValue: sppAwardValues.sppValue,
-      })
-      .from(sppAwardValues)
-      .innerJoin(rulesSets, eq(rulesSets.id, sppAwardValues.rulesSetId))
-      .where(eq(rulesSets.name, MIGRATION_RULES_SET_NAME));
+      this.db
+        .select({
+          raceId: sppAwardValues.raceId,
+          actionType: sppAwardValues.actionType,
+          sppValue: sppAwardValues.sppValue,
+        })
+        .from(sppAwardValues)
+        .innerJoin(rulesSets, eq(rulesSets.id, sppAwardValues.rulesSetId))
+        .where(eq(rulesSets.name, MIGRATION_RULES_SET_NAME)),
+    ]);
 
     const context = new Map<
       number,
