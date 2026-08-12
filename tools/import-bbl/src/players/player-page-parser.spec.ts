@@ -41,6 +41,7 @@ describe('PlayerPageParser', () => {
       name: 'Griff Oberwald',
       typId: '33',
       teamCode: 'knu',
+      sppTotal: null,
     });
   });
 
@@ -55,6 +56,7 @@ describe('PlayerPageParser', () => {
       name: 'Aspgren',
       typId: '169',
       teamCode: 'gås',
+      sppTotal: null,
     });
   });
 
@@ -71,6 +73,7 @@ describe('PlayerPageParser', () => {
       name: 'Griff Oberwald',
       typId: '33',
       teamCode: 'knu',
+      sppTotal: null,
     });
   });
 
@@ -109,6 +112,7 @@ describe('PlayerPageParser', () => {
       name: '',
       typId: '53',
       teamCode: 'nyt3',
+      sppTotal: null,
     });
   });
 
@@ -132,5 +136,78 @@ describe('PlayerPageParser', () => {
         ),
     };
     expect(parser.extractPlayer(page)).toBeNull();
+  });
+
+  const UNSPENT_SPP_ROW =
+    '<table><tr>' +
+    '<td class="small">Unspent SPP:</td>' +
+    '<td class="esmall" align="center">5</td>' +
+    '<td class="esmall"><span class="opaque50">(<a href=\'default.asp?p=mp&act=spp&pid=5\'>11</a>)</span></td>' +
+    '</tr></table>';
+
+  it('scrapes the career SPP total from the Unspent SPP row', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>' +
+        UNSPENT_SPP_ROW,
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBe(11);
+  });
+
+  it('scrapes a zero career total that carries no breakdown link', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>' +
+        '<table><tr><td class="small">Unspent SPP:</td>' +
+        '<td class="esmall" align="center">0</td>' +
+        '<td class="esmall"><span class="opaque50">(0)</span></td></tr></table>',
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBe(0);
+  });
+
+  it('ignores the unspent figure, including a negative one', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>' +
+        '<table><tr><td class="small">Unspent SPP:</td>' +
+        '<td class="esmall" align="center">-7</td>' +
+        '<td class="esmall"><span class="opaque50">(<a href=\'x\'>31</a>)</span></td></tr></table>',
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBe(31);
+  });
+
+  it('returns a null career total when the page has no Unspent SPP row', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>',
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBeNull();
+  });
+
+  it('skips over unrelated td cells while looking for the Unspent SPP row', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>' +
+        '<table><tr><td class="small">Some other stat:</td>' +
+        '<td class="esmall">99</td></tr></table>' +
+        UNSPENT_SPP_ROW,
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBe(11);
+  });
+
+  it('returns a null career total when the row carries no parenthesized figure', () => {
+    const page = playerPage(
+      '<h1>Griff Oberwald</h1>' +
+        '<a href="default.asp?p=pt&typID=33">Goblin Linemen</a>' +
+        '<a href="default.asp?p=tm&t=knu">Knights</a>' +
+        '<table><tr><td class="small">Unspent SPP:</td>' +
+        '<td class="esmall" align="center">5</td></tr></table>',
+    );
+    expect(parser.extractPlayer(page)?.sppTotal).toBeNull();
   });
 });

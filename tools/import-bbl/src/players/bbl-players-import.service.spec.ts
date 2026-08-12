@@ -225,6 +225,7 @@ const goodPlayer: BblPlayer = {
   name: 'Griff Oberwald',
   typId: '33',
   teamCode: 'knu',
+  sppTotal: null,
 };
 
 describe('BblPlayersImportService', () => {
@@ -792,6 +793,7 @@ describe('BblPlayersImportService', () => {
       name: '',
       typId: '33',
       teamCode: 'knu',
+      sppTotal: null,
     };
     const { service, mocks } = await makeService(
       makeReader([plPage(namelessPlayer)]),
