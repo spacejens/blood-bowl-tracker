@@ -17,10 +17,11 @@ export const UpsertPlayerSchema = z.object({
   teamEraId: z.number().int().optional(),
   positionId: z.number().int().optional(),
   // The source's own reported Star Player Points total, where the source
-  // publishes one (TP does; BBL's is computed server-side instead — see
-  // docs/plans/2026-08-12-import-trusted-spp-totals-design.md). Optional in
-  // the "no instruction about that column" sense: an omitted value leaves
-  // any previously-stored total untouched.
+  // publishes one (TP does; BBL's own total is not imported here, since it
+  // may have been corrupted by the site's BB2016-to-BB2020 migration — BBL's
+  // total is instead computed server-side from match_events.spp_value).
+  // Optional in the "no instruction about that column" sense: an omitted
+  // value leaves any previously-stored total untouched.
   sppTotal: z.number().int().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });

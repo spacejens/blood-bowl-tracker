@@ -11,8 +11,7 @@ import { Injectable } from '@nestjs/common';
  * the sum of their own `match_events.spp_value`.
  *
  * BBL's own published per-player total is deliberately NOT scraped: it may
- * have been corrupted by the site's BB2016→BB2020 migration (see
- * docs/plans/2026-08-12-import-trusted-spp-totals-design.md). Computing the
+ * have been corrupted by the site's BB2016→BB2020 migration. Computing the
  * figure instead keeps the column uniformly populated across both import
  * sources without a caller needing to know which system a player came from.
  *
