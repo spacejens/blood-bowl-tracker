@@ -90,7 +90,8 @@ describe('RaceDeepdiveService', () => {
   // echo its inputs, and `passthroughEntityComponents()` cans component
   // building the same way, so this test asserts only what RaceDeepdiveService
   // itself owns: joining the eras/career lines, and building the
-  // era-then-team component-entry pool (in that order) that it hands to
+  // team-then-era component-entry pool (in that order — leaderboard entries
+  // take component priority over header entries) that it hands to
   // buildEntityComponents.
   it('renders the eras list and top-teams list, with team components before era components', async () => {
     const leaderboard = passthroughLeaderboard();
