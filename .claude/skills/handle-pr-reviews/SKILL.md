@@ -121,7 +121,6 @@ gh api graphql -f query='
         reviews(first: 100) {
           nodes {
             id
-            databaseId
             url
             state
             body
@@ -137,9 +136,9 @@ Discard any node whose `state` is `PENDING` — an unsubmitted review the author
 
 Deciding whether a candidate body actually contains findings is a **semantic judgment — read the body and decide; do not pattern-match on section headings or apply a regex.** Most of a review body is not a finding: run configuration, an "Actionable comments posted: N" summary, autofix links, files-skipped notices. Findings the same review also posted inline are already covered by the `reviewThreads` scan above, and must not be counted twice here. There is no reliable mechanical marker for "this section is a genuinely new finding" that generalizes across reviewers or survives a bot rewording its own output, so read each candidate `body` and judge whether it describes concrete findings **not** already surfaced by that review's inline threads or by a top-level comment. A body that is only boilerplate — for example a `COMMENTED` review whose body is just an empty diff-scan summary — is not unhandled: skip it silently, exactly as an empty result from the other scans produces no items.
 
-A review body is not a comment thread, so there is no per-review reply endpoint Claude could have replied into and no `isResolved` flag to read. Reuse the top-level-comment convention instead: a review's findings are **unhandled** unless a top-level PR comment — from the same `issues/$PR/comments` listing fetched above — has a `body` that starts with `**Comment by Claude**` and contains that review's `url` (e.g. `https://github.com/<owner>/<repo>/pull/<pr>#pullrequestreview-<id>`) as a backlink. This is the identical rule already applied to top-level comments, matched against a review's `url` instead of a comment's `html_url`.
+A review body is not a comment thread, so there is no per-review reply endpoint Claude could have replied into and no `isResolved` flag to read. Reuse the top-level-comment convention instead: a review's findings are **unhandled** unless a top-level PR comment — from the same `issues/$PR/comments` listing fetched above — has a `body` that starts with `**Comment by Claude**` and contains that review's `url` (e.g. `https://github.com/<owner>/<repo>/pull/<pr>#pullrequestreview-<id>`) as a backlink, matching the full URL rather than a prefix of a longer review's URL (`#pullrequestreview-123` is a substring of `#pullrequestreview-1234` and must not match it). This is the identical rule already applied to top-level comments, matched against a review's `url` instead of a comment's `html_url`.
 
-One review body can hold several distinct findings, at different severities and in different files. Bundling them into a single triage item would force one classification and one reply across findings that may deserve different treatment — one fixed, one rejected — so **each distinct finding in an unhandled review body becomes its own discovery item**, at the same granularity the two scans above produce: file and line if the body states them, the description, and the severity if stated. Record on every extracted item which review it came from (that review's `url` and `databaseId`); Phase 5 needs this to group findings back together when replying.
+One review body can hold several distinct findings, at different severities and in different files. Bundling them into a single triage item would force one classification and one reply across findings that may deserve different treatment — one fixed, one rejected — so **each distinct finding in an unhandled review body becomes its own discovery item**, at the same granularity the two scans above produce: file and line if the body states them, the description, and the severity if stated. Record on every extracted item which review it came from (that review's `url`); Phase 5 needs this to group findings back together when replying.
 
 **Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup. Run these as separate commands, for the same reason as Phase 0 step 1 above:
 ```bash
@@ -163,7 +162,7 @@ Otherwise, list every unhandled item for the developer (surface, file/line if ap
 
 Process items in the order discovered. For each item:
 
-1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself; for a failing CI check, the failing job's log (fetch it with `gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`, where `<check_run_id>` is the id recorded during discovery).
+1. Read its full context — for an inline thread, every comment in the thread in order; for a top-level comment, the comment itself; for a review-body finding, the extracted finding text plus the surrounding review body it came from, for context; for a failing CI check, the failing job's log (fetch it with `gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`, where `<check_run_id>` is the id recorded during discovery).
 2. Classify it:
    - **(a) Needs a code change** — **REQUIRED SUB-SKILL:** Use `superpowers:test-driven-development`: write the failing test, implement the fix, run `pnpm verify` from the repo root, then commit. **One commit per addressed item** — never bundle unrelated items into one commit just because they're being handled in the same run. A single commit may address more than one item only when they share the same fix (e.g. the same rationale applied to two near-identical locations, like a parallel edit in two modes of the same skill). The commit message references the item(s) addressed. A **failing CI check** is always classification (a): fetch its failing log (`gh api "repos/$OWNER/$REPO/actions/jobs/<check_run_id>/logs"`), diagnose the failure with `superpowers:systematic-debugging`, fix it under `superpowers:test-driven-development`, and make one commit per failing check (consistent with the one-commit-per-item rule above). There is no comment thread to answer or suggestion to reject for a CI item.
    - **(b) Is a question** — draft an answer. No code change.
@@ -253,13 +252,13 @@ For every item processed in Phase 2 with an outcome (fixed, rejected, or answere
 
   <reply text>"
   ```
-- **Review body findings:** post **one** aggregated top-level comment for the whole review, not one per finding — a separate comment per finding would post as many new top-level comments as the review had findings, which reads as spam for what was a single review. Post it once every finding belonging to that review body has been triaged in Phase 2 and, where applicable, verified and pushed in Phases 3–4:
+- **Review body findings:** post **one** aggregated top-level comment for the whole review, not one per finding — a separate comment per finding would post as many new top-level comments as the review had findings, which reads as spam for what was a single review. Post it only once **every** finding belonging to that review body has an outcome from Phase 2 and, where applicable, has been verified and pushed in Phases 3–4:
   ```bash
   gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude** (re: <the review's url>)
 
-  <one paragraph per finding, following the same reply-content rules as any other item>"
+  <one paragraph per finding, each led by that finding's file/line — or a short quoted phrase if no line applies — so a review with several findings stays legible, followed by the same reply-content rules as any other item>"
   ```
-  Use the review's `url` recorded during discovery — the next run's review-body scan looks for exactly that backlink to decide the review is handled. If Phase 2's Ambiguous stop was triggered on a finding that came from this review body, that finding and anything after it in discovery order is left unhandled and **excluded** from this aggregated reply, consistent with how an ambiguous inline or top-level item is already excluded from this phase; the findings triaged before it are still replied to here.
+  Use the review's `url` recorded during discovery — the next run's review-body scan looks for exactly that backlink to decide the **entire review** is handled, so this comment must never be posted until every one of that review's findings has an outcome. If Phase 2's Ambiguous stop was triggered on a finding that came from this review body, **do not post the aggregated comment for that review at all this run** — not even for the findings from it that were already triaged before the ambiguous one. Posting a partial reply would still write the review's `url` as a backlink, which the next run's discovery would then read as proof the whole review is handled, permanently hiding the untriaged finding (and anything after it) exactly the way the missed findings on PR #395 first happened. Leave the review without a backlink instead, so the next run's review-body scan rediscovers and re-extracts all of its findings; any fix commits already made this run for that review's other findings remain in the codebase, and the next triage pass will recognize them as already resolved rather than redo the work. This is stricter than the exclusion rule used for a standalone ambiguous inline or top-level item, precisely because those each have their own independent handled state and a review's findings share one.
 - **Failing CI check:** there is no comment thread to reply to, so post a new top-level PR comment (no backlink — there is no original comment to reference):
   ```bash
   gh api "repos/$OWNER/$REPO/issues/$PR/comments" -f body="**Comment by Claude**
@@ -272,7 +271,7 @@ Reply content:
 - Rejected items state the technical reasoning plainly — no performative agreement, no thanks (see `superpowers:receiving-code-review`).
 - Answered items just answer the question.
 - CI-failure items name the check that failed (`lint`/`typecheck`/`test`), summarize the diagnosis, and reference the fixing commit's short SHA.
-- Review-body findings get one paragraph each inside the single aggregated comment, each paragraph following the rule above for its own outcome — fixed paragraphs reference the fixing commit's short SHA, rejected paragraphs state the reasoning plainly, answered paragraphs just answer.
+- Review-body findings get one paragraph each inside the single aggregated comment, led by that finding's file/line (or a short quoted phrase if no line applies) so multiple findings stay distinguishable, then following the rule above for its own outcome — fixed paragraphs reference the fixing commit's short SHA, rejected paragraphs state the reasoning plainly, answered paragraphs just answer.
 
 ---
 
