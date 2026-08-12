@@ -1,6 +1,6 @@
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -76,14 +76,14 @@ function makeTeams(options: {
   span?: { start: string; end: string };
   topPlayers?: { playerId: number; name: string; count: number }[];
 }): TeamsService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.team),
-    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
-    getCareerSpan: vi.fn().mockResolvedValue(options.span),
-    getTopPlayersByMatchEventCount: vi
-      .fn()
-      .mockResolvedValue(options.topPlayers ?? []),
-  } as unknown as TeamsService;
+  const teams = mock<TeamsService>();
+  teams.findById.mockResolvedValue(options.team);
+  teams.listEras.mockResolvedValue(options.eras ?? []);
+  teams.getCareerSpan.mockResolvedValue(options.span);
+  teams.getTopPlayersByMatchEventCount.mockResolvedValue(
+    options.topPlayers ?? [],
+  );
+  return teams;
 }
 
 const grinders = {

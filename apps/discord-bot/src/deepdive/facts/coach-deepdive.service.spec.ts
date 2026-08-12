@@ -1,7 +1,7 @@
 import { CoachesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -78,14 +78,12 @@ function makeCoaches(options: {
   span?: { start: string; end: string };
   topTeams?: { id: number; name: string; count: number }[];
 }): CoachesService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.coach),
-    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
-    getCareerSpan: vi.fn().mockResolvedValue(options.span),
-    getTopTeamsByMatchesPlayed: vi
-      .fn()
-      .mockResolvedValue(options.topTeams ?? []),
-  } as unknown as CoachesService;
+  const coaches = mock<CoachesService>();
+  coaches.findById.mockResolvedValue(options.coach);
+  coaches.listEras.mockResolvedValue(options.eras ?? []);
+  coaches.getCareerSpan.mockResolvedValue(options.span);
+  coaches.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);
+  return coaches;
 }
 
 describe('CoachDeepdiveService', () => {
