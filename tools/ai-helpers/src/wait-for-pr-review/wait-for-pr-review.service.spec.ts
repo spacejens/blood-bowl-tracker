@@ -442,6 +442,27 @@ describe('WaitForPrReviewService', () => {
     expect(result).toMatchObject({ found: false, rateLimited: true });
   });
 
+  it('discards a rate-limit candidate whose body is missing, not throws', async () => {
+    // jq's own shape is asserted, not checked, by the `as PollOutcome`
+    // cast on the reviews half — a malformed response from a future gh/jq
+    // change must not crash the whole wait. Mirrors the completion half's
+    // existing fail-soft handling via `parseCompletionCandidate`.
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: { id: RATE_LIMIT_COMMENT.id },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
   it('parses a minutes wait out of the rate-limit comment body', async () => {
     processRunner.run.mockResolvedValue(
       rateLimitedWithBody(

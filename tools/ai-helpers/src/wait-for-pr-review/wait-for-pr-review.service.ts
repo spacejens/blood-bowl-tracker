@@ -309,6 +309,7 @@ export class WaitForPrReviewService {
     // formatting (a quoted branch name, file path, or snippet).
     const rateLimitComment =
       parsed.rateLimitComment != null &&
+      typeof parsed.rateLimitComment.body === 'string' &&
       this.hasProsePhrase(parsed.rateLimitComment.body, RATE_LIMIT_PHRASE_REGEX)
         ? parsed.rateLimitComment
         : undefined;
