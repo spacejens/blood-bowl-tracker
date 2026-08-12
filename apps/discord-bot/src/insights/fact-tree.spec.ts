@@ -108,6 +108,7 @@ function deps(): FactTreeDeps {
     'player fouls committed',
   );
   playerToplist.resolveTimesSentOff.mockResolvedValue('player times sent off');
+  playerToplist.resolveTotalSpp.mockResolvedValue('player total spp');
 
   const raceToplist = mock<RaceToplistService>();
   raceToplist.resolveTeams.mockResolvedValue('race teams');
@@ -140,8 +141,8 @@ function deps(): FactTreeDeps {
 }
 
 describe('buildFactTree', () => {
-  it('exposes exactly fifty-two leaf facts', () => {
-    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(52);
+  it('exposes exactly fifty-three leaf facts', () => {
+    expect(factTreeUtils.collectLeaves(buildFactTree(deps()))).toHaveLength(53);
   });
 
   it('wires coach.toplist.matches.played to CoachToplistService.resolveMatchesPlayed', async () => {
@@ -555,6 +556,16 @@ describe('buildFactTree', () => {
     expect(d.playerToplist.resolveTimesSentOff).toHaveBeenCalled();
   });
 
+  it('wires player.toplist.totalSpp to PlayerToplistService.resolveTotalSpp', async () => {
+    const d = deps();
+    const leaf = factTreeUtils.resolvePath(
+      buildFactTree(d),
+      'player.toplist.totalSpp',
+    );
+    await (leaf as FactLeaf).resolve(FACT_SCOPE_ALL_TIME);
+    expect(d.playerToplist.resolveTotalSpp).toHaveBeenCalled();
+  });
+
   it('wires race.toplist.teams to RaceToplistService.resolveTeams', async () => {
     const d = deps();
     const leaf = factTreeUtils.resolvePath(
@@ -678,10 +689,11 @@ describe('buildFactTree competition capabilities', () => {
         factTreeUtils.resolvePath(tree, 'player.toplist.deaths.caused'),
         factTreeUtils.resolvePath(tree, 'player.toplist.fouls.committed'),
         factTreeUtils.resolvePath(tree, 'player.toplist.sent_off'),
+        factTreeUtils.resolvePath(tree, 'player.toplist.totalSpp'),
         factTreeUtils.resolvePath(tree, 'stats'),
       ]),
     );
-    expect(supported).toHaveLength(29);
+    expect(supported).toHaveLength(30);
   });
 
   it('excludes the coach fouls toplist from competition filtering', () => {
@@ -770,7 +782,7 @@ describe('buildFactTree match category capabilities', () => {
     const supported = factTreeUtils
       .collectLeaves(tree)
       .filter((leaf) => leaf.supportsMatchCategory);
-    expect(supported).toHaveLength(46);
+    expect(supported).toHaveLength(47);
   });
 
   it('supports the match category on leaves that do not support a competition', () => {

@@ -70,6 +70,7 @@ export class PlayerToplistService {
           'Players by serious injuries suffered',
         countLastingInjuriesSufferedByPlayer:
           'Players by lasting injuries suffered',
+        topPlayersByTotalSpp: 'Players by total SPP',
       },
       timeoutMessage: PLAYER_TOPLIST_TIMEOUT_MESSAGE,
       noDataMessage: PLAYER_TOPLIST_NO_DATA_MESSAGE,
@@ -161,5 +162,9 @@ export class PlayerToplistService {
       this.players,
       scope,
     );
+  }
+
+  resolveTotalSpp(scope: FactScope) {
+    return this.resolvers.topPlayersByTotalSpp(this.players, scope);
   }
 }
