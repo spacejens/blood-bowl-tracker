@@ -1,5 +1,6 @@
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
+  DEFAULT_BATCH_CHUNK_SIZE,
   ImportResultService,
   SppTotalsImportService,
 } from '@blood-bowl-tracker/import';
@@ -32,13 +33,19 @@ export class BblSppTotalsImportService {
     const errors: ImportError[] = [];
     let imported = 0;
 
-    if (playerIds.length > 0) {
+    // Chunk rather than sending every id in one RPC call: an unbounded id
+    // list risks Postgres's bind-parameter limit as the league grows, and it
+    // makes one transport hiccup cost the entire step. Each chunk is an
+    // independent call, so a failure in one chunk doesn't prevent later
+    // chunks from being attempted or lose earlier/later chunks' counts.
+    for (let i = 0; i < playerIds.length; i += DEFAULT_BATCH_CHUNK_SIZE) {
+      const chunk = playerIds.slice(i, i + DEFAULT_BATCH_CHUNK_SIZE);
       const outcome = await this.sppTotals.syncComputedSppTotals(
-        { playerIds },
+        { playerIds: chunk },
         errors,
       );
       // A failed call has already pushed its own ImportError onto `errors`.
-      imported = outcome?.updatedPlayerIds.length ?? 0;
+      imported += outcome?.updatedPlayerIds.length ?? 0;
     }
 
     return { result: this.importResults.result({ imported, errors }) };
