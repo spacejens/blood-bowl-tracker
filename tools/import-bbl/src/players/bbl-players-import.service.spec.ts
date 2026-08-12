@@ -957,4 +957,56 @@ describe('BblPlayersImportService', () => {
 
     expect(result).toBe(CANNED_RESULT);
   });
+
+  it('returns each upserted player’s scraped career SPP total', async () => {
+    const playerWithTotal: BblPlayer = {
+      ...goodPlayer,
+      pid: '42',
+      sppTotal: 16,
+    };
+    const playerWithoutTotal: BblPlayer = {
+      ...goodPlayer,
+      pid: '43',
+      sppTotal: null,
+    };
+    const { service, mocks } = await makeService(
+      makeReader([
+        plPage(playerWithTotal, '42'),
+        plPage(playerWithoutTotal, '43'),
+      ]),
+    );
+    mocks.playersImport.upsertPlayerResult
+      .mockResolvedValueOnce({ id: 101 })
+      .mockResolvedValueOnce({ id: 102 });
+
+    const outcome = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    });
+
+    expect(outcome.scrapedSppTotalsByPlayerId).toEqual(
+      new Map([
+        [101, 16],
+        [102, null],
+      ]),
+    );
+  });
+
+  it('omits a player whose upsert failed from the scraped totals', async () => {
+    const { service, mocks } = await makeService(
+      makeReader([plPage(goodPlayer)]),
+    );
+    mocks.playersImport.upsertPlayerResult.mockResolvedValue(undefined);
+
+    const outcome = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    });
+
+    expect(outcome.scrapedSppTotalsByPlayerId).toEqual(new Map());
+  });
 });
