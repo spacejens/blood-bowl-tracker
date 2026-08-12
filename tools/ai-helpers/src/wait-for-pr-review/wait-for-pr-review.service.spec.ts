@@ -33,6 +33,19 @@ const RATE_LIMIT_COMMENT_EPOCH_SECONDS = Math.floor(
 );
 
 /**
+ * CodeRabbit's own wording for the third non-review outcome, observed on
+ * PR #408: it failed to persist an edit to its rolling walkthrough comment
+ * and posted this separate top-level comment instead.
+ */
+const COMMENT_UPDATE_FAILED_COMMENT = {
+  id: 'IC_update1',
+  body:
+    "CodeRabbit couldn't update its existing comment. The review summary " +
+    'may be out of date. Error details: putComment timed out.',
+  submittedAt: '2026-08-11T10:05:00Z',
+};
+
+/**
  * The PR's current head commit, as `gh pr view --json headRefOid` would
  * report it. Real second SHA from the "Reviewing files that changed... between
  * X and Y" sentence observed on PR #402.
@@ -55,6 +68,12 @@ const FOUND = {
 const RATE_LIMITED = {
   exitCode: 0,
   stdout: `${JSON.stringify({ review: null, rateLimitComment: RATE_LIMIT_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
+  stderr: '',
+};
+/** A `gh` invocation that found a comment-update-failure comment and nothing else. */
+const COMMENT_UPDATE_FAILED = {
+  exitCode: 0,
+  stdout: `${JSON.stringify({ review: null, rateLimitComment: null, commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
   stderr: '',
 };
 
@@ -453,6 +472,163 @@ describe('WaitForPrReviewService', () => {
         stdout: JSON.stringify({
           review: null,
           rateLimitComment: { id: RATE_LIMIT_COMMENT.id },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  /** Builds a `gh` result whose only match is a comment-update-failure comment with the given body. */
+  function commentUpdateFailedWithBody(body: string) {
+    return {
+      exitCode: 0,
+      stdout: JSON.stringify({
+        review: null,
+        rateLimitComment: null,
+        commentUpdateFailedComment: { ...COMMENT_UPDATE_FAILED_COMMENT, body },
+      }),
+      stderr: '',
+    };
+  }
+
+  it('returns immediately when a qualifying comment-update-failure comment is found', async () => {
+    processRunner.run.mockResolvedValue(COMMENT_UPDATE_FAILED);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({
+      found: false,
+      commentUpdateFailed: true,
+      commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT,
+    });
+    // Returns on the first poll rather than waiting out the full timeout.
+    expect(processRunner.run).toHaveBeenCalledTimes(1);
+  });
+
+  it('prefers a review over a comment-update-failure comment found in the same poll', async () => {
+    processRunner.run.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        review: REVIEW,
+        rateLimitComment: null,
+        commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT,
+      }),
+      stderr: '',
+    });
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  it('prefers a rate-limit comment over a comment-update-failure comment found in the same poll', async () => {
+    // Not expected in practice — the two describe different, mutually
+    // exclusive events — but the ordering must be deterministic if it ever
+    // happens, and the rate-limit result is the one that carries a wait time.
+    processRunner.run.mockResolvedValue({
+      exitCode: 0,
+      stdout: JSON.stringify({
+        review: null,
+        rateLimitComment: RATE_LIMIT_COMMENT,
+        commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT,
+      }),
+      stderr: '',
+    });
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toMatchObject({ found: false, rateLimited: true });
+    expect(result).not.toHaveProperty('commentUpdateFailed');
+  });
+
+  it('asks gh for CodeRabbit comment-update-failure wording at or after the watermark', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait(OPTIONS);
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).toContain('commentUpdateFailedComment: (');
+    expect(args[6]).toContain('could not update its existing comment');
+    expect(args[6]).toContain('cannot update its existing comment');
+    expect(args[6]).toContain('; "i")');
+    // The author-login narrowing and the watermark bound are shared with the
+    // rate-limit filter and asserted by its own test above; what is specific
+    // to this filter is the phrase set and the result key.
+    expect(args[6]).toContain(
+      '{id: .id, body: .body, submittedAt: .createdAt}',
+    );
+  });
+
+  it('excludes the comment passed as excludeCommentUpdateFailureId', async () => {
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({ ...OPTIONS, excludeCommentUpdateFailureId: 'IC_update1' });
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).toContain('.id != "IC_update1"');
+  });
+
+  it('keeps the two comment exclusions independent of each other', async () => {
+    // A caller retrying after one kind of failure must not accidentally
+    // suppress detection of the other kind on a later poll, so the two ids
+    // are separate options producing separate clauses.
+    processRunner.run.mockResolvedValue(FOUND);
+
+    await runWait({ ...OPTIONS, excludeCommentId: 'IC_comment1' });
+
+    const [, args] = processRunner.run.mock.calls[0];
+    expect(args[6]).not.toContain('.id != "IC_update1"');
+  });
+
+  it('does not treat the phrase found only inside a code span as a comment-update failure', async () => {
+    // Same class of false positive the rate-limit path guards against: jq's
+    // own phrase test is coarse, so the service re-checks with code
+    // formatting stripped.
+    processRunner.run
+      .mockResolvedValueOnce(
+        commentUpdateFailedWithBody(
+          'Currently processing new changes in this PR.\n\n' +
+            "Commit unit tests in branch `issue-410-couldn't-update-its-existing-comment`",
+        ),
+      )
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+    // After the candidate is discarded, poll 1 goes on to the completion
+    // query, and poll 2's reviews call finds the review.
+    expect(processRunner.run).toHaveBeenCalledTimes(3);
+  });
+
+  it('still detects the failure stated in prose alongside an unrelated code span', async () => {
+    processRunner.run.mockResolvedValue(
+      commentUpdateFailedWithBody(
+        "CodeRabbit couldn't update its existing comment. Error details: " +
+          '`putComment timed out`.',
+      ),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toMatchObject({ found: false, commentUpdateFailed: true });
+  });
+
+  it('discards a comment-update-failure candidate whose body is missing, not throws', async () => {
+    // The reviews half's shape is asserted, not checked, by its `as
+    // PollOutcome` cast — a malformed response from a future gh/jq change
+    // must not crash the whole wait.
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: null,
+          commentUpdateFailedComment: { id: COMMENT_UPDATE_FAILED_COMMENT.id },
         }),
         stderr: '',
       })
