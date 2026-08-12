@@ -1,6 +1,6 @@
 ---
 name: handle-pr-reviews
-description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads and top-level PR comments) and failing CI checks, fixes or rejects each with verification, pushes the results, and replies to every comment (or posts a CI-failure summary) tagged as posted by Claude
+description: Use when processing review feedback on an open pull request in the blood-bowl-tracker project — finds unhandled review comments (inline threads, top-level PR comments, and findings embedded in a submitted review's body) and failing CI checks, fixes or rejects each with verification, pushes the results, and replies to every comment (or posts a CI-failure summary) tagged as posted by Claude
 ---
 
 # handle-pr-reviews
@@ -139,6 +139,8 @@ Deciding whether a candidate body actually contains findings is a **semantic jud
 
 A review body is not a comment thread, so there is no per-review reply endpoint Claude could have replied into and no `isResolved` flag to read. Reuse the top-level-comment convention instead: a review's findings are **unhandled** unless a top-level PR comment — from the same `issues/$PR/comments` listing fetched above — has a `body` that starts with `**Comment by Claude**` and contains that review's `url` (e.g. `https://github.com/<owner>/<repo>/pull/<pr>#pullrequestreview-<id>`) as a backlink. This is the identical rule already applied to top-level comments, matched against a review's `url` instead of a comment's `html_url`.
 
+One review body can hold several distinct findings, at different severities and in different files. Bundling them into a single triage item would force one classification and one reply across findings that may deserve different treatment — one fixed, one rejected — so **each distinct finding in an unhandled review body becomes its own discovery item**, at the same granularity the two scans above produce: file and line if the body states them, the description, and the severity if stated. Record on every extracted item which review it came from (that review's `url` and `databaseId`); Phase 5 needs this to group findings back together when replying.
+
 **Failing CI checks** — list the check-runs on the PR's current HEAD commit and keep anything that isn't a clean success, excluding the `gatekeeper` rollup. Run these as separate commands, for the same reason as Phase 0 step 1 above:
 ```bash
 gh api "repos/$OWNER/$REPO/pulls/$PR" --jq '.head.sha'
@@ -151,9 +153,9 @@ Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` suc
 
 If a relevant check-run for the current HEAD is still `in_progress` or `queued` (not yet concluded), wait and poll briefly rather than treating it as absent — a not-yet-finished check is not the same as a passing one.
 
-If all three scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases.
+If all four scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases. The review-body scan counts here like any other: it must have produced zero extracted findings for this early exit to apply.
 
-Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2.
+Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2. Findings extracted from review bodies are listed alongside the inline-thread and top-level-comment items, tagged with the surface "review body" so the developer can tell them apart at a glance.
 
 ---
 
