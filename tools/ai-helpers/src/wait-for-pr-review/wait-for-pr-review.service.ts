@@ -137,7 +137,7 @@ interface CompletionReview {
 const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
 /**
  * Mirrors `RATE_LIMIT_PHRASES` for a second, stricter check in TypeScript
- * (see `hasGenuineRateLimitPhrase`) — `gh`/jq's own phrase test is a coarse
+ * (see `hasProsePhrase`/`prosePhraseComment`) — `gh`/jq's own phrase test is a coarse
  * first pass and can be fooled by a phrase appearing only inside markdown
  * code formatting (e.g. a branch name quoted in an inline code span).
  */

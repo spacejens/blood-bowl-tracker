@@ -113,6 +113,30 @@ const COMPLETION_REVIEW = {
   author: { login: 'coderabbitai[bot]' },
 };
 
+/**
+ * Pulls just the `commentUpdateFailedComment: (...)` sub-expression out of
+ * the whole `filter()` jq program (`args[6]`). `filter()` concatenates three
+ * `{key: (subFilter), ...}` clauses into one string ending in
+ * `, headRefOid: .headRefOid}`, so the sub-filter's own closing paren is the
+ * one immediately before that fixed literal suffix — this mirrors that
+ * construction rather than trying to balance parens generically. Extracting
+ * the sub-filter lets assertions target this filter specifically, instead of
+ * the whole program where a rate-limit-filter substring could make an
+ * assertion pass even if this filter itself lacked it.
+ */
+function extractCommentUpdateFailedFilter(program: string): string {
+  const startMarker = 'commentUpdateFailedComment: (';
+  const endMarker = '), headRefOid: .headRefOid}';
+  const start = program.indexOf(startMarker) + startMarker.length;
+  const end = program.indexOf(endMarker, start);
+  if (start < startMarker.length || end === -1) {
+    throw new Error(
+      `could not extract commentUpdateFailedComment sub-filter from: ${program}`,
+    );
+  }
+  return program.slice(start, end);
+}
+
 describe('WaitForPrReviewService', () => {
   let service: WaitForPrReviewService;
   let processRunner: MockProxy<ProcessRunnerService>;
@@ -555,12 +579,18 @@ describe('WaitForPrReviewService', () => {
     expect(args[6]).toContain('could not update its existing comment');
     expect(args[6]).toContain('cannot update its existing comment');
     expect(args[6]).toContain('; "i")');
-    // The author-login narrowing and the watermark bound are shared with the
-    // rate-limit filter and asserted by its own test above; what is specific
-    // to this filter is the phrase set and the result key.
     expect(args[6]).toContain(
       '{id: .id, body: .body, submittedAt: .createdAt}',
     );
+    // The author-login narrowing and the watermark bound are structurally
+    // identical to the rate-limit filter's own, but that filter's substrings
+    // sit in the same concatenated jq program — asserting against the whole
+    // `args[6]` string would pass even if this filter itself omitted them.
+    // Extracting just this filter's sub-expression keeps the assertion
+    // specific to it.
+    const subFilter = extractCommentUpdateFailedFilter(args[6]);
+    expect(subFilter).toContain('test("coderabbit"; "i")');
+    expect(subFilter).toContain('fromdateiso8601) >= 1760000000');
   });
 
   it('excludes the comment passed as excludeCommentUpdateFailureId', async () => {
@@ -575,13 +605,18 @@ describe('WaitForPrReviewService', () => {
   it('keeps the two comment exclusions independent of each other', async () => {
     // A caller retrying after one kind of failure must not accidentally
     // suppress detection of the other kind on a later poll, so the two ids
-    // are separate options producing separate clauses.
+    // are separate options producing separate clauses. Asserting only that
+    // `.id != "IC_update1"` is absent is vacuous — that string can never
+    // appear unless `excludeCommentUpdateFailureId` is set — so instead
+    // check the comment-update-failure filter's own sub-expression carries
+    // no exclusion clause at all when only `excludeCommentId` is given.
     processRunner.run.mockResolvedValue(FOUND);
 
     await runWait({ ...OPTIONS, excludeCommentId: 'IC_comment1' });
 
     const [, args] = processRunner.run.mock.calls[0];
-    expect(args[6]).not.toContain('.id != "IC_update1"');
+    const subFilter = extractCommentUpdateFailedFilter(args[6]);
+    expect(subFilter).not.toContain('.id !=');
   });
 
   it('does not treat the phrase found only inside a code span as a comment-update failure', async () => {
