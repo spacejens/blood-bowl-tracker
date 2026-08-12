@@ -6,7 +6,8 @@ const WAIT_FOR_PR_REVIEW_USAGE =
   'Usage: node dist/main.js wait-for-pr-review <pr-number> ' +
   '<developer-login> <since-epoch-seconds> ' +
   '[--timeout-ms=600000] [--interval-ms=30000] [--exclude-review-id=<id>] ' +
-  '[--exclude-comment-id=<id>] [--trigger-after=<epoch-seconds>]';
+  '[--exclude-comment-id=<id>] [--exclude-comment-update-failure-id=<id>] ' +
+  '[--trigger-after=<epoch-seconds>]';
 
 /** Below this, `--interval-ms` would hammer `gh` in a tight loop. */
 const MIN_INTERVAL_MS = 1000;
@@ -40,6 +41,10 @@ export class WaitForPrReviewArgsService {
     const flags = argv.slice(6);
     const excludeReviewId = this.readFlag(flags, 'exclude-review-id');
     const excludeCommentId = this.readFlag(flags, 'exclude-comment-id');
+    const excludeCommentUpdateFailureId = this.readFlag(
+      flags,
+      'exclude-comment-update-failure-id',
+    );
     const triggerAfterEpochSeconds = this.readIntFlag(
       flags,
       'trigger-after',
@@ -53,6 +58,9 @@ export class WaitForPrReviewArgsService {
       intervalMs: this.readIntFlag(flags, 'interval-ms', MIN_INTERVAL_MS),
       ...(excludeReviewId === undefined ? {} : { excludeReviewId }),
       ...(excludeCommentId === undefined ? {} : { excludeCommentId }),
+      ...(excludeCommentUpdateFailureId === undefined
+        ? {}
+        : { excludeCommentUpdateFailureId }),
       ...(triggerAfterEpochSeconds === undefined
         ? {}
         : { triggerAfterEpochSeconds }),
