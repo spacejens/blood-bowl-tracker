@@ -4,6 +4,7 @@ import { SppAdjustmentsService } from './spp-adjustments.service';
 import { SppAwardValuesService } from './spp-award-values.service';
 import { SppEventCountsService } from './spp-event-counts.service';
 import { SppForcedRateService } from './spp-forced-rate.service';
+import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
 
 @Module({
@@ -12,6 +13,7 @@ import { SppTotalsService } from './spp-totals.service';
     SppAwardValuesService,
     SppEventCountsService,
     SppForcedRateService,
+    SppOngoingEstimateService,
     SppTotalsService,
   ],
   exports: [
@@ -19,6 +21,7 @@ import { SppTotalsService } from './spp-totals.service';
     SppAwardValuesService,
     SppEventCountsService,
     SppForcedRateService,
+    SppOngoingEstimateService,
     SppTotalsService,
   ],
 })

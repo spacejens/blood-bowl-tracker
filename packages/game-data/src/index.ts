@@ -64,6 +64,8 @@ export {
   POST_MIGRATION_RULES_SET_NAMES,
   SppForcedRateService,
 } from './spp/spp-forced-rate.service';
+export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
+export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
 export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';
