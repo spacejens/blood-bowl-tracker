@@ -15,6 +15,7 @@ const PAGE = `
  <tr class="trlisthead"><th><b>Achievements:</b></th></tr>
  <tr class="trborder"><td><table>
   <tr><td class="small">Interceptions:</td><td class="esmall">0</td><td></td></tr>
+  <tr><td class="small">Deflections:</td><td class="esmall"></td><td></td></tr>
   <tr><td class="small"><a href="default.asp?p=mp&act=comp&pid=1000">Completions</a>:</td><td class="esmall">4</td><td></td></tr>
   <tr><td class="small"><a href="default.asp?p=mp&act=td&pid=1000">Touchdowns</a>:</td><td class="esmall">2</td><td></td></tr>
   <tr><td class="small"><a href="default.asp?p=mp&act=cas&pid=1000">Casualties</a>:</td><td class="esmall">1</td><td></td></tr>
@@ -63,6 +64,14 @@ describe('BblPlayerInfoRawRendererService', () => {
     expect(html).toContain('<td>Completions</td><td>4</td>');
     expect(html).toContain('<td>MVP awards</td><td>1</td>');
     expect(html).toContain('<td>Interceptions</td><td>0</td>');
+  });
+
+  it('shows an em dash for an achievement row with an empty value', async () => {
+    const { service } = await makeService(PAGE);
+
+    const html = await service.render('1000');
+
+    expect(html).toContain('<td>Deflections</td><td>—</td>');
   });
 
   it('renders the career SPP total from the unspent-SPP row', async () => {
