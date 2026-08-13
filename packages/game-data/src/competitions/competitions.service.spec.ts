@@ -8,6 +8,7 @@ import { mock } from 'vitest-mock-extended';
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { MissingRequiredFieldError } from '../shared/missing-required-field-error';
 import {
   extractAllFilterValues,
   extractFilterValues,
@@ -56,6 +57,8 @@ describe('CompetitionsService', () => {
     type: 'season' as const,
     eraId: 20,
     teamEraIds: [100, 101],
+    startDate: '2024-01-15',
+    endDate: '2024-06-30',
     externalIds: [
       { externalSystemId: 1, externalId: '73' },
       { externalSystemId: 2, externalId: 'Major Season 24' },
@@ -81,7 +84,7 @@ describe('CompetitionsService', () => {
       expect(db.update).not.toHaveBeenCalled();
     });
 
-    it('inserts the competition with its name, type and eraId', async () => {
+    it('inserts the competition with its name, type, eraId and both dates', async () => {
       const { chains } = await build([], [fakeCompetition]);
 
       await service.upsert(baseData);
@@ -90,41 +93,31 @@ describe('CompetitionsService', () => {
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
-      });
-    });
-
-    it('inserts both dates when the payload supplies them', async () => {
-      const { chains } = await build([], [fakeCompetition]);
-
-      await service.upsert({
-        ...baseData,
-        startDate: '2024-01-15',
-        endDate: '2024-06-30',
-      });
-
-      expect(firstCallArg(chains[1].values)).toEqual({
-        name: 'Major Season 24',
-        type: 'season',
-        eraId: 20,
         startDate: '2024-01-15',
         endDate: '2024-06-30',
       });
     });
 
-    it('omits the dates from the insert when the payload omits them', async () => {
+    it('omits endDate from the insert when the payload omits it', async () => {
       const { chains } = await build([], [fakeCompetition]);
 
-      await service.upsert({
-        ...baseData,
-        startDate: undefined,
-        endDate: undefined,
-      });
+      await service.upsert({ ...baseData, endDate: undefined });
 
       expect(firstCallArg(chains[1].values)).toStrictEqual({
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
+        startDate: '2024-01-15',
       });
+    });
+
+    it('throws MissingRequiredFieldError when creating a competition with no startDate', async () => {
+      const { db } = await build([]);
+
+      await expect(
+        service.upsert({ ...baseData, startDate: undefined }),
+      ).rejects.toThrow(MissingRequiredFieldError);
+      expect(db.insert).not.toHaveBeenCalled();
     });
 
     it('leaves stored dates alone on update when the payload omits them', async () => {
