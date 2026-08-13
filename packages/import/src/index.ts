@@ -17,6 +17,8 @@ export { ImportModule } from './import.module';
 export { ImportResultService } from './import-result.service';
 export { ImportRunnerService } from './import-runner.service';
 export { LeaguesImportService } from './leagues-import.service';
+export type { MatchDateRange } from './match-date-range.service';
+export { MatchDateRangeService } from './match-date-range.service';
 export { MatchEventsImportService } from './match-events-import.service';
 export { MatchOutcomesImportService } from './match-outcomes-import.service';
 export { MatchesImportService } from './matches-import.service';

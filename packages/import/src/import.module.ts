@@ -9,6 +9,7 @@ import { ExternalSystemsImportService } from './external-systems-import.service'
 import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
 import { LeaguesImportService } from './leagues-import.service';
+import { MatchDateRangeService } from './match-date-range.service';
 import { MatchEventsImportService } from './match-events-import.service';
 import { MatchOutcomesImportService } from './match-outcomes-import.service';
 import { MatchesImportService } from './matches-import.service';
@@ -32,6 +33,7 @@ import { TeamsImportService } from './teams-import.service';
     MatchEventsImportService,
     MatchOutcomesImportService,
     MatchesImportService,
+    MatchDateRangeService,
     NameExternalIdService,
     PlayersImportService,
     PositionsImportService,
@@ -54,6 +56,7 @@ import { TeamsImportService } from './teams-import.service';
     MatchEventsImportService,
     MatchOutcomesImportService,
     MatchesImportService,
+    MatchDateRangeService,
     NameExternalIdService,
     PlayersImportService,
     PositionsImportService,
