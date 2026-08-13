@@ -38,6 +38,7 @@ describe('WaitForPrReviewArgsService', () => {
         '--interval-ms=30000',
         '--exclude-review-id=PRR_review1',
         '--exclude-comment-id=IC_comment1',
+        '--exclude-comment-update-failure-id=IC_update1',
         '--trigger-after=1760003600',
       ),
     );
@@ -50,6 +51,7 @@ describe('WaitForPrReviewArgsService', () => {
       intervalMs: 30_000,
       excludeReviewId: 'PRR_review1',
       excludeCommentId: 'IC_comment1',
+      excludeCommentUpdateFailureId: 'IC_update1',
       triggerAfterEpochSeconds: 1_760_003_600,
     });
   });
@@ -59,7 +61,22 @@ describe('WaitForPrReviewArgsService', () => {
 
     expect(result).not.toHaveProperty('excludeReviewId');
     expect(result).not.toHaveProperty('excludeCommentId');
+    expect(result).not.toHaveProperty('excludeCommentUpdateFailureId');
     expect(result).not.toHaveProperty('triggerAfterEpochSeconds');
+  });
+
+  it('keeps the two comment-id flags distinct', () => {
+    // The flags share a prefix up to `--exclude-comment`, so a sloppy match
+    // could let one populate the other's field and silently suppress
+    // detection of the wrong comment kind.
+    const result = service.parse(
+      argv(...POSITIONAL, '--exclude-comment-update-failure-id=IC_update1'),
+    );
+
+    expect(result).toMatchObject({
+      excludeCommentUpdateFailureId: 'IC_update1',
+    });
+    expect(result).not.toHaveProperty('excludeCommentId');
   });
 
   it.each([
