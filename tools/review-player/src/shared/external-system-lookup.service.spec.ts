@@ -1,12 +1,12 @@
 import { DB } from '@blood-bowl-tracker/db';
+import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { ReviewPlayerConfigService } from '../config/review-player-config.service';
-import type { MockDbResult } from './db-mock.test-helpers';
-import { mockDb } from './db-mock.test-helpers';
 import { ExternalSystemLookupService } from './external-system-lookup.service';
 
 async function makeService(dbResult: MockDbResult): Promise<{

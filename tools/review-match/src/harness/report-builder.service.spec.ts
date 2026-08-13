@@ -1,8 +1,8 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { HtmlService } from '../shared/html.service';
 import { MatchCategoryLabelService } from '../shared/match-category-label.service';
 import type { SampledMatch } from '../shared/review.types';
 import type { ReviewReport } from './report-builder.service';

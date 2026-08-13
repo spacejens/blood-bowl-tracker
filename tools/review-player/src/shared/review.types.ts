@@ -1,8 +1,14 @@
-/** The import sources this tool can review data from. */
-export type ReviewSource = 'bbl' | 'tp';
+import type {
+  ReviewSource as HarnessReviewSource,
+  Sampled,
+} from '@blood-bowl-tracker/review-harness';
 
-/** Every source, in the order the report presents them. */
-export const REVIEW_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
+export type {
+  ReviewGap,
+  ReviewSource,
+  ReviewStratum,
+} from '@blood-bowl-tracker/review-harness';
+export { REVIEW_SOURCES } from '@blood-bowl-tracker/review-harness';
 
 /**
  * A player identified within one source's data. `externalId` is BBL's `pid` or
@@ -11,7 +17,7 @@ export const REVIEW_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
  * own raw panel to compare against.
  */
 export interface ReviewPlayer {
-  source: ReviewSource;
+  source: HarnessReviewSource;
   /** game_data.players.id */
   playerId: number;
   /** The source's own player id, from players_external_ids.external_id. */
@@ -23,19 +29,4 @@ export interface ReviewPlayer {
 }
 
 /** A player selected for review by one or more strata. */
-export interface SampledPlayer extends ReviewPlayer {
-  selectedFor: string[];
-}
-
-/** A reason a data type could not review a player. */
-export interface ReviewGap {
-  source: ReviewSource;
-  reason: string;
-}
-
-/** A sampling stratum: a grouping the player-stratifier uses for selection. */
-export interface ReviewStratum {
-  id: string;
-  label: string;
-  sources: readonly ReviewSource[];
-}
+export type SampledPlayer = Sampled<ReviewPlayer>;

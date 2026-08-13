@@ -9,11 +9,11 @@ import {
   teamEras,
   teams,
 } from '@blood-bowl-tracker/db';
+import type { TableCell } from '@blood-bowl-tracker/review-harness';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 import { asc, eq } from 'drizzle-orm';
 
-import type { TableCell } from '../shared/html.service';
-import { HtmlService } from '../shared/html.service';
 import type { SampledPlayer } from '../shared/review.types';
 
 /**
