@@ -11,6 +11,7 @@ import { SharedModule } from '../shared/shared.module';
 import { PlayerSppTotalsReviewerService } from '../spp-totals/player-spp-totals-reviewer.service';
 import { SppDiscrepancyStratificationService } from '../spp-totals/spp-discrepancy-stratification.service';
 import { SppMagnitudeStratificationService } from '../spp-totals/spp-magnitude-stratification.service';
+import { SppNonStandardContributionStratificationService } from '../spp-totals/spp-non-standard-contribution-stratification.service';
 import { SppTotalsModule } from '../spp-totals/spp-totals.module';
 import { PlayerLookupService } from './player-lookup.service';
 import { PlayerSamplerService } from './player-sampler.service';
@@ -51,6 +52,7 @@ import { ReviewService } from './review.service';
       inject: [
         SppDiscrepancyStratificationService,
         SppMagnitudeStratificationService,
+        SppNonStandardContributionStratificationService,
         RandomPlayerStratificationService,
         StarPlayerStratificationService,
       ],

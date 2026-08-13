@@ -7,6 +7,7 @@ import { PlayerSppLookupService } from './player-spp-lookup.service';
 import { PlayerSppTotalsReviewerService } from './player-spp-totals-reviewer.service';
 import { SppDiscrepancyStratificationService } from './spp-discrepancy-stratification.service';
 import { SppMagnitudeStratificationService } from './spp-magnitude-stratification.service';
+import { SppNonStandardContributionStratificationService } from './spp-non-standard-contribution-stratification.service';
 
 /**
  * The spp-totals data type: a reviewer comparing each player's event-derived
@@ -24,11 +25,13 @@ import { SppMagnitudeStratificationService } from './spp-magnitude-stratificatio
     PlayerSppTotalsReviewerService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
+    SppNonStandardContributionStratificationService,
   ],
   exports: [
     PlayerSppTotalsReviewerService,
     SppDiscrepancyStratificationService,
     SppMagnitudeStratificationService,
+    SppNonStandardContributionStratificationService,
   ],
 })
 export class SppTotalsModule {}
