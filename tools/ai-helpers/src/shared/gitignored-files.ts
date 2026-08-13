@@ -10,6 +10,7 @@ export const GITIGNORED_SYNC_FILES: readonly string[] = [
   'tools/import-tp/import-tp-config.json5',
   'tools/import-manual/import-manual-config.json5',
   'tools/review-match/review-match-config.json5',
+  'tools/review-player/review-player-config.json5',
 ];
 
 /**
