@@ -82,6 +82,7 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, and import together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight
 - **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here; it deliberately reads the raw sources itself and must never depend on `packages/parse-tp` or importer logic (see `docs/review-match/index.md`)
+- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here; sibling of `tools/review-match`, structured the same way and deliberately independent of it — it reads the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (see `docs/review-player/index.md`)
 
 ## Key decisions
 
