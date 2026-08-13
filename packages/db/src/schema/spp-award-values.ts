@@ -25,8 +25,8 @@ import { rulesSets } from './rules-sets';
  *
  * The unique constraint is NULLS NOT DISTINCT so the baseline row itself is
  * unique per (rules set, action type) — Postgres's NULLS DISTINCT default
- * would permit duplicate baselines and would stop onConflictDoUpdate from
- * ever matching one.
+ * would permit duplicate baselines, which would break resolveSppValue's
+ * baseline-vs-override lookup in packages/game-data.
  */
 const sppAwardValuesTable = historyTrackedTable({
   schema: gameData,
