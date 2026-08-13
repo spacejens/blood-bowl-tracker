@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -141,5 +141,11 @@ describe('ReviewPlayerConfigService', () => {
     await expect(makeService('{ not json5 ')).rejects.toThrow(
       /Failed to parse/,
     );
+  });
+
+  it('rethrows a read failure that is not a missing file', async () => {
+    mkdirSync(join(dir, 'review-player-config.json5'));
+
+    await expect(makeService()).rejects.toThrow();
   });
 });
