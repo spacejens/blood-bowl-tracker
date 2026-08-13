@@ -74,6 +74,19 @@ describe('BblPlayerInfoRawRendererService', () => {
     expect(html).toContain('<td>Unspent SPP</td><td>2</td>');
   });
 
+  it('ignores an unrelated act=spp link outside the achievements table', async () => {
+    const pageWithEarlierLink = `
+<h1>Janhorgh</h1>
+<a href='default.asp?p=mp&act=spp&pid=9999'>999</a>
+${PAGE}`;
+    const { service } = await makeService(pageWithEarlierLink);
+
+    const html = await service.render('1000');
+
+    expect(html).toContain('<td>Career SPP (BBL)</td><td>16</td>');
+    expect(html).not.toContain('<td>Career SPP (BBL)</td><td>999</td>');
+  });
+
   it('notes a page that is not in the mirror', async () => {
     const { service } = await makeService(null);
 

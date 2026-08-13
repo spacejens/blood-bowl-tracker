@@ -47,14 +47,15 @@ export class BblPlayerInfoRawRendererService {
       );
     }
     const $ = cheerio.load(page);
-    const achievements = this.achievements($);
+    const table = this.achievementsTable($);
+    const achievements = this.achievements($, table);
     const rows: TableCell[][] = [
       ['Name', $('h1').first().text().trim() || NONE],
       ['Position', $('a.grey').first().text().trim() || NONE],
       ['Team', $('a[href*="p=tm"]').first().text().trim() || NONE],
       [
         'Career SPP (BBL)',
-        $('a[href*="act=spp"]').first().text().trim() || NONE,
+        table.find('a[href*="act=spp"]').first().text().trim() || NONE,
       ],
       ...ACHIEVEMENTS.map((label): TableCell[] => [
         label,
@@ -64,16 +65,23 @@ export class BblPlayerInfoRawRendererService {
     return this.html.table(['Field', 'Value'], rows);
   }
 
+  /** The achievements table, identified by its "Achievements:" heading. */
+  private achievementsTable($: cheerio.CheerioAPI) {
+    return $('table.tblist')
+      .filter((_, element) => $(element).text().includes('Achievements:'))
+      .first();
+  }
+
   /**
    * Label -> value from the achievements table. Labels are read from the
    * `td.small` cells (some wrap their text in a link to the match list) and
    * the value is the next cell; a trailing colon is dropped.
    */
-  private achievements($: cheerio.CheerioAPI): Map<string, string> {
+  private achievements(
+    $: cheerio.CheerioAPI,
+    table: ReturnType<BblPlayerInfoRawRendererService['achievementsTable']>,
+  ): Map<string, string> {
     const values = new Map<string, string>();
-    const table = $('table.tblist')
-      .filter((_, element) => $(element).text().includes('Achievements:'))
-      .first();
     table.find('td.small').each((_, element) => {
       const cell = $(element);
       const label = cell.text().trim().replace(/:$/, '');
