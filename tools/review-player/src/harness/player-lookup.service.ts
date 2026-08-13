@@ -1,17 +1,9 @@
-import type { Db } from '@blood-bowl-tracker/db';
-import {
-  DB,
-  eras,
-  playerExternalIds,
-  players,
-  positions,
-  teamEras,
-  teams,
-} from '@blood-bowl-tracker/db';
-import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
+import { playerExternalIds } from '@blood-bowl-tracker/db';
+import { Injectable } from '@nestjs/common';
+import { inArray } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
 import type { ReviewPlayer, ReviewSource } from '../shared/review.types';
 
 /**
@@ -22,8 +14,8 @@ import type { ReviewPlayer, ReviewSource } from '../shared/review.types';
 @Injectable()
 export class PlayerLookupService {
   constructor(
-    @Inject(DB) private readonly db: Db,
     private readonly externalSystems: ExternalSystemLookupService,
+    private readonly query: PlayerProjectionQueryService,
   ) {}
 
   async findByExternalIds(
@@ -34,27 +26,8 @@ export class PlayerLookupService {
       return [];
     }
     const externalSystemId = await this.externalSystems.getSystemId(source);
-    const rows = await this.db
-      .select({
-        playerId: players.id,
-        externalId: playerExternalIds.externalId,
-        playerName: players.name,
-        teamName: teams.name,
-        positionName: positions.name,
-        eraName: eras.name,
-      })
-      .from(players)
-      .innerJoin(
-        playerExternalIds,
-        and(
-          eq(playerExternalIds.playerId, players.id),
-          eq(playerExternalIds.externalSystemId, externalSystemId),
-        ),
-      )
-      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
-      .innerJoin(teams, eq(teams.id, teamEras.teamId))
-      .innerJoin(eras, eq(eras.id, teamEras.eraId))
-      .innerJoin(positions, eq(positions.id, players.positionId))
+    const rows = await this.query
+      .base(externalSystemId)
       .where(inArray(playerExternalIds.externalId, externalIds));
     return rows.map((row) => ({ source, ...row }));
   }

@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import type { MockDbResult } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
 import { RandomPlayerStratificationService } from './random-player-stratification.service';
 
 async function makeService(
@@ -16,6 +17,7 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       RandomPlayerStratificationService,
+      PlayerProjectionQueryService,
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],

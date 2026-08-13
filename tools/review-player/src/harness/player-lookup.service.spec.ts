@@ -6,6 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import type { MockDbResult } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
+import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
 import { PlayerLookupService } from './player-lookup.service';
 
 async function makeService(
@@ -16,6 +17,13 @@ async function makeService(
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerLookupService,
+      // PlayerProjectionQueryService is passed as a real provider rather
+      // than mocked, same as this repo's other drizzle query-builder specs
+      // (see db-mock.test-helpers.ts): it just assembles a fluent drizzle
+      // chain off the same mocked DB below, with no branching of its own to
+      // isolate from, and mocking it would mean reimplementing that chain
+      // assembly in the mock.
+      PlayerProjectionQueryService,
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],
