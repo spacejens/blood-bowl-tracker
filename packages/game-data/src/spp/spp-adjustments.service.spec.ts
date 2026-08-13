@@ -211,8 +211,11 @@ describe('SppAdjustmentsService.syncScrapedAdjustments', () => {
 });
 
 describe('SppAdjustmentsService.syncReportedAdjustments', () => {
-  it('stores the clamped gap between the reported total and the event sum', async () => {
-    // query 0: the reported totals select; query 1: the update.
+  it('stores the clamped gap and the corrected total, unchanged from before when nothing is ongoing', async () => {
+    // query 0: the reported totals select; query 1: the update. No ongoing
+    // estimate (the mock default resolves an empty map), so correctedTotal
+    // collapses to max(importedSum, reported) = reported here, matching the
+    // pre-Task-9 behaviour (edge case 1 in the Task 9 brief).
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
     );
@@ -223,21 +226,12 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     });
 
     expect(result.updatedPlayerIds).toEqual([1]);
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 3 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 3, sppTotal: 20 },
+    ]);
   });
 
-  it('never writes spp_total for a TP player', async () => {
-    const h = await makeService(
-      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
-    );
-    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 17]]));
-
-    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
-
-    expect(firstCallArg(h.db.chains[1].set)).not.toHaveProperty('sppTotal');
-  });
-
-  it('clamps a reported total below the event sum to 0', async () => {
+  it('clamps a reported total below the event sum to 0, and the corrected total up to the event sum', async () => {
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 10 }], [{ id: 1 }]),
     );
@@ -245,7 +239,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 0, sppTotal: 17 },
+    ]);
   });
 
   it('skips players with no reported total', async () => {
@@ -276,12 +272,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     expect(h.totals.totalsForPlayers).not.toHaveBeenCalled();
   });
 
-  it('groups players sharing an adjustment into one update', async () => {
+  it('groups players sharing an adjustment and corrected total into one update', async () => {
+    // Grouping is keyed on BOTH written fields now, so the two players share
+    // identical reported/imported-sum inputs to land in the same group.
     const h = await makeService(
       mockDb(
         [
           { id: 1, name: 'Karcheres', sppTotal: 8 },
-          { id: 2, name: 'Fenriz', sppTotal: 9 },
+          { id: 2, name: 'Fenriz', sppTotal: 8 },
         ],
         [{ id: 1 }, { id: 2 }],
       ),
@@ -289,7 +287,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
     h.totals.totalsForPlayers.mockResolvedValue(
       new Map([
         [1, 6],
-        [2, 7],
+        [2, 6],
       ]),
     );
 
@@ -299,8 +297,49 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     expect(result.updatedPlayerIds).toEqual([1, 2]);
     expect(h.db.chains).toHaveLength(2);
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 2 }]);
+    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 2, sppTotal: 8 }]);
     expect(h.db.transaction).toHaveBeenCalledTimes(1);
+  });
+
+  it('computes an independent corrected total and adjustment for each player in a batch', async () => {
+    // Edge case: differing reported/importedSum/estimatedOngoing combinations
+    // per player must not cross-contaminate each other's written values.
+    // Player 1 is the Karcheres worked example from the Task 9 brief.
+    const h = await makeService(
+      mockDb(
+        [
+          { id: 1, name: 'Karcheres', sppTotal: 20 },
+          { id: 2, name: 'Fenriz', sppTotal: 15 },
+          { id: 3, name: 'Grod', sppTotal: 30 },
+        ],
+        [{ id: 1 }],
+        [{ id: 2 }],
+        [{ id: 3 }],
+      ),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(
+      new Map([
+        [1, 8],
+        [2, 15],
+        [3, 10],
+      ]),
+    );
+    h.ongoing.estimateForPlayers.mockResolvedValue(
+      new Map([
+        [1, 9],
+        [3, 25],
+      ]),
+    );
+
+    await h.service.syncReportedAdjustments({
+      players: [{ playerId: 1 }, { playerId: 2 }, { playerId: 3 }],
+    });
+
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 3, sppTotal: 11 },
+      { sppAdjustment: 0, sppTotal: 15 },
+      { sppAdjustment: 0, sppTotal: 10 },
+    ]);
   });
 
   it('issues no query for an empty id list', async () => {
@@ -322,12 +361,14 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0 }]);
+    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 0 }]);
   });
 
-  it('subtracts the ongoing-competition estimate before measuring the gap', async () => {
+  it('subtracts the ongoing-competition estimate before measuring the gap, and writes the corrected total', async () => {
     // TP reports 20; imported events explain 8; 3 touchdowns in an ongoing
-    // competition explain another 9 → only 3 is genuinely unexplained.
+    // competition explain another 9 → correctedTotal = max(8, 20-9) = 11,
+    // adjustment = max(0, 11-8) = 3. This is the Karcheres worked example
+    // from the Task 9 brief: spp_total becomes 11, not 20.
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
     );
@@ -336,13 +377,33 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 3 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 3, sppTotal: 11 },
+    ]);
   });
 
-  it('clamps to zero when the estimate covers the whole gap', async () => {
-    // The #381 case: every point of the gap belongs to an ongoing competition,
-    // so nothing is unexplained and the adjustment is written as an explicit 0
-    // (an absolute write, so a previously-recorded wrong value is cleared).
+  it('clamps the corrected total to the imported sum exactly when the estimate accounts for precisely the gap', async () => {
+    // Edge case 2: reported - estimatedOngoing lands exactly on importedSum
+    // (20 - 12 = 8 = importedSum), so correctedTotal = importedSum exactly
+    // and adjustment clamps to 0, but the write still happens (absolute set).
+    const h = await makeService(
+      mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
+    );
+    h.totals.totalsForPlayers.mockResolvedValue(new Map([[1, 8]]));
+    h.ongoing.estimateForPlayers.mockResolvedValue(new Map([[1, 12]]));
+
+    await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
+
+    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
+  });
+
+  it('clamps the corrected total to the imported sum, never below it, when the estimate overshoots the gap', async () => {
+    // Edge case 3 (the #381 "clamps to zero" case, taken further): the
+    // estimate is bigger than the whole gap (reported - estimatedOngoing =
+    // 20 - 30 = -10 < importedSum), so correctedTotal clamps up to
+    // importedSum rather than dropping below the confirmed-imported figure,
+    // and the adjustment is written as an explicit 0 (an absolute write, so
+    // a previously-recorded wrong value is cleared).
     const h = await makeService(
       mockDb([{ id: 1, name: 'Karcheres', sppTotal: 20 }], [{ id: 1 }]),
     );
@@ -351,7 +412,7 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0 }]);
+    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 0, sppTotal: 8 }]);
   });
 
   it('passes each player its own career counts to the estimator', async () => {
@@ -385,7 +446,9 @@ describe('SppAdjustmentsService.syncReportedAdjustments', () => {
 
     await h.service.syncReportedAdjustments({ players: [{ playerId: 1 }] });
 
-    expect(writtenValues(h.db, 1)).toEqual([{ sppAdjustment: 3 }]);
+    expect(writtenValues(h.db, 1)).toEqual([
+      { sppAdjustment: 3, sppTotal: 20 },
+    ]);
   });
 
   it('reports every player left with a nonzero adjustment, biggest first', async () => {

@@ -34,7 +34,13 @@ interface AdjustmentWrite {
  *    trusted, era-correct total in `players.spp_total`, so the gap is
  *    measured against the era-correct event sum PLUS an estimate of the SPP
  *    the player earned in competitions that have not been imported yet (see
- *    SppOngoingEstimateService), and `spp_total` is left exactly as imported.
+ *    SppOngoingEstimateService). `spp_total` is then rewritten to the
+ *    corrected total — the reported figure with that ongoing-competition
+ *    estimate backed out, floored at the era-correct event sum — so the two
+ *    consumers that read `spp_total` directly (the Discord bot's player
+ *    deep-dive display and the all-time/league/era leaderboard ranking) see
+ *    a figure consistent with what's actually explainable from imported data
+ *    plus any genuine remaining adjustment, not the raw TP total.
  *    Every remaining nonzero adjustment comes back in `nonzeroAdjustments` as
  *    a developer review aid.
  *
@@ -139,10 +145,21 @@ export class SppAdjustmentsService {
       // sppTotal is typed nullable on the column, but the isNotNull filter
       // above means every row here has one.
       const reported = row.sppTotal ?? 0;
-      const explained =
-        (eraCorrectSums.get(row.id) ?? 0) + (ongoingEstimates.get(row.id) ?? 0);
-      const adjustment = Math.max(0, reported - explained);
-      writes.set(row.id, { sppAdjustment: adjustment });
+      const importedSum = eraCorrectSums.get(row.id) ?? 0;
+      const estimatedOngoing = ongoingEstimates.get(row.id) ?? 0;
+      // The corrected total: the reported figure with the ongoing-competition
+      // estimate backed out, never dropping below the confirmed-imported sum
+      // (an overshooting estimate must not erase real imported events). The
+      // adjustment then falls out as whatever gap the corrected total still
+      // leaves over the imported sum — algebraically identical to the old
+      // max(0, reported - (importedSum + estimatedOngoing)), just restructured
+      // so correctedTotal is available to write back into spp_total.
+      const correctedTotal = Math.max(importedSum, reported - estimatedOngoing);
+      const adjustment = Math.max(0, correctedTotal - importedSum);
+      writes.set(row.id, {
+        sppAdjustment: adjustment,
+        sppTotal: correctedTotal,
+      });
       if (adjustment > 0) {
         nonzeroAdjustments.push({
           playerId: row.id,
