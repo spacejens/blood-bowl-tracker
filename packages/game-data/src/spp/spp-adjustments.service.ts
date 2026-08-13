@@ -1,4 +1,6 @@
 import type {
+  SppAdjustmentSummary,
+  SppCareerCounts,
   SyncReportedSppAdjustments,
   SyncScrapedSppAdjustments,
   SyncSppAdjustmentsResult,
@@ -9,6 +11,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, inArray, isNotNull } from 'drizzle-orm';
 
 import { SppForcedRateService } from './spp-forced-rate.service';
+import { SppOngoingEstimateService } from './spp-ongoing-estimate.service';
 import { SppTotalsService } from './spp-totals.service';
 
 interface AdjustmentWrite {
@@ -29,8 +32,11 @@ interface AdjustmentWrite {
  *    -rate figure is never stored.
  *  - TP ({@link syncReportedAdjustments}) already reports an independently
  *    trusted, era-correct total in `players.spp_total`, so the gap is
- *    measured against the era-correct event sum and `spp_total` is left
- *    exactly as imported.
+ *    measured against the era-correct event sum PLUS an estimate of the SPP
+ *    the player earned in competitions that have not been imported yet (see
+ *    SppOngoingEstimateService), and `spp_total` is left exactly as imported.
+ *    Every remaining nonzero adjustment comes back in `nonzeroAdjustments` as
+ *    a developer review aid.
  *
  * Both write an absolute `set`, never an increment, so re-running a sync is
  * idempotent, and both group the write-back by written VALUE rather than
@@ -43,6 +49,7 @@ export class SppAdjustmentsService {
     @Inject(DB) private readonly db: Db,
     private readonly sppTotals: SppTotalsService,
     private readonly forcedRate: SppForcedRateService,
+    private readonly ongoingEstimate: SppOngoingEstimateService,
   ) {}
 
   async syncScrapedAdjustments(
@@ -85,38 +92,72 @@ export class SppAdjustmentsService {
   async syncReportedAdjustments(
     data: SyncReportedSppAdjustments,
   ): Promise<SyncSppAdjustmentsResult> {
-    const ids = [...new Set(data.players.map((entry) => entry.playerId))];
+    // A repeated player id keeps its LAST entry, the same rule the scraped
+    // path applies: a later entry is the fresher snapshot of the same player.
+    const careerCountsByPlayerId = new Map<
+      number,
+      SppCareerCounts | undefined
+    >();
+    for (const entry of data.players) {
+      careerCountsByPlayerId.set(entry.playerId, entry.careerCounts);
+    }
+    const ids = [...careerCountsByPlayerId.keys()];
     if (ids.length === 0) {
-      return { updatedPlayerIds: [] };
+      return { updatedPlayerIds: [], nonzeroAdjustments: [] };
     }
 
     // Only players whose source actually reported a total can have an
-    // adjustment computed; the rest keep spp_adjustment NULL.
+    // adjustment computed; the rest keep spp_adjustment NULL. The name comes
+    // along for the nonzero-adjustment summary below.
     const rows = await this.db
-      .select({ id: players.id, sppTotal: players.sppTotal })
+      .select({
+        id: players.id,
+        name: players.name,
+        sppTotal: players.sppTotal,
+      })
       .from(players)
       .where(and(inArray(players.id, ids), isNotNull(players.sppTotal)));
     if (rows.length === 0) {
-      return { updatedPlayerIds: [] };
+      return { updatedPlayerIds: [], nonzeroAdjustments: [] };
     }
 
     const reportedIds = rows.map((row) => row.id);
     const eraCorrectSums = await this.sppTotals.totalsForPlayers(reportedIds);
+    // SPP the source has counted but this database has not imported — events
+    // in a competition still in progress. Without this, the whole contribution
+    // of those events is misattributed as unexplained (see issue #381).
+    const ongoingEstimates = await this.ongoingEstimate.estimateForPlayers(
+      rows.map((row) => ({
+        playerId: row.id,
+        careerCounts: careerCountsByPlayerId.get(row.id),
+      })),
+    );
 
     const writes = new Map<number, AdjustmentWrite>();
+    const nonzeroAdjustments: SppAdjustmentSummary[] = [];
     for (const row of rows) {
       // sppTotal is typed nullable on the column, but the isNotNull filter
       // above means every row here has one.
       const reported = row.sppTotal ?? 0;
-      writes.set(row.id, {
-        sppAdjustment: Math.max(
-          0,
-          reported - (eraCorrectSums.get(row.id) ?? 0),
-        ),
-      });
+      const explained =
+        (eraCorrectSums.get(row.id) ?? 0) + (ongoingEstimates.get(row.id) ?? 0);
+      const adjustment = Math.max(0, reported - explained);
+      writes.set(row.id, { sppAdjustment: adjustment });
+      if (adjustment > 0) {
+        nonzeroAdjustments.push({
+          playerId: row.id,
+          name: row.name,
+          adjustment,
+        });
+      }
     }
 
-    return this.applyWrites(writes);
+    return {
+      ...(await this.applyWrites(writes)),
+      nonzeroAdjustments: nonzeroAdjustments.sort(
+        (a, b) => b.adjustment - a.adjustment,
+      ),
+    };
   }
 
   /**
