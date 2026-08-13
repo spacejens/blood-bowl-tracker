@@ -61,9 +61,10 @@ describe('SppOngoingEstimateService', () => {
     eventCounts.importedCountsForPlayers.mockResolvedValue(
       new Map([[1, counts()]]),
     );
-    awardValues.resolveSppValue.mockImplementation(({ actionType }) =>
-      Promise.resolve(actionType === 'mvp_award' ? 4 : 1),
-    );
+    awardValues.resolveSppValue
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(4)
+      .mockResolvedValueOnce(1);
 
     const estimates = await service.estimateForPlayers([
       {
