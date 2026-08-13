@@ -1,3 +1,4 @@
+import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import {
   DEFAULT_BATCH_CHUNK_SIZE,
   ImportResultService,
@@ -9,6 +10,14 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { TpSppAdjustmentsImportService } from './tp-spp-adjustments-import.service';
+
+const careerCounts: SppCareerCounts = {
+  touchdown: 12,
+  completion: 4,
+  interception: 2,
+  mvp_award: 3,
+  casualty: 5,
+};
 
 describe('TpSppAdjustmentsImportService', () => {
   let service: TpSppAdjustmentsImportService;
@@ -38,7 +47,9 @@ describe('TpSppAdjustmentsImportService', () => {
       updatedPlayerIds: [1, 2],
     });
 
-    const outcome = await service.importSppAdjustments([1, 2, 2]);
+    const outcome = await service.importSppAdjustments({
+      playerIds: [1, 2, 2],
+    });
 
     expect(adjustments.syncReportedSppAdjustments).toHaveBeenCalledWith(
       { players: [{ playerId: 1 }, { playerId: 2 }] },
@@ -46,6 +57,22 @@ describe('TpSppAdjustmentsImportService', () => {
     );
     expect(outcome.result.imported).toBe(2);
     expect(outcome.result.success).toBe(true);
+  });
+
+  it('attaches each player its career counts when known', async () => {
+    adjustments.syncReportedSppAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1, 2],
+    });
+
+    await service.importSppAdjustments({
+      playerIds: [1, 2],
+      careerCountsByPlayerId: new Map([[1, careerCounts]]),
+    });
+
+    expect(adjustments.syncReportedSppAdjustments).toHaveBeenCalledWith(
+      { players: [{ playerId: 1, careerCounts }, { playerId: 2 }] },
+      [],
+    );
   });
 
   it('chunks an id list larger than DEFAULT_BATCH_CHUNK_SIZE', async () => {
@@ -59,7 +86,7 @@ describe('TpSppAdjustmentsImportService', () => {
       })
       .mockResolvedValueOnce({ updatedPlayerIds: [1, 2] });
 
-    const outcome = await service.importSppAdjustments(ids);
+    const outcome = await service.importSppAdjustments({ playerIds: ids });
 
     expect(adjustments.syncReportedSppAdjustments).toHaveBeenCalledTimes(2);
     expect(outcome.result.imported).toBe(DEFAULT_BATCH_CHUNK_SIZE + 2);
@@ -74,15 +101,66 @@ describe('TpSppAdjustmentsImportService', () => {
       .mockResolvedValueOnce(undefined)
       .mockResolvedValueOnce({ updatedPlayerIds: [1] });
 
-    const outcome = await service.importSppAdjustments(ids);
+    const outcome = await service.importSppAdjustments({ playerIds: ids });
 
     expect(outcome.result.imported).toBe(1);
   });
 
   it('makes no call at all for an empty id list', async () => {
-    const outcome = await service.importSppAdjustments([]);
+    const outcome = await service.importSppAdjustments({ playerIds: [] });
 
     expect(adjustments.syncReportedSppAdjustments).not.toHaveBeenCalled();
     expect(outcome.result.imported).toBe(0);
+    expect(outcome.nonzeroAdjustments).toEqual([]);
+  });
+
+  it('collects every chunk nonzero adjustments, biggest first', async () => {
+    const ids = Array.from(
+      { length: DEFAULT_BATCH_CHUNK_SIZE + 1 },
+      (_v, i) => i + 1,
+    );
+    adjustments.syncReportedSppAdjustments
+      .mockResolvedValueOnce({
+        updatedPlayerIds: [1],
+        nonzeroAdjustments: [{ playerId: 1, name: 'Karcheres', adjustment: 3 }],
+      })
+      .mockResolvedValueOnce({
+        updatedPlayerIds: [2],
+        nonzeroAdjustments: [{ playerId: 2, name: 'Fenriz', adjustment: 10 }],
+      });
+
+    const outcome = await service.importSppAdjustments({ playerIds: ids });
+
+    expect(outcome.nonzeroAdjustments).toEqual([
+      { playerId: 2, name: 'Fenriz', adjustment: 10 },
+      { playerId: 1, name: 'Karcheres', adjustment: 3 },
+    ]);
+  });
+
+  it('tolerates a chunk result without a summary', async () => {
+    adjustments.syncReportedSppAdjustments.mockResolvedValue({
+      updatedPlayerIds: [1],
+    });
+
+    const outcome = await service.importSppAdjustments({ playerIds: [1] });
+
+    expect(outcome.nonzeroAdjustments).toEqual([]);
+  });
+
+  it('formats a review-aid summary of the remaining adjustments', () => {
+    expect(
+      service.summaryLines([
+        { playerId: 2, name: 'Fenriz', adjustment: 10 },
+        { playerId: 1, name: 'Karcheres', adjustment: 3 },
+      ]),
+    ).toEqual([
+      '2 player(s) left with an unexplained SPP adjustment:',
+      '  - Fenriz (player 2): 10 SPP',
+      '  - Karcheres (player 1): 3 SPP',
+    ]);
+  });
+
+  it('formats nothing when no adjustment is left unexplained', () => {
+    expect(service.summaryLines([])).toEqual([]);
   });
 });

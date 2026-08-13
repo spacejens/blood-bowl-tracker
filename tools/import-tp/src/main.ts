@@ -234,6 +234,7 @@ async function run(): Promise<ImportResult> {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       starPositionUsages,
+      careerSppCountsByPlayerId,
     } = await app.get(TpPlayersImportService).importPlayers({
       rosters,
       teamErasByRosterId: teamOutcome.teamErasByRosterId,
@@ -291,15 +292,21 @@ async function run(): Promise<ImportResult> {
 
     // Runs after the match-events step: the adjustment is the gap between
     // TP's own reported career total (already stored on players.spp_total by
-    // the players step) and the sum of the spp_value those events just
-    // wrote. Star players hired via an inducements_roll carry no reported
-    // total, so the server skips them and their adjustment stays NULL.
+    // the players step) and what the player's events explain -- the spp_value
+    // those events just wrote, PLUS an estimate of the SPP earned in
+    // competitions still in progress that have not been imported, priced from
+    // the career action counts the players step collected. Star players hired
+    // via an inducements_roll carry no reported total, so the server skips
+    // them and their adjustment stays NULL.
     const sppAdjustmentsOutcome = await app
       .get(TpSppAdjustmentsImportService)
-      .importSppAdjustments([
-        ...playerIdsByLineUpId.values(),
-        ...starPlayerIdsByRosterAndMaster.values(),
-      ]);
+      .importSppAdjustments({
+        playerIds: [
+          ...playerIdsByLineUpId.values(),
+          ...starPlayerIdsByRosterAndMaster.values(),
+        ],
+        careerCountsByPlayerId: careerSppCountsByPlayerId,
+      });
 
     // Match outcomes run last: scores are counted from the touchdown events
     // imported just above, and TP's own `winner` field per match is used
@@ -313,6 +320,15 @@ async function run(): Promise<ImportResult> {
         eraIdByCompetitionId,
         teamErasByRosterId: teamOutcome.teamErasByRosterId,
       });
+
+    // One-off developer review aid: whatever SPP the ongoing-competition
+    // estimate could NOT explain, so a real discrepancy can be told apart from
+    // the estimate's grouping approximations. Not persisted anywhere.
+    for (const line of app
+      .get(TpSppAdjustmentsImportService)
+      .summaryLines(sppAdjustmentsOutcome.nonzeroAdjustments)) {
+      console.log(line);
+    }
 
     const results = [
       leagueOutcome.result,
