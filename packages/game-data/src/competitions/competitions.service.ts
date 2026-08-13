@@ -23,6 +23,10 @@ export class CompetitionUpsertConflictError extends UpsertConflictError {}
 
 export interface CompetitionWithTeamEras extends Competition {
   teamEraIds: number[];
+  // Every importer supplies a start date (#417 backfilled existing rows, #434
+  // tightens the constraint to NOT NULL in the schema). At the API level,
+  // startDate is never null, even though the database schema still allows it.
+  startDate: string;
 }
 
 @Injectable()
@@ -60,7 +64,10 @@ export class CompetitionsService {
     });
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
-    return { competition: { ...competition, teamEraIds }, created };
+    return {
+      competition: { ...competition, teamEraIds } as CompetitionWithTeamEras,
+      created,
+    };
   }
 
   private async syncTeamEras(

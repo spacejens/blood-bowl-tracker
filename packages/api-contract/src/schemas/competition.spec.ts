@@ -19,19 +19,34 @@ describe('competition schemas', () => {
     expect(parsed.createdAt).toBeInstanceOf(Date);
   });
 
-  it('CompetitionSchema parses null for both dates', () => {
+  it('CompetitionSchema parses a null endDate', () => {
     const parsed = CompetitionSchema.parse({
       id: 1,
       name: 'Major Season 24',
       type: 'season',
       eraId: 20,
       teamEraIds: [],
-      startDate: null,
+      startDate: '2024-01-15',
       endDate: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
-    expect(parsed.startDate).toBeNull();
+    expect(parsed.startDate).toBe('2024-01-15');
     expect(parsed.endDate).toBeNull();
+  });
+
+  it('CompetitionSchema rejects a null startDate', () => {
+    expect(() =>
+      CompetitionSchema.parse({
+        id: 1,
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+        teamEraIds: [],
+        startDate: null,
+        endDate: null,
+        createdAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow();
   });
 
   it('UpsertCompetitionSchema accepts valid ISO dates', () => {
@@ -68,19 +83,26 @@ describe('competition schemas', () => {
     ).toThrow();
   });
 
-  it('UpsertCompetitionSchema distinguishes an explicit null date from an omitted one', () => {
+  it('UpsertCompetitionSchema distinguishes an explicit null endDate from an omitted one', () => {
     const cleared = UpsertCompetitionSchema.parse({
-      startDate: null,
       endDate: null,
       externalIds: [{ externalSystemId: 1, externalId: '73' }],
     });
     const omitted = UpsertCompetitionSchema.parse({
       externalIds: [{ externalSystemId: 1, externalId: '73' }],
     });
-    expect(cleared.startDate).toBeNull();
     expect(cleared.endDate).toBeNull();
-    expect(omitted.startDate).toBeUndefined();
     expect(omitted.endDate).toBeUndefined();
+    expect(omitted.startDate).toBeUndefined();
+  });
+
+  it('UpsertCompetitionSchema rejects an explicit null startDate — a competition always has a start date', () => {
+    expect(() =>
+      UpsertCompetitionSchema.parse({
+        startDate: null,
+        externalIds: [{ externalSystemId: 1, externalId: '73' }],
+      }),
+    ).toThrow();
   });
 
   it('UpsertCompetitionSchema accepts an externalIds-only rename payload', () => {

@@ -159,17 +159,6 @@ describe('CompetitionsService', () => {
       expect(firstCallArg(chains[1].set)).toMatchObject({ endDate: null });
     });
 
-    it('writes null on update when the payload explicitly clears startDate', async () => {
-      const { chains } = await build(
-        [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
-        [fakeCompetition],
-      );
-
-      await service.upsert({ ...baseData, startDate: null });
-
-      expect(firstCallArg(chains[1].set)).toMatchObject({ startDate: null });
-    });
-
     it('updates the matching competition when exactly one external ID matches', async () => {
       const { db } = await build(
         [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
