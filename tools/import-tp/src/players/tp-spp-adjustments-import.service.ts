@@ -39,7 +39,7 @@ export class TpSppAdjustmentsImportService {
     for (let i = 0; i < ids.length; i += DEFAULT_BATCH_CHUNK_SIZE) {
       const chunk = ids.slice(i, i + DEFAULT_BATCH_CHUNK_SIZE);
       const outcome = await this.sppAdjustments.syncReportedSppAdjustments(
-        { playerIds: chunk },
+        { players: chunk.map((playerId) => ({ playerId })) },
         errors,
       );
       // A failed call has already pushed its own ImportError onto `errors`.

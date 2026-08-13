@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   PlayerSchema,
+  SPP_CAREER_COUNT_KEYS,
   SyncReportedSppAdjustmentsSchema,
   SyncScrapedSppAdjustmentsSchema,
   SyncSppAdjustmentsResultSchema,
@@ -109,16 +110,82 @@ describe('SyncScrapedSppAdjustmentsSchema', () => {
 });
 
 describe('SyncReportedSppAdjustmentsSchema', () => {
-  it('accepts a list of player ids', () => {
+  it('accepts players with no career counts', () => {
     expect(
-      SyncReportedSppAdjustmentsSchema.parse({ playerIds: [1, 2] }),
-    ).toEqual({ playerIds: [1, 2] });
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [{ playerId: 1 }, { playerId: 2 }],
+      }),
+    ).toEqual({ players: [{ playerId: 1 }, { playerId: 2 }] });
+  });
+
+  it('accepts a player carrying career counts', () => {
+    const counts = {
+      touchdown: 12,
+      completion: 4,
+      interception: 2,
+      mvp_award: 3,
+      casualty: 5,
+    };
+    expect(
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [{ playerId: 1, careerCounts: counts }],
+      }),
+    ).toEqual({ players: [{ playerId: 1, careerCounts: counts }] });
   });
 
   it('rejects a non-integer player id', () => {
     expect(() =>
-      SyncReportedSppAdjustmentsSchema.parse({ playerIds: [1.5] }),
+      SyncReportedSppAdjustmentsSchema.parse({ players: [{ playerId: 1.5 }] }),
     ).toThrow();
+  });
+
+  it('rejects a negative career count', () => {
+    expect(() =>
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [
+          {
+            playerId: 1,
+            careerCounts: {
+              touchdown: -1,
+              completion: 0,
+              interception: 0,
+              mvp_award: 0,
+              casualty: 0,
+            },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
+  it('rejects career counts missing a group', () => {
+    expect(() =>
+      SyncReportedSppAdjustmentsSchema.parse({
+        players: [
+          {
+            playerId: 1,
+            careerCounts: {
+              touchdown: 1,
+              completion: 0,
+              interception: 0,
+              mvp_award: 0,
+            },
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+});
+
+describe('SPP_CAREER_COUNT_KEYS', () => {
+  it('lists every career-count group exactly once', () => {
+    expect([...SPP_CAREER_COUNT_KEYS]).toEqual([
+      'touchdown',
+      'completion',
+      'interception',
+      'mvp_award',
+      'casualty',
+    ]);
   });
 });
 
@@ -127,5 +194,17 @@ describe('SyncSppAdjustmentsResultSchema', () => {
     expect(
       SyncSppAdjustmentsResultSchema.parse({ updatedPlayerIds: [3] }),
     ).toEqual({ updatedPlayerIds: [3] });
+  });
+
+  it('accepts a nonzero-adjustment summary', () => {
+    expect(
+      SyncSppAdjustmentsResultSchema.parse({
+        updatedPlayerIds: [3],
+        nonzeroAdjustments: [{ playerId: 3, name: 'Karcheres', adjustment: 6 }],
+      }),
+    ).toEqual({
+      updatedPlayerIds: [3],
+      nonzeroAdjustments: [{ playerId: 3, name: 'Karcheres', adjustment: 6 }],
+    });
   });
 });

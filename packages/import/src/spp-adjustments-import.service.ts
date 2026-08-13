@@ -49,7 +49,7 @@ export class SppAdjustmentsImportService {
       item: data,
       errors,
       buildErrorMessage: (err: unknown) =>
-        `Failed to sync reported SPP adjustments for ${data.playerIds.length} player(s): ${
+        `Failed to sync reported SPP adjustments for ${data.players.length} player(s): ${
           err instanceof Error ? err.message : String(err)
         }`,
     });

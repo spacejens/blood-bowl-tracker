@@ -85,7 +85,7 @@ export class SppAdjustmentsService {
   async syncReportedAdjustments(
     data: SyncReportedSppAdjustments,
   ): Promise<SyncSppAdjustmentsResult> {
-    const ids = [...new Set(data.playerIds)];
+    const ids = [...new Set(data.players.map((entry) => entry.playerId))];
     if (ids.length === 0) {
       return { updatedPlayerIds: [] };
     }

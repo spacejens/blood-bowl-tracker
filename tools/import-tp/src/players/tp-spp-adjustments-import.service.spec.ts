@@ -41,7 +41,7 @@ describe('TpSppAdjustmentsImportService', () => {
     const outcome = await service.importSppAdjustments([1, 2, 2]);
 
     expect(adjustments.syncReportedSppAdjustments).toHaveBeenCalledWith(
-      { playerIds: [1, 2] },
+      { players: [{ playerId: 1 }, { playerId: 2 }] },
       [],
     );
     expect(outcome.result.imported).toBe(2);
