@@ -29,7 +29,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 - **`packages/game-data`** — Server-side business logic and DB access for core game entities (coaches, external systems); used directly by api-server and available to other apps
 - **`packages/import`** — NestJS module with shared import/ingestion result types, upsert-handling bookkeeping, and entity-specific import services (calling api-client) used across import tools
 - **`packages/parse-tp`** — library package for reusable TP JSON-parsing logic, currently consumed by `tools/import-tp`; intended to also be shared with `apps/discord-bot`
-- **`packages/review-harness`** — NestJS module with the domain-agnostic scaffolding behind the review tools: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; shared by `tools/review-match` and `tools/review-player`
+- **`packages/review-harness`** — NestJS module with the scaffolding behind the review tools, generic across BBL/TP: HTML fragment assembly, timestamped report writing, JSON5 config loading, and the plug-in interfaces and DI wiring a data-type module registers through; it carries no BBL/TP parsing or interpretation logic, shared by `tools/review-match` and `tools/review-player`
 
 ### Tools
 

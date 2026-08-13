@@ -782,9 +782,6 @@ importers:
       drizzle-orm:
         specifier: rc
         version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.4.3)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -837,9 +834,6 @@ importers:
       drizzle-orm:
         specifier: rc
         version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.4.3)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
