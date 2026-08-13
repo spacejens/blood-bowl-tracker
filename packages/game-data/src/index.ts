@@ -58,6 +58,7 @@ export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
+export { SppEventCountsService } from './spp/spp-event-counts.service';
 export {
   MIGRATION_RULES_SET_NAME,
   POST_MIGRATION_RULES_SET_NAMES,

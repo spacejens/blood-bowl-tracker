@@ -1,3 +1,4 @@
+import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
 import type {
   actionTypeEnum,
   consequenceTypeEnum,
@@ -65,6 +66,33 @@ export const SPP_EARNING_ACTION_TYPES: readonly ActionType[] = [
   'mvp_award',
   ...CASUALTY_CAUSED_TYPES,
 ];
+
+/**
+ * One career-count group key. `Extract` against {@link ActionType} is what
+ * guarantees each key of the wire-side `SppCareerCounts` really is an
+ * `action_type` value — the group's award value is looked up by that very key,
+ * so a key that is not an action type would be a silent runtime miss.
+ */
+export type SppCareerCountGroup = Extract<ActionType, keyof SppCareerCounts>;
+
+/**
+ * Which imported action types roll up into each career-count group. The key IS
+ * the representative action type whose `spp_award_values` row prices the whole
+ * group. Interceptions and deflections share one group, and every casualty
+ * severity shares one, because TP reports a single combined counter for each —
+ * the imported side must be grouped identically or the comparison is
+ * meaningless. Typed over `keyof SppCareerCounts` so adding a group to the
+ * contract without adding it here is a compile error.
+ */
+export const SPP_CAREER_COUNT_GROUPS: Readonly<
+  Record<keyof SppCareerCounts, readonly ActionType[]>
+> = {
+  touchdown: TOUCHDOWN_TYPES,
+  completion: COMPLETION_TYPES,
+  interception: [...INTERCEPTION_TYPES, ...DEFLECTION_TYPES],
+  mvp_award: MVP_AWARD_TYPES,
+  casualty: CASUALTY_CAUSED_TYPES,
+};
 
 // --- Consequence-role type sets (filtered on matchEvents.consequenceType) ---
 
