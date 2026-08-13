@@ -61,6 +61,14 @@ tools/review-match/review-match-config.json5
 # regenerated on demand, same convention as docs/schemaspy-output/
 tools/review-match/output/
 
+# tools/review-player real config (the committed template is
+# review-player-config.example.json5)
+tools/review-player/review-player-config.json5
+
+# tools/review-player generated report — a developer-local artifact,
+# same convention as tools/review-match/output/
+tools/review-player/output/
+
 # tools/download-tp downloaded site data (never committed)
 tools/download-tp/data
 

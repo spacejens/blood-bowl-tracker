@@ -1,0 +1,58 @@
+// Configuration for tools/review-player.
+//
+// Copy this file to `review-player-config.json5` in the same directory and fill
+// in real values:
+//   cp tools/review-player/review-player-config.example.json5 tools/review-player/review-player-config.json5
+//
+// `review-player-config.json5` is git-ignored. See docs/review-player/index.md
+// for configuration details and how to run the tool.
+{
+  // The database the imported data was imported into. This tool only reads
+  // game data itself, but connects via packages/db's DbModule, which applies
+  // any pending migrations on connect (a no-op against a stack deployed from
+  // the same branch).
+  database: {
+    url: 'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
+  },
+
+  // How many players the random-sample and star-players strata each pick,
+  // per source. Defaults to 3. The SPP-discrepancy stratum ignores this: it
+  // always reports every non-star player whose totals disagree.
+  playersPerStratum: 3,
+
+  // Where each source's raw downloaded data lives. Relative paths resolve
+  // against the current working directory, which is tools/review-player/ when
+  // the tool is run as documented.
+  bbl: {
+    // The folder that directly contains the BBL `default.asp?p=...` files.
+    dataDir: '../import-bbl/data/tloeg.bbleague.se',
+    // Name of the external system BBL records are registered under. Must
+    // match import-bbl-config.json5's own externalSystemName -- defaults to
+    // "BBL" if unset or empty, but the importer registers "tloeg.bbleague.se"
+    // by convention in this project, so that is the value to use here.
+    externalSystemName: 'tloeg.bbleague.se',
+  },
+  tp: {
+    // The folder that directly contains one subdirectory per era; each era
+    // directory holds one subdirectory per competition, holding the
+    // `match_<id>.json` files.
+    dataDir: '../import-tp/data',
+    // Name of the external system TP records are registered under. Must
+    // match import-tp-config.json5's own externalSystemName -- defaults to
+    // "TP" if unset or empty, but the importer registers "tourplay.net" by
+    // convention in this project, so that is the value to use here.
+    externalSystemName: 'tourplay.net',
+  },
+
+  // Players always included in the report regardless of the strata sample,
+  // given as each source's own external player id (BBL: the `pid` page
+  // parameter; TP: the line-up `id` inside a match file's roster).
+  overrides: {
+    bbl: [],
+    tp: [],
+  },
+
+  // Base path each generated report is written next to -- a timestamp is
+  // inserted before the extension. Defaults to 'output/report.html'.
+  outputPath: 'output/report.html',
+}
