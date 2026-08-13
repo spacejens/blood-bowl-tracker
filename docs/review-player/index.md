@@ -27,7 +27,7 @@ in as another data-type module without touching the harness services.
 
 ## What it does
 
-1. Samples players per source (BBL and TP) across three strata:
+1. Samples players per source (BBL and TP) across seven strata:
    1. **SPP totals disagree** — every player, star or not, whose SPP computed from
       the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
@@ -36,8 +36,27 @@ in as another data-type module without touching the harness services.
       `playersPerStratum` on purpose: a real discrepancy must never be sampled
       away, so a badly-imported database produces a long report rather than a
       reassuring one.
-   2. **Random sample** — `playersPerStratum` (default 3) non-star players per source.
-   3. **Star players** — `playersPerStratum` star players per source, sampled
+   2. **Non-standard SPP per event** (TP only) — `playersPerStratum` players who have
+      at least one match event whose recorded per-event SPP disagrees with the
+      standardised award table for their rules set and race. TP reports its own
+      per-event figure verbatim, and it can legitimately differ (race-specific
+      modifiers, random events, special league rules); a BBL event's figure is
+      computed from that table and so can never differ from it, which is why this
+      stratum is TP-only. An action type with no row in the award table at all (a
+      `foul`, for instance) counts as an expected award of zero. The stratum does
+      not decide whether a difference is a bug — that is the reviewer's call from
+      the rendered comparison — and it is bounded, because the match is broad
+      enough that an uncapped version could flood the report. Unlike the other
+      strata, this one carries no star-player or stored-total exclusion: a
+      star player with no stored total can still appear here if one of their
+      events disagrees with the award table.
+   3. **Zero SPP total** — `playersPerStratum` players whose stored total is exactly 0.
+   4. **Small SPP total (1-20)** — `playersPerStratum` players whose stored total is
+      in that range.
+   5. **Large SPP total (100+)** — `playersPerStratum` players whose stored total is
+      at least 100.
+   6. **Random sample** — `playersPerStratum` (default 3) non-star players per source.
+   7. **Star players** — `playersPerStratum` star players per source, sampled
       randomly like the regular stratum but kept separate and bounded by the same
       limit.
 
@@ -50,10 +69,16 @@ in as another data-type module without touching the harness services.
    always be a "disagreement" by definition, not a real one worth flagging — but
    still includes a star player who does carry a real stored total, since excluding
    every star player outright would hide a genuine, fixable mismatch behind
-   whatever the bounded star-players stratum happens to sample. The star-players
-   stratum is the only automatic stratum a star player with no stored total ever
-   appears in; `overrides` (below) can still name one explicitly regardless of
-   stratum.
+   whatever the bounded star-players stratum happens to sample. Of the automatic
+   strata, only the star-players stratum and the non-standard-per-event stratum
+   can select a star player with no stored total at all; `overrides` (below) can
+   still name one explicitly regardless of stratum.
+
+   The three magnitude strata (zero/small/large) exist because a player's total can
+   range from nothing to several hundred and different magnitudes stress different
+   parts of the SPP pipeline; a single undifferentiated random sample under-covers
+   the extremes. A player with no stored total at all — commonly an induced star
+   player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
 3. For each sampled player, renders two panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
@@ -86,7 +111,7 @@ cp tools/review-player/review-player-config.example.json5 tools/review-player/re
 | Key | Meaning |
 | --- | --- |
 | `database.url` | Connection string of the database holding the imported data (required) |
-| `playersPerStratum` | Players sampled for the random and star-players strata, per source (default 3); the discrepancy stratum ignores it |
+| `playersPerStratum` | Players sampled per source for every bounded stratum — random, star-players, non-standard-SPP and the three magnitude strata (default 3); the discrepancy stratum ignores it |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
 | `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP` if unset or empty; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |

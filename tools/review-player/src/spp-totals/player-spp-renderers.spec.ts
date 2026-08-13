@@ -13,6 +13,7 @@ function totals(overrides: Partial<PlayerSppTotals> = {}): PlayerSppTotals {
     sppTotal: 16,
     sppAdjustment: 0,
     mismatch: false,
+    nonStandardEvents: [],
     ...overrides,
   };
 }
@@ -59,6 +60,32 @@ describe('PlayerSppComputedRendererService', () => {
     const { computed } = await makeServices();
 
     expect(computed.render(totals())).not.toContain('MISMATCH');
+  });
+
+  it('renders no non-standard-events table when there are no such events', async () => {
+    const { computed } = await makeServices();
+
+    const html = computed.render(totals());
+
+    expect(html).not.toContain('<th>Action type</th>');
+  });
+
+  it('renders a highlighted row per non-standard event', async () => {
+    const { computed } = await makeServices();
+
+    const html = computed.render(
+      totals({
+        nonStandardEvents: [
+          { actionType: 'touchdown', recordedValue: 5, expectedValue: 3 },
+        ],
+      }),
+    );
+
+    expect(html).toContain('<th>Action type</th>');
+    expect(html).toContain('<th>Recorded SPP</th>');
+    expect(html).toContain('<th>Expected SPP</th>');
+    expect(html.match(/<tr class="mismatch">/g)).toHaveLength(1);
+    expect(html).toContain('<td>touchdown</td><td>5</td><td>3</td>');
   });
 });
 

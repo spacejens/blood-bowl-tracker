@@ -15,9 +15,11 @@
     url: 'postgres://blood_bowl:blood_bowl@localhost:5433/blood_bowl',
   },
 
-  // How many players the random-sample and star-players strata each pick,
-  // per source. Defaults to 3. The SPP-discrepancy stratum ignores this: it
-  // always reports every non-star player whose totals disagree.
+  // How many players each bounded stratum picks, per source: random sample,
+  // star players, non-standard per-event SPP, and the zero/small/large
+  // stored-total strata. Defaults to 3. The SPP-discrepancy stratum ignores
+  // this: it reports every disagreement except induced star players with no
+  // stored total; the bounded star-player stratum samples those expected cases.
   playersPerStratum: 3,
 
   // Where each source's raw downloaded data lives. Relative paths resolve

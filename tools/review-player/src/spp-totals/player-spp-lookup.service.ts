@@ -1,9 +1,27 @@
 import type { Db } from '@blood-bowl-tracker/db';
-import { DB, matchEvents, players } from '@blood-bowl-tracker/db';
+import {
+  DB,
+  eraRulesSets,
+  matchEvents,
+  players,
+  sppAwardValues,
+  teamEras,
+  teams,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { count, eq, sum } from 'drizzle-orm';
+import { and, count, eq, isNotNull, sql, sum } from 'drizzle-orm';
 
 import type { SampledPlayer } from '../shared/review.types';
+
+/**
+ * One match event whose recorded SPP contribution disagrees with the
+ * standardised award table, for a single player.
+ */
+export interface NonStandardSppEvent {
+  actionType: string;
+  recordedValue: number;
+  expectedValue: number;
+}
 
 /** One player's two independently-derived SPP totals. */
 export interface PlayerSppTotals {
@@ -21,6 +39,15 @@ export interface PlayerSppTotals {
    * a mismatch.
    */
   mismatch: boolean;
+  /**
+   * This player's own match events whose recorded SPP disagrees with the
+   * standardised award table (see
+   * `SppNonStandardContributionStratificationService`, whose award-resolution
+   * query this mirrors per-event instead of as a boolean). Non-empty only for
+   * a TP-sourced player: a BBL-sourced event's value is computed directly
+   * from the award table, so it can never disagree by construction.
+   */
+  nonStandardEvents: NonStandardSppEvent[];
 }
 
 /**
@@ -62,6 +89,9 @@ export class PlayerSppLookupService {
     const sppTotal = stored?.sppTotal ?? null;
     const sppAdjustment = stored?.sppAdjustment ?? null;
 
+    const nonStandardEvents =
+      player.source === 'tp' ? await this.loadNonStandardEvents(player) : [];
+
     return {
       computedTotal,
       eventCount: computedRows[0]?.eventCount ?? 0,
@@ -69,6 +99,52 @@ export class PlayerSppLookupService {
       sppAdjustment,
       mismatch:
         sppTotal === null || sppTotal !== computedTotal + (sppAdjustment ?? 0),
+      nonStandardEvents,
     };
+  }
+
+  /**
+   * Per-event version of
+   * `SppNonStandardContributionStratificationService.sampleStratum`'s
+   * award-resolution query, filtered to a single player rather than grouped
+   * to a boolean. The `expected` correlated subquery is copied verbatim from
+   * that service — see its doc comment for why the award is re-derived here
+   * instead of reused from `packages/game-data`.
+   */
+  private async loadNonStandardEvents(
+    player: SampledPlayer,
+  ): Promise<NonStandardSppEvent[]> {
+    const expected = sql<number>`coalesce((
+      select ${sppAwardValues.sppValue}
+      from ${sppAwardValues}
+      inner join ${eraRulesSets}
+        on ${eraRulesSets.rulesSetId} = ${sppAwardValues.rulesSetId}
+      where ${eraRulesSets.eraId} = ${teamEras.eraId}
+        and ${sppAwardValues.actionType} = ${matchEvents.actionType}
+        and (${sppAwardValues.raceId} is null
+             or ${sppAwardValues.raceId} = ${teams.raceId})
+      order by ${sppAwardValues.raceId} nulls last
+      limit 1
+    ), 0)`;
+    const rows = await this.db
+      .select({
+        actionType: matchEvents.actionType,
+        recordedValue: sql<number>`coalesce(${matchEvents.sppValue}, 0)`,
+        expectedValue: expected,
+      })
+      .from(matchEvents)
+      .innerJoin(players, eq(players.id, matchEvents.actingPlayerId))
+      .innerJoin(teamEras, eq(teamEras.id, players.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .where(
+        and(
+          eq(matchEvents.actingPlayerId, player.playerId),
+          isNotNull(matchEvents.actionType),
+          sql`coalesce(${matchEvents.sppValue}, 0) is distinct from ${expected}`,
+        ),
+      );
+    // The isNotNull filter above guarantees a non-null actionType at runtime;
+    // the query builder's column type can't express that.
+    return rows.map((row) => ({ ...row, actionType: row.actionType! }));
   }
 }

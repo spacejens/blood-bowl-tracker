@@ -27,6 +27,7 @@ const totals: PlayerSppTotals = {
   sppTotal: 20,
   sppAdjustment: 0,
   mismatch: true,
+  nonStandardEvents: [],
 };
 
 describe('PlayerSppTotalsReviewerService', () => {
