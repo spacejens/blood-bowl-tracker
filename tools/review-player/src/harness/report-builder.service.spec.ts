@@ -1,7 +1,7 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import { HtmlService } from '../shared/html.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { ReportBuilderService } from './report-builder.service';
 

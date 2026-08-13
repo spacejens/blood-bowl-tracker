@@ -1,23 +1,9 @@
-import type { ReviewMatch, ReviewSource, ReviewStratum } from './review.types';
+import type { Stratifier } from '@blood-bowl-tracker/review-harness';
 
-/**
- * DI token for the list of every registered `MatchStratifier`, assembled in
- * `harness.module.ts` for the same reason as `DATA_TYPE_REVIEWERS`.
- */
-export const MATCH_STRATIFIERS = Symbol('MATCH_STRATIFIERS');
+import type { ReviewMatch } from './review.types';
 
-export interface StratumSampleRequest {
-  source: ReviewSource;
-  /** A `ReviewStratum.id` this stratifier returned from `listStrata()`. */
-  stratumId: string;
-  /** Maximum number of matches to return. */
-  limit: number;
-}
+export type { StratumSampleRequest } from '@blood-bowl-tracker/review-harness';
+export { STRATIFIERS as MATCH_STRATIFIERS } from '@blood-bowl-tracker/review-harness';
 
 /** Chooses which database matches are worth reviewing, per data type. */
-export interface MatchStratifier {
-  /** Every stratum this stratifier offers, in report order. */
-  listStrata(): ReviewStratum[];
-  /** Matches satisfying one stratum for one source, most recent first. */
-  sampleStratum(request: StratumSampleRequest): Promise<ReviewMatch[]>;
-}
+export type MatchStratifier = Stratifier<ReviewMatch>;

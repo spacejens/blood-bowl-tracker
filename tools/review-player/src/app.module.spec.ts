@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -11,7 +12,6 @@ import { REVIEW_PLAYER_CONFIG_PATH } from './config/review-player-config.service
 import { ReviewService } from './harness/review.service';
 import { RandomPlayerStratificationService } from './player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from './player-info/star-player-stratification.service';
-import { mockDb } from './shared/db-mock.test-helpers';
 import type { PlayerStratifier } from './shared/player-stratifier';
 import { PLAYER_STRATIFIERS } from './shared/player-stratifier';
 import { SppDiscrepancyStratificationService } from './spp-totals/spp-discrepancy-stratification.service';

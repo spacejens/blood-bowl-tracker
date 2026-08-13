@@ -9,9 +9,17 @@ it deliberately does not run is the thing being reviewed.
 **Architectural boundary:** the raw-source panels never depend on `packages/game-data`,
 `packages/parse-tp`, `tools/import-tp` or `tools/import-bbl` — not for parsing, not for
 lookups, and not for "safe" shared domain knowledge such as event-code tables. Code that
-looks duplicated from `tools/review-match` (the HTML formatter, the SPP comparison, the TP
-event-label table) is duplicated on purpose: sharing it would let a bug agree with itself
-instead of showing up as a difference.
+looks duplicated from `tools/review-match` — the SPP comparison and the TP event-label
+table — is duplicated on purpose: sharing it would let a bug agree with itself instead
+of showing up as a difference. That rule covers the **domain-specific** half only. The
+domain-agnostic scaffolding (HTML fragment assembly, timestamped report writing, JSON5
+config loading, the `DataTypeReviewer`/`Stratifier` plug-in contracts and the app-module
+wiring) is shared with `tools/review-match` through `packages/review-harness` — it never
+touches a raw source's meaning, so it cannot agree with itself about one.
+`report-builder.service.ts` and `harness.module.ts` stay local for a different reason:
+the first because the two tools' reports differ enough (player-info/spp-totals panels
+vs. match strata and event summaries) that sharing would need more hooks than it saves,
+the second because it *is* this tool's own composition.
 
 Scope today is player info and [Star Player Points](../glossary.md#star-player-points-spp)
 totals. Skills, injuries and characteristics are deliberately deferred — each will plug

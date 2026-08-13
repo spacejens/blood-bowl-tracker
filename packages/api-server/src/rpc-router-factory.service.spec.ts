@@ -598,6 +598,8 @@ describe('RpcRouterFactoryService', () => {
         type: 'season',
         eraId: 20,
         teamEraIds: [],
+        startDate: null,
+        endDate: null,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -619,6 +621,8 @@ describe('RpcRouterFactoryService', () => {
       type: 'season',
       eraId: 20,
       teamEraIds: [],
+      startDate: null,
+      endDate: null,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

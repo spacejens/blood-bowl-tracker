@@ -1,7 +1,7 @@
+import type { TableCell } from '@blood-bowl-tracker/review-harness';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import type { TableCell } from '../shared/html.service';
-import { HtmlService } from '../shared/html.service';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 import { TpPlayerEventLabelsService } from './tp-player-event-labels.service';
 

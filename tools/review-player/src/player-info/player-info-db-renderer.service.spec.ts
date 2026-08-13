@@ -1,10 +1,10 @@
 import { DB } from '@blood-bowl-tracker/db';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import type { MockDbResult } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
-import { HtmlService } from '../shared/html.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { PlayerInfoDbRendererService } from './player-info-db-renderer.service';
 

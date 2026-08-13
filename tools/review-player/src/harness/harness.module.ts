@@ -1,11 +1,16 @@
+import {
+  createRegistryProvider,
+  REPORT_OUTPUT_PATH,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
 import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
-import type { PlayerStratifier } from '../shared/player-stratifier';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
 import { SharedModule } from '../shared/shared.module';
 import { PlayerSppTotalsReviewerService } from '../spp-totals/player-spp-totals-reviewer.service';
@@ -16,7 +21,6 @@ import { SppTotalsModule } from '../spp-totals/spp-totals.module';
 import { PlayerLookupService } from './player-lookup.service';
 import { PlayerSamplerService } from './player-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 import { ReviewService } from './review.service';
 
 /**
@@ -33,30 +37,19 @@ import { ReviewService } from './review.service';
     PlayerSamplerService,
     ReportBuilderService,
     ReportWriterService,
+    { provide: REPORT_OUTPUT_PATH, useExisting: ReviewPlayerConfigService },
     ReviewService,
-    {
-      provide: PLAYER_DATA_TYPE_REVIEWERS,
-      useFactory: (
-        playerInfo: PlayerInfoReviewerService,
-        sppTotals: PlayerSppTotalsReviewerService,
-      ) => [playerInfo, sppTotals],
-      inject: [PlayerInfoReviewerService, PlayerSppTotalsReviewerService],
-    },
-    {
-      provide: PLAYER_STRATIFIERS,
-      // A rest parameter rather than one named parameter per stratifier:
-      // `local/max-function-params` caps a function at three parameters and
-      // exempts only constructors, and this factory's entire job is to collect
-      // its injected stratifiers into an array in `inject` order.
-      useFactory: (...stratifiers: PlayerStratifier[]) => stratifiers,
-      inject: [
-        SppDiscrepancyStratificationService,
-        SppMagnitudeStratificationService,
-        SppNonStandardContributionStratificationService,
-        RandomPlayerStratificationService,
-        StarPlayerStratificationService,
-      ],
-    },
+    createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
+      PlayerInfoReviewerService,
+      PlayerSppTotalsReviewerService,
+    ]),
+    createRegistryProvider(PLAYER_STRATIFIERS, [
+      SppDiscrepancyStratificationService,
+      SppMagnitudeStratificationService,
+      SppNonStandardContributionStratificationService,
+      RandomPlayerStratificationService,
+      StarPlayerStratificationService,
+    ]),
   ],
   exports: [ReviewService],
 })

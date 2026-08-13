@@ -1,3 +1,7 @@
+import {
+  HtmlService,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -5,11 +9,9 @@ import { mock } from 'vitest-mock-extended';
 
 import type { PlayerDataTypeReviewer } from '../shared/data-type-reviewer';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
-import { HtmlService } from '../shared/html.service';
 import type { SampledPlayer } from '../shared/review.types';
 import { PlayerSamplerService } from './player-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 import { ReviewService } from './review.service';
 
 const player: SampledPlayer = {

@@ -1,9 +1,9 @@
 import { DB } from '@blood-bowl-tracker/db';
+import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import type { MockDbResult } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import type { SampledPlayer } from '../shared/review.types';
 import { PlayerSppLookupService } from './player-spp-lookup.service';
 

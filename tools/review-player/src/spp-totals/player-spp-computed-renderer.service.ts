@@ -1,7 +1,7 @@
+import type { TableCell, TableRow } from '@blood-bowl-tracker/review-harness';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import type { TableCell, TableRow } from '../shared/html.service';
-import { HtmlService } from '../shared/html.service';
 import type { PlayerSppTotals } from './player-spp-lookup.service';
 
 const MISMATCH = 'MISMATCH';

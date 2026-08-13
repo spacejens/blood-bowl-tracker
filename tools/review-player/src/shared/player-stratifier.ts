@@ -1,31 +1,13 @@
-import type { ReviewPlayer, ReviewSource, ReviewStratum } from './review.types';
+import type { Stratifier } from '@blood-bowl-tracker/review-harness';
+
+import type { ReviewPlayer } from './review.types';
+
+export type { StratumSampleRequest } from '@blood-bowl-tracker/review-harness';
+export { STRATIFIERS as PLAYER_STRATIFIERS } from '@blood-bowl-tracker/review-harness';
 
 /**
- * DI token for the array of player stratifiers. NestJS has no multi-provider
- * pattern (no `@Multiple()` decorator), so the list is assembled by hand in
- * `harness.module.ts`, not by the framework.
+ * A plugin that defines sampling strata (groupings) and can draw a sample of
+ * players from any stratum, for review. One per sampling strategy (e.g.
+ * "random sample of all players", "top N by one metric").
  */
-export const PLAYER_STRATIFIERS = Symbol('PLAYER_STRATIFIERS');
-
-/** A request to sample players from a specific stratum. */
-export interface StratumSampleRequest {
-  source: ReviewSource;
-  stratumId: string;
-  /**
-   * The requested sample size. A stratum that must report every matching
-   * player (e.g. the discrepancy stratum) may return more.
-   */
-  limit: number;
-}
-
-/**
- * A plugin that defines sampling strata (groupings) and can draw a random
- * sample of players from any stratum, for review. One per sampling strategy
- * (e.g. "random sample of all players", "top N by one metric").
- */
-export interface PlayerStratifier {
-  /** The strata this stratifier defines. */
-  listStrata(): ReviewStratum[];
-  /** Sample up to `limit` players from the stratum. */
-  sampleStratum(request: StratumSampleRequest): Promise<ReviewPlayer[]>;
-}
+export type PlayerStratifier = Stratifier<ReviewPlayer>;
