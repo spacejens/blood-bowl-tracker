@@ -12,10 +12,6 @@ export interface ReviewPanel {
   rawHtml: string;
   /** Opaque HTML fragment from the reviewer — inserted verbatim. */
   importedHtml: string;
-  /** Reviewer-supplied heading for the left panel, when it has one. */
-  rawLabel?: string;
-  /** Reviewer-supplied heading for the right panel, when it has one. */
-  importedLabel?: string;
 }
 
 export interface ReviewedMatch {
@@ -47,8 +43,6 @@ const STYLES = `
   table { border-collapse: collapse; font-size: 0.8rem; width: 100%; }
   th, td { border: 1px solid #ddd; padding: 2px 4px; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; }
-  tr.mismatch td { background: #ffe8e8; }
-  tr.mismatch td:last-child { font-weight: 600; color: #a00; }
   .note { color: #a00; font-style: italic; }
   .cell-pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-family: monospace; }
   details summary { cursor: pointer; color: #06c; }
@@ -141,13 +135,10 @@ ${panels.map((panel) => this.panelPair(panel, match)).join('\n')}
   }
 
   private panelPair(panel: ReviewPanel, match: SampledMatch): string {
-    const rawLabel =
-      panel.rawLabel ?? `Raw source (${match.source.toUpperCase()})`;
-    const importedLabel = panel.importedLabel ?? 'Imported (database)';
     return `<h3>${this.html.escape(panel.dataTypeId)}</h3>
 <div class="panels">
-<div class="panel"><h4>${this.html.escape(rawLabel)}</h4>${panel.rawHtml}</div>
-<div class="panel"><h4>${this.html.escape(importedLabel)}</h4>${panel.importedHtml}</div>
+<div class="panel"><h4>Raw source (${this.html.escape(match.source.toUpperCase())})</h4>${panel.rawHtml}</div>
+<div class="panel"><h4>Imported (database)</h4>${panel.importedHtml}</div>
 </div>`;
   }
 }

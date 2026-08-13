@@ -21,9 +21,9 @@ deliberately duplicated from the Discord bot's own label service of the same
 name rather than shared — the six-word title-casing it does isn't behaviour
 worth coupling two independent tools over.
 
-Scope today is match events and star player point totals; the tool is
-structured so a future data type (rosters, standings) plugs in as another
-module without touching the harness services.
+Scope today is match events; the tool is structured so a future data type
+(rosters, standings) plugs in as another module without touching the harness
+services.
 
 ## What it does
 
@@ -93,23 +93,6 @@ module without touching the harness services.
      collapsed `expand` disclosure so a long match stays scannable.
    - **Imported** — the `game_data.match_events` rows for that match, with
      players and teams resolved to names.
-   - **spp-totals** — a second panel pair for the same match, comparing each
-     player's SPP two ways: the left panel sums `match_events.spp_value` over
-     the events where the player is the *acting* participant (this tool's own
-     query, not `packages/game-data`'s `SppTotalsService`), the right panel
-     shows the stored `players.spp_total` / `spp_adjustment`. Both panels are
-     database-derived, so they carry their own headings ("Computed from match
-     events (database)" / "Stored player totals (database)") rather than the
-     harness's raw/imported wording. Scope is every player who acted in the
-     match, plus every player on either roster who has no stored total at all
-     or already carries a non-zero one — a cumulative disagreement (or an
-     always-a-mismatch missing total) is worth seeing even when the player
-     earned nothing in this particular match. A player is flagged
-     `MISMATCH` — highlighted row, explicit label in both panels — when the
-     stored `spp_total` disagrees with the computed sum *plus* the stored
-     `spp_adjustment` (not the raw computed sum: a nonzero adjustment is
-     normal for an experienced player, not a data problem), or has no stored
-     total at all.
 6. Writes the report under `tools/review-match/output/` (gitignored) with a
    timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
    so successive runs don't overwrite each other's reports, and prints where

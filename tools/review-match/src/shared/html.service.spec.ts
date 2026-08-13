@@ -114,35 +114,4 @@ describe('HtmlService', () => {
       expect(service.subheading('a & <b>')).toBe('<h5>a &amp; &lt;b&gt;</h5>');
     });
   });
-
-  describe('highlight', () => {
-    it('renders a highlighted row with the mismatch class', () => {
-      const html = service.table(
-        ['Player', 'Flag'],
-        [service.highlight(['Betong Bengt', 'MISMATCH'])],
-      );
-
-      expect(html).toContain(
-        '<tr class="mismatch"><td>Betong Bengt</td><td>MISMATCH</td></tr>',
-      );
-    });
-
-    it('renders a plain array row without any class', () => {
-      const html = service.table(['Player', 'Flag'], [['Betong Bengt', '—']]);
-
-      expect(html).toContain('<tr><td>Betong Bengt</td><td>—</td></tr>');
-      expect(html).not.toContain('class="mismatch"');
-    });
-
-    it('escapes cells inside a highlighted row like any other row', () => {
-      const html = service.table(
-        ['Player'],
-        [service.highlight(['<script>&"'])],
-      );
-
-      expect(html).toContain(
-        '<tr class="mismatch"><td>&lt;script&gt;&amp;&quot;</td></tr>',
-      );
-    });
-  });
 });
