@@ -40,7 +40,7 @@ node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-log
 
 - `<pr-number>` — the PR to poll.
 - `<developer-login>` — the PR author's own login, excluded as a reviewer.
-- `<since-epoch-seconds>` — only reviews (or rate-limit comments, or comment-update-failure comments) submitted at or after this instant qualify (inclusive — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a different review submitted in the same second).
+- `<since-epoch-seconds>` — only reviews, rate-limit comments, or comment-update-failure comments submitted at or after this instant qualify, and only completion comments (see below) whose own timestamp is at or after this instant (inclusive in every case — `<since-epoch-seconds>` has only second precision, so a strict "after" would miss a distinct match in the same second).
 - `--timeout-ms` (default 600000, 10 minutes) / `--interval-ms` (default 30000, 30 seconds) — optional overrides; `--interval-ms` has a 1000ms minimum.
 - `--exclude-review-id` — excludes one review by its `id`, regardless of its `submittedAt`. Needed alongside the inclusive threshold above: pass the previously-found review's own `id` here (e.g. across develop-feature's Phase 6 iterations) so that same review isn't matched again forever just because the threshold is inclusive.
 - `--exclude-comment-id` — the same exclusion, but for a CodeRabbit rate-limit comment's `id` instead of a review's, for the same reason.
@@ -56,9 +56,9 @@ Prints one of four JSON outcomes:
   ```
 - `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — a CodeRabbit "couldn't update its existing comment" failure notice was found instead of a review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit outcome above, there is no `availableAtEpochSeconds` equivalent here — CodeRabbit's text for this failure states no wait duration, so the caller falls back to an immediate retry (see develop-feature's Phase 6 step b3).
 
-**Detection precedence.** When a single poll could match more than one of the above, a formal review wins over a rate-limit comment, which wins over a comment-update-failure comment, which wins over the completion-comment check (checked last, and only via a second `gh` call made when the first found nothing). A caller-requested retrigger (`--trigger-after`) still fires once due even when a stale rate-limit or comment-update-failure comment is found in that same poll — it is not skipped just because that poll's early return is about to happen.
+**Detection precedence.** When more than one of the above could match at once, a formal review wins over a rate-limit comment, which wins over a comment-update-failure comment, which wins over a completion comment, which runs last. A caller-requested retrigger (`--trigger-after`) still fires once due even when a stale rate-limit or comment-update-failure comment is found at the same time — it is not skipped just because that poll's early return is about to happen.
 
-**False-positive safeguards.** The rate-limit and comment-update-failure phrase matches are narrowed in two ways: comments are re-checked in TypeScript with markdown code spans stripped first (jq's own phrase test is coarse and can be fooled by a phrase quoted inside a code span), and the comment-update-failure filter additionally excludes CodeRabbit's own rolling walkthrough comment outright — its prose (a summary, a changes table) can incidentally contain the failure phrase, which would otherwise abort the wait on a false positive before any real review or genuine failure notice exists.
+**False-positive safeguards.** Matching ignores failure phrases quoted inside Markdown code spans, and never matches CodeRabbit's own rolling walkthrough comment — its prose (a summary, a changes table) can incidentally contain a failure phrase, which would otherwise abort the wait on a false positive before any real review or genuine failure notice exists.
 
 ## Development
 
