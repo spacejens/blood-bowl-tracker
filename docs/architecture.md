@@ -44,6 +44,11 @@ packages/
                         generic upsert-bookkeeping (ImportRunnerService) plus
                         entity-specific services (CoachesImportService,
                         ExternalSystemsImportService) that call api-client
+  review-harness/     — NestJS module with the domain-agnostic half of the two
+                        review tools: HTML fragment assembly, timestamped
+                        report writing, JSON5 config loading, and the plug-in
+                        interfaces + DI wiring each data-type module registers
+                        through; carries no BBL/TP domain knowledge
 
 tools/
   import-<source>/    — one NestJS CLI application per upstream data source; uses
@@ -79,10 +84,11 @@ pipeline are listed; packages and tools with no role in it (e.g. `packages/db`,
 - **`tools/import-tp`** (importer, TP source) — reads `tools/download-tp`'s files via `packages/parse-tp`; sibling of `tools/import-bbl`, with the same reciprocity
 - **`tools/import-manual`** (importer, hand-authored data) — runs before and after the source importers and supplies entities they reference (leagues, eras, rules sets, races, positions, coaches, teams, extra external IDs); a new entity kind imported by a source importer often needs matching manual data
 - **`packages/import`** (shared import orchestration) — used by every `tools/import-*`; a change here reaches all importers at once
+- **`packages/review-harness`** (shared review scaffolding) — used by both `tools/review-match` and `tools/review-player`; a change here reaches both review tools at once. It deliberately carries no BBL/TP domain knowledge — raw-source parsing, comparison predicates and label tables stay duplicated per tool, see the two review-tool entries below
 - **`packages/api-contract`** (shared shapes) — newly imported data must exist in the contract before an importer can send it or a consumer can read it; a change here reaches api-server, api-client, game-data, and import together
 - **`apps/discord-bot`** (consumer) — reads imported data via `packages/game-data`; data newly landed by any importer is a candidate for a new command, fact, or insight
-- **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here; it deliberately reads the raw sources itself and must never depend on `packages/parse-tp` or importer logic (see `docs/review-match/index.md`)
-- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here; sibling of `tools/review-match`, structured the same way and deliberately independent of it — it reads the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (see `docs/review-player/index.md`)
+- **`tools/review-match`** (consumer, review aid) — renders raw BBL and TP source data beside imported match events, so a change to what either importer stores for match events usually needs a matching renderer change here; it deliberately reads the raw sources itself and must never depend on `packages/parse-tp` or importer logic (see `docs/review-match/index.md`) — that independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`
+- **`tools/review-player`** (consumer, review aid) — renders raw BBL and TP source data beside imported player records (identity, team, position, era) and star player point totals, so a change to what either importer stores for players usually needs a matching renderer change here; sibling of `tools/review-match`, structured the same way and deliberately independent of it — it reads the raw sources itself and must never depend on `packages/game-data`, `packages/parse-tp`, `packages/import`, or either importer (see `docs/review-player/index.md`) — that independence rule covers the domain-specific half only; the generic report scaffolding is shared on purpose via `packages/review-harness`
 
 ## Key decisions
 
@@ -116,7 +122,12 @@ These files:
   `include: ['src/**/*.spec.ts']`.
 
 Helpers live in the workspace that uses them. A helper is promoted to a shared
-package only if the same helper is genuinely needed in two or more workspaces.
+package only if the same helper is genuinely needed in two or more workspaces —
+as `mockDb` was, which both review tools held identical copies of and which now
+lives in `packages/review-harness`, reachable as
+`@blood-bowl-tracker/review-harness/test-helpers` (a separate export subpath, so
+importing the package's main entry point never pulls Vitest into a tool's
+runtime graph).
 
 ## Database
 
