@@ -164,27 +164,30 @@
               4833, 4838, 4839, 4842, 4846, 4865,
             ],
           },
-          // Optional group -- omit entirely when an era has neither override
-          // list nor dateOverrides. seasonCompetitionIdOverrides/
-          // cupCompetitionIdOverrides are competition bblIds hard-assigned to
-          // this era and forced to type season/cup respectively, regardless
-          // of match dates -- for a competition with a genuinely empty match
-          // list, or whose date span would otherwise misclassify its type.
-          // Checked before the match-date scan, so unaffected by
-          // autoAssignByDate. A competition bblId may appear in only one of
-          // these lists across all eras.
+          // Optional group -- omit entirely when an era has no overrides.
+          // Each entry is a competition bblId hard-assigned to this era and
+          // forced to the given type, regardless of match dates -- for a
+          // competition with a genuinely empty match list, or whose date
+          // span would otherwise misclassify its type. Checked before the
+          // match-date scan, so unaffected by autoAssignByDate. A
+          // competition bblId may appear in only one override, in only one
+          // era, across all eras. startDate/endDate are only consulted when
+          // the override competition has no dated matches at all to derive
+          // them from -- one that does have matches always uses those
+          // instead, and startDate/endDate here are ignored. Competition 74
+          // ("Minor Season 25") has no p=ma page in the mirror at all; its
+          // startDate/endDate are the half-year following Minor Season 24
+          // (the second half of 2023), the only entry in this era that
+          // actually needs them.
           competitions: {
-            seasonCompetitionIdOverrides: ['74'],
-            // Explicit dates for an overridden competition that has no dated
-            // matches at all to derive them from, keyed by competition bblId.
-            // Competition 74 ("Minor Season 25") has no p=ma page in the
-            // mirror; it is the half-year following Minor Season 24, so the
-            // second half of 2023. Only consulted when the override path
-            // finds no match dates -- an overridden competition that does
-            // have matches always uses those instead.
-            dateOverrides: {
-              '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
-            },
+            overrides: [
+              {
+                bblId: '74',
+                type: 'season',
+                startDate: '2023-07-01',
+                endDate: '2023-12-31',
+              },
+            ],
           },
           // Optional group -- omit entirely when an era has no position
           // overrides (as here). Each entry is keyed by positionId (BBL
@@ -220,7 +223,10 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            cupCompetitionIdOverrides: ['30', '33'],
+            overrides: [
+              { bblId: '30', type: 'cup' },
+              { bblId: '33', type: 'cup' },
+            ],
           },
           // Optional group -- omit entirely when an era has no team-code
           // overrides. teamCodeOverrides pins the players of the listed team
@@ -278,7 +284,7 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            seasonCompetitionIdOverrides: ['69'],
+            overrides: [{ bblId: '69', type: 'season' }],
           },
           teams: {
             teamCodeOverrides: ['red4', 'twi', 'dok', 'äng', 'dan', 'lus2'],
@@ -311,7 +317,7 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            seasonCompetitionIdOverrides: ['55'],
+            overrides: [{ bblId: '55', type: 'season' }],
           },
           teams: {
             teamCodeOverrides: [

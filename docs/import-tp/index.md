@@ -139,13 +139,16 @@ basename when there is no `_`) — e.g. `match`, `rosters`, `tournament`,
   era directories. A competition is one `<era>/<competition>` subdirectory: its
   base `tournament_<slug>.json` gives the name and TP id, its `match_*.json`
   files give the dates whose span classifies it (span ≤ 3 days ⇒ cup, else
-  season), and its era is the directory's own era (looked up in the
+  season) and whose earliest/latest values become its `startDate`/`endDate`
+  (`YYYY-MM-DD`), and its era is the directory's own era (looked up in the
   `eraIdsByName` map from `TpErasImportService`, with no date-range matching —
   unlike BBL). Uses `MatchParserService` and `TournamentParserService` from
-  `packages/parse-tp`. Each competition carries a TP external id (the
-  stringified tournament id). Competitions missing a base tournament file,
-  with an unparsable one, with no dated matches, or whose era has no known id
-  are skipped with a recorded error.
+  `packages/parse-tp`, and `MatchDateRangeService` from `packages/import` for
+  the earliest/latest/span computation (shared with BBL's importer). Each
+  competition carries a TP external id (the stringified tournament id).
+  Competitions missing a base tournament file, with an unparsable one, with
+  no dated matches, or whose era has no known id are skipped with a recorded
+  error.
 - **TpMatchesImportService** — upserts each match as a `Match` row linked to its
   competition. Match files carry no tournament id, so matches are linked via the
   directory scan `TpCompetitionsImportService` already performs: it exposes a

@@ -71,12 +71,16 @@ camelCase, grouped into nested objects by concern:
       `autoAssignByPlayerId` is `false`, the era is excluded from the
       pid-range fallback scan; the era is then only ever reached through
       `teamCodeOverrides`/`playerIdOverrides`.
-    - `competitions` (optional) — `seasonCompetitionIdOverrides` and
-      `cupCompetitionIdOverrides`, optional arrays of competition bblIds
-      hard-assigned to this era and forced to type `season` or `cup`
-      respectively, regardless of match dates — used for a competition with an
-      empty match list, or one whose date-span would otherwise misclassify its
-      type.
+    - `competitions` (optional) — `overrides`, an optional array of
+      `{ bblId, type, startDate?, endDate? }` objects, each hard-assigning
+      one competition bblId to this era and forcing its `type` (`season` or
+      `cup`), regardless of match dates — used for a competition with an
+      empty match list, or one whose date-span would otherwise misclassify
+      its type. `startDate`/`endDate` are only consulted when that
+      competition has no dated matches at all to derive them from (one that
+      does have matches always uses those instead); `startDate` is then
+      required, since every imported competition needs one — a match-less
+      override with no `startDate` is skipped with a recorded import error.
     - `teams` (optional) — `teamCodeOverrides`, an optional array of team
       codes whose players are pinned to this era regardless of pid, for
       side-competition eras (Stunty Leeg, Dungeon Bowl) that share the
@@ -321,14 +325,18 @@ false` is reached only through `teamCodeOverrides`/`playerIdOverrides`. Its
   span 3 days or fewer, else `season`; `eraId` is the era whose configured
   date range contains the earliest match date, considering only eras with
   `autoAssignByDate: true` — an era with `autoAssignByDate: false` is reached
-  only through its
-  `seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides`. A competition
-  listed in an era's `seasonCompetitionIdOverrides`
-  or `cupCompetitionIdOverrides` is instead hard-assigned that era and forced
-  to type `season` or `cup` respectively, bypassing match-date resolution
-  entirely. A competition with no dated matches, or whose earliest date is
-  outside every configured era, is skipped with a recorded error. The `p=cp`
-  pages are out of scope (generic content pages, not reliably competitions).
+  only through its `competitions.overrides` entries. A competition listed in
+  an era's `competitions.overrides` is instead hard-assigned that era and
+  forced to that entry's `type`, bypassing match-date resolution entirely —
+  but its `startDate`/`endDate` still come from its own matches when it has
+  any, falling back to that override entry's configured dates only when it
+  has none. `startDate`/`endDate` (`YYYY-MM-DD`) are set on every imported
+  competition from the earliest/latest date among its matches (or, for a
+  match-less override, from its `competitions.overrides` entry). A
+  competition with no dated matches, no configured override dates, and no
+  applicable override at all, or whose earliest date is outside every
+  configured era, is skipped with a recorded error. The `p=cp` pages are out
+  of scope (generic content pages, not reliably competitions).
   Imported after eras (referenced by `eraId`).
 - **Matches** — from a competition's `p=ma&so=s&s=<id>` match-list rows
   (id/date/competition). Keyed by the numeric BBL match id (`m=<id>`, from

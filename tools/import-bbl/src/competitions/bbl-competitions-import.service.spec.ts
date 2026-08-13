@@ -245,7 +245,7 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it("derives an overridden competition's dates from its matches, not from dateOverrides", async () => {
+  it("derives an overridden competition's dates from its matches, not from the configured override dates", async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -275,9 +275,10 @@ describe('BblCompetitionsImportService', () => {
         },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
         competitions: {
-          cupCompetitionIdOverrides: ['30'],
-          // Present but must be ignored: the competition has real matches.
-          dateOverrides: { '30': { startDate: '1999-01-01' } },
+          overrides: [
+            // startDate present but must be ignored: has real matches.
+            { bblId: '30', type: 'cup', startDate: '1999-01-01' },
+          ],
         },
       },
     ]);
@@ -298,7 +299,7 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('uses the configured dateOverrides entry for an overridden competition with no matches', async () => {
+  it("uses the override's own startDate/endDate for an overridden competition with no matches", async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -314,10 +315,14 @@ describe('BblCompetitionsImportService', () => {
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
-          seasonCompetitionIdOverrides: ['74'],
-          dateOverrides: {
-            '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
-          },
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: '2023-12-31',
+            },
+          ],
         },
       },
     ]);
@@ -344,7 +349,7 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('omits endDate when the dateOverrides entry has no endDate', async () => {
+  it('omits endDate when the override has no endDate', async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -360,8 +365,7 @@ describe('BblCompetitionsImportService', () => {
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
-          seasonCompetitionIdOverrides: ['74'],
-          dateOverrides: { '74': { startDate: '2023-07-01' } },
+          overrides: [{ bblId: '74', type: 'season', startDate: '2023-07-01' }],
         },
       },
     ]);
@@ -374,7 +378,7 @@ describe('BblCompetitionsImportService', () => {
     expect(upsertArg.endDate).toBeUndefined();
   });
 
-  it('skips an overridden competition with no matches and no dateOverrides entry, recording an error', async () => {
+  it('skips an overridden competition with no matches and no configured startDate, recording an error', async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -386,7 +390,7 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
 
@@ -399,7 +403,7 @@ describe('BblCompetitionsImportService', () => {
     ).not.toHaveBeenCalled();
     expect(errors).toHaveLength(1);
     expect(errors[0].message).toContain('Minor Season 25');
-    expect(errors[0].message).toContain('dateOverrides');
+    expect(errors[0].message).toContain('no startDate');
   });
 
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
@@ -585,11 +589,11 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
-    // "BB2020" is matched by seasonCompetitionIdOverrides, but is absent from
-    // eraIdsByName, simulating its rules set having failed to import
+    // "BB2020" is matched by the competitions.overrides entry, but is absent
+    // from eraIdsByName, simulating its rules set having failed to import
     // earlier in the run.
 
     await service.importCompetitions(new Map());
@@ -778,10 +782,14 @@ describe('BblCompetitionsImportService', () => {
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
         competitions: {
-          seasonCompetitionIdOverrides: ['74'],
-          dateOverrides: {
-            '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
-          },
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: '2023-12-31',
+            },
+          ],
         },
       },
     ]);
@@ -846,7 +854,7 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
 
@@ -861,7 +869,7 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('applies cupCompetitionIdOverrides forcing type cup even when the span would compute season', async () => {
+  it('applies a competitions.overrides entry forcing type cup even when the span would compute season', async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -895,7 +903,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: true,
         },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { cupCompetitionIdOverrides: ['33'] },
+        competitions: { overrides: [{ bblId: '33', type: 'cup' }] },
       },
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -958,7 +966,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: true,
         },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { cupCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ]);
 
@@ -1003,7 +1011,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: false,
         },
         players: { autoAssignByPlayerId: false },
-        competitions: { cupCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ];
     const eraIds = new Map<string, number>([
@@ -1060,7 +1068,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: false,
         },
         players: { autoAssignByPlayerId: false },
-        competitions: { seasonCompetitionIdOverrides: ['55'] },
+        competitions: { overrides: [{ bblId: '55', type: 'season' }] },
         teams: { teamCodeOverrides: ['fes2'] },
       },
     ];
