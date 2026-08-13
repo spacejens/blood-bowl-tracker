@@ -115,6 +115,17 @@ describe('SppDiscrepancyStratificationService', () => {
     expect(rendered).toMatch(/is distinct from/i);
     expect(rendered).toContain('"spp_total"');
     expect(rendered).not.toMatch(/coalesce\([^)]*spp_total[^)]*\)/);
+    // The four checks above alone don't pin down which SIDE of the
+    // comparison the adjustment lands on: a regressed condition like
+    // `computed is distinct from "spp_total" + coalesce("spp_adjustment", 0)`
+    // (adjustment added to the stored total instead of the computed sum)
+    // would satisfy all four while being semantically wrong. Assert the
+    // adjustment coalesce sits immediately before `is distinct from` — i.e.
+    // it's combined into the computed-sum side of the comparison, not the
+    // `spp_total` side.
+    expect(rendered).toMatch(
+      /coalesce\([^)]*spp_adjustment[^)]*\)\s*is distinct from/i,
+    );
   });
 
   it('rejects an unknown stratum id', async () => {

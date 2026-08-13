@@ -14,10 +14,17 @@ async function makeService(
 ): Promise<RandomPlayerStratificationService> {
   const externalSystems = mock<ExternalSystemLookupService>();
   externalSystems.getSystemId.mockResolvedValue(3);
+  // PlayerProjectionQueryService injects DB and issues a real query, so it
+  // doesn't qualify for this repo's real-provider exemptions (module
+  // composition specs, or a pure dependency-free formatter) — mock it and
+  // hand back a chain sourced from the same mockDb helper used below, so the
+  // `dbResult.chains` assertions still see exactly what this service issued.
+  const query = mock<PlayerProjectionQueryService>();
+  query.base.mockImplementation(() => dbResult.db.select() as never);
   const moduleRef = await Test.createTestingModule({
     providers: [
       RandomPlayerStratificationService,
-      PlayerProjectionQueryService,
+      { provide: PlayerProjectionQueryService, useValue: query },
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],

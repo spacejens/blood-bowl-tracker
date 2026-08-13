@@ -14,16 +14,17 @@ async function makeService(
 ): Promise<PlayerLookupService> {
   const externalSystems = mock<ExternalSystemLookupService>();
   externalSystems.getSystemId.mockResolvedValue(3);
+  // PlayerProjectionQueryService injects DB and issues a real query, so it
+  // doesn't qualify for this repo's real-provider exemptions (module
+  // composition specs, or a pure dependency-free formatter) — mock it and
+  // hand back a chain sourced from the same mockDb helper used below, so the
+  // `dbResult.chains` assertions still see exactly what this service issued.
+  const query = mock<PlayerProjectionQueryService>();
+  query.base.mockImplementation(() => dbResult.db.select() as never);
   const moduleRef = await Test.createTestingModule({
     providers: [
       PlayerLookupService,
-      // PlayerProjectionQueryService is passed as a real provider rather
-      // than mocked, same as this repo's other drizzle query-builder specs
-      // (see db-mock.test-helpers.ts): it just assembles a fluent drizzle
-      // chain off the same mocked DB below, with no branching of its own to
-      // isolate from, and mocking it would mean reimplementing that chain
-      // assembly in the mock.
-      PlayerProjectionQueryService,
+      { provide: PlayerProjectionQueryService, useValue: query },
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],

@@ -57,7 +57,7 @@ describe('BblRawPlayerPageLoaderService', () => {
     writeFileSync(join(dir, 'default.asp?p=pl&pid=1002'), Buffer.from([0x80]));
     const service = await makeService();
 
-    expect(await service.loadPlayerPage('1002')).toBe('');
+    expect(await service.loadPlayerPage('1002')).toBe('\u0080');
   });
 
   it('returns null for a page that is not in the mirror', async () => {
