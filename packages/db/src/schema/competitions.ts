@@ -19,9 +19,7 @@ const competitionsTable = historyTrackedTable({
     eraId: integer('era_id')
       .references(() => eras.id)
       .notNull(),
-    // Nullable for now: nothing populates competition dates yet (#417
-    // backfills them, #434 then tightens start_date to NOT NULL).
-    startDate: date('start_date'),
+    startDate: date('start_date').notNull(),
     endDate: date('end_date'),
   },
 });

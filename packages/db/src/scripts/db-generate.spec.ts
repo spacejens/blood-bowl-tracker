@@ -11,6 +11,7 @@ import {
   findNewHistoryTables,
   hasMigrationName,
   rewriteHistoryDropColumns,
+  rewriteHistorySetNotNull,
   rewriteNewHistoryTableCreate,
 } from './db-generate.js';
 
@@ -157,6 +158,49 @@ describe('rewriteHistoryDropColumns', () => {
         'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "nickname" DROP NOT NULL;--> statement-breakpoint\n' +
         'ALTER TABLE "game_data"."teams_history" ALTER COLUMN "motto" DROP NOT NULL;',
     );
+  });
+});
+
+describe('rewriteHistorySetNotNull', () => {
+  it('removes a SET NOT NULL statement on a history table', () => {
+    const sql =
+      'ALTER TABLE "game_data"."competitions_history" ALTER COLUMN "start_date" SET NOT NULL;';
+    expect(rewriteHistorySetNotNull(sql)).toBe('');
+  });
+
+  it('removes the history statement without leaving a dangling or doubled breakpoint', () => {
+    const sql =
+      'ALTER TABLE "game_data"."competitions" ALTER COLUMN "start_date" SET NOT NULL;--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."competitions_history" ALTER COLUMN "start_date" SET NOT NULL;';
+    expect(rewriteHistorySetNotNull(sql)).toBe(
+      'ALTER TABLE "game_data"."competitions" ALTER COLUMN "start_date" SET NOT NULL;',
+    );
+  });
+
+  it('removes a history statement from the middle of a multi-statement migration', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches" ALTER COLUMN "name" SET NOT NULL;--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."coaches_history" ALTER COLUMN "name" SET NOT NULL;--> statement-breakpoint\n' +
+      'ALTER TABLE "game_data"."teams" ALTER COLUMN "motto" SET NOT NULL;';
+    expect(rewriteHistorySetNotNull(sql)).toBe(
+      'ALTER TABLE "game_data"."coaches" ALTER COLUMN "name" SET NOT NULL;--> statement-breakpoint\n' +
+        'ALTER TABLE "game_data"."teams" ALTER COLUMN "motto" SET NOT NULL;',
+    );
+    expect(rewriteHistorySetNotNull(sql)).not.toContain(
+      '--> statement-breakpoint\n--> statement-breakpoint',
+    );
+  });
+
+  it('leaves a SET NOT NULL on a non-history (tracked) table untouched', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches" ALTER COLUMN "name" SET NOT NULL;';
+    expect(rewriteHistorySetNotNull(sql)).toBe(sql);
+  });
+
+  it('returns sql unchanged when there is no history SET NOT NULL statement', () => {
+    const sql =
+      'ALTER TABLE "game_data"."coaches_history" DROP COLUMN "nickname";';
+    expect(rewriteHistorySetNotNull(sql)).toBe(sql);
   });
 });
 

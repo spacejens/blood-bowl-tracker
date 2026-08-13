@@ -12,7 +12,7 @@ export const CompetitionSchema = z.object({
   type: z.enum(['season', 'cup']),
   eraId: z.number(),
   teamEraIds: z.array(z.number()),
-  startDate: z.string().nullable(),
+  startDate: z.string(),
   endDate: z.string().nullable(),
   createdAt: z.coerce.date(),
 });
@@ -22,12 +22,12 @@ export const UpsertCompetitionSchema = z.object({
   type: z.enum(['season', 'cup']).optional(),
   eraId: z.number().int().optional(),
   teamEraIds: z.array(z.number().int()).default([]),
-  // Nullable AND optional: omitting a date leaves the stored value alone,
-  // an explicit null clears it. Both dates are nullable (unlike era's
-  // required startDate) because a competition's end date is not always
-  // derivable, and pre-existing rows may still be unpopulated; #434 tightens
-  // startDate to NOT NULL once every importer supplies it.
-  startDate: IsoDate.nullable().optional(),
+  // startDate is optional but not nullable: omitting it on an update leaves
+  // the stored value alone, but a required column can never be cleared to
+  // null. endDate stays nullable AND optional — omitting it leaves the
+  // stored value alone, an explicit null clears it — because a competition's
+  // end date is not always derivable.
+  startDate: IsoDate.optional(),
   endDate: IsoDate.nullable().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
