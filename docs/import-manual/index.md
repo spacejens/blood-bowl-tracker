@@ -226,6 +226,11 @@ systems could not supply:
   row). The file declares no eras, league or rules sets: since upserts overlay,
   omitting a competition's `era` leaves its stored era alone, so there is
   nothing to resolve a reference against and nothing to redeclare.
+  A manual competition entry can therefore only ever *update* an existing
+  competition, never create one: `competitions.startDate` is a required
+  column and `competitions.json5` has no field for it. If an entry's
+  external IDs don't match an existing row, the upsert now fails loudly
+  (`MissingRequiredFieldError`) instead of silently creating a dateless row.
 
 ## Data layout
 

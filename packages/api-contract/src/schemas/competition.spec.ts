@@ -35,18 +35,18 @@ describe('competition schemas', () => {
   });
 
   it('CompetitionSchema rejects a null startDate', () => {
-    expect(() =>
-      CompetitionSchema.parse({
-        id: 1,
-        name: 'Major Season 24',
-        type: 'season',
-        eraId: 20,
-        teamEraIds: [],
-        startDate: null,
-        endDate: null,
-        createdAt: '2026-01-01T00:00:00.000Z',
-      }),
-    ).toThrow();
+    const result = CompetitionSchema.safeParse({
+      id: 1,
+      name: 'Major Season 24',
+      type: 'season',
+      eraId: 20,
+      teamEraIds: [],
+      startDate: null,
+      endDate: null,
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toContain('startDate');
   });
 
   it('UpsertCompetitionSchema accepts valid ISO dates', () => {
@@ -97,12 +97,12 @@ describe('competition schemas', () => {
   });
 
   it('UpsertCompetitionSchema rejects an explicit null startDate — a competition always has a start date', () => {
-    expect(() =>
-      UpsertCompetitionSchema.parse({
-        startDate: null,
-        externalIds: [{ externalSystemId: 1, externalId: '73' }],
-      }),
-    ).toThrow();
+    const result = UpsertCompetitionSchema.safeParse({
+      startDate: null,
+      externalIds: [{ externalSystemId: 1, externalId: '73' }],
+    });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toContain('startDate');
   });
 
   it('UpsertCompetitionSchema accepts an externalIds-only rename payload', () => {

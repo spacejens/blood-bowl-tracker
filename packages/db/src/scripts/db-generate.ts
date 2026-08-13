@@ -155,6 +155,35 @@ export function rewriteHistoryDropColumns(migrationSql: string): string {
 }
 
 /**
+ * A history table must never gain a NOT NULL constraint: history rows are
+ * immutable snapshots, and a row written before a column was tightened can
+ * never be backfilled, so applying the tracked table's new NOT NULL to its
+ * history counterpart would abort the migration against any non-empty
+ * database. drizzle-kit mirrors a tracked column's `notNull` onto the
+ * history table anyway (historyTrackedTable() in
+ * packages/db/src/schema/history.ts keeps the TS schema, and therefore
+ * snapshot.json, saying the history column is NOT NULL — that's intentional,
+ * see that file's comment), so this removes the resulting `ALTER TABLE
+ * ..._history ALTER COLUMN ... SET NOT NULL;` statement entirely from the
+ * generated SQL rather than rewriting it to something else. Unlike
+ * rewriteHistoryDropColumns, this deletes a whole statement, so it also has
+ * to consume exactly one adjacent `--> statement-breakpoint` marker to avoid
+ * leaving a dangling or doubled breakpoint behind — this works by splitting
+ * the SQL on the breakpoint marker, dropping any statement that matches, and
+ * rejoining, which naturally collapses the separator count to match the
+ * remaining statements.
+ */
+export function rewriteHistorySetNotNull(migrationSql: string): string {
+  const separator = '--> statement-breakpoint\n';
+  const statementPattern =
+    /^ALTER TABLE "[^"]+"\."[^"]+_history" ALTER COLUMN "[^"]+" SET NOT NULL;$/;
+  const statements = migrationSql
+    .split(separator)
+    .filter((statement) => !statementPattern.test(statement.trim()));
+  return statements.join(separator);
+}
+
+/**
  * Rewrites the freshly generated SQL for a brand-new history table:
  *  - Replaces drizzle-kit's explicit `CREATE TABLE ..._history ( ... );`
  *    (columns + inline PK) with `CREATE TABLE ..._history (LIKE "s"."t");`.
@@ -227,6 +256,10 @@ function main() {
     // old history rows survive. Applies to every migration, not only ones
     // that also create a new history table.
     let sql = rewriteHistoryDropColumns(originalSql);
+    // A tracked column tightened to NOT NULL must never tighten its history
+    // counterpart the same way: pre-existing history rows can never be
+    // backfilled. Applies to every migration, unconditionally.
+    sql = rewriteHistorySetNotNull(sql);
 
     for (const qualified of newHistoryTables) {
       const [schemaName, historyTableName] = qualified.split('.');

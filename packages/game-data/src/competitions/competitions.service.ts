@@ -60,10 +60,7 @@ export class CompetitionsService {
     });
 
     const teamEraIds = await this.syncTeamEras(competition.id, data.teamEraIds);
-    return {
-      competition: { ...competition, teamEraIds },
-      created,
-    };
+    return { competition: { ...competition, teamEraIds }, created };
   }
 
   private async syncTeamEras(

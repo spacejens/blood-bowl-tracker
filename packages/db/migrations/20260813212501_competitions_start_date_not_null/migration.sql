@@ -1,0 +1,2 @@
+-- competitions_history.start_date intentionally stays nullable: history rows predating this migration can never be backfilled, since history snapshots are immutable. See rewriteHistorySetNotNull in db-generate.ts.
+ALTER TABLE "game_data"."competitions" ALTER COLUMN "start_date" SET NOT NULL;
