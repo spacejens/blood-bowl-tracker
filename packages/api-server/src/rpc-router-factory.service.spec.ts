@@ -930,7 +930,7 @@ describe('RpcRouterFactoryService', () => {
       updatedPlayerIds: [3],
     });
 
-    const input = { playerIds: [3, 4] };
+    const input = { players: [{ playerId: 3 }, { playerId: 4 }] };
     const result = await call(router.players.syncReportedSppAdjustments, input);
 
     expect(result).toEqual({ updatedPlayerIds: [3] });

@@ -75,7 +75,7 @@ describe('SppAdjustmentsImportService', () => {
     client.players.syncReportedSppAdjustments.mockResolvedValue({
       updatedPlayerIds: [2],
     });
-    const data = { playerIds: [2] };
+    const data = { players: [{ playerId: 2 }] };
 
     const result = await service.syncReportedSppAdjustments(data, errors);
 
@@ -88,7 +88,10 @@ describe('SppAdjustmentsImportService', () => {
   it('stringifies a non-Error rejection from the reported sync call', async () => {
     client.players.syncReportedSppAdjustments.mockRejectedValue('nope');
 
-    await service.syncReportedSppAdjustments({ playerIds: [2] }, errors);
+    await service.syncReportedSppAdjustments(
+      { players: [{ playerId: 2 }] },
+      errors,
+    );
 
     expect(errors[0].message).toContain('nope');
   });
@@ -99,7 +102,7 @@ describe('SppAdjustmentsImportService', () => {
     );
 
     const result = await service.syncReportedSppAdjustments(
-      { playerIds: [3, 4] },
+      { players: [{ playerId: 3 }, { playerId: 4 }] },
       errors,
     );
 

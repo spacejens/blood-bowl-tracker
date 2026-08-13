@@ -47,27 +47,85 @@ export const SyncScrapedSppAdjustmentsSchema = z.object({
 });
 
 /**
+ * TP's career-wide action counts for one player, folded into the groups TP's
+ * own counters use. Each key IS the `action_type` whose `spp_award_values` row
+ * prices the whole group: `interception` stands in for deflections too (TP
+ * reports one combined counter and its raw JSON has no deflection field), and
+ * `casualty` stands in for every casualty severity (TP reports one combined
+ * counter). Career-wide means inclusive of competitions that have not been
+ * imported locally yet -- which is the entire point of sending them.
+ */
+export const SppCareerCountsSchema = z.object({
+  touchdown: z.number().int().nonnegative(),
+  completion: z.number().int().nonnegative(),
+  interception: z.number().int().nonnegative(),
+  mvp_award: z.number().int().nonnegative(),
+  casualty: z.number().int().nonnegative(),
+});
+
+/**
  * Recompute `players.spp_adjustment` for players whose already-stored
  * `players.spp_total` is an independently trusted, era-correct figure — TP.
- * `players.spp_total` itself is left untouched; a player with no stored
- * total is skipped.
+ * `players.spp_total` is rewritten to remove the estimated ongoing SPP,
+ * without dropping below the confirmed imported total. A player with no
+ * stored total is skipped.
+ *
+ * `careerCounts` is optional: when present, the server subtracts an estimate of
+ * the SPP the player's not-yet-imported (ongoing competition) events would
+ * contribute before measuring what is left unexplained. When absent — e.g. a
+ * player only ever seen in a match-embedded roster snapshot, which carries no
+ * counters — no estimate is made and the gap is measured against the imported
+ * events alone.
  */
 export const SyncReportedSppAdjustmentsSchema = z.object({
-  playerIds: z.array(z.number().int()),
+  players: z.array(
+    z.object({
+      playerId: z.number().int(),
+      careerCounts: SppCareerCountsSchema.optional(),
+    }),
+  ),
+});
+
+/** One player left with a nonzero `spp_adjustment` after a sync. */
+export const SppAdjustmentSummarySchema = z.object({
+  playerId: z.number().int(),
+  name: z.string(),
+  adjustment: z.number().int(),
 });
 
 export const SyncSppAdjustmentsResultSchema = z.object({
   updatedPlayerIds: z.array(z.number().int()),
+  /**
+   * Every player this call left with a nonzero adjustment, biggest first — a
+   * developer review aid the TP importer prints at the end of its run, so a
+   * remaining discrepancy can be eyeballed against the grouping approximations
+   * the estimate makes. Optional: only the reported (TP) path populates it.
+   */
+  nonzeroAdjustments: z.array(SppAdjustmentSummarySchema).optional(),
 });
+
+/**
+ * Every career-count group key, in a fixed order. Exported so consumers can
+ * iterate the groups without restating the list (and drifting from it).
+ */
+export const SPP_CAREER_COUNT_KEYS = [
+  'touchdown',
+  'completion',
+  'interception',
+  'mvp_award',
+  'casualty',
+] as const satisfies readonly (keyof SppCareerCounts)[];
 
 export type Player = z.infer<typeof PlayerSchema>;
 export type UpsertPlayer = z.infer<typeof UpsertPlayerSchema>;
 export type SyncScrapedSppAdjustments = z.infer<
   typeof SyncScrapedSppAdjustmentsSchema
 >;
+export type SppCareerCounts = z.infer<typeof SppCareerCountsSchema>;
 export type SyncReportedSppAdjustments = z.infer<
   typeof SyncReportedSppAdjustmentsSchema
 >;
+export type SppAdjustmentSummary = z.infer<typeof SppAdjustmentSummarySchema>;
 export type SyncSppAdjustmentsResult = z.infer<
   typeof SyncSppAdjustmentsResultSchema
 >;
