@@ -93,6 +93,83 @@ describe('CompetitionsService', () => {
       });
     });
 
+    it('inserts both dates when the payload supplies them', async () => {
+      const { chains } = await build([], [fakeCompetition]);
+
+      await service.upsert({
+        ...baseData,
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
+      });
+
+      expect(firstCallArg(chains[1].values)).toEqual({
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
+      });
+    });
+
+    it('omits the dates from the insert when the payload omits them', async () => {
+      const { chains } = await build([], [fakeCompetition]);
+
+      await service.upsert({
+        ...baseData,
+        startDate: undefined,
+        endDate: undefined,
+      });
+
+      expect(firstCallArg(chains[1].values)).toStrictEqual({
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+      });
+    });
+
+    it('leaves stored dates alone on update when the payload omits them', async () => {
+      // query 0: the external-id lookup matches competition 1; query 1: the
+      // update.
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
+        [fakeCompetition],
+      );
+
+      await service.upsert({
+        ...baseData,
+        startDate: undefined,
+        endDate: undefined,
+      });
+
+      expect(firstCallArg(chains[1].set)).toStrictEqual({
+        name: 'Major Season 24',
+        type: 'season',
+        eraId: 20,
+      });
+    });
+
+    it('writes null on update when the payload explicitly clears endDate', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
+        [fakeCompetition],
+      );
+
+      await service.upsert({ ...baseData, endDate: null });
+
+      expect(firstCallArg(chains[1].set)).toMatchObject({ endDate: null });
+    });
+
+    it('writes null on update when the payload explicitly clears startDate', async () => {
+      const { chains } = await build(
+        [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
+        [fakeCompetition],
+      );
+
+      await service.upsert({ ...baseData, startDate: null });
+
+      expect(firstCallArg(chains[1].set)).toMatchObject({ startDate: null });
+    });
+
     it('updates the matching competition when exactly one external ID matches', async () => {
       const { db } = await build(
         [{ ownerId: 1, externalSystemId: 1, externalId: '73' }],
