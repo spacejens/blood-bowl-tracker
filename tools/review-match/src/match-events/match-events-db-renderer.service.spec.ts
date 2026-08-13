@@ -1,12 +1,12 @@
 import { DB } from '@blood-bowl-tracker/db';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
+import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import type { MockDbResult } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
-import { HtmlService } from '../shared/html.service';
 import type { SampledMatch } from '../shared/review.types';
 import { MatchEventsDbRendererService } from './match-events-db-renderer.service';
 

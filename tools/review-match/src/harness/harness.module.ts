@@ -1,5 +1,10 @@
+import {
+  REPORT_OUTPUT_PATH,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { ReviewMatchConfigService } from '../config/review-match-config.service';
 import { MatchCategoryStratificationService } from '../match-events/match-category-stratification.service';
 import { MatchEventStratificationService } from '../match-events/match-event-stratification.service';
 import { MatchEventsModule } from '../match-events/match-events.module';
@@ -12,7 +17,6 @@ import { MatchLookupService } from './match-lookup.service';
 import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 import { ReviewService } from './review.service';
 
 /**
@@ -30,6 +34,7 @@ import { ReviewService } from './review.service';
     MatchSamplerService,
     ReportBuilderService,
     ReportWriterService,
+    { provide: REPORT_OUTPUT_PATH, useExisting: ReviewMatchConfigService },
     ReviewService,
     {
       provide: DATA_TYPE_REVIEWERS,

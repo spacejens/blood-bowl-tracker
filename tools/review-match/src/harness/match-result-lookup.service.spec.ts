@@ -1,8 +1,8 @@
 import { DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { MatchResultLookupService } from './match-result-lookup.service';
 
 async function makeService(
