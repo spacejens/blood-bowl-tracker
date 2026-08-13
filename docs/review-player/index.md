@@ -13,9 +13,9 @@ looks duplicated from `tools/review-match` (the HTML formatter, the SPP comparis
 event-label table) is duplicated on purpose: sharing it would let a bug agree with itself
 instead of showing up as a difference.
 
-Scope today is player info and star player point totals. Skills, injuries and
-characteristics are deliberately deferred — each will plug in as another data-type module
-without touching the harness services.
+Scope today is player info and [Star Player Points](../glossary.md#star-player-points-spp)
+totals. Skills, injuries and characteristics are deliberately deferred — each will plug
+in as another data-type module without touching the harness services.
 
 ## What it does
 
