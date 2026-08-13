@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { PlayerInfoModule } from '../player-info/player-info.module';
 import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
+import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
 import { SharedModule } from '../shared/shared.module';
@@ -43,10 +44,12 @@ import { ReviewService } from './review.service';
       useFactory: (
         discrepancy: SppDiscrepancyStratificationService,
         random: RandomPlayerStratificationService,
-      ) => [discrepancy, random],
+        starPlayers: StarPlayerStratificationService,
+      ) => [discrepancy, random, starPlayers],
       inject: [
         SppDiscrepancyStratificationService,
         RandomPlayerStratificationService,
+        StarPlayerStratificationService,
       ],
     },
   ],

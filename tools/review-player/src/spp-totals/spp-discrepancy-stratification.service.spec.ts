@@ -135,4 +135,20 @@ describe('SppDiscrepancyStratificationService', () => {
       service.sampleStratum({ source: 'bbl', stratumId: 'nope', limit: 3 }),
     ).rejects.toThrow(/Unknown player stratum "nope"/);
   });
+
+  it('excludes star player positions', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.sampleStratum({
+      source: 'bbl',
+      stratumId: 'spp-discrepancy',
+      limit: 3,
+    });
+
+    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    const { sql: rendered } = new PgDialect().sqlToQuery(condition);
+    expect(rendered).toContain('"is_star_player"');
+    expect(rendered).toMatch(/=\s*\$1/);
+  });
 });

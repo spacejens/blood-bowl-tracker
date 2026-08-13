@@ -37,6 +37,13 @@ const DISCREPANCY_STRATUM = 'spp-discrepancy';
  * problem is never sampled away. A run against a badly-imported database can
  * therefore produce a very large report — that is the honest signal, and the
  * fix is to repair the import, not to truncate the list.
+ *
+ * Excludes star players: an induced star player has no source-reported SPP
+ * total at all (`spp_total` is always NULL for them), so every one of them
+ * would always disagree — that's the expected, unavoidable state for a star
+ * player, not a real discrepancy worth an uncapped stratum flooding the
+ * report with. `StarPlayerStratificationService` covers star players
+ * separately, in their own bounded stratum (see issue #245).
  */
 @Injectable()
 export class SppDiscrepancyStratificationService implements PlayerStratifier {
@@ -91,6 +98,7 @@ export class SppDiscrepancyStratificationService implements PlayerStratifier {
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(positions, eq(positions.id, players.positionId))
       .leftJoin(matchEvents, eq(matchEvents.actingPlayerId, players.id))
+      .where(eq(positions.isStarPlayer, false))
       .groupBy(
         players.id,
         players.name,

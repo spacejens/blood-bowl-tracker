@@ -9,11 +9,11 @@ import type { MockDbResult } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
-import { RandomPlayerStratificationService } from './random-player-stratification.service';
+import { StarPlayerStratificationService } from './star-player-stratification.service';
 
 async function makeService(
   dbResult: MockDbResult,
-): Promise<RandomPlayerStratificationService> {
+): Promise<StarPlayerStratificationService> {
   const externalSystems = mock<ExternalSystemLookupService>();
   externalSystems.getSystemId.mockResolvedValue(3);
   // PlayerProjectionQueryService injects DB and issues a real query, so it
@@ -25,33 +25,33 @@ async function makeService(
   query.base.mockImplementation(() => dbResult.db.select() as never);
   const moduleRef = await Test.createTestingModule({
     providers: [
-      RandomPlayerStratificationService,
+      StarPlayerStratificationService,
       { provide: PlayerProjectionQueryService, useValue: query },
       { provide: DB, useValue: dbResult.db },
       { provide: ExternalSystemLookupService, useValue: externalSystems },
     ],
   }).compile();
-  return moduleRef.get(RandomPlayerStratificationService);
+  return moduleRef.get(StarPlayerStratificationService);
 }
 
-describe('RandomPlayerStratificationService', () => {
-  it('offers one random-sample stratum covering both sources', async () => {
+describe('StarPlayerStratificationService', () => {
+  it('offers one star-players stratum covering both sources', async () => {
     const service = await makeService(mockDb());
 
     expect(service.listStrata()).toEqual([
-      { id: 'random', label: 'Random sample', sources: ['bbl', 'tp'] },
+      { id: 'star-players', label: 'Star players', sources: ['bbl', 'tp'] },
     ]);
   });
 
-  it('returns the sampled players tagged with the requested source', async () => {
+  it('returns the sampled star players tagged with the requested source', async () => {
     const service = await makeService(
       mockDb([
         {
-          playerId: 42,
-          externalId: '1000',
-          playerName: 'Janhorgh',
+          playerId: 7,
+          externalId: '2000',
+          playerName: "Morg 'n' Thorg",
           teamName: 'Bockar',
-          positionName: 'Lineman',
+          positionName: 'Star Player',
           eraName: 'Third Era',
         },
       ]),
@@ -59,21 +59,37 @@ describe('RandomPlayerStratificationService', () => {
 
     const players = await service.sampleStratum({
       source: 'bbl',
-      stratumId: 'random',
+      stratumId: 'star-players',
       limit: 3,
     });
 
     expect(players).toEqual([
       {
         source: 'bbl',
-        playerId: 42,
-        externalId: '1000',
-        playerName: 'Janhorgh',
+        playerId: 7,
+        externalId: '2000',
+        playerName: "Morg 'n' Thorg",
         teamName: 'Bockar',
-        positionName: 'Lineman',
+        positionName: 'Star Player',
         eraName: 'Third Era',
       },
     ]);
+  });
+
+  it('filters to star player positions only', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.sampleStratum({
+      source: 'bbl',
+      stratumId: 'star-players',
+      limit: 3,
+    });
+
+    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
+    const { sql: rendered } = new PgDialect().sqlToQuery(condition);
+    expect(rendered).toContain('"is_star_player"');
+    expect(rendered).toMatch(/=\s*\$1/);
   });
 
   it('applies the requested limit to the query', async () => {
@@ -82,7 +98,7 @@ describe('RandomPlayerStratificationService', () => {
 
     await service.sampleStratum({
       source: 'tp',
-      stratumId: 'random',
+      stratumId: 'star-players',
       limit: 5,
     });
 
@@ -95,21 +111,5 @@ describe('RandomPlayerStratificationService', () => {
     await expect(
       service.sampleStratum({ source: 'bbl', stratumId: 'nope', limit: 3 }),
     ).rejects.toThrow(/Unknown player stratum "nope"/);
-  });
-
-  it('excludes star player positions', async () => {
-    const dbResult = mockDb([]);
-    const service = await makeService(dbResult);
-
-    await service.sampleStratum({
-      source: 'bbl',
-      stratumId: 'random',
-      limit: 3,
-    });
-
-    const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
-    const { sql: rendered } = new PgDialect().sqlToQuery(condition);
-    expect(rendered).toContain('"is_star_player"');
-    expect(rendered).toMatch(/=\s*\$1/);
   });
 });

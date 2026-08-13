@@ -10,23 +10,23 @@ import type {
 } from '../shared/player-stratifier';
 import type { ReviewPlayer, ReviewStratum } from '../shared/review.types';
 
-const RANDOM_STRATUM = 'random';
+const STAR_PLAYER_STRATUM = 'star-players';
 
 /**
- * A plain random sample of players known to a source. Random rather than
- * newest-first: a stratum that always shows the same handful of most recent
- * players stops being a sample after the first run.
- *
- * Excludes star players: a popular star gets induced by many teams, so
- * today's data model gives them one `players` row per hire (see issue #245)
- * — left in, they would crowd out ordinary players in a report several-fold.
- * `StarPlayerStratificationService` covers them separately, in their own
- * bounded stratum.
+ * A random sample of star players, kept in its own bounded stratum rather
+ * than mixed into the regular random sample: a popular star gets induced by
+ * many teams, so today's data model gives them one `players` row per hire
+ * (see issue #245) — if left in the general pool they crowd out ordinary
+ * players in a report several-fold. Random-sample and discrepancy strata
+ * both exclude star players outright; this is the only place they appear,
+ * and — unlike the discrepancy stratum — this one obeys `limit`, since an
+ * uncapped star-player stratum would reintroduce the same overrepresentation
+ * it exists to avoid.
  */
 @Injectable()
-export class RandomPlayerStratificationService implements PlayerStratifier {
+export class StarPlayerStratificationService implements PlayerStratifier {
   private readonly strata: readonly ReviewStratum[] = [
-    { id: RANDOM_STRATUM, label: 'Random sample', sources: ['bbl', 'tp'] },
+    { id: STAR_PLAYER_STRATUM, label: 'Star players', sources: ['bbl', 'tp'] },
   ];
 
   constructor(
@@ -43,15 +43,15 @@ export class RandomPlayerStratificationService implements PlayerStratifier {
     stratumId,
     limit,
   }: StratumSampleRequest): Promise<ReviewPlayer[]> {
-    if (stratumId !== RANDOM_STRATUM) {
+    if (stratumId !== STAR_PLAYER_STRATUM) {
       throw new Error(
-        `Unknown player stratum "${stratumId}". Known strata: ${RANDOM_STRATUM}.`,
+        `Unknown player stratum "${stratumId}". Known strata: ${STAR_PLAYER_STRATUM}.`,
       );
     }
     const externalSystemId = await this.externalSystems.getSystemId(source);
     const rows = await this.query
       .base(externalSystemId)
-      .where(eq(positions.isStarPlayer, false))
+      .where(eq(positions.isStarPlayer, true))
       .orderBy(sql`random()`)
       .limit(limit);
     return rows.map((row) => ({ source, ...row }));
