@@ -165,16 +165,14 @@
             ],
           },
           // Optional group -- omit entirely when an era has neither override
-          // list. seasonCompetitionIdOverrides/cupCompetitionIdOverrides are
-          // competition bblIds hard-assigned to this era and forced to type
-          // season/cup respectively, regardless of match dates -- for a
-          // competition with a genuinely empty match list, or whose date span
-          // would otherwise misclassify its type. Checked before the
-          // match-date scan, so unaffected by autoAssignByDate. A competition
-          // bblId may appear in only one of these lists across all eras.
-          // dateOverrides is the third optional key in this group, providing
-          // explicit startDate/endDate for an overridden competition that has
-          // no dated matches at all to derive them from.
+          // list nor dateOverrides. seasonCompetitionIdOverrides/
+          // cupCompetitionIdOverrides are competition bblIds hard-assigned to
+          // this era and forced to type season/cup respectively, regardless
+          // of match dates -- for a competition with a genuinely empty match
+          // list, or whose date span would otherwise misclassify its type.
+          // Checked before the match-date scan, so unaffected by
+          // autoAssignByDate. A competition bblId may appear in only one of
+          // these lists across all eras.
           competitions: {
             seasonCompetitionIdOverrides: ['74'],
             // Explicit dates for an overridden competition that has no dated
