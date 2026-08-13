@@ -189,6 +189,54 @@ describe('MatchParserService', () => {
     ]);
   });
 
+  it('leaves careerCounts undefined on match-embedded roster players', () => {
+    // Match-embedded lineUps[] entries carry totalStarPlayerPoints but none of
+    // the per-action-type career counters (verified against real TP data), so
+    // they never contribute an ongoing-competition estimate. matchBody()'s
+    // default lineUps are empty, so this overrides both sides with one player
+    // each rather than asserting on an always-undefined missing array index.
+    const match = service.parse(
+      matchBody({
+        inscriptionLocal: {
+          roster: {
+            id: 10,
+            lineUps: [
+              {
+                id: 2412443,
+                name: 'The Agitated Deviation',
+                number: 1,
+                lineUpMasterId: 952,
+                rosterId: 10,
+                position: 'Dwarf Lineman',
+                isBigGuy: false,
+                totalStarPlayerPoints: 23,
+              },
+            ],
+          },
+        },
+        inscriptionVisitor: {
+          roster: {
+            id: 20,
+            lineUps: [
+              {
+                id: 2412500,
+                name: 'A Departed Player',
+                number: 7,
+                lineUpMasterId: 953,
+                rosterId: 20,
+                position: 'Dwarf Runner',
+                isBigGuy: false,
+                totalStarPlayerPoints: 35,
+              },
+            ],
+          },
+        },
+      }),
+    );
+    expect(match.homeRosterPlayers[0]?.careerCounts).toBeUndefined();
+    expect(match.awayRosterPlayers[0]?.careerCounts).toBeUndefined();
+  });
+
   it('maps a match-embedded mercenary Big Guy entry (isBigGuy true, inline position name)', () => {
     const result = service.parse(
       matchBody({

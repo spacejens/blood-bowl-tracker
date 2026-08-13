@@ -224,4 +224,92 @@ describe('RosterParserService', () => {
       ),
     ).toThrow(/totalStarPlayerPoints/);
   });
+
+  it('parses the per-action-type career counters into careerCounts', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            isBigGuy: false,
+            totalStarPlayerPoints: 23,
+            totalTouchdowns: 12,
+            totalPass: 4,
+            totalInterceptions: 2,
+            totalMVP: 3,
+            totalCasualties: 5,
+          },
+        ],
+      }),
+    );
+    expect(roster.players[0]?.careerCounts).toEqual({
+      touchdowns: 12,
+      completions: 4,
+      interceptions: 2,
+      mvpAwards: 3,
+      casualties: 5,
+    });
+  });
+
+  it('leaves careerCounts undefined when the counters are absent', () => {
+    // Match-embedded roster snapshots carry totalStarPlayerPoints but none of
+    // the per-action-type counters; such a player gets no ongoing-competition
+    // estimate rather than a wrong one.
+    expect(
+      service.parse(rosterBody()).players[0]?.careerCounts,
+    ).toBeUndefined();
+  });
+
+  it('leaves careerCounts undefined when only some counters are present', () => {
+    const roster = service.parse(
+      rosterBody({
+        lineUps: [
+          {
+            id: 2412443,
+            name: 'The Agitated Deviation',
+            number: 1,
+            lineUpMasterId: 952,
+            rosterId: 123,
+            position: 'Dwarf Lineman',
+            isBigGuy: false,
+            totalStarPlayerPoints: 23,
+            totalTouchdowns: 12,
+            totalPass: 4,
+          },
+        ],
+      }),
+    );
+    expect(roster.players[0]?.careerCounts).toBeUndefined();
+  });
+
+  it('rejects a fractional career counter', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              isBigGuy: false,
+              totalStarPlayerPoints: 23,
+              totalTouchdowns: 1.5,
+              totalPass: 4,
+              totalInterceptions: 2,
+              totalMVP: 3,
+              totalCasualties: 5,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/totalTouchdowns/);
+  });
 });
