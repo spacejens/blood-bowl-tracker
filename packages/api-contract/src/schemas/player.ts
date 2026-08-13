@@ -66,8 +66,9 @@ export const SppCareerCountsSchema = z.object({
 /**
  * Recompute `players.spp_adjustment` for players whose already-stored
  * `players.spp_total` is an independently trusted, era-correct figure — TP.
- * `players.spp_total` itself is left untouched; a player with no stored
- * total is skipped.
+ * `players.spp_total` is rewritten to remove the estimated ongoing SPP,
+ * without dropping below the confirmed imported total. A player with no
+ * stored total is skipped.
  *
  * `careerCounts` is optional: when present, the server subtracts an estimate of
  * the SPP the player's not-yet-imported (ongoing competition) events would
