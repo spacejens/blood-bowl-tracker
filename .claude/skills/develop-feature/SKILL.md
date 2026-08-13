@@ -324,10 +324,15 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    **Each iteration:**
 
    a. **Wait for a review.** The threshold for "new" reviews is a watermark carried across iterations, not a freshly captured timestamp each time — see why below.
-      - **First iteration only:** immediately before waiting, capture the current time as the watermark; there is no previous review yet, so there is no id to exclude:
+      - **First iteration only:** immediately before waiting, use the PR's own creation time — as recorded by GitHub — as the watermark, not a freshly captured wall-clock timestamp. CodeRabbit reacts to the PR-created webhook almost instantly and can post its rate-limit comment before a `date +%s` captured after `gh pr create` returns; anchoring to `createdAt` closes that race because GitHub fixes it at PR-creation time, before any webhook response can occur. There is no previous review yet, so there is no id to exclude:
         ```bash
-        cd <worktree-path> && date +%s
+        cd <worktree-path> && gh pr view <PR> --json createdAt --jq .createdAt
         ```
+        Then convert to epoch seconds, the same way later iterations convert their own source timestamp:
+        ```bash
+        cd <worktree-path> && node -e "console.log(Math.floor(new Date('<createdAt>').getTime() / 1000))"
+        ```
+        Substitute `<createdAt>` with the exact ISO-8601 value returned by the `gh pr view` call, and `<PR>` with the PR number from step 3.
       - **Every later iteration:** reuse the `submittedAt` of the review found and handled in the previous iteration's step (c) — converted to epoch seconds — as this iteration's watermark, and also carry forward its `id` to exclude:
         ```bash
         cd <worktree-path> && node -e "console.log(Math.floor(new Date('<submittedAt>').getTime() / 1000))"
