@@ -885,6 +885,40 @@ describe('WaitForPrReviewService', () => {
     expect(triggerCalls()).toHaveLength(0);
   });
 
+  it('still triggers a review when a stale rate-limit comment is found in the same poll', async () => {
+    // A retry (develop-feature's Phase 6 step b2) sets `--trigger-after` to
+    // force an immediate retrigger, but only excludes the one rate-limit
+    // comment id it already knows about. If a second, still-unexcluded
+    // rate-limit comment is found on the very first poll, the trigger must
+    // still fire rather than being skipped by the early return below it.
+    processRunner.run.mockResolvedValue(RATE_LIMITED);
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(result).toMatchObject({ found: false, rateLimited: true });
+  });
+
+  it('still triggers a review when a stale comment-update-failure comment is found in the same poll', async () => {
+    // Same reasoning as the rate-limit case above, for a b3 retry.
+    processRunner.run.mockResolvedValue(COMMENT_UPDATE_FAILED);
+
+    const result = await runWait({
+      ...OPTIONS,
+      triggerAfterEpochSeconds: Math.floor(Date.now() / 1000),
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(triggerCalls()).toHaveLength(1);
+    expect(result).toMatchObject({ found: false, commentUpdateFailed: true });
+  });
+
   it('returns a synthesized review when CodeRabbit reports no actionable comments', async () => {
     mockPoll(EMPTY, completionResult(COMPLETION_CANDIDATE));
 

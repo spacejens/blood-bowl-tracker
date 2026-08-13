@@ -46,7 +46,7 @@ export interface WaitForPrReviewOptions {
  * warning or its "couldn't update its existing comment" failure notice. The
  * shape is comment-kind-agnostic, so both kinds reuse it.
  */
-export interface RateLimitComment {
+export interface CodeRabbitComment {
   readonly id: string;
   readonly body: string;
   /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
@@ -62,7 +62,7 @@ export interface WaitForPrReviewResult {
   /** True only when a qualifying CodeRabbit rate-limit comment was found instead of a review. */
   readonly rateLimited?: boolean;
   /** Present only when `rateLimited` is true. */
-  readonly rateLimitComment?: RateLimitComment;
+  readonly rateLimitComment?: CodeRabbitComment;
   /**
    * Best-effort epoch parsed from the comment body when it states a relative
    * duration ("available again in 45 minutes", "retry in 2 hours"). Absent
@@ -73,14 +73,14 @@ export interface WaitForPrReviewResult {
   /** True only when a qualifying CodeRabbit "couldn't update its existing comment" failure was found instead of a review. */
   readonly commentUpdateFailed?: boolean;
   /** Present only when `commentUpdateFailed` is true. */
-  readonly commentUpdateFailedComment?: RateLimitComment;
+  readonly commentUpdateFailedComment?: CodeRabbitComment;
 }
 
 /** What one poll saw; all comment/review fields absent means "nothing qualifying yet". */
 interface PollOutcome {
   readonly review?: unknown;
-  readonly rateLimitComment?: RateLimitComment;
-  readonly commentUpdateFailedComment?: RateLimitComment;
+  readonly rateLimitComment?: CodeRabbitComment;
+  readonly commentUpdateFailedComment?: CodeRabbitComment;
   /**
    * The PR's current head commit, read from the same `gh pr view` call
    * (widened to also request `headRefOid`) — carried through so the
@@ -247,14 +247,16 @@ export class WaitForPrReviewService {
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
       }
-      if (outcome?.rateLimitComment !== undefined) {
-        return this.rateLimitedResult(outcome.rateLimitComment);
-      }
-      if (outcome?.commentUpdateFailedComment !== undefined) {
-        return this.commentUpdateFailedResult(
-          outcome.commentUpdateFailedComment,
-        );
-      }
+      // Checked here — after a formal review has ruled itself out, but
+      // before the rate-limit/comment-update-failure early returns below —
+      // so a stale, still-unexcluded comment of either kind (e.g. a second
+      // failure notice from before this wait's own watermark) cannot make
+      // this iteration return early without the trigger ever firing. A
+      // caller-requested retrigger (develop-feature's Phase 6 steps b2/b3)
+      // must fire once due, regardless of what else this same poll matched.
+      // A found review needs no retrigger — that outcome is already the
+      // wait's success case — so it is excluded from this reasoning and
+      // returns above without ever reaching this check.
       if (!triggered && this.shouldTrigger(options)) {
         // Set before awaiting: a slow or failing post must not be retried on
         // every interval for the rest of the wait.
@@ -262,6 +264,14 @@ export class WaitForPrReviewService {
         await this.triggerReview(
           options.prNumber,
           this.budgetMs(deadline, intervalMs),
+        );
+      }
+      if (outcome?.rateLimitComment !== undefined) {
+        return this.rateLimitedResult(outcome.rateLimitComment);
+      }
+      if (outcome?.commentUpdateFailedComment !== undefined) {
+        return this.commentUpdateFailedResult(
+          outcome.commentUpdateFailedComment,
         );
       }
       if (Date.now() >= deadline) {
@@ -522,9 +532,9 @@ export class WaitForPrReviewService {
    * (the reviews half's shape is asserted by a cast, not checked).
    */
   private prosePhraseComment(
-    candidate: RateLimitComment | undefined,
+    candidate: CodeRabbitComment | undefined,
     phrase: RegExp,
-  ): RateLimitComment | undefined {
+  ): CodeRabbitComment | undefined {
     return candidate != null &&
       typeof candidate.body === 'string' &&
       this.hasProsePhrase(candidate.body, phrase)
@@ -708,7 +718,7 @@ export class WaitForPrReviewService {
     return remainingMs > 0 ? remainingMs : intervalMs;
   }
 
-  private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {
+  private rateLimitedResult(comment: CodeRabbitComment): WaitForPrReviewResult {
     const availableAtEpochSeconds = this.parseAvailableAt(comment);
     return {
       found: false,
@@ -726,7 +736,7 @@ export class WaitForPrReviewService {
    * falls back to an immediate retry.
    */
   private commentUpdateFailedResult(
-    comment: RateLimitComment,
+    comment: CodeRabbitComment,
   ): WaitForPrReviewResult {
     return {
       found: false,
@@ -747,7 +757,7 @@ export class WaitForPrReviewService {
    * stale/re-matched comment (e.g. re-found across a retry) must not be
    * read as if its wait were freshly starting now.
    */
-  private parseAvailableAt(comment: RateLimitComment): number | undefined {
+  private parseAvailableAt(comment: CodeRabbitComment): number | undefined {
     for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
       if (!WAIT_TIME_KEYWORDS.test(sentence)) {
         continue;
