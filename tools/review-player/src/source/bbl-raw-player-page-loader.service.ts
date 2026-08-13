@@ -41,7 +41,11 @@ export class BblRawPlayerPageLoaderService {
       throw error;
     }
     // ISO-8859-1 maps every byte to a code point, so decoding never throws on
-    // the mirror's extended-ASCII bytes.
-    return new TextDecoder('latin1').decode(buffer);
+    // the mirror's extended-ASCII bytes. `Buffer#toString('latin1')` is a
+    // true byte-preserving decode; `TextDecoder`'s `'latin1'` label is
+    // actually an alias for Windows-1252 per the WHATWG Encoding Standard,
+    // which remaps bytes 0x80-0x9F to different characters instead of
+    // preserving them.
+    return buffer.toString('latin1');
   }
 }

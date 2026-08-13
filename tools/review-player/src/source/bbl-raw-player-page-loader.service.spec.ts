@@ -53,6 +53,13 @@ describe('BblRawPlayerPageLoaderService', () => {
     expect(await service.loadPlayerPage('1001')).toBe('<h1>ä</h1>');
   });
 
+  it('preserves 0x80-0x9F bytes as their identical code points, not Windows-1252', async () => {
+    writeFileSync(join(dir, 'default.asp?p=pl&pid=1002'), Buffer.from([0x80]));
+    const service = await makeService();
+
+    expect(await service.loadPlayerPage('1002')).toBe('');
+  });
+
   it('returns null for a page that is not in the mirror', async () => {
     const service = await makeService();
 
