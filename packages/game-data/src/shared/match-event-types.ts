@@ -79,10 +79,12 @@ export type SppCareerCountGroup = Extract<ActionType, keyof SppCareerCounts>;
  * Which imported action types roll up into each career-count group. The key IS
  * the representative action type whose `spp_award_values` row prices the whole
  * group. Interceptions and deflections share one group, and every casualty
- * severity shares one, because TP reports a single combined counter for each —
- * the imported side must be grouped identically or the comparison is
- * meaningless. Typed over `keyof SppCareerCounts` so adding a group to the
- * contract without adding it here is a compile error.
+ * severity shares one, because the {@link SppCareerCounts} wire contract has
+ * one combined counter for each — the imported side must be grouped
+ * identically to that contract or the comparison is meaningless, regardless of
+ * which source (TP today, potentially others later) populates the counts.
+ * Typed over `keyof SppCareerCounts` so adding a group to the contract without
+ * adding it here is a compile error.
  */
 export const SPP_CAREER_COUNT_GROUPS: Readonly<
   Record<keyof SppCareerCounts, readonly ActionType[]>
