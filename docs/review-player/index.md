@@ -20,12 +20,12 @@ without touching the harness services.
 ## What it does
 
 1. Samples players per source (BBL and TP) across two strata:
-   1. **SPP totals disagree** — every player whose SPP summed from `match_events`,
-      plus the stored `spp_adjustment`, differs from the stored `players.spp_total`
-      (a nonzero adjustment on its own is not a disagreement — it is the normal case
-      for an experienced player), including players with no stored total at all.
-      This stratum ignores `playersPerStratum` on purpose: a real discrepancy must
-      never be sampled away, so a badly-imported database produces a long report
+   1. **SPP totals disagree** — every player whose SPP computed from the events where
+      they are the acting participant, plus any stored adjustment, differs from their
+      stored total (a nonzero adjustment on its own is not a disagreement — it is the
+      normal case for an experienced player), including players with no stored total
+      at all. This stratum ignores `playersPerStratum` on purpose: a real discrepancy
+      must never be sampled away, so a badly-imported database produces a long report
       rather than a reassuring one.
    2. **Random sample** — `playersPerStratum` (default 3) players per source.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
@@ -38,13 +38,13 @@ without touching the harness services.
      reported `totalStarPlayerPoints`, the sum of `starPoints` on their attributed
      events, and a per-event-code breakdown. Right: the stored identity, team, position,
      era and every external id.
-   - **spp-totals** — left: the SPP this tool computes by summing `match_events.spp_value`
+   - **spp-totals** — left: the SPP this tool computes by summing the per-event values
      over the events where the player is the *acting* participant (its own query, not
-     `packages/game-data`'s `SppTotalsService`). Right: the stored `spp_total` and
-     `spp_adjustment`. Both panels are database-derived, so they carry their own headings
+     `packages/game-data`'s `SppTotalsService`). Right: the stored total and the stored
+     adjustment. Both panels are database-derived, so they carry their own headings
      rather than the harness's raw/imported wording, and a `MISMATCH` — highlighted row,
-     explicit label in both panels — is shown when the stored `spp_total` disagrees with
-     the computed sum *plus* the stored `spp_adjustment` (not the raw computed sum), or
+     explicit label in both panels — is shown when the stored total disagrees with
+     the computed sum *plus* the stored adjustment (not the raw computed sum), or
      has no stored total at all.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
