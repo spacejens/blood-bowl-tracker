@@ -42,6 +42,23 @@ describe('ExternalSystemLookupService', () => {
     expect(dbResult.chains).toHaveLength(1);
   });
 
+  it('memoizes bbl and tp separately, without one leaking into the other', async () => {
+    const dbResult = mockDb([{ id: 3 }], [{ id: 7 }]);
+    const { service, config } = await makeService(dbResult);
+    config.getExternalSystemName.mockImplementation((source) =>
+      source === 'bbl' ? 'BBL' : 'TP',
+    );
+
+    await service.getSystemId('bbl');
+    await service.getSystemId('tp');
+    await service.getSystemId('bbl');
+    await service.getSystemId('tp');
+
+    expect(dbResult.chains).toHaveLength(2);
+    expect(await service.getSystemId('bbl')).toBe(3);
+    expect(await service.getSystemId('tp')).toBe(7);
+  });
+
   it('throws a helpful error when the system is not in the database', async () => {
     const { service } = await makeService(mockDb([]));
 
