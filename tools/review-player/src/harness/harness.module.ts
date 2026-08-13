@@ -5,10 +5,12 @@ import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.s
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
 import { StarPlayerStratificationService } from '../player-info/star-player-stratification.service';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
+import type { PlayerStratifier } from '../shared/player-stratifier';
 import { PLAYER_STRATIFIERS } from '../shared/player-stratifier';
 import { SharedModule } from '../shared/shared.module';
 import { PlayerSppTotalsReviewerService } from '../spp-totals/player-spp-totals-reviewer.service';
 import { SppDiscrepancyStratificationService } from '../spp-totals/spp-discrepancy-stratification.service';
+import { SppMagnitudeStratificationService } from '../spp-totals/spp-magnitude-stratification.service';
 import { SppTotalsModule } from '../spp-totals/spp-totals.module';
 import { PlayerLookupService } from './player-lookup.service';
 import { PlayerSamplerService } from './player-sampler.service';
@@ -41,13 +43,14 @@ import { ReviewService } from './review.service';
     },
     {
       provide: PLAYER_STRATIFIERS,
-      useFactory: (
-        discrepancy: SppDiscrepancyStratificationService,
-        random: RandomPlayerStratificationService,
-        starPlayers: StarPlayerStratificationService,
-      ) => [discrepancy, random, starPlayers],
+      // A rest parameter rather than one named parameter per stratifier:
+      // `local/max-function-params` caps a function at three parameters and
+      // exempts only constructors, and this factory's entire job is to collect
+      // its injected stratifiers into an array in `inject` order.
+      useFactory: (...stratifiers: PlayerStratifier[]) => stratifiers,
       inject: [
         SppDiscrepancyStratificationService,
+        SppMagnitudeStratificationService,
         RandomPlayerStratificationService,
         StarPlayerStratificationService,
       ],
