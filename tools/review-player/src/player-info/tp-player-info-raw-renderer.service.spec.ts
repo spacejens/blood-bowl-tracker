@@ -29,7 +29,9 @@ async function makeService(found: TpRawPlayerAggregate | null): Promise<{
   const index = mock<TpRawPlayerIndexService>();
   index.aggregateFor.mockResolvedValue(found);
   const labels = mock<TpPlayerEventLabelsService>();
-  labels.describe.mockImplementation((code: number) => `${code} (label)`);
+  labels.describe
+    .mockReturnValueOnce('Interceptions')
+    .mockReturnValueOnce('Casualties');
   const moduleRef = await Test.createTestingModule({
     providers: [
       TpPlayerInfoRawRendererService,
@@ -69,8 +71,8 @@ describe('TpPlayerInfoRawRendererService', () => {
 
     const html = await service.render('2477481');
 
-    expect(html).toContain('<td>Events: 4 (label)</td><td>2</td>');
-    expect(html).toContain('<td>Events: 7 (label)</td><td>1</td>');
+    expect(html).toContain('<td>Events: Interceptions</td><td>2</td>');
+    expect(html).toContain('<td>Events: Casualties</td><td>1</td>');
   });
 
   it('shows an em dash when TP reports no total for the player', async () => {
