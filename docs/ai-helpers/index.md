@@ -48,13 +48,17 @@ node tools/ai-helpers/dist/main.js wait-for-pr-review <pr-number> <developer-log
 - `--trigger-after` — once the clock crosses this epoch, the first poll at or after it posts a `@coderabbitai review` comment on the PR, then polling continues to the deadline as normal. Used to nudge CodeRabbit into reviewing again once its rate limit is expected to have cleared.
 
 Prints one of four JSON outcomes:
-- `{"found": true, "review": {...}}` — a qualifying review was found.
+- `{"found": true, "review": {...}}` — a qualifying review was found. This shape is also used when CodeRabbit finishes a pass with nothing actionable and reports that only by editing its rolling walkthrough comment in place, rather than submitting a formal review — the service synthesizes a review-shaped result from that comment so callers need no separate case for it.
 - `{"found": false, "timedOut": true}` — the timeout elapsed with nothing found.
 - `{"found": false, "rateLimited": true, "rateLimitComment": {...}, "availableAtEpochSeconds": <number>}` — a CodeRabbit rate-limit warning comment was found instead of a review, so the wait returned early rather than running out its remaining time. `availableAtEpochSeconds` is a best-effort epoch parsed from the comment's own stated wait time, and the key is omitted from the printed JSON entirely (not `null`) when no duration could be parsed:
   ```json
   {"found": false, "rateLimited": true, "rateLimitComment": {...}}
   ```
-- `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — a CodeRabbit "couldn't update its existing comment" failure notice was found instead of a review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit outcome above, there is no `availableAtEpochSeconds` equivalent here — CodeRabbit's text for this failure states no wait duration, so the caller falls back to an immediate retry.
+- `{"found": false, "commentUpdateFailed": true, "commentUpdateFailedComment": {...}}` — a CodeRabbit "couldn't update its existing comment" failure notice was found instead of a review, so the wait returned early rather than running out its remaining time. Unlike the rate-limit outcome above, there is no `availableAtEpochSeconds` equivalent here — CodeRabbit's text for this failure states no wait duration, so the caller falls back to an immediate retry (see develop-feature's Phase 6 step b3).
+
+**Detection precedence.** When a single poll could match more than one of the above, a formal review wins over a rate-limit comment, which wins over a comment-update-failure comment, which wins over the completion-comment check (checked last, and only via a second `gh` call made when the first found nothing). A caller-requested retrigger (`--trigger-after`) still fires once due even when a stale rate-limit or comment-update-failure comment is found in that same poll — it is not skipped just because that poll's early return is about to happen.
+
+**False-positive safeguards.** The rate-limit and comment-update-failure phrase matches are narrowed in two ways: comments are re-checked in TypeScript with markdown code spans stripped first (jq's own phrase test is coarse and can be fooled by a phrase quoted inside a code span), and the comment-update-failure filter additionally excludes CodeRabbit's own rolling walkthrough comment outright — its prose (a summary, a changes table) can incidentally contain the failure phrase, which would otherwise abort the wait on a false positive before any real review or genuine failure notice exists.
 
 ## Development
 
