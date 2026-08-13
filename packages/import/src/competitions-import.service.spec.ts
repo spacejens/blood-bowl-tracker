@@ -47,6 +47,8 @@ describe('CompetitionsImportService', () => {
       type: 'season',
       eraId: 20,
       teamEraIds: [],
+      startDate: null,
+      endDate: null,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -113,6 +115,8 @@ describe('CompetitionsImportService.upsertCompetitionResult', () => {
       type: 'season',
       eraId: 20,
       teamEraIds: [],
+      startDate: null,
+      endDate: null,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

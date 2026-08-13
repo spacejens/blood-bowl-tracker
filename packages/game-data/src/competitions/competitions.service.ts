@@ -46,6 +46,8 @@ export class CompetitionsService {
         name: data.name,
         type: data.type,
         eraId: data.eraId,
+        startDate: data.startDate,
+        endDate: data.endDate,
       },
       externalIdTable: competitionExternalIds,
       ownerIdColumn: competitionExternalIds.competitionId,
