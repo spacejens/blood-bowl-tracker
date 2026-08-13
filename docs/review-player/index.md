@@ -46,7 +46,10 @@ in as another data-type module without touching the harness services.
       `foul`, for instance) counts as an expected award of zero. The stratum does
       not decide whether a difference is a bug — that is the reviewer's call from
       the rendered comparison — and it is bounded, because the match is broad
-      enough that an uncapped version could flood the report.
+      enough that an uncapped version could flood the report. Unlike the other
+      strata, this one carries no star-player or stored-total exclusion: a
+      star player with no stored total can still appear here if one of their
+      events disagrees with the award table.
    3. **Zero SPP total** — `playersPerStratum` players whose stored total is exactly 0.
    4. **Small SPP total (1-20)** — `playersPerStratum` players whose stored total is
       in that range.
@@ -66,18 +69,16 @@ in as another data-type module without touching the harness services.
    always be a "disagreement" by definition, not a real one worth flagging — but
    still includes a star player who does carry a real stored total, since excluding
    every star player outright would hide a genuine, fixable mismatch behind
-   whatever the bounded star-players stratum happens to sample. The star-players
-   stratum is the only automatic stratum a star player with no stored total ever
-   appears in; `overrides` (below) can still name one explicitly regardless of
-   stratum.
+   whatever the bounded star-players stratum happens to sample. Of the automatic
+   strata, only the star-players stratum and the non-standard-per-event stratum
+   can select a star player with no stored total at all; `overrides` (below) can
+   still name one explicitly regardless of stratum.
 
    The three magnitude strata (zero/small/large) exist because a player's total can
    range from nothing to several hundred and different magnitudes stress different
    parts of the SPP pipeline; a single undifferentiated random sample under-covers
-   the extremes. They read `players.spp_total`, the stored figure, and need no
-   star-player exclusion of their own: an induced star player commonly has no stored
-   total at all, and SQL's NULL comparison semantics keep such a player out of every
-   numeric range filter.
+   the extremes. A player with no stored total at all — commonly an induced star
+   player — is excluded from all three, needing no exclusion of its own to arrange.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
 3. For each sampled player, renders two panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
