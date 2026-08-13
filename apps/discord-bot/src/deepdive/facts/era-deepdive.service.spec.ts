@@ -25,6 +25,7 @@ import {
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 import { EraDeepdiveService } from './era-deepdive.service';
 
@@ -42,6 +43,7 @@ interface MakeServiceOptions {
   externalSystems: ExternalSystemsService;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
 }
 
 async function makeService({
@@ -50,9 +52,11 @@ async function makeService({
   externalSystems,
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
+  dateRangeFormatter = mock<DateRangeFormatterService>(),
 }: MakeServiceOptions): Promise<{
   service: EraDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
+  dateRangeFormatter: MockProxy<DateRangeFormatterService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -62,15 +66,28 @@ async function makeService({
       { provide: ExternalSystemsService, useValue: externalSystems },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
-  return { service: moduleRef.get(EraDeepdiveService), entityComponents };
+  return {
+    service: moduleRef.get(EraDeepdiveService),
+    entityComponents,
+    dateRangeFormatter,
+  };
 }
+
+type CompetitionRow = {
+  id: number;
+  name: string;
+  type: 'season' | 'cup';
+  startDate: string;
+  endDate: string | null;
+};
 
 function makeServices(options: {
   era?: EraHeader;
   rulesSetNames?: string[];
-  competitions?: { id: number; name: string; type: 'season' | 'cup' }[];
+  competitions?: CompetitionRow[];
   externalSystemNames?: string[];
 }): {
   eras: ErasService;
@@ -108,7 +125,7 @@ describe('EraDeepdiveService', () => {
     expect(result).toBe(DEEPDIVE_ERA_NOT_FOUND_MESSAGE);
   });
 
-  it('renders league, dates, rules, and the competition list', async () => {
+  it('renders league, dates, rules, and the competition list with each competition span', async () => {
     const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
@@ -120,14 +137,32 @@ describe('EraDeepdiveService', () => {
       rulesSetNames: ['BB2016', 'BB2020'],
       externalSystemNames: ['BBL', 'NAF'],
       competitions: [
-        { id: 10, name: 'Season 1', type: 'season' },
-        { id: 11, name: 'Winter Cup', type: 'cup' },
+        {
+          id: 10,
+          name: 'Season 1',
+          type: 'season',
+          startDate: '2021-09-05',
+          endDate: '2021-12-20',
+        },
+        {
+          id: 11,
+          name: 'Winter Cup',
+          type: 'cup',
+          startDate: '2022-01-10',
+          endDate: '2022-01-10',
+        },
       ],
     });
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2021-09-01 – 2023-06-10')
+      .mockReturnValueOnce('2021-09-05 – 2021-12-20')
+      .mockReturnValueOnce('2022-01-10');
     const { service } = await makeService({
       eras,
       competitions,
       externalSystems,
+      dateRangeFormatter,
     });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
@@ -140,15 +175,21 @@ describe('EraDeepdiveService', () => {
             'Rules: BB2016, BB2020',
             'External systems: BBL, NAF',
             '',
-            'Season 1 (season)',
-            'Winter Cup (cup)',
+            'Season 1 (season): 2021-09-05 – 2021-12-20',
+            'Winter Cup (cup): 2022-01-10',
           ].join('\n'),
         },
       ],
     });
+    // era span first, then one call per competition in listing order
+    expect(dateRangeFormatter.format.mock.calls).toEqual([
+      ['2021-09-01', '2023-06-10'],
+      ['2021-09-05', '2021-12-20'],
+      ['2022-01-10', '2022-01-10'],
+    ]);
   });
 
-  it('shows "present" for an ongoing era and "None recorded" when it has no rules sets', async () => {
+  it('shows "present" for an ongoing era and an ongoing competition, and "None recorded" when it has no rules sets', async () => {
     const { eras, competitions, externalSystems } = makeServices({
       era: {
         id: 1,
@@ -158,12 +199,25 @@ describe('EraDeepdiveService', () => {
         endDate: null,
       },
       rulesSetNames: [],
-      competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
+      competitions: [
+        {
+          id: 10,
+          name: 'Season 1',
+          type: 'season',
+          startDate: '2021-09-05',
+          endDate: null,
+        },
+      ],
     });
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2021-09-01 – present')
+      .mockReturnValueOnce('2021-09-05 – present');
     const { service } = await makeService({
       eras,
       competitions,
       externalSystems,
+      dateRangeFormatter,
     });
     const result = await service.resolve(1);
     expect(result).toMatchObject({
@@ -176,11 +230,15 @@ describe('EraDeepdiveService', () => {
             'Rules: None recorded',
             'External systems: None recorded',
             '',
-            'Season 1 (season)',
+            'Season 1 (season): 2021-09-05 – present',
           ].join('\n'),
         },
       ],
     });
+    expect(dateRangeFormatter.format.mock.calls).toEqual([
+      ['2021-09-01', null],
+      ['2021-09-05', null],
+    ]);
   });
 
   it('renders competitions in the order the service returns (played first, unplayed last)', async () => {
@@ -193,24 +251,49 @@ describe('EraDeepdiveService', () => {
         endDate: null,
       },
       competitions: [
-        { id: 10, name: 'Early Season', type: 'season' },
-        { id: 11, name: 'Later Cup', type: 'cup' },
-        { id: 12, name: 'Unplayed Cup', type: 'cup' },
+        {
+          id: 10,
+          name: 'Early Season',
+          type: 'season',
+          startDate: '2021-09-05',
+          endDate: '2021-12-20',
+        },
+        {
+          id: 11,
+          name: 'Later Cup',
+          type: 'cup',
+          startDate: '2022-01-10',
+          endDate: '2022-01-10',
+        },
+        {
+          id: 12,
+          name: 'Unplayed Cup',
+          type: 'cup',
+          startDate: '2022-06-01',
+          endDate: null,
+        },
       ],
     });
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2021-09-01 – present')
+      .mockReturnValueOnce('2021-09-05 – 2021-12-20')
+      .mockReturnValueOnce('2022-01-10')
+      .mockReturnValueOnce('2022-06-01 – present');
     const { service } = await makeService({
       eras,
       competitions,
       externalSystems,
+      dateRangeFormatter,
     });
     const result = await service.resolve(1);
     const description = (result as { embeds: { description: string }[] })
       .embeds[0].description;
     const lines = description.split('\n');
     expect(lines.slice(-3)).toEqual([
-      'Early Season (season)',
-      'Later Cup (cup)',
-      'Unplayed Cup (cup)',
+      'Early Season (season): 2021-09-05 – 2021-12-20',
+      'Later Cup (cup): 2022-01-10',
+      'Unplayed Cup (cup): 2022-06-01 – present',
     ]);
   });
 
@@ -225,10 +308,13 @@ describe('EraDeepdiveService', () => {
       },
       competitions: [],
     });
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValueOnce('2021-09-01 – 2023-06-10');
     const { service } = await makeService({
       eras,
       competitions,
       externalSystems,
+      dateRangeFormatter,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -258,7 +344,15 @@ describe('EraDeepdiveService', () => {
         endDate: null,
       },
       externalSystemNames: [],
-      competitions: [{ id: 10, name: 'Season 1', type: 'season' }],
+      competitions: [
+        {
+          id: 10,
+          name: 'Season 1',
+          type: 'season',
+          startDate: '2021-09-05',
+          endDate: null,
+        },
+      ],
     });
     const { service } = await makeService({
       eras,
@@ -307,8 +401,20 @@ describe('EraDeepdiveService', () => {
         endDate: null,
       },
       competitions: [
-        { id: 10, name: 'Season 1', type: 'season' },
-        { id: 11, name: 'Spike Cup', type: 'cup' },
+        {
+          id: 10,
+          name: 'Season 1',
+          type: 'season',
+          startDate: '2021-09-05',
+          endDate: null,
+        },
+        {
+          id: 11,
+          name: 'Spike Cup',
+          type: 'cup',
+          startDate: '2022-01-10',
+          endDate: '2022-01-10',
+        },
       ],
     });
     const { service } = await makeService({
