@@ -11,6 +11,10 @@ export const PLAYER_STRATIFIERS = Symbol('PLAYER_STRATIFIERS');
 export interface StratumSampleRequest {
   source: ReviewSource;
   stratumId: string;
+  /**
+   * The requested sample size. A stratum that must report every matching
+   * player (e.g. the discrepancy stratum) may return more.
+   */
   limit: number;
 }
 
