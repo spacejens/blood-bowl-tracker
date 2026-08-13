@@ -40,6 +40,12 @@ export const CANNED_RESULT: ImportResult = {
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
 
+/** The canned ImportError the mocked RosterCollectionService.unknownEraError returns. */
+export const CANNED_UNKNOWN_ERA_ERROR: ImportError = {
+  item: { canned: true },
+  message: 'canned unknown era error',
+};
+
 /** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
 export function resultArgs(importResults: MockProxy<ImportResultService>): {
   imported: number;
@@ -73,10 +79,7 @@ export async function makeService({
   );
   const nameExternalId = mockNameExternalIdService();
   const rosterCollection = mock<RosterCollectionService>();
-  rosterCollection.unknownEraError.mockImplementation((era, roster) => ({
-    item: { era, roster: roster.id },
-    message: `Unknown era "${era}" for roster ${roster.id}: not found among imported eras.`,
-  }));
+  rosterCollection.unknownEraError.mockReturnValue(CANNED_UNKNOWN_ERA_ERROR);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
