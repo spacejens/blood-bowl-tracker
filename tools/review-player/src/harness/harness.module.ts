@@ -1,4 +1,5 @@
 import {
+  createRegistryProvider,
   REPORT_OUTPUT_PATH,
   ReportWriterService,
 } from '@blood-bowl-tracker/review-harness';
@@ -36,27 +37,15 @@ import { ReviewService } from './review.service';
     ReportWriterService,
     { provide: REPORT_OUTPUT_PATH, useExisting: ReviewPlayerConfigService },
     ReviewService,
-    {
-      provide: PLAYER_DATA_TYPE_REVIEWERS,
-      useFactory: (
-        playerInfo: PlayerInfoReviewerService,
-        sppTotals: PlayerSppTotalsReviewerService,
-      ) => [playerInfo, sppTotals],
-      inject: [PlayerInfoReviewerService, PlayerSppTotalsReviewerService],
-    },
-    {
-      provide: PLAYER_STRATIFIERS,
-      useFactory: (
-        discrepancy: SppDiscrepancyStratificationService,
-        random: RandomPlayerStratificationService,
-        starPlayers: StarPlayerStratificationService,
-      ) => [discrepancy, random, starPlayers],
-      inject: [
-        SppDiscrepancyStratificationService,
-        RandomPlayerStratificationService,
-        StarPlayerStratificationService,
-      ],
-    },
+    createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
+      PlayerInfoReviewerService,
+      PlayerSppTotalsReviewerService,
+    ]),
+    createRegistryProvider(PLAYER_STRATIFIERS, [
+      SppDiscrepancyStratificationService,
+      RandomPlayerStratificationService,
+      StarPlayerStratificationService,
+    ]),
   ],
   exports: [ReviewService],
 })
