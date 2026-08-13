@@ -21,6 +21,7 @@ import {
 import { expectTimeoutFallback } from '../../insights/facts/toplist.test-helpers';
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -32,6 +33,7 @@ interface MakeServiceOptions {
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
   teamContext?: MockProxy<TeamContextService>;
+  dateRangeFormatter?: MockProxy<DateRangeFormatterService>;
 }
 
 async function makeService({
@@ -39,10 +41,12 @@ async function makeService({
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
   teamContext = passthroughTeamContext(),
+  dateRangeFormatter = mock<DateRangeFormatterService>(),
 }: MakeServiceOptions): Promise<{
   service: CompetitionDeepdiveService;
   entityComponents: MockProxy<EntityComponentsService>;
   teamContext: MockProxy<TeamContextService>;
+  dateRangeFormatter: MockProxy<DateRangeFormatterService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -51,29 +55,50 @@ async function makeService({
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
       { provide: TeamContextService, useValue: teamContext },
+      { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
   return {
     service: moduleRef.get(CompetitionDeepdiveService),
     entityComponents,
     teamContext,
+    dateRangeFormatter,
   };
 }
 
+type CompetitionHeaderFixture = {
+  id: number;
+  name: string;
+  type: 'season' | 'cup';
+  eraId: number;
+  eraName: string;
+  startDate: string;
+  endDate: string | null;
+};
+
 function makeCompetitions(options: {
-  competition?: {
-    id: number;
-    name: string;
-    type: 'season' | 'cup';
-    eraId: number;
-    eraName: string;
-  };
+  competition?: CompetitionHeaderFixture;
   teams?: { id: number; name: string }[];
 }): CompetitionsService {
   return {
     findByIdWithEra: vi.fn().mockResolvedValue(options.competition),
     listTeams: vi.fn().mockResolvedValue(options.teams ?? []),
   } as unknown as CompetitionsService;
+}
+
+function competitionHeader(
+  overrides: Partial<CompetitionHeaderFixture> = {},
+): CompetitionHeaderFixture {
+  return {
+    id: 1,
+    name: 'Major Season 24',
+    type: 'season',
+    eraId: 20,
+    eraName: 'BB2020',
+    startDate: '2024-01-15',
+    endDate: '2024-06-30',
+    ...overrides,
+  };
 }
 
 describe('CompetitionDeepdiveService', () => {
@@ -106,15 +131,11 @@ describe('CompetitionDeepdiveService', () => {
       components: cannedComponents,
       overflowNote: null,
     });
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
     const { service } = await makeService({
       competitions: makeCompetitions({
-        competition: {
-          id: 1,
-          name: 'Major Season 24',
-          type: 'season',
-          eraId: 20,
-          eraName: 'BB2020',
-        },
+        competition: competitionHeader(),
         teams: [
           { id: 5, name: 'Gouged Eye' },
           { id: 9, name: 'Reikland Reavers' },
@@ -122,6 +143,7 @@ describe('CompetitionDeepdiveService', () => {
       }),
       entityComponents,
       teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
+      dateRangeFormatter,
     });
     const result = await service.resolve(1);
     expect(result).toEqual({
@@ -131,6 +153,7 @@ describe('CompetitionDeepdiveService', () => {
           description: [
             'Type: season',
             'Era: BB2020',
+            'Duration: 2024-01-15 – 2024-06-30',
             '',
             'Participating teams:',
             'Gouged Eye (Orc, Skarsnik)',
@@ -158,6 +181,88 @@ describe('CompetitionDeepdiveService', () => {
         label: 'BB2020',
       },
     ]);
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+      '2024-01-15',
+      '2024-06-30',
+    );
+  });
+
+  it('renders the Duration line for a multi-day competition, between the era line and the teams block', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2024-01-15 – 2024-06-30');
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader({
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        }),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      dateRangeFormatter,
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    const lines = result.embeds[0].description.split('\n');
+    expect(lines.slice(0, 5)).toEqual([
+      'Type: season',
+      'Era: BB2020',
+      'Duration: 2024-01-15 – 2024-06-30',
+      '',
+      'Participating teams:',
+    ]);
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+      '2024-01-15',
+      '2024-06-30',
+    );
+  });
+
+  it('renders the Duration line for an ongoing competition', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2024-01-15 – present');
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader({
+          startDate: '2024-01-15',
+          endDate: null,
+        }),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      dateRangeFormatter,
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Duration: 2024-01-15 – present',
+    );
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2024-01-15', null);
+  });
+
+  it('renders the Duration line for a single-day competition', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('2024-03-16');
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader({
+          type: 'cup',
+          startDate: '2024-03-16',
+          endDate: '2024-03-16',
+        }),
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      dateRangeFormatter,
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Duration: 2024-03-16',
+    );
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+      '2024-03-16',
+      '2024-03-16',
+    );
   });
 
   it('calls attachSuffixes with both race and coach context enabled', async () => {
@@ -171,13 +276,7 @@ describe('CompetitionDeepdiveService', () => {
     );
     const { service } = await makeService({
       competitions: makeCompetitions({
-        competition: {
-          id: 1,
-          name: 'Major Season 24',
-          type: 'season',
-          eraId: 20,
-          eraName: 'BB2020',
-        },
+        competition: competitionHeader(),
         teams: rawTeams,
       }),
       teamContext,
@@ -199,13 +298,7 @@ describe('CompetitionDeepdiveService', () => {
     });
     const { service } = await makeService({
       competitions: makeCompetitions({
-        competition: {
-          id: 1,
-          name: 'Major Season 24',
-          type: 'cup',
-          eraId: 20,
-          eraName: 'BB2020',
-        },
+        competition: competitionHeader({ type: 'cup' }),
         teams: [],
       }),
       entityComponents,
@@ -229,13 +322,7 @@ describe('CompetitionDeepdiveService', () => {
   it('keeps the no-teams placeholder free of any context suffix even when attachSuffixes would attach one', async () => {
     const { service } = await makeService({
       competitions: makeCompetitions({
-        competition: {
-          id: 1,
-          name: 'Major Season 24',
-          type: 'cup',
-          eraId: 20,
-          eraName: 'BB2020',
-        },
+        competition: competitionHeader({ type: 'cup' }),
         teams: [],
       }),
       teamContext: passthroughTeamContext(' (Orc, Skarsnik)'),
@@ -255,13 +342,7 @@ describe('CompetitionDeepdiveService', () => {
     });
     const { service } = await makeService({
       competitions: makeCompetitions({
-        competition: {
-          id: 1,
-          name: 'Major Season 24',
-          type: 'season',
-          eraId: 20,
-          eraName: 'BB2020',
-        },
+        competition: competitionHeader(),
         teams: [{ id: 5, name: 'Gouged Eye' }],
       }),
       entityComponents,
@@ -307,13 +388,7 @@ describe('CompetitionDeepdiveService', () => {
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
           competitions: makeCompetitions({
-            competition: {
-              id: 1,
-              name: 'Major Season 24',
-              type: 'season',
-              eraId: 20,
-              eraName: 'BB2020',
-            },
+            competition: competitionHeader(),
           }),
           databaseTimeout,
         });
@@ -334,13 +409,7 @@ describe('CompetitionDeepdiveService', () => {
         stubDatabaseTimeoutOnce(databaseTimeout);
         const { service } = await makeService({
           competitions: makeCompetitions({
-            competition: {
-              id: 1,
-              name: 'Major Season 24',
-              type: 'season',
-              eraId: 20,
-              eraName: 'BB2020',
-            },
+            competition: competitionHeader(),
             teams: [{ id: 5, name: 'Gouged Eye' }],
           }),
           databaseTimeout,
