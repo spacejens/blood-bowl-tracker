@@ -312,4 +312,30 @@ describe('RosterParserService', () => {
       ),
     ).toThrow(/totalTouchdowns/);
   });
+
+  it('rejects a negative career counter', () => {
+    expect(() =>
+      service.parse(
+        rosterBody({
+          lineUps: [
+            {
+              id: 2412443,
+              name: 'The Agitated Deviation',
+              number: 1,
+              lineUpMasterId: 952,
+              rosterId: 123,
+              position: 'Dwarf Lineman',
+              isBigGuy: false,
+              totalStarPlayerPoints: 23,
+              totalTouchdowns: -1,
+              totalPass: 4,
+              totalInterceptions: 2,
+              totalMVP: 3,
+              totalCasualties: 5,
+            },
+          ],
+        }),
+      ),
+    ).toThrow(/totalTouchdowns/);
+  });
 });

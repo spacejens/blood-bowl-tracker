@@ -112,12 +112,15 @@ export const LineUpSchema = z.object({
   isBigGuy: z.boolean().optional(),
   totalStarPlayerPoints: z.number().int(),
   // Optional because match-embedded roster snapshots reuse this schema (see
-  // MatchLineUpSchema) and carry none of these counters.
-  totalTouchdowns: z.number().int().optional(),
-  totalPass: z.number().int().optional(),
-  totalInterceptions: z.number().int().optional(),
-  totalMVP: z.number().int().optional(),
-  totalCasualties: z.number().int().optional(),
+  // MatchLineUpSchema) and carry none of these counters. Nonnegative to match
+  // SppCareerCountsSchema (packages/api-contract), which TpSppAdjustmentsImportService
+  // forwards these values into — a negative counter here would otherwise pass
+  // parsing only to reject the whole sync chunk downstream.
+  totalTouchdowns: z.number().int().nonnegative().optional(),
+  totalPass: z.number().int().nonnegative().optional(),
+  totalInterceptions: z.number().int().nonnegative().optional(),
+  totalMVP: z.number().int().nonnegative().optional(),
+  totalCasualties: z.number().int().nonnegative().optional(),
 });
 
 const RosterSchema = z.object({
