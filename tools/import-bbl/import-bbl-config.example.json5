@@ -172,8 +172,21 @@
           // would otherwise misclassify its type. Checked before the
           // match-date scan, so unaffected by autoAssignByDate. A competition
           // bblId may appear in only one of these lists across all eras.
+          // dateOverrides is the third optional key in this group, providing
+          // explicit startDate/endDate for an overridden competition that has
+          // no dated matches at all to derive them from.
           competitions: {
             seasonCompetitionIdOverrides: ['74'],
+            // Explicit dates for an overridden competition that has no dated
+            // matches at all to derive them from, keyed by competition bblId.
+            // Competition 74 ("Minor Season 25") has no p=ma page in the
+            // mirror; it is the half-year following Minor Season 24, so the
+            // second half of 2023. Only consulted when the override path
+            // finds no match dates -- an overridden competition that does
+            // have matches always uses those instead.
+            dateOverrides: {
+              '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
+            },
           },
           // Optional group -- omit entirely when an era has no position
           // overrides (as here). Each entry is keyed by positionId (BBL

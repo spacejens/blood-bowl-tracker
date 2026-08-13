@@ -4,6 +4,7 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  MatchDateRangeService,
 } from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
@@ -19,7 +20,6 @@ import {
 
 const PLAYED_LIST_PAGE_TYPE = 'se';
 const STANDINGS_LIST_PAGE_TYPE = 'sr';
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (latest - earliest) <= 3 days => cup, else season. Validated against all 74
 // competitions in the mirror (see the competitions design doc); do not change.
 const CUP_MAX_SPAN_DAYS = 3;
@@ -29,6 +29,20 @@ interface ResolveTypeAndEraOptions {
   dates: Date[];
   eras: EraConfig[];
   eraIdsByName: Map<string, number>;
+  errors: ImportError[];
+}
+
+interface ResolvedCompetition {
+  type: 'season' | 'cup';
+  eraId: number;
+  startDate: string;
+  endDate: string | undefined;
+}
+
+interface ResolveOverrideDatesOptions {
+  competition: BblCompetition;
+  dates: Date[];
+  era: EraConfig;
   errors: ImportError[];
 }
 
@@ -44,6 +58,7 @@ export class BblCompetitionsImportService {
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
     private readonly pageParseError: PageParseErrorService,
+    private readonly dateRange: MatchDateRangeService,
   ) {}
 
   /**
@@ -139,6 +154,10 @@ export class BblCompetitionsImportService {
         name: competition.name,
         type: resolved.type,
         eraId: resolved.eraId,
+        startDate: resolved.startDate,
+        ...(resolved.endDate !== undefined
+          ? { endDate: resolved.endDate }
+          : {}),
         teamEraIds: [],
         externalIds: [
           { externalSystemId: bblSystemId, externalId: competition.bblId },
@@ -223,7 +242,10 @@ export class BblCompetitionsImportService {
    * an era) — this is the only path for a competition with a genuinely empty
    * match list. Otherwise the era and type are derived from the match dates:
    * no dates => skip; span <= 3 days => cup, else season; earliest date
-   * matched against the configured era ranges.
+   * matched against the configured era ranges. An overridden competition
+   * takes its dates from its matches when it has any, and otherwise from the
+   * era's `competitions.dateOverrides` entry for its bblId; with neither, it
+   * is skipped with a recorded error.
    */
   private resolveTypeAndEra({
     competition,
@@ -231,8 +253,7 @@ export class BblCompetitionsImportService {
     eras,
     eraIdsByName,
     errors,
-  }: ResolveTypeAndEraOptions):
-    { type: 'season' | 'cup'; eraId: number } | undefined {
+  }: ResolveTypeAndEraOptions): ResolvedCompetition | undefined {
     const seasonOverrideEra = eras.find((era) =>
       era.competitions?.seasonCompetitionIdOverrides?.includes(
         competition.bblId,
@@ -254,7 +275,16 @@ export class BblCompetitionsImportService {
         );
         return undefined;
       }
-      return { type: overrideType, eraId };
+      const overrideDates = this.resolveOverrideDates({
+        competition,
+        dates,
+        era: overrideEra,
+        errors,
+      });
+      if (overrideDates === undefined) {
+        return undefined;
+      }
+      return { type: overrideType, eraId, ...overrideDates };
     }
 
     if (dates.length === 0) {
@@ -267,22 +297,70 @@ export class BblCompetitionsImportService {
       return undefined;
     }
 
-    const times = dates.map((d) => d.getTime());
-    const earliest = new Date(Math.min(...times));
-    const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
-    const type = spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
+    const range = this.dateRange.computeRange(dates);
+    const type = range.spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
 
-    const { eraName, eraId } = this.resolveEraId(earliest, eras, eraIdsByName);
+    const { eraName, eraId } = this.resolveEraId(
+      range.earliestDate,
+      eras,
+      eraIdsByName,
+    );
     if (eraId === undefined) {
       const message =
         eraName === undefined
-          ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in no configured era.`
-          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${earliest.toISOString().slice(0, 10)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
+          ? `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in no configured era.`
+          : `Skipping competition "${competition.name}" (id ${competition.bblId}): its earliest match date ${this.toIsoDay(range.earliestDate)} falls in the configured era "${eraName}", which has no known database id (its rules set may have failed to import).`;
       errors.push(this.importResults.error({ item: competition, message }));
       return undefined;
     }
 
-    return { type, eraId };
+    return {
+      type,
+      eraId,
+      startDate: this.toIsoDay(range.earliestDate),
+      endDate: this.toIsoDay(range.latestDate),
+    };
+  }
+
+  /**
+   * Dates for a competition pinned to an era by an override. An override
+   * exists either because the competition's date span would misclassify its
+   * type or because it has no matches at all — so real match dates are still
+   * preferred here when present, and only a truly match-less competition
+   * falls back to the era's configured dateOverrides entry. With neither, the
+   * competition is skipped rather than imported with no startDate, so a
+   * future match-less override fails loudly instead of silently storing null.
+   */
+  private resolveOverrideDates({
+    competition,
+    dates,
+    era,
+    errors,
+  }: ResolveOverrideDatesOptions):
+    { startDate: string; endDate: string | undefined } | undefined {
+    if (dates.length > 0) {
+      const range = this.dateRange.computeRange(dates);
+      return {
+        startDate: this.toIsoDay(range.earliestDate),
+        endDate: this.toIsoDay(range.latestDate),
+      };
+    }
+    const configured = era.competitions?.dateOverrides?.[competition.bblId];
+    if (configured === undefined) {
+      errors.push(
+        this.importResults.error({
+          item: competition,
+          message: `Skipping competition "${competition.name}" (id ${competition.bblId}): it has no dated matches, and its override era "${era.identity.name}" has no competitions.dateOverrides entry for id ${competition.bblId} to take a startDate from.`,
+        }),
+      );
+      return undefined;
+    }
+    return { startDate: configured.startDate, endDate: configured.endDate };
+  }
+
+  /** A Date as the ISO `YYYY-MM-DD` day string the API contract expects. */
+  private toIsoDay(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 
   /**
@@ -299,7 +377,7 @@ export class BblCompetitionsImportService {
     eras: EraConfig[],
     eraIdsByName: Map<string, number>,
   ): { eraName: string | undefined; eraId: number | undefined } {
-    const day = date.toISOString().slice(0, 10);
+    const day = this.toIsoDay(date);
     for (const era of eras) {
       if (era.dates.autoAssignByDate === false) {
         continue;
