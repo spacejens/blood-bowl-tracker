@@ -126,8 +126,9 @@ camelCase, grouped into nested objects by concern:
       computed result. A match whose outcome cannot be determined, and which
       has no override here, is reported as an import error until it gets one.
 
-    A competition bblId may appear in only one of the two competition override
-    lists across all eras; a team code in only one era's `teamCodeOverrides`;
+    A competition bblId may appear in only one `competitions.overrides` entry,
+    in only one era, across all eras; a team code in only one era's
+    `teamCodeOverrides`;
     a match id in only one `matches.merges` pair across all eras; a match
     id in only one `matches.categoryOverrides` entry across all eras; and a
     match id in only one `matches.resultOverrides` entry across all eras. Rules

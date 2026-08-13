@@ -175,17 +175,20 @@
           // the override competition has no dated matches at all to derive
           // them from -- one that does have matches always uses those
           // instead, and startDate/endDate here are ignored. Competition 74
-          // ("Minor Season 25") has no p=ma page in the mirror at all; its
-          // startDate/endDate are the half-year following Minor Season 24
-          // (the second half of 2023), the only entry in this era that
-          // actually needs them.
+          // ("Minor Season 25") has no p=ma page in the mirror at all, and
+          // its real dates are unknown, so its startDate/endDate are pinned
+          // to the last day of this era's own range rather than guessed --
+          // deliberately not the real-world half-year it actually ran in,
+          // since that lies after this era ends and there is no next era
+          // configured to hold it. It is the only entry in this era that
+          // actually needs startDate/endDate.
           competitions: {
             overrides: [
               {
                 bblId: '74',
                 type: 'season',
-                startDate: '2023-07-01',
-                endDate: '2023-12-31',
+                startDate: '2023-06-14',
+                endDate: '2023-06-15',
               },
             ],
           },
