@@ -12,10 +12,7 @@ import { mock } from 'vitest-mock-extended';
  * `then` is defined explicitly rather than auto-created: drizzle builders are
  * thenables, and awaiting an auto-created `then` mock never settles.
  *
- * Promoted here from `tools/review-match` and `tools/review-player`, which
- * held identical copies (itself originally copied from
- * `packages/game-data/src/shared/db-mock.test-helpers.ts`, whose `src/`-internal
- * location is not reachable across workspaces). Reachable as
+ * Shared by every review tool spec that needs a drizzle mock. Reachable as
  * `@blood-bowl-tracker/review-harness/test-helpers` — kept off the package's
  * main barrel so importing the harness never pulls Vitest into a tool's
  * runtime graph. Test-only; excluded from coverage.

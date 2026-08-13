@@ -12,7 +12,7 @@ This is a pnpm monorepo with three top-level workspace folders:
 |--------|---------|
 | `apps/` | Runnable applications deployed or distributed to end users |
 | `docs/` | Specifications, glossary, and domain documentation |
-| `packages/` | Shared library packages consumed by apps (not standalone) |
+| `packages/` | Shared library packages consumed by apps and tools (not standalone) |
 | `tools/` | Developer tooling and scripts not shipped as part of any app |
 
 ### Applications
