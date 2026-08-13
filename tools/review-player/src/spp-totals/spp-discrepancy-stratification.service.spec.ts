@@ -147,8 +147,11 @@ describe('SppDiscrepancyStratificationService', () => {
     });
 
     const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
-    const { sql: rendered } = new PgDialect().sqlToQuery(condition);
+    const { sql: rendered, params } = new PgDialect().sqlToQuery(condition);
     expect(rendered).toContain('"is_star_player"');
-    expect(rendered).toMatch(/=\s*\$1/);
+    // drizzle parameterizes the boolean, so the rendered SQL text alone is
+    // identical for `true` and `false` — assert the bound value too, or a
+    // regression that inverts the filter would leave this test green.
+    expect(params).toEqual([false]);
   });
 });

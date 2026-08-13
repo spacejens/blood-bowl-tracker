@@ -21,10 +21,10 @@ const OVERRIDE_REASON = 'override';
 
 /**
  * Decides which players the report covers: every registered stratifier's
- * strata (the random sample honours `playersPerStratum`; the SPP-discrepancy
- * stratum deliberately ignores it) plus the config's pinned override ids,
- * deduplicated so a player picked several times is reported once with every
- * reason it was picked for.
+ * strata (the random and star-players strata both honour `playersPerStratum`;
+ * the SPP-discrepancy stratum deliberately ignores it) plus the config's
+ * pinned override ids, deduplicated so a player picked several times is
+ * reported once with every reason it was picked for.
  */
 @Injectable()
 export class PlayerSamplerService {

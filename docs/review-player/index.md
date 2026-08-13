@@ -74,7 +74,7 @@ cp tools/review-player/review-player-config.example.json5 tools/review-player/re
 | `database.url` | Connection string of the database holding the imported data (required) |
 | `playersPerStratum` | Players sampled for the random and star-players strata, per source (default 3); the discrepancy stratum ignores it |
 | `bbl.dataDir` / `tp.dataDir` | The same downloaded data directories `tools/import-bbl` / `tools/import-tp` read |
-| `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP`) |
+| `bbl.externalSystemName` / `tp.externalSystemName` | External-system names the imports registered records under (default `BBL` / `TP` if unset or empty; this project's own imports register `tloeg.bbleague.se` / `tourplay.net`) |
 | `overrides.bbl` / `overrides.tp` | External player ids always included (BBL: `pid`; TP: the line-up `id`) |
 | `outputPath` | Base path each report is written next to, timestamped (default `output/report.html`) |
 

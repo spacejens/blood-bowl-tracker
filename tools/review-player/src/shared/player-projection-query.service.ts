@@ -16,8 +16,9 @@ import { and, eq } from 'drizzle-orm';
  * `teamName`, `positionName`, `eraName`) joined across `players`,
  * `playerExternalIds`, `teamEras`, `teams`, `eras` and `positions` — shared
  * by every query that needs "what a source's external id resolves to in the
- * database": `PlayerLookupService`'s override lookup and
- * `RandomPlayerStratificationService`'s random sample both build on this
+ * database": `PlayerLookupService`'s override lookup,
+ * `RandomPlayerStratificationService`'s random sample, and
+ * `StarPlayerStratificationService`'s star-player sample all build on this
  * same base, applying their own `.where()` / `.orderBy()` / `.limit()`.
  */
 @Injectable()
