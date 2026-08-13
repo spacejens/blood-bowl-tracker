@@ -1,10 +1,4 @@
-import {
-  chmodSync,
-  mkdirSync,
-  mkdtempSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -259,15 +253,18 @@ describe('TpRawPlayerIndexService', () => {
   });
 
   it('rethrows a directory-scan failure that is not a missing directory', async () => {
-    writeMatch(1, matchFile({ lineUpTotal: 8, events: [] }));
-    const seasonDir = join(dir, 'fourth-era', 'season-30');
-    chmodSync(seasonDir, 0o000);
+    // A directory nested one or more levels down (e.g. the season directory)
+    // can't be used here: the code filters entries by isDirectory() before
+    // recursing, so replacing it with a file just makes it get skipped, not
+    // fail. Only the configured data dir itself is read without a prior
+    // isDirectory() check, so replacing it with a file reliably produces an
+    // ENOTDIR scan failure regardless of the process's user/permissions
+    // (unlike the chmod-based technique this replaces, which silently
+    // doesn't block access when the test process runs as root).
+    rmSync(dir, { recursive: true, force: true });
+    writeFileSync(dir, 'not a directory', 'utf8');
     const service = await makeService();
 
-    try {
-      await expect(service.aggregateFor('2477481')).rejects.toThrow();
-    } finally {
-      chmodSync(seasonDir, 0o755);
-    }
+    await expect(service.aggregateFor('2477481')).rejects.toThrow();
   });
 });
