@@ -136,7 +136,7 @@ describe('SppDiscrepancyStratificationService', () => {
     ).rejects.toThrow(/Unknown player stratum "nope"/);
   });
 
-  it('excludes star player positions', async () => {
+  it('scopes the roster filter to non-star players or a star player with a stored total', async () => {
     const dbResult = mockDb([]);
     const service = await makeService(dbResult);
 
@@ -148,10 +148,18 @@ describe('SppDiscrepancyStratificationService', () => {
 
     const condition = dbResult.chains[0].where.mock.calls[0][0] as SQL;
     const { sql: rendered, params } = new PgDialect().sqlToQuery(condition);
+    // Excludes only the expected-always-mismatch case (a star player with no
+    // stored total at all) — not every star player outright. A star player
+    // who does carry a real stored total must stay eligible for this
+    // uncapped stratum, or a genuine mismatch on them would only ever be
+    // caught by luck in StarPlayerStratificationService's bounded sample.
     expect(rendered).toContain('"is_star_player"');
+    expect(rendered).toMatch(/\bor\b/i);
+    expect(rendered).toMatch(/"spp_total"\s+is not null/i);
     // drizzle parameterizes the boolean, so the rendered SQL text alone is
     // identical for `true` and `false` — assert the bound value too, or a
-    // regression that inverts the filter would leave this test green.
+    // regression that flips the star-player half of the condition would
+    // leave this test green.
     expect(params).toEqual([false]);
   });
 });

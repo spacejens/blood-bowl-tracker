@@ -10,7 +10,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, or, sql } from 'drizzle-orm';
 
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import type {
@@ -38,12 +38,15 @@ const DISCREPANCY_STRATUM = 'spp-discrepancy';
  * therefore produce a very large report — that is the honest signal, and the
  * fix is to repair the import, not to truncate the list.
  *
- * Excludes star players: an induced star player has no source-reported SPP
- * total at all (`spp_total` is always NULL for them), so every one of them
- * would always disagree — that's the expected, unavoidable state for a star
+ * Excludes only a star player with no stored total at all: an induced star
+ * player often has no source-reported SPP total (`spp_total` is NULL), which
+ * would always disagree — that's the expected, unavoidable state for such a
  * player, not a real discrepancy worth an uncapped stratum flooding the
- * report with. `StarPlayerStratificationService` covers star players
- * separately, in their own bounded stratum (see issue #245).
+ * report with. `StarPlayerStratificationService` covers that expected case
+ * separately, in its own bounded stratum (see issue #245). A star player who
+ * DOES carry a real stored total stays in scope here: excluding every star
+ * player outright would hide a genuine, fixable mismatch behind whatever
+ * `StarPlayerStratificationService` happens to sample.
  */
 @Injectable()
 export class SppDiscrepancyStratificationService implements PlayerStratifier {
@@ -98,7 +101,7 @@ export class SppDiscrepancyStratificationService implements PlayerStratifier {
       .innerJoin(eras, eq(eras.id, teamEras.eraId))
       .innerJoin(positions, eq(positions.id, players.positionId))
       .leftJoin(matchEvents, eq(matchEvents.actingPlayerId, players.id))
-      .where(eq(positions.isStarPlayer, false))
+      .where(or(eq(positions.isStarPlayer, false), isNotNull(players.sppTotal)))
       .groupBy(
         players.id,
         players.name,

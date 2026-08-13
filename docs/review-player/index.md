@@ -20,26 +20,32 @@ in as another data-type module without touching the harness services.
 ## What it does
 
 1. Samples players per source (BBL and TP) across three strata:
-   1. **SPP totals disagree** — every non-star player whose SPP computed from the
-      events where they are the acting participant, plus any stored adjustment,
+   1. **SPP totals disagree** — every player, star or not, whose SPP computed from
+      the events where they are the acting participant, plus any stored adjustment,
       differs from their stored total (a nonzero adjustment on its own is not a
-      disagreement — it is the normal case for an experienced player), including
-      players with no stored total at all. This stratum ignores `playersPerStratum`
-      on purpose: a real discrepancy must never be sampled away, so a badly-imported
-      database produces a long report rather than a reassuring one.
+      disagreement — it is the normal case for an experienced player) — except a
+      star player with no stored total at all. This stratum ignores
+      `playersPerStratum` on purpose: a real discrepancy must never be sampled
+      away, so a badly-imported database produces a long report rather than a
+      reassuring one.
    2. **Random sample** — `playersPerStratum` (default 3) non-star players per source.
    3. **Star players** — `playersPerStratum` star players per source, sampled
       randomly like the regular stratum but kept separate and bounded by the same
       limit.
 
-   The random-sample and discrepancy strata both exclude star players outright:
-   today's data model gives a popular star their own `players` row per team that
-   induces them (see [issue #245](https://github.com/spacejens/blood-bowl-tracker/issues/245)),
-   so an unbounded stratum would be dominated by the same few stars appearing many
-   times over, and an induced star player has no source-reported SPP total at all
-   — always a "disagreement" by definition, not a real one worth flagging. The
-   dedicated star-players stratum is the only place they appear, and it obeys
-   `playersPerStratum` like the regular random sample.
+   The random-sample stratum excludes star players outright: today's data model
+   gives a popular star their own `players` row per team that induces them (see
+   [issue #245](https://github.com/spacejens/blood-bowl-tracker/issues/245)), so an
+   unbounded stratum would be dominated by the same few stars appearing many times
+   over. The discrepancy stratum excludes only the narrower case of a star player
+   with no stored total at all — an induced star player often has none, which would
+   always be a "disagreement" by definition, not a real one worth flagging — but
+   still includes a star player who does carry a real stored total, since excluding
+   every star player outright would hide a genuine, fixable mismatch behind
+   whatever the bounded star-players stratum happens to sample. The star-players
+   stratum is the only automatic stratum a star player with no stored total ever
+   appears in; `overrides` (below) can still name one explicitly regardless of
+   stratum.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
 3. For each sampled player, renders two panel pairs:
    - **player-info** — left: BBL's own player page (`default.asp?p=pl&pid=<id>`) parsed
