@@ -527,18 +527,26 @@ export class WaitForPrReviewService {
    * One comment-shaped candidate out of the reviews call, kept only if it
    * survives the stricter TypeScript phrase re-check. jq's own phrase test is
    * a coarse first pass and can be fooled by a phrase appearing only inside
-   * markdown code formatting; the `!= null`/`typeof` guards additionally make
-   * a malformed jq response read as "no match" rather than crash the wait
-   * (the reviews half's shape is asserted by a cast, not checked).
+   * markdown code formatting; the `typeof` guards on every field additionally
+   * make a malformed jq response read as "no match" rather than crash the
+   * wait (the reviews half's shape is asserted by a cast, not checked). All
+   * three fields are validated, not just `body`: a caller retrying off a
+   * candidate missing `id` or `submittedAt` (develop-feature's Phase 6 steps
+   * b2/b3) would build an unusable exclusion value or watermark.
    */
   private prosePhraseComment(
-    candidate: CodeRabbitComment | undefined,
+    candidate: unknown,
     phrase: RegExp,
   ): CodeRabbitComment | undefined {
-    return candidate != null &&
-      typeof candidate.body === 'string' &&
-      this.hasProsePhrase(candidate.body, phrase)
-      ? candidate
+    if (candidate === null || typeof candidate !== 'object') {
+      return undefined;
+    }
+    const comment = candidate as Partial<CodeRabbitComment>;
+    return typeof comment.id === 'string' &&
+      typeof comment.body === 'string' &&
+      typeof comment.submittedAt === 'string' &&
+      this.hasProsePhrase(comment.body, phrase)
+      ? { id: comment.id, body: comment.body, submittedAt: comment.submittedAt }
       : undefined;
   }
 

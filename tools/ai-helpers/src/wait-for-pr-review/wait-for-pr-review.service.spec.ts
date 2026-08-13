@@ -506,6 +506,46 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: true, review: REVIEW });
   });
 
+  it('discards a rate-limit candidate whose id is missing, not throws', async () => {
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: {
+            body: RATE_LIMIT_COMMENT.body,
+            submittedAt: RATE_LIMIT_COMMENT.submittedAt,
+          },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  it('discards a rate-limit candidate whose submittedAt is missing, not throws', async () => {
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: {
+            id: RATE_LIMIT_COMMENT.id,
+            body: RATE_LIMIT_COMMENT.body,
+          },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
   /** Builds a `gh` result whose only match is a comment-update-failure comment with the given body. */
   function commentUpdateFailedWithBody(body: string) {
     return {
@@ -685,6 +725,53 @@ describe('WaitForPrReviewService', () => {
           review: null,
           rateLimitComment: null,
           commentUpdateFailedComment: { id: COMMENT_UPDATE_FAILED_COMMENT.id },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  it('discards a comment-update-failure candidate whose id is missing, not throws', async () => {
+    // prosePhraseComment previously validated only `body`, so a malformed
+    // candidate with a matching phrase but no `id` would have been returned
+    // as-is — leaving a b3 retry with an unusable exclusion value.
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: null,
+          commentUpdateFailedComment: {
+            body: COMMENT_UPDATE_FAILED_COMMENT.body,
+            submittedAt: COMMENT_UPDATE_FAILED_COMMENT.submittedAt,
+          },
+        }),
+        stderr: '',
+      })
+      .mockResolvedValue(FOUND);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+  });
+
+  it('discards a comment-update-failure candidate whose submittedAt is missing, not throws', async () => {
+    // Same reasoning as the missing-id case above — a malformed candidate
+    // with no submittedAt would leave a b3 retry with an unusable watermark.
+    processRunner.run
+      .mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({
+          review: null,
+          rateLimitComment: null,
+          commentUpdateFailedComment: {
+            id: COMMENT_UPDATE_FAILED_COMMENT.id,
+            body: COMMENT_UPDATE_FAILED_COMMENT.body,
+          },
         }),
         stderr: '',
       })
