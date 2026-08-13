@@ -2,6 +2,24 @@ import { Injectable } from '@nestjs/common';
 
 import { ImportBblConfigService } from '../config/import-bbl-config.service';
 
+/**
+ * One competition hard-assigned to an era and forced to a type, regardless
+ * of match dates. startDate/endDate are only consulted by the competitions
+ * import's override path when it finds no match dates to derive a range
+ * from; ignored otherwise (an overridden competition that has matches always
+ * derives its dates from those instead). endDate is optional; startDate is
+ * required only in that no-matches case, so it is optional on the type here
+ * -- an override for a competition that does have matches never needs one --
+ * but a match-less override with no startDate is skipped at import time with
+ * a recorded error.
+ */
+export interface CompetitionOverride {
+  bblId: string;
+  type: 'season' | 'cup';
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface EraConfig {
   /**
    * Name of the league this era belongs to, stamped by getEras() from the
@@ -41,10 +59,15 @@ export interface EraConfig {
     playerIdOverrides?: number[];
   };
   competitions?: {
-    /** Competition bblIds forced to type 'season' in this era, before dates. */
-    seasonCompetitionIdOverrides?: string[];
-    /** Competition bblIds forced to type 'cup' in this era, before dates. */
-    cupCompetitionIdOverrides?: string[];
+    /**
+     * Competitions hard-assigned to this era and forced to a type, regardless
+     * of match dates -- for a competition with a genuinely empty match list,
+     * or whose date span would otherwise misclassify its type. Checked
+     * before the match-date scan, so unaffected by autoAssignByDate. A
+     * competition bblId may appear in only one override, in only one era,
+     * across all eras.
+     */
+    overrides?: CompetitionOverride[];
   };
   teams?: {
     /** Team codes whose players are pinned to this era regardless of pid. */
@@ -196,17 +219,14 @@ export class EraConfigService {
 
     const eraNameByOverriddenCompetitionId = new Map<string, string>();
     for (const era of eras) {
-      for (const bblId of [
-        ...(era.competitions?.seasonCompetitionIdOverrides ?? []),
-        ...(era.competitions?.cupCompetitionIdOverrides ?? []),
-      ]) {
-        const existing = eraNameByOverriddenCompetitionId.get(bblId);
+      for (const override of era.competitions?.overrides ?? []) {
+        const existing = eraNameByOverriddenCompetitionId.get(override.bblId);
         if (existing !== undefined) {
           throw new Error(
-            `BBL_ERAS: competition id ${bblId} appears in seasonCompetitionIdOverrides/cupCompetitionIdOverrides for both "${existing}" and "${era.identity.name}".`,
+            `BBL_ERAS: competition id ${override.bblId} appears in competitions.overrides for both "${existing}" and "${era.identity.name}".`,
           );
         }
-        eraNameByOverriddenCompetitionId.set(bblId, era.identity.name);
+        eraNameByOverriddenCompetitionId.set(override.bblId, era.identity.name);
       }
     }
 
@@ -382,32 +402,76 @@ export class EraConfigService {
     if (typeof raw !== 'object' || raw === null) {
       throw new Error(`BBL_ERAS[${index}].competitions must be an object.`);
     }
-    const { seasonCompetitionIdOverrides, cupCompetitionIdOverrides } =
-      raw as Record<string, unknown>;
-    if (
-      seasonCompetitionIdOverrides !== undefined &&
-      !isNonEmptyStringArray(seasonCompetitionIdOverrides)
-    ) {
-      throw new Error(
-        `BBL_ERAS[${index}].competitions.seasonCompetitionIdOverrides must be an array of non-empty strings when present.`,
-      );
-    }
-    if (
-      cupCompetitionIdOverrides !== undefined &&
-      !isNonEmptyStringArray(cupCompetitionIdOverrides)
-    ) {
-      throw new Error(
-        `BBL_ERAS[${index}].competitions.cupCompetitionIdOverrides must be an array of non-empty strings when present.`,
-      );
-    }
+    const { overrides } = raw as Record<string, unknown>;
+    const parsedOverrides = this.parseCompetitionOverrides(overrides, index);
     return {
-      ...(seasonCompetitionIdOverrides !== undefined
-        ? { seasonCompetitionIdOverrides: seasonCompetitionIdOverrides }
-        : {}),
-      ...(cupCompetitionIdOverrides !== undefined
-        ? { cupCompetitionIdOverrides: cupCompetitionIdOverrides }
-        : {}),
+      ...(parsedOverrides !== undefined ? { overrides: parsedOverrides } : {}),
     };
+  }
+
+  private parseCompetitionOverrides(
+    raw: unknown,
+    index: number,
+  ): NonNullable<EraConfig['competitions']>['overrides'] {
+    if (raw === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(raw)) {
+      throw new Error(
+        `BBL_ERAS[${index}].competitions.overrides must be an array of override objects.`,
+      );
+    }
+    const seenInEra = new Set<string>();
+    return raw.map((entry, overrideIndex) => {
+      const prefix = `BBL_ERAS[${index}].competitions.overrides[${overrideIndex}]`;
+      if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+        throw new Error(
+          `${prefix} must be an object with bblId, type, and optional startDate/endDate.`,
+        );
+      }
+      const { bblId, type, startDate, endDate } = entry as Record<
+        string,
+        unknown
+      >;
+      if (typeof bblId !== 'string' || bblId.trim() === '') {
+        throw new Error(`${prefix}.bblId must be a non-empty string.`);
+      }
+      if (type !== 'season' && type !== 'cup') {
+        throw new Error(`${prefix}.type must be "season" or "cup".`);
+      }
+      if (startDate !== undefined && !isValidIsoDate(startDate)) {
+        throw new Error(
+          `${prefix}.startDate must be an ISO date (YYYY-MM-DD) when present.`,
+        );
+      }
+      if (endDate !== undefined && !isValidIsoDate(endDate)) {
+        throw new Error(
+          `${prefix}.endDate must be an ISO date (YYYY-MM-DD) when present.`,
+        );
+      }
+      if (endDate !== undefined && startDate === undefined) {
+        throw new Error(`${prefix}.endDate requires startDate to also be set.`);
+      }
+      if (
+        startDate !== undefined &&
+        endDate !== undefined &&
+        endDate < startDate
+      ) {
+        throw new Error(`${prefix}.endDate must not be before startDate.`);
+      }
+      if (seenInEra.has(bblId)) {
+        throw new Error(
+          `BBL_ERAS[${index}].competitions.overrides: competition id ${bblId} appears more than once.`,
+        );
+      }
+      seenInEra.add(bblId);
+      return {
+        bblId,
+        type,
+        ...(startDate !== undefined ? { startDate } : {}),
+        ...(endDate !== undefined ? { endDate } : {}),
+      };
+    });
   }
 
   private parseTeams(raw: unknown, index: number): EraConfig['teams'] {

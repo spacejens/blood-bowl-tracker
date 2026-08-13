@@ -109,7 +109,7 @@ describe('EraConfigService', () => {
               autoAssignByDate: false,
             },
             players: { autoAssignByPlayerId: false },
-            competitions: { seasonCompetitionIdOverrides: ['55'] },
+            competitions: { overrides: [{ bblId: '55', type: 'season' }] },
             teams: { teamCodeOverrides: ['fes2'] },
           },
         ],
@@ -439,7 +439,7 @@ describe('EraConfigService', () => {
     expect(() => service.getEras()).toThrow(/4907/);
   });
 
-  it('parses competitions overrides when present, leaving the group undefined when absent', async () => {
+  it('parses competitions.overrides when present, leaving the group undefined when absent', async () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -454,8 +454,16 @@ describe('EraConfigService', () => {
           autoAssignByPlayerId: true,
         },
         competitions: {
-          seasonCompetitionIdOverrides: ['74'],
-          cupCompetitionIdOverrides: ['30', '33'],
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: '2023-12-31',
+            },
+            { bblId: '30', type: 'cup' },
+            { bblId: '33', type: 'cup', startDate: '2016-11-19' },
+          ],
         },
       },
       {
@@ -466,32 +474,172 @@ describe('EraConfigService', () => {
     ];
     const service = await makeService(eras);
     const result = service.getEras();
-    expect(result[0].competitions?.seasonCompetitionIdOverrides).toEqual([
-      '74',
-    ]);
-    expect(result[0].competitions?.cupCompetitionIdOverrides).toEqual([
-      '30',
-      '33',
+    expect(result[0].competitions?.overrides).toEqual([
+      {
+        bblId: '74',
+        type: 'season',
+        startDate: '2023-07-01',
+        endDate: '2023-12-31',
+      },
+      { bblId: '30', type: 'cup' },
+      { bblId: '33', type: 'cup', startDate: '2016-11-19' },
     ]);
     expect(result[1].competitions).toBeUndefined();
   });
 
-  it('rejects seasonCompetitionIdOverrides containing a non-string or empty string', async () => {
+  it('rejects competitions.overrides that is not an array', async () => {
     const eras = [
       {
         identity: { name: 'LRB', rulesSets: ['LRB'] },
         dates: { startDate: '2011-09-09', autoAssignByDate: true },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74', ''] },
+        competitions: { overrides: { bblId: '74', type: 'season' } },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.overrides');
+  });
+
+  it('rejects an override entry that is not an object', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { overrides: ['74'] },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.overrides[0]');
+  });
+
+  it('rejects an override with a missing or empty bblId', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { overrides: [{ bblId: '', type: 'season' }] },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.overrides[0].bblId');
+  });
+
+  it('rejects an override with an invalid type', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { overrides: [{ bblId: '74', type: 'exhibition' }] },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.overrides[0].type');
+  });
+
+  it('rejects an override startDate that is not a real ISO date', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [{ bblId: '74', type: 'season', startDate: '2023-02-30' }],
+        },
       },
     ];
     const service = await makeService(eras);
     expect(() => service.getEras()).toThrow(
-      'competitions.seasonCompetitionIdOverrides',
+      'competitions.overrides[0].startDate',
     );
   });
 
-  it('rejects the same competition id across season and cup overrides in different eras', async () => {
+  it('rejects an override endDate that is not an ISO date', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: 'December 2023',
+            },
+          ],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.overrides[0].endDate',
+    );
+  });
+
+  it('rejects an override endDate given without a startDate', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [{ bblId: '74', type: 'season', endDate: '2023-12-31' }],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.overrides[0].endDate requires startDate',
+    );
+  });
+
+  it('rejects an override endDate before startDate', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-12-31',
+              endDate: '2023-07-01',
+            },
+          ],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.overrides[0].endDate must not be before startDate',
+    );
+  });
+
+  it("rejects the same competition id appearing twice within one era's overrides", async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [
+            { bblId: '30', type: 'cup' },
+            { bblId: '30', type: 'season' },
+          ],
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(/30/);
+  });
+
+  it('rejects the same competition id across overrides in different eras', async () => {
     const eras = [
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -505,13 +653,13 @@ describe('EraConfigService', () => {
           lastPlayerId: 5000,
           autoAssignByPlayerId: true,
         },
-        competitions: { seasonCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'season' }] },
       },
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { cupCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ];
     const service = await makeService(eras);

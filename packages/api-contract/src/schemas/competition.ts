@@ -24,7 +24,9 @@ export const UpsertCompetitionSchema = z.object({
   teamEraIds: z.array(z.number().int()).default([]),
   // Nullable AND optional: omitting a date leaves the stored value alone,
   // an explicit null clears it. Both dates are nullable (unlike era's
-  // required startDate) because nothing populates them yet.
+  // required startDate) because a competition's end date is not always
+  // derivable, and pre-existing rows may still be unpopulated; #434 tightens
+  // startDate to NOT NULL once every importer supplies it.
   startDate: IsoDate.nullable().optional(),
   endDate: IsoDate.nullable().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),

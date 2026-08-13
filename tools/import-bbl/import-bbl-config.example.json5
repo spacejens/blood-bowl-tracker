@@ -164,16 +164,33 @@
               4833, 4838, 4839, 4842, 4846, 4865,
             ],
           },
-          // Optional group -- omit entirely when an era has neither override
-          // list. seasonCompetitionIdOverrides/cupCompetitionIdOverrides are
-          // competition bblIds hard-assigned to this era and forced to type
-          // season/cup respectively, regardless of match dates -- for a
-          // competition with a genuinely empty match list, or whose date span
-          // would otherwise misclassify its type. Checked before the
-          // match-date scan, so unaffected by autoAssignByDate. A competition
-          // bblId may appear in only one of these lists across all eras.
+          // Optional group -- omit entirely when an era has no overrides.
+          // Each entry is a competition bblId hard-assigned to this era and
+          // forced to the given type, regardless of match dates -- for a
+          // competition with a genuinely empty match list, or whose date
+          // span would otherwise misclassify its type. Checked before the
+          // match-date scan, so unaffected by autoAssignByDate. A
+          // competition bblId may appear in only one override, in only one
+          // era, across all eras. startDate/endDate are only consulted when
+          // the override competition has no dated matches at all to derive
+          // them from -- one that does have matches always uses those
+          // instead, and startDate/endDate here are ignored. Competition 74
+          // ("Minor Season 25") has no p=ma page in the mirror at all, and
+          // its real dates are unknown, so its startDate/endDate are pinned
+          // to the last day of this era's own range rather than guessed --
+          // deliberately not the real-world half-year it actually ran in,
+          // since that lies after this era ends and there is no next era
+          // configured to hold it. It is the only entry in this era that
+          // actually needs startDate/endDate.
           competitions: {
-            seasonCompetitionIdOverrides: ['74'],
+            overrides: [
+              {
+                bblId: '74',
+                type: 'season',
+                startDate: '2023-06-14',
+                endDate: '2023-06-15',
+              },
+            ],
           },
           // Optional group -- omit entirely when an era has no position
           // overrides (as here). Each entry is keyed by positionId (BBL
@@ -209,7 +226,10 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            cupCompetitionIdOverrides: ['30', '33'],
+            overrides: [
+              { bblId: '30', type: 'cup' },
+              { bblId: '33', type: 'cup' },
+            ],
           },
           // Optional group -- omit entirely when an era has no team-code
           // overrides. teamCodeOverrides pins the players of the listed team
@@ -267,7 +287,7 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            seasonCompetitionIdOverrides: ['69'],
+            overrides: [{ bblId: '69', type: 'season' }],
           },
           teams: {
             teamCodeOverrides: ['red4', 'twi', 'dok', 'äng', 'dan', 'lus2'],
@@ -300,7 +320,7 @@
             autoAssignByPlayerId: false,
           },
           competitions: {
-            seasonCompetitionIdOverrides: ['55'],
+            overrides: [{ bblId: '55', type: 'season' }],
           },
           teams: {
             teamCodeOverrides: [

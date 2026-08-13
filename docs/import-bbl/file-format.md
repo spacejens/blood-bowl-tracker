@@ -80,9 +80,9 @@ The `so=t` variant is a different, team-sorted view (keyed by `t`) and is not
 used here. Each match row's `onclick` (e.g.
 `self.location.href='default.asp?p=m&m=<id>'`) carries the match's
 globally-unique numeric id; the matches import uses this as the match's BBL
-external id. For every competition other than those covered by
-`seasonCompetitionIdOverrides`/`cupCompetitionIdOverrides` (see `eras` in
-[index.md](./index.md)), `type` is inferred from its match-date span:
+external id. For every competition other than those covered by an era's
+`competitions.overrides` entry (see `eras` in [index.md](./index.md)), `type`
+is inferred from its match-date span:
 `(latest - earliest) <= 3 days` => `cup`, else `season`. Validated against the
 71 non-overridden competitions in the reference dataset; the nearest genuine
 cup spans at most 2 days, so 3 days has wide margin.
@@ -230,17 +230,17 @@ overrides, each for a different reason:
 
 - "Stunty Leeg 1" (`s=30`, 0-day span) is a genuine type-classification
   ambiguity — a 0-day span is indistinguishable from a real one-day cup using
-  the heuristic alone — but is resolved correctly via
-  `cupCompetitionIdOverrides` regardless.
+  the heuristic alone — but is resolved correctly via a `type: 'cup'`
+  override regardless.
 - "Stunty Leeg 2" (`s=33`, 6-day span) is a genuine type _correction_: the
   date-span heuristic would compute `season` (6 days is over the 3-day
-  cutoff), but it was actually a `cup`. `cupCompetitionIdOverrides` corrects
+  cutoff), but it was actually a `cup`. Its `type: 'cup'` override corrects
   the type, not just the era.
 - "Dungeon Bowl 1" (`s=69`, 191-day span) has no type-classification issue at
   all — the heuristic already computes `season` correctly on its own. Its
   only problem is _era_ assignment: its dates would otherwise fall in
-  whichever regular era covers that date range. `seasonCompetitionIdOverrides`
-  fixes the era assignment.
+  whichever regular era covers that date range. Its `type: 'season'`
+  override fixes the era assignment.
 
 Any future similar case should be handled the same way.
 

@@ -1,8 +1,13 @@
-import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
+import type {
+  ImportError,
+  ImportResult,
+  MatchDateRange,
+} from '@blood-bowl-tracker/import';
 import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  MatchDateRangeService,
 } from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
@@ -76,6 +81,19 @@ const eraIdsByName = new Map<string, number>([
   ['BB2020', 200],
 ]);
 
+/**
+ * The canned range the mocked MatchDateRangeService returns by default:
+ * an 11-day span (=> season) inside the "Living rulebook" era. The real
+ * min/max/span arithmetic is covered by
+ * packages/import/src/match-date-range.service.spec.ts; each test here stubs
+ * the exact range it expects and asserts what the service does with it.
+ */
+const CANNED_RANGE: MatchDateRange = {
+  earliestDate: new Date(Date.UTC(2011, 11, 7)),
+  latestDate: new Date(Date.UTC(2011, 11, 18)),
+  spanDays: 11,
+};
+
 /** A fake page carrying only params; its load() must never be called (parser is mocked). */
 function page(type: string, params: Record<string, string>): BblPage {
   return {
@@ -119,6 +137,7 @@ interface Mocks {
   eraConfig: MockProxy<EraConfigService>;
   importResults: MockProxy<ImportResultService>;
   pageParseError: MockProxy<PageParseErrorService>;
+  dateRange: MockProxy<MatchDateRangeService>;
 }
 
 /**
@@ -159,6 +178,9 @@ async function makeService(
   const pageParseError = mock<PageParseErrorService>();
   pageParseError.build.mockReturnValue(CANNED_PAGE_PARSE_ERROR);
 
+  const dateRange = mock<MatchDateRangeService>();
+  dateRange.computeRange.mockReturnValue(CANNED_RANGE);
+
   const moduleRef = await Test.createTestingModule({
     providers: [
       BblCompetitionsImportService,
@@ -171,6 +193,7 @@ async function makeService(
       { provide: ExternalSystemNameConfigService, useValue: nameConfig },
       { provide: ImportResultService, useValue: importResults },
       { provide: PageParseErrorService, useValue: pageParseError },
+      { provide: MatchDateRangeService, useValue: dateRange },
     ],
   }).compile();
 
@@ -184,11 +207,205 @@ async function makeService(
       eraConfig,
       importResults,
       pageParseError,
+      dateRange,
     },
   };
 }
 
 describe('BblCompetitionsImportService', () => {
+  it('populates startDate and endDate from the match-date range', async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '1', name: 'Major Season 1' },
+    ]);
+    const dates = [
+      new Date(Date.UTC(2011, 11, 7)),
+      new Date(Date.UTC(2011, 11, 18)),
+    ];
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({ '1': dates }),
+    );
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
+      id: 42,
+    });
+
+    await service.importCompetitions(eraIdsByName);
+
+    expect(mocks.dateRange.computeRange).toHaveBeenCalledWith(dates);
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        startDate: '2011-12-07',
+        endDate: '2011-12-18',
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it("derives an overridden competition's dates from its matches, not from the configured override dates", async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '30', name: 'Chaos Cup' },
+    ]);
+    mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
+      matchesByCompetition({
+        '30': [new Date(Date.UTC(2013, 4, 4)), new Date(Date.UTC(2013, 4, 5))],
+      }),
+    );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2013, 4, 4)),
+      latestDate: new Date(Date.UTC(2013, 4, 5)),
+      spanDays: 1,
+    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
+      id: 30,
+    });
+    mocks.eraConfig.getEras.mockReturnValue([
+      {
+        identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
+        dates: {
+          startDate: '2011-09-09',
+          endDate: '2021-09-01',
+          autoAssignByDate: true,
+        },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [
+            // startDate present but must be ignored: has real matches.
+            { bblId: '30', type: 'cup', startDate: '1999-01-01' },
+          ],
+        },
+      },
+    ]);
+
+    await service.importCompetitions(eraIdsByName);
+
+    expect(resultArgs(mocks.importResults).errors).toHaveLength(0);
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'cup',
+        eraId: 100,
+        startDate: '2013-05-04',
+        endDate: '2013-05-05',
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it("uses the override's own startDate/endDate for an overridden competition with no matches", async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '74', name: 'Minor Season 25' },
+    ]);
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
+      id: 74,
+    });
+    mocks.eraConfig.getEras.mockReturnValue([
+      {
+        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: '2023-12-31',
+            },
+          ],
+        },
+      },
+    ]);
+
+    await service.importCompetitions(eraIdsByName);
+
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
+    expect(errors).toHaveLength(0);
+    expect(mocks.dateRange.computeRange).not.toHaveBeenCalled();
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).toHaveBeenCalledWith(
+      {
+        name: 'Minor Season 25',
+        type: 'season',
+        eraId: 200,
+        startDate: '2023-07-01',
+        endDate: '2023-12-31',
+        teamEraIds: [],
+        externalIds: [{ externalSystemId: 1, externalId: '74' }],
+      },
+      expect.any(Array),
+    );
+  });
+
+  it('omits endDate when the override has no endDate', async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '74', name: 'Minor Season 25' },
+    ]);
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
+      id: 74,
+    });
+    mocks.eraConfig.getEras.mockReturnValue([
+      {
+        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+        competitions: {
+          overrides: [{ bblId: '74', type: 'season', startDate: '2023-07-01' }],
+        },
+      },
+    ]);
+
+    await service.importCompetitions(eraIdsByName);
+
+    const upsertArg =
+      mocks.competitionsImport.upsertCompetitionResult.mock.calls[0][0];
+    expect(upsertArg.startDate).toBe('2023-07-01');
+    expect(upsertArg.endDate).toBeUndefined();
+  });
+
+  it('skips an overridden competition with no matches and no configured startDate, recording an error', async () => {
+    const { service, mocks } = await makeService(
+      makeReader({ se: [page('se', { s: '66' })] }),
+    );
+    mocks.listParser.extractCompetitions.mockReturnValue([
+      { bblId: '74', name: 'Minor Season 25' },
+    ]);
+    mocks.eraConfig.getEras.mockReturnValue([
+      {
+        identity: { name: 'BB2020', rulesSets: ['BB2020'] },
+        dates: { startDate: '2021-09-01', autoAssignByDate: true },
+        players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
+      },
+    ]);
+
+    await service.importCompetitions(eraIdsByName);
+
+    const { imported, errors } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(
+      mocks.competitionsImport.upsertCompetitionResult,
+    ).not.toHaveBeenCalled();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('Minor Season 25');
+    expect(errors[0].message).toContain('no startDate');
+  });
+
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
@@ -222,6 +439,8 @@ describe('BblCompetitionsImportService', () => {
         name: 'Major Season 1',
         type: 'season',
         eraId: 100,
+        startDate: '2011-12-07',
+        endDate: '2011-12-18',
         teamEraIds: [],
         externalIds: [{ externalSystemId: 1, externalId: '1' }],
       },
@@ -231,6 +450,8 @@ describe('BblCompetitionsImportService', () => {
       name: 'Major Season 1',
       type: 'season',
       eraId: 100,
+      startDate: '2011-12-07',
+      endDate: '2011-12-18',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '1' }],
     });
@@ -249,6 +470,11 @@ describe('BblCompetitionsImportService', () => {
         '5': [new Date(Date.UTC(2021, 9, 2)), new Date(Date.UTC(2021, 9, 4))],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2021, 9, 2)),
+      latestDate: new Date(Date.UTC(2021, 9, 4)),
+      spanDays: 2,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 7,
     });
@@ -296,6 +522,11 @@ describe('BblCompetitionsImportService', () => {
         '3': [new Date(Date.UTC(2000, 0, 1)), new Date(Date.UTC(2000, 5, 1))],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2000, 0, 1)),
+      latestDate: new Date(Date.UTC(2000, 5, 1)),
+      spanDays: 152,
+    });
 
     await service.importCompetitions(eraIdsByName);
 
@@ -358,11 +589,11 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
-    // "BB2020" is matched by seasonCompetitionIdOverrides, but is absent from
-    // eraIdsByName, simulating its rules set having failed to import
+    // "BB2020" is matched by the competitions.overrides entry, but is absent
+    // from eraIdsByName, simulating its rules set having failed to import
     // earlier in the run.
 
     await service.importCompetitions(new Map());
@@ -396,6 +627,11 @@ describe('BblCompetitionsImportService', () => {
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2012, 0, 1)),
+      latestDate: new Date(Date.UTC(2012, 5, 1)),
+      spanDays: 152,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 1,
     });
@@ -421,6 +657,11 @@ describe('BblCompetitionsImportService', () => {
         '1': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 5, 1))],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2012, 0, 1)),
+      latestDate: new Date(Date.UTC(2012, 5, 1)),
+      spanDays: 152,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 1,
     });
@@ -540,7 +781,16 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: {
+          overrides: [
+            {
+              bblId: '74',
+              type: 'season',
+              startDate: '2023-07-01',
+              endDate: '2023-12-31',
+            },
+          ],
+        },
       },
     ]);
 
@@ -557,6 +807,8 @@ describe('BblCompetitionsImportService', () => {
         name: 'Minor Season 25',
         type: 'season',
         eraId: 200,
+        startDate: '2023-07-01',
+        endDate: '2023-12-31',
         teamEraIds: [],
         externalIds: [{ externalSystemId: 1, externalId: '74' }],
       },
@@ -580,6 +832,11 @@ describe('BblCompetitionsImportService', () => {
         '74': [new Date(Date.UTC(2012, 0, 1)), new Date(Date.UTC(2012, 0, 2))],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2012, 0, 1)),
+      latestDate: new Date(Date.UTC(2012, 0, 2)),
+      spanDays: 1,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 74,
     });
@@ -597,7 +854,7 @@ describe('BblCompetitionsImportService', () => {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
         dates: { startDate: '2021-09-01', autoAssignByDate: true },
         players: { firstPlayerId: 5001, autoAssignByPlayerId: true },
-        competitions: { seasonCompetitionIdOverrides: ['74'] },
+        competitions: { overrides: [{ bblId: '74', type: 'season' }] },
       },
     ]);
 
@@ -612,7 +869,7 @@ describe('BblCompetitionsImportService', () => {
     );
   });
 
-  it('applies cupCompetitionIdOverrides forcing type cup even when the span would compute season', async () => {
+  it('applies a competitions.overrides entry forcing type cup even when the span would compute season', async () => {
     const { service, mocks } = await makeService(
       makeReader({ se: [page('se', { s: '66' })] }),
     );
@@ -629,6 +886,11 @@ describe('BblCompetitionsImportService', () => {
         ],
       }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2016, 10, 19)),
+      latestDate: new Date(Date.UTC(2016, 10, 25)),
+      spanDays: 6,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 33,
     });
@@ -641,7 +903,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: true,
         },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { cupCompetitionIdOverrides: ['33'] },
+        competitions: { overrides: [{ bblId: '33', type: 'cup' }] },
       },
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -678,6 +940,11 @@ describe('BblCompetitionsImportService', () => {
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       matchesByCompetition({ '30': [new Date(Date.UTC(2016, 2, 12))] }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date(Date.UTC(2016, 2, 12)),
+      latestDate: new Date(Date.UTC(2016, 2, 12)),
+      spanDays: 0,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 30,
     });
@@ -699,7 +966,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: true,
         },
         players: { firstPlayerId: 1, autoAssignByPlayerId: true },
-        competitions: { cupCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ]);
 
@@ -744,7 +1011,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: false,
         },
         players: { autoAssignByPlayerId: false },
-        competitions: { cupCompetitionIdOverrides: ['30'] },
+        competitions: { overrides: [{ bblId: '30', type: 'cup' }] },
       },
     ];
     const eraIds = new Map<string, number>([
@@ -765,6 +1032,17 @@ describe('BblCompetitionsImportService', () => {
         '30': [new Date('2016-06-15')],
       }),
     );
+    mocks.dateRange.computeRange
+      .mockReturnValueOnce({
+        earliestDate: new Date('2016-06-01'),
+        latestDate: new Date('2016-08-01'),
+        spanDays: 61,
+      })
+      .mockReturnValueOnce({
+        earliestDate: new Date('2016-06-15'),
+        latestDate: new Date('2016-06-15'),
+        spanDays: 0,
+      });
     mocks.competitionsImport.upsertCompetitionResult
       .mockResolvedValueOnce({ id: 1 })
       .mockResolvedValueOnce({ id: 30 });
@@ -790,7 +1068,7 @@ describe('BblCompetitionsImportService', () => {
           autoAssignByDate: false,
         },
         players: { autoAssignByPlayerId: false },
-        competitions: { seasonCompetitionIdOverrides: ['55'] },
+        competitions: { overrides: [{ bblId: '55', type: 'season' }] },
         teams: { teamCodeOverrides: ['fes2'] },
       },
     ];
@@ -806,6 +1084,11 @@ describe('BblCompetitionsImportService', () => {
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       matchesByCompetition({ '55': [new Date('2019-08-03')] }),
     );
+    mocks.dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date('2019-08-03'),
+      latestDate: new Date('2019-08-03'),
+      spanDays: 0,
+    });
     mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
       id: 1,
     });
