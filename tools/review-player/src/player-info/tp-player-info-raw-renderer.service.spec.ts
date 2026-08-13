@@ -1,9 +1,9 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
-import { HtmlService } from '../shared/html.service';
 import type { TpRawPlayerAggregate } from '../source/tp-raw-player-index.service';
 import { TpRawPlayerIndexService } from '../source/tp-raw-player-index.service';
 import { TpPlayerEventLabelsService } from './tp-player-event-labels.service';

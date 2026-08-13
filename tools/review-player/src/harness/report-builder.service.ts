@@ -1,6 +1,6 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { HtmlService } from '../shared/html.service';
 import type { ReviewGap, SampledPlayer } from '../shared/review.types';
 
 /** One data type's two panels for one player. */

@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@blood-bowl-tracker/db": "workspace:*",
+    "@blood-bowl-tracker/review-harness": "workspace:*",
     "@nestjs/common": "^11.1.29",
     "@nestjs/core": "^11.1.29",
     "cheerio": "^1.2.0",
