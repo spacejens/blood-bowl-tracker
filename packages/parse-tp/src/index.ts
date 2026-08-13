@@ -14,6 +14,7 @@ export type { TpMatch } from './match-parser.service';
 export { MatchParserService } from './match-parser.service';
 export { ParseTpModule } from './parse-tp.module';
 export type {
+  TpCareerSppCounts,
   TpRoster,
   TpRosterPlayer,
   TpRosterPosition,

@@ -42,6 +42,35 @@ export interface TpRosterPlayer {
    * tools/import-tp/src/match-events/tp-spp-cross-check.spec.ts.
    */
   totalStarPlayerPoints: number;
+  /**
+   * TP's per-action-type career counters, or `undefined` when the source entry
+   * carried none. Only a standalone `rosters_<id>.json` entry has them: the
+   * match-embedded roster snapshots `MatchParserService` parses through the
+   * same `LineUpSchema` do not, which is why every counter field is optional.
+   */
+  careerCounts?: TpCareerSppCounts;
+}
+
+/**
+ * TP's career-wide, per-action-type counters for one player, from a standalone
+ * `rosters_<id>.json` `lineUps[]` entry. Career-wide in exactly the sense
+ * `totalStarPlayerPoints` is: inclusive of competitions that are still ongoing
+ * and have not been downloaded/imported locally yet.
+ *
+ * TP's raw JSON has NO deflection field, so `interceptions`
+ * (`totalInterceptions`) is a COMBINED interception+deflection figure, and no
+ * casualty-severity breakdown, so `casualties` (`totalCasualties`) covers every
+ * severity. Both are carried through as the combined counters they are; the
+ * consumer prices each with a single representative award value -- see
+ * docs/plans/2026-08-13-tp-spp-ongoing-competition-adjustment-design.md,
+ * "Known limitations".
+ */
+export interface TpCareerSppCounts {
+  touchdowns: number;
+  completions: number;
+  interceptions: number;
+  mvpAwards: number;
+  casualties: number;
 }
 
 /**
@@ -82,6 +111,16 @@ export const LineUpSchema = z.object({
   position: z.string(),
   isBigGuy: z.boolean().optional(),
   totalStarPlayerPoints: z.number().int(),
+  // Optional because match-embedded roster snapshots reuse this schema (see
+  // MatchLineUpSchema) and carry none of these counters. Nonnegative to match
+  // SppCareerCountsSchema (packages/api-contract), which TpSppAdjustmentsImportService
+  // forwards these values into — a negative counter here would otherwise pass
+  // parsing only to reject the whole sync chunk downstream.
+  totalTouchdowns: z.number().int().nonnegative().optional(),
+  totalPass: z.number().int().nonnegative().optional(),
+  totalInterceptions: z.number().int().nonnegative().optional(),
+  totalMVP: z.number().int().nonnegative().optional(),
+  totalCasualties: z.number().int().nonnegative().optional(),
 });
 
 const RosterSchema = z.object({
@@ -142,7 +181,42 @@ export class RosterParserService {
         fallbackPositionName: entry.position,
         isBigGuy: entry.isBigGuy ?? false,
         totalStarPlayerPoints: entry.totalStarPlayerPoints,
+        careerCounts: this.careerCounts(entry),
       })),
+    };
+  }
+
+  /**
+   * The entry's per-action-type career counters, or `undefined` when it does
+   * not carry the full set. All-or-nothing on purpose: a partial set would
+   * silently under-count one action type and inflate the SPP left unexplained,
+   * which is the exact failure this data exists to prevent.
+   */
+  private careerCounts(
+    entry: z.infer<typeof LineUpSchema>,
+  ): TpCareerSppCounts | undefined {
+    const {
+      totalTouchdowns,
+      totalPass,
+      totalInterceptions,
+      totalMVP,
+      totalCasualties,
+    } = entry;
+    if (
+      totalTouchdowns === undefined ||
+      totalPass === undefined ||
+      totalInterceptions === undefined ||
+      totalMVP === undefined ||
+      totalCasualties === undefined
+    ) {
+      return undefined;
+    }
+    return {
+      touchdowns: totalTouchdowns,
+      completions: totalPass,
+      interceptions: totalInterceptions,
+      mvpAwards: totalMVP,
+      casualties: totalCasualties,
     };
   }
 }

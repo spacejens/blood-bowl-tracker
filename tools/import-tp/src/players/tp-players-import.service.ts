@@ -1,3 +1,5 @@
+import type { SppCareerCounts } from '@blood-bowl-tracker/api-contract';
+import { SPP_CAREER_COUNT_KEYS } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
 import {
   ExternalSystemBootstrapService,
@@ -8,6 +10,7 @@ import {
   PositionsImportService,
 } from '@blood-bowl-tracker/import';
 import type {
+  TpCareerSppCounts,
   TpInducedStarPlayer,
   TpRosterPlayer,
 } from '@blood-bowl-tracker/parse-tp';
@@ -107,6 +110,11 @@ export class TpPlayersImportService {
    * it lists (presumed freshest). See `matchEmbeddedPlayersByRosterId`'s doc
    * comment for why this union is needed.
    *
+   * Also returns `careerSppCountsByPlayerId` (DB player id -> TP's career-wide
+   * per-action-type counts), consumed by the SPP-adjustment step so it can
+   * discount SPP earned in competitions that have not been imported yet.
+   * Players whose source entry carried no counters are simply absent.
+   *
    * A player whose `lineUpMasterId` resolves neither via the regular nor the
    * star catalog, but is flagged `isBigGuy: true` (e.g. a mercenary Big Guy
    * hire like "Giant", which has no catalog entry in either
@@ -144,12 +152,14 @@ export class TpPlayersImportService {
     playerIdsByLineUpId: Map<number, number>;
     starPlayerIdsByRosterAndMaster: Map<string, number>;
     starPositionUsages: StarPositionUsage[];
+    careerSppCountsByPlayerId: Map<number, SppCareerCounts>;
   }> {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByLineUpId = new Map<number, number>();
     const starPlayerIdsByRosterAndMaster = new Map<string, number>();
     const starPositionUsages: StarPositionUsage[] = [];
+    const careerSppCountsByPlayerId = new Map<number, SppCareerCounts>();
     const starIds = starPositionIds ?? new Set<number>();
     // Reverse lookups for the induced-star path (which knows numeric eraId /
     // only a rosterId), so every emitted usage carries raw string references.
@@ -189,6 +199,54 @@ export class TpPlayersImportService {
       }
     }
 
+    // TP's per-action-type career counters have the same "career total, only
+    // ever increases" property as totalStarPlayerPoints, and the same lineUp
+    // id can recur across sources, so keep the per-group MAXIMUM for the same
+    // reason maxSppTotalByPlayerId does. Only the standalone roster file
+    // carries these counters at all -- match-embedded snapshots do not -- so a
+    // player seen only there contributes none and, downstream, gets no
+    // ongoing-competition estimate (i.e. the behaviour before this feature).
+    const maxCareerCountsByLineUpId = new Map<number, SppCareerCounts>();
+    const noteCareerCounts = (
+      lineUpId: number,
+      counts: TpCareerSppCounts | undefined,
+    ): void => {
+      if (counts === undefined) {
+        return;
+      }
+      const mapped: SppCareerCounts = {
+        touchdown: counts.touchdowns,
+        completion: counts.completions,
+        // TP reports one combined interception counter (its raw data has no
+        // deflection field) and one combined casualty counter (no severity
+        // breakdown); both are priced with a single representative award value
+        // server-side.
+        interception: counts.interceptions,
+        mvp_award: counts.mvpAwards,
+        casualty: counts.casualties,
+      };
+      const existing = maxCareerCountsByLineUpId.get(lineUpId);
+      if (existing === undefined) {
+        maxCareerCountsByLineUpId.set(lineUpId, mapped);
+        return;
+      }
+      for (const group of SPP_CAREER_COUNT_KEYS) {
+        existing[group] = Math.max(existing[group], mapped[group]);
+      }
+    };
+    for (const { roster } of rosters) {
+      for (const player of roster.players) {
+        noteCareerCounts(player.id, player.careerCounts);
+      }
+    }
+    if (matchEmbeddedPlayersByRosterId) {
+      for (const players of matchEmbeddedPlayersByRosterId.values()) {
+        for (const player of players) {
+          noteCareerCounts(player.id, player.careerCounts);
+        }
+      }
+    }
+
     const tpSystemName = this.externalSystemName.getTpSystemName();
     const bootstrap = await this.externalSystemBootstrap.bootstrap([
       { name: tpSystemName, category: 'imported_data_source' },
@@ -201,6 +259,7 @@ export class TpPlayersImportService {
         playerIdsByLineUpId,
         starPlayerIdsByRosterAndMaster,
         starPositionUsages,
+        careerSppCountsByPlayerId,
       };
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
@@ -289,6 +348,10 @@ export class TpPlayersImportService {
         if (upserted) {
           imported += 1;
           playerIdsByLineUpId.set(player.id, upserted.id);
+          const careerCounts = maxCareerCountsByLineUpId.get(player.id);
+          if (careerCounts !== undefined) {
+            careerSppCountsByPlayerId.set(upserted.id, careerCounts);
+          }
           if (fromMercenary || starIds.has(positionId)) {
             starPositionUsages.push({
               positionId,
@@ -383,6 +446,7 @@ export class TpPlayersImportService {
       playerIdsByLineUpId,
       starPlayerIdsByRosterAndMaster,
       starPositionUsages,
+      careerSppCountsByPlayerId,
     };
   }
 

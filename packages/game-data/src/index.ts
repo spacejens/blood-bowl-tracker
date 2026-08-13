@@ -58,11 +58,14 @@ export { SppModule } from './spp/spp.module';
 export { SppAdjustmentsService } from './spp/spp-adjustments.service';
 export type { ResolveSppValueOptions } from './spp/spp-award-values.service';
 export { SppAwardValuesService } from './spp/spp-award-values.service';
+export { SppEventCountsService } from './spp/spp-event-counts.service';
 export {
   MIGRATION_RULES_SET_NAME,
   POST_MIGRATION_RULES_SET_NAMES,
   SppForcedRateService,
 } from './spp/spp-forced-rate.service';
+export type { OngoingSppEntry } from './spp/spp-ongoing-estimate.service';
+export { SppOngoingEstimateService } from './spp/spp-ongoing-estimate.service';
 export { SppTotalsService } from './spp/spp-totals.service';
 export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';
