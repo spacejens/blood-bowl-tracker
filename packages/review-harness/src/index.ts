@@ -15,6 +15,11 @@ export type {
   Sampled,
 } from './review.types';
 export { REVIEW_SOURCES } from './review.types';
+export type {
+  ReviewAppModuleOptions,
+  ReviewDatabaseUrlProvider,
+} from './review-app-module';
+export { createReviewAppModule } from './review-app-module';
 export type { ReviewConfigOptions } from './review-config-base.service';
 export { ReviewConfigServiceBase } from './review-config-base.service';
 export type { Stratifier, StratumSampleRequest } from './stratifier';
