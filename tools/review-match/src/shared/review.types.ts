@@ -1,14 +1,19 @@
 import type { Match } from '@blood-bowl-tracker/db';
+import type {
+  ReviewSource as HarnessReviewSource,
+  Sampled,
+} from '@blood-bowl-tracker/review-harness';
 
-/** The import sources this tool can review data from. */
-export type ReviewSource = 'bbl' | 'tp';
-
-/** Every source, in the order the report presents them. */
-export const REVIEW_SOURCES: readonly ReviewSource[] = ['bbl', 'tp'];
+export type {
+  ReviewGap,
+  ReviewSource,
+  ReviewStratum,
+} from '@blood-bowl-tracker/review-harness';
+export { REVIEW_SOURCES } from '@blood-bowl-tracker/review-harness';
 
 /** A database match resolved for review, with the source it came from. */
 export interface ReviewMatch {
-  source: ReviewSource;
+  source: HarnessReviewSource;
   /** `game_data.matches.id`. */
   matchId: number;
   /** The source's own match id, from `matches_external_ids.external_id`. */
@@ -38,24 +43,8 @@ export interface ReviewMatch {
   secondaryExternalId?: string;
 }
 
-/** A `ReviewMatch` plus the human-readable reasons it was picked. */
-export interface SampledMatch extends ReviewMatch {
-  /** Stratum labels and/or `'override'`; never empty. */
-  selectedFor: string[];
-}
-
-/** Something the report could not cover — reported, never a run failure. */
-export interface ReviewGap {
-  source: ReviewSource;
-  reason: string;
-}
-
-/** One sampling stratum a data-type module offers. */
-export interface ReviewStratum {
-  /** Stable id used to look the stratum's query up. */
-  id: string;
-  /** Human-readable description shown in the report. */
-  label: string;
-  /** Sources this stratum applies to. */
-  sources: readonly ReviewSource[];
-}
+/**
+ * A `ReviewMatch` plus the human-readable reasons it was picked — stratum
+ * labels and/or `'override'`; never empty.
+ */
+export type SampledMatch = Sampled<ReviewMatch>;

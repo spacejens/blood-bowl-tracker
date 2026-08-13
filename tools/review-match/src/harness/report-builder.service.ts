@@ -1,6 +1,6 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 
-import { HtmlService } from '../shared/html.service';
 import { MatchCategoryLabelService } from '../shared/match-category-label.service';
 import type { ReviewGap, SampledMatch } from '../shared/review.types';
 import type { MatchResultSummary } from './match-result-lookup.service';

@@ -1,15 +1,17 @@
+import {
+  HtmlService,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { DataTypeReviewer } from '../shared/data-type-reviewer';
 import { DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
-import { HtmlService } from '../shared/html.service';
 import type { SampledMatch } from '../shared/review.types';
 import { MatchResultLookupService } from './match-result-lookup.service';
 import { MatchSamplerService } from './match-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 import { ReviewService } from './review.service';
 
 const match: SampledMatch = {

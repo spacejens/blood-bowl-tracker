@@ -1,13 +1,15 @@
+import {
+  HtmlService,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Inject, Injectable } from '@nestjs/common';
 
 import type { PlayerDataTypeReviewer } from '../shared/data-type-reviewer';
 import { PLAYER_DATA_TYPE_REVIEWERS } from '../shared/data-type-reviewer';
-import { HtmlService } from '../shared/html.service';
 import type { ReviewGap, SampledPlayer } from '../shared/review.types';
 import { PlayerSamplerService } from './player-sampler.service';
 import type { ReviewedPlayer, ReviewPanel } from './report-builder.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 
 export interface ReviewOutcome {
   /** Absolute path of the written report. */

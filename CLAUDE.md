@@ -230,8 +230,9 @@ wires together, which mocking would defeat.
 only job is deterministic text/markup assembly — no injected collaborators of
 its own, no I/O, no branching on external state — may be passed as a real
 provider to a spec that asserts on its *output* (e.g.
-`tools/review-match/src/shared/html.service.ts`, injected into the renderer
-specs that build HTML fragments from it). Mocking it would leave the actual
+`packages/review-harness/src/html.service.ts`, which reaches the renderer
+specs that build HTML fragments via the shared package rather than being
+tool-local). Mocking it would leave the actual
 generated markup unasserted, which defeats the point of those tests; passing
 the real thing carries none of the coupling risk the "never pass a real
 collaborator" rule guards against, since there is no concrete *behavior* to

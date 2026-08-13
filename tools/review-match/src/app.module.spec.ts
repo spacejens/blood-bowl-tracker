@@ -3,13 +3,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { DB } from '@blood-bowl-tracker/db';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { AppModule } from './app.module';
 import { REVIEW_MATCH_CONFIG_PATH } from './config/review-match-config.service';
 import { ReviewService } from './harness/review.service';
-import { mockDb } from './shared/db-mock.test-helpers';
 
 describe('AppModule', () => {
   let dir: string;

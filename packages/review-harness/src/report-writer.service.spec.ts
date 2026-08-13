@@ -6,14 +6,17 @@ import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import { ReviewPlayerConfigService } from '../config/review-player-config.service';
-import { ReportWriterService } from './report-writer.service';
+import type { ReportOutputPathProvider } from './report-writer.service';
+import {
+  REPORT_OUTPUT_PATH,
+  ReportWriterService,
+} from './report-writer.service';
 
 describe('ReportWriterService', () => {
   let dir: string;
 
   beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'review-player-report-'));
+    dir = await mkdtemp(join(tmpdir(), 'review-harness-report-'));
   });
 
   afterEach(async () => {
@@ -21,12 +24,12 @@ describe('ReportWriterService', () => {
   });
 
   async function makeService(outputPath: string): Promise<ReportWriterService> {
-    const config = mock<ReviewPlayerConfigService>();
+    const config = mock<ReportOutputPathProvider>();
     config.getOutputPath.mockReturnValue(outputPath);
     const moduleRef = await Test.createTestingModule({
       providers: [
         ReportWriterService,
-        { provide: ReviewPlayerConfigService, useValue: config },
+        { provide: REPORT_OUTPUT_PATH, useValue: config },
       ],
     }).compile();
     return moduleRef.get(ReportWriterService);

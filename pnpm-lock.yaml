@@ -438,6 +438,43 @@ importers:
         specifier: ^5.1.1
         version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
 
+  packages/review-harness:
+    dependencies:
+      '@blood-bowl-tracker/db':
+        specifier: workspace:*
+        version: link:../db
+      '@nestjs/common':
+        specifier: ^11.1.29
+        version: 11.1.29(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
+      json5:
+        specifier: ^2.2.3
+        version: 2.2.3
+      reflect-metadata:
+        specifier: ^0.2.2
+        version: 0.2.2
+    devDependencies:
+      '@nestjs/testing':
+        specifier: ^11.1.29
+        version: 11.1.29(@nestjs/common@11.1.29(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1))(@nestjs/core@11.1.29)(@nestjs/platform-express@11.1.29)
+      '@types/node':
+        specifier: ^24.13.3
+        version: 24.13.3
+      '@vitest/coverage-v8':
+        specifier: ^4.1.10
+        version: 4.1.10(vitest@4.1.10)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.2.1
+        version: 8.2.1(@types/node@24.13.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0)
+      vitest:
+        specifier: ^4.1.10
+        version: 4.1.10(@types/node@24.13.3)(@vitest/coverage-v8@4.1.10)(vite@8.2.1(@types/node@24.13.3)(jiti@2.7.0)(terser@5.48.0)(yaml@2.9.0))
+      vitest-mock-extended:
+        specifier: ^5.1.1
+        version: 5.1.1(typescript@6.0.3)(vitest@4.1.10)
+
   tools/ai-helpers:
     dependencies:
       '@nestjs/common':
@@ -730,6 +767,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/review-harness':
+        specifier: workspace:*
+        version: link:../../packages/review-harness
       '@nestjs/common':
         specifier: ^11.1.29
         version: 11.1.29(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -742,9 +782,6 @@ importers:
       drizzle-orm:
         specifier: rc
         version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.4.3)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -782,6 +819,9 @@ importers:
       '@blood-bowl-tracker/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@blood-bowl-tracker/review-harness':
+        specifier: workspace:*
+        version: link:../../packages/review-harness
       '@nestjs/common':
         specifier: ^11.1.29
         version: 11.1.29(reflect-metadata@0.2.2)(rxjs@7.8.2)(supports-color@8.1.1)
@@ -794,9 +834,6 @@ importers:
       drizzle-orm:
         specifier: rc
         version: 1.0.0-rc.4(postgres@3.4.9)(zod@4.4.3)
-      json5:
-        specifier: ^2.2.3
-        version: 2.2.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2

@@ -1,8 +1,8 @@
+import type { TableCell } from '@blood-bowl-tracker/review-harness';
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
-import type { TableCell } from '../shared/html.service';
-import { HtmlService } from '../shared/html.service';
 import { BblRawPlayerPageLoaderService } from '../source/bbl-raw-player-page-loader.service';
 
 const NONE = '—';

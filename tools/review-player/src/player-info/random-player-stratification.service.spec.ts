@@ -1,12 +1,12 @@
 import { DB } from '@blood-bowl-tracker/db';
+import type { MockDbResult } from '@blood-bowl-tracker/review-harness/test-helpers';
+import { mockDb } from '@blood-bowl-tracker/review-harness/test-helpers';
 import { Test } from '@nestjs/testing';
 import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
-import type { MockDbResult } from '../shared/db-mock.test-helpers';
-import { mockDb } from '../shared/db-mock.test-helpers';
 import { ExternalSystemLookupService } from '../shared/external-system-lookup.service';
 import { PlayerProjectionQueryService } from '../shared/player-projection-query.service';
 import { RandomPlayerStratificationService } from './random-player-stratification.service';

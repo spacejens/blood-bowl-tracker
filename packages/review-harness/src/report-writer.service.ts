@@ -1,19 +1,33 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, extname } from 'node:path';
 
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
-import { ReviewPlayerConfigService } from '../config/review-player-config.service';
+/** DI token for whatever supplies the configured report output path. */
+export const REPORT_OUTPUT_PATH = Symbol('REPORT_OUTPUT_PATH');
+
+/**
+ * The one thing the writer needs from a tool's config service. Injected by
+ * token so the shared writer does not depend on either tool's concrete config
+ * class; each tool binds it with `{ provide: REPORT_OUTPUT_PATH, useExisting:
+ * <Tool>ConfigService }`.
+ */
+export interface ReportOutputPathProvider {
+  getOutputPath(): string;
+}
 
 /**
  * Writes the report to a timestamped path next to the configured output
  * path (gitignored — a developer-local artifact, same convention as
- * tools/review-player/output/). The timestamp lets multiple runs' reports exist
+ * docs/schemaspy-output/). The timestamp lets multiple runs' reports exist
  * side by side instead of each one silently overwriting the last.
  */
 @Injectable()
 export class ReportWriterService {
-  constructor(private readonly config: ReviewPlayerConfigService) {}
+  constructor(
+    @Inject(REPORT_OUTPUT_PATH)
+    private readonly config: ReportOutputPathProvider,
+  ) {}
 
   /** Write the document and return the absolute path it landed at. */
   async write(html: string, generatedAt: Date): Promise<string> {

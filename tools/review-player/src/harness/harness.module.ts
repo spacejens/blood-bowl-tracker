@@ -1,5 +1,11 @@
+import {
+  createRegistryProvider,
+  REPORT_OUTPUT_PATH,
+  ReportWriterService,
+} from '@blood-bowl-tracker/review-harness';
 import { Module } from '@nestjs/common';
 
+import { ReviewPlayerConfigService } from '../config/review-player-config.service';
 import { PlayerInfoModule } from '../player-info/player-info.module';
 import { PlayerInfoReviewerService } from '../player-info/player-info-reviewer.service';
 import { RandomPlayerStratificationService } from '../player-info/random-player-stratification.service';
@@ -13,7 +19,6 @@ import { SppTotalsModule } from '../spp-totals/spp-totals.module';
 import { PlayerLookupService } from './player-lookup.service';
 import { PlayerSamplerService } from './player-sampler.service';
 import { ReportBuilderService } from './report-builder.service';
-import { ReportWriterService } from './report-writer.service';
 import { ReviewService } from './review.service';
 
 /**
@@ -30,28 +35,17 @@ import { ReviewService } from './review.service';
     PlayerSamplerService,
     ReportBuilderService,
     ReportWriterService,
+    { provide: REPORT_OUTPUT_PATH, useExisting: ReviewPlayerConfigService },
     ReviewService,
-    {
-      provide: PLAYER_DATA_TYPE_REVIEWERS,
-      useFactory: (
-        playerInfo: PlayerInfoReviewerService,
-        sppTotals: PlayerSppTotalsReviewerService,
-      ) => [playerInfo, sppTotals],
-      inject: [PlayerInfoReviewerService, PlayerSppTotalsReviewerService],
-    },
-    {
-      provide: PLAYER_STRATIFIERS,
-      useFactory: (
-        discrepancy: SppDiscrepancyStratificationService,
-        random: RandomPlayerStratificationService,
-        starPlayers: StarPlayerStratificationService,
-      ) => [discrepancy, random, starPlayers],
-      inject: [
-        SppDiscrepancyStratificationService,
-        RandomPlayerStratificationService,
-        StarPlayerStratificationService,
-      ],
-    },
+    createRegistryProvider(PLAYER_DATA_TYPE_REVIEWERS, [
+      PlayerInfoReviewerService,
+      PlayerSppTotalsReviewerService,
+    ]),
+    createRegistryProvider(PLAYER_STRATIFIERS, [
+      SppDiscrepancyStratificationService,
+      RandomPlayerStratificationService,
+      StarPlayerStratificationService,
+    ]),
   ],
   exports: [ReviewService],
 })

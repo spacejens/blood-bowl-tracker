@@ -1,7 +1,7 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
-import { HtmlService } from '../shared/html.service';
 import { PlayerSppComputedRendererService } from './player-spp-computed-renderer.service';
 import { PlayerSppImportedRendererService } from './player-spp-imported-renderer.service';
 import type { PlayerSppTotals } from './player-spp-lookup.service';

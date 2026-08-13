@@ -1,8 +1,8 @@
+import { HtmlService } from '@blood-bowl-tracker/review-harness';
 import { Injectable } from '@nestjs/common';
 import type { CheerioAPI } from 'cheerio';
 import { load } from 'cheerio';
 
-import { HtmlService } from '../shared/html.service';
 import { BblRawPageLoaderService } from '../source/bbl-raw-page-loader.service';
 
 /** BBL's player-page links carry the player id as `pid`. */
