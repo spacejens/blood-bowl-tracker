@@ -518,6 +518,117 @@ describe('EraConfigService', () => {
     expect(() => service.getEras()).toThrow(/30/);
   });
 
+  it('parses competitions.dateOverrides, leaving an omitted endDate undefined', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          seasonCompetitionIdOverrides: ['74', '80'],
+          dateOverrides: {
+            '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
+            '80': { startDate: '2024-01-01' },
+          },
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    const result = service.getEras();
+    expect(result[0].competitions?.dateOverrides).toEqual({
+      '74': { startDate: '2023-07-01', endDate: '2023-12-31' },
+      '80': { startDate: '2024-01-01' },
+    });
+  });
+
+  it('leaves dateOverrides undefined when the competitions group omits it', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { seasonCompetitionIdOverrides: ['74'] },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(service.getEras()[0].competitions?.dateOverrides).toBeUndefined();
+  });
+
+  it('rejects a dateOverrides entry that is not an object', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { dateOverrides: { '74': '2023-07-01' } },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.dateOverrides["74"]');
+  });
+
+  it('rejects a dateOverrides entry with a missing startDate', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { dateOverrides: { '74': { endDate: '2023-12-31' } } },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.dateOverrides["74"].startDate',
+    );
+  });
+
+  it('rejects a dateOverrides startDate that is not a real ISO date', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { dateOverrides: { '74': { startDate: '2023-02-30' } } },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.dateOverrides["74"].startDate',
+    );
+  });
+
+  it('rejects a dateOverrides endDate that is not an ISO date', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: {
+          dateOverrides: {
+            '74': { startDate: '2023-07-01', endDate: 'December 2023' },
+          },
+        },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow(
+      'competitions.dateOverrides["74"].endDate',
+    );
+  });
+
+  it('rejects a dateOverrides value that is an array rather than a map', async () => {
+    const eras = [
+      {
+        identity: { name: 'LRB', rulesSets: ['LRB'] },
+        dates: { startDate: '2011-09-09', autoAssignByDate: true },
+        players: { firstPlayerId: 1, autoAssignByPlayerId: true },
+        competitions: { dateOverrides: [{ startDate: '2023-07-01' }] },
+      },
+    ];
+    const service = await makeService(eras);
+    expect(() => service.getEras()).toThrow('competitions.dateOverrides');
+  });
+
   it('parses teamCodeOverrides when present, leaving the group undefined when absent', async () => {
     const eras = [
       {
