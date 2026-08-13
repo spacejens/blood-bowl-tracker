@@ -13,7 +13,13 @@ export interface PlayerSppTotals {
   eventCount: number;
   sppTotal: number | null;
   sppAdjustment: number | null;
-  /** `computedTotal` disagrees with `spp_total`, or nothing is stored. */
+  /**
+   * `spp_total` disagrees with `computedTotal + sppAdjustment`, or nothing is
+   * stored. `spp_total` is defined as the event sum plus `spp_adjustment`
+   * (see `packages/game-data`'s `SppAdjustmentsService`), so comparing
+   * against the raw `computedTotal` would flag a healthy adjusted player as
+   * a mismatch.
+   */
   mismatch: boolean;
 }
 
@@ -54,13 +60,15 @@ export class PlayerSppLookupService {
       computed === null || computed === undefined ? 0 : Number(computed);
     const stored = storedRows[0];
     const sppTotal = stored?.sppTotal ?? null;
+    const sppAdjustment = stored?.sppAdjustment ?? null;
 
     return {
       computedTotal,
       eventCount: computedRows[0]?.eventCount ?? 0,
       sppTotal,
-      sppAdjustment: stored?.sppAdjustment ?? null,
-      mismatch: sppTotal === null || sppTotal !== computedTotal,
+      sppAdjustment,
+      mismatch:
+        sppTotal === null || sppTotal !== computedTotal + (sppAdjustment ?? 0),
     };
   }
 }

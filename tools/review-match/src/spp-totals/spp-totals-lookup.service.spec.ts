@@ -39,7 +39,7 @@ describe('SppTotalsLookupService', () => {
             playerName: 'Betong Bengt',
             teamName: 'Bräkenäs Betongbockar',
             sppTotal: 16,
-            sppAdjustment: 2,
+            sppAdjustment: 0,
           },
         ],
         [{ playerId: 7, computedTotal: '16' }],
@@ -56,10 +56,38 @@ describe('SppTotalsLookupService', () => {
         matchTotal: 3,
         computedTotal: 16,
         sppTotal: 16,
-        sppAdjustment: 2,
+        sppAdjustment: 0,
         mismatch: false,
       },
     ]);
+  });
+
+  it('reports no mismatch when the stored total equals computed plus adjustment', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ playerId: 7, matchTotal: '3' }],
+        [],
+        [
+          {
+            playerId: 7,
+            playerName: 'Betong Bengt',
+            teamName: 'Bräkenäs Betongbockar',
+            sppTotal: 20,
+            sppAdjustment: 4,
+          },
+        ],
+        [{ playerId: 7, computedTotal: '16' }],
+      ),
+    );
+
+    const [row] = await service.load(match);
+
+    expect(row).toMatchObject({
+      computedTotal: 16,
+      sppTotal: 20,
+      sppAdjustment: 4,
+      mismatch: false,
+    });
   });
 
   it('flags a player whose computed total differs from the stored total', async () => {
@@ -86,6 +114,62 @@ describe('SppTotalsLookupService', () => {
       computedTotal: 16,
       sppTotal: 20,
       mismatch: true,
+    });
+  });
+
+  it('flags a player whose stored total differs from computed plus adjustment', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ playerId: 7, matchTotal: '3' }],
+        [],
+        [
+          {
+            playerId: 7,
+            playerName: 'Betong Bengt',
+            teamName: 'Bockar',
+            sppTotal: 21,
+            sppAdjustment: 4,
+          },
+        ],
+        [{ playerId: 7, computedTotal: '16' }],
+      ),
+    );
+
+    const [row] = await service.load(match);
+
+    expect(row).toMatchObject({
+      computedTotal: 16,
+      sppTotal: 21,
+      sppAdjustment: 4,
+      mismatch: true,
+    });
+  });
+
+  it('treats a NULL stored adjustment as 0 when comparing against the stored total', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ playerId: 7, matchTotal: '3' }],
+        [],
+        [
+          {
+            playerId: 7,
+            playerName: 'Betong Bengt',
+            teamName: 'Bockar',
+            sppTotal: 16,
+            sppAdjustment: null,
+          },
+        ],
+        [{ playerId: 7, computedTotal: '16' }],
+      ),
+    );
+
+    const [row] = await service.load(match);
+
+    expect(row).toMatchObject({
+      computedTotal: 16,
+      sppTotal: 16,
+      sppAdjustment: null,
+      mismatch: false,
     });
   });
 
@@ -146,6 +230,40 @@ describe('SppTotalsLookupService', () => {
         sppTotal: 30,
         sppAdjustment: 0,
         mismatch: false,
+      },
+    ]);
+  });
+
+  it('includes a roster player with a NULL stored total and no events in this match', async () => {
+    const service = await makeService(
+      mockDb(
+        [],
+        [{ playerId: 9 }],
+        [
+          {
+            playerId: 9,
+            playerName: 'Unrecorded',
+            teamName: 'Bockar',
+            sppTotal: null,
+            sppAdjustment: null,
+          },
+        ],
+        [],
+      ),
+    );
+
+    const rows = await service.load(match);
+
+    expect(rows).toEqual([
+      {
+        playerId: 9,
+        playerName: 'Unrecorded',
+        teamName: 'Bockar',
+        matchTotal: 0,
+        computedTotal: 0,
+        sppTotal: null,
+        sppAdjustment: null,
+        mismatch: true,
       },
     ]);
   });

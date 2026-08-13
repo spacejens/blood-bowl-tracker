@@ -20,11 +20,13 @@ without touching the harness services.
 ## What it does
 
 1. Samples players per source (BBL and TP) across two strata:
-   1. **SPP totals disagree** — every player whose SPP summed from `match_events`
-      differs from the stored `players.spp_total`, including players with no stored
-      total at all. This stratum ignores `playersPerStratum` on purpose: a real
-      discrepancy must never be sampled away, so a badly-imported database produces a
-      long report rather than a reassuring one.
+   1. **SPP totals disagree** — every player whose SPP summed from `match_events`,
+      plus the stored `spp_adjustment`, differs from the stored `players.spp_total`
+      (a nonzero adjustment on its own is not a disagreement — it is the normal case
+      for an experienced player), including players with no stored total at all.
+      This stratum ignores `playersPerStratum` on purpose: a real discrepancy must
+      never be sampled away, so a badly-imported database produces a long report
+      rather than a reassuring one.
    2. **Random sample** — `playersPerStratum` (default 3) players per source.
 2. Adds every player id listed in `overrides`, whatever the strata picked.
 3. For each sampled player, renders two panel pairs:
@@ -40,9 +42,10 @@ without touching the harness services.
      over the events where the player is the *acting* participant (its own query, not
      `packages/game-data`'s `SppTotalsService`). Right: the stored `spp_total` and
      `spp_adjustment`. Both panels are database-derived, so they carry their own headings
-     rather than the harness's raw/imported wording, and a disagreement — including a
-     missing stored total — is shown with a highlighted row and an explicit `MISMATCH`
-     label in both panels.
+     rather than the harness's raw/imported wording, and a `MISMATCH` — highlighted row,
+     explicit label in both panels — is shown when the stored `spp_total` disagrees with
+     the computed sum *plus* the stored `spp_adjustment` (not the raw computed sum), or
+     has no stored total at all.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 

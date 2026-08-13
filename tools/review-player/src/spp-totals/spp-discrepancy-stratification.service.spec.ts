@@ -1,5 +1,7 @@
 import { DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
+import type { SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 
@@ -80,6 +82,36 @@ describe('SppDiscrepancyStratificationService', () => {
     });
 
     expect(dbResult.chains[0].limit).not.toHaveBeenCalled();
+  });
+
+  it('compares the stored total against computed plus adjustment, with NULL-safe semantics', async () => {
+    const dbResult = mockDb([]);
+    const service = await makeService(dbResult);
+
+    await service.sampleStratum({
+      source: 'bbl',
+      stratumId: 'spp-discrepancy',
+      limit: 3,
+    });
+
+    const havingCondition = dbResult.chains[0].having.mock.calls[0][0] as SQL;
+    // Render the real captured drizzle condition to its actual Postgres SQL
+    // text (no mocking involved here — this is the same rendering drizzle
+    // itself would send to Postgres) to verify, rather than assume, both the
+    // fix and its NULL semantics:
+    //  - the adjustment is added to the computed sum before comparing
+    //    (`+ coalesce(...spp_adjustment, 0)`), which is the bug fix, and
+    //  - the right-hand side is the bare `spp_total` column, not wrapped in
+    //    its own `coalesce`. Since the left side is always a plain number
+    //    (both terms are `coalesce`d) and the right side is left as a bare
+    //    column, standard SQL `IS DISTINCT FROM` semantics guarantee a NULL
+    //    `spp_total` is always "distinct from" it — i.e. always a mismatch.
+    const { sql: rendered } = new PgDialect().sqlToQuery(havingCondition);
+    expect(rendered).toBe(
+      'coalesce(sum("game_data"."match_events"."spp_value"), 0)::int + ' +
+        'coalesce("game_data"."players"."spp_adjustment", 0) is distinct from ' +
+        '"game_data"."players"."spp_total"',
+    );
   });
 
   it('rejects an unknown stratum id', async () => {

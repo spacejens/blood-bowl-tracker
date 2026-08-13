@@ -100,12 +100,16 @@ module without touching the harness services.
      shows the stored `players.spp_total` / `spp_adjustment`. Both panels are
      database-derived, so they carry their own headings ("Computed from match
      events (database)" / "Stored player totals (database)") rather than the
-     harness's raw/imported wording. Scope is every player with an event in
-     the match, plus every player on either roster already carrying a non-zero
-     stored total — a cumulative disagreement is worth seeing even when the
-     player earned nothing in this particular match. A player whose two
-     figures disagree — including one with no stored total at all — is shown
-     with a highlighted row and an explicit `MISMATCH` label in both panels.
+     harness's raw/imported wording. Scope is every player who acted in the
+     match, plus every player on either roster who has no stored total at all
+     or already carries a non-zero one — a cumulative disagreement (or an
+     always-a-mismatch missing total) is worth seeing even when the player
+     earned nothing in this particular match. A player is flagged
+     `MISMATCH` — highlighted row, explicit label in both panels — when the
+     stored `spp_total` disagrees with the computed sum *plus* the stored
+     `spp_adjustment` (not the raw computed sum: a nonzero adjustment is
+     normal for an experienced player, not a data problem), or has no stored
+     total at all.
 6. Writes the report under `tools/review-match/output/` (gitignored) with a
    timestamp inserted into the filename (e.g. `report-2026-07-27T19-15-00Z.html`)
    so successive runs don't overwrite each other's reports, and prints where

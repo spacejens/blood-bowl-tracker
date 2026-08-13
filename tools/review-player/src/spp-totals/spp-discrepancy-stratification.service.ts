@@ -22,10 +22,16 @@ import type { ReviewPlayer, ReviewStratum } from '../shared/review.types';
 const DISCREPANCY_STRATUM = 'spp-discrepancy';
 
 /**
- * Every player whose event-derived SPP sum disagrees with the stored
- * `players.spp_total`, including players with no stored total at all
+ * Every player whose event-derived SPP sum — plus `players.spp_adjustment`,
+ * per `packages/game-data`'s `SppAdjustmentsService` invariant that
+ * `spp_total` is the event sum adjusted by that column — disagrees with the
+ * stored `players.spp_total`. Comparing the raw event sum instead would flag
+ * almost every experienced player, since a nonzero adjustment is the normal
+ * case, not a data problem. Includes players with no stored total at all
  * (`IS DISTINCT FROM` treats NULL as a disagreement, which is what a reviewer
- * wants to see).
+ * wants to see): the adjusted sum is always a non-null number thanks to the
+ * `coalesce`s on both terms, so `IS DISTINCT FROM` against a NULL
+ * `spp_total` is guaranteed true by standard SQL semantics.
  *
  * Deliberately ignores the caller's `limit`: this stratum exists so a real
  * problem is never sampled away. A run against a badly-imported database can
@@ -62,6 +68,7 @@ export class SppDiscrepancyStratificationService implements PlayerStratifier {
     }
     const externalSystemId = await this.externalSystems.getSystemId(source);
     const computed = sql<number>`coalesce(sum(${matchEvents.sppValue}), 0)::int`;
+    const adjustedComputed = sql<number>`${computed} + coalesce(${players.sppAdjustment}, 0)`;
     const rows = await this.db
       .select({
         playerId: players.id,
@@ -88,12 +95,13 @@ export class SppDiscrepancyStratificationService implements PlayerStratifier {
         players.id,
         players.name,
         players.sppTotal,
+        players.sppAdjustment,
         playerExternalIds.externalId,
         teams.name,
         positions.name,
         eras.name,
       )
-      .having(sql`${computed} is distinct from ${players.sppTotal}`)
+      .having(sql`${adjustedComputed} is distinct from ${players.sppTotal}`)
       .orderBy(asc(players.name), asc(players.id));
     return rows.map((row) => ({ source, ...row }));
   }

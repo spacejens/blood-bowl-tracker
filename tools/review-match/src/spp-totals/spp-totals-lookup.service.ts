@@ -8,7 +8,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray, isNotNull, ne, sum } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, ne, or, sum } from 'drizzle-orm';
 
 import type { SampledMatch } from '../shared/review.types';
 
@@ -23,7 +23,13 @@ export interface PlayerSppRow {
   computedTotal: number;
   sppTotal: number | null;
   sppAdjustment: number | null;
-  /** `computedTotal` disagrees with `spp_total`, or nothing is stored at all. */
+  /**
+   * `spp_total` disagrees with `computedTotal + sppAdjustment`, or nothing is
+   * stored at all. `spp_total` is defined as the event sum plus
+   * `spp_adjustment` (see `packages/game-data`'s `SppAdjustmentsService`), so
+   * comparing against the raw `computedTotal` would flag a healthy adjusted
+   * player as a mismatch.
+   */
   mismatch: boolean;
 }
 
@@ -40,9 +46,10 @@ interface PlayerDetailRow {
  * Loads both sides of the SPP comparison for one sampled match.
  *
  * Scope is deliberately wider than "players who did something in this match":
- * every player on either roster who already carries a non-zero stored total is
- * included too, because a cumulative disagreement is worth seeing next to the
- * match that may have caused it even when the player earned nothing here.
+ * every player on either roster who has no stored total at all, or already
+ * carries a non-zero one, is included too, because a cumulative disagreement
+ * (or an always-a-mismatch missing total) is worth seeing next to the match
+ * that may have caused it even when the player earned nothing here.
  *
  * Only ACTING participants count towards the computed sum: SPP is earned by
  * doing something, never by having something done to you. This comparison is
@@ -73,7 +80,8 @@ export class SppTotalsLookupService {
           matchTotal: inMatch.get(detail.playerId) ?? 0,
           computedTotal,
           mismatch:
-            detail.sppTotal === null || detail.sppTotal !== computedTotal,
+            detail.sppTotal === null ||
+            detail.sppTotal !== computedTotal + (detail.sppAdjustment ?? 0),
         };
       })
       .sort((a, b) => this.compare(a, b));
@@ -100,7 +108,8 @@ export class SppTotalsLookupService {
   }
 
   /**
-   * Players on either roster who already carry a non-zero stored total. A
+   * Players on either roster who either have no stored total at all (always
+   * a mismatch, so always in scope) or already carry a non-zero one. A
    * stored 0 needs no dedicated inclusion: it can only disagree with a
    * non-zero computed sum, which only arises from events, which would already
    * have put the player in scope through some match.
@@ -113,8 +122,7 @@ export class SppTotalsLookupService {
       .where(
         and(
           eq(matchTeams.matchId, match.matchId),
-          isNotNull(players.sppTotal),
-          ne(players.sppTotal, 0),
+          or(isNull(players.sppTotal), ne(players.sppTotal, 0)),
         ),
       );
     return rows.map((row) => row.playerId);

@@ -49,11 +49,44 @@ describe('PlayerSppLookupService', () => {
     const service = await makeService(
       mockDb(
         [{ computedTotal: '16', eventCount: 5 }],
-        [{ sppTotal: 20, sppAdjustment: 4 }],
+        [{ sppTotal: 20, sppAdjustment: 0 }],
       ),
     );
 
     expect(await service.load(player)).toMatchObject({ mismatch: true });
+  });
+
+  it('reports no mismatch when the stored total equals computed plus adjustment', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ computedTotal: '16', eventCount: 5 }],
+        [{ sppTotal: 20, sppAdjustment: 4 }],
+      ),
+    );
+
+    expect(await service.load(player)).toEqual({
+      computedTotal: 16,
+      eventCount: 5,
+      sppTotal: 20,
+      sppAdjustment: 4,
+      mismatch: false,
+    });
+  });
+
+  it('flags a stored total that differs from computed plus adjustment', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ computedTotal: '16', eventCount: 5 }],
+        [{ sppTotal: 21, sppAdjustment: 4 }],
+      ),
+    );
+
+    expect(await service.load(player)).toMatchObject({
+      computedTotal: 16,
+      sppTotal: 21,
+      sppAdjustment: 4,
+      mismatch: true,
+    });
   });
 
   it('flags a player with no stored total at all', async () => {
@@ -80,6 +113,22 @@ describe('PlayerSppLookupService', () => {
 
     expect(await service.load(player)).toMatchObject({
       computedTotal: 0,
+      mismatch: false,
+    });
+  });
+
+  it('treats a NULL stored adjustment as 0 when comparing against the stored total', async () => {
+    const service = await makeService(
+      mockDb(
+        [{ computedTotal: '16', eventCount: 5 }],
+        [{ sppTotal: 16, sppAdjustment: null }],
+      ),
+    );
+
+    expect(await service.load(player)).toMatchObject({
+      computedTotal: 16,
+      sppTotal: 16,
+      sppAdjustment: null,
       mismatch: false,
     });
   });
