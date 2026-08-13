@@ -4,6 +4,7 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  MatchDateRangeService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -15,7 +16,6 @@ import { Injectable } from '@nestjs/common';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
 import { TpSourceReader } from '../source/tp-source-reader';
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 // (max - min) match-date span <= 3 days => cup, else season. Mirrors BBL's
 // CUP_MAX_SPAN_DAYS in bbl-competitions-import.service.ts; validated against
 // all 12 TP reference competitions (see the design doc's Background section).
@@ -53,6 +53,7 @@ export class TpCompetitionsImportService {
     private readonly externalSystemBootstrap: ExternalSystemBootstrapService,
     private readonly externalSystemName: ExternalSystemNameConfigService,
     private readonly importResults: ImportResultService,
+    private readonly dateRange: MatchDateRangeService,
   ) {}
 
   /**
@@ -289,10 +290,15 @@ export class TpCompetitionsImportService {
       return undefined;
     }
 
+    const range = this.dateRange.computeRange(
+      group.matches.map((m) => m.playedDate),
+    );
     const competitionData: UpsertCompetition = {
       name: tournament.name,
-      type: this.classifyType(group.matches.map((m) => m.playedDate)),
+      type: this.classifyType(range.spanDays),
       eraId,
+      startDate: this.toIsoDay(range.earliestDate),
+      endDate: this.toIsoDay(range.latestDate),
       teamEraIds: [],
       externalIds: [
         { externalSystemId: systemIds.tp, externalId: String(tournament.id) },
@@ -309,9 +315,12 @@ export class TpCompetitionsImportService {
   }
 
   /** span <= 3 days => cup, else season (see CUP_MAX_SPAN_DAYS). */
-  private classifyType(matchDates: Date[]): 'season' | 'cup' {
-    const times = matchDates.map((d) => d.getTime());
-    const spanDays = (Math.max(...times) - Math.min(...times)) / MS_PER_DAY;
+  private classifyType(spanDays: number): 'season' | 'cup' {
     return spanDays <= CUP_MAX_SPAN_DAYS ? 'cup' : 'season';
+  }
+
+  /** A Date as the ISO `YYYY-MM-DD` day string the API contract expects. */
+  private toIsoDay(date: Date): string {
+    return date.toISOString().slice(0, 10);
   }
 }

@@ -4,6 +4,7 @@ import {
   CompetitionsImportService,
   ExternalSystemBootstrapService,
   ImportResultService,
+  MatchDateRangeService,
 } from '@blood-bowl-tracker/import';
 import type { TpMatch, TpTournament } from '@blood-bowl-tracker/parse-tp';
 import {
@@ -74,6 +75,19 @@ const CANNED_RESULT: ImportResult = {
   errors: [{ item: { canned: true }, message: 'canned import result' }],
 };
 
+/**
+ * The canned range the mocked MatchDateRangeService returns by default: a
+ * 30-day span (=> season) starting on CANNED_MATCH's playedDate. The real
+ * min/max/span arithmetic is covered by
+ * packages/import/src/match-date-range.service.spec.ts; this spec stubs the
+ * exact range each test expects and asserts what the service does with it.
+ */
+const CANNED_RANGE = {
+  earliestDate: new Date('2021-09-25T00:00:00Z'),
+  latestDate: new Date('2021-10-25T00:00:00Z'),
+  spanDays: 30,
+};
+
 /** The `{ imported, errors }` the service under test handed to ImportResultService.result. */
 function resultArgs(importResults: MockProxy<ImportResultService>): {
   imported: number;
@@ -92,6 +106,7 @@ async function makeService({
   importResults: MockProxy<ImportResultService>;
   tournamentParser: MockProxy<TournamentParserService>;
   matchParser: MockProxy<MatchParserService>;
+  dateRange: MockProxy<MatchDateRangeService>;
 }> {
   const sourceReader = mock<TpSourceReader>();
   sourceReader.files.mockImplementation(files);
@@ -112,6 +127,8 @@ async function makeService({
   );
   const externalSystemName = mock<ExternalSystemNameConfigService>();
   externalSystemName.getTpSystemName.mockImplementation(getTpSystemName);
+  const dateRange = mock<MatchDateRangeService>();
+  dateRange.computeRange.mockReturnValue(CANNED_RANGE);
   const importResults = mockImportResultService();
   // The shared helper's mockImportResultService() only provides the exempt
   // `error` identity mock; `result` is stubbed with a canned value here.
@@ -135,6 +152,7 @@ async function makeService({
         useValue: externalSystemName,
       },
       { provide: ImportResultService, useValue: importResults },
+      { provide: MatchDateRangeService, useValue: dateRange },
     ],
   }).compile();
   return {
@@ -142,6 +160,7 @@ async function makeService({
     importResults,
     tournamentParser,
     matchParser,
+    dateRange,
   };
 }
 
@@ -278,7 +297,7 @@ describe('TpCompetitionsImportService', () => {
       playedDate: new Date('2021-08-10T10:00:00Z'),
       matchId: 4,
     });
-    const { service, importResults, tournamentParser, matchParser } =
+    const { service, importResults, tournamentParser, matchParser, dateRange } =
       await makeService({
         files: makeFiles([
           chaosTournament.file,
@@ -302,6 +321,18 @@ describe('TpCompetitionsImportService', () => {
       .mockReturnValueOnce(chaosMatch2.match)
       .mockReturnValueOnce(sasongMatch1.match)
       .mockReturnValueOnce(sasongMatch2.match);
+    // computeRange is called once per group, in group order (chaos, sasong).
+    dateRange.computeRange
+      .mockReturnValueOnce({
+        earliestDate: new Date('2021-05-15T10:00:00Z'),
+        latestDate: new Date('2021-05-15T18:00:00Z'),
+        spanDays: 0.33,
+      })
+      .mockReturnValueOnce({
+        earliestDate: new Date('2021-01-10T10:00:00Z'),
+        latestDate: new Date('2021-08-10T10:00:00Z'),
+        spanDays: 212,
+      });
 
     const { competitionIdsByTpId, matchesByCompetitionId } =
       await service.importCompetitions(eraIdsByName);
@@ -331,6 +362,8 @@ describe('TpCompetitionsImportService', () => {
         name: 'Chaos Cup 8',
         type: 'cup',
         eraId: 600,
+        startDate: '2021-05-15',
+        endDate: '2021-05-15',
         teamEraIds: [],
         externalIds: [{ externalSystemId: 1, externalId: '111' }],
       },
@@ -342,6 +375,8 @@ describe('TpCompetitionsImportService', () => {
         name: 'Sasong 26',
         type: 'season',
         eraId: 600,
+        startDate: '2021-01-10',
+        endDate: '2021-08-10',
         teamEraIds: [],
         externalIds: [{ externalSystemId: 1, externalId: '222' }],
       },
@@ -352,7 +387,7 @@ describe('TpCompetitionsImportService', () => {
   it('treats a single-day span as a cup (boundary: span 0)', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
     const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
-    const { service, importResults } = await makeService({
+    const { service, importResults, dateRange } = await makeService({
       files: makeFiles([
         tournamentFile('Fourth era', 'chaos-cup-8', {
           id: 111,
@@ -367,6 +402,11 @@ describe('TpCompetitionsImportService', () => {
       ]),
       bootstrap,
       upsertCompetitionResult,
+    });
+    dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date('2021-05-15T10:00:00Z'),
+      latestDate: new Date('2021-05-15T10:00:00Z'),
+      spanDays: 0,
     });
 
     await service.importCompetitions(eraIdsByName);
@@ -420,6 +460,79 @@ describe('TpCompetitionsImportService', () => {
     expect(
       (upsertCompetitionResult.mock.calls[0][0] as UpsertCompetition).type,
     ).toBe('season');
+  });
+
+  it('populates startDate and endDate from the match-date range', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
+    const { service, dateRange } = await makeService({
+      files: makeFiles([
+        tournamentFile('Fourth era', 'sasong-26', {
+          id: 222,
+          name: 'Sasong 26',
+        }).file,
+        matchFile({
+          era: 'Fourth era',
+          competition: 'sasong-26',
+          playedDate: new Date('2021-09-25T18:00:00Z'),
+          matchId: 1,
+        }).file,
+      ]),
+      bootstrap,
+      upsertCompetitionResult,
+    });
+    dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date('2021-09-25T18:00:00Z'),
+      latestDate: new Date('2021-11-02T20:30:00Z'),
+      spanDays: 38,
+    });
+
+    await service.importCompetitions(eraIdsByName);
+
+    expect(upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'season',
+        startDate: '2021-09-25',
+        endDate: '2021-11-02',
+      }),
+      expect.any(Array),
+    );
+  });
+
+  it('passes every match date of the group to MatchDateRangeService', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+    const upsertCompetitionResult = vi.fn().mockResolvedValue({ id: 42 });
+    const first = new Date('2021-09-25T18:00:00Z');
+    const second = new Date('2021-09-26T18:00:00Z');
+    const { service, dateRange, matchParser } = await makeService({
+      files: makeFiles([
+        tournamentFile('Fourth era', 'sasong-26', {
+          id: 222,
+          name: 'Sasong 26',
+        }).file,
+        matchFile({
+          era: 'Fourth era',
+          competition: 'sasong-26',
+          playedDate: first,
+          matchId: 1,
+        }).file,
+        matchFile({
+          era: 'Fourth era',
+          competition: 'sasong-26',
+          playedDate: second,
+          matchId: 2,
+        }).file,
+      ]),
+      bootstrap,
+      upsertCompetitionResult,
+    });
+    matchParser.parse
+      .mockReturnValueOnce({ ...CANNED_MATCH, id: 1, playedDate: first })
+      .mockReturnValueOnce({ ...CANNED_MATCH, id: 2, playedDate: second });
+
+    await service.importCompetitions(eraIdsByName);
+
+    expect(dateRange.computeRange).toHaveBeenCalledWith([first, second]);
   });
 
   it('skips a competition with no dated matches, recording an error', async () => {
@@ -823,7 +936,7 @@ describe('TpCompetitionsImportService', () => {
       id: 111,
       name: 'Chaos Cup 8',
     });
-    const { service, tournamentParser } = await makeService({
+    const { service, tournamentParser, dateRange } = await makeService({
       files: makeFiles([
         chaosTournament.file,
         matchFile({
@@ -837,6 +950,11 @@ describe('TpCompetitionsImportService', () => {
       upsertCompetitionResult,
     });
     tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
+    dateRange.computeRange.mockReturnValue({
+      earliestDate: new Date('2021-05-15T00:00:00Z'),
+      latestDate: new Date('2021-05-16T00:00:00Z'),
+      spanDays: 1,
+    });
 
     const { competitionsByTpId } =
       await service.importCompetitions(eraIdsByName);
@@ -848,6 +966,8 @@ describe('TpCompetitionsImportService', () => {
       name: 'Chaos Cup 8',
       type: 'cup',
       eraId: 600,
+      startDate: '2021-05-15',
+      endDate: '2021-05-16',
       teamEraIds: [],
       externalIds: [{ externalSystemId: 1, externalId: '111' }],
     });
