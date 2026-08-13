@@ -19,6 +19,19 @@ import { mock } from 'vitest-mock-extended';
  * `@blood-bowl-tracker/review-harness/test-helpers` — kept off the package's
  * main barrel so importing the harness never pulls Vitest into a tool's
  * runtime graph. Test-only; excluded from coverage.
+ *
+ * Lives under `test-helpers/` alongside a sibling `package.json` declaring
+ * `"type": "module"`. Without it, TypeScript's `nodenext` module setting
+ * (driven by the *source* file's nearest `package.json`, which for the rest
+ * of this package has no `"type"` field and so defaults to CommonJS) would
+ * compile this file's `import { mock } from 'vitest-mock-extended'` down to
+ * `require('vitest-mock-extended')`. That package's CJS entry point in turn
+ * `require()`s `vitest` itself, which vitest deliberately refuses ("Vitest
+ * cannot be imported in a CommonJS module using require()"). The sibling
+ * `package.json` is copied next to the compiled output by this package's
+ * `build` script, so `dist/test-helpers/` is recognized as ESM too and the
+ * compiled file uses real `import` statements, resolving `vitest-mock-extended`
+ * to its ESM build instead of tripping the CJS guard.
  */
 type QueryChain = Record<string, Mock> & {
   then: <TResult1 = unknown, TResult2 = never>(

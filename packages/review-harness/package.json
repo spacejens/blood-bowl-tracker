@@ -10,13 +10,13 @@
       "default": "./dist/index.js"
     },
     "./test-helpers": {
-      "types": "./dist/db-mock.test-helpers.d.ts",
-      "default": "./dist/db-mock.test-helpers.js"
+      "types": "./dist/test-helpers/db-mock.test-helpers.d.ts",
+      "default": "./dist/test-helpers/db-mock.test-helpers.js"
     }
   },
   "files": ["dist"],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && cp src/test-helpers/package.json dist/test-helpers/package.json",
     "lint": "eslint \"src/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit",

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { mockDb } from './db-mock.test-helpers';
+import { mockDb } from './db-mock.test-helpers.js';
 
 type Chainable = Record<string, (...args: unknown[]) => Chainable> &
   PromiseLike<unknown>;
