@@ -20,6 +20,14 @@ export interface WaitForPrReviewOptions {
   readonly excludeReviewId?: string;
   /** A rate-limit comment already surfaced to the caller — excluded so a re-run does not re-match it forever. */
   readonly excludeCommentId?: string;
+  /**
+   * A comment-update-failure comment already surfaced to the caller —
+   * excluded so a re-run does not re-match it forever. Deliberately a
+   * separate id from `excludeCommentId`: the two comment kinds are
+   * independent GitHub comments with independent ids, and a caller retrying
+   * after one kind must not suppress detection of the other.
+   */
+  readonly excludeCommentUpdateFailureId?: string;
   readonly timeoutMs?: number;
   readonly intervalMs?: number;
   /**
@@ -33,8 +41,12 @@ export interface WaitForPrReviewOptions {
   readonly triggerAfterEpochSeconds?: number;
 }
 
-/** A CodeRabbit comment reporting that its review rate limit was hit. */
-export interface RateLimitComment {
+/**
+ * A CodeRabbit comment standing in for a review — either its rate-limit
+ * warning or its "couldn't update its existing comment" failure notice. The
+ * shape is comment-kind-agnostic, so both kinds reuse it.
+ */
+export interface CodeRabbitComment {
   readonly id: string;
   readonly body: string;
   /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
@@ -50,7 +62,7 @@ export interface WaitForPrReviewResult {
   /** True only when a qualifying CodeRabbit rate-limit comment was found instead of a review. */
   readonly rateLimited?: boolean;
   /** Present only when `rateLimited` is true. */
-  readonly rateLimitComment?: RateLimitComment;
+  readonly rateLimitComment?: CodeRabbitComment;
   /**
    * Best-effort epoch parsed from the comment body when it states a relative
    * duration ("available again in 45 minutes", "retry in 2 hours"). Absent
@@ -58,12 +70,17 @@ export interface WaitForPrReviewResult {
    * a default wait.
    */
   readonly availableAtEpochSeconds?: number;
+  /** True only when a qualifying CodeRabbit "couldn't update its existing comment" failure was found instead of a review. */
+  readonly commentUpdateFailed?: boolean;
+  /** Present only when `commentUpdateFailed` is true. */
+  readonly commentUpdateFailedComment?: CodeRabbitComment;
 }
 
-/** What one poll saw; both fields absent means "nothing qualifying yet". */
+/** What one poll saw; all comment/review fields absent means "nothing qualifying yet". */
 interface PollOutcome {
   readonly review?: unknown;
-  readonly rateLimitComment?: RateLimitComment;
+  readonly rateLimitComment?: CodeRabbitComment;
+  readonly commentUpdateFailedComment?: CodeRabbitComment;
   /**
    * The PR's current head commit, read from the same `gh pr view` call
    * (widened to also request `headRefOid`) — carried through so the
@@ -120,11 +137,32 @@ interface CompletionReview {
 const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
 /**
  * Mirrors `RATE_LIMIT_PHRASES` for a second, stricter check in TypeScript
- * (see `hasGenuineRateLimitPhrase`) — `gh`/jq's own phrase test is a coarse
+ * (see `hasProsePhrase`/`prosePhraseComment`) — `gh`/jq's own phrase test is a coarse
  * first pass and can be fooled by a phrase appearing only inside markdown
  * code formatting (e.g. a branch name quoted in an inline code span).
  */
 const RATE_LIMIT_PHRASE_REGEX = new RegExp(RATE_LIMIT_PHRASES, 'i');
+/**
+ * Tolerant, deliberately CodeRabbit-specific wording for its third
+ * non-review outcome: it failed to persist an edit to its rolling
+ * walkthrough comment and posted a separate top-level notice instead
+ * (observed on PR #408: "CodeRabbit couldn't update its existing comment.
+ * The review summary may be out of date. Error details: putComment timed
+ * out."). Same tolerance rationale as `RATE_LIMIT_PHRASES` — the exact text
+ * is CodeRabbit's own and may drift, so any one of these phrases
+ * (case-insensitive) qualifies. The character class accepts both a straight
+ * and a typographic apostrophe.
+ */
+const COMMENT_UPDATE_FAILED_PHRASES =
+  "couldn['’]t update its existing comment|" +
+  'could not update its existing comment|' +
+  "can['’]t update its existing comment|" +
+  'cannot update its existing comment';
+/** Mirrors `COMMENT_UPDATE_FAILED_PHRASES` for the stricter TypeScript re-check. */
+const COMMENT_UPDATE_FAILED_PHRASE_REGEX = new RegExp(
+  COMMENT_UPDATE_FAILED_PHRASES,
+  'i',
+);
 /** A fenced code block: three backticks, any content, three backticks. */
 const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
 /** An inline code span: a backtick, no-backtick content, a backtick. */
@@ -182,16 +220,19 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
  * Bot-agnostic by construction — it looks for *some* formal review object
  * from a non-author, never for a particular bot's name.
  *
- * Two exceptions are CodeRabbit-specific, because both are CodeRabbit's own
- * behaviour rather than anything GitHub models as a review. It answers its
- * per-developer review rate limit with a top-level PR comment, and it can
- * finish a pass with nothing actionable to say and report *that* only by
- * editing its rolling walkthrough comment in place. Each poll therefore also
- * looks for those two comments — narrowly, by CodeRabbit's own login and
- * wording — and returns as soon as it finds one, rather than running out the
- * whole timeout with nothing to report. A completion comment comes back
- * shaped like a review, so callers need no new result field: see
- * `CompletionReview`.
+ * Three exceptions are CodeRabbit-specific, because all three are
+ * CodeRabbit's own behaviour rather than anything GitHub models as a review.
+ * It answers its per-developer review rate limit with a top-level PR comment;
+ * it can finish a pass with nothing actionable to say and report *that* only
+ * by editing its rolling walkthrough comment in place; and it can fail to
+ * persist such an edit at all, posting a "couldn't update its existing
+ * comment" notice instead while the rolling comment stays stuck mid-pass
+ * (observed on PR #408). Each poll therefore also looks for those comments —
+ * narrowly, by CodeRabbit's own login and wording — and returns as soon as it
+ * finds one, rather than running out the whole timeout with nothing to
+ * report. A completion comment comes back shaped like a review, so callers
+ * need no new result field: see `CompletionReview`. The other two come back
+ * as their own result fields.
  */
 @Injectable()
 export class WaitForPrReviewService {
@@ -206,9 +247,16 @@ export class WaitForPrReviewService {
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
       }
-      if (outcome?.rateLimitComment !== undefined) {
-        return this.rateLimitedResult(outcome.rateLimitComment);
-      }
+      // Checked here — after a formal review has ruled itself out, but
+      // before the rate-limit/comment-update-failure early returns below —
+      // so a stale, still-unexcluded comment of either kind (e.g. a second
+      // failure notice from before this wait's own watermark) cannot make
+      // this iteration return early without the trigger ever firing. A
+      // caller-requested retrigger (develop-feature's Phase 6 steps b2/b3)
+      // must fire once due, regardless of what else this same poll matched.
+      // A found review needs no retrigger — that outcome is already the
+      // wait's success case — so it is excluded from this reasoning and
+      // returns above without ever reaching this check.
       if (!triggered && this.shouldTrigger(options)) {
         // Set before awaiting: a slow or failing post must not be retried on
         // every interval for the rest of the wait.
@@ -216,6 +264,14 @@ export class WaitForPrReviewService {
         await this.triggerReview(
           options.prNumber,
           this.budgetMs(deadline, intervalMs),
+        );
+      }
+      if (outcome?.rateLimitComment !== undefined) {
+        return this.rateLimitedResult(outcome.rateLimitComment);
+      }
+      if (outcome?.commentUpdateFailedComment !== undefined) {
+        return this.commentUpdateFailedResult(
+          outcome.commentUpdateFailedComment,
         );
       }
       if (Date.now() >= deadline) {
@@ -254,7 +310,8 @@ export class WaitForPrReviewService {
     }
     if (
       outcome.review !== undefined ||
-      outcome.rateLimitComment !== undefined
+      outcome.rateLimitComment !== undefined ||
+      outcome.commentUpdateFailedComment !== undefined
     ) {
       return outcome;
     }
@@ -302,22 +359,25 @@ export class WaitForPrReviewService {
     if (parsed === undefined) {
       return undefined;
     }
-    // jq emits `null` for an empty half; normalise both to `undefined` so
-    // callers can test them with a single `!== undefined`. A rate-limit
-    // candidate is also re-checked here — jq's own phrase test is coarse
-    // and can be fooled by a phrase appearing only inside markdown code
-    // formatting (a quoted branch name, file path, or snippet).
-    const rateLimitComment =
-      parsed.rateLimitComment != null &&
-      typeof parsed.rateLimitComment.body === 'string' &&
-      this.hasProsePhrase(parsed.rateLimitComment.body, RATE_LIMIT_PHRASE_REGEX)
-        ? parsed.rateLimitComment
-        : undefined;
+    // jq emits `null` for an empty half; normalise each to `undefined` so
+    // callers can test them with a single `!== undefined`. Both comment
+    // candidates are re-checked here — see `prosePhraseComment`.
+    const rateLimitComment = this.prosePhraseComment(
+      parsed.rateLimitComment,
+      RATE_LIMIT_PHRASE_REGEX,
+    );
+    const commentUpdateFailedComment = this.prosePhraseComment(
+      parsed.commentUpdateFailedComment,
+      COMMENT_UPDATE_FAILED_PHRASE_REGEX,
+    );
     const headRefOid =
       typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
     return {
       ...(parsed.review == null ? {} : { review: parsed.review }),
       ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
+      ...(commentUpdateFailedComment === undefined
+        ? {}
+        : { commentUpdateFailedComment }),
       ...(headRefOid === undefined ? {} : { headRefOid }),
     };
   }
@@ -464,6 +524,33 @@ export class WaitForPrReviewService {
   }
 
   /**
+   * One comment-shaped candidate out of the reviews call, kept only if it
+   * survives the stricter TypeScript phrase re-check. jq's own phrase test is
+   * a coarse first pass and can be fooled by a phrase appearing only inside
+   * markdown code formatting; the `typeof` guards on every field additionally
+   * make a malformed jq response read as "no match" rather than crash the
+   * wait (the reviews half's shape is asserted by a cast, not checked). All
+   * three fields are validated, not just `body`: a caller retrying off a
+   * candidate missing `id` or `submittedAt` (develop-feature's Phase 6 steps
+   * b2/b3) would build an unusable exclusion value or watermark.
+   */
+  private prosePhraseComment(
+    candidate: unknown,
+    phrase: RegExp,
+  ): CodeRabbitComment | undefined {
+    if (candidate === null || typeof candidate !== 'object') {
+      return undefined;
+    }
+    const comment = candidate as Partial<CodeRabbitComment>;
+    return typeof comment.id === 'string' &&
+      typeof comment.body === 'string' &&
+      typeof comment.submittedAt === 'string' &&
+      this.hasProsePhrase(comment.body, phrase)
+      ? { id: comment.id, body: comment.body, submittedAt: comment.submittedAt }
+      : undefined;
+  }
+
+  /**
    * One object per poll, holding both halves of the query. Each half is
    * wrapped in `[...] | first` so it emits exactly one JSON value (the first
    * match, or `null`). A bare `.reviews[] | select(...)` streams one document
@@ -473,6 +560,7 @@ export class WaitForPrReviewService {
     return (
       `{review: (${this.reviewFilter(options)}), ` +
       `rateLimitComment: (${this.rateLimitFilter(options)}), ` +
+      `commentUpdateFailedComment: (${this.commentUpdateFailedFilter(options)}), ` +
       `headRefOid: .headRefOid}`
     );
   }
@@ -505,6 +593,39 @@ export class WaitForPrReviewService {
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
       `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
+      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
+      `${excludeClause}) | ` +
+      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
+    );
+  }
+
+  /**
+   * Deliberately CodeRabbit-specific, and structurally identical to
+   * `rateLimitFilter` — same `.comments[]` source, same author-login
+   * narrowing, same watermark bound, same `[...] | first` wrapping — because
+   * this is the same kind of signal: a top-level comment CodeRabbit posts
+   * *instead of* reviewing. Only the phrase set and the exclusion id differ.
+   *
+   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
+   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
+   * summary, a changes table) can incidentally contain this filter's phrase
+   * — notably on a PR whose diff is *about* this phrase, such as the one
+   * that introduced this filter — which would otherwise abort the wait on a
+   * false positive before any real review or genuine failure notice exists.
+   * The genuine failure notice is always a short, separate comment and never
+   * carries the walkthrough markers, so this guard costs nothing in real
+   * detection.
+   */
+  private commentUpdateFailedFilter(options: WaitForPrReviewOptions): string {
+    const excludeClause =
+      options.excludeCommentUpdateFailureId === undefined
+        ? ''
+        : ` and .id != ${JSON.stringify(options.excludeCommentUpdateFailureId)}`;
+    return (
+      '[.comments[] | select(.createdAt != null) | ' +
+      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
+      `select(((.body // "") | test(${JSON.stringify(COMMENT_UPDATE_FAILED_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
       '{id: .id, body: .body, submittedAt: .createdAt}] | first'
@@ -605,7 +726,7 @@ export class WaitForPrReviewService {
     return remainingMs > 0 ? remainingMs : intervalMs;
   }
 
-  private rateLimitedResult(comment: RateLimitComment): WaitForPrReviewResult {
+  private rateLimitedResult(comment: CodeRabbitComment): WaitForPrReviewResult {
     const availableAtEpochSeconds = this.parseAvailableAt(comment);
     return {
       found: false,
@@ -614,6 +735,21 @@ export class WaitForPrReviewService {
       ...(availableAtEpochSeconds === undefined
         ? {}
         : { availableAtEpochSeconds }),
+    };
+  }
+
+  /**
+   * No `availableAtEpochSeconds` equivalent: unlike the rate-limit comment,
+   * CodeRabbit's text for this failure states no wait duration, so the caller
+   * falls back to an immediate retry.
+   */
+  private commentUpdateFailedResult(
+    comment: CodeRabbitComment,
+  ): WaitForPrReviewResult {
+    return {
+      found: false,
+      commentUpdateFailed: true,
+      commentUpdateFailedComment: comment,
     };
   }
 
@@ -629,7 +765,7 @@ export class WaitForPrReviewService {
    * stale/re-matched comment (e.g. re-found across a retry) must not be
    * read as if its wait were freshly starting now.
    */
-  private parseAvailableAt(comment: RateLimitComment): number | undefined {
+  private parseAvailableAt(comment: CodeRabbitComment): number | undefined {
     for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
       if (!WAIT_TIME_KEYWORDS.test(sentence)) {
         continue;
