@@ -39,13 +39,12 @@ without touching the harness services.
      events, and a per-event-code breakdown. Right: the stored identity, team, position,
      era and every external id.
    - **spp-totals** — left: the SPP this tool computes by summing the per-event values
-     over the events where the player is the *acting* participant (its own query, not
-     `packages/game-data`'s `SppTotalsService`). Right: the stored total and the stored
-     adjustment. Both panels are database-derived, so they carry their own headings
-     rather than the harness's raw/imported wording, and a `MISMATCH` — highlighted row,
-     explicit label in both panels — is shown when the stored total disagrees with
-     the computed sum *plus* the stored adjustment (not the raw computed sum), or
-     has no stored total at all.
+     over the events where the player is the *acting* participant. Right: the stored
+     total and the stored adjustment. Both panels are database-derived, so they carry
+     their own headings rather than the harness's raw/imported wording, and a
+     `MISMATCH` — highlighted row, explicit label in both panels — is shown when the
+     stored total disagrees with the computed sum *plus* the stored adjustment (not
+     the raw computed sum), or has no stored total at all.
 4. Writes the report under `tools/review-player/output/` (gitignored) with a timestamp in
    the filename, and prints where it landed.
 
