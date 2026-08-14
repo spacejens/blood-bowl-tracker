@@ -1,6 +1,7 @@
 import {
   ExternalSystemCategorySchema,
   SppEarningActionTypeSchema,
+  TrophyRecipientKindSchema,
 } from '@blood-bowl-tracker/api-contract';
 import { z } from 'zod';
 
@@ -99,6 +100,22 @@ const SppAwardValueEntrySchema = z.object({
   sppValue: z.number().int(),
 });
 
+/**
+ * One curated trophy. Unlike every other entity section, `externalIds` is
+ * NOT `.min(1)` and defaults to `[]`: a trophy may genuinely have none yet
+ * (the TP-only "Ogretoberfest" has no BBL equivalent, and TP's own
+ * `awardType` codes are not globally unique per trophy, so they cannot be
+ * seeded until a competition-classification concept exists — issues #445 and
+ * #446). Such a trophy is matched on its exact name instead, by
+ * `TrophiesService.upsert`, so re-running the import never duplicates it.
+ */
+const TrophyEntrySchema = z.object({
+  name: z.string().min(1),
+  recipientKind: TrophyRecipientKindSchema,
+  description: z.string().min(1).optional(),
+  externalIds: z.array(ExternalRefSchema).default([]),
+});
+
 export const ManualDataFileSchema = z
   .object({
     externalSystems: z.array(ExternalSystemEntrySchema).default([]),
@@ -111,6 +128,7 @@ export const ManualDataFileSchema = z
     teams: z.array(TeamEntrySchema).default([]),
     competitions: z.array(CompetitionEntrySchema).default([]),
     sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
+    trophies: z.array(TrophyEntrySchema).default([]),
   })
   .strict();
 
@@ -118,3 +136,4 @@ export type ExternalRef = z.infer<typeof ExternalRefSchema>;
 export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;
 export type SppAwardValueEntry = z.infer<typeof SppAwardValueEntrySchema>;
+export type TrophyEntry = z.infer<typeof TrophyEntrySchema>;

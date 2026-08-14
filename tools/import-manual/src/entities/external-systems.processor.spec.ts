@@ -19,6 +19,7 @@ function emptyData(): ManualDataFile {
     teams: [],
     competitions: [],
     sppAwardValues: [],
+    trophies: [],
   };
 }
 
