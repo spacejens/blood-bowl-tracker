@@ -126,6 +126,14 @@ describe('DiffHunkMembershipService', () => {
     expect(result).toBe(false);
   });
 
+  it('returns false without throwing when processRunner.run rejects', async () => {
+    processRunner.run.mockRejectedValue(new Error('spawn git ENOENT'));
+
+    const result = await service.includesLine('file.ts', 1);
+
+    expect(result).toBe(false);
+  });
+
   it('an indented look-alike header not at line start not being parsed as a hunk', async () => {
     const diffOutput = 'some content\n  @@ -1,3 +1,4 @@\n';
     processRunner.run.mockResolvedValue(mkResult(diffOutput));

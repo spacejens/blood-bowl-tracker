@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
-import { ProcessRunnerService } from '../shared/process-runner.service';
+import {
+  ProcessResult,
+  ProcessRunnerService,
+} from '../shared/process-runner.service';
 
 /**
  * Timeout for git diff operations, in milliseconds.
@@ -24,11 +27,19 @@ export class DiffHunkMembershipService {
   constructor(private readonly processRunner: ProcessRunnerService) {}
 
   async includesLine(file: string, line: number): Promise<boolean> {
-    const result = await this.processRunner.run(
-      'git',
-      ['diff', 'origin/main...HEAD', '--', file],
-      DIFF_TIMEOUT_MS,
-    );
+    let result: ProcessResult;
+    try {
+      result = await this.processRunner.run(
+        'git',
+        ['diff', 'origin/main...HEAD', '--', file],
+        DIFF_TIMEOUT_MS,
+      );
+    } catch {
+      // A rejected run (e.g. spawn failure) fails closed the same as a
+      // non-zero exit below — one finding's membership check must never
+      // abort the whole batch in PostDeferredFindingsService.
+      return false;
+    }
 
     // Non-zero exit code means no diff; fail closed to the harmless top-level fallback.
     if (result.exitCode !== 0) {
