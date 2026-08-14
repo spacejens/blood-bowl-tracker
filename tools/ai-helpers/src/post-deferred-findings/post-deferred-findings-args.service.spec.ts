@@ -128,6 +128,18 @@ describe('PostDeferredFindingsArgsService', () => {
     );
   });
 
+  it.each([
+    ['a null element', null],
+    ['file as a number', { file: 1, line: 1, body: 'b' }],
+    ['body as a number', { file: 'a', line: 1, body: 1 }],
+    ['a negative line', { file: 'a', line: -1, body: 'b' }],
+  ])('rejects a finding with %s', (_description, element) => {
+    const stdin = JSON.stringify([element]);
+    expect(() => service.parse(argv('392'), stdin)).toThrow(
+      /Usage:.*\(bad finding at index 0\)/s,
+    );
+  });
+
   it('reports the correct index for a bad finding beyond the first', () => {
     const stdin = JSON.stringify([
       { file: 'a', line: 1, body: 'ok' },
