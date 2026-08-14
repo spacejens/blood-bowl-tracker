@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { CoachesProcessor } from './coaches.processor';
+import { CompetitionGroupsProcessor } from './competition-groups.processor';
 import { CompetitionsProcessor } from './competitions.processor';
 import { ErasProcessor } from './eras.processor';
 import { ExternalSystemsProcessor } from './external-systems.processor';
@@ -23,6 +24,7 @@ const processors = [
   PositionsProcessor,
   CoachesProcessor,
   TeamsProcessor,
+  CompetitionGroupsProcessor,
   CompetitionsProcessor,
   SppAwardValuesProcessor,
   TrophiesProcessor,

@@ -7,6 +7,7 @@ import { mock } from 'vitest-mock-extended';
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
 import { CoachesProcessor } from '../entities/coaches.processor';
+import { CompetitionGroupsProcessor } from '../entities/competition-groups.processor';
 import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
@@ -52,6 +53,7 @@ interface ProcessorMocks {
   positions: MockProxy<PositionsProcessor>;
   coaches: MockProxy<CoachesProcessor>;
   teams: MockProxy<TeamsProcessor>;
+  competitionGroups: MockProxy<CompetitionGroupsProcessor>;
   competitions: MockProxy<CompetitionsProcessor>;
   sppAwardValues: MockProxy<SppAwardValuesProcessor>;
   trophies: MockProxy<TrophiesProcessor>;
@@ -90,6 +92,7 @@ async function makeService(overrides: Overrides = {}): Promise<{
     positions: mock<PositionsProcessor>(),
     coaches: mock<CoachesProcessor>(),
     teams: mock<TeamsProcessor>(),
+    competitionGroups: mock<CompetitionGroupsProcessor>(),
     competitions: mock<CompetitionsProcessor>(),
     sppAwardValues: mock<SppAwardValuesProcessor>(),
     trophies: mock<TrophiesProcessor>(),
@@ -105,6 +108,9 @@ async function makeService(overrides: Overrides = {}): Promise<{
   );
   procs.coaches.process.mockImplementation(processImpl('coaches', overrides));
   procs.teams.process.mockImplementation(processImpl('teams', overrides));
+  procs.competitionGroups.process.mockImplementation(
+    processImpl('competitionGroups', overrides),
+  );
   procs.competitions.process.mockImplementation(
     processImpl('competitions', overrides),
   );
@@ -132,6 +138,10 @@ async function makeService(overrides: Overrides = {}): Promise<{
       { provide: PositionsProcessor, useValue: procs.positions },
       { provide: CoachesProcessor, useValue: procs.coaches },
       { provide: TeamsProcessor, useValue: procs.teams },
+      {
+        provide: CompetitionGroupsProcessor,
+        useValue: procs.competitionGroups,
+      },
       { provide: CompetitionsProcessor, useValue: procs.competitions },
       { provide: SppAwardValuesProcessor, useValue: procs.sppAwardValues },
       { provide: TrophiesProcessor, useValue: procs.trophies },
@@ -157,6 +167,7 @@ describe('ManualImportService', () => {
         races: 1,
         coaches: 1,
         teams: 1,
+        competitionGroups: 1,
         competitions: 1,
         sppAwardValues: 1,
         trophies: 1,
@@ -165,7 +176,7 @@ describe('ManualImportService', () => {
 
     const result = await service.run('/data/dir');
 
-    expect(result.imported).toBe(10);
+    expect(result.imported).toBe(11);
     expect(result.success).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
@@ -214,6 +225,10 @@ describe('ManualImportService', () => {
       order.push('teams');
       return Promise.resolve(0);
     });
+    procs.competitionGroups.process.mockImplementation(() => {
+      order.push('competitionGroups');
+      return Promise.resolve(0);
+    });
     procs.competitions.process.mockImplementation(() => {
       order.push('competitions');
       return Promise.resolve(0);
@@ -237,6 +252,7 @@ describe('ManualImportService', () => {
       'positions',
       'coaches',
       'teams',
+      'competitionGroups',
       'competitions',
       'sppAwardValues',
       'trophies',

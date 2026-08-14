@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ManualDataReader } from '../data-file/manual-data-reader.service';
 import { CoachesProcessor } from '../entities/coaches.processor';
+import { CompetitionGroupsProcessor } from '../entities/competition-groups.processor';
 import { CompetitionsProcessor } from '../entities/competitions.processor';
 import { ErasProcessor } from '../entities/eras.processor';
 import { ExternalSystemsProcessor } from '../entities/external-systems.processor';
@@ -29,6 +30,7 @@ export class ManualImportService {
     private readonly positions: PositionsProcessor,
     private readonly coaches: CoachesProcessor,
     private readonly teams: TeamsProcessor,
+    private readonly competitionGroups: CompetitionGroupsProcessor,
     private readonly competitions: CompetitionsProcessor,
     private readonly sppAwardValues: SppAwardValuesProcessor,
     private readonly trophies: TrophiesProcessor,
@@ -38,11 +40,14 @@ export class ManualImportService {
   /**
    * Read and pool every `.json5` file in `dir`, bootstrap the external systems
    * it references, then process each entity section in dependency order —
-   * rulesSets, leagues, eras, races, positions, coaches, teams, competitions,
-   * sppAwardValues, trophies — with sppAwardValues running before trophies
-   * because it references both rulesSets and races, and trophies running last
-   * because it references nothing, so its position in the order is free —
-   * sharing one ExternalIdMap and error collector
+   * rulesSets, leagues, eras, races, positions, coaches, teams,
+   * competitionGroups, competitions, sppAwardValues, trophies — with
+   * competitionGroups running after leagues (whose external ids its entries
+   * reference) and before competitions and trophies (which resolve the group
+   * names it publishes into ctx.competitionGroupIds), and sppAwardValues
+   * running before trophies because it references both rulesSets and races,
+   * and trophies running last because it references nothing, so its position
+   * in the order is free — sharing one ExternalIdMap and error collector
    * so cross-references resolve and one bad entry never aborts the rest.
    * Reference-resolution and upsert failures are collected; a missing
    * directory, malformed file, or unreachable API throws out of here to be
@@ -69,6 +74,7 @@ export class ManualImportService {
     imported += await this.positions.process(ctx);
     imported += await this.coaches.process(ctx);
     imported += await this.teams.process(ctx);
+    imported += await this.competitionGroups.process(ctx);
     imported += await this.competitions.process(ctx);
     imported += await this.sppAwardValues.process(ctx);
     imported += await this.trophies.process(ctx);
