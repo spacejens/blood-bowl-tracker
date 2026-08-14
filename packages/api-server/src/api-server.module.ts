@@ -1,5 +1,6 @@
 import {
   CoachesModule,
+  CompetitionGroupsModule,
   CompetitionsModule,
   ErasModule,
   ExternalSystemsModule,
@@ -34,6 +35,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     ErasModule,
     PositionsModule,
     TeamsModule,
+    CompetitionGroupsModule,
     CompetitionsModule,
     MatchesModule,
     PlayersModule,

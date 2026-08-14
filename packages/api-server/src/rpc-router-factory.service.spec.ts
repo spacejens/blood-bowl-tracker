@@ -1,6 +1,7 @@
 import {
   CoachesService,
   CoachUpsertConflictError,
+  CompetitionGroupsService,
   CompetitionsService,
   CompetitionUpsertConflictError,
   ErasService,
@@ -49,6 +50,7 @@ describe('RpcRouterFactoryService', () => {
   let positionsService: MockProxy<PositionsService>;
   let teamsService: MockProxy<TeamsService>;
   let trophiesService: MockProxy<TrophiesService>;
+  let competitionGroupsService: MockProxy<CompetitionGroupsService>;
   let competitionsService: MockProxy<CompetitionsService>;
   let matchesService: MockProxy<MatchesService>;
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
@@ -68,6 +70,7 @@ describe('RpcRouterFactoryService', () => {
     positionsService = mock<PositionsService>();
     teamsService = mock<TeamsService>();
     trophiesService = mock<TrophiesService>();
+    competitionGroupsService = mock<CompetitionGroupsService>();
     competitionsService = mock<CompetitionsService>();
     matchesService = mock<MatchesService>();
     matchOutcomesService = mock<MatchOutcomesService>();
@@ -113,6 +116,10 @@ describe('RpcRouterFactoryService', () => {
         { provide: PositionsService, useValue: positionsService },
         { provide: TeamsService, useValue: teamsService },
         { provide: TrophiesService, useValue: trophiesService },
+        {
+          provide: CompetitionGroupsService,
+          useValue: competitionGroupsService,
+        },
         { provide: CompetitionsService, useValue: competitionsService },
         { provide: MatchesService, useValue: matchesService },
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
@@ -606,6 +613,7 @@ describe('RpcRouterFactoryService', () => {
         name: 'Major Season 24',
         type: 'season',
         eraId: 20,
+        competitionGroupId: 5,
         teamEraIds: [],
         startDate: '2024-01-15',
         endDate: null,
@@ -629,6 +637,7 @@ describe('RpcRouterFactoryService', () => {
       name: 'Major Season 24',
       type: 'season',
       eraId: 20,
+      competitionGroupId: 5,
       teamEraIds: [],
       startDate: '2024-01-15',
       endDate: null,
@@ -959,6 +968,7 @@ describe('RpcRouterFactoryService', () => {
         name: 'Chaos Cup',
         recipientKind: 'team' as const,
         description: null,
+        competitionGroupId: 5,
         createdAt: new Date('2026-01-01'),
         updatedAt: new Date('2026-01-01'),
         historyVersion: 1,
@@ -977,6 +987,7 @@ describe('RpcRouterFactoryService', () => {
         name: 'Chaos Cup',
         recipientKind: 'team',
         description: null,
+        competitionGroupId: 5,
         createdAt: new Date('2026-01-01'),
         created: true,
       });
