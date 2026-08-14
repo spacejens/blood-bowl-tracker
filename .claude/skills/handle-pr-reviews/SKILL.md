@@ -167,7 +167,18 @@ Each non-passing check (`lint`, `typecheck`, or `test` — with `conclusion` suc
 
 If a relevant check-run for the current HEAD is still `in_progress` or `queued` (not yet concluded), wait and poll briefly rather than treating it as absent — a not-yet-finished check is not the same as a passing one.
 
-If all four scans find nothing unhandled, report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases. The review-body scan counts here like any other: it must have produced zero extracted findings for this early exit to apply.
+If all four scans find nothing unhandled, which verdict to report depends on whether CodeRabbit's rolling comment was found in the **in-progress state** (see the two-state exemption rule above):
+
+- **No in-progress state** — report "No unhandled review comments or failing CI checks found." and **stop** — skip the remaining phases. The review-body scan counts here like any other: it must have produced zero extracted findings for this early exit to apply.
+- **In-progress state present** — do not finalize that clean verdict yet: the scans may simply have run in the window between a push and CodeRabbit finishing its pass, in which case findings may exist but have not been written yet. Wait for the pass, the same way a still-`in_progress`/`queued` check-run is waited on above. Re-run the top-level-comments listing used by that scan:
+  ```bash
+  gh api "repos/$OWNER/$REPO/issues/$PR/comments" --paginate
+  ```
+  every **15 seconds**, for at most **2 minutes** total, and inspect that same CodeRabbit comment's `<!-- recent_review_start -->...<!-- recent_review_end -->` section on each poll.
+  - **It stopped matching the in-progress phrase within the window** — the pass finished, resolving either to the completion state or to a rewrite carrying real findings. Redo the whole of Phase 1 from the top against this fresh state, and continue from that rerun's result normally. The rerun may now surface genuine unhandled items, or may now legitimately reach the clean verdict above.
+  - **The 2-minute bound elapsed with the marker still showing** — report "CodeRabbit's review is still in progress after waiting 2 minutes; no other unhandled review comments or failing CI checks were found, but a review may still be forthcoming." and **stop**, skipping the remaining phases exactly as the clean verdict does. The wording differs deliberately: it is what lets the developer — and `develop-feature`'s automated review loop — tell this outcome apart from a genuinely clean one. That loop needs no change to handle it; this run made no fix commits, so its existing "made no fix commits — nothing was pushed" exit condition ends the loop, leaving the developer with the explicit "still in progress" message instead of a silently false clean verdict.
+
+This wait applies only when the in-progress state is the **sole** obstacle to a clean verdict. If any scan found an unhandled item, or any CI check is failing, continue to the listing below immediately — no wait is introduced on that path.
 
 Otherwise, list every unhandled item for the developer (surface, file/line if applicable, author, short excerpt) before continuing to Phase 2. Findings extracted from review bodies are listed alongside the inline-thread and top-level-comment items, tagged with the surface "review body" so the developer can tell them apart at a glance.
 
