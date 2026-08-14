@@ -29,6 +29,14 @@ export interface ResolveOptionalRefOptions {
   label: string;
 }
 
+export interface ResolveCompetitionGroupOptions {
+  name: string | undefined;
+  groupIds: ReadonlyMap<string, number>;
+  errors: ImportError[];
+  item: unknown;
+  label: string;
+}
+
 /**
  * Three outcomes, because "the entry said nothing about this reference" and
  * "the entry named a reference that does not exist" must be handled
@@ -123,5 +131,33 @@ export class ReferenceResolverService {
       label: options.label,
     });
     return id === undefined ? { ok: false } : { ok: true, id };
+  }
+
+  /**
+   * Resolve a competition-group reference, which names its target by exact
+   * `name` rather than by an external-id pair -- competition groups carry no
+   * external ids, so ExternalIdMap cannot key them. Same three outcomes as
+   * resolveOptionalRef: an omitted name passes `undefined` through so the
+   * upsert leaves the stored group alone, a name with no matching group
+   * records one ImportError and skips the entry, and a known name resolves to
+   * its id.
+   */
+  resolveOptionalCompetitionGroup(
+    options: ResolveCompetitionGroupOptions,
+  ): OptionalRefResult {
+    if (options.name === undefined) {
+      return { ok: true, id: undefined };
+    }
+    const id = options.groupIds.get(options.name);
+    if (id === undefined) {
+      options.errors.push(
+        this.importResults.error({
+          item: options.item,
+          message: `${options.label}: unknown competition group "${options.name}".`,
+        }),
+      );
+      return { ok: false };
+    }
+    return { ok: true, id };
   }
 }

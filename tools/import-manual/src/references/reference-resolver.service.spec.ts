@@ -179,4 +179,54 @@ describe('ReferenceResolverService', () => {
       expect(errors).toHaveLength(1);
     });
   });
+
+  describe('resolveOptionalCompetitionGroup', () => {
+    it('passes an omitted group through with no error', () => {
+      const errors: ImportError[] = [];
+
+      expect(
+        service.resolveOptionalCompetitionGroup({
+          name: undefined,
+          groupIds: new Map(),
+          errors,
+          item: {},
+          label: 'Cannot import trophy "Major Gold"',
+        }),
+      ).toEqual({ ok: true, id: undefined });
+      expect(errors).toHaveLength(0);
+    });
+
+    it('resolves a known group name to its id', () => {
+      expect(
+        service.resolveOptionalCompetitionGroup({
+          name: 'Major Season',
+          groupIds: new Map([['Major Season', 4]]),
+          errors: [],
+          item: {},
+          label: 'Cannot import trophy "Major Gold"',
+        }),
+      ).toEqual({ ok: true, id: 4 });
+    });
+
+    it('records one error and reports failure for an unknown group name', () => {
+      const errors: ImportError[] = [];
+      importResults.error.mockReturnValue({ message: 'recorded' } as never);
+
+      expect(
+        service.resolveOptionalCompetitionGroup({
+          name: 'Nonexistent',
+          groupIds: new Map(),
+          errors,
+          item: { name: 'Major Gold' },
+          label: 'Cannot import trophy "Major Gold"',
+        }),
+      ).toEqual({ ok: false });
+      expect(errors).toHaveLength(1);
+      expect(importResults.error).toHaveBeenCalledWith({
+        item: { name: 'Major Gold' },
+        message:
+          'Cannot import trophy "Major Gold": unknown competition group "Nonexistent".',
+      });
+    });
+  });
 });
