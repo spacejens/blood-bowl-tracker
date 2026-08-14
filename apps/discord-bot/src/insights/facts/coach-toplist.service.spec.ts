@@ -3,7 +3,7 @@ import {
   FACT_SCOPE_ALL_TIME,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -46,9 +46,22 @@ interface CoachRow {
   count: number;
 }
 
+type CoachCountMethod =
+  | 'countMatchesPlayedByCoach'
+  | 'countMatchesWonByCoach'
+  | 'countMatchesLostByCoach'
+  | 'countMatchesDrawnByCoach'
+  | 'countTeamsByCoach'
+  | 'countCompetitionsByCoach'
+  | 'countErasByCoach'
+  | 'countFoulsCommittedByCoach'
+  | 'getGapBetweenMatchesByCoachDescending'
+  | 'getGapBetweenMatchesByCoachAscending'
+  | 'getAverageGapBetweenMatchesByCoach';
+
 interface ToplistCase {
   describeName: string;
-  method: keyof CoachesService;
+  method: CoachCountMethod;
   resolve: (service: CoachToplistService) => Promise<unknown>;
   rows: CoachRow[];
   expectedTitle: string;
@@ -170,9 +183,8 @@ describe.each(cases)(
     // CoachToplistService itself owns: the embed title it configures, and the
     // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const coaches = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as CoachesService;
+      const coaches = mock<CoachesService>();
+      coaches[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -190,8 +202,9 @@ describe.each(cases)(
     });
 
     it('binds fetchRows to a call passing the fetch limit', async () => {
-      const queryFn = vi.fn().mockResolvedValue(rows);
-      const coaches = { [method]: queryFn } as unknown as CoachesService;
+      const coaches = mock<CoachesService>();
+      const queryFn = coaches[method];
+      queryFn.mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
       leaderboard.resolveToplist.mockImplementation(async (options) => {
         await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -206,9 +219,8 @@ describe.each(cases)(
     // confirms CoachToplistService configures the right timeout message and
     // that whatever leaderboard.resolveToplist resolves to is returned as-is.
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const coaches = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as CoachesService;
+      const coaches = mock<CoachesService>();
+      coaches[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(coaches);
       leaderboard.resolveToplist.mockResolvedValueOnce(
         COACH_TOPLIST_TIMEOUT_MESSAGE,
@@ -226,19 +238,17 @@ describe.each(cases)(
 
 describe('CoachToplistService.resolveCompetitionsPlayed', () => {
   it('passes the era id through to the query', async () => {
-    const countCompetitionsByCoach = vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 3 }]);
-    const coaches = {
-      countCompetitionsByCoach,
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.countCompetitionsByCoach.mockResolvedValue([
+      { coachId: 1, name: 'Roze Madder', count: 3 },
+    ]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
     });
     await service.resolveCompetitionsPlayed({ eraId: 20 });
-    expect(countCompetitionsByCoach).toHaveBeenCalledWith(
+    expect(coaches.countCompetitionsByCoach).toHaveBeenCalledWith(
       { eraId: 20 },
       TOPLIST_FETCH_LIMIT,
     );
@@ -247,15 +257,15 @@ describe('CoachToplistService.resolveCompetitionsPlayed', () => {
 
 describe('CoachToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
-    const countErasByCoach = vi.fn().mockResolvedValue([]);
-    const coaches = { countErasByCoach } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.countErasByCoach.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
     });
     await service.resolveErasActive();
-    expect(countErasByCoach).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
+    expect(coaches.countErasByCoach).toHaveBeenCalledWith(TOPLIST_FETCH_LIMIT);
   });
 });
 
@@ -264,19 +274,17 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
     // The competitionId is forwarded verbatim here on purpose: dropping it is
     // CoachesService.countFoulsCommittedByCoach's responsibility, covered in
     // its own spec.
-    const countFoulsCommittedByCoach = vi
-      .fn()
-      .mockResolvedValue([{ coachId: 1, name: 'Roze Madder', count: 13 }]);
-    const coaches = {
-      countFoulsCommittedByCoach,
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.countFoulsCommittedByCoach.mockResolvedValue([
+      { coachId: 1, name: 'Roze Madder', count: 13 },
+    ]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
       return 'canned';
     });
     await service.resolveFoulsCommitted({ leagueId: 9, eraId: 20 });
-    expect(countFoulsCommittedByCoach).toHaveBeenCalledWith(
+    expect(coaches.countFoulsCommittedByCoach).toHaveBeenCalledWith(
       { leagueId: 9, eraId: 20 },
       TOPLIST_FETCH_LIMIT,
     );
@@ -285,9 +293,8 @@ describe('CoachToplistService.resolveFoulsCommitted', () => {
 
 describe('CoachToplistService time-between-matches rendering', () => {
   it('renders each row through the day-count formatter', async () => {
-    const coaches = {
-      getGapBetweenMatchesByCoachDescending: vi.fn().mockResolvedValue([]),
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.getGapBetweenMatchesByCoachDescending.mockResolvedValue([]);
     const { service, leaderboard, dayCount } = await makeService(coaches);
     dayCount.format.mockReturnValue('91 days');
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
@@ -306,9 +313,8 @@ describe('CoachToplistService time-between-matches rendering', () => {
   });
 
   it('renders the average toplist rows through the same formatter', async () => {
-    const coaches = {
-      getAverageGapBetweenMatchesByCoach: vi.fn().mockResolvedValue([]),
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.getAverageGapBetweenMatchesByCoach.mockResolvedValue([]);
     const { service, leaderboard, dayCount } = await makeService(coaches);
     dayCount.format.mockReturnValue('1 day');
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
@@ -326,10 +332,8 @@ describe('CoachToplistService time-between-matches rendering', () => {
   });
 
   it('passes the league and era scope through to the ascending-gap query', async () => {
-    const getGapBetweenMatchesByCoachAscending = vi.fn().mockResolvedValue([]);
-    const coaches = {
-      getGapBetweenMatchesByCoachAscending,
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.getGapBetweenMatchesByCoachAscending.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -339,16 +343,15 @@ describe('CoachToplistService time-between-matches rendering', () => {
       leagueId: 9,
       eraId: 20,
     });
-    expect(getGapBetweenMatchesByCoachAscending).toHaveBeenCalledWith(
+    expect(coaches.getGapBetweenMatchesByCoachAscending).toHaveBeenCalledWith(
       { leagueId: 9, eraId: 20 },
       TOPLIST_FETCH_LIMIT,
     );
   });
 
   it('uses the shared coach no-data message for an empty toplist', async () => {
-    const coaches = {
-      getAverageGapBetweenMatchesByCoach: vi.fn().mockResolvedValue([]),
-    } as unknown as CoachesService;
+    const coaches = mock<CoachesService>();
+    coaches.getAverageGapBetweenMatchesByCoach.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(coaches);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveAverageTimeBetweenMatches(FACT_SCOPE_ALL_TIME);
