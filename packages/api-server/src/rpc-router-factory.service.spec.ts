@@ -13,6 +13,7 @@ import {
   MatchEventUpsertConflictError,
   MatchOutcomesService,
   MatchUpsertConflictError,
+  MissingRequiredFieldError,
   PlayersService,
   PlayerUpsertConflictError,
   PositionsService,
@@ -25,6 +26,8 @@ import {
   SppAwardValuesService,
   TeamsService,
   TeamUpsertConflictError,
+  TrophiesService,
+  TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { call } from '@orpc/server';
@@ -45,6 +48,7 @@ describe('RpcRouterFactoryService', () => {
   let erasService: MockProxy<ErasService>;
   let positionsService: MockProxy<PositionsService>;
   let teamsService: MockProxy<TeamsService>;
+  let trophiesService: MockProxy<TrophiesService>;
   let competitionsService: MockProxy<CompetitionsService>;
   let matchesService: MockProxy<MatchesService>;
   let matchOutcomesService: MockProxy<MatchOutcomesService>;
@@ -63,6 +67,7 @@ describe('RpcRouterFactoryService', () => {
     erasService = mock<ErasService>();
     positionsService = mock<PositionsService>();
     teamsService = mock<TeamsService>();
+    trophiesService = mock<TrophiesService>();
     competitionsService = mock<CompetitionsService>();
     matchesService = mock<MatchesService>();
     matchOutcomesService = mock<MatchOutcomesService>();
@@ -88,6 +93,9 @@ describe('RpcRouterFactoryService', () => {
           if (err instanceof conflictErrorClass) {
             throw errors.CONFLICT({ message: err.message });
           }
+          if (err instanceof MissingRequiredFieldError) {
+            throw errors.BAD_REQUEST({ message: err.message });
+          }
           throw err;
         }
       },
@@ -104,6 +112,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: ErasService, useValue: erasService },
         { provide: PositionsService, useValue: positionsService },
         { provide: TeamsService, useValue: teamsService },
+        { provide: TrophiesService, useValue: trophiesService },
         { provide: CompetitionsService, useValue: competitionsService },
         { provide: MatchesService, useValue: matchesService },
         { provide: MatchOutcomesService, useValue: matchOutcomesService },
@@ -941,5 +950,56 @@ describe('RpcRouterFactoryService', () => {
     expect(sppAdjustmentsService.syncReportedAdjustments).toHaveBeenCalledWith(
       input,
     );
+  });
+
+  describe('trophies.upsert', () => {
+    it('returns the flattened trophy with its created flag', async () => {
+      const trophy = {
+        id: 3,
+        name: 'Chaos Cup',
+        recipientKind: 'team' as const,
+        description: null,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        historyVersion: 1,
+        historyPeriod: '["2026-01-01 00:00:00+00",)',
+      };
+      trophiesService.upsert.mockResolvedValue({ trophy, created: true });
+
+      const result = await call(router.trophies.upsert, {
+        name: 'Chaos Cup',
+        recipientKind: 'team',
+        externalIds: [],
+      });
+
+      expect(result).toEqual({
+        id: 3,
+        name: 'Chaos Cup',
+        recipientKind: 'team',
+        description: null,
+        createdAt: new Date('2026-01-01'),
+        created: true,
+      });
+    });
+
+    it('maps a TrophyUpsertConflictError to CONFLICT', async () => {
+      trophiesService.upsert.mockRejectedValue(
+        new TrophyUpsertConflictError('two trophies'),
+      );
+
+      await expect(
+        call(router.trophies.upsert, { externalIds: [] }),
+      ).rejects.toMatchObject({ code: 'CONFLICT' });
+    });
+
+    it('maps a MissingRequiredFieldError to BAD_REQUEST', async () => {
+      trophiesService.upsert.mockRejectedValue(
+        new MissingRequiredFieldError('missing recipientKind'),
+      );
+
+      await expect(
+        call(router.trophies.upsert, { externalIds: [] }),
+      ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+    });
   });
 });

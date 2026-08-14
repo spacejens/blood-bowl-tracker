@@ -16,6 +16,7 @@ describe('ManualDataFileSchema', () => {
       teams: [],
       competitions: [],
       sppAwardValues: [],
+      trophies: [],
     });
   });
 
@@ -260,5 +261,65 @@ describe('ManualDataFileSchema', () => {
         ],
       }),
     ).toThrow();
+  });
+
+  it('accepts a team trophy with a description and one external id', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Chaos Cup',
+          recipientKind: 'team',
+          description: 'The team that wins after four matches.',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].recipientKind).toBe('team');
+    expect(parsed.trophies[0].description).toBe(
+      'The team that wins after four matches.',
+    );
+  });
+
+  it('accepts a trophy with NO external ids', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        { name: 'Ogretoberfest', recipientKind: 'team', externalIds: [] },
+      ],
+    });
+    expect(parsed.trophies[0].externalIds).toEqual([]);
+  });
+
+  it('defaults a trophy externalIds to an empty array when omitted', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [{ name: 'Ogretoberfest', recipientKind: 'team' }],
+    });
+    expect(parsed.trophies[0].externalIds).toEqual([]);
+  });
+
+  it('accepts a player trophy with no description', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Season MVP',
+          recipientKind: 'player',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
+        },
+      ],
+    });
+    expect(parsed.trophies[0].description).toBeUndefined();
+  });
+
+  it('rejects a trophy with an unknown recipient kind', () => {
+    const parsed = ManualDataFileSchema.safeParse({
+      trophies: [{ name: 'Nope', recipientKind: 'coach', externalIds: [] }],
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it('rejects a trophy with no recipient kind', () => {
+    const parsed = ManualDataFileSchema.safeParse({
+      trophies: [{ name: 'Nope', externalIds: [] }],
+    });
+    expect(parsed.success).toBe(false);
   });
 });

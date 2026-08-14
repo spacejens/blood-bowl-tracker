@@ -573,10 +573,59 @@ per the rosters section above, is not a source for team import.
 ## `awards_<slug>_awards.json` (not yet parsed)
 
 Not yet handled. An object keyed by category id (a string, e.g. `"22494"`),
-each value an array — one entry per award given: `id`, `awardType` (numeric,
-meaning unknown), `inscription.roster { ... }` (see roster shape above),
+each value an array — one entry per award given: `id`, `awardType` (numeric —
+see the code table below), an optional `name` (present only on some award
+types, see below), `inscription.roster { ... }` (see roster shape above),
 `inscription.player.applicationUser { applicationUserId, userNameToShow,
 pictureFileName, country, goldStarAwards }`, `inscription.players[]` (empty in
 samples seen so far), `inscription.coachRank.score`. This is a redundant, less
 complete view of the coaches already imported from inscriptions (no NAF
 fields) — a candidate for an awards sub-issue once that scope is reached.
+
+There are 13 awards files in the local reference dataset, one per competition
+directory across the three era directories.
+
+The `awardType` code scheme, confirmed against every entry in all 13 local
+files:
+
+| Code  | Meaning                    | Notes                                   |
+| ----- | -------------------------- | --------------------------------------- |
+| `1`   | 1st place                  | read with `inscription.coachRank.score` |
+| `2`   | 2nd place                  | read with `inscription.coachRank.score` |
+| `3`   | 3rd place                  | read with `inscription.coachRank.score` |
+| `100` | Best Stunty / Wooden Spoon | fourth-era numbering — see `name` below |
+| `200` | Best Stunty / Wooden Spoon | third-era numbering — see `name` below  |
+
+Placement entries (`1`/`2`/`3`) never carry a `name` field; `100` and `200`
+entries always do, and it is exactly `"Best Stunty"` or `"Wooden Spoon"` —
+that field, not the numeric code, is what tells the two trophies apart within
+a single file. Cup-format files (each Ogretoberfest instance, the fourth-era
+Chaos Cup, and one Dungeon Bowl season) carry only a `1` entry (a single
+winner, no placements or stunty/spoon awards); season-format files carry `1`,
+`2`, `3`, and, when present, the stunty/spoon pair.
+
+The key finding, confirmed by reading every local file rather than assumed:
+`100` and `200` are **the same two trophies under different legacy/current
+numeric codes**, not two distinct trophies. All third-era season files
+(`tloegbbl-major-season-25` through `tloegbbl-sasong-29`) use code `200` for
+both `"Best Stunty"` and `"Wooden Spoon"`; the one fourth-era season file
+(`tloegbbl-sasong-30`) uses code `100` for the identically-named pair. This is
+a platform-side renumbering between eras, not two different trophies.
+
+The blocking nuance: `awardType` codes are **not globally unique per
+trophy**, even setting the `100`/`200` renumbering aside. The same numeric
+code (`1`, `2`, `3`) means a different trophy depending on which
+competition/tier it appears in — a Major season's `1` and a Minor season's
+`1` are different trophies, exactly as BBL's self-disambiguating `Major 1st`
+/ `Minor 1st` labels show (see the `Note on the sr page's "Team trophy"
+table:` and the trophy legend note in `docs/import-bbl/file-format.md`).
+Resolving TP awards into `trophies_external_ids` therefore needs a
+competition-classification concept that does not exist yet.
+
+Issues #445 (competition classification/grouping) and #446 (TP external-ID
+resolution) track the follow-up work. Until then, `trophies_external_ids` is
+seeded with BBL ids only — cross-reference
+`tools/import-manual/data/before-other-importers/trophies.json5`. TP's
+Ogretoberfest team award has no BBL equivalent, which is why the curated
+catalog's `Ogretoberfest` entry is the one trophy with no external id at
+all — the API matches it on its exact name instead.

@@ -59,6 +59,7 @@ coaches
 teams
 competitions
 sppAwardValues
+trophies
 ```
 
 Every external-system name referenced anywhere in the pooled data — in
@@ -77,7 +78,10 @@ externalSystems: [
 
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
-again). External IDs and cross-references are written as `{ system, id }`
+again), with one exception: a trophy may declare an empty `externalIds` list,
+in which case the API matches it on its exact name instead — see the
+Trophies subsection below. External IDs and cross-references are written as
+`{ system, id }`
 pairs, where `system` is an external-system name and `id` follows the
 `id:`/`name:` namespacing convention (see
 [docs/api/imports.md](../api/imports.md)):
@@ -100,9 +104,11 @@ An entry only has to supply the fields it actually changes. Every
 `Upsert<Entity>` API schema overlays: a field the entry omits is left exactly
 as the database has it, so a rename-only entry carries just `name` and the
 `externalIds` that match the existing row — no redeclaring the entity's era,
-league or race purely to have something to reference. `externalIds` is the one
-always-required field, since it is how the row is matched (or, failing that,
-created). A field written as explicit `null` is different from an omitted one:
+league or race purely to have something to reference. `externalIds` is how the
+row is matched (or, failing that, created) — the one always-required field,
+except for a trophy with no external id yet, which is matched by exact `name`
+instead (see the Trophies subsection below). A field written as explicit
+`null` is different from an omitted one:
 it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
 
 If an entry's `externalIds` match no existing row, the API creates one — and
@@ -174,6 +180,26 @@ omits `race` is that rules set's baseline, applying to every race with no more
 specific entry; an entry naming a race overrides the baseline for it. This
 section is processed last, since it references both rules sets and races.
 
+### Trophies
+
+`trophies` entries seed the curated trophy catalog (issue #342). Each entry
+is `{ name, recipientKind, description?, externalIds }`: `recipientKind` is
+either `team` or `player`. Trophies reference no other entity, so this
+section is processed last and needs no cross-references.
+
+Trophies deliberately carry no shared `Name` external id, the same precedent
+set for competitions in issue #285: labels like `1st` are ambiguous across
+competition tiers, so identity is a curation decision rather than something
+inferred from label text alone.
+
+A trophy is the one entity that may declare no external id at all (see
+`## Data files` above for the otherwise-universal rule): it is then identified
+by its exact `name` instead, so re-running the import never duplicates it.
+This is used for the one trophy — `Ogretoberfest` — with no stable external id
+to key on yet: TP's `awardType` codes are not globally unique per trophy, and
+resolving them needs a competition-classification concept that does not exist
+yet (issues #445 and #446).
+
 ## Known before-other-importers dedup files
 
 A few `data/before-other-importers/*.json5` files exist specifically to unify
@@ -202,6 +228,10 @@ real-world entity differently:
   rules-set rows it references — see issue #379. It declares rules sets under
   the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
   BBL/TP importers' later upserts match the same rows.
+- `trophies.json5` — the curated catalog of 29 known trophies (issue #342):
+  17 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
+  TP-only Ogretoberfest. Not a dedup file in the usual sense — nothing else
+  creates trophies yet, so this is the sole source of the catalog.
 
 ## Known after-other-importers cleanup files
 
@@ -226,7 +256,7 @@ systems could not supply:
   row). The file declares no eras, league or rules sets: since upserts overlay,
   omitting a competition's `era` leaves its stored era alone, so there is
   nothing to resolve a reference against and nothing to redeclare.
-  A manual competition entry can therefore only ever *update* an existing
+  A manual competition entry can therefore only ever _update_ an existing
   competition, never create one: `competitions.startDate` is a required
   column and `competitions.json5` has no field for it. If an entry's
   external IDs don't match an existing row, the upsert now fails loudly
