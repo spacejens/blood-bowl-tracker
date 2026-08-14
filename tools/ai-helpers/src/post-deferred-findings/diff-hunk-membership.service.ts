@@ -10,11 +10,11 @@ const DIFF_TIMEOUT_MS = 30_000;
 
 /**
  * Regex matching unified-diff hunk headers at line start.
- * Groups:
- * 1. Old file start line
- * 2. Old file range length (omitted if absent)
- * 3. New file start line
- * 4. New file range length (omitted if absent)
+ * The old file's start line is matched but not captured — only its range
+ * length is needed here. Groups:
+ * 1. Old file range length (omitted if absent)
+ * 2. New file start line
+ * 3. New file range length (omitted if absent)
  * Trailing section-heading text (after @@) is allowed and ignored.
  */
 const HUNK_HEADER_REGEX = /^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/;
