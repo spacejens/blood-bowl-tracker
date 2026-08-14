@@ -85,4 +85,20 @@ describe('curated data files', () => {
       expect(leagueIds).toContain(`${group.league.system}|${group.league.id}`);
     }
   });
+
+  it('classifies every curated trophy into a curated group', () => {
+    const data = readPhase('before-other-importers');
+    const groupNames = new Set(
+      data.competitionGroups.map((group) => group.name),
+    );
+
+    expect(data.trophies).toHaveLength(29);
+    for (const trophy of data.trophies) {
+      expect(
+        trophy.competitionGroup,
+        `trophy "${trophy.name}" has no competitionGroup`,
+      ).toBeDefined();
+      expect(groupNames).toContain(trophy.competitionGroup!);
+    }
+  });
 });
