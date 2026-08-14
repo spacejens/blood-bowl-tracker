@@ -31,7 +31,7 @@ describe('TrophiesImportService', () => {
     name: 'Chaos Cup',
     recipientKind: 'team' as const,
     description: null,
-    externalIds: [{ externalSystemId: 1, externalId: 'id:Chaos Cup' }],
+    externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
   };
 
   it('delegates to the import runner and returns its result', async () => {

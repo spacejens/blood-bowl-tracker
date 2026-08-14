@@ -302,7 +302,8 @@ same 28 numbers as the union of the `p=tt` and `p=ppr` sets, with no extras —
 so the pair is exhaustive: nothing in the mirror uses a prize icon that isn't
 legended on one of these two pages. The label text on `p=tt`/`p=ppr` is
 self-disambiguating (e.g. `Major 1st` vs. `Minor 1st`), which is why the
-curated catalog keys BBL trophies by `id:<exact label text>` — cross-reference
+curated catalog keys BBL trophies by the exact label text itself (no prefix,
+matching every other curated-data file and every real BBL importer) — cross-reference
 `tools/import-manual/data/before-other-importers/trophies.json5`.
 
 Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy

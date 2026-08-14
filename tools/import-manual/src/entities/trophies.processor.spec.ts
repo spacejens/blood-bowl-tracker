@@ -69,7 +69,7 @@ describe('TrophiesProcessor', () => {
       created: true,
     });
     const cannedExternalIds = [
-      { externalSystemId: 1, externalId: 'id:Chaos Cup' },
+      { externalSystemId: 1, externalId: 'Chaos Cup' },
     ];
     refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     const data = emptyData();
@@ -78,7 +78,7 @@ describe('TrophiesProcessor', () => {
         name: 'Chaos Cup',
         recipientKind: 'team',
         description: 'The team that wins after four matches.',
-        externalIds: [{ system: 'tloeg.bbleague.se', id: 'id:Chaos Cup' }],
+        externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
       },
     ];
     const ctx = makeContext(data, new ExternalIdMap());
@@ -96,7 +96,7 @@ describe('TrophiesProcessor', () => {
       ctx.errors,
     );
     expect(
-      ctx.idMap.resolve({ system: 'tloeg.bbleague.se', id: 'id:Chaos Cup' }),
+      ctx.idMap.resolve({ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }),
     ).toBe(31);
   });
 

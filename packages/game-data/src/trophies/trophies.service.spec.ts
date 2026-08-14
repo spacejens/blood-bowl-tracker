@@ -34,7 +34,7 @@ describe('TrophiesService', () => {
     name: 'Chaos Cup',
     recipientKind: 'team' as const,
     description: 'The team that wins after four matches.',
-    externalIds: [{ externalSystemId: 1, externalId: 'id:Chaos Cup' }],
+    externalIds: [{ externalSystemId: 1, externalId: 'Chaos Cup' }],
   };
 
   it('creates a new trophy when no external IDs match', async () => {
@@ -52,7 +52,7 @@ describe('TrophiesService', () => {
 
   it('updates the matching trophy when exactly one external ID matches', async () => {
     const { db } = await build(
-      [{ ownerId: 1, externalSystemId: 1, externalId: 'id:Chaos Cup' }],
+      [{ ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' }],
       [fakeTrophy],
     );
 
@@ -65,7 +65,7 @@ describe('TrophiesService', () => {
 
   it('throws TrophyUpsertConflictError when external IDs match two trophies', async () => {
     await build([
-      { ownerId: 1, externalSystemId: 1, externalId: 'id:Chaos Cup' },
+      { ownerId: 1, externalSystemId: 1, externalId: 'Chaos Cup' },
       { ownerId: 2, externalSystemId: 2, externalId: 'other' },
     ]);
 
@@ -73,7 +73,7 @@ describe('TrophiesService', () => {
       service.upsert({
         ...baseData,
         externalIds: [
-          { externalSystemId: 1, externalId: 'id:Chaos Cup' },
+          { externalSystemId: 1, externalId: 'Chaos Cup' },
           { externalSystemId: 2, externalId: 'other' },
         ],
       }),
@@ -94,6 +94,19 @@ describe('TrophiesService', () => {
     expect(db.update).toHaveBeenCalledWith(trophies);
     expect(db.insert).not.toHaveBeenCalled();
     expect(chains).toHaveLength(2);
+  });
+
+  it('throws TrophyUpsertConflictError when the name lookup matches more than one trophy', async () => {
+    const otherTrophy = { ...fakeTrophy, id: 2 };
+    await build([fakeTrophy, otherTrophy]);
+
+    await expect(
+      service.upsert({
+        name: 'Ogretoberfest',
+        recipientKind: 'team',
+        externalIds: [],
+      }),
+    ).rejects.toBeInstanceOf(TrophyUpsertConflictError);
   });
 
   it('creates a trophy when externalIds is empty and no name matches', async () => {

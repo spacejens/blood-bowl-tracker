@@ -270,7 +270,7 @@ describe('ManualDataFileSchema', () => {
           name: 'Chaos Cup',
           recipientKind: 'team',
           description: 'The team that wins after four matches.',
-          externalIds: [{ system: 'tloeg.bbleague.se', id: 'id:Chaos Cup' }],
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
         },
       ],
     });
@@ -302,7 +302,7 @@ describe('ManualDataFileSchema', () => {
         {
           name: 'Season MVP',
           recipientKind: 'player',
-          externalIds: [{ system: 'tloeg.bbleague.se', id: 'id:Season MVP' }],
+          externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
         },
       ],
     });

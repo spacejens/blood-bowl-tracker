@@ -54,7 +54,7 @@ describe('trophy schemas', () => {
   it('accepts a rename-only upsert carrying just externalIds and a name', () => {
     const parsed = UpsertTrophySchema.parse({
       name: 'Major 1st',
-      externalIds: [{ externalSystemId: 1, externalId: 'id:Major 1st' }],
+      externalIds: [{ externalSystemId: 1, externalId: 'Major 1st' }],
     });
     expect(parsed.recipientKind).toBeUndefined();
     expect(parsed.description).toBeUndefined();
@@ -63,7 +63,7 @@ describe('trophy schemas', () => {
   it('accepts an explicit null description to clear a stored one', () => {
     const parsed = UpsertTrophySchema.parse({
       description: null,
-      externalIds: [{ externalSystemId: 1, externalId: 'id:Korpen' }],
+      externalIds: [{ externalSystemId: 1, externalId: 'Korpen' }],
     });
     expect(parsed.description).toBeNull();
   });

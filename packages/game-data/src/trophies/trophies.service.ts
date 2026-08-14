@@ -63,6 +63,19 @@ export class TrophiesService {
    * that happen to share a label (e.g. Major "1st" vs. Minor "1st") can still
    * never be conflated by an importer. The precedent for matching by name
    * alone is `ExternalSystemsService.upsert`.
+   *
+   * One scenario this branch must still guard against: a future TP importer
+   * (#446) that creates a same-named row via the external-id path (e.g. it
+   * resolves its own external id to a *new* trophy row instead of attaching
+   * that id to the existing row already found by name) before the manual
+   * importer's next run. That would leave two rows sharing one `name`, and
+   * this fallback — which matches by name alone — would otherwise pick one of
+   * them arbitrarily. To prevent silently doing that, the name lookup below
+   * throws `TrophyUpsertConflictError` if it ever finds more than one row.
+   * Closing this gap here means #446 MUST attach its external id to the
+   * existing row (found by name) rather than blindly calling upsert with only
+   * external ids and letting a fresh row get created — otherwise the conflict
+   * this guard raises will legitimately fire on the next manual-import run.
    */
   private async upsertByName(
     data: UpsertTrophy,
@@ -77,6 +90,12 @@ export class TrophiesService {
       .select()
       .from(trophies)
       .where(eq(trophies.name, data.name));
+
+    if (existing.length > 1) {
+      throw new TrophyUpsertConflictError(
+        `Multiple trophies named "${data.name}"`,
+      );
+    }
 
     if (existing[0]) {
       const updated = await this.db
