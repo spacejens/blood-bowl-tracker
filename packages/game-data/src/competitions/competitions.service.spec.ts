@@ -209,6 +209,16 @@ describe('CompetitionsService', () => {
       expect(result.competition.teamEraIds).toEqual([100, 101]);
     });
 
+    it('writes competitionGroupId when the payload supplies one', async () => {
+      const { chains } = await build([], [fakeCompetition]);
+
+      await service.upsert({ ...baseData, competitionGroupId: 4 });
+
+      expect(firstCallArg(chains[1].values)).toMatchObject({
+        competitionGroupId: 4,
+      });
+    });
+
     it('updates only the supplied column, leaving eraId and type alone', async () => {
       const { chains } = await build(
         [{ ownerId: 1, externalSystemId: 1, externalId: '35' }],

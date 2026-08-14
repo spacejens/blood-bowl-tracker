@@ -32,6 +32,7 @@ export class TrophiesService {
         name: data.name,
         recipientKind: data.recipientKind,
         description: data.description,
+        competitionGroupId: data.competitionGroupId,
       },
       externalIdTable: trophyExternalIds,
       ownerIdColumn: trophyExternalIds.trophyId,
@@ -104,6 +105,7 @@ export class TrophiesService {
           name: data.name,
           recipientKind: data.recipientKind,
           description: data.description,
+          competitionGroupId: data.competitionGroupId,
         })
         .where(eq(trophies.id, existing[0].id))
         .returning();
@@ -122,6 +124,7 @@ export class TrophiesService {
         name: data.name,
         recipientKind: data.recipientKind,
         description: data.description,
+        competitionGroupId: data.competitionGroupId,
       })
       .returning();
     return { trophy: inserted[0], created: true };

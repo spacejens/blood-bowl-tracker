@@ -130,6 +130,21 @@ describe('TrophiesService', () => {
     ).rejects.toBeInstanceOf(Error);
   });
 
+  it('writes competitionGroupId on the name-matched insert path', async () => {
+    const { chains } = await build([], [{ id: 9 }]);
+
+    await service.upsert({
+      name: 'Major Gold',
+      recipientKind: 'team',
+      externalIds: [],
+      competitionGroupId: 1,
+    });
+
+    expect(chains[1].values).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: 1 }),
+    );
+  });
+
   it('throws when creating by name without a recipientKind', async () => {
     await build([]);
 
