@@ -101,4 +101,28 @@ describe('curated data files', () => {
       expect(groupNames).toContain(trophy.competitionGroup!);
     }
   });
+
+  it('classifies all 86 known competition instances into curated groups', () => {
+    const groupNames = new Set(
+      readPhase('before-other-importers').competitionGroups.map(
+        (group) => group.name,
+      ),
+    );
+    const competitions = readPhase('after-other-importers').competitions;
+
+    expect(competitions).toHaveLength(86);
+    const keys = new Set<string>();
+    for (const competition of competitions) {
+      expect(competition.externalIds).toHaveLength(1);
+      const [ref] = competition.externalIds;
+      const key = `${ref.system}|${ref.id}`;
+      expect(keys, `duplicate external id ${key}`).not.toContain(key);
+      keys.add(key);
+      expect(
+        competition.competitionGroup,
+        `competition ${key} has no competitionGroup`,
+      ).toBeDefined();
+      expect(groupNames).toContain(competition.competitionGroup!);
+    }
+  });
 });
