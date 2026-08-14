@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
   coaches,
   coachExternalIds,
+  competitionGroups,
   competitions,
   competitionTeams,
   eraRulesSets,
@@ -95,6 +96,17 @@ describe('schema', () => {
     expect(competitions.name).toBeDefined();
     expect(competitions.type).toBeDefined();
     expect(competitions.eraId).toBeDefined();
+  });
+
+  it('exports competition groups table with a league foreign key', () => {
+    expect(competitionGroups.id).toBeDefined();
+    expect(competitionGroups.name).toBeDefined();
+    expect(competitionGroups.leagueId).toBeDefined();
+    expect(competitionGroups.name.notNull).toBe(true);
+    expect(competitionGroups.leagueId.notNull).toBe(true);
+    const config = getTableConfig(competitionGroups);
+    expect(config.name).toBe('competition_groups');
+    expect(config.schema).toBe('game_data');
   });
 
   it('exports competitionTeams join table', () => {
