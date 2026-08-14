@@ -10,6 +10,7 @@ import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 
 interface EraEntry {
   id: number;
@@ -25,6 +26,7 @@ export class ErasListService {
     private readonly eras: ErasService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(scope: FactScope): Promise<string | InteractionReplyOptions> {
@@ -50,10 +52,10 @@ export class ErasListService {
           a.name.localeCompare(b.name),
       );
 
-    const lines = ordered.map((era) => {
-      const end = era.endDate ?? 'present';
-      return `${era.name} (${era.leagueName}): ${era.startDate} – ${end}`;
-    });
+    const lines = ordered.map(
+      (era) =>
+        `${era.name} (${era.leagueName}): ${this.dateRangeFormatter.format(era.startDate, era.endDate)}`,
+    );
 
     const { components, overflowNote } =
       this.entityComponents.buildEntityComponents(

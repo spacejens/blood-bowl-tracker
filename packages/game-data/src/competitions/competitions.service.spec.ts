@@ -351,8 +351,20 @@ describe('CompetitionsService', () => {
   describe('listByEraChronological', () => {
     it('returns the era competitions the query resolves to', async () => {
       const rows = [
-        { id: 1, name: 'Season 1', type: 'season' as const },
-        { id: 2, name: 'Cup A', type: 'cup' as const },
+        {
+          id: 1,
+          name: 'Season 1',
+          type: 'season' as const,
+          startDate: '2024-01-15',
+          endDate: '2024-06-30',
+        },
+        {
+          id: 2,
+          name: 'Cup A',
+          type: 'cup' as const,
+          startDate: '2024-07-01',
+          endDate: null,
+        },
       ];
       const { db, chains } = await build(rows);
       await expect(service.listByEraChronological(5)).resolves.toEqual(rows);
@@ -366,6 +378,18 @@ describe('CompetitionsService', () => {
       expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
       // left join keeps competitions that have no matches yet
       expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
+    });
+
+    it('selects the competition dates so callers can render a duration', async () => {
+      const { db } = await build([]);
+      await service.listByEraChronological(5);
+      expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
+        'id',
+        'name',
+        'type',
+        'startDate',
+        'endDate',
+      ]);
     });
 
     it('returns an empty array when the era has no competitions', async () => {
@@ -382,9 +406,25 @@ describe('CompetitionsService', () => {
         type: 'season',
         eraId: 20,
         eraName: 'BB2020',
+        startDate: '2024-01-15',
+        endDate: '2024-06-30',
       };
       await build([row]);
       await expect(service.findByIdWithEra(1)).resolves.toEqual(row);
+    });
+
+    it('selects the competition dates so the deepdive can render a duration', async () => {
+      const { db } = await build([]);
+      await service.findByIdWithEra(1);
+      expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
+        'id',
+        'name',
+        'type',
+        'eraId',
+        'eraName',
+        'startDate',
+        'endDate',
+      ]);
     });
 
     it('returns undefined when no competition matches', async () => {

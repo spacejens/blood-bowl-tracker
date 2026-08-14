@@ -16,6 +16,7 @@ import {
   DEEPDIVE_NO_COMPETITIONS_MESSAGE,
   DEEPDIVE_RULES_SET_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { COMPETITION_BUTTON_CUSTOM_ID_PREFIX } from '../button-custom-ids';
 
 type EraHeader = {
@@ -30,6 +31,8 @@ type Competition = {
   id: number;
   name: string;
   type: 'season' | 'cup';
+  startDate: string;
+  endDate: string | null;
 };
 
 /**
@@ -47,6 +50,7 @@ export class EraDeepdiveService {
     private readonly externalSystems: ExternalSystemsService,
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(eraId: number): Promise<string | InteractionReplyOptions> {
@@ -85,7 +89,7 @@ export class EraDeepdiveService {
       return DEEPDIVE_EXTERNAL_SYSTEMS_TIMEOUT_MESSAGE;
     }
 
-    const end = era.endDate ?? 'present';
+    const dates = this.dateRangeFormatter.format(era.startDate, era.endDate);
     const rules =
       rulesSetNames.length > 0 ? rulesSetNames.join(', ') : 'None recorded';
     const externalSystemsLine =
@@ -94,7 +98,10 @@ export class EraDeepdiveService {
         : 'None recorded';
     const competitionLines =
       comps.length > 0
-        ? comps.map((comp) => `${comp.name} (${comp.type})`)
+        ? comps.map(
+            (comp) =>
+              `${comp.name} (${comp.type}): ${this.dateRangeFormatter.format(comp.startDate, comp.endDate)}`,
+          )
         : [DEEPDIVE_NO_COMPETITIONS_MESSAGE];
 
     const { components, overflowNote } =
@@ -108,7 +115,7 @@ export class EraDeepdiveService {
 
     const description = [
       `League: ${era.leagueName}`,
-      `Dates: ${era.startDate} – ${end}`,
+      `Dates: ${dates}`,
       `Rules: ${rules}`,
       `External systems: ${externalSystemsLine}`,
       '',

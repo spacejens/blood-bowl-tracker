@@ -13,6 +13,7 @@ import {
   DEEPDIVE_COMPETITION_TIMEOUT_MESSAGE,
 } from '../../error-messages';
 import { TeamContextService } from '../../insights/team-context.service';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -24,17 +25,20 @@ type CompetitionHeader = {
   type: 'season' | 'cup';
   eraId: number;
   eraName: string;
+  startDate: string;
+  endDate: string | null;
 };
 type ParticipatingTeam = { id: number; name: string };
 
 /**
- * Composes the competition header (type), its era line, and its participating-
- * teams list into a single embed. Shared by `/deepdive competition:<id>` and
- * the competition deepdive buttons. Each DB call is wrapped in
- * `databaseTimeout.run` with a `null` sentinel so a timeout is distinguishable
- * from a genuine "not found" (`undefined`). The era (always present) and each
- * participating team are rendered as drill-down buttons in one combined pool,
- * teams first so they take component priority over the era header entry.
+ * Composes the competition header (type), its era line, its duration, and its
+ * participating-teams list into a single embed. Shared by
+ * `/deepdive competition:<id>` and the competition deepdive buttons. Each DB
+ * call is wrapped in `databaseTimeout.run` with a `null` sentinel so a timeout
+ * is distinguishable from a genuine "not found" (`undefined`). The era (always
+ * present) and each participating team are rendered as drill-down buttons in
+ * one combined pool, teams first so they take component priority over the era
+ * header entry.
  */
 @Injectable()
 export class CompetitionDeepdiveService {
@@ -43,6 +47,7 @@ export class CompetitionDeepdiveService {
     private readonly databaseTimeout: DatabaseTimeoutService,
     private readonly entityComponents: EntityComponentsService,
     private readonly teamContext: TeamContextService,
+    private readonly dateRangeFormatter: DateRangeFormatterService,
   ) {}
 
   async resolve(
@@ -91,6 +96,7 @@ export class CompetitionDeepdiveService {
     const descriptionLines = [
       `Type: ${competition.type}`,
       `Era: ${competition.eraName}`,
+      `Duration: ${this.dateRangeFormatter.format(competition.startDate, competition.endDate)}`,
       '',
       'Participating teams:',
       ...teamLines,

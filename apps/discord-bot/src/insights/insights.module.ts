@@ -15,6 +15,7 @@ import { Module } from '@nestjs/common';
 
 import { DatabaseTimeoutService } from '../database-timeout.service';
 import { EntityComponentsService } from '../entity-components.service';
+import { DateRangeFormatterService } from '../shared/date-range-formatter.service';
 import { DayCountFormatterService } from './day-count-formatter.service';
 import { FACT_TREE } from './fact-tree.token';
 import { FactTreeFactoryService } from './fact-tree-factory.service';
@@ -56,6 +57,7 @@ const GAME_DATA_MODULES = [
     TeamContextService,
     PlayerContextService,
     DayCountFormatterService,
+    DateRangeFormatterService,
     FactTreeFactoryService,
     FactTreeUtilsService,
     RandomSourceService,
@@ -82,6 +84,7 @@ const GAME_DATA_MODULES = [
     TeamContextService,
     PlayerContextService,
     DayCountFormatterService,
+    DateRangeFormatterService,
     FactTreeUtilsService,
     RandomSourceService,
     RandomInsightsScopeService,

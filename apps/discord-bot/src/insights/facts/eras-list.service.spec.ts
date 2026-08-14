@@ -21,6 +21,7 @@ import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import { ErasListService } from './eras-list.service';
 import { expectTimeoutFallback } from './toplist.test-helpers';
 
@@ -33,10 +34,15 @@ type EraRow = {
 };
 
 let databaseTimeout: MockProxy<DatabaseTimeoutService>;
+let dateRangeFormatter: MockProxy<DateRangeFormatterService>;
 
 beforeEach(() => {
   databaseTimeout = mockDatabaseTimeout();
+  dateRangeFormatter = mock<DateRangeFormatterService>();
   // Tests that need the timeout branch override this per-call.
+  // Tests that assert on rendered text stub dateRangeFormatter.format
+  // with the exact spans they expect; the real formatting logic is
+  // covered by date-range-formatter.service.spec.ts.
 });
 
 async function makeServiceFromEras(
@@ -49,6 +55,7 @@ async function makeServiceFromEras(
       { provide: ErasService, useValue: eras },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: DateRangeFormatterService, useValue: dateRangeFormatter },
     ],
   }).compile();
   return moduleRef.get(ErasListService);
@@ -82,6 +89,7 @@ describe('ErasListService.resolve', () => {
         endDate: '2020-12-31',
       },
     ]);
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – 2020-12-31');
     const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
@@ -105,6 +113,10 @@ describe('ErasListService.resolve', () => {
         },
       ],
     });
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith(
+      '2020-01-01',
+      '2020-12-31',
+    );
   });
 
   it('renders an ongoing era with no end date as "present" and still attaches a deepdive button', async () => {
@@ -117,6 +129,7 @@ describe('ErasListService.resolve', () => {
         endDate: null,
       },
     ]);
+    dateRangeFormatter.format.mockReturnValue('2020-01-01 – present');
     const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
@@ -140,6 +153,7 @@ describe('ErasListService.resolve', () => {
         },
       ],
     });
+    expect(dateRangeFormatter.format).toHaveBeenCalledWith('2020-01-01', null);
   });
 
   it('lists all eras in flat chronological order across leagues, breaking ties by league then era name', async () => {
@@ -204,6 +218,15 @@ describe('ErasListService.resolve', () => {
         endDate: null,
       },
     ]);
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2019-01-01 – 2019-12-31')
+      .mockReturnValueOnce('2020-06-01 – present')
+      .mockReturnValueOnce('2021-01-01 – 2021-12-31')
+      .mockReturnValueOnce('2022-01-01 – present')
+      .mockReturnValueOnce('2023-01-01 – present')
+      .mockReturnValueOnce('2023-01-01 – present')
+      .mockReturnValueOnce('2024-01-01 – present')
+      .mockReturnValueOnce('2024-01-01 – present');
     const result = await service.resolve(FACT_SCOPE_ALL_TIME);
     expect(result).toEqual({
       embeds: [
@@ -373,6 +396,7 @@ describe('ErasListService.resolve', () => {
       ],
       entityComponents,
     );
+    dateRangeFormatter.format.mockReturnValue('2015-01-01 – present');
     const result = (await service.resolve(FACT_SCOPE_ALL_TIME)) as {
       embeds: { description: string }[];
     };

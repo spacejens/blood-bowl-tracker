@@ -155,6 +155,8 @@ export class CompetitionsService {
         type: 'season' | 'cup';
         eraId: number;
         eraName: string;
+        startDate: string;
+        endDate: string | null;
       }
     | undefined
   > {
@@ -165,6 +167,8 @@ export class CompetitionsService {
         type: competitions.type,
         eraId: competitions.eraId,
         eraName: eras.name,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions)
       .innerJoin(eras, eq(eras.id, competitions.eraId))
@@ -186,9 +190,15 @@ export class CompetitionsService {
       .orderBy(teams.name);
   }
 
-  listByEraChronological(
-    eraId: number,
-  ): Promise<{ id: number; name: string; type: 'season' | 'cup' }[]> {
+  listByEraChronological(eraId: number): Promise<
+    {
+      id: number;
+      name: string;
+      type: 'season' | 'cup';
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
     // Left join keeps competitions that have no matches yet; grouping collapses
     // the join back to one row per competition, and the min(playedAt) aggregate
     // gives each competition's earliest match date. `nulls last` sorts
@@ -198,6 +208,8 @@ export class CompetitionsService {
         id: competitions.id,
         name: competitions.name,
         type: competitions.type,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
       })
       .from(competitions)
       .leftJoin(matches, eq(matches.competitionId, competitions.id))
