@@ -1,7 +1,7 @@
 import type { MatchCategory } from '@blood-bowl-tracker/api-contract';
 import { TeamsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -75,9 +75,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   // ExpensiveMistakesToplistService itself owns: the embed title, its
   // gp-suffixed formatRow closure, and its per-row deepdive button id.
   it('wires the embed title, gp-suffixed formatRow, and per-row deepdive button id', async () => {
-    const teams = {
-      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
     leaderboard.resolveToplist.mockResolvedValueOnce(canned);
@@ -107,10 +106,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   });
 
   it('passes era and competition ids through to the query', async () => {
-    const queryFn = vi.fn().mockResolvedValue([]);
-    const teams = {
-      sumExpensiveMistakesByTeam: queryFn,
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -120,16 +117,15 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
       eraId: 20,
       competitionId: 30,
     });
-    expect(queryFn).toHaveBeenCalledWith(
+    expect(teams.sumExpensiveMistakesByTeam).toHaveBeenCalledWith(
       { eraId: 20, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
   });
 
   it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-    const teams = {
-      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
@@ -143,9 +139,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
 
   it('decorates every fetched row with both race and coach context', async () => {
     const rawRows = [{ teamId: 1, name: '40 grinders', count: 150000 }];
-    const teams = {
-      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue(rawRows),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.sumExpensiveMistakesByTeam.mockResolvedValue(rawRows);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue(
       rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
@@ -169,9 +164,8 @@ describe('ExpensiveMistakesToplistService.resolveTotal', () => {
   });
 
   it('renders the context suffix between the name and the gp amount', async () => {
-    const teams = {
-      sumExpensiveMistakesByTeam: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.sumExpensiveMistakesByTeam.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveTotal({});
@@ -197,9 +191,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   // ExpensiveMistakesToplistService itself owns: the embed title, its
   // gp-and-date formatRow closure, and its per-row deepdive button id.
   it('wires the embed title, gp-and-date formatRow, and per-row deepdive button id', async () => {
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     const canned = { embeds: [{ title: 'canned', description: 'canned' }] };
     leaderboard.resolveToplist.mockResolvedValueOnce(canned);
@@ -233,10 +226,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('passes era and competition ids through to the query', async () => {
-    const queryFn = vi.fn().mockResolvedValue([]);
-    const teams = {
-      listBiggestExpensiveMistakes: queryFn,
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockImplementation(async (options) => {
       await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -246,16 +237,15 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
       eraId: 20,
       competitionId: 30,
     });
-    expect(queryFn).toHaveBeenCalledWith(
+    expect(teams.listBiggestExpensiveMistakes).toHaveBeenCalledWith(
       { eraId: 20, competitionId: 30 },
       TOPLIST_FETCH_LIMIT,
     );
   });
 
   it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce(
       TEAM_TOPLIST_TIMEOUT_MESSAGE,
@@ -268,9 +258,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('appends the category to the date suffix when it is not normal', async () => {
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard, categoryLabel } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     categoryLabel.label.mockReturnValue('Season Final');
@@ -289,9 +278,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('leaves the category out of the suffix when it is normal', async () => {
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveBiggest({});
@@ -318,9 +306,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
         category: 'normal' as const,
       },
     ];
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue(rawRows),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue(rawRows);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue(
       rawRows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
@@ -344,9 +331,8 @@ describe('ExpensiveMistakesToplistService.resolveBiggest', () => {
   });
 
   it('renders the context suffix between the name and the gp amount, before the date parenthetical', async () => {
-    const teams = {
-      listBiggestExpensiveMistakes: vi.fn().mockResolvedValue([]),
-    } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    teams.listBiggestExpensiveMistakes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams);
     leaderboard.resolveToplist.mockResolvedValueOnce('canned');
     await service.resolveBiggest({});
