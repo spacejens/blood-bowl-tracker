@@ -9,6 +9,8 @@ import { AppModule } from './app.module';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
+import { PostDeferredFindingsService } from './post-deferred-findings/post-deferred-findings.service';
+import { PostDeferredFindingsArgsService } from './post-deferred-findings/post-deferred-findings-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
@@ -23,6 +25,7 @@ const SUBCOMMANDS = [
   'check-drift',
   'write-file',
   'wait-for-pr-review',
+  'post-deferred-findings',
   'check-production-config-port',
   'start-production-tunnel',
   'stop-production-tunnel',
@@ -44,6 +47,10 @@ const CHECK_PRODUCTION_CONFIG_PORT_USAGE =
 const START_PRODUCTION_TUNNEL_USAGE =
   'Usage: node dist/main.js start-production-tunnel <local-port> <remote-port>';
 
+const POST_DEFERRED_FINDINGS_USAGE =
+  'Usage: node dist/main.js post-deferred-findings <pr-number> ' +
+  '(a JSON array of {file, line, body} findings is read from stdin)';
+
 /** Arguments for `write-file`; absent for every other subcommand. */
 interface WriteFileInput {
   readonly path: string;
@@ -62,6 +69,7 @@ interface DispatchOptions {
   readonly writeFile?: WriteFileInput;
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
+  readonly postDeferredFindingsStdin?: string;
 }
 
 function readWriteFileInput(): WriteFileInput {
@@ -98,6 +106,11 @@ function readStartProductionTunnelInput(): StartProductionTunnelInput {
   return { localPort: Number(localPortArg), remotePort: Number(remotePortArg) };
 }
 
+function readPostDeferredFindingsStdin(): string {
+  // fd 0 is stdin: read it fully before the Nest context is created.
+  return readFileSync(0, 'utf8');
+}
+
 function dispatch(options: DispatchOptions): Promise<unknown> {
   const { app, subcommand } = options;
   switch (subcommand) {
@@ -122,6 +135,17 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .get(WaitForPrReviewArgsService)
         .parse(process.argv);
       return app.get(WaitForPrReviewService).run(waitOptions);
+    }
+    case 'post-deferred-findings': {
+      if (options.postDeferredFindingsStdin === undefined) {
+        throw new Error(POST_DEFERRED_FINDINGS_USAGE);
+      }
+      const postDeferredFindingsInput = app
+        .get(PostDeferredFindingsArgsService)
+        .parse(process.argv, options.postDeferredFindingsStdin);
+      return app
+        .get(PostDeferredFindingsService)
+        .run(postDeferredFindingsInput);
     }
     case 'check-production-config-port': {
       if (options.expectedApiBaseUrl === undefined) {
@@ -168,6 +192,10 @@ async function run(): Promise<unknown> {
     subcommand === 'start-production-tunnel'
       ? readStartProductionTunnelInput()
       : undefined;
+  const postDeferredFindingsStdin =
+    subcommand === 'post-deferred-findings'
+      ? readPostDeferredFindingsStdin()
+      : undefined;
 
   const app = await NestFactory.createApplicationContext(AppModule, {
     logger: false,
@@ -179,6 +207,7 @@ async function run(): Promise<unknown> {
       writeFile,
       expectedApiBaseUrl,
       startProductionTunnel,
+      postDeferredFindingsStdin,
     });
   } finally {
     await app.close();
