@@ -21,6 +21,7 @@ import { RulesSetsImportService } from './rules-sets-import.service';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
 import { TeamsImportService } from './teams-import.service';
+import { TrophiesImportService } from './trophies-import.service';
 
 @Module({
   providers: [
@@ -45,6 +46,7 @@ import { TeamsImportService } from './teams-import.service';
     SppAwardValuesImportService,
     ErasImportService,
     TeamsImportService,
+    TrophiesImportService,
   ],
   exports: [
     ImportRunnerService,
@@ -68,6 +70,7 @@ import { TeamsImportService } from './teams-import.service';
     SppAwardValuesImportService,
     ErasImportService,
     TeamsImportService,
+    TrophiesImportService,
   ],
 })
 export class ImportModule {}
