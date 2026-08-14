@@ -6,6 +6,7 @@ import { mockDeep } from 'vitest-mock-extended';
 
 import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
+import { CompetitionGroupsImportService } from './competition-groups-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
@@ -33,6 +34,7 @@ const providers = [
   ImportResultService,
   BatchBufferService,
   CoachesImportService,
+  CompetitionGroupsImportService,
   CompetitionsImportService,
   LeaguesImportService,
   MatchEventsImportService,
