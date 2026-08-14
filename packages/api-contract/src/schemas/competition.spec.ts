@@ -12,6 +12,7 @@ describe('competition schemas', () => {
       teamEraIds: [100, 101],
       startDate: '2024-01-15',
       endDate: '2024-06-30',
+      competitionGroupId: 3,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.startDate).toBe('2024-01-15');
@@ -28,6 +29,7 @@ describe('competition schemas', () => {
       teamEraIds: [],
       startDate: '2024-01-15',
       endDate: null,
+      competitionGroupId: 3,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.startDate).toBe('2024-01-15');
@@ -123,5 +125,19 @@ describe('competition schemas', () => {
         externalIds: [],
       }),
     ).toThrow();
+  });
+
+  it('accepts an optional competitionGroupId on upsert', () => {
+    expect(
+      UpsertCompetitionSchema.parse({
+        externalIds: [{ externalSystemId: 1, externalId: '7' }],
+        competitionGroupId: 3,
+      }).competitionGroupId,
+    ).toBe(3);
+    expect(
+      UpsertCompetitionSchema.parse({
+        externalIds: [{ externalSystemId: 1, externalId: '7' }],
+      }).competitionGroupId,
+    ).toBeUndefined();
   });
 });

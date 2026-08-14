@@ -9,6 +9,7 @@ export const TrophySchema = z.object({
   name: z.string(),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().nullable(),
+  competitionGroupId: z.number(),
   createdAt: z.coerce.date(),
 });
 
@@ -27,6 +28,10 @@ export const UpsertTrophySchema = z.object({
   // Nullable AND optional: omitting it leaves the stored description alone,
   // an explicit null clears it.
   description: z.string().nullable().optional(),
+  // Optional like every other trophy field: an omitted value leaves the
+  // stored group alone (overlay semantics), and on create the database's own
+  // default applies. Real classification is curated in tools/import-manual.
+  competitionGroupId: z.number().int().optional(),
   externalIds: z.array(ExternalIdSchema).default([]),
 });
 
