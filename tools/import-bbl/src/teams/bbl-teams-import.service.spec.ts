@@ -11,6 +11,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { CoachPageParser } from '../coaches/coach-page-parser';
 import { RacePageParser } from '../races/race-page-parser';
+import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -76,18 +77,6 @@ function page(opts: {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-/** A source reader whose pages() yields the given fake pages. */
-function makeReader(pages: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages() {
-      for (const p of pages) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 interface Mocks {
@@ -209,7 +198,7 @@ const coachIds = new Map<string, number>([['Hugo E', 900]]);
 describe('BblTeamsImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -229,7 +218,7 @@ describe('BblTeamsImportService', () => {
 
   it('upserts the configured BBL system name when set', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -250,7 +239,7 @@ describe('BblTeamsImportService', () => {
 
   it('upserts a team with its resolved raceId/coachId and page-id + name external IDs', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -290,7 +279,7 @@ describe('BblTeamsImportService', () => {
 
   it('deduplicates a team (by id) appearing on multiple pages', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -314,7 +303,7 @@ describe('BblTeamsImportService', () => {
 
   it('skips pages with no team', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
+      mockBblSourceReader([page({ raceBblId: '16', coachName: 'Hugo E' })]),
     );
 
     await service.importTeams(raceIds, coachIds);
@@ -325,7 +314,7 @@ describe('BblTeamsImportService', () => {
 
   it('records an error and skips a team whose race id is not in the map', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -346,7 +335,7 @@ describe('BblTeamsImportService', () => {
 
   it('records an error and skips a team with no race on the page', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({ teamId: '40g', teamName: '40 grinders', coachName: 'Hugo E' }),
       ]),
     );
@@ -362,7 +351,7 @@ describe('BblTeamsImportService', () => {
 
   it('records an error and skips a team whose coach name is not in the map', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -383,7 +372,7 @@ describe('BblTeamsImportService', () => {
 
   it('records an error and continues when a team upsert fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -409,7 +398,7 @@ describe('BblTeamsImportService', () => {
 
   it('records an error and continues when a page fails to parse', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+      mockBblSourceReader([page({ teamId: '40g', teamName: '40 grinders' })]),
     );
     mocks.teamParser.extractTeam.mockImplementation(() => {
       throw new Error('bad page');
@@ -429,7 +418,7 @@ describe('BblTeamsImportService', () => {
 
   it('passes a non-Error thrown team-page value straight through to PageParseErrorService', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page({ teamId: '40g', teamName: '40 grinders' })]),
+      mockBblSourceReader([page({ teamId: '40g', teamName: '40 grinders' })]),
     );
     mocks.teamParser.extractTeam.mockImplementation(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
@@ -450,7 +439,7 @@ describe('BblTeamsImportService', () => {
 
   it('records one error and skips teams when an external system upsert fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -483,7 +472,7 @@ describe('BblTeamsImportService', () => {
 
   it('returns a map from each team page code to its resolved race id', async () => {
     const { service } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -500,7 +489,7 @@ describe('BblTeamsImportService', () => {
 
   it('returns teamsByCode keyed by the team BBL code', async () => {
     const { service } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',
@@ -523,7 +512,7 @@ describe('BblTeamsImportService', () => {
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service } = await makeService(
-      makeReader([
+      mockBblSourceReader([
         page({
           teamId: '40g',
           teamName: '40 grinders',

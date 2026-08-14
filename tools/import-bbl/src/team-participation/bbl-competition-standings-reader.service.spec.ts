@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -17,17 +18,6 @@ function page(params: Record<string, string>): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-function makeReader(pages: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages() {
-      for (const p of pages) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 function makeParser(
@@ -80,7 +70,7 @@ describe('BblCompetitionStandingsReaderService', () => {
   it('keys registered team ids by competition id, deduping repeated s pages', async () => {
     const parser = makeParser({ '69': ['red4', 'äng'] });
     const { service } = await makeService({
-      reader: makeReader([page({ s: '69' }), page({ s: '69' })]),
+      reader: mockBblSourceReader([page({ s: '69' }), page({ s: '69' })]),
       parser,
     });
     const errors: ImportError[] = [];
@@ -95,7 +85,7 @@ describe('BblCompetitionStandingsReaderService', () => {
   it('skips a page with no s param', async () => {
     const parser = makeParser({ '69': ['äng'] });
     const { service } = await makeService({
-      reader: makeReader([page({}), page({ s: '69' })]),
+      reader: mockBblSourceReader([page({}), page({ s: '69' })]),
       parser,
     });
 
@@ -105,7 +95,7 @@ describe('BblCompetitionStandingsReaderService', () => {
   });
 
   it('memoizes: a second call does not re-read the source', async () => {
-    const reader = makeReader([page({ s: '69' })]);
+    const reader = mockBblSourceReader([page({ s: '69' })]);
     const pagesSpy = vi.spyOn(reader, 'pages');
     const { service } = await makeService({
       reader,
@@ -124,7 +114,7 @@ describe('BblCompetitionStandingsReaderService', () => {
       throw new Error('bad se page');
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page({ s: '69' })]),
+      reader: mockBblSourceReader([page({ s: '69' })]),
       parser,
     });
     const errors: ImportError[] = [];
@@ -147,7 +137,7 @@ describe('BblCompetitionStandingsReaderService', () => {
       throw 'boom';
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page({ s: '69' })]),
+      reader: mockBblSourceReader([page({ s: '69' })]),
       parser,
     });
     const errors: ImportError[] = [];

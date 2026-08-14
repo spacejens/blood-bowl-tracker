@@ -1,6 +1,6 @@
 import { CompetitionsService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -79,11 +79,11 @@ type CompetitionHeaderFixture = {
 function makeCompetitions(options: {
   competition?: CompetitionHeaderFixture;
   teams?: { id: number; name: string }[];
-}): CompetitionsService {
-  return {
-    findByIdWithEra: vi.fn().mockResolvedValue(options.competition),
-    listTeams: vi.fn().mockResolvedValue(options.teams ?? []),
-  } as unknown as CompetitionsService;
+}): MockProxy<CompetitionsService> {
+  const competitions = mock<CompetitionsService>();
+  competitions.findByIdWithEra.mockResolvedValue(options.competition);
+  competitions.listTeams.mockResolvedValue(options.teams ?? []);
+  return competitions;
 }
 
 function competitionHeader(

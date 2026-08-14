@@ -16,6 +16,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
 import { BblMatchListReaderService } from '../matches/bbl-match-list-reader.service';
 import type { BblMatch } from '../matches/match-list-page-parser';
+import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -103,18 +104,6 @@ function page(type: string, params: Record<string, string>): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-/** A source reader whose pages(type) yields the pre-canned pages for that type. */
-function makeReader(pagesByType: Record<string, BblPage[]>): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages(type: string) {
-      for (const p of pagesByType[type] ?? []) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 /** date-only fixtures turned into per-competition BblMatch arrays for the reader mock. */
@@ -215,7 +204,7 @@ async function makeService(
 describe('BblCompetitionsImportService', () => {
   it('populates startDate and endDate from the match-date range', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -247,7 +236,7 @@ describe('BblCompetitionsImportService', () => {
 
   it("derives an overridden competition's dates from its matches, not from the configured override dates", async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '30', name: 'Chaos Cup' },
@@ -301,7 +290,7 @@ describe('BblCompetitionsImportService', () => {
 
   it("uses the override's own startDate/endDate for an overridden competition with no matches", async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -351,7 +340,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('omits endDate when the override has no endDate', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -380,7 +369,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('skips an overridden competition with no matches and no configured startDate, recording an error', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -408,7 +397,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('derives type=season from a >3-day span and resolves the containing era', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -460,7 +449,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('derives type=cup from a <=3-day span', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '5', name: 'Chaos Cup' },
@@ -492,7 +481,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('skips and records an error for a competition with no dated matches', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '9', name: 'In Progress' },
@@ -512,7 +501,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('skips and records an error when no configured era contains the earliest match date', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '3', name: 'Ancient Season' },
@@ -542,7 +531,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('skips and records a distinct error when the matched era has no known database id', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -579,7 +568,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('skips and records a distinct error when the override era has no known database id', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -617,7 +606,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('falls back to an sr page for the master list when no se page exists', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [], sr: [page('sr', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [], sr: [page('sr', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -647,7 +636,9 @@ describe('BblCompetitionsImportService', () => {
     // has no `s` param and lacks the master `<option>` dropdown entirely, so
     // extractCompetitions correctly (but unhelpfully) returns [] for it.
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', {}), page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({
+        se: [page('se', {}), page('se', { s: '66' })],
+      }),
     );
     mocks.listParser.extractCompetitions.mockImplementation((p) =>
       p.params.s === undefined ? [] : [{ bblId: '1', name: 'Major Season 1' }],
@@ -674,7 +665,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('records one error and imports nothing when external system bootstrap fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '1', name: 'Major Season 1' },
@@ -705,7 +696,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('records one error naming only the BBL system when the era config cannot be read', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.eraConfig.getEras.mockImplementation(() => {
       throw new Error('era config is malformed');
@@ -729,7 +720,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('records an error and reports zero imports when the master list page fails to parse', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockImplementation(() => {
       throw new Error('bad se page');
@@ -759,7 +750,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('imports a zero-match competition via its era override as type season', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -820,7 +811,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('applies an era override ahead of match-date resolution even when the competition has matches', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
@@ -871,7 +862,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('applies a competitions.overrides entry forcing type cup even when the span would compute season', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '33', name: 'Stunty Leeg 2' },
@@ -932,7 +923,7 @@ describe('BblCompetitionsImportService', () => {
     // must still win, proving override resolution is independent of array order
     // and of natural date-range matching.
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '30', name: 'Stunty Leeg 1' },
@@ -1019,7 +1010,7 @@ describe('BblCompetitionsImportService', () => {
       ['Side', 200],
     ]);
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.eraConfig.getEras.mockReturnValue(overrideOnlyEras);
     mocks.listParser.extractCompetitions.mockReturnValue([
@@ -1075,7 +1066,7 @@ describe('BblCompetitionsImportService', () => {
     const eraIds = new Map<string, number>([...eraIdsByName, ['GBBL 1', 900]]);
 
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '55' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '55' })] }),
     );
     mocks.eraConfig.getEras.mockReturnValue(erasWithGbbl);
     mocks.listParser.extractCompetitions.mockReturnValue([
@@ -1105,7 +1096,7 @@ describe('BblCompetitionsImportService', () => {
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service, mocks } = await makeService(
-      makeReader({ se: [page('se', { s: '66' })] }),
+      mockBblSourceReaderByType({ se: [page('se', { s: '66' })] }),
     );
     mocks.listParser.extractCompetitions.mockReturnValue([]);
 

@@ -11,6 +11,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblPlayer } from '../players/player-page-parser';
 import { PlayerPageParser } from '../players/player-page-parser';
+import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -88,18 +89,6 @@ function plPage(player: BblPlayer | null): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-function makeReader(pt: BblPage[], pl: BblPage[] = []): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages(type: string) {
-      const list = type === 'pt' ? pt : type === 'pl' ? pl : [];
-      for (const p of list) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 interface Mocks {
@@ -201,17 +190,19 @@ const teamRaceIdsByCode = new Map<string, number>([
 describe('BblPositionsImportService', () => {
   it('upserts one row per listed race with composite external ids', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage({
-          typId: '33',
-          name: 'Goblin Linemen',
-          isStarPlayer: false,
-          races: [
-            { bblId: '48', name: 'College of Shadow' },
-            { bblId: '7', name: 'Goblin Team' },
-          ],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            isStarPlayer: false,
+            races: [
+              { bblId: '48', name: 'College of Shadow' },
+              { bblId: '7', name: 'Goblin Team' },
+            ],
+          }),
+        ],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -277,8 +268,8 @@ describe('BblPositionsImportService', () => {
 
   it('imports listed races and an extra reverse-engineered race (non-star) as a duplicate candidate row', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '60',
             name: 'Minotaur 2',
@@ -286,7 +277,7 @@ describe('BblPositionsImportService', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '111',
             name: 'Minotaur 2',
@@ -295,7 +286,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -354,8 +345,8 @@ describe('BblPositionsImportService', () => {
 
   it('imports listed races and an extra reverse-engineered race (star) merged into one row', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '60',
             name: 'Minotaur 2',
@@ -363,7 +354,7 @@ describe('BblPositionsImportService', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '111',
             name: 'Minotaur 2',
@@ -372,7 +363,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -433,8 +424,8 @@ describe('BblPositionsImportService', () => {
 
   it('imports only listed races when the reverse-engineered race is already listed (dedup, no regression)', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '33',
             name: 'Goblin Linemen',
@@ -445,7 +436,7 @@ describe('BblPositionsImportService', () => {
             ],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '222',
             name: 'Goblin Linemen',
@@ -454,7 +445,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -469,17 +460,19 @@ describe('BblPositionsImportService', () => {
 
   it('skips a listed race not in the map but imports the others', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage({
-          typId: '33',
-          name: 'Goblin Linemen',
-          isStarPlayer: false,
-          races: [
-            { bblId: '48', name: 'College of Shadow' },
-            { bblId: '999', name: 'Unknown Race' },
-          ],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '33',
+            name: 'Goblin Linemen',
+            isStarPlayer: false,
+            races: [
+              { bblId: '48', name: 'College of Shadow' },
+              { bblId: '999', name: 'Unknown Race' },
+            ],
+          }),
+        ],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -495,8 +488,8 @@ describe('BblPositionsImportService', () => {
 
   it('imports a star player as one row with a positions_race_eras row per resolved race and a bare-name external id', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '99',
             name: 'Wilhelm Chaney',
@@ -504,7 +497,7 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '123',
             name: 'Wilhelm Chaney',
@@ -520,7 +513,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -571,8 +564,8 @@ describe('BblPositionsImportService', () => {
 
   it('imports a defunct-race position as duplicate rows, recorded as a candidate', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '121',
             name: 'Norse Catchers',
@@ -580,7 +573,7 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '456',
             name: 'Norse Catchers',
@@ -589,7 +582,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -625,8 +618,8 @@ describe('BblPositionsImportService', () => {
 
   it('skips a zero-race star player when no player is found and records an error', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '99',
             name: 'Zolcath the Zoat',
@@ -634,8 +627,8 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [],
-      ),
+        pl: [],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -653,8 +646,8 @@ describe('BblPositionsImportService', () => {
 
   it('skips a zero-race non-star position when no player is found and records an error', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '121',
             name: 'Norse Catchers',
@@ -662,8 +655,8 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [],
-      ),
+        pl: [],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -679,8 +672,8 @@ describe('BblPositionsImportService', () => {
 
   it('skips a resolved player whose team race is not in the maps', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '99',
             name: 'Grotty',
@@ -688,7 +681,7 @@ describe('BblPositionsImportService', () => {
             races: [],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '789',
             name: 'Grotty',
@@ -697,7 +690,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -712,7 +705,9 @@ describe('BblPositionsImportService', () => {
   });
 
   it('skips pages the position parser returns null for', async () => {
-    const { service, mocks } = await makeService(makeReader([ptPage(null)]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pt: [ptPage(null)] }),
+    );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
     );
@@ -725,15 +720,17 @@ describe('BblPositionsImportService', () => {
 
   it('records an error and continues when a position page throws while parsing', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage(null),
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '48', name: 'College of Shadow' }],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage(null),
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '48', name: 'College of Shadow' }],
+          }),
+        ],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -757,14 +754,16 @@ describe('BblPositionsImportService', () => {
 
   it('records one error and skips positions when an external system upsert fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '48', name: 'College of Shadow' }],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '48', name: 'College of Shadow' }],
+          }),
+        ],
+      }),
     );
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
@@ -788,14 +787,16 @@ describe('BblPositionsImportService', () => {
   it('returns positionIdsByBblId keyed by `${typId}-${raceBblId}`', async () => {
     // one pt page: position typId '10', listing race bblId '7' (in racesByBblId)
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '7', name: 'Goblin Team' }],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -812,8 +813,8 @@ describe('BblPositionsImportService', () => {
 
   it('records an error when a scanned team code has no race in teamRaceIdsByCode', async () => {
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '10',
             name: 'Lineman',
@@ -821,7 +822,7 @@ describe('BblPositionsImportService', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '333',
             name: 'Lineman',
@@ -830,7 +831,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -856,8 +857,8 @@ describe('BblPositionsImportService', () => {
       ['orphan', 999], // 999 has no entry in racesByBblId
     ]);
     const { service, mocks } = await makeService(
-      makeReader(
-        [
+      mockBblSourceReaderByType({
+        pt: [
           ptPage({
             typId: '10',
             name: 'Lineman',
@@ -865,7 +866,7 @@ describe('BblPositionsImportService', () => {
             races: [{ bblId: '7', name: 'Goblin Team' }],
           }),
         ],
-        [
+        pl: [
           plPage({
             pid: '444',
             name: 'Lineman',
@@ -874,7 +875,7 @@ describe('BblPositionsImportService', () => {
             sppTotal: null,
           }),
         ],
-      ),
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),
@@ -894,14 +895,16 @@ describe('BblPositionsImportService', () => {
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const { service, mocks } = await makeService(
-      makeReader([
-        ptPage({
-          typId: '10',
-          name: 'Lineman',
-          isStarPlayer: false,
-          races: [{ bblId: '7', name: 'Goblin Team' }],
-        }),
-      ]),
+      mockBblSourceReaderByType({
+        pt: [
+          ptPage({
+            typId: '10',
+            name: 'Lineman',
+            isStarPlayer: false,
+            races: [{ bblId: '7', name: 'Goblin Team' }],
+          }),
+        ],
+      }),
     );
     mocks.positionsImport.upsertPosition.mockResolvedValue(
       makePositionRecord(),

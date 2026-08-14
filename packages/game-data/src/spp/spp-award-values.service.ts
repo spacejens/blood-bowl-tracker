@@ -2,7 +2,7 @@ import type {
   SyncSppAwardValues,
   SyncSppAwardValuesResult,
 } from '@blood-bowl-tracker/api-contract';
-import type { Db } from '@blood-bowl-tracker/db';
+import type { Db, NewSppAwardValue } from '@blood-bowl-tracker/db';
 import {
   DB,
   eraRulesSets,
@@ -12,7 +12,7 @@ import {
   teams,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 
 import type { ActionType } from '../shared/match-event-types';
 import { SPP_EARNING_ACTION_TYPES } from '../shared/match-event-types';
@@ -47,37 +47,101 @@ export class SppAwardValuesService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
-   * Insert or update the supplied award rows, matched on their natural key.
-   * Idempotent: re-running a seed rewrites `spp_value` in place rather than
-   * duplicating rows, which the NULLS NOT DISTINCT unique constraint makes
-   * work for baseline (`raceId: null`) rows too.
+   * Insert or update the supplied award rows, matched on their natural key
+   * `(rulesSetId, raceId, actionType)`. Idempotent: re-running a seed rewrites
+   * `spp_value` in place rather than duplicating rows.
+   *
+   * Deliberately *not* `INSERT ... ON CONFLICT DO UPDATE`. `spp_award_values`
+   * is a history-tracked table, and Postgres fires its row-level BEFORE INSERT
+   * versioning trigger for every candidate row of an ON CONFLICT statement —
+   * including rows the conflict then converts into an UPDATE of an existing
+   * row. The trigger writes a `spp_award_values_history` row keyed by the
+   * candidate's already-consumed serial id, which never lands in the parent
+   * table, so the history table's FK back to `spp_award_values(id)` fails and
+   * the whole batch errors out on any re-run against populated data. Selecting
+   * first and then issuing plain INSERT / plain UPDATE statements is the same
+   * pattern `upsertByExternalIds` uses, for the same reason.
    */
   async sync(data: SyncSppAwardValues): Promise<SyncSppAwardValuesResult> {
     if (data.values.length === 0) {
       return { sppAwardValueIds: [] };
     }
 
-    const rows = await this.db
-      .insert(sppAwardValues)
-      .values(
-        data.values.map((value) => ({
+    // Over-fetch by rules set and match in memory: the table holds only a few
+    // dozen rows per rules set, and this avoids the null-safety awkwardness of
+    // matching a nullable raceId in SQL.
+    const rulesSetIds = [
+      ...new Set(data.values.map((value) => value.rulesSetId)),
+    ];
+    const existingRows = await this.db
+      .select({
+        id: sppAwardValues.id,
+        rulesSetId: sppAwardValues.rulesSetId,
+        raceId: sppAwardValues.raceId,
+        actionType: sppAwardValues.actionType,
+      })
+      .from(sppAwardValues)
+      .where(inArray(sppAwardValues.rulesSetId, rulesSetIds));
+
+    const existingIdByKey = new Map(
+      existingRows.map((row) => [this.naturalKey(row), row.id]),
+    );
+
+    const toInsert: NewSppAwardValue[] = [];
+    const toUpdate: { id: number; sppValue: number }[] = [];
+    for (const value of data.values) {
+      const existingId = existingIdByKey.get(this.naturalKey(value));
+      if (existingId === undefined) {
+        toInsert.push({
           rulesSetId: value.rulesSetId,
           raceId: value.raceId,
           actionType: value.actionType,
           sppValue: value.sppValue,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: [
-          sppAwardValues.rulesSetId,
-          sppAwardValues.raceId,
-          sppAwardValues.actionType,
-        ],
-        set: { sppValue: sql`excluded.spp_value` },
-      })
-      .returning({ id: sppAwardValues.id });
+        });
+      } else {
+        toUpdate.push({ id: existingId, sppValue: value.sppValue });
+      }
+    }
 
-    return { sppAwardValueIds: rows.map((row) => row.id) };
+    // One transaction around the insert and every update: the caller treats
+    // this single call as one batch that either wholly succeeds or wholly
+    // fails, which the previous single statement gave for free.
+    return this.db.transaction(async (tx) => {
+      const sppAwardValueIds: number[] = [];
+
+      if (toInsert.length > 0) {
+        const inserted = await tx
+          .insert(sppAwardValues)
+          .values(toInsert)
+          .returning({ id: sppAwardValues.id });
+        sppAwardValueIds.push(...inserted.map((row) => row.id));
+      }
+
+      for (const row of toUpdate) {
+        const updated = await tx
+          .update(sppAwardValues)
+          .set({ sppValue: row.sppValue })
+          .where(eq(sppAwardValues.id, row.id))
+          .returning({ id: sppAwardValues.id });
+        sppAwardValueIds.push(...updated.map((updatedRow) => updatedRow.id));
+      }
+
+      return { sppAwardValueIds };
+    });
+  }
+
+  /**
+   * The award row's natural key as a string, so existing rows and incoming
+   * values can be matched through a plain `Map`. `raceId` is nullable and a
+   * null baseline is a real, distinct key — hence the explicit `'null'`
+   * marker rather than letting `null` stringify ambiguously.
+   */
+  private naturalKey(row: {
+    rulesSetId: number;
+    raceId: number | null;
+    actionType: string;
+  }): string {
+    return `${row.rulesSetId}|${row.raceId ?? 'null'}|${row.actionType}`;
   }
 
   /**

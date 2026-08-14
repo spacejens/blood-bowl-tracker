@@ -5,7 +5,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { ButtonStyle, ComponentType } from 'discord.js';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -90,24 +90,21 @@ function makeServices(options: {
   competitions?: CompetitionRow[];
   externalSystemNames?: string[];
 }): {
-  eras: ErasService;
-  competitions: CompetitionsService;
-  externalSystems: ExternalSystemsService;
+  eras: MockProxy<ErasService>;
+  competitions: MockProxy<CompetitionsService>;
+  externalSystems: MockProxy<ExternalSystemsService>;
 } {
-  const eras = {
-    findByIdWithLeague: vi.fn().mockResolvedValue(options.era),
-    getRulesSetNames: vi.fn().mockResolvedValue(options.rulesSetNames ?? []),
-  } as unknown as ErasService;
-  const competitions = {
-    listByEraChronological: vi
-      .fn()
-      .mockResolvedValue(options.competitions ?? []),
-  } as unknown as CompetitionsService;
-  const externalSystems = {
-    listNamesByEra: vi
-      .fn()
-      .mockResolvedValue(options.externalSystemNames ?? []),
-  } as unknown as ExternalSystemsService;
+  const eras = mock<ErasService>();
+  eras.findByIdWithLeague.mockResolvedValue(options.era);
+  eras.getRulesSetNames.mockResolvedValue(options.rulesSetNames ?? []);
+  const competitions = mock<CompetitionsService>();
+  competitions.listByEraChronological.mockResolvedValue(
+    options.competitions ?? [],
+  );
+  const externalSystems = mock<ExternalSystemsService>();
+  externalSystems.listNamesByEra.mockResolvedValue(
+    options.externalSystemNames ?? [],
+  );
   return { eras, competitions, externalSystems };
 }
 

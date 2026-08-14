@@ -1,6 +1,6 @@
 import { RacesService } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -66,14 +66,12 @@ function makeRaces(options: {
   race?: { id: number; name: string };
   eras?: { id: number; name: string }[];
   topTeams?: { id: number; name: string; count: number }[];
-}): RacesService {
-  return {
-    findById: vi.fn().mockResolvedValue(options.race),
-    listEras: vi.fn().mockResolvedValue(options.eras ?? []),
-    getTopTeamsByMatchesPlayed: vi
-      .fn()
-      .mockResolvedValue(options.topTeams ?? []),
-  } as unknown as RacesService;
+}): MockProxy<RacesService> {
+  const races = mock<RacesService>();
+  races.findById.mockResolvedValue(options.race);
+  races.listEras.mockResolvedValue(options.eras ?? []);
+  races.getTopTeamsByMatchesPlayed.mockResolvedValue(options.topTeams ?? []);
+  return races;
 }
 
 describe('RaceDeepdiveService', () => {
