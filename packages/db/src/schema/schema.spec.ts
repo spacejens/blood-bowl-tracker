@@ -98,6 +98,12 @@ describe('schema', () => {
     expect(competitions.eraId).toBeDefined();
   });
 
+  it('exports competitions table with a competition group foreign key', () => {
+    expect(competitions.competitionGroupId).toBeDefined();
+    expect(competitions.competitionGroupId.notNull).toBe(true);
+    expect(competitions.competitionGroupId.hasDefault).toBe(true);
+  });
+
   it('exports competition groups table with a league foreign key', () => {
     expect(competitionGroups.id).toBeDefined();
     expect(competitionGroups.name).toBeDefined();
@@ -278,6 +284,12 @@ describe('schema', () => {
     expect(trophies.description).toBeDefined();
     expect(trophies.recipientKind.notNull).toBe(true);
     expect(trophies.description.notNull).toBe(false);
+  });
+
+  it('exports trophies table with a competition group foreign key', () => {
+    expect(trophies.competitionGroupId).toBeDefined();
+    expect(trophies.competitionGroupId.notNull).toBe(true);
+    expect(trophies.competitionGroupId.hasDefault).toBe(true);
   });
 
   it('exports trophyExternalIds keyed on trophyId', () => {

@@ -1,5 +1,6 @@
-import { serial, varchar } from 'drizzle-orm/pg-core';
+import { integer, serial, varchar } from 'drizzle-orm/pg-core';
 
+import { competitionGroups } from './competition-groups';
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
 
@@ -37,6 +38,14 @@ const trophiesTable = historyTrackedTable({
     // known by name before its criteria are. `varchar` rather than `text`
     // because no schema module in this package uses `text`.
     description: varchar('description', { length: 1024 }),
+    // Which competition group this trophy can be awarded for (issue #445), so
+    // #446 can consider only applicable trophies when awarding for a
+    // competition. Same NOT NULL + default-1 rationale as
+    // `competitions.competition_group_id`.
+    competitionGroupId: integer('competition_group_id')
+      .references(() => competitionGroups.id)
+      .notNull()
+      .default(1),
   },
 });
 

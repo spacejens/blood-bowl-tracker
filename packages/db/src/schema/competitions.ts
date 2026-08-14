@@ -1,5 +1,6 @@
 import { date, integer, serial, varchar } from 'drizzle-orm/pg-core';
 
+import { competitionGroups } from './competition-groups';
 import { eras } from './eras';
 import { historyTrackedTable } from './history';
 import { gameData } from './pg-schema';
@@ -19,6 +20,18 @@ const competitionsTable = historyTrackedTable({
     eraId: integer('era_id')
       .references(() => eras.id)
       .notNull(),
+    // Which recurring track this instance belongs to (issue #445). NOT NULL
+    // with a database default because the BBL and TP importers create
+    // competitions without classifying them; the default points at the
+    // "Major Season" row the add_competition_groups migration seeds into a
+    // brand-new table, so it is deterministically id 1. Real per-instance
+    // classification is curated in
+    // tools/import-manual/data/after-other-importers/competitions.json5, and
+    // importer-side classification is issue #446.
+    competitionGroupId: integer('competition_group_id')
+      .references(() => competitionGroups.id)
+      .notNull()
+      .default(1),
     startDate: date('start_date').notNull(),
     endDate: date('end_date'),
   },
