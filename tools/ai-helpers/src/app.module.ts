@@ -4,6 +4,7 @@ import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { DiffHunkMembershipService } from './post-deferred-findings/diff-hunk-membership.service';
+import { PostDeferredFindingsService } from './post-deferred-findings/post-deferred-findings.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ChildProcessService } from './shared/child-process.service';
 import { GitRootsService } from './shared/git-roots.service';
@@ -19,6 +20,7 @@ import { WriteFileService } from './write-file/write-file.service';
     GitRootsService,
     CheckMainStrayService,
     DiffHunkMembershipService,
+    PostDeferredFindingsService,
     SyncGitignoredService,
     CheckDriftService,
     WriteFileService,
