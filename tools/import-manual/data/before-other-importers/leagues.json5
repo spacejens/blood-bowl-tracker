@@ -1,0 +1,27 @@
+// The two real leagues (issue #445).
+//
+// These exist here, ahead of the BBL and TP importers, because
+// competition-groups.json5 needs a league to reference and it runs in this
+// same before-other-importers phase -- ahead of tools/import-bbl's own
+// config-driven league creation.
+//
+// The external id deliberately matches BBL's own convention exactly
+// (BblLeaguesImportService keys a league by its plain name under the
+// `tloeg.bbleague.se` system), so BBL's later upsert resolves onto these very
+// rows and adds its "Name" external id to them rather than creating
+// duplicates.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+  ],
+  leagues: [
+    {
+      name: 'tLoEG',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: 'tLoEG' }],
+    },
+    {
+      name: 'GBBL',
+      externalIds: [{ system: 'tloeg.bbleague.se', id: 'GBBL' }],
+    },
+  ],
+}
