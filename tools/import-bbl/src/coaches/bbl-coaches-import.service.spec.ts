@@ -9,6 +9,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { ExternalSystemNameConfigService } from '../source/external-system-name-config.service';
@@ -61,18 +62,6 @@ function page(coachName: string | null): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-/** A source reader whose pages() yields the given fake pages. */
-function makeReader(pages: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages() {
-      for (const p of pages) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 interface Mocks {
@@ -157,7 +146,9 @@ async function makeService(
 
 describe('BblCoachesImportService', () => {
   it('upserts the BBL and Name external systems', async () => {
-    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
 
     await service.importCoaches();
 
@@ -168,7 +159,9 @@ describe('BblCoachesImportService', () => {
   });
 
   it('upserts the configured BBL system name when BBL_EXTERNAL_SYSTEM_NAME is set', async () => {
-    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
     mocks.nameConfig.getBblSystemName.mockReturnValue('MyLeague');
 
     await service.importCoaches();
@@ -180,7 +173,9 @@ describe('BblCoachesImportService', () => {
   });
 
   it('upserts each coach with exact-name BBL and Name external IDs', async () => {
-    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
 
     await service.importCoaches();
 
@@ -199,7 +194,7 @@ describe('BblCoachesImportService', () => {
 
   it('deduplicates a coach appearing on multiple team pages', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
+      mockBblSourceReader([page('Hugo E'), page('Hugo E'), page('Tommy')]),
     );
 
     await service.importCoaches();
@@ -210,7 +205,7 @@ describe('BblCoachesImportService', () => {
 
   it('skips team pages that have no coach', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page(null), page('Tommy')]),
+      mockBblSourceReader([page(null), page('Tommy')]),
     );
 
     await service.importCoaches();
@@ -221,7 +216,7 @@ describe('BblCoachesImportService', () => {
 
   it('records an error and continues when a coach upsert fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page('Hugo E'), page('Tommy')]),
+      mockBblSourceReader([page('Hugo E'), page('Tommy')]),
     );
     mocks.coachesImport.upsertCoach.mockImplementationOnce((_data, errors) => {
       errors.push({ item: {}, message: 'Failed to import coach "Hugo E"' });
@@ -237,7 +232,7 @@ describe('BblCoachesImportService', () => {
 
   it('records an error and continues when a team page fails to parse', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page('Hugo E'), page('Tommy')]),
+      mockBblSourceReader([page('Hugo E'), page('Tommy')]),
     );
     mocks.parser.extractCoach.mockImplementationOnce(() => {
       throw new Error('bad page');
@@ -257,7 +252,9 @@ describe('BblCoachesImportService', () => {
   });
 
   it('passes a non-Error thrown team-page value straight through to PageParseErrorService', async () => {
-    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
     mocks.parser.extractCoach.mockImplementationOnce(() => {
       // eslint-disable-next-line @typescript-eslint/only-throw-error
       throw 'bad page';
@@ -276,7 +273,9 @@ describe('BblCoachesImportService', () => {
   });
 
   it('records one error and skips coaches when an external system upsert fails', async () => {
-    const { service, mocks } = await makeService(makeReader([page('Hugo E')]));
+    const { service, mocks } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
       error: {
@@ -299,7 +298,7 @@ describe('BblCoachesImportService', () => {
 
   it('returns a coachIdsByName map from coach name to upserted db id', async () => {
     const { service, mocks } = await makeService(
-      makeReader([page('Hugo E'), page('Roze Madder')]),
+      mockBblSourceReader([page('Hugo E'), page('Roze Madder')]),
     );
     mocks.coachesImport.upsertCoach
       .mockResolvedValueOnce(makeCoachRecord())
@@ -312,7 +311,9 @@ describe('BblCoachesImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service } = await makeService(makeReader([page('Hugo E')]));
+    const { service } = await makeService(
+      mockBblSourceReader([page('Hugo E')]),
+    );
 
     const { result } = await service.importCoaches();
 
