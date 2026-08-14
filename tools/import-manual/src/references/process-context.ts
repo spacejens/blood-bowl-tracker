@@ -12,5 +12,13 @@ export interface ProcessContext {
   data: ManualDataFile;
   systemIds: ReadonlyMap<string, number>;
   idMap: ExternalIdMap;
+  /**
+   * Competition group name -> database id, for the current run. Seeded from
+   * the API by CompetitionGroupsProcessor (not only from this run's declared
+   * entries), because the after-other-importers directory runs as a separate
+   * process from the before-other-importers directory that curates the
+   * catalog.
+   */
+  competitionGroupIds: Map<string, number>;
   errors: ImportError[];
 }

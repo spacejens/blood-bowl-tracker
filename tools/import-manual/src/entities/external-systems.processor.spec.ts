@@ -20,6 +20,7 @@ function emptyData(): ManualDataFile {
     competitions: [],
     sppAwardValues: [],
     trophies: [],
+    competitionGroups: [],
   };
 }
 

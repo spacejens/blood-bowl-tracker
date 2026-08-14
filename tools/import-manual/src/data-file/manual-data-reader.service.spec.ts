@@ -125,4 +125,25 @@ describe('ManualDataReader', () => {
       'Season MVP',
     ]);
   });
+
+  it('pools the competitionGroups section across files', async () => {
+    write(
+      'a.json5',
+      `{ competitionGroups: [{ name: 'Major Season',
+         league: { system: 'Name', id: 'name:major' } }] }`,
+    );
+    write(
+      'b.json5',
+      `{ competitionGroups: [{ name: 'Korpen',
+         league: { system: 'Name', id: 'name:korpen' } }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.competitionGroups).toHaveLength(2);
+    expect(data.competitionGroups.map((g) => g.name)).toEqual([
+      'Major Season',
+      'Korpen',
+    ]);
+  });
 });

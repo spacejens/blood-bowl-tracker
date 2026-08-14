@@ -23,6 +23,7 @@ function emptyData(): ManualDataFile {
     competitions: [],
     sppAwardValues: [],
     trophies: [],
+    competitionGroups: [],
   };
 }
 
@@ -31,6 +32,7 @@ function makeContext(data: ManualDataFile): ProcessContext {
     data,
     systemIds: new Map([['Name', 2]]),
     idMap: new ExternalIdMap(),
+    competitionGroupIds: new Map(),
     errors: [],
   };
 }

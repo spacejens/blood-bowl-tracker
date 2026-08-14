@@ -17,6 +17,7 @@ describe('ManualDataFileSchema', () => {
       competitions: [],
       sppAwardValues: [],
       trophies: [],
+      competitionGroups: [],
     });
   });
 
@@ -321,5 +322,50 @@ describe('ManualDataFileSchema', () => {
       trophies: [{ name: 'Nope', externalIds: [] }],
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it('parses a competition group entry with its league reference', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitionGroups: [
+        {
+          name: 'Major Season',
+          league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+        },
+      ],
+    });
+    expect(parsed.competitionGroups[0].league.id).toBe('tLoEG');
+  });
+
+  it('requires a competition group entry to name a league', () => {
+    expect(
+      ManualDataFileSchema.safeParse({
+        competitionGroups: [{ name: 'Major Season' }],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('defaults competitionGroups to an empty array', () => {
+    expect(ManualDataFileSchema.parse({}).competitionGroups).toEqual([]);
+  });
+
+  it('accepts an optional competitionGroup on trophy and competition entries', () => {
+    const parsed = ManualDataFileSchema.parse({
+      trophies: [
+        {
+          name: 'Major Gold',
+          recipientKind: 'team',
+          competitionGroup: 'Major Season',
+        },
+      ],
+      competitions: [
+        {
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '15' }],
+          competitionGroup: 'Korpen',
+        },
+      ],
+    });
+    expect(parsed.trophies[0].competitionGroup).toBe('Major Season');
+    expect(parsed.competitions[0].competitionGroup).toBe('Korpen');
+    expect(parsed.competitions[0].name).toBeUndefined();
   });
 });

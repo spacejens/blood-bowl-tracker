@@ -23,6 +23,7 @@ function emptyData(): ManualDataFile {
     competitions: [],
     sppAwardValues: [],
     trophies: [],
+    competitionGroups: [],
   };
 }
 
@@ -37,6 +38,7 @@ function makeContext(
       ['tloeg.bbleague.se', 1],
     ]),
     idMap,
+    competitionGroupIds: new Map(),
     errors: [],
   };
 }
@@ -65,6 +67,7 @@ describe('TrophiesProcessor', () => {
       name: 'Chaos Cup',
       recipientKind: 'team',
       description: 'The team that wins after four matches.',
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });
@@ -106,6 +109,7 @@ describe('TrophiesProcessor', () => {
       name: 'Ogretoberfest',
       recipientKind: 'team',
       description: null,
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });
@@ -155,6 +159,7 @@ describe('TrophiesProcessor', () => {
       name: 'Major 1st',
       recipientKind: 'team',
       description: null,
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });

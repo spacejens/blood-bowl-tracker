@@ -81,9 +81,18 @@ const TeamEntrySchema = z.object({
  * match the existing row.
  */
 const CompetitionEntrySchema = z.object({
-  name: z.string().min(1),
+  // Optional: most entries exist only to classify an already-imported
+  // competition into its group, and restating a scraped name they do not
+  // intend to change would risk renaming it by accident.
+  name: z.string().min(1).optional(),
   type: z.enum(['season', 'cup']).optional(),
   era: ExternalRefSchema.optional(),
+  // Names a competition group by its exact `name` rather than by an external
+  // id: groups carry no external ids at all (see
+  // packages/db/src/schema/competition-groups.ts), so there is no id pair to
+  // reference. Optional, so an entry that says nothing about a group leaves
+  // the stored classification alone.
+  competitionGroup: z.string().min(1).optional(),
   externalIds,
 });
 
@@ -113,7 +122,25 @@ const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().min(1).optional(),
+  // Names a competition group by its exact `name` rather than by an external
+  // id: groups carry no external ids at all (see
+  // packages/db/src/schema/competition-groups.ts), so there is no id pair to
+  // reference. Optional, so an entry that says nothing about a group leaves
+  // the stored classification alone.
+  competitionGroup: z.string().min(1).optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
+});
+
+/**
+ * One curated competition group (issue #445) -- the recurring track a
+ * competition instance belongs to. `league` is required and is a normal
+ * external-id cross-reference, resolved against the run's ExternalIdMap, so
+ * the file declaring groups must sit in the same directory as the one
+ * declaring the leagues they name.
+ */
+const CompetitionGroupEntrySchema = z.object({
+  name: z.string().min(1),
+  league: ExternalRefSchema,
 });
 
 export const ManualDataFileSchema = z
@@ -129,6 +156,7 @@ export const ManualDataFileSchema = z
     competitions: z.array(CompetitionEntrySchema).default([]),
     sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
     trophies: z.array(TrophyEntrySchema).default([]),
+    competitionGroups: z.array(CompetitionGroupEntrySchema).default([]),
   })
   .strict();
 
@@ -137,3 +165,4 @@ export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;
 export type SppAwardValueEntry = z.infer<typeof SppAwardValueEntrySchema>;
 export type TrophyEntry = z.infer<typeof TrophyEntrySchema>;
+export type CompetitionGroupEntry = z.infer<typeof CompetitionGroupEntrySchema>;

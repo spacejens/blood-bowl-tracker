@@ -23,6 +23,7 @@ function emptyData(): ManualDataFile {
     competitions: [],
     sppAwardValues: [],
     trophies: [],
+    competitionGroups: [],
   };
 }
 
@@ -37,6 +38,7 @@ function makeContext(
       ['BBL', 1],
     ]),
     idMap,
+    competitionGroupIds: new Map(),
     errors: [],
   };
 }

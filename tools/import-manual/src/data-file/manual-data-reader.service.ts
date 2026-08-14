@@ -34,6 +34,7 @@ export class ManualDataReader {
       competitions: [],
       sppAwardValues: [],
       trophies: [],
+      competitionGroups: [],
     };
 
     for (const name of filenames) {
@@ -50,6 +51,7 @@ export class ManualDataReader {
       pooled.competitions.push(...file.competitions);
       pooled.sppAwardValues.push(...file.sppAwardValues);
       pooled.trophies.push(...file.trophies);
+      pooled.competitionGroups.push(...file.competitionGroups);
     }
 
     return pooled;

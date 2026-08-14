@@ -57,6 +57,7 @@ export class ManualImportService {
       data,
       systemIds,
       idMap: new ExternalIdMap(),
+      competitionGroupIds: new Map(),
       errors,
     };
 
