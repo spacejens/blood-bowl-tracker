@@ -3,6 +3,9 @@ import { Module } from '@nestjs/common';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
+import { DiffHunkMembershipService } from './post-deferred-findings/diff-hunk-membership.service';
+import { PostDeferredFindingsService } from './post-deferred-findings/post-deferred-findings.service';
+import { PostDeferredFindingsArgsService } from './post-deferred-findings/post-deferred-findings-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { ChildProcessService } from './shared/child-process.service';
 import { GitRootsService } from './shared/git-roots.service';
@@ -17,6 +20,9 @@ import { WriteFileService } from './write-file/write-file.service';
     ProcessRunnerService,
     GitRootsService,
     CheckMainStrayService,
+    DiffHunkMembershipService,
+    PostDeferredFindingsService,
+    PostDeferredFindingsArgsService,
     SyncGitignoredService,
     CheckDriftService,
     WriteFileService,
