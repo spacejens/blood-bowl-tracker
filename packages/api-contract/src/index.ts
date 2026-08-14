@@ -13,3 +13,4 @@ export * from './schemas/race';
 export * from './schemas/rules-set';
 export * from './schemas/spp-award-value';
 export * from './schemas/team';
+export * from './schemas/trophy';

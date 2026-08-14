@@ -122,6 +122,11 @@ describe('contract', () => {
     }
   });
 
+  it('defines trophies.upsert with no upsertBatch', () => {
+    expect(contract.trophies).toHaveProperty('upsert');
+    expect(contract.trophies).not.toHaveProperty('upsertBatch');
+  });
+
   it('defines coaches.upsertBatch with no declared errors', () => {
     expect(errorCodesOf(contract.coaches.upsertBatch)).toEqual([]);
   });
