@@ -10,7 +10,10 @@ import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
 import { PostDeferredFindingsService } from './post-deferred-findings/post-deferred-findings.service';
-import { PostDeferredFindingsArgsService } from './post-deferred-findings/post-deferred-findings-args.service';
+import {
+  POST_DEFERRED_FINDINGS_USAGE,
+  PostDeferredFindingsArgsService,
+} from './post-deferred-findings/post-deferred-findings-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
@@ -46,10 +49,6 @@ const CHECK_PRODUCTION_CONFIG_PORT_USAGE =
 
 const START_PRODUCTION_TUNNEL_USAGE =
   'Usage: node dist/main.js start-production-tunnel <local-port> <remote-port>';
-
-const POST_DEFERRED_FINDINGS_USAGE =
-  'Usage: node dist/main.js post-deferred-findings <pr-number> ' +
-  '(a JSON array of {file, line, body} findings is read from stdin)';
 
 /** Arguments for `write-file`; absent for every other subcommand. */
 interface WriteFileInput {

@@ -359,7 +359,10 @@ describe('PostDeferredFindingsService', () => {
       findings: [FINDING],
     });
 
-    expect(result.posted).toEqual([
+    // toStrictEqual, not toEqual: toEqual treats a missing key and an
+    // explicit `url: undefined` as equal, so it would not catch a
+    // regression away from the intended omit-the-key behavior.
+    expect(result.posted).toStrictEqual([
       { file: 'src/foo.ts', line: 42, mode: 'inline' },
     ]);
   });

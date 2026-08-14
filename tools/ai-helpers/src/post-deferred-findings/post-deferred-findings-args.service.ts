@@ -5,7 +5,8 @@ import {
   PostDeferredFindingsInput,
 } from './post-deferred-findings.service';
 
-const POST_DEFERRED_FINDINGS_USAGE =
+/** Shared with `main.ts`'s pre-Nest stdin gate, so both failure paths report identical wording. */
+export const POST_DEFERRED_FINDINGS_USAGE =
   'Usage: node dist/main.js post-deferred-findings <pr-number> ' +
   '(a JSON array of {file, line, body} findings is read from stdin)';
 
