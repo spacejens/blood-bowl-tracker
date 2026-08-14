@@ -53,4 +53,36 @@ describe('curated data files', () => {
       });
     }
   });
+
+  it('curates all 16 competition groups against a real league', () => {
+    const data = readPhase('before-other-importers');
+    const leagueIds = new Set(
+      data.leagues.flatMap((league) =>
+        league.externalIds.map((ref) => `${ref.system}|${ref.id}`),
+      ),
+    );
+
+    expect(data.competitionGroups).toHaveLength(16);
+    expect(data.competitionGroups.map((group) => group.name)).toEqual([
+      'Major Season',
+      'Minor Season',
+      'Chaos Cup',
+      'Cabal Vision Cup',
+      'Korpen',
+      'Stunty Leeg',
+      'Fright Night',
+      'Snöbollskrieg',
+      'Moot Mania',
+      'Champion of tLoEG',
+      'NAA',
+      'Blitzmania!',
+      'Ogretoberfest',
+      'Dungeon Bowl',
+      'Reserves Rumble',
+      'GBBL',
+    ]);
+    for (const group of data.competitionGroups) {
+      expect(leagueIds).toContain(`${group.league.system}|${group.league.id}`);
+    }
+  });
 });
