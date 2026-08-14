@@ -20,7 +20,11 @@ export const POST_DEFERRED_FINDINGS_USAGE =
 export class PostDeferredFindingsArgsService {
   parse(argv: readonly string[], stdin: string): PostDeferredFindingsInput {
     const prNumber = argv[3];
-    if (prNumber === undefined || !/^[1-9]\d*$/.test(prNumber)) {
+    if (
+      argv.length !== 4 ||
+      prNumber === undefined ||
+      !/^[1-9]\d*$/.test(prNumber)
+    ) {
       throw new Error(POST_DEFERRED_FINDINGS_USAGE);
     }
 

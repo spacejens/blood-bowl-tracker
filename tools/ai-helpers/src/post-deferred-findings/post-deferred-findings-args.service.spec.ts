@@ -58,6 +58,12 @@ describe('PostDeferredFindingsArgsService', () => {
     },
   );
 
+  it('rejects an unexpected extra positional argument after the PR number', () => {
+    expect(() => service.parse(argv('392', 'unexpected'), '[]')).toThrow(
+      /Usage:/,
+    );
+  });
+
   it('rejects empty stdin', () => {
     expect(() => service.parse(argv('392'), '')).toThrow(
       /Usage:.*\(bad JSON\)/s,
