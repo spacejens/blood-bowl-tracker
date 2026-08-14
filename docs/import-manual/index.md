@@ -104,9 +104,11 @@ An entry only has to supply the fields it actually changes. Every
 `Upsert<Entity>` API schema overlays: a field the entry omits is left exactly
 as the database has it, so a rename-only entry carries just `name` and the
 `externalIds` that match the existing row — no redeclaring the entity's era,
-league or race purely to have something to reference. `externalIds` is the one
-always-required field, since it is how the row is matched (or, failing that,
-created). A field written as explicit `null` is different from an omitted one:
+league or race purely to have something to reference. `externalIds` is how the
+row is matched (or, failing that, created) — the one always-required field,
+except for a trophy with no external id yet, which is matched by exact `name`
+instead (see the Trophies subsection below). A field written as explicit
+`null` is different from an omitted one:
 it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
 
 If an entry's `externalIds` match no existing row, the API creates one — and
