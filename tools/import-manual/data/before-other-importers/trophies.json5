@@ -32,19 +32,19 @@
     // Team trophies
     // ---------------------------------------------------------------
     {
-      name: 'Major 1st',
+      name: 'Major Gold',
       recipientKind: 'team',
       description: 'Major season winner.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 1st' }],
     },
     {
-      name: 'Major 2nd',
+      name: 'Major Silver',
       recipientKind: 'team',
       description: 'Major season runner-up.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 2nd' }],
     },
     {
-      name: 'Major 3rd',
+      name: 'Major Bronze',
       recipientKind: 'team',
       description: 'Major season third place.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 3rd' }],
@@ -69,7 +69,7 @@
     {
       // BBL has no Minor 2nd/3rd/Wooden Spoon/Best Stunty -- confirmed absent
       // from the complete 16-entry team legend on `p=tt`.
-      name: 'Minor 1st',
+      name: 'Minor',
       recipientKind: 'team',
       description: 'Minor season winner.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Minor 1st' }],
@@ -94,7 +94,7 @@
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
     },
     {
-      name: 'Stunty Leeg Winners',
+      name: 'Stunty Leeg',
       recipientKind: 'team',
       description:
         'Stunty Leeg winner, decided in a four-player deathmatch. Stunty Leeg division teams only.',
