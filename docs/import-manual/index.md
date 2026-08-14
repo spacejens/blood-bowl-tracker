@@ -197,9 +197,9 @@ otherwise-universal `externalIds.min(1)` rule (see `## Data files` above):
 when a trophy's `externalIds` is empty, the API matches it on its exact
 `name` instead, so re-running the import never duplicates it. This is used
 for the one trophy — `Ogretoberfest` — with no stable external id to key on:
-TP's `awardType` codes are not globally unique per trophy and resolving them
-needs a competition-classification concept that does not exist yet (issues
-#445 and #446), so it cannot yet be keyed the normal way.
+TP's `awardType` codes are not globally unique per trophy and resolving
+them needs a competition-classification concept that does not exist yet
+(issues #445 and #446), so it cannot yet be keyed the normal way.
 
 ## Known before-other-importers dedup files
 
