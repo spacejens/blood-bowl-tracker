@@ -104,4 +104,25 @@ describe('ManualDataReader', () => {
 
     expect(data.competitions.map((c) => c.name)).toEqual(['A', 'B']);
   });
+
+  it('pools the trophies section across files', async () => {
+    write(
+      'a.json5',
+      `{ trophies: [{ name: 'Chaos Cup', recipientKind: 'team',
+         externalIds: [{ system: 'Name', id: 'name:chaos-cup' }] }] }`,
+    );
+    write(
+      'b.json5',
+      `{ trophies: [{ name: 'Season MVP', recipientKind: 'player',
+         externalIds: [{ system: 'Name', id: 'name:season-mvp' }] }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.trophies).toHaveLength(2);
+    expect(data.trophies.map((t) => t.name)).toEqual([
+      'Chaos Cup',
+      'Season MVP',
+    ]);
+  });
 });

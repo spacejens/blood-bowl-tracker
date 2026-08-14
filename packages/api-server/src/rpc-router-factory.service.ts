@@ -26,6 +26,8 @@ import {
   SppAwardValuesService,
   TeamsService,
   TeamUpsertConflictError,
+  TrophiesService,
+  TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import { implement } from '@orpc/server';
@@ -56,6 +58,7 @@ export class RpcRouterFactoryService {
     private readonly matchOutcomes: MatchOutcomesService,
     private readonly playersService: PlayersService,
     private readonly matchEventsService: MatchEventsService,
+    private readonly trophiesService: TrophiesService,
     private readonly upsertHandler: UpsertHandlerService,
   ) {}
 
@@ -343,6 +346,22 @@ export class RpcRouterFactoryService {
                 const { team, created } = await this.teamsService.upsert(item);
                 return { entity: team, created };
               }),
+            ),
+        ),
+      },
+      trophies: {
+        // Only `upsert`: the contract defines no `upsertBatch` for trophies
+        // (29 curated rows, imported one at a time by tools/import-manual).
+        upsert: implement(contract.trophies.upsert).handler(
+          ({ input, errors }) =>
+            this.upsertHandler.run(
+              errors,
+              TrophyUpsertConflictError,
+              async () => {
+                const { trophy, created } =
+                  await this.trophiesService.upsert(input);
+                return { entity: trophy, created };
+              },
             ),
         ),
       },

@@ -28,3 +28,6 @@ export * from './spp-award-values';
 export * from './team-eras';
 export * from './team-external-ids';
 export * from './teams';
+export * from './trophies';
+export * from './trophy-awards';
+export * from './trophy-external-ids';

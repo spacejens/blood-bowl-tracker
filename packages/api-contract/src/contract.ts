@@ -42,6 +42,7 @@ import {
   SyncSppAwardValuesSchema,
 } from './schemas/spp-award-value';
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
+import { TrophySchema, UpsertTrophySchema } from './schemas/trophy';
 import {
   upsertProcedure,
   upsertProcedureWithoutConflict,
@@ -127,6 +128,12 @@ export const contract = {
   teams: {
     upsert: upsertProcedure(UpsertTeamSchema, TeamSchema),
     upsertBatch: batchUpsertProcedure(UpsertTeamSchema, TeamSchema),
+  },
+  trophies: {
+    // Deliberately no `upsertBatch`: the only caller is tools/import-manual
+    // with 29 curated rows, so batching saves nothing. Same reasoning as
+    // `sppAwardValues`, which likewise defines a non-standard router.
+    upsert: upsertProcedure(UpsertTrophySchema, TrophySchema),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched

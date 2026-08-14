@@ -119,6 +119,7 @@ describe('createApiClient', () => {
       'rulesSets',
       'sppAwardValues',
       'teams',
+      'trophies',
     ]);
   });
 

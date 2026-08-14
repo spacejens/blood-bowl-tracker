@@ -149,22 +149,22 @@ occurrences.
 
 The vocabulary, taken from a survey of every mirrored match-detail page:
 
-| Segment text | Meaning |
-| --- | --- |
-| `fans / random event` | unidentified participant, kind `fans_or_random_event` |
-| `mercenary / fans / random event` | unidentified participant, kind `mercenary_or_fans_or_random_event` |
-| `mercenary / star` | unidentified participant, kind `mercenary_or_star` |
-| `journeyman` | unidentified participant, kind `journeyman` |
-| `mercenary` | unidentified participant, kind `mercenary` |
-| `victim healed by apoth` | casualty prevented by an apothecary (consequence rows only) |
-| `victim regenerated` | casualty prevented by regeneration (consequence rows only) |
-| `foul` | a casualty caused by a foul whose fouler BBL does not identify (casualty action rows only) — the same construct as `foul by <player link>`, minus the link |
-| `Extra shoot-out TD after tied overtime` | a known note, deliberately not an occurrence and not an error |
+| Segment text                             | Meaning                                                                                                                                                    |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fans / random event`                    | unidentified participant, kind `fans_or_random_event`                                                                                                      |
+| `mercenary / fans / random event`        | unidentified participant, kind `mercenary_or_fans_or_random_event`                                                                                         |
+| `mercenary / star`                       | unidentified participant, kind `mercenary_or_star`                                                                                                         |
+| `journeyman`                             | unidentified participant, kind `journeyman`                                                                                                                |
+| `mercenary`                              | unidentified participant, kind `mercenary`                                                                                                                 |
+| `victim healed by apoth`                 | casualty prevented by an apothecary (consequence rows only)                                                                                                |
+| `victim regenerated`                     | casualty prevented by regeneration (consequence rows only)                                                                                                 |
+| `foul`                                   | a casualty caused by a foul whose fouler BBL does not identify (casualty action rows only) — the same construct as `foul by <player link>`, minus the link |
+| `Extra shoot-out TD after tied overtime` | a known note, deliberately not an occurrence and not an error                                                                                              |
 
 BBL's own ambiguity is preserved rather than resolved: `mercenary / star`
 becomes one value meaning "a mercenary or a star player, the source does not
 say which". A journeyman or mercenary is a real player BBL merely does not
-index, which is why the stored field is called *unidentified* participant kind
+index, which is why the stored field is called _unidentified_ participant kind
 rather than "non-player".
 
 `Extra shoot-out TD after tied overtime` is ignored rather than treated as an
@@ -255,3 +255,68 @@ strict superset of the races `tm` pages reveal: a race no longer offered by the
 league can be dropped from it while still attached to old/retired team pages
 (id `22` in the reference dataset), so the races import treats `tm` pages as
 authoritative and uses `tl` only to fill in races with no team page.
+
+Note on `tt`/`ppr` pages: `default.asp?p=tt` (no further params) is the single
+team-trophy legend page; `default.asp?p=ppr` (no further params) is the single
+player-trophy legend page. Each exists exactly once in the mirror. Together
+they are BBL's complete, authoritative trophy catalog: 16 team-trophy icons on
+`p=tt` and 12 player-trophy icons on `p=ppr`, 28 in total, confirmed by reading
+both pages directly. Each legend entry pairs a `gfx/prizeN.gif` icon with a
+trophy label and a Swedish description. The icon-to-trophy mapping, read
+straight off the two pages:
+
+| `gfx/prizeN.gif`  | Trophy label        |
+| ----------------- | ------------------- |
+| `gfx/prize1.gif`  | Major 1st           |
+| `gfx/prize2.gif`  | Major 2nd           |
+| `gfx/prize3.gif`  | Major 3rd           |
+| `gfx/prize7.gif`  | Chaos Cup           |
+| `gfx/prize8.gif`  | Major Wooden Spoon  |
+| `gfx/prize17.gif` | Stunty Leeg Winners |
+| `gfx/prize26.gif` | Fright Night        |
+| `gfx/prize27.gif` | Snöbollskrieg       |
+| `gfx/prize28.gif` | Moot Mania          |
+| `gfx/prize29.gif` | Korpen              |
+| `gfx/prize31.gif` | Major Best Stunty   |
+| `gfx/prize35.gif` | Champion of tLoEG   |
+| `gfx/prize36.gif` | NAA                 |
+| `gfx/prize38.gif` | Blitzmania!         |
+| `gfx/prize40.gif` | Cabal Vision Cup    |
+| `gfx/prize41.gif` | Minor 1st           |
+| `gfx/prize15.gif` | Season MVP          |
+| `gfx/prize19.gif` | Most Violent Player |
+| `gfx/prize20.gif` | Deadliest Player    |
+| `gfx/prize21.gif` | Most SPP            |
+| `gfx/prize22.gif` | Top Intercepter     |
+| `gfx/prize23.gif` | Top Scorer          |
+| `gfx/prize24.gif` | Top Thrower         |
+| `gfx/prize25.gif` | Bierhallenführer    |
+| `gfx/prize32.gif` | Gudarnas Förkämpe   |
+| `gfx/prize33.gif` | Legendary Player    |
+| `gfx/prize37.gif` | Trogen Tjänst       |
+| `gfx/prize39.gif` | Top Fouler          |
+
+Every distinct `prizeN.gif` found anywhere else in the mirror also appears in
+one of these two legend pages — a full sweep of every mirrored file finds the
+same 28 numbers as the union of the `p=tt` and `p=ppr` sets, with no extras —
+so the pair is exhaustive: nothing in the mirror uses a prize icon that isn't
+legended on one of these two pages. The label text on `p=tt`/`p=ppr` is
+self-disambiguating (e.g. `Major 1st` vs. `Minor 1st`), which is why the
+curated catalog keys BBL trophies by the exact label text itself (no prefix,
+matching every other curated-data file and every real BBL importer) — cross-reference
+`tools/import-manual/data/before-other-importers/trophies.json5`.
+
+Ogretoberfest nuance: BBL tracks Ogretoberfest only as a player trophy
+(`Bierhallenführer`); there is no BBL team trophy for it, so the curated
+catalog's `Ogretoberfest` team trophy is TP-only and carries no BBL external
+id. Relatedly, "der Große Rotzführer" — a Snotling-track equivalent mentioned
+in one Ogretoberfest instance's rules text — is absent from the `p=ppr`
+legend and is deliberately not seeded as a trophy.
+
+This pair of legend pages is the trophy _catalog_; it says nothing about who
+actually won a trophy. That is the job of the `sr` page's "Team trophy" table
+described above (`Note on the sr page's "Team trophy" table:`), whose
+currently-discarded non-placement rows (e.g. `Cabal Vision Cup`) and the
+entirely-ignored "Player prize" table are exactly the data a future
+`trophy_awards` importer will consume — see
+`tools/import-bbl/src/matches/competition-trophy-page-parser.ts`.
