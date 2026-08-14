@@ -24,6 +24,9 @@ import {
   sppAwardValues,
   teamEras,
   teams,
+  trophies,
+  trophyAwards,
+  trophyExternalIds,
 } from './index';
 
 describe('schema', () => {
@@ -254,5 +257,31 @@ describe('schema', () => {
     // baseline rows (both race_id NULL) could coexist for one rules set and
     // action type, and onConflictDoUpdate could never match a baseline row.
     expect(unique.nullsNotDistinct).toBe(true);
+  });
+
+  it('exports trophies table with recipient kind and nullable description', () => {
+    expect(trophies.id).toBeDefined();
+    expect(trophies.name).toBeDefined();
+    expect(trophies.recipientKind).toBeDefined();
+    expect(trophies.description).toBeDefined();
+    expect(trophies.recipientKind.notNull).toBe(true);
+    expect(trophies.description.notNull).toBe(false);
+  });
+
+  it('exports trophyExternalIds keyed on trophyId', () => {
+    expect(trophyExternalIds.id).toBeDefined();
+    expect(trophyExternalIds.trophyId).toBeDefined();
+    expect(trophyExternalIds.externalSystemId).toBeDefined();
+    expect(trophyExternalIds.externalId).toBeDefined();
+  });
+
+  it('exports trophyAwards link table with a nullable playerId', () => {
+    expect(trophyAwards.id).toBeDefined();
+    expect(trophyAwards.trophyId).toBeDefined();
+    expect(trophyAwards.competitionId).toBeDefined();
+    expect(trophyAwards.teamEraId).toBeDefined();
+    expect(trophyAwards.playerId).toBeDefined();
+    expect(trophyAwards.teamEraId.notNull).toBe(true);
+    expect(trophyAwards.playerId.notNull).toBe(false);
   });
 });
