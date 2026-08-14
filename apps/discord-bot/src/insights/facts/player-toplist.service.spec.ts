@@ -4,7 +4,7 @@ import {
   PlayersService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -40,9 +40,25 @@ async function makeService(
   return { service: moduleRef.get(PlayerToplistService), leaderboard };
 }
 
+type PlayerCountMethod =
+  | 'countMvpAwardsByPlayer'
+  | 'countTouchdownsScoredByPlayer'
+  | 'countCompletionsByPlayer'
+  | 'countInterceptionsByPlayer'
+  | 'countDeflectionsByPlayer'
+  | 'countCasualtiesCausedByPlayer'
+  | 'countSeriousInjuriesCausedByPlayer'
+  | 'countDeathsCausedByPlayer'
+  | 'countFoulsCommittedByPlayer'
+  | 'countTimesSentOffByPlayer'
+  | 'countCasualtiesSufferedByPlayer'
+  | 'countSeriousInjuriesSufferedByPlayer'
+  | 'countLastingInjuriesSufferedByPlayer'
+  | 'topPlayersByTotalSpp';
+
 interface PlayerCase {
   describeName: string;
-  method: keyof PlayersService;
+  method: PlayerCountMethod;
   resolve: (
     service: PlayerToplistService,
     scope: FactScope,
@@ -211,9 +227,8 @@ describe.each(cases)(
     // PlayerToplistService itself owns: the embed title it configures, and the
     // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(players);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -231,8 +246,9 @@ describe.each(cases)(
     });
 
     it('passes the era id through to the query', async () => {
-      const queryFn = vi.fn().mockResolvedValue(eraRows);
-      const players = { [method]: queryFn } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      const queryFn = players[method];
+      queryFn.mockResolvedValue(eraRows);
       const { service, leaderboard } = await makeService(players);
       leaderboard.resolveToplist.mockImplementation(async (options) => {
         await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -244,8 +260,9 @@ describe.each(cases)(
 
     if (competitionRows) {
       it('passes the competition id through to the query', async () => {
-        const queryFn = vi.fn().mockResolvedValue(competitionRows);
-        const players = { [method]: queryFn } as unknown as PlayersService;
+        const players = mock<PlayersService>();
+        const queryFn = players[method];
+        queryFn.mockResolvedValue(competitionRows);
         const { service, leaderboard } = await makeService(players);
         leaderboard.resolveToplist.mockImplementation(async (options) => {
           await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -260,9 +277,8 @@ describe.each(cases)(
     }
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(players);
       leaderboard.resolveToplist.mockResolvedValueOnce(
         PLAYER_TOPLIST_TIMEOUT_MESSAGE,
@@ -277,9 +293,8 @@ describe.each(cases)(
     });
 
     it('decorates every fetched row with position, team, race, era and coach when the toplist is not era-scoped', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(rows);
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (decorated)' })),
@@ -312,9 +327,8 @@ describe.each(cases)(
     });
 
     it('leaves the era out of the row context when the toplist is era-scoped', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(eraRows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(eraRows);
       const playerContext = mock<PlayerContextService>();
       playerContext.attachSuffixes.mockResolvedValue(
         eraRows.map((row) => ({ ...row, contextSuffix: '' })),
@@ -339,9 +353,8 @@ describe.each(cases)(
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(players);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
@@ -361,9 +374,8 @@ describe.each(cases)(
     });
 
     it('renders a row with no known context without stray parentheses', async () => {
-      const players = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as PlayersService;
+      const players = mock<PlayersService>();
+      players[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(players);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
