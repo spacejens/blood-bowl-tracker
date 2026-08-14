@@ -5,7 +5,7 @@ import {
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { ComponentType } from 'discord.js';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -65,9 +65,8 @@ async function makeService(
   rows: EraRow[],
   entityComponents?: MockProxy<EntityComponentsService>,
 ): Promise<ErasListService> {
-  const eras = {
-    listErasWithLeague: vi.fn().mockResolvedValue(rows),
-  } as unknown as ErasService;
+  const eras = mock<ErasService>();
+  eras.listErasWithLeague.mockResolvedValue(rows);
   return makeServiceFromEras(eras, entityComponents);
 }
 
@@ -325,10 +324,11 @@ describe('ErasListService.resolve', () => {
     await expectTimeoutFallback(
       async (eras: ErasService) =>
         (await makeServiceFromEras(eras)).resolve(FACT_SCOPE_ALL_TIME),
-      () =>
-        ({
-          listErasWithLeague: vi.fn().mockReturnValue(new Promise(() => {})),
-        }) as unknown as ErasService,
+      () => {
+        const eras = mock<ErasService>();
+        eras.listErasWithLeague.mockReturnValue(new Promise(() => {}));
+        return eras;
+      },
       ERAS_LIST_TIMEOUT_MESSAGE,
     );
   });
@@ -406,11 +406,11 @@ describe('ErasListService.resolve', () => {
   });
 
   it('passes the league scope through to the query', async () => {
-    const listErasWithLeague = vi.fn().mockResolvedValue([]);
-    const eras = { listErasWithLeague } as unknown as ErasService;
+    const eras = mock<ErasService>();
+    eras.listErasWithLeague.mockResolvedValue([]);
     const service = await makeServiceFromEras(eras);
     const scope: FactScope = { leagueId: 7 };
     await service.resolve(scope);
-    expect(listErasWithLeague).toHaveBeenCalledWith(scope);
+    expect(eras.listErasWithLeague).toHaveBeenCalledWith(scope);
   });
 });

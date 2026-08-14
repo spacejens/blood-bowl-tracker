@@ -11,6 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import { type EraConfig, EraConfigService } from '../eras/era-config.service';
+import { mockBblSourceReaderByType } from '../shared/bbl-source-reader-mock.test-helpers';
 import { UpsertFieldNarrowingService } from '../shared/upsert-field-narrowing.service';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
@@ -63,18 +64,6 @@ function plPage(player: BblPlayer | null, pid = '388'): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-function makeReader(pl: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages(type: string) {
-      const list = type === 'pl' ? pl : [];
-      for (const p of list) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 const team: UpsertTeam = {
@@ -231,7 +220,7 @@ const goodPlayer: BblPlayer = {
 describe('BblPlayersImportService', () => {
   it('imports a resolvable player and maps its pid to the DB id', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
 
     const { playerIdsByPid, positionsUsedByEra, racesActiveByEra } =
@@ -268,7 +257,7 @@ describe('BblPlayersImportService', () => {
 
   it('resolves the era via playerIdOverrides when the pid is outside every range', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Second', rulesSets: ['X'] },
@@ -313,7 +302,7 @@ describe('BblPlayersImportService', () => {
       ['Second', 600],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'LRB', rulesSets: ['X'] },
@@ -360,7 +349,7 @@ describe('BblPlayersImportService', () => {
       ['Stunty', 600],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Regular', rulesSets: ['X'] },
@@ -411,7 +400,7 @@ describe('BblPlayersImportService', () => {
       ['GBBL 1', 700],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           leagueName: 'tLoEG',
@@ -465,7 +454,7 @@ describe('BblPlayersImportService', () => {
       ['Team Era', 600],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Pid Era', rulesSets: ['X'] },
@@ -516,7 +505,7 @@ describe('BblPlayersImportService', () => {
       ['Side', 500],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Main', rulesSets: ['LRB'] },
@@ -570,7 +559,7 @@ describe('BblPlayersImportService', () => {
       ['Enabled', 500],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Disabled', rulesSets: ['X'] },
@@ -618,7 +607,7 @@ describe('BblPlayersImportService', () => {
     // still resolve to it — the flag only affects the pid-range fallback.
     const overrideEraIds = new Map<string, number>([['Pinned', 500]]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Pinned', rulesSets: ['X'] },
@@ -650,7 +639,7 @@ describe('BblPlayersImportService', () => {
 
   it('matches a pid >= firstPlayerId against an era with no lastPlayerId (still ongoing, no upper bound)', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'LRB', rulesSets: ['X'] },
@@ -673,7 +662,7 @@ describe('BblPlayersImportService', () => {
 
   it('skips and records an error when no era range contains the pid', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'LRB', rulesSets: ['X'] },
@@ -702,7 +691,9 @@ describe('BblPlayersImportService', () => {
 
   it('skips and records an error when the team code is unknown', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
+      mockBblSourceReaderByType({
+        pl: [plPage({ ...goodPlayer, teamCode: 'zzz' })],
+      }),
     );
 
     await service.importPlayers({
@@ -720,7 +711,9 @@ describe('BblPlayersImportService', () => {
 
   it('skips and records an error when no position matches the composite key', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage({ ...goodPlayer, typId: '99' })]),
+      mockBblSourceReaderByType({
+        pl: [plPage({ ...goodPlayer, typId: '99' })],
+      }),
     );
 
     await service.importPlayers({
@@ -737,7 +730,7 @@ describe('BblPlayersImportService', () => {
 
   it('records an error and returns early when external systems fail', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
     mocks.bootstrap.bootstrap.mockResolvedValue({
       ok: false,
@@ -769,7 +762,7 @@ describe('BblPlayersImportService', () => {
 
   it('records an error and skips players the parser cannot read', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(null, '388')]),
+      mockBblSourceReaderByType({ pl: [plPage(null, '388')] }),
     );
 
     await service.importPlayers({
@@ -796,7 +789,7 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
     };
     const { service, mocks } = await makeService(
-      makeReader([plPage(namelessPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(namelessPlayer)] }),
     );
 
     const { playerIdsByPid } = await service.importPlayers({
@@ -821,7 +814,7 @@ describe('BblPlayersImportService', () => {
 
   it('skips and records an error when the pid-matched era was not imported', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
       [
         {
           identity: { name: 'Unimported Era', rulesSets: ['X'] },
@@ -851,7 +844,7 @@ describe('BblPlayersImportService', () => {
 
   it('skips without recording its own error when the team upsert fails', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(undefined);
 
@@ -868,7 +861,7 @@ describe('BblPlayersImportService', () => {
 
   it('skips and records an error when the upserted team has no matching era', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
     mocks.teamsImport.upsertTeam.mockResolvedValue(
       makeTeamRecord([{ id: 5000, eraId: 999 }]),
@@ -893,7 +886,7 @@ describe('BblPlayersImportService', () => {
       ['knu', unmappedRaceTeam],
     ]);
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
 
     await service.importPlayers({
@@ -912,7 +905,7 @@ describe('BblPlayersImportService', () => {
 
   it('does not count or map the player when the upsert reports failure', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
     mocks.playersImport.upsertPlayerResult.mockResolvedValue(undefined);
 
@@ -930,7 +923,9 @@ describe('BblPlayersImportService', () => {
 
   it('contributes no usage keys for a skipped or errored player', async () => {
     const { service } = await makeService(
-      makeReader([plPage({ ...goodPlayer, teamCode: 'zzz' })]),
+      mockBblSourceReaderByType({
+        pl: [plPage({ ...goodPlayer, teamCode: 'zzz' })],
+      }),
     );
 
     const { positionsUsedByEra, racesActiveByEra } =
@@ -946,7 +941,9 @@ describe('BblPlayersImportService', () => {
   });
 
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
-    const { service } = await makeService(makeReader([plPage(goodPlayer)]));
+    const { service } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+    );
 
     const { result } = await service.importPlayers({
       teamsByCode,
@@ -970,10 +967,9 @@ describe('BblPlayersImportService', () => {
       sppTotal: null,
     };
     const { service, mocks } = await makeService(
-      makeReader([
-        plPage(playerWithTotal, '42'),
-        plPage(playerWithoutTotal, '43'),
-      ]),
+      mockBblSourceReaderByType({
+        pl: [plPage(playerWithTotal, '42'), plPage(playerWithoutTotal, '43')],
+      }),
     );
     mocks.playersImport.upsertPlayerResult
       .mockResolvedValueOnce({ id: 101 })
@@ -996,7 +992,7 @@ describe('BblPlayersImportService', () => {
 
   it('omits a player whose upsert failed from the scraped totals', async () => {
     const { service, mocks } = await makeService(
-      makeReader([plPage(goodPlayer)]),
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
     );
     mocks.playersImport.upsertPlayerResult.mockResolvedValue(undefined);
 

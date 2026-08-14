@@ -4,7 +4,7 @@ import {
   TeamsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -44,9 +44,30 @@ async function makeService(
   };
 }
 
+type TeamCountMethod =
+  | 'countMatchesPlayedByTeam'
+  | 'countMatchesWonByTeam'
+  | 'countMatchesLostByTeam'
+  | 'countMatchesDrawnByTeam'
+  | 'countCompetitionsByTeam'
+  | 'countErasByTeam'
+  | 'countTouchdownsScoredByTeam'
+  | 'countCompletionsByTeam'
+  | 'countInterceptionsByTeam'
+  | 'countDeflectionsByTeam'
+  | 'countCasualtiesCausedByTeam'
+  | 'countSeriousInjuriesCausedByTeam'
+  | 'countDeathsCausedByTeam'
+  | 'countFoulsCommittedByTeam'
+  | 'countTimesSentOffByTeam'
+  | 'countCasualtiesSufferedByTeam'
+  | 'countSeriousInjuriesSufferedByTeam'
+  | 'countLastingInjuriesSufferedByTeam'
+  | 'countDeathsSufferedByTeam';
+
 interface TeamCase {
   describeName: string;
-  method: keyof TeamsService;
+  method: TeamCountMethod;
   resolve: (service: TeamToplistService, scope?: FactScope) => Promise<unknown>;
   rows: { teamId: number; name: string; count: number }[];
   eraRows?: { teamId: number; name: string; count: number }[];
@@ -256,9 +277,8 @@ describe.each(cases)(
     // TeamToplistService itself owns: the embed title it configures, and the
     // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const teams = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as TeamsService;
+      const teams = mock<TeamsService>();
+      teams[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(teams);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -277,8 +297,9 @@ describe.each(cases)(
 
     if (eraRows) {
       it('passes the era id through to the query', async () => {
-        const queryFn = vi.fn().mockResolvedValue(eraRows);
-        const teams = { [method]: queryFn } as unknown as TeamsService;
+        const teams = mock<TeamsService>();
+        const queryFn = teams[method];
+        queryFn.mockResolvedValue(eraRows);
         const teamContext = mock<TeamContextService>();
         teamContext.attachSuffixes.mockResolvedValue(
           eraRows.map((row) => ({ ...row, contextSuffix: '' })),
@@ -298,8 +319,9 @@ describe.each(cases)(
 
     if (competitionRows) {
       it('passes the competition id through to the query', async () => {
-        const queryFn = vi.fn().mockResolvedValue(competitionRows);
-        const teams = { [method]: queryFn } as unknown as TeamsService;
+        const teams = mock<TeamsService>();
+        const queryFn = teams[method];
+        queryFn.mockResolvedValue(competitionRows);
         const teamContext = mock<TeamContextService>();
         teamContext.attachSuffixes.mockResolvedValue(
           competitionRows.map((row) => ({ ...row, contextSuffix: '' })),
@@ -318,9 +340,8 @@ describe.each(cases)(
     }
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const teams = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as TeamsService;
+      const teams = mock<TeamsService>();
+      teams[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(teams);
       leaderboard.resolveToplist.mockResolvedValueOnce(
         TEAM_TOPLIST_TIMEOUT_MESSAGE,
@@ -335,9 +356,8 @@ describe.each(cases)(
     });
 
     it('decorates every fetched row with both race and coach context', async () => {
-      const teams = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as TeamsService;
+      const teams = mock<TeamsService>();
+      teams[method].mockResolvedValue(rows);
       const teamContext = mock<TeamContextService>();
       teamContext.attachSuffixes.mockResolvedValue(
         rows.map((row) => ({ ...row, contextSuffix: ' (Orc, Skarsnik)' })),
@@ -361,9 +381,8 @@ describe.each(cases)(
     });
 
     it('renders each row with its context suffix between the name and the count', async () => {
-      const teams = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as TeamsService;
+      const teams = mock<TeamsService>();
+      teams[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(teams);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
@@ -381,9 +400,8 @@ describe.each(cases)(
     });
 
     it('renders a row with no known context without stray parentheses', async () => {
-      const teams = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as TeamsService;
+      const teams = mock<TeamsService>();
+      teams[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(teams);
       leaderboard.resolveToplist.mockResolvedValueOnce('canned');
       await resolve(service, FACT_SCOPE_ALL_TIME);
@@ -400,8 +418,9 @@ describe.each(cases)(
 
 describe('TeamToplistService.resolveErasActive', () => {
   it('passes the fetch limit through to the query', async () => {
-    const queryFn = vi.fn().mockResolvedValue([]);
-    const teams = { countErasByTeam: queryFn } as unknown as TeamsService;
+    const teams = mock<TeamsService>();
+    const queryFn = teams.countErasByTeam;
+    queryFn.mockResolvedValue([]);
     const teamContext = mock<TeamContextService>();
     teamContext.attachSuffixes.mockResolvedValue([]);
     const { service, leaderboard } = await makeService(teams, teamContext);

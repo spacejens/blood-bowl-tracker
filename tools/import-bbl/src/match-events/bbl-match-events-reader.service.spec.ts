@@ -5,6 +5,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 
 import type { BblMatchEvents } from '../matches/match-events-page-parser';
 import { MatchEventsPageParser } from '../matches/match-events-page-parser';
+import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -18,17 +19,6 @@ function page(params: Record<string, string>): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-function makeReader(pages: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages() {
-      for (const p of pages) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 function makeParser(
@@ -88,7 +78,7 @@ const eventsOne: BblMatchEvents = {
 describe('BblMatchEventsReaderService', () => {
   it('keys parsed match events by bblId in a single pass', async () => {
     const { service } = await makeService({
-      reader: makeReader([page({ m: '100' })]),
+      reader: mockBblSourceReader([page({ m: '100' })]),
       parser: makeParser({ '100': eventsOne }),
     });
     const errors: ImportError[] = [];
@@ -100,7 +90,7 @@ describe('BblMatchEventsReaderService', () => {
   });
 
   it('memoizes: a second call does not re-read the source', async () => {
-    const reader = makeReader([page({ m: '100' })]);
+    const reader = mockBblSourceReader([page({ m: '100' })]);
     const pagesSpy = vi.spyOn(reader, 'pages');
     const { service } = await makeService({
       reader,
@@ -116,7 +106,7 @@ describe('BblMatchEventsReaderService', () => {
 
   it('skips pages the parser returns null for without recording an error', async () => {
     const { service } = await makeService({
-      reader: makeReader([page({ m: '100' }), page({ m: '101' })]),
+      reader: mockBblSourceReader([page({ m: '100' }), page({ m: '101' })]),
       parser: makeParser({ '100': eventsOne, '101': null }),
     });
     const errors: ImportError[] = [];
@@ -134,7 +124,7 @@ describe('BblMatchEventsReaderService', () => {
       throw new Error('bad m page');
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page({ m: '100' })]),
+      reader: mockBblSourceReader([page({ m: '100' })]),
       parser,
     });
     const errors: ImportError[] = [];
@@ -157,7 +147,7 @@ describe('BblMatchEventsReaderService', () => {
       throw 'boom';
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page({ m: '100' })]),
+      reader: mockBblSourceReader([page({ m: '100' })]),
       parser,
     });
     const errors: ImportError[] = [];

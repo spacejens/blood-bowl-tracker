@@ -4,7 +4,7 @@ import {
   RacesService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
@@ -40,9 +40,16 @@ interface RaceRow {
   count: number;
 }
 
+type RaceCountMethod =
+  | 'countTeamsByRace'
+  | 'countMatchesPlayedByRace'
+  | 'countMatchesWonByRace'
+  | 'countMatchesLostByRace'
+  | 'countMatchesDrawnByRace';
+
 interface RaceCase {
   describeName: string;
-  method: keyof RacesService;
+  method: RaceCountMethod;
   resolve: (service: RaceToplistService, scope: FactScope) => Promise<unknown>;
   rows: RaceRow[];
   eraRows: RaceRow[];
@@ -114,9 +121,8 @@ describe.each(cases)(
     // RaceToplistService itself owns: the embed title it configures, and the
     // per-row deepdive entityLink it configures.
     it('wires the embed title and per-row deepdive button id', async () => {
-      const races = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as RacesService;
+      const races = mock<RacesService>();
+      races[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(races);
       const canned = {
         embeds: [{ title: 'canned', description: 'canned' }],
@@ -134,8 +140,9 @@ describe.each(cases)(
     });
 
     it('passes the era id through to the query', async () => {
-      const queryFn = vi.fn().mockResolvedValue(eraRows);
-      const races = { [method]: queryFn } as unknown as RacesService;
+      const races = mock<RacesService>();
+      const queryFn = races[method];
+      queryFn.mockResolvedValue(eraRows);
       const { service, leaderboard } = await makeService(races);
       leaderboard.resolveToplist.mockImplementation(async (options) => {
         await options.fetchRows(TOPLIST_FETCH_LIMIT);
@@ -146,9 +153,8 @@ describe.each(cases)(
     });
 
     it('configures the toplist-specific timeout message and returns it verbatim on timeout', async () => {
-      const races = {
-        [method]: vi.fn().mockResolvedValue(rows),
-      } as unknown as RacesService;
+      const races = mock<RacesService>();
+      races[method].mockResolvedValue(rows);
       const { service, leaderboard } = await makeService(races);
       leaderboard.resolveToplist.mockResolvedValueOnce(
         RACE_TOPLIST_TIMEOUT_MESSAGE,

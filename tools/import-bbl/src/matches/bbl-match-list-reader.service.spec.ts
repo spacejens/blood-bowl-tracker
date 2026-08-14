@@ -3,6 +3,7 @@ import { Test } from '@nestjs/testing';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
+import { mockBblSourceReader } from '../shared/bbl-source-reader-mock.test-helpers';
 import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
@@ -18,17 +19,6 @@ function page(type: string, params: Record<string, string>): BblPage {
       throw new Error('load() should not be called in this test');
     },
   };
-}
-
-function makeReader(pages: BblPage[]): BblSourceReader {
-  return {
-    // eslint-disable-next-line @typescript-eslint/require-await
-    async *pages() {
-      for (const p of pages) {
-        yield p;
-      }
-    },
-  } as unknown as BblSourceReader;
 }
 
 function makeMatchParser(
@@ -83,7 +73,7 @@ describe('BblMatchListReaderService', () => {
   it('keys parsed matches by competition id, deduping the ma page by its s param', async () => {
     const parser = makeMatchParser({ '1': [matchOne] });
     const { service } = await makeService({
-      reader: makeReader([
+      reader: mockBblSourceReader([
         page('ma', { so: 's', s: '1' }),
         page('ma', { so: 's', s: '1', gr: '' }),
         page('ma', { so: 't', t: 'abc' }),
@@ -100,7 +90,7 @@ describe('BblMatchListReaderService', () => {
   });
 
   it('memoizes: a second call does not re-read the source', async () => {
-    const reader = makeReader([page('ma', { so: 's', s: '1' })]);
+    const reader = mockBblSourceReader([page('ma', { so: 's', s: '1' })]);
     const pagesSpy = vi.spyOn(reader, 'pages');
     const { service } = await makeService({
       reader,
@@ -120,7 +110,7 @@ describe('BblMatchListReaderService', () => {
       throw new Error('bad ma page');
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page('ma', { so: 's', s: '1' })]),
+      reader: mockBblSourceReader([page('ma', { so: 's', s: '1' })]),
       parser,
     });
     const errors: ImportError[] = [];
@@ -143,7 +133,7 @@ describe('BblMatchListReaderService', () => {
       throw 'boom';
     });
     const { service, pageParseError } = await makeService({
-      reader: makeReader([page('ma', { so: 's', s: '1' })]),
+      reader: mockBblSourceReader([page('ma', { so: 's', s: '1' })]),
       parser,
     });
     const errors: ImportError[] = [];
