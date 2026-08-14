@@ -192,14 +192,13 @@ set for competitions in issue #285: labels like `1st` are ambiguous across
 competition tiers, so identity is a curation decision rather than something
 inferred from label text alone.
 
-`externalIds` may be an empty list. This is the one exception to the
-otherwise-universal `externalIds.min(1)` rule (see `## Data files` above):
-when a trophy's `externalIds` is empty, the API matches it on its exact
-`name` instead, so re-running the import never duplicates it. This is used
-for the one trophy — `Ogretoberfest` — with no stable external id to key on:
-TP's `awardType` codes are not globally unique per trophy and resolving
-them needs a competition-classification concept that does not exist yet
-(issues #445 and #446), so it cannot yet be keyed the normal way.
+A trophy is the one entity that may declare no external id at all (see
+`## Data files` above for the otherwise-universal rule): it is then identified
+by its exact `name` instead, so re-running the import never duplicates it.
+This is used for the one trophy — `Ogretoberfest` — with no stable external id
+to key on yet: TP's `awardType` codes are not globally unique per trophy, and
+resolving them needs a competition-classification concept that does not exist
+yet (issues #445 and #446).
 
 ## Known before-other-importers dedup files
 
