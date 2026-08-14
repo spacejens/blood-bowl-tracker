@@ -48,6 +48,10 @@ describe('CompetitionsProcessor', () => {
   beforeEach(async () => {
     competitions = mock<CompetitionsImportService>();
     refResolver = mock<ReferenceResolverService>();
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionsProcessor,
@@ -197,5 +201,54 @@ describe('CompetitionsProcessor', () => {
     expect(
       ctx.idMap.resolve({ system: 'Name', id: 'name:doomed' }),
     ).toBeUndefined();
+  });
+
+  it('resolves the named competition group into the upsert payload', async () => {
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: true,
+      id: 4,
+    });
+    competitions.upsertCompetitionResult.mockResolvedValue({ id: 8 });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Major Season 12',
+        type: 'season',
+        era: { system: 'Name', id: 'name:first-era' },
+        externalIds: [],
+        competitionGroup: 'Major Season',
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    expect(await processor.process(ctx)).toBe(1);
+    expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: 4 }),
+      ctx.errors,
+    );
+  });
+
+  it('skips a competition whose competition group cannot be resolved', async () => {
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: false,
+    });
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Major Season 12',
+        type: 'season',
+        era: { system: 'Name', id: 'name:first-era' },
+        externalIds: [],
+        competitionGroup: 'Nonexistent',
+      },
+    ];
+
+    expect(
+      await processor.process(makeContext(data, new ExternalIdMap())),
+    ).toBe(0);
+    expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
   });
 });

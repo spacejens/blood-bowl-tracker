@@ -51,6 +51,10 @@ describe('TrophiesProcessor', () => {
   beforeEach(async () => {
     trophies = mock<TrophiesImportService>();
     refResolver = mock<ReferenceResolverService>();
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TrophiesProcessor,
@@ -175,5 +179,48 @@ describe('TrophiesProcessor', () => {
     );
 
     expect(count).toBe(2);
+  });
+
+  it('resolves the named competition group into the upsert payload', async () => {
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: true,
+      id: 4,
+    });
+    trophies.upsertTrophy.mockResolvedValue({ id: 8 } as never);
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.trophies = [
+      {
+        name: 'Major Gold',
+        recipientKind: 'team',
+        externalIds: [],
+        competitionGroup: 'Major Season',
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    expect(await processor.process(ctx)).toBe(1);
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: 4 }),
+      ctx.errors,
+    );
+  });
+
+  it('skips a trophy whose competition group cannot be resolved', async () => {
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({ ok: false });
+    const data = emptyData();
+    data.trophies = [
+      {
+        name: 'Major Gold',
+        recipientKind: 'team',
+        externalIds: [],
+        competitionGroup: 'Nonexistent',
+      },
+    ];
+
+    expect(
+      await processor.process(makeContext(data, new ExternalIdMap())),
+    ).toBe(0);
+    expect(trophies.upsertTrophy).not.toHaveBeenCalled();
   });
 });
