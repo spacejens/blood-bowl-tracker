@@ -235,9 +235,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 ### Phase 5: Self-review
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch
-2. Fix any findings; re-run `pnpm verify` to confirm clean
-3. Repeat steps 1–2 until the review is clean and all tests pass
-4. **Pause** — ask the developer to confirm via `AskUserQuestion`, offering two genuine options: "Approve, move to PR" (proceed to Phase 6) and "Review further" (re-run `superpowers:requesting-code-review`, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+2. Findings come back classified as Critical, Important, or Minor — reuse that classification as-is rather than inventing a new one. Critical and Important findings must be fixed before the loop can exit; Minor findings may be fixed like any other finding, but are not required to be. Fix what this step requires (and any Minor findings worth fixing too), then re-run `pnpm verify` to confirm the fixes hold.
+3. Repeat steps 1–2 until the review is **clean** — defined as no unresolved Critical or Important findings, and all tests passing. Whichever Minor findings are still unfixed at the end of this final iteration become that iteration's deferred-findings list — replacing, not appending to, any list from a prior iteration, since a fresh review of the current code re-surfaces anything still genuinely present. Each entry keeps the repo-relative file path, the line number, and the finding text exactly as the review reported it. Findings dismissed as false positives are never recorded.
+4. Print a brief status line — iterations run, that the review is clean by the definition above, and how many findings were deferred (the deferred-findings list may be empty; that is the normal case) — then continue immediately into Phase 6, carrying the final iteration's deferred-findings list forward.
 
 ---
 
