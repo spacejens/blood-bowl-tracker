@@ -1126,6 +1126,24 @@ describe('WaitForPrReviewService', () => {
     expect(result).toEqual({ found: false, timedOut: true });
   });
 
+  it('ignores a completion payload with valid base fields but no usable author', async () => {
+    // parseSectionCandidate's shared id/submittedAt/section checks pass here,
+    // so this is the only case that actually reaches parseCompletionCandidate's
+    // own author validation.
+    mockPoll(
+      EMPTY,
+      completionResult({ ...COMPLETION_CANDIDATE, author: undefined }),
+    );
+
+    const result = await runWait({
+      ...OPTIONS,
+      timeoutMs: 60_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
+  });
+
   it('prefers a formal review over a completion comment, and never even asks for one', async () => {
     mockPoll(FOUND, completionResult(COMPLETION_CANDIDATE));
 

@@ -44,14 +44,24 @@ export interface WaitForPrReviewOptions {
 }
 
 /**
- * A CodeRabbit comment standing in for a review — either its rate-limit
- * warning or its "couldn't update its existing comment" failure notice. The
- * shape is comment-kind-agnostic, so both kinds reuse it.
+ * A CodeRabbit comment standing in for a review — a rate-limit warning
+ * (posted as its own new comment, or edited into the rolling walkthrough
+ * comment), or its "couldn't update its existing comment" failure notice.
+ * The shape is comment-kind-agnostic, so every kind reuses it.
  */
 export interface CodeRabbitComment {
   readonly id: string;
+  /**
+   * The whole comment body for a new top-level comment, or the extracted
+   * bounded section for a rate-limit edit to the rolling comment.
+   */
   readonly body: string;
-  /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
+  /**
+   * The comment's `createdAt` for a new top-level comment, or the rolling
+   * comment's `updated_at` for a rate-limit edit — renamed for symmetry with
+   * a review's `submittedAt` either way, and what `parseAvailableAt` anchors
+   * its computed wait to.
+   */
   readonly submittedAt: string;
 }
 
@@ -345,8 +355,9 @@ export class WaitForPrReviewService {
    *
    * The second call is made only when the first found nothing. That keeps
    * the existing precedence intact — a formal review is the strongest
-   * signal, a rate-limit comment and a completion comment sit at equal,
-   * lower priority — and keeps a failing `gh` from doubling its own cost.
+   * signal, and within the second call a rate-limit edit outranks a
+   * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
+   * doubling its own cost.
    */
   private async poll(
     options: WaitForPrReviewOptions,
