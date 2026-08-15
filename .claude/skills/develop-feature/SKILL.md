@@ -235,9 +235,9 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 ### Phase 5: Self-review
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch
-2. Fix any findings; re-run `pnpm verify` to confirm clean
-3. Repeat steps 1–2 until the review is clean and all tests pass
-4. **Pause** — ask the developer to confirm via `AskUserQuestion`, offering two genuine options: "Approve, move to PR" (proceed to Phase 6) and "Review further" (re-run `superpowers:requesting-code-review`, then ask again). Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
+2. Findings come back classified as Critical, Important, or Minor — reuse that classification as-is rather than inventing a new one. Critical and Important findings must be fixed before the loop can exit; Minor findings may be fixed like any other finding, but are not required to be. Fix what this step requires (and any Minor findings worth fixing too), then re-run `pnpm verify` to confirm the fixes hold.
+3. Repeat steps 1–2 until the review is **clean** — defined as no unresolved Critical or Important findings, and all tests passing. Whichever Minor findings are still unfixed at the end of this final iteration become that iteration's deferred-findings list — replacing, not appending to, any list from a prior iteration, since a fresh review of the current code re-surfaces anything still genuinely present. Each entry keeps the repo-relative file path, the line number, and the finding text exactly as the review reported it. Findings dismissed as false positives are never recorded.
+4. Print a brief status line — iterations run, that the review is clean by the definition above, and how many findings were deferred (the deferred-findings list may be empty; that is the normal case) — then continue immediately into Phase 6, carrying the final iteration's deferred-findings list forward.
 
 ---
 
@@ -313,13 +313,35 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
-4. **Automated review loop.** An automated review bot reviews every PR in this repo (see `docs/development-workflow.md`). Wait for its review and drive it to completion here rather than leaving it for the developer to notice later. Repeat the wait → handle cycle below for at most **5 iterations total**.
+4. **Post deferred self-review findings, if any.** Phase 5 carries forward a deferred-findings list — the final self-review iteration's unfixed Minor findings. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
+
+   Otherwise, build a JSON array from the list, one object per finding: `file` (repo-relative path), `line` (integer), and `body` (the finding text exactly as the review reported it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
+
+   Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/ai-helpers` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
+   ```bash
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-deferred-findings <PR> <<'FINDINGSEOF'
+   [
+     { "file": "path/to/file.ts", "line": 42, "body": "..." }
+   ]
+   FINDINGSEOF
+   ```
+   Substitute `<PR>` with the PR number from step 3.
+
+   The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many findings were posted inline, how many as top-level comments, and how many failed — naming each failed finding's file, line, and error, so the developer can post it by hand if they care.
+
+   **Warn and continue on failure.** A non-zero exit, unparseable output, or any entries in the `failed` array is a one-line warning, never a stop and never a Pause — matching this phase's existing best-effort precedent (step 2's stray-cleanup warning when the harness refuses a cleanup command). This step is supplementary; the PR already exists regardless of whether these comments post.
+
+   Then continue into the automated review loop below unchanged.
+
+   **Why `handle-pr-reviews` needs no change for this.** Every comment this step posts starts with `**Comment by Claude**`, the same tag every Claude-authored comment in this workflow carries. `handle-pr-reviews`'s existing discovery rule already treats an unresolved thread whose last comment starts with that tag as handled — so these threads are invisible to its unhandled scan from the moment they are posted. If the developer replies, the last comment no longer carries the tag and the thread becomes discoverable and is triaged normally; if the developer resolves it instead, it is excluded as resolved. Both are existing, unmodified `handle-pr-reviews` behavior, which is why no change to that skill is needed or wanted here.
+
+5. **Automated review loop.** An automated review bot reviews every PR in this repo (see `docs/development-workflow.md`). Wait for its review and drive it to completion here rather than leaving it for the developer to notice later. Repeat the wait → handle cycle below for at most **5 iterations total**.
 
    **Before the loop**, capture the developer's own login once — it is what distinguishes a reviewer from the PR's author:
    ```bash
    gh api user --jq .login
    ```
-   If this command fails, skip the loop entirely (report a one-line warning that the review loop was skipped because the current `gh` user could not be determined) and continue to step 5 — without a login there is no way to tell a bot's review apart from the developer's own.
+   If this command fails, skip the loop entirely (report a one-line warning that the review loop was skipped because the current `gh` user could not be determined) and continue to step 6 — without a login there is no way to tell a bot's review apart from the developer's own.
 
    **Each iteration:**
 
@@ -363,7 +385,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    b. **Timeout handling.** If the command returns `{"found": false, "timedOut": true}`, **Pause** — ask the developer via `AskUserQuestion`, offering two genuine options:
       - **Keep waiting** — re-run the identical `wait-for-pr-review` command with the same watermark epoch for another 10 minutes (this does not consume an extra loop iteration; the watermark does not change, only the wait continues).
-      - **Skip the review loop** — leave the loop immediately and continue to step 5.
+      - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
       This is a Pause rather than an automatic decision because only the developer can diagnose a stuck or missing bot integration — is the app installed, is it down, was this PR excluded by config? Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
@@ -392,7 +414,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         - `<timeout>` is `(<trigger-epoch> − now) × 1000 + 600000` — the wait until reviews resume, plus the standard 10-minute review window that follows the trigger. `wait-for-pr-review` does not compute this itself; it only posts the trigger once the clock crosses `--trigger-after` and keeps polling until its own deadline, so too small a `--timeout-ms` would expire before the triggered review can land.
         - **Why the comment's own `submittedAt`, not the watermark from (a):** `--exclude-comment-id` only ever excludes one id, and the jq filter picks the chronologically-*first* qualifying comment. If a *third* consecutive round reused the original watermark from (a) on every retry, excluding only the newest comment's id would leave the original (now-stale) first comment eligible again — the wait could never progress. Advancing the watermark to the just-found comment's own `submittedAt` on each retry closes that gap, the same way (a)'s carried-forward watermark closes it for reviews (see "Why a carried-forward watermark" above); `--exclude-comment-id` then only has to cover the same-second tie-break case, exactly as `--exclude-review-id` does for reviews.
         - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark) if CodeRabbit reports the limit again with a *new* comment.
-      - **Skip the review loop** — leave the loop immediately and continue to step 5.
+      - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
       This is a Pause rather than an automatic decision for the same reason as (b): the wait may be long enough that the developer would rather move on, and only they can judge that. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
@@ -418,21 +440,22 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
         - `<now-epoch>` is the current epoch just captured — the trigger fires immediately, because (unlike the rate-limit case) CodeRabbit signalled no wait duration for this failure.
         - `--timeout-ms=600000` is the standard 10-minute review window. No extra trigger-delay component is needed here, unlike (b2), precisely because the trigger fires immediately.
         - Run it in the background and read its result the same way as in (a), and branch on that result the same way — including landing back here (with a further-advanced comment watermark and the newest comment's id) if CodeRabbit reports the same failure again with a *new* comment.
-      - **Skip the review loop** — leave the loop immediately and continue to step 5.
+      - **Skip the review loop** — leave the loop immediately and continue to step 6.
 
       This is a Pause rather than an automatic decision for the same reason as (b) and (b2): only the developer can judge whether to keep waiting on a CodeRabbit-side hiccup or move on. Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically.
 
-   c. **Handle the review.** **REQUIRED SUB-SKILL:** Use the `handle-pr-reviews` skill, targeting this PR by number and always passing its `--skip-deploy-local` flag (`/handle-pr-reviews <PR> --skip-deploy-local`), to discover and triage everything outstanding — inline review comments, top-level comments, and failing CI checks alike, exactly as it does when a developer runs it standalone. Nothing about its own discovery, triage, or reply behavior changes here; the loop only calls it. The flag suppresses just one thing: its Phase 6 `deploy-local` hand-off, which would otherwise stall this unattended loop waiting on a developer decision. Step 5 below still makes that offer once, after the loop ends.
+   c. **Handle the review.** **REQUIRED SUB-SKILL:** Use the `handle-pr-reviews` skill, targeting this PR by number and always passing its `--skip-deploy-local` flag (`/handle-pr-reviews <PR> --skip-deploy-local`), to discover and triage everything outstanding — inline review comments, top-level comments, and failing CI checks alike, exactly as it does when a developer runs it standalone. Nothing about its own discovery, triage, or reply behavior changes here; the loop only calls it. The flag suppresses just one thing: its Phase 6 `deploy-local` hand-off, which would otherwise stall this unattended loop waiting on a developer decision. Step 6 below still makes that offer once, after the loop ends.
 
    d. **Exit check.** After that run reports, leave the loop early — before reaching 5 iterations — if any of the following hold:
       - It reported **"No unhandled review comments or failing CI checks found."** — the review is clean, so another iteration has nothing left to find.
       - It **stopped mid-triage on an ambiguous item** (its own Phase 2 behavior when the right classification or fix genuinely isn't clear). Looping again cannot resolve an item that already needed developer judgment, so surface it immediately — report what is ambiguous, matching `handle-pr-reviews`'s own report — instead of silently consuming further iterations.
+      - It reported **"CodeRabbit's review is still in progress after waiting for it to finish; no other unhandled review comments or failing CI checks were found, but a review may still be forthcoming."** — its own Phase 1 gave up on a bounded wait for CodeRabbit's rolling comment to leave its in-progress state, not a verdict that review is done. Treat it the same as the clean-verdict exit above: this iteration found nothing to fix, and since nothing was replied to or backlinked while the comment was in progress (see that skill's two-state exemption rule), its findings — once CodeRabbit does write them — stay discoverable by a later run, whether that is a future `develop-feature` run touching this PR or a manual `/handle-pr-reviews` invocation. This is checked as its own exact string, distinct from the "made no fix commits" bullet below, so ending the loop here does not depend on that bullet's inference from a Phase 7 summary this run never produces (it stops inside Phase 1, before Phase 7 runs).
       - It **made no fix commits** — nothing was pushed. `handle-pr-reviews`'s own Phase 7 summary reports whether anything was pushed; when its Phase 2 found every outstanding item to be a question answered or a suggestion rejected, with no code change, it skips its own Phase 4 push step and its own Phase 6 `deploy-local` hand-off, so no new commit exists for the bot to review. Looping again cannot produce a new review when there is nothing new to review — leave the loop early instead of burning another full wait for nothing.
 
       Otherwise start the next iteration at (a). Failing CI checks need no separate tracking: `handle-pr-reviews`'s "nothing unhandled" signal already covers them, and a push that fixes review comments can itself trigger new CI runs worth checking on the next pass.
 
-   **After the loop** — whether it exited early or reached the 5-iteration cap — continue into step 5 unchanged. Print a brief status line noting how the loop ended (clean, ambiguous item surfaced, no fix commits pushed, iteration cap reached, timed out and skipped, or skipped because the login lookup failed).
-5. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. This is the **only** `deploy-local` offer this workflow produces: step 4c dispatches `handle-pr-reviews` with `--skip-deploy-local`, so its own Phase 6 hand-off never fires inside the loop, no matter how many times it pushed a fix. That makes this invocation the single, intentional chance to see the fully-reviewed state — not a bug to suppress or skip. (A developer running `handle-pr-reviews` standalone outside this workflow still gets its own offer; that is out of scope here.) `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
+   **After the loop** — whether it exited early or reached the 5-iteration cap — continue into step 6 unchanged. Print a brief status line noting how the loop ended (clean, ambiguous item surfaced, CodeRabbit still in progress after its own wait, no fix commits pushed, iteration cap reached, timed out and skipped, or skipped because the login lookup failed).
+6. After the PR is created, **REQUIRED SUB-SKILL:** Use the `deploy-local` skill to offer the developer a local look at the change. This is the **only** `deploy-local` offer this workflow produces: step 5c dispatches `handle-pr-reviews` with `--skip-deploy-local`, so its own Phase 6 hand-off never fires inside the loop, no matter how many times it pushed a fix. That makes this invocation the single, intentional chance to see the fully-reviewed state — not a bug to suppress or skip. (A developer running `handle-pr-reviews` standalone outside this workflow still gets its own offer; that is out of scope here.) `deploy-local` asks up front which of its six actions to perform — deploy the stack, run the manual import before and/or after the other importers, run the BBL import, run the TP import, generate a SchemaSpy diagram — in any combination; selecting none is valid and means no action is taken. Do not ask the developer separately before invoking it.
    - **Discord slash-command propagation reminder.** Check whether the branch's diff touches Discord slash-command registration or definitions:
      ```bash
      git diff --name-only origin/main...HEAD -- packages/discord-client/src/discord-client.service.ts apps/discord-bot/src/slash-commands/
@@ -440,4 +463,4 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
      If this prints any file paths, print the following reminder to the developer alongside the `deploy-local` hand-off:
      > This branch changes Discord slash-command registration or definitions. Commands are registered globally, and Discord can take up to ~1 hour to propagate a changed command's name, description, or options — so your slash commands may still show their old definitions in Discord for a while after the deploy. That is expected, not a failed deploy. Changes to how a command answers (handler logic) take effect as soon as the bot restarts.
      If it prints nothing, skip the reminder silently — no status line, no mention.
-6. **Skill ends** — human review and merge happen outside this workflow. The automated review bot's feedback has already been driven to completion in step 4, so what reaches the human is a PR that has been through both Claude's self-review and an independent bot pass. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
+7. **Skill ends** — human review and merge happen outside this workflow. The automated review bot's feedback has already been driven to completion in step 5, so what reaches the human is a PR that has been through both Claude's self-review and an independent bot pass. Once the developer confirms the PR has merged, use the `wrap-up` skill to verify the merge and clean up local state.
