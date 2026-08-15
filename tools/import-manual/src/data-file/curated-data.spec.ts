@@ -159,24 +159,27 @@ describe('curated data files', () => {
     // where the disambiguator is the raw award's `name` when present (Best
     // Stunty / Wooden Spoon share one numeric awardType) and its numeric
     // `awardType` otherwise. Pinned here so the format cannot drift.
+    //
+    // Kept as a flat array of pairs, not an object keyed by trophy name: a
+    // trophy that ever carried two tourplay.net ids would have the second
+    // silently overwrite the first in an object, hiding the duplicate
+    // instead of failing this assertion.
     const trophies = readPhase('before-other-importers').trophies;
-    const tpIds = Object.fromEntries(
-      trophies.flatMap((trophy) =>
-        trophy.externalIds
-          .filter((ref) => ref.system === 'tourplay.net')
-          .map((ref) => [trophy.name, ref.id] as const),
-      ),
+    const tpIds = trophies.flatMap((trophy) =>
+      trophy.externalIds
+        .filter((ref) => ref.system === 'tourplay.net')
+        .map((ref) => [trophy.name, ref.id] as const),
     );
 
-    expect(tpIds).toEqual({
-      'Major Gold': '1-Major Season',
-      'Major Silver': '2-Major Season',
-      'Major Bronze': '3-Major Season',
-      'Major Wooden Spoon': 'Wooden Spoon-Major Season',
-      'Major Best Stunty': 'Best Stunty-Major Season',
-      'Chaos Cup': '1-Chaos Cup',
-      Ogretoberfest: '1-Ogretoberfest',
-    });
+    expect(tpIds).toEqual([
+      ['Major Gold', '1-Major Season'],
+      ['Major Silver', '2-Major Season'],
+      ['Major Bronze', '3-Major Season'],
+      ['Major Wooden Spoon', 'Wooden Spoon-Major Season'],
+      ['Major Best Stunty', 'Best Stunty-Major Season'],
+      ['Chaos Cup', '1-Chaos Cup'],
+      ['Ogretoberfest', '1-Ogretoberfest'],
+    ]);
   });
 
   it('classifies all 86 known competition instances into curated groups', () => {
