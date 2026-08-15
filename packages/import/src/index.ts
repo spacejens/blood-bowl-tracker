@@ -33,6 +33,7 @@ export { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 export { SppAwardValuesImportService } from './spp-award-values-import.service';
 export { TeamsImportService } from './teams-import.service';
 export { TrophiesImportService } from './trophies-import.service';
+export { TrophyAwardsImportService } from './trophy-awards-import.service';
 export * from './types';
 export {
   NAF_EXTERNAL_SYSTEM,

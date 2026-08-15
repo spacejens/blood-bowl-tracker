@@ -69,4 +69,29 @@ describe('TrophiesImportService', () => {
     await runner.recordUpsertResult.mock.calls[0][0].upsert();
     expect(client.trophies.upsert).toHaveBeenCalledWith(data);
   });
+
+  it('falls back to the external id when the payload has no name', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsertTrophy(
+      { externalIds: [{ externalSystemId: 1, externalId: 'Top Scorer' }] },
+      [],
+    );
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to import trophy "Top Scorer": boom',
+    );
+  });
+
+  it('falls back to a placeholder when the payload has neither', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
+
+    await service.upsertTrophy({ externalIds: [] }, []);
+
+    const options = runner.recordUpsertResult.mock.calls[0][0];
+    expect(options.buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to import trophy "(unnamed)": boom',
+    );
+  });
 });

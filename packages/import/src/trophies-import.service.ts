@@ -24,7 +24,10 @@ export class TrophiesImportService {
       item: data,
       errors,
       buildErrorMessage: (err) =>
-        `Failed to import trophy "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
+        // A trophy *resolution* call (tools/import-bbl looking a trophy up by
+        // its BBL label) carries only external ids and no name, so fall back
+        // to the label rather than printing "undefined".
+        `Failed to import trophy "${data.name ?? data.externalIds[0]?.externalId ?? '(unnamed)'}": ${err instanceof Error ? err.message : String(err)}`,
     });
   }
 }
