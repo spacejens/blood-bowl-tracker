@@ -117,7 +117,15 @@ const MAX_CAUSE_UNWRAP_DEPTH = 3;
  * The SQLSTATE check is kept alongside the table-name check deliberately: a
  * bare table-name match would retry on that table's *other* future
  * constraints too (e.g. a NOT NULL violation), hiding a real bug behind
- * three attempts and a confusing final error.
+ * three attempts and a confusing final error. The same reasoning excludes the
+ * table's primary key: a 23505 on `<table>_pkey` (e.g. a desynced `serial`
+ * sequence after a restore that didn't reset it) is a real infrastructure bug,
+ * not the external-id race this code retries, and must not be silently
+ * retried three times and then misreported as "a concurrent writer kept
+ * winning the race." `constraint_name` is not affected by the truncation
+ * problem the constraint-name approach was rejected for above: `<table>_pkey`
+ * is always well under 63 bytes, so a plain equality check is safe here even
+ * though it wasn't safe for the full unique-constraint name.
  */
 function isExternalIdUniqueViolation(
   error: unknown,
@@ -126,8 +134,18 @@ function isExternalIdUniqueViolation(
   let candidate: unknown = error;
   for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
     const typed = candidate as
-      { code?: unknown; table_name?: unknown; cause?: unknown } | undefined;
-    if (typed?.code === UNIQUE_VIOLATION && typed.table_name === tableName) {
+      | {
+          code?: unknown;
+          table_name?: unknown;
+          constraint_name?: unknown;
+          cause?: unknown;
+        }
+      | undefined;
+    if (
+      typed?.code === UNIQUE_VIOLATION &&
+      typed.table_name === tableName &&
+      typed.constraint_name !== `${tableName}_pkey`
+    ) {
       return true;
     }
     if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {

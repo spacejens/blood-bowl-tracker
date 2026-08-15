@@ -7,6 +7,7 @@ import {
   rulesSetExternalIds,
   rulesSets,
 } from '@blood-bowl-tracker/db';
+import { DrizzleQueryError } from 'drizzle-orm';
 import { describe, expect, it, vi } from 'vitest';
 
 import { MissingRequiredFieldError } from './missing-required-field-error';
@@ -52,21 +53,31 @@ function makeDb(opts: {
 
 /**
  * The shape actually thrown in production: drizzle-orm 1.0.0-rc.4's pg-core
- * session wraps every query failure in a `DrizzleQueryError`, whose `cause`
- * is the real `postgres` driver's `PostgresError` — the only place `code`
- * and `table_name` actually live. The classifier under test must unwrap this
- * `.cause` chain, so the mock has to reproduce it rather than throwing an
- * unwrapped postgres-shaped error directly (which production code never
- * does).
+ * session wraps every query failure in a real `DrizzleQueryError` (imported
+ * from `drizzle-orm` itself, not hand-rolled, so a future drizzle release
+ * that changes where it stashes the driver error breaks this test rather
+ * than silently keeping production's dead-code regression hidden), whose
+ * `cause` is the real `postgres` driver's `PostgresError` — the only place
+ * `code`, `table_name` and `constraint_name` actually live. The classifier
+ * under test must unwrap this `.cause` chain, so the mock has to reproduce it
+ * rather than throwing an unwrapped postgres-shaped error directly (which
+ * production code never does for a query issued through drizzle).
+ *
+ * `constraintName` defaults to the table's real external-id unique
+ * constraint, so a test can override it (e.g. to `<table>_pkey`) to prove the
+ * classifier excludes violations of the table's *other* constraints.
  */
-function uniqueViolation(tableName: string): Error {
+function uniqueViolation(tableName: string, constraintName?: string): Error {
   const pgError = Object.assign(
     new Error('duplicate key value violates unique constraint'),
-    { code: '23505', table_name: tableName },
+    {
+      code: '23505',
+      table_name: tableName,
+      constraint_name:
+        constraintName ?? `${tableName}_external_system_id_external_id_unique`,
+    },
   );
-  return Object.assign(new Error('Failed query: insert into ...'), {
-    cause: pgError,
-  });
+  return new DrizzleQueryError('insert into ...', [], pgError);
 }
 
 /**
@@ -460,6 +471,88 @@ describe('upsertByExternalIds', () => {
 
       await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(notAnError);
       expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a primary-key violation on the external-id table', async () => {
+      // A `_pkey` violation shares the table and SQLSTATE with the race this
+      // code retries, but it is a different, real infrastructure bug (e.g. a
+      // desynced `serial` sequence) — it must surface immediately, not be
+      // silently retried three times and misreported as a lost race.
+      const pkeyViolation = uniqueViolation(tableName, `${tableName}_pkey`);
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, pkeyViolation],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(
+        pkeyViolation,
+      );
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a non-unique violation on the external-id table', async () => {
+      // Proves the SQLSTATE check is not redundant with the table-name check:
+      // a NOT NULL violation (23502) on the same table must not be retried.
+      const notNull = Object.assign(new Error('Failed query'), {
+        cause: Object.assign(new Error('null value in column'), {
+          code: '23502',
+          table_name: tableName,
+        }),
+      });
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, notNull],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(notNull);
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('stops unwrapping once the cause chain is deeper than the bound', async () => {
+      const buried = uniqueViolation(tableName);
+      const deep = Object.assign(new Error('l1'), {
+        cause: Object.assign(new Error('l2'), {
+          cause: Object.assign(new Error('l3'), { cause: buried }),
+        }),
+      });
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, deep],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(deep);
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries a bare, unwrapped postgres-shaped error (no DrizzleQueryError wrapper)', async () => {
+      // Not every violation reaches the classifier pre-wrapped: a deferred
+      // constraint can surface at COMMIT time via postgres.js directly,
+      // outside drizzle's query-execution wrapping. The classifier checks the
+      // caught value itself before unwrapping `.cause`, so this must retry
+      // exactly like the normal, wrapped case.
+      const bare = Object.assign(new Error('duplicate key value'), {
+        code: '23505',
+        table_name: tableName,
+        constraint_name: `${tableName}_external_system_id_external_id_unique`,
+      });
+      const { db, transaction, update, updateSet } = makeRaceDb({
+        resolveRowsPerAttempt: [
+          [],
+          [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        ],
+        entityRow: { id: 5, name: 'Foo' },
+        insertErrors: [undefined, bare],
+      });
+
+      const result = await upsertByExternalIds(baseOpts(db));
+
+      expect(result).toEqual({ row: { id: 5, name: 'Foo' }, created: false });
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledWith(rulesSets);
+      expect(updateSet).toHaveBeenCalledWith({ name: 'Foo' });
     });
   });
 });
