@@ -50,6 +50,24 @@ function extractCommentUpdateFailedFilter(program: string): string {
   return program.slice(start, end);
 }
 
+/**
+ * Same extraction as `extractCommentUpdateFailedFilter`, for the
+ * `rateLimitComment: (...)` clause instead — its own closing paren is the
+ * one immediately before `, commentUpdateFailedComment: (`.
+ */
+function extractRateLimitFilter(program: string): string {
+  const startMarker = 'rateLimitComment: (';
+  const endMarker = '), commentUpdateFailedComment: (';
+  const start = program.indexOf(startMarker) + startMarker.length;
+  const end = program.indexOf(endMarker, start);
+  if (start < startMarker.length || end === -1) {
+    throw new Error(
+      `could not extract rateLimitComment sub-filter from: ${program}`,
+    );
+  }
+  return program.slice(start, end);
+}
+
 describe('WaitForPrReviewService', () => {
   let service: WaitForPrReviewService;
   let processRunner: MockProxy<ProcessRunnerService>;
@@ -304,6 +322,20 @@ describe('WaitForPrReviewService', () => {
     );
     expect(args[6]).toContain('(.createdAt | fromdateiso8601) >= 1760000000');
     expect(args[6]).toContain('submittedAt: .createdAt');
+    // CodeRabbit's own rolling walkthrough comment can incidentally contain
+    // this filter's phrase in prose (a summary, a changes table) — notably
+    // on a PR whose diff is about rate-limit detection itself, which
+    // produced a real false positive on issue #465's own PR — so the filter
+    // must exclude any comment carrying the walkthrough's marker before it
+    // could ever be mistaken for a genuine rate-limit notice. Extracted to
+    // this filter's own sub-expression, not asserted against the whole
+    // program, since `commentUpdateFailedFilter` carries the identical
+    // substring and would make this assertion pass even if this filter
+    // itself lacked the guard.
+    const subFilter = extractRateLimitFilter(args[6]);
+    expect(subFilter).toContain(
+      'contains("<!-- recent_review_start -->") | not',
+    );
   });
 
   it('excludes the comment passed as excludeCommentId', async () => {

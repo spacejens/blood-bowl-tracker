@@ -711,6 +711,22 @@ export class WaitForPrReviewService {
   /**
    * Deliberately CodeRabbit-specific — this failure mode and its comment
    * shape are CodeRabbit's own behaviour, unlike review detection above.
+   *
+   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
+   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
+   * summary, a changes table) can incidentally contain this filter's phrase
+   * — notably on a PR whose diff is *about* rate-limit detection, such as
+   * the one that introduced this guard (issue #465's own PR: the walkthrough
+   * summarizing this very change said "prioritizes rate-limit results",
+   * which matched `rate-limit` and produced a false `rateLimited: true`
+   * despite the same comment already reporting a clean, completed review)
+   * — which would otherwise abort the wait on a false positive before any
+   * real review or genuine rate-limit notice exists. A genuine rate-limit
+   * notice is always a short, separate comment (or, since this same fix, a
+   * bounded section behind its own distinct markers — see
+   * `rateLimitEditFilter`) and never carries the walkthrough markers, so
+   * this guard costs nothing in real detection. Same rationale as
+   * `commentUpdateFailedFilter`'s identical guard below.
    */
   private rateLimitFilter(options: WaitForPrReviewOptions): string {
     const excludeClause =
@@ -720,6 +736,7 @@ export class WaitForPrReviewService {
     return (
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
@@ -730,19 +747,11 @@ export class WaitForPrReviewService {
   /**
    * Deliberately CodeRabbit-specific, and structurally identical to
    * `rateLimitFilter` — same `.comments[]` source, same author-login
-   * narrowing, same watermark bound, same `[...] | first` wrapping — because
-   * this is the same kind of signal: a top-level comment CodeRabbit posts
-   * *instead of* reviewing. Only the phrase set and the exclusion id differ.
-   *
-   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
-   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
-   * summary, a changes table) can incidentally contain this filter's phrase
-   * — notably on a PR whose diff is *about* this phrase, such as the one
-   * that introduced this filter — which would otherwise abort the wait on a
-   * false positive before any real review or genuine failure notice exists.
-   * The genuine failure notice is always a short, separate comment and never
-   * carries the walkthrough markers, so this guard costs nothing in real
-   * detection.
+   * narrowing, same watermark bound, same `[...] | first` wrapping, same
+   * `RECENT_REVIEW_START_MARKER` exclusion — because this is the same kind
+   * of signal: a top-level comment CodeRabbit posts *instead of* reviewing.
+   * Only the phrase set and the exclusion id differ. See `rateLimitFilter`'s
+   * doc comment for why the marker exclusion is needed.
    */
   private commentUpdateFailedFilter(options: WaitForPrReviewOptions): string {
     const excludeClause =
