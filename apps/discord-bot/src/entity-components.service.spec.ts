@@ -33,6 +33,9 @@ function entries(
 /** Discord rejects an empty label; a zero-width space renders as blank but validates. */
 const BLANK_LABEL = '\u200b';
 
+/** Mirrors the service's own infix that turns a routing prefix into a menu custom id. */
+const SELECT_MENU_CUSTOM_ID_INFIX = 'menu:';
+
 describe('EntityComponentsService', () => {
   let service: EntityComponentsService;
 
@@ -181,6 +184,7 @@ describe('EntityComponentsService', () => {
           options: entries(25).map((entry) => ({
             label: entry.label,
             value: entry.entityId,
+            emoji: { name: '🛡️' },
           })),
         },
       ],
@@ -188,7 +192,7 @@ describe('EntityComponentsService', () => {
     expect(second.components[0].custom_id).toBe('deepdive:team:menu:1');
     expect(second.components[0].placeholder).toBe('Choose one (part 2 of 2)');
     expect(second.components[0].options).toEqual([
-      { label: 'Entity 26', value: '26' },
+      { label: 'Entity 26', value: '26', emoji: { name: '🛡️' } },
     ]);
   });
 
@@ -209,6 +213,7 @@ describe('EntityComponentsService', () => {
     expect(rows.at(-1)?.components[0].options.at(-1)).toEqual({
       label: 'Entity 125',
       value: '125',
+      emoji: { name: '🛡️' },
     });
   });
 
@@ -235,7 +240,7 @@ describe('EntityComponentsService', () => {
     expect(rows[0].components[0].custom_id).toBe('deepdive:era:menu:0');
     expect(rows[0].components[0].placeholder).toBe('Choose one');
     expect(rows[0].components[0].options).toEqual([
-      { label: 'tLoEG First', value: '9' },
+      { label: 'tLoEG First', value: '9', emoji: { name: '🕰️' } },
     ]);
     expect(rows[1].components[0].custom_id).toBe('deepdive:team:menu:1');
     expect(rows[2].components[0].custom_id).toBe('deepdive:team:menu:2');
@@ -323,7 +328,50 @@ describe('EntityComponentsService', () => {
     expect(overflowNote).toBeNull();
     const rows = components as EntitySelectRow[];
     expect(rows[1].components[0].options).toEqual([
-      { label: BLANK_LABEL, value: '26' },
+      { label: BLANK_LABEL, value: '26', emoji: { name: '🛡️' } },
     ]);
+  });
+
+  it('gives each destination type its own select-menu option emoji', () => {
+    // 26+ entries forces the select-menu path, and each destination type then
+    // gets its own menu. Discord caps a message at five action rows, so the six
+    // types are checked in two batches rather than one.
+    const batches: [ButtonCustomIdPrefix, string][][] = [
+      [
+        [ERA_BUTTON_CUSTOM_ID_PREFIX, '🕰️'],
+        [COACH_BUTTON_CUSTOM_ID_PREFIX, '📋'],
+        [TEAM_BUTTON_CUSTOM_ID_PREFIX, '🛡️'],
+      ],
+      [
+        [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
+        [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
+        [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
+      ],
+    ];
+    for (const cases of batches) {
+      const lastPrefix = cases[cases.length - 1][0];
+      const { components, overflowNote } = service.buildEntityComponents([
+        ...cases.map(([customIdPrefix], index) => ({
+          customIdPrefix,
+          entityId: String(index + 1),
+          label: `Entity ${index + 1}`,
+        })),
+        // Pad past the 25-entry button cap without adding another menu group.
+        ...entries(24, lastPrefix, 100),
+      ]);
+      expect(overflowNote).toBeNull();
+      const rows = components as EntitySelectRow[];
+      expect(
+        rows.map((row) => [
+          row.components[0].custom_id,
+          row.components[0].options[0].emoji.name,
+        ]),
+      ).toEqual(
+        cases.map(([customIdPrefix, emojiName], index) => [
+          `${customIdPrefix}${SELECT_MENU_CUSTOM_ID_INFIX}${index}`,
+          emojiName,
+        ]),
+      );
+    }
   });
 });

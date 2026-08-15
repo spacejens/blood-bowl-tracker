@@ -115,6 +115,8 @@ export interface EntityButtonRow {
 interface EntitySelectOption {
   label: string;
   value: string;
+  /** Discord's native option emoji field; `name` is the unicode emoji itself. */
+  emoji: { name: string };
 }
 
 interface EntitySelectMenu {
@@ -234,6 +236,7 @@ export class EntityComponentsService {
               options: chunkEntries.map((entry) => ({
                 label: entry.label,
                 value: entry.entityId,
+                emoji: { name: ENTITY_EMOJI_BY_PREFIX[entry.customIdPrefix] },
               })),
             },
           ],
