@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -80,6 +86,31 @@ describe('ManualDataReader', () => {
     );
     write('ignore.txt', 'not json5');
     write('ignore.json', `{ "coaches": [] }`);
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
+  });
+
+  it('ignores a .json5 symlink that points at a directory', async () => {
+    write(
+      'keep.json5',
+      `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`,
+    );
+    mkdirSync(join(dir, 'a-real-dir'));
+    symlinkSync(join(dir, 'a-real-dir'), join(dir, 'dir-link.json5'));
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
+  });
+
+  it('ignores a broken .json5 symlink', async () => {
+    write(
+      'keep.json5',
+      `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`,
+    );
+    symlinkSync(join(dir, 'does-not-exist'), join(dir, 'broken-link.json5'));
 
     const data = await reader.read(dir);
 

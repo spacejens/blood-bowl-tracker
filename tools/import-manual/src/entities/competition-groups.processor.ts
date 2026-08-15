@@ -30,9 +30,24 @@ export class CompetitionGroupsProcessor {
    * A group's `league` is a normal external-id cross-reference and is required
    * (the column is NOT NULL), so an entry whose league cannot be resolved is
    * skipped with the error resolveRef already recorded.
+   *
+   * The "Name" system bootstrap check runs once, before the per-entry loop,
+   * rather than per-entry after resolving `league`: it's the same answer on
+   * every entry, and checking it first means a data file that never declares
+   * the "Name" system surfaces that root cause immediately instead of a
+   * confusing "unknown league" error from the first entry.
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
+    if (ctx.data.competitionGroups.length === 0) {
+      return imported;
+    }
+    const nameSystemId = ctx.systemIds.get(NAME_EXTERNAL_SYSTEM_NAME);
+    if (nameSystemId === undefined) {
+      throw new Error(
+        `External system "${NAME_EXTERNAL_SYSTEM_NAME}" is required to import competition groups but was not bootstrapped; declare it in the data file's externalSystems.`,
+      );
+    }
     for (const entry of ctx.data.competitionGroups) {
       const label = `Cannot import competition group "${entry.name}"`;
       const leagueId = this.refResolver.resolveRef({
@@ -44,12 +59,6 @@ export class CompetitionGroupsProcessor {
       });
       if (leagueId === undefined) {
         continue;
-      }
-      const nameSystemId = ctx.systemIds.get(NAME_EXTERNAL_SYSTEM_NAME);
-      if (nameSystemId === undefined) {
-        throw new Error(
-          `External system "${NAME_EXTERNAL_SYSTEM_NAME}" is required to import competition groups but was not bootstrapped; declare it in the data file's externalSystems.`,
-        );
       }
       const ref = this.refResolver.competitionGroupRef(entry.name);
       const upserted =

@@ -90,6 +90,16 @@ describe('CompetitionGroupsProcessor', () => {
     expect(ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' })).toBe(6);
   });
 
+  it('does nothing and does not require the Name system when there are no groups', async () => {
+    const ctx = {
+      ...makeContext(emptyData()),
+      systemIds: new Map<string, number>(),
+    };
+
+    expect(await processor.process(ctx)).toBe(0);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
+  });
+
   it('throws when the Name external system was not bootstrapped', async () => {
     refResolver.resolveRef.mockReturnValue(9);
     const data = emptyData();
@@ -102,6 +112,26 @@ describe('CompetitionGroupsProcessor', () => {
     const ctx = { ...makeContext(data), systemIds: new Map<string, number>() };
 
     await expect(processor.process(ctx)).rejects.toThrow(/"Name"/);
+  });
+
+  it('throws the Name-system error before ever resolving league refs, even when the league would also fail to resolve', async () => {
+    // resolveRef is never expected to be called: the Name-system bootstrap
+    // check runs before the per-entry loop, so a data file missing the
+    // "Name" system declaration surfaces that root cause -- not a confusing
+    // "unknown league" error from the first entry whose league also fails to
+    // resolve.
+    refResolver.resolveRef.mockReturnValue(undefined);
+    const data = emptyData();
+    data.competitionGroups = [
+      {
+        name: 'Chaos Cup',
+        league: { system: 'tloeg.bbleague.se', id: 'missing' },
+      },
+    ];
+    const ctx = { ...makeContext(data), systemIds: new Map<string, number>() };
+
+    await expect(processor.process(ctx)).rejects.toThrow(/"Name"/);
+    expect(refResolver.resolveRef).not.toHaveBeenCalled();
   });
 
   it('skips an entry whose league cannot be resolved', async () => {
