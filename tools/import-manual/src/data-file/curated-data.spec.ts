@@ -122,6 +122,43 @@ describe('curated data files', () => {
     }
   });
 
+  it('declares the tourplay.net external system in the trophy catalog', () => {
+    const data = readPhase('before-other-importers');
+
+    expect(data.externalSystems).toContainEqual({
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    });
+  });
+
+  it('seeds TP external ids for exactly the seven trophies TP awards', () => {
+    // TP only ever tracks 4 competition groups (Major Season, Chaos Cup,
+    // Dungeon Bowl, Ogretoberfest) and its award files only ever contain
+    // team-level entries, so only these 7 catalog entries have real TP source
+    // data to key on. The composite format is `${disambiguator}-${groupName}`,
+    // where the disambiguator is the raw award's `name` when present (Best
+    // Stunty / Wooden Spoon share one numeric awardType) and its numeric
+    // `awardType` otherwise. Pinned here so the format cannot drift.
+    const trophies = readPhase('before-other-importers').trophies;
+    const tpIds = Object.fromEntries(
+      trophies.flatMap((trophy) =>
+        trophy.externalIds
+          .filter((ref) => ref.system === 'tourplay.net')
+          .map((ref) => [trophy.name, ref.id] as const),
+      ),
+    );
+
+    expect(tpIds).toEqual({
+      'Major Gold': '1-Major Season',
+      'Major Silver': '2-Major Season',
+      'Major Bronze': '3-Major Season',
+      'Major Wooden Spoon': 'Wooden Spoon-Major Season',
+      'Major Best Stunty': 'Best Stunty-Major Season',
+      'Chaos Cup': '1-Chaos Cup',
+      Ogretoberfest: '1-Ogretoberfest',
+    });
+  });
+
   it('classifies all 86 known competition instances into curated groups', () => {
     const groupNames = new Set(
       readPhase('before-other-importers').competitionGroups.map(
