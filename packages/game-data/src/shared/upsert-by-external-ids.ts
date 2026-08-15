@@ -3,6 +3,7 @@ import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { eq, getTableColumns } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
+import type { DbOrTx } from './db-or-tx';
 import { MissingRequiredFieldError } from './missing-required-field-error';
 import { resolveExistingByExternalIds } from './resolve-existing-by-external-ids';
 import type { ExternalIdPair } from './sync-external-ids';
@@ -109,10 +110,89 @@ function missingRequiredColumns(
 }
 
 /**
+ * One attempt at the resolve -> conflict-guard -> insert-or-update ->
+ * insert-missing-external-ids sequence. Every query is issued through
+ * `handle`, so the caller can run the whole sequence inside a transaction and
+ * have a failure anywhere roll back the entity row too.
+ *
+ * Module-private helper of `upsertByExternalIds`, which is itself the
+ * "generic over entity/table type" exception to the services-not-functions
+ * convention (see CLAUDE.md): it cannot receive an injected collaborator.
+ */
+async function runUpsertAttempt<
+  TEntityTable extends PgTable,
+  TExternalIdTable extends PgTable,
+>(
+  opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
+  handle: DbOrTx,
+): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
+  const { ownerIds, existingRows } = await resolveExistingByExternalIds({
+    ...opts,
+    db: handle,
+  });
+
+  if (ownerIds.length > 1) {
+    throw new opts.ConflictErrorClass(
+      `External IDs matched multiple existing ${opts.entityLabelPlural}: ${ownerIds.join(', ')}`,
+    );
+  }
+
+  const created = ownerIds.length === 0;
+
+  const values = stripUndefined(opts.values);
+
+  let rows: InferSelectModel<TEntityTable>[];
+  if (created) {
+    const missing = missingRequiredColumns(opts.entityTable, values);
+    if (missing.length > 0) {
+      throw new MissingRequiredFieldError(
+        `Cannot create new ${opts.entityLabelPlural}: missing required field(s): ${missing.join(', ')}`,
+      );
+    }
+    rows = (await handle
+      .insert(opts.entityTable)
+      .values(values as unknown as InferInsertModel<TEntityTable>)
+      .returning()) as InferSelectModel<TEntityTable>[];
+  } else if (Object.keys(values).length === 0) {
+    // Nothing to write: drizzle rejects `.set({})`, and there is nothing to
+    // change anyway. Read the row back so `{ row, created }` is unaffected.
+    rows = (await handle
+      .select()
+      .from(asBaseTable(opts.entityTable))
+      .where(
+        eq(opts.entityIdColumn, ownerIds[0]),
+      )) as InferSelectModel<TEntityTable>[];
+  } else {
+    rows = (await handle
+      .update(opts.entityTable)
+      .set(values as unknown as InferInsertModel<TEntityTable>)
+      .where(eq(opts.entityIdColumn, ownerIds[0]))
+      .returning()) as InferSelectModel<TEntityTable>[];
+  }
+  const row = rows[0];
+  const ownerId = (row as { id: number }).id;
+
+  await insertMissingExternalIds({
+    db: handle,
+    externalIdTable: opts.externalIdTable,
+    existingRows,
+    externalIds: opts.externalIds,
+    buildRow: (pair) => opts.buildExternalIdRow(ownerId, pair),
+  });
+
+  return { row, created };
+}
+
+/**
  * The resolve -> conflict-guard -> insert-or-update -> insert-missing-external-ids
  * preamble shared by every game-data upsert(). Callers keep only their
  * genuinely-divergent tail (join-table syncs, return shape) and pass the
  * one-per-entity pieces (conflict class, label, column wiring, buildRow) in.
+ *
+ * The whole sequence runs in one transaction. The entity row and its
+ * external-id row(s) must commit or roll back together: committing the entity
+ * row on its own and only then failing to insert the external-id row leaves an
+ * entity nothing points at, which no later upsert can ever find and reuse.
  *
  * `insertMissingExternalIds` always runs immediately after the insert/update,
  * before any caller tail. Both are independent inserts into unrelated tables,
@@ -135,56 +215,7 @@ export async function upsertByExternalIds<
 >(
   opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
 ): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
-  const { ownerIds, existingRows } = await resolveExistingByExternalIds(opts);
-
-  if (ownerIds.length > 1) {
-    throw new opts.ConflictErrorClass(
-      `External IDs matched multiple existing ${opts.entityLabelPlural}: ${ownerIds.join(', ')}`,
-    );
-  }
-
-  const created = ownerIds.length === 0;
-
-  const values = stripUndefined(opts.values);
-
-  let rows: InferSelectModel<TEntityTable>[];
-  if (created) {
-    const missing = missingRequiredColumns(opts.entityTable, values);
-    if (missing.length > 0) {
-      throw new MissingRequiredFieldError(
-        `Cannot create new ${opts.entityLabelPlural}: missing required field(s): ${missing.join(', ')}`,
-      );
-    }
-    rows = (await opts.db
-      .insert(opts.entityTable)
-      .values(values as unknown as InferInsertModel<TEntityTable>)
-      .returning()) as InferSelectModel<TEntityTable>[];
-  } else if (Object.keys(values).length === 0) {
-    // Nothing to write: drizzle rejects `.set({})`, and there is nothing to
-    // change anyway. Read the row back so `{ row, created }` is unaffected.
-    rows = (await opts.db
-      .select()
-      .from(asBaseTable(opts.entityTable))
-      .where(
-        eq(opts.entityIdColumn, ownerIds[0]),
-      )) as InferSelectModel<TEntityTable>[];
-  } else {
-    rows = (await opts.db
-      .update(opts.entityTable)
-      .set(values as unknown as InferInsertModel<TEntityTable>)
-      .where(eq(opts.entityIdColumn, ownerIds[0]))
-      .returning()) as InferSelectModel<TEntityTable>[];
-  }
-  const row = rows[0];
-  const ownerId = (row as { id: number }).id;
-
-  await insertMissingExternalIds({
-    db: opts.db,
-    externalIdTable: opts.externalIdTable,
-    existingRows,
-    externalIds: opts.externalIds,
-    buildRow: (pair) => opts.buildExternalIdRow(ownerId, pair),
-  });
-
-  return { row, created };
+  return await opts.db.transaction(
+    async (tx) => await runUpsertAttempt(opts, tx),
+  );
 }

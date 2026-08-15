@@ -1,7 +1,7 @@
-import type { Db } from '@blood-bowl-tracker/db';
 import { and, eq, or } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
+import type { DbOrTx } from './db-or-tx';
 import type { ExternalIdPair } from './sync-external-ids';
 
 /**
@@ -27,7 +27,7 @@ export interface ResolveExistingByExternalIdsOptions<
   TExternalSystemIdColumn extends PgColumn,
   TExternalIdColumn extends PgColumn,
 > {
-  db: Db;
+  db: DbOrTx;
   externalIdTable: PgTable;
   ownerIdColumn: TOwnerIdColumn;
   externalSystemIdColumn: TExternalSystemIdColumn;

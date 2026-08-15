@@ -35,8 +35,17 @@ function makeDb(opts: {
   const updateSet = vi.fn(() => ({ where: updateWhere }));
   const update = vi.fn(() => ({ set: updateSet }));
 
-  const db = { select, insert, update } as unknown as Db;
-  return { db, select, insert, insertValues, update, updateSet };
+  // `transaction` really invokes its callback with the same mock handle as
+  // `tx`, matching real `db.transaction()` semantics, so every query issued
+  // inside the transaction still lands on these same mocks.
+  const handle: Record<string, unknown> = { select, insert, update };
+  const transaction = vi.fn(
+    async (callback: (tx: unknown) => unknown) => await callback(handle),
+  );
+  handle.transaction = transaction;
+
+  const db = handle as unknown as Db;
+  return { db, select, insert, insertValues, update, updateSet, transaction };
 }
 
 // Shared column wiring — rulesSets is used the same way in the other
@@ -90,6 +99,26 @@ function eraOpts(db: Db, values: Record<string, unknown>) {
 }
 
 describe('upsertByExternalIds', () => {
+  it('runs the resolve, the entity write and the external-id insert in one transaction', async () => {
+    // The entity row and its external-id row must commit or roll back
+    // together; a separate, already-committed entity insert is exactly the
+    // orphaned row this guards against.
+    const { db, transaction, insertValues } = makeDb({
+      resolveRows: [],
+      entityRow: { id: 7, name: 'Foo' },
+    });
+
+    const result = await upsertByExternalIds(baseOpts(db));
+
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ row: { id: 7, name: 'Foo' }, created: true });
+    // Both writes went through the handle the transaction supplied.
+    expect(insertValues).toHaveBeenNthCalledWith(1, { name: 'Foo' });
+    expect(insertValues).toHaveBeenNthCalledWith(2, [
+      { rulesSetId: 7, externalSystemId: 1, externalId: 'a' },
+    ]);
+  });
+
   it('throws the given conflict error when external ids match >1 owner', async () => {
     const { db, insert, update } = makeDb({
       resolveRows: [
