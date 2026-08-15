@@ -1,6 +1,6 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
-import { eq, getTableColumns } from 'drizzle-orm';
+import { eq, getTableColumns, getTableName } from 'drizzle-orm';
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core';
 
 import type { DbOrTx } from './db-or-tx';
@@ -67,6 +67,40 @@ function stripUndefined(
 ): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(values).filter(([, value]) => value !== undefined),
+  );
+}
+
+/** Postgres' SQLSTATE for a unique-constraint violation. */
+const UNIQUE_VIOLATION = '23505';
+
+/** One initial attempt plus two retries. */
+const MAX_UPSERT_ATTEMPTS = 3;
+
+/**
+ * True only for the specific violation a lost external-id race raises: the
+ * `unique(external_system_id, external_id)` constraint that
+ * `packages/db/src/schema/external-ids-table.ts` puts on every entity's join
+ * table, named `<table>_external_system_id_external_id_unique`.
+ *
+ * The constraint name is matched as well as the SQLSTATE deliberately. A bare
+ * `code === '23505'` catch-all would silently retry any future unique
+ * violation on any table, hiding a real bug behind three attempts and a
+ * confusing final error; matching the name keeps every unrelated violation
+ * surfacing immediately and unchanged.
+ *
+ * The `postgres` driver exposes both fields on its error object but ships no
+ * narrowing type guard for them, hence the cast. The optional chain also
+ * keeps a non-object thrown value from turning into a TypeError here.
+ */
+function isExternalIdUniqueViolation(
+  error: unknown,
+  constraintName: string,
+): boolean {
+  const candidate = error as
+    { code?: unknown; constraint_name?: unknown } | undefined;
+  return (
+    candidate?.code === UNIQUE_VIOLATION &&
+    candidate.constraint_name === constraintName
   );
 }
 
@@ -194,6 +228,13 @@ async function runUpsertAttempt<
  * row on its own and only then failing to insert the external-id row leaves an
  * entity nothing points at, which no later upsert can ever find and reuse.
  *
+ * Losing the race on the external-id unique constraint is not an error the
+ * caller should see: the transaction rolls back and the whole attempt is
+ * re-run, up to MAX_UPSERT_ATTEMPTS times. Only if every attempt loses is the
+ * last violation rethrown, as the `cause` of a descriptive error, rather than
+ * being retried forever or silently swallowed. `created` on a successful
+ * retry is `false`, correctly reporting that this call did not create the row.
+ *
  * `insertMissingExternalIds` always runs immediately after the insert/update,
  * before any caller tail. Both are independent inserts into unrelated tables,
  * so the order is not observable.
@@ -215,7 +256,29 @@ export async function upsertByExternalIds<
 >(
   opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
 ): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
-  return await opts.db.transaction(
-    async (tx) => await runUpsertAttempt(opts, tx),
+  const constraintName = `${getTableName(opts.externalIdTable)}_external_system_id_external_id_unique`;
+
+  let lastViolation: unknown;
+  for (let attempt = 1; attempt <= MAX_UPSERT_ATTEMPTS; attempt++) {
+    try {
+      return await opts.db.transaction(
+        async (tx) => await runUpsertAttempt(opts, tx),
+      );
+    } catch (error) {
+      if (!isExternalIdUniqueViolation(error, constraintName)) {
+        throw error;
+      }
+      // A concurrent call committed this external id first, so this attempt's
+      // entity insert has just been rolled back with the transaction. Retry
+      // from the top: the fresh resolve now sees the winner's committed row
+      // and takes the update path, reconciling onto it rather than leaving a
+      // second, orphaned row behind.
+      lastViolation = error;
+    }
+  }
+
+  throw new Error(
+    `Failed to upsert ${opts.entityLabelPlural} after ${MAX_UPSERT_ATTEMPTS} attempts: a concurrent writer kept winning the race on ${constraintName}`,
+    { cause: lastViolation },
   );
 }

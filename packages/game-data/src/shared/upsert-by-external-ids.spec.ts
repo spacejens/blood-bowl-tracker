@@ -48,6 +48,66 @@ function makeDb(opts: {
   return { db, select, insert, insertValues, update, updateSet, transaction };
 }
 
+/**
+ * The shape the `postgres` driver raises when an INSERT violates a unique
+ * constraint: SQLSTATE 23505 plus the offending constraint's name.
+ */
+function uniqueViolation(constraintName: string): Error {
+  return Object.assign(
+    new Error('duplicate key value violates unique constraint'),
+    { code: '23505', constraint_name: constraintName },
+  );
+}
+
+/**
+ * A db mock for the concurrent-race tests.
+ *
+ * `resolveRowsPerAttempt[n]` is what the nth attempt's external-id lookup
+ * returns, so a test can make attempt 1 find nothing (insert path) and
+ * attempt 2 find the row the concurrent winner committed (update path).
+ * `insertErrors[n]`, when set, is thrown by the nth `insert(...).values(...)`
+ * call — on the insert path call 0 is the entity insert and call 1 is the
+ * external-id insert, so `[undefined, uniqueViolation(...)]` simulates losing
+ * the race on the join table exactly where the real driver would raise it.
+ */
+function makeRaceDb(opts: {
+  resolveRowsPerAttempt: unknown[][];
+  entityRow: unknown;
+  insertErrors: readonly (Error | undefined)[];
+}) {
+  let selectCall = 0;
+  const where = vi.fn(() =>
+    Promise.resolve(opts.resolveRowsPerAttempt[selectCall++] ?? []),
+  );
+  const from = vi.fn(() => ({ where }));
+  const select = vi.fn(() => ({ from }));
+
+  let insertCall = 0;
+  const insertReturning = vi.fn().mockResolvedValue([opts.entityRow]);
+  const insertValues = vi.fn(() => {
+    const error = opts.insertErrors[insertCall++];
+    if (error !== undefined) {
+      throw error;
+    }
+    return { returning: insertReturning };
+  });
+  const insert = vi.fn(() => ({ values: insertValues }));
+
+  const updateReturning = vi.fn().mockResolvedValue([opts.entityRow]);
+  const updateWhere = vi.fn(() => ({ returning: updateReturning }));
+  const updateSet = vi.fn(() => ({ where: updateWhere }));
+  const update = vi.fn(() => ({ set: updateSet }));
+
+  const handle: Record<string, unknown> = { select, insert, update };
+  const transaction = vi.fn(
+    async (callback: (tx: unknown) => unknown) => await callback(handle),
+  );
+  handle.transaction = transaction;
+
+  const db = handle as unknown as Db;
+  return { db, select, insertValues, update, updateSet, transaction };
+}
+
 // Shared column wiring — rulesSets is used the same way in the other
 // shared specs (resolve-existing-by-external-ids.spec, sync-external-ids.spec).
 function baseOpts(db: Db) {
@@ -249,6 +309,115 @@ describe('upsertByExternalIds', () => {
       name: 'New era',
       leagueId: 10,
       startDate: '2021-09-01',
+    });
+  });
+
+  describe('concurrent external-id race', () => {
+    // rulesSetExternalIds' table name is `rules_sets_external_ids`, and
+    // externalIdsTable() names its unique constraint after it.
+    const constraintName =
+      'rules_sets_external_ids_external_system_id_external_id_unique';
+
+    it('retries and reconciles onto the row the concurrent writer committed', async () => {
+      const { db, transaction, update, updateSet } = makeRaceDb({
+        // Attempt 1 finds nothing and takes the insert path; attempt 2 sees
+        // the winner's committed external-id row and takes the update path.
+        resolveRowsPerAttempt: [
+          [],
+          [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        ],
+        entityRow: { id: 5, name: 'Foo' },
+        insertErrors: [undefined, uniqueViolation(constraintName)],
+      });
+
+      const result = await upsertByExternalIds(baseOpts(db));
+
+      expect(result).toEqual({ row: { id: 5, name: 'Foo' }, created: false });
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledWith(rulesSets);
+      expect(updateSet).toHaveBeenCalledWith({ name: 'Foo' });
+    });
+
+    it('gives up after exactly 3 attempts', async () => {
+      const { db, transaction, insertValues } = makeRaceDb({
+        resolveRowsPerAttempt: [[], [], []],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [
+          undefined,
+          uniqueViolation(constraintName),
+          undefined,
+          uniqueViolation(constraintName),
+          undefined,
+          uniqueViolation(constraintName),
+        ],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toThrow(
+        /after 3 attempts/,
+      );
+      expect(transaction).toHaveBeenCalledTimes(3);
+      // Per attempt: one entity insert plus one external-id insert.
+      expect(insertValues).toHaveBeenCalledTimes(6);
+    });
+
+    it('exposes the last violation as the exhausted error cause', async () => {
+      const lastViolation = uniqueViolation(constraintName);
+      const { db } = makeRaceDb({
+        resolveRowsPerAttempt: [[], [], []],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [
+          undefined,
+          uniqueViolation(constraintName),
+          undefined,
+          uniqueViolation(constraintName),
+          undefined,
+          lastViolation,
+        ],
+      });
+
+      const caught: unknown = await upsertByExternalIds(baseOpts(db)).catch(
+        (error: unknown) => error,
+      );
+
+      expect(caught).toBeInstanceOf(Error);
+      expect((caught as Error).cause).toBe(lastViolation);
+    });
+
+    it('does not retry a unique violation on some other constraint', async () => {
+      const other = uniqueViolation('some_other_table_name_unique');
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, other],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(other);
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry an error that is not a unique violation', async () => {
+      const boom = new Error('connection lost');
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, boom],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(boom);
+      expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not retry a thrown value that is not an object at all', async () => {
+      // Defensive: classifying the caught value must not itself throw.
+      const notAnError = 'kaboom' as unknown as Error;
+      const { db, transaction } = makeRaceDb({
+        resolveRowsPerAttempt: [[]],
+        entityRow: { id: 7, name: 'Foo' },
+        insertErrors: [undefined, notAnError],
+      });
+
+      await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(notAnError);
+      expect(transaction).toHaveBeenCalledTimes(1);
     });
   });
 });
