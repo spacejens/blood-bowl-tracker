@@ -13,7 +13,7 @@ import { EntityComponentsService } from './entity-components.service';
  *
  * Test-only. Do not import from production code.
  */
-export const STUB_BUTTON_EMOJI = { name: '❓' };
+export const STUB_BUTTON_EMOJI = { name: '❓' } as const;
 
 /**
  * An `EntityComponentsService` mock canned to echo its entries back as a

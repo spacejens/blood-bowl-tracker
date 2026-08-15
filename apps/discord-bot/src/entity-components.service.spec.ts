@@ -364,12 +364,14 @@ describe('EntityComponentsService', () => {
       expect(
         rows.map((row) => [
           row.components[0].custom_id,
-          row.components[0].options[0].emoji.name,
+          // Every option in a menu, not just the first, so a mapping bug
+          // that only affects later options in a group can't slip through.
+          row.components[0].options.map((option) => option.emoji.name),
         ]),
       ).toEqual(
         cases.map(([customIdPrefix, emojiName], index) => [
           `${customIdPrefix}${SELECT_MENU_CUSTOM_ID_INFIX}${index}`,
-          emojiName,
+          Array(rows[index].components[0].options.length).fill(emojiName),
         ]),
       );
     }
