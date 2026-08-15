@@ -1,4 +1,7 @@
-import { CompetitionGroupsImportService } from '@blood-bowl-tracker/import';
+import {
+  CompetitionGroupsImportService,
+  NAME_EXTERNAL_SYSTEM_NAME,
+} from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ProcessContext } from '../references/process-context';
@@ -12,45 +15,56 @@ export class CompetitionGroupsProcessor {
   ) {}
 
   /**
-   * Seed the run's group name -> id map from the database, then upsert every
-   * declared group.
+   * Upsert every declared group, exactly like every other before-other-importers
+   * processor: resolve its cross-references, upsert, then register the result in
+   * the run's ExternalIdMap so later entries can reference it.
    *
-   * The seeding step is what makes classification work across import phases:
-   * the catalog is curated in data/before-other-importers, but
-   * data/after-other-importers/competitions.json5 -- a completely separate
-   * process run with its own empty ExternalIdMap -- also has to resolve group
-   * names. Reading the catalog back from the API keeps the curation in exactly
-   * one file.
+   * A group's own external id is not authored in the data file -- it is derived
+   * in code from the group's name under the synthetic "Name" system, the same
+   * way BblLeaguesImportService derives a league's. That derived id is what
+   * makes classification work across import phases: the catalog is curated once,
+   * in data/before-other-importers, and symlinked into
+   * data/after-other-importers so that separate process (with its own empty
+   * ExternalIdMap) re-resolves the very same rows rather than duplicating them.
    *
    * A group's `league` is a normal external-id cross-reference and is required
    * (the column is NOT NULL), so an entry whose league cannot be resolved is
    * skipped with the error resolveRef already recorded.
    */
   async process(ctx: ProcessContext): Promise<number> {
-    const existing = await this.competitionGroupsImport.listCompetitionGroups();
-    for (const group of existing) {
-      ctx.competitionGroupIds.set(group.name, group.id);
-    }
-
     let imported = 0;
     for (const entry of ctx.data.competitionGroups) {
+      const label = `Cannot import competition group "${entry.name}"`;
       const leagueId = this.refResolver.resolveRef({
         ref: entry.league,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
-        label: `Cannot import competition group "${entry.name}"`,
+        label,
       });
       if (leagueId === undefined) {
         continue;
       }
+      const nameSystemId = ctx.systemIds.get(NAME_EXTERNAL_SYSTEM_NAME);
+      if (nameSystemId === undefined) {
+        throw new Error(
+          `External system "${NAME_EXTERNAL_SYSTEM_NAME}" is required to import competition groups but was not bootstrapped; declare it in the data file's externalSystems.`,
+        );
+      }
+      const ref = this.refResolver.competitionGroupRef(entry.name);
       const upserted =
         await this.competitionGroupsImport.upsertCompetitionGroup(
-          { name: entry.name, leagueId },
+          {
+            name: entry.name,
+            leagueId,
+            externalIds: [
+              { externalSystemId: nameSystemId, externalId: ref.id },
+            ],
+          },
           ctx.errors,
         );
       if (upserted) {
-        ctx.competitionGroupIds.set(entry.name, upserted.id);
+        ctx.idMap.add([ref], upserted.id);
         imported += 1;
       }
     }

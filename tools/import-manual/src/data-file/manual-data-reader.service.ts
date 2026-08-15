@@ -14,11 +14,20 @@ export class ManualDataReader {
    * alphabetical filename order, and pool all sections into one ManualDataFile.
    * Malformed JSON5 or an invalid file shape throws with the offending path; a
    * missing directory propagates readdir's error.
+   *
+   * Symlinks count as files: `readdir` never follows them, so `isFile()` alone
+   * would silently skip data/after-other-importers' symlinks to the catalog
+   * files curated in data/before-other-importers. `readFile` does follow them,
+   * so nothing else has to care.
    */
   async read(dir: string): Promise<ManualDataFile> {
     const entries = await readdir(dir, { withFileTypes: true });
     const filenames = entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.json5'))
+      .filter(
+        (entry) =>
+          (entry.isFile() || entry.isSymbolicLink()) &&
+          entry.name.endsWith('.json5'),
+      )
       .map((entry) => entry.name)
       .sort();
 

@@ -35,7 +35,6 @@ function makeContext(
     data,
     systemIds: new Map([['Name', 2]]),
     idMap,
-    competitionGroupIds: new Map(),
     errors: [],
   };
 }
@@ -48,10 +47,10 @@ describe('CompetitionsProcessor', () => {
   beforeEach(async () => {
     competitions = mock<CompetitionsImportService>();
     refResolver = mock<ReferenceResolverService>();
-    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
-      ok: true,
-      id: undefined,
-    });
+    // Both the era and the competition-group refs go through
+    // resolveOptionalRef; the default here is "resolved to nothing", and the
+    // tests that care sequence the two calls explicitly.
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionsProcessor,
@@ -64,7 +63,10 @@ describe('CompetitionsProcessor', () => {
 
   it('resolves the era ref, upserts, and records the id', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue({ id: 77 });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
+    // Call 1 is the era ref; call 2 is the (absent) competition group.
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 3 })
+      .mockReturnValueOnce({ ok: true, id: undefined });
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:major-season-12' },
     ];
@@ -204,11 +206,11 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('resolves the named competition group into the upsert payload', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
-    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
-      ok: true,
-      id: 4,
-    });
+    const groupRef = { system: 'Name', id: 'Major Season' };
+    refResolver.competitionGroupRef.mockReturnValue(groupRef);
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 3 })
+      .mockReturnValueOnce({ ok: true, id: 4 });
     competitions.upsertCompetitionResult.mockResolvedValue({ id: 8 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -224,6 +226,13 @@ describe('CompetitionsProcessor', () => {
     const ctx = makeContext(data, new ExternalIdMap());
 
     expect(await processor.process(ctx)).toBe(1);
+    expect(refResolver.competitionGroupRef).toHaveBeenCalledWith(
+      'Major Season',
+    );
+    expect(refResolver.resolveOptionalRef).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
+    );
     expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: 4 }),
       ctx.errors,
@@ -231,10 +240,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('skips a competition whose competition group cannot be resolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
-    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
-      ok: false,
-    });
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 3 })
+      .mockReturnValueOnce({ ok: false });
     const data = emptyData();
     data.competitions = [
       {
@@ -253,10 +261,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('falls back to the external id in the error label when name is omitted', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
-    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
-      ok: false,
-    });
+    refResolver.resolveOptionalRef
+      .mockReturnValueOnce({ ok: true, id: 3 })
+      .mockReturnValueOnce({ ok: false });
     const data = emptyData();
     data.competitions = [
       {
@@ -271,8 +278,9 @@ describe('CompetitionsProcessor', () => {
       await processor.process(makeContext(data, new ExternalIdMap())),
     ).toBe(0);
     expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
-    const [{ label }] = refResolver.resolveOptionalCompetitionGroup.mock
-      .calls[0] as [{ label: string }];
+    const [{ label }] = refResolver.resolveOptionalRef.mock.calls[1] as [
+      { label: string },
+    ];
     expect(label).toContain('42');
     expect(label).not.toContain('undefined');
   });

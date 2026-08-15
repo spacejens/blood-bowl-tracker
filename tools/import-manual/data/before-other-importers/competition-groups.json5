@@ -10,6 +10,14 @@
 // against this run's ExternalIdMap -- which is why leagues.json5 sits in this
 // same directory.
 //
+// A group carries no authored external ids: one is derived in code from its
+// name under the synthetic "Name" system (declared below so the run
+// bootstraps it), which is how the same group resolves onto the same row from
+// any importer process. That is also why this file and leagues.json5 are
+// symlinked into data/after-other-importers -- that phase is a separate
+// process with its own empty ExternalIdMap, and competitions.json5 there needs
+// the groups in it.
+//
 // Naming notes:
 //  - "Major Season" also covers BBL's pre-split "Season N" (1-18) and TP's
 //    later Swedish "Säsong N" (26-30): one recurring track under three names
@@ -22,6 +30,7 @@
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
   ],
   competitionGroups: [
     { name: 'Major Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },

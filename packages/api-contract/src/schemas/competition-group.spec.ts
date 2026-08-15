@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  CompetitionGroupListSchema,
   CompetitionGroupSchema,
   UpsertCompetitionGroupSchema,
 } from './competition-group';
+
+const externalIds = [{ externalSystemId: 2, externalId: 'Major Season' }];
 
 describe('CompetitionGroupSchema', () => {
   it('parses a full competition group', () => {
@@ -20,26 +21,44 @@ describe('CompetitionGroupSchema', () => {
 });
 
 describe('UpsertCompetitionGroupSchema', () => {
-  it('requires both name and leagueId', () => {
+  it('requires name, leagueId and at least one external id', () => {
     expect(
-      UpsertCompetitionGroupSchema.safeParse({ name: 'Chaos Cup' }).success,
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        externalIds,
+      }).success,
     ).toBe(false);
     expect(
-      UpsertCompetitionGroupSchema.safeParse({ leagueId: 1 }).success,
+      UpsertCompetitionGroupSchema.safeParse({ leagueId: 1, externalIds })
+        .success,
     ).toBe(false);
     expect(
-      UpsertCompetitionGroupSchema.safeParse({ name: '', leagueId: 1 }).success,
+      UpsertCompetitionGroupSchema.safeParse({
+        name: '',
+        leagueId: 1,
+        externalIds,
+      }).success,
     ).toBe(false);
     expect(
-      UpsertCompetitionGroupSchema.parse({ name: 'Chaos Cup', leagueId: 1 }),
-    ).toEqual({ name: 'Chaos Cup', leagueId: 1 });
+      UpsertCompetitionGroupSchema.safeParse({ name: 'Chaos Cup', leagueId: 1 })
+        .success,
+    ).toBe(false);
+    expect(
+      UpsertCompetitionGroupSchema.safeParse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        externalIds: [],
+      }).success,
+    ).toBe(false);
   });
-});
 
-describe('CompetitionGroupListSchema', () => {
-  it('parses id/name pairs', () => {
+  it('parses a fully specified upsert', () => {
     expect(
-      CompetitionGroupListSchema.parse([{ id: 1, name: 'Major Season' }]),
-    ).toEqual([{ id: 1, name: 'Major Season' }]);
+      UpsertCompetitionGroupSchema.parse({
+        name: 'Chaos Cup',
+        leagueId: 1,
+        externalIds,
+      }),
+    ).toEqual({ name: 'Chaos Cup', leagueId: 1, externalIds });
   });
 });

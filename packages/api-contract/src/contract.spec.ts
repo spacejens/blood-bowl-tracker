@@ -127,12 +127,12 @@ describe('contract', () => {
     expect(contract.trophies).not.toHaveProperty('upsertBatch');
   });
 
-  it('defines competitionGroups.upsert with the standard upsert error codes and a list procedure', () => {
+  it('defines competitionGroups.upsert with the standard upsert error codes and nothing else', () => {
     expect(errorCodesOf(contract.competitionGroups.upsert)).toEqual([
       'CONFLICT',
       'BAD_REQUEST',
     ]);
-    expect(contract.competitionGroups).toHaveProperty('list');
+    expect(contract.competitionGroups).not.toHaveProperty('list');
     expect(contract.competitionGroups).not.toHaveProperty('upsertBatch');
   });
 

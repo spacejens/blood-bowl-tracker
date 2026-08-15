@@ -38,7 +38,6 @@ function makeContext(
       ['BBL', 1],
     ]),
     idMap,
-    competitionGroupIds: new Map(),
     errors: [],
   };
 }

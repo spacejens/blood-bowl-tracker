@@ -32,7 +32,6 @@ function makeContext(data: ManualDataFile): ProcessContext {
     data,
     systemIds: new Map([['Name', 2]]),
     idMap: new ExternalIdMap(),
-    competitionGroupIds: new Map(),
     errors: [],
   };
 }
@@ -45,7 +44,10 @@ describe('CompetitionGroupsProcessor', () => {
   beforeEach(async () => {
     groups = mock<CompetitionGroupsImportService>();
     refResolver = mock<ReferenceResolverService>();
-    groups.listCompetitionGroups.mockResolvedValue([]);
+    refResolver.competitionGroupRef.mockImplementation((name) => ({
+      system: 'Name',
+      id: name,
+    }));
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionGroupsProcessor,
@@ -54,18 +56,6 @@ describe('CompetitionGroupsProcessor', () => {
       ],
     }).compile();
     processor = moduleRef.get(CompetitionGroupsProcessor);
-  });
-
-  it('seeds the name map from groups that already exist in the database', async () => {
-    groups.listCompetitionGroups.mockResolvedValue([
-      { id: 4, name: 'Major Season' },
-    ]);
-    const ctx = makeContext(emptyData());
-
-    const count = await processor.process(ctx);
-
-    expect(count).toBe(0);
-    expect(ctx.competitionGroupIds.get('Major Season')).toBe(4);
   });
 
   it('upserts each declared group, records its id, and counts it', async () => {
@@ -90,10 +80,28 @@ describe('CompetitionGroupsProcessor', () => {
 
     expect(count).toBe(1);
     expect(groups.upsertCompetitionGroup).toHaveBeenCalledWith(
-      { name: 'Chaos Cup', leagueId: 9 },
+      {
+        name: 'Chaos Cup',
+        leagueId: 9,
+        externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
+      },
       ctx.errors,
     );
-    expect(ctx.competitionGroupIds.get('Chaos Cup')).toBe(6);
+    expect(ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' })).toBe(6);
+  });
+
+  it('throws when the Name external system was not bootstrapped', async () => {
+    refResolver.resolveRef.mockReturnValue(9);
+    const data = emptyData();
+    data.competitionGroups = [
+      {
+        name: 'Chaos Cup',
+        league: { system: 'tloeg.bbleague.se', id: 'tLoEG' },
+      },
+    ];
+    const ctx = { ...makeContext(data), systemIds: new Map<string, number>() };
+
+    await expect(processor.process(ctx)).rejects.toThrow(/"Name"/);
   });
 
   it('skips an entry whose league cannot be resolved', async () => {
@@ -111,7 +119,9 @@ describe('CompetitionGroupsProcessor', () => {
 
     expect(count).toBe(0);
     expect(groups.upsertCompetitionGroup).not.toHaveBeenCalled();
-    expect(ctx.competitionGroupIds.has('Chaos Cup')).toBe(false);
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' }),
+    ).toBeUndefined();
   });
 
   it('does not record an id or count when the upsert fails', async () => {
@@ -127,6 +137,8 @@ describe('CompetitionGroupsProcessor', () => {
     const ctx = makeContext(data);
 
     expect(await processor.process(ctx)).toBe(0);
-    expect(ctx.competitionGroupIds.has('Chaos Cup')).toBe(false);
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' }),
+    ).toBeUndefined();
   });
 });

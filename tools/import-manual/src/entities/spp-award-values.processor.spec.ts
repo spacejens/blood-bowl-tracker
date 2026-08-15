@@ -33,7 +33,6 @@ describe('SppAwardValuesProcessor', () => {
       data: ManualDataFileSchema.parse({ sppAwardValues }),
       systemIds: new Map([['Name', 1]]),
       idMap: new ExternalIdMap(),
-      competitionGroupIds: new Map(),
       errors: [],
     };
   }

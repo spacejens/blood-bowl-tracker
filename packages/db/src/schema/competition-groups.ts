@@ -11,11 +11,18 @@ import { gameData } from './pg-schema';
  * Major season's 1st place from a Minor season's 1st place even when both
  * sources label them identically.
  *
- * Deliberately has no external-ids table and no description: a group is a pure
- * curation decision made in tools/import-manual, never inferred from a source
- * system, and nothing needs prose about one. Identity is its `name`, which
- * `CompetitionGroupsService.upsert` matches on (the same precedent
- * `ExternalSystemsService` and `TrophiesService`'s name path set).
+ * Deliberately has no description: a group is a pure curation decision made in
+ * tools/import-manual, and nothing needs prose about one.
+ *
+ * It does carry external ids (competition_groups_external_ids), like every
+ * other entity here. Although no source system names a group, tools/import-manual
+ * runs its two data directories as two separate processes with independent
+ * in-memory ExternalIdMaps, so the after-other-importers run has to re-resolve
+ * groups curated in the before-other-importers run. That is exactly what the
+ * synthetic "Name" external system exists for: the group's name becomes a
+ * stable, deterministic external id (NameExternalIdService.forCompetitionGroup),
+ * and `CompetitionGroupsService.upsert` matches on external ids like every
+ * other upsert, instead of on `name`.
  */
 const competitionGroupsTable = historyTrackedTable({
   schema: gameData,

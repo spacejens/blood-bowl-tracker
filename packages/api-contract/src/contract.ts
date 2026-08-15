@@ -7,9 +7,7 @@ import {
   UpsertCompetitionSchema,
 } from './schemas/competition';
 import {
-  CompetitionGroupListSchema,
   CompetitionGroupSchema,
-  ListCompetitionGroupsSchema,
   UpsertCompetitionGroupSchema,
 } from './schemas/competition-group';
 import { EraSchema, UpsertEraSchema } from './schemas/era';
@@ -123,10 +121,6 @@ export const contract = {
       UpsertCompetitionGroupSchema,
       CompetitionGroupSchema,
     ),
-    // The contract's only read procedure -- see competition-group.ts for why.
-    list: oc
-      .input(ListCompetitionGroupsSchema)
-      .output(CompetitionGroupListSchema),
   },
   matches: {
     upsert: upsertProcedure(UpsertMatchSchema, MatchSchema),

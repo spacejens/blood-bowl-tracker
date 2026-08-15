@@ -87,11 +87,11 @@ const CompetitionEntrySchema = z.object({
   name: z.string().min(1).optional(),
   type: z.enum(['season', 'cup']).optional(),
   era: ExternalRefSchema.optional(),
-  // Names a competition group by its exact `name` rather than by an external
-  // id: groups carry no external ids at all (see
-  // packages/db/src/schema/competition-groups.ts), so there is no id pair to
-  // reference. Optional, so an entry that says nothing about a group leaves
-  // the stored classification alone.
+  // Names a competition group by its plain curated name, not by a spelled-out
+  // external-id pair: a group's only identity is its name, which the processor
+  // turns into the group's synthetic "Name"-system external ref before
+  // resolving it like any other cross-reference. Optional, so an entry that
+  // says nothing about a group leaves the stored classification alone.
   competitionGroup: z.string().min(1).optional(),
   externalIds,
 });
@@ -122,11 +122,11 @@ const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().min(1).optional(),
-  // Names a competition group by its exact `name` rather than by an external
-  // id: groups carry no external ids at all (see
-  // packages/db/src/schema/competition-groups.ts), so there is no id pair to
-  // reference. Optional, so an entry that says nothing about a group leaves
-  // the stored classification alone.
+  // Names a competition group by its plain curated name, not by a spelled-out
+  // external-id pair: a group's only identity is its name, which the processor
+  // turns into the group's synthetic "Name"-system external ref before
+  // resolving it like any other cross-reference. Optional, so an entry that
+  // says nothing about a group leaves the stored classification alone.
   competitionGroup: z.string().min(1).optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
 });
@@ -137,6 +137,11 @@ const TrophyEntrySchema = z.object({
  * external-id cross-reference, resolved against the run's ExternalIdMap, so
  * the file declaring groups must sit in the same directory as the one
  * declaring the leagues they name.
+ *
+ * A group declares no `externalIds` of its own: its id under the synthetic
+ * "Name" system is derived in code from `name` (see
+ * CompetitionGroupsProcessor), the same way BblLeaguesImportService derives a
+ * league's, so there is nothing for a curator to keep in sync.
  */
 const CompetitionGroupEntrySchema = z.object({
   name: z.string().min(1),

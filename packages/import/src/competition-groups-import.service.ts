@@ -27,15 +27,4 @@ export class CompetitionGroupsImportService {
         `Failed to import competition group "${data.name}": ${err instanceof Error ? err.message : String(err)}`,
     });
   }
-
-  /**
-   * The whole curated catalog as id/name pairs. Deliberately NOT routed
-   * through ImportRunnerService: this is a read, and a failing read is an
-   * infrastructure failure (API down, bad token) rather than one bad data
-   * item, so it propagates and aborts the run -- the same way a missing data
-   * directory or an unreachable API already does.
-   */
-  listCompetitionGroups(): Promise<{ id: number; name: string }[]> {
-    return this.client.competitionGroups.list({});
-  }
 }

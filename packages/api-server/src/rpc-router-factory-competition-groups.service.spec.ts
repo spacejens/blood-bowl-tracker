@@ -4,6 +4,12 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { createRouterHarness } from './rpc-router-factory.test-helpers';
 
+const upsertInput = {
+  name: 'Chaos Cup',
+  leagueId: 1,
+  externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
+};
+
 describe('RpcRouterFactoryService competitionGroups router', () => {
   let harness: Awaited<ReturnType<typeof createRouterHarness>>;
 
@@ -26,10 +32,10 @@ describe('RpcRouterFactoryService competitionGroups router', () => {
       created: true,
     });
 
-    const result = await call(harness.router.competitionGroups.upsert, {
-      name: 'Chaos Cup',
-      leagueId: 1,
-    });
+    const result = await call(
+      harness.router.competitionGroups.upsert,
+      upsertInput,
+    );
 
     expect(result).toEqual({
       id: 3,
@@ -46,23 +52,10 @@ describe('RpcRouterFactoryService competitionGroups router', () => {
     );
 
     await expect(
-      call(harness.router.competitionGroups.upsert, {
-        name: 'Chaos Cup',
-        leagueId: 1,
-      }),
+      call(harness.router.competitionGroups.upsert, upsertInput),
     ).rejects.toMatchObject({
       code: 'CONFLICT',
       message: 'two rows',
     });
-  });
-
-  it('returns every group from list', async () => {
-    harness.mocks.competitionGroupsService.listAll.mockResolvedValue([
-      { id: 1, name: 'Major Season' },
-    ]);
-
-    const result = await call(harness.router.competitionGroups.list, {});
-
-    expect(result).toEqual([{ id: 1, name: 'Major Season' }]);
   });
 });

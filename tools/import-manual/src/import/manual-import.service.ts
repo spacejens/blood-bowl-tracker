@@ -43,8 +43,9 @@ export class ManualImportService {
    * rulesSets, leagues, eras, races, positions, coaches, teams,
    * competitionGroups, competitions, sppAwardValues, trophies — with
    * competitionGroups running after leagues (whose external ids its entries
-   * reference) and before competitions and trophies (which resolve the group
-   * names it publishes into ctx.competitionGroupIds), and sppAwardValues
+   * reference) and before competitions and trophies (which resolve the groups
+   * it registers in the run's ExternalIdMap under the "Name" system), and
+   * sppAwardValues
    * running before trophies because it references both rulesSets and races,
    * and trophies running last because it references nothing, so its position
    * in the order is free — sharing one ExternalIdMap and error collector
@@ -62,7 +63,6 @@ export class ManualImportService {
       data,
       systemIds,
       idMap: new ExternalIdMap(),
-      competitionGroupIds: new Map(),
       errors,
     };
 

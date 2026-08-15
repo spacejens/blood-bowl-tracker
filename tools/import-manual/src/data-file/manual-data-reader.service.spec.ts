@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -57,6 +57,20 @@ describe('ManualDataReader', () => {
     const data = await reader.read(dir);
 
     expect(data.coaches.map((c) => c.name)).toEqual(['First', 'Second']);
+  });
+
+  it('follows a symlinked .json5 file', async () => {
+    // data/after-other-importers symlinks the catalog files curated in
+    // data/before-other-importers, and readdir never follows symlinks.
+    write(
+      'real.json5',
+      `{ coaches: [{ name: 'Linked', externalIds: [{ system: 'Name', id: 'name:linked' }] }] }`,
+    );
+    symlinkSync(join(dir, 'real.json5'), join(dir, 'zz-link.json5'));
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Linked', 'Linked']);
   });
 
   it('ignores non-.json5 files and subdirectories (non-recursive)', async () => {

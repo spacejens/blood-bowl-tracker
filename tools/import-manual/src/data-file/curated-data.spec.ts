@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import JSON5 from 'json5';
@@ -83,6 +83,25 @@ describe('curated data files', () => {
     ]);
     for (const group of data.competitionGroups) {
       expect(leagueIds).toContain(`${group.league.system}|${group.league.id}`);
+    }
+  });
+
+  it('re-declares the same leagues and groups in the after-other-importers phase', () => {
+    // That phase is a separate process with its own empty ExternalIdMap, so
+    // competitions.json5 can only resolve a group if the catalog is processed
+    // there too. The files are symlinks to the before-other-importers
+    // originals, so this asserts identity, not merely equality of content.
+    const before = readPhase('before-other-importers');
+    const after = readPhase('after-other-importers');
+
+    expect(after.competitionGroups).toEqual(before.competitionGroups);
+    expect(after.leagues).toEqual(before.leagues);
+    for (const name of ['leagues.json5', 'competition-groups.json5']) {
+      expect(
+        lstatSync(
+          join(DATA_ROOT, 'after-other-importers', name),
+        ).isSymbolicLink(),
+      ).toBe(true);
     }
   });
 

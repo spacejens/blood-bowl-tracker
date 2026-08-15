@@ -26,24 +26,27 @@ describe('CompetitionGroupsImportService', () => {
     service = moduleRef.get(CompetitionGroupsImportService);
   });
 
+  const data = {
+    name: 'Chaos Cup',
+    leagueId: 1,
+    externalIds: [{ externalSystemId: 2, externalId: 'Chaos Cup' }],
+  };
+
   it('delegates the upsert to the import runner', async () => {
     runner.recordUpsertResult.mockResolvedValue({ id: 5 });
 
-    await expect(
-      service.upsertCompetitionGroup({ name: 'Chaos Cup', leagueId: 1 }, []),
-    ).resolves.toEqual({ id: 5 });
+    await expect(service.upsertCompetitionGroup(data, [])).resolves.toEqual({
+      id: 5,
+    });
     expect(runner.recordUpsertResult).toHaveBeenCalledWith(
-      expect.objectContaining({ item: { name: 'Chaos Cup', leagueId: 1 } }),
+      expect.objectContaining({ item: data }),
     );
   });
 
   it('builds an error message naming the group', async () => {
     runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await service.upsertCompetitionGroup(
-      { name: 'Chaos Cup', leagueId: 1 },
-      [],
-    );
+    await service.upsertCompetitionGroup(data, []);
 
     const [options] = runner.recordUpsertResult.mock.calls[0];
     expect(options.buildErrorMessage(new Error('boom'))).toBe(
@@ -51,14 +54,13 @@ describe('CompetitionGroupsImportService', () => {
     );
   });
 
-  it('lists competition groups straight from the API client', async () => {
-    client.competitionGroups.list.mockResolvedValue([
-      { id: 1, name: 'Major Season' },
-    ]);
+  it('calls the API client competitionGroups.upsert procedure', async () => {
+    runner.recordUpsertResult.mockResolvedValue({ id: 5 });
 
-    await expect(service.listCompetitionGroups()).resolves.toEqual([
-      { id: 1, name: 'Major Season' },
-    ]);
-    expect(client.competitionGroups.list).toHaveBeenCalledWith({});
+    await service.upsertCompetitionGroup(data, []);
+
+    const [options] = runner.recordUpsertResult.mock.calls[0];
+    await options.upsert();
+    expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
   });
 });

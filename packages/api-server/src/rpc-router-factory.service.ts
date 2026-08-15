@@ -265,11 +265,6 @@ export class RpcRouterFactoryService {
               },
             ),
         ),
-        // The only read procedure in the router: tools/import-manual resolves
-        // curated group names to ids across two separate import runs.
-        list: implement(contract.competitionGroups.list).handler(() =>
-          this.competitionGroupsService.listAll(),
-        ),
       },
       competitions: {
         upsert: implement(contract.competitions.upsert).handler(
