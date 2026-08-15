@@ -10,7 +10,10 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
-import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import {
+  nullEntityComponents,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -123,7 +126,13 @@ describe('CompetitionDeepdiveService', () => {
       {
         type: 1,
         components: [
-          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+          {
+            type: 2,
+            style: 1,
+            label: 'canned',
+            custom_id: 'canned',
+            emoji: STUB_BUTTON_EMOJI,
+          },
         ],
       },
     ];
