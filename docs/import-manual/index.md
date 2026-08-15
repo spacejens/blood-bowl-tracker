@@ -80,8 +80,8 @@ externalSystems: [
 Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
 again), with one exception: a trophy may declare an empty `externalIds` list,
-in which case the API matches it on its exact name instead — see the
-Trophies subsection below. External IDs and cross-references are written as
+in which case the API matches it on its exact name instead. No curated trophy
+currently does — see the Trophies subsection below. External IDs and cross-references are written as
 `{ system, id }`
 pairs, where `system` is an external-system name and `id` follows the
 `id:`/`name:` namespacing convention (see
@@ -107,8 +107,8 @@ as the database has it, so a rename-only entry carries just `name` and the
 `externalIds` that match the existing row — no redeclaring the entity's era,
 league or race purely to have something to reference. `externalIds` is how the
 row is matched (or, failing that, created) — the one always-required field,
-except for a trophy with no external id yet, which is matched by exact `name`
-instead (see the Trophies subsection below). A field written as explicit
+except for a trophy with no external id at all, which is matched by exact
+`name` instead (see the Trophies subsection below). A field written as explicit
 `null` is different from an omitted one:
 it clears a nullable value (e.g. reopening an era by setting `endDate: null`).
 
@@ -243,11 +243,19 @@ inferred from label text alone.
 
 A trophy is the one entity that may declare no external id at all (see
 `## Data files` above for the otherwise-universal rule): it is then identified
-by its exact `name` instead, so re-running the import never duplicates it.
-This is used for the one trophy — `Ogretoberfest` — with no stable external id
-to key on yet: TP's `awardType` codes are not globally unique per trophy, and
-resolving them needs a competition-classification concept that does not exist
-yet (issues #445 and #446).
+by its exact `name` instead, so re-running the import never duplicates it. No
+curated trophy relies on this today — `Ogretoberfest` used to, and gained a
+`tourplay.net` id in issue #446 — but the mechanism stays supported for any
+future trophy with no stable external id to key on.
+
+Seven trophies carry a `tourplay.net` external id (issue #446), keyed
+`${disambiguator}-${groupName}`: the raw TP award's `name` when present
+(`Best Stunty`, `Wooden Spoon`) else its numeric `awardType` (`1`, `2`, `3`),
+hyphen-joined with the trophy's competition group name — because TP's
+`awardType` codes are not globally unique per trophy on their own. Only those
+seven are seeded; TP's award data covers no other catalog entry. See
+[docs/import-tp/file-format.md](../import-tp/file-format.md) for the full
+value table and the evidence behind the scope.
 
 ## Known before-other-importers dedup files
 
