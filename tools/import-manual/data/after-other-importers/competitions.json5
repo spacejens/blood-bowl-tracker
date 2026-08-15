@@ -21,9 +21,15 @@
 // `competitionGroup` -- deliberately no `name` -- so they cannot rename a
 // scraped competition by accident; an omitted field is left exactly as the
 // BBL/TP importers set it (see the overlay note below). `competitionGroup`
-// values are plain strings here but resolve through the API's
-// `competitionGroups.list` at import time, since the group catalog itself is
-// curated in the before-other-importers phase, not in this file.
+// values are plain strings here, but each processor turns its string into the
+// group's `Name`-system external ref (via ReferenceResolverService's
+// `competitionGroupRef`) and resolves it against this run's own
+// ExternalIdMap -- the same mechanism every other reference in this file
+// uses. That is why competition-groups.json5 and leagues.json5 in this
+// directory are symlinks to the before-other-importers originals: this phase
+// re-processes the same curated catalog to populate its own map with those
+// groups' ids, even though the group catalog itself is curated in the
+// before-other-importers phase, not in this file.
 //
 // Runs AFTER the BBL/TP importers (this is the after-other-importers
 // directory): each entry matches its existing database row by that row's own

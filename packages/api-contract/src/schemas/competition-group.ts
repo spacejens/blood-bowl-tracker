@@ -9,9 +9,13 @@ import { ExternalIdSchema } from './external-id';
  * No source system names a group -- it exists purely as a curation decision
  * made in tools/import-manual -- but it still carries external ids, under the
  * synthetic "Name" system, so two independent importer processes can resolve
- * the same group onto the same row. `name` and `leagueId` are both required on
- * upsert: there is no overlay use case, because the only writer restates every
- * field on every run.
+ * the same group onto the same row. `name`, `leagueId` and `externalIds` are
+ * all required on upsert: there is no overlay use case, because the only
+ * writer restates every field on every run. `externalIds` (min 1) is the
+ * load-bearing one -- upsert matches an existing row by external id, never by
+ * name, which is what lets tools/import-manual's before- and
+ * after-other-importers phases -- two separate processes, each with its own
+ * empty ExternalIdMap -- resolve the same curated group onto the same row.
  */
 export const CompetitionGroupSchema = z.object({
   id: z.number(),

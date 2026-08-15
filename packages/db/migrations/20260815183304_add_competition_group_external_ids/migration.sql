@@ -43,17 +43,24 @@ CREATE TRIGGER competition_groups_external_ids_set_updated_at
 -- unconditionally.
 SET CONSTRAINTS ALL DEFERRED;
 --> statement-breakpoint
--- Give the "Major Season" group seeded by 20260814121026_add_competition_groups
--- its "Name" external id. That seed predates competition groups having external
--- ids at all; now that CompetitionGroupsService.upsert matches by external id
--- (never by name), a seeded row with no external id is invisible to
--- tools/import-manual's competition-groups.json5 upsert, which would create a
--- second "Major Season" on every fresh database -- exactly the duplication bug
--- the leagues seed above it already had to fix. The id string is what
--- NameExternalIdService.forCompetitionGroup produces: the group's plain name.
--- The external system is inserted conditionally because an already-imported
--- database has it; the external id likewise, so re-running against such a
--- database is a no-op.
+-- Give every pre-existing competition_groups row a "Name" external id. That
+-- includes at minimum the "Major Season" group seeded by
+-- 20260814121026_add_competition_groups -- which predates competition groups
+-- having external ids at all -- but also covers a developer database where the
+-- old, pre-#445-rework manual importer already ran a name-matched upsert and
+-- created all 16 curated groups without any external id. Now that
+-- CompetitionGroupsService.upsert matches by external id (never by name), any
+-- such row is invisible to tools/import-manual's competition-groups.json5
+-- upsert, which would create a duplicate of it on the next import -- exactly
+-- the duplication bug the leagues seed above already had to fix, but for
+-- every group rather than only the one this migration's own seed knows about.
+-- The id string is what NameExternalIdService.forCompetitionGroup produces:
+-- the group's plain name. DISTINCT ON guards against violating the unique
+-- constraint on (external_system_id, external_id) if two rows somehow shared
+-- a name. The external system is inserted conditionally because an
+-- already-imported database has it; the external id likewise, so re-running
+-- against such a database -- or one that never had the old data at all -- is
+-- a no-op.
 INSERT INTO "game_data"."external_systems" ("name", "category")
 SELECT 'Name', 'bookkeeping'
 WHERE NOT EXISTS (
@@ -61,12 +68,11 @@ WHERE NOT EXISTS (
 );
 --> statement-breakpoint
 INSERT INTO "game_data"."competition_groups_external_ids" ("competition_group_id", "external_system_id", "external_id")
-SELECT cg."id", es."id", 'Major Season'
+SELECT DISTINCT ON (cg."name") cg."id", es."id", cg."name"
 FROM "game_data"."competition_groups" cg, "game_data"."external_systems" es
-WHERE cg."name" = 'Major Season' AND es."name" = 'Name'
+WHERE es."name" = 'Name'
 AND NOT EXISTS (
   SELECT 1 FROM "game_data"."competition_groups_external_ids"
-  WHERE "external_system_id" = es."id" AND "external_id" = 'Major Season'
+  WHERE "external_system_id" = es."id" AND "external_id" = cg."name"
 )
-ORDER BY cg."id"
-LIMIT 1;
+ORDER BY cg."name", cg."id";
