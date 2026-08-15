@@ -14,6 +14,7 @@ import { EntityComponentsService } from '../../entity-components.service';
 import {
   nullEntityComponents,
   passthroughEntityComponents,
+  STUB_BUTTON_EMOJI,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_COACH_CAREER_TIMEOUT_MESSAGE,
@@ -123,6 +124,7 @@ describe('CoachDeepdiveService', () => {
             style: ButtonStyle.Primary,
             label: 'canned',
             custom_id: 'canned',
+            emoji: STUB_BUTTON_EMOJI,
           },
         ],
       },
@@ -374,18 +376,21 @@ describe('CoachDeepdiveService', () => {
               style: expect.any(Number) as number,
               label: 'Reikland Reavers',
               custom_id: 'deepdive:team:11',
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: 2,
               style: expect.any(Number) as number,
               label: 'BB2016',
               custom_id: 'deepdive:era:3',
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: 2,
               style: expect.any(Number) as number,
               label: 'BB2020',
               custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
@@ -445,6 +450,7 @@ describe('CoachDeepdiveService', () => {
               style: expect.any(Number) as number,
               label: 'BB2020',
               custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },

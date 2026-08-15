@@ -10,7 +10,10 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
-import { nullEntityComponents } from '../../entity-components-mock.test-helpers';
+import {
+  nullEntityComponents,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE,
   DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE,
@@ -181,7 +184,13 @@ describe('PlayerDeepdiveService', () => {
       {
         type: 1,
         components: [
-          { type: 2, style: 1, label: 'canned', custom_id: 'canned' },
+          {
+            type: 2,
+            style: 1,
+            label: 'canned',
+            custom_id: 'canned',
+            emoji: STUB_BUTTON_EMOJI,
+          },
         ],
       },
     ];

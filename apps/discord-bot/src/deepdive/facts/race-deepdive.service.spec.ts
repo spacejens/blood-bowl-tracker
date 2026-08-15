@@ -10,7 +10,10 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
-import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
+import {
+  passthroughEntityComponents,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_RACE_ERAS_TIMEOUT_MESSAGE,
   DEEPDIVE_RACE_NO_TEAMS_MESSAGE,
@@ -130,15 +133,29 @@ describe('RaceDeepdiveService', () => {
               style: 1,
               label: 'Gouged Eye',
               custom_id: 'deepdive:team:9',
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: 2,
               style: 1,
               label: 'Da Deff Skwad',
               custom_id: 'deepdive:team:10',
+              emoji: STUB_BUTTON_EMOJI,
             },
-            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
-            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2016',
+              custom_id: 'deepdive:era:3',
+              emoji: STUB_BUTTON_EMOJI,
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2020',
+              custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
           ],
         },
       ],
@@ -188,7 +205,13 @@ describe('RaceDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2020',
+              custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
           ],
         },
       ],

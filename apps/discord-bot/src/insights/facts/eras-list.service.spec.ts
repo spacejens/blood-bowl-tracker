@@ -16,7 +16,10 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { ERA_BUTTON_CUSTOM_ID_PREFIX } from '../../deepdive/button-custom-ids';
 import { EntityComponentsService } from '../../entity-components.service';
-import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
+import {
+  passthroughEntityComponents,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   ERAS_LIST_NO_DATA_MESSAGE,
   ERAS_LIST_TIMEOUT_MESSAGE,
@@ -107,6 +110,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
@@ -147,6 +151,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
@@ -259,6 +264,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'A Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}1`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -266,6 +272,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'B Season 1',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}2`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -273,6 +280,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'A Season 2',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}3`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -280,6 +288,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'B Season 2',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}4`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -287,6 +296,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Zeta',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}5`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -294,6 +304,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Alpha',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}6`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -301,6 +312,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Alpha',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}8`,
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: ComponentType.Button,
@@ -308,6 +320,7 @@ describe('ErasListService.resolve', () => {
               style: expect.any(Number),
               label: 'Beta',
               custom_id: `${ERA_BUTTON_CUSTOM_ID_PREFIX}7`,
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
