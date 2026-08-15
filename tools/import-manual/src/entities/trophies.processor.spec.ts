@@ -238,6 +238,10 @@ describe('TrophiesProcessor', () => {
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: undefined }),
     );
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: undefined }),
+      expect.anything(),
+    );
   });
 
   it('skips a trophy whose competition group cannot be resolved', async () => {
