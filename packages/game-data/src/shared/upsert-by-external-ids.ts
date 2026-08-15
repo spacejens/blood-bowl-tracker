@@ -77,31 +77,65 @@ const UNIQUE_VIOLATION = '23505';
 const MAX_UPSERT_ATTEMPTS = 3;
 
 /**
- * True only for the specific violation a lost external-id race raises: the
- * `unique(external_system_id, external_id)` constraint that
- * `packages/db/src/schema/external-ids-table.ts` puts on every entity's join
- * table, named `<table>_external_system_id_external_id_unique`.
+ * How many `.cause` links to walk while unwrapping a caught error before
+ * giving up. drizzle-orm's pg-core session wraps exactly one level in
+ * practice (see below), so 3 is generous headroom rather than a value tuned
+ * to a specific stack.
+ */
+const MAX_CAUSE_UNWRAP_DEPTH = 3;
+
+/**
+ * True only for the specific violation a lost external-id race raises: a
+ * unique-constraint violation (SQLSTATE 23505) on the entity's own
+ * external-id join table.
  *
- * The constraint name is matched as well as the SQLSTATE deliberately. A bare
- * `code === '23505'` catch-all would silently retry any future unique
- * violation on any table, hiding a real bug behind three attempts and a
- * confusing final error; matching the name keeps every unrelated violation
- * surfacing immediately and unchanged.
+ * Two things make this harder than it looks:
  *
- * The `postgres` driver exposes both fields on its error object but ships no
- * narrowing type guard for them, hence the cast. The optional chain also
- * keeps a non-object thrown value from turning into a TypeError here.
+ * 1. **The real driver error is never the caught value.** drizzle-orm
+ *    1.0.0-rc.4's pg-core session wraps every query failure in a
+ *    `DrizzleQueryError(sql, params, e)`
+ *    (`drizzle-orm/pg-core/async/session.js`), which sets `this.cause = e`
+ *    but does not copy `code`/`table_name` onto itself
+ *    (`drizzle-orm/errors.js`). The `postgres` driver's `PostgresError` —
+ *    which does carry those fields — is only reachable via `.cause` on the
+ *    caught error. So the caught value's own `code`/`table_name` are always
+ *    undefined in production; this walks `.cause` (bounded, defensively) to
+ *    find the object that actually carries them.
+ * 2. **Matching by constraint name is fragile.** The constraint's name is
+ *    `<table>_external_system_id_external_id_unique`, but Postgres truncates
+ *    any identifier to 63 bytes (`NAMEDATALEN`) at creation time. For
+ *    `competition_groups_external_ids` that name is 69 bytes, so the stored
+ *    (and driver-reported) constraint name is silently truncated and would
+ *    never match a hand-reconstructed full name. Every entity's join table
+ *    (`packages/db/src/schema/external-ids-table.ts`) carries exactly one
+ *    unique constraint besides its primary key — the one on
+ *    `(external_system_id, external_id)` — so matching by `table_name`
+ *    alone unambiguously identifies "this is the race this code is designed
+ *    to catch", and is immune to truncation or any future rename of the
+ *    constraint itself.
+ *
+ * The SQLSTATE check is kept alongside the table-name check deliberately: a
+ * bare table-name match would retry on that table's *other* future
+ * constraints too (e.g. a NOT NULL violation), hiding a real bug behind
+ * three attempts and a confusing final error.
  */
 function isExternalIdUniqueViolation(
   error: unknown,
-  constraintName: string,
+  tableName: string,
 ): boolean {
-  const candidate = error as
-    { code?: unknown; constraint_name?: unknown } | undefined;
-  return (
-    candidate?.code === UNIQUE_VIOLATION &&
-    candidate.constraint_name === constraintName
-  );
+  let candidate: unknown = error;
+  for (let depth = 0; depth < MAX_CAUSE_UNWRAP_DEPTH; depth++) {
+    const typed = candidate as
+      { code?: unknown; table_name?: unknown; cause?: unknown } | undefined;
+    if (typed?.code === UNIQUE_VIOLATION && typed.table_name === tableName) {
+      return true;
+    }
+    if (typeof typed !== 'object' || typed === null || !('cause' in typed)) {
+      return false;
+    }
+    candidate = typed.cause;
+  }
+  return false;
 }
 
 /**
@@ -256,7 +290,7 @@ export async function upsertByExternalIds<
 >(
   opts: UpsertByExternalIdsOptions<TEntityTable, TExternalIdTable>,
 ): Promise<{ row: InferSelectModel<TEntityTable>; created: boolean }> {
-  const constraintName = `${getTableName(opts.externalIdTable)}_external_system_id_external_id_unique`;
+  const externalIdTableName = getTableName(opts.externalIdTable);
 
   let lastViolation: unknown;
   for (let attempt = 1; attempt <= MAX_UPSERT_ATTEMPTS; attempt++) {
@@ -265,7 +299,7 @@ export async function upsertByExternalIds<
         async (tx) => await runUpsertAttempt(opts, tx),
       );
     } catch (error) {
-      if (!isExternalIdUniqueViolation(error, constraintName)) {
+      if (!isExternalIdUniqueViolation(error, externalIdTableName)) {
         throw error;
       }
       // A concurrent call committed this external id first, so this attempt's
@@ -278,7 +312,7 @@ export async function upsertByExternalIds<
   }
 
   throw new Error(
-    `Failed to upsert ${opts.entityLabelPlural} after ${MAX_UPSERT_ATTEMPTS} attempts: a concurrent writer kept winning the race on ${constraintName}`,
+    `Failed to upsert ${opts.entityLabelPlural} after ${MAX_UPSERT_ATTEMPTS} attempts: a concurrent writer kept winning the race on ${externalIdTableName}`,
     { cause: lastViolation },
   );
 }

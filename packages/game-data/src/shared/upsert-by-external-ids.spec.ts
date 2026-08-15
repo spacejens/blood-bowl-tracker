@@ -1,5 +1,7 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import {
+  competitionGroupExternalIds,
+  competitionGroups,
   eraExternalIds,
   eras,
   rulesSetExternalIds,
@@ -49,14 +51,22 @@ function makeDb(opts: {
 }
 
 /**
- * The shape the `postgres` driver raises when an INSERT violates a unique
- * constraint: SQLSTATE 23505 plus the offending constraint's name.
+ * The shape actually thrown in production: drizzle-orm 1.0.0-rc.4's pg-core
+ * session wraps every query failure in a `DrizzleQueryError`, whose `cause`
+ * is the real `postgres` driver's `PostgresError` — the only place `code`
+ * and `table_name` actually live. The classifier under test must unwrap this
+ * `.cause` chain, so the mock has to reproduce it rather than throwing an
+ * unwrapped postgres-shaped error directly (which production code never
+ * does).
  */
-function uniqueViolation(constraintName: string): Error {
-  return Object.assign(
+function uniqueViolation(tableName: string): Error {
+  const pgError = Object.assign(
     new Error('duplicate key value violates unique constraint'),
-    { code: '23505', constraint_name: constraintName },
+    { code: '23505', table_name: tableName },
   );
+  return Object.assign(new Error('Failed query: insert into ...'), {
+    cause: pgError,
+  });
 }
 
 /**
@@ -313,10 +323,10 @@ describe('upsertByExternalIds', () => {
   });
 
   describe('concurrent external-id race', () => {
-    // rulesSetExternalIds' table name is `rules_sets_external_ids`, and
-    // externalIdsTable() names its unique constraint after it.
-    const constraintName =
-      'rules_sets_external_ids_external_system_id_external_id_unique';
+    // rulesSetExternalIds' table name is `rules_sets_external_ids`; the
+    // classifier now matches on this table name rather than the (fragile,
+    // possibly-truncated) constraint name.
+    const tableName = 'rules_sets_external_ids';
 
     it('retries and reconciles onto the row the concurrent writer committed', async () => {
       const { db, transaction, update, updateSet } = makeRaceDb({
@@ -327,7 +337,7 @@ describe('upsertByExternalIds', () => {
           [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
         ],
         entityRow: { id: 5, name: 'Foo' },
-        insertErrors: [undefined, uniqueViolation(constraintName)],
+        insertErrors: [undefined, uniqueViolation(tableName)],
       });
 
       const result = await upsertByExternalIds(baseOpts(db));
@@ -344,11 +354,11 @@ describe('upsertByExternalIds', () => {
         entityRow: { id: 7, name: 'Foo' },
         insertErrors: [
           undefined,
-          uniqueViolation(constraintName),
+          uniqueViolation(tableName),
           undefined,
-          uniqueViolation(constraintName),
+          uniqueViolation(tableName),
           undefined,
-          uniqueViolation(constraintName),
+          uniqueViolation(tableName),
         ],
       });
 
@@ -361,15 +371,15 @@ describe('upsertByExternalIds', () => {
     });
 
     it('exposes the last violation as the exhausted error cause', async () => {
-      const lastViolation = uniqueViolation(constraintName);
+      const lastViolation = uniqueViolation(tableName);
       const { db } = makeRaceDb({
         resolveRowsPerAttempt: [[], [], []],
         entityRow: { id: 7, name: 'Foo' },
         insertErrors: [
           undefined,
-          uniqueViolation(constraintName),
+          uniqueViolation(tableName),
           undefined,
-          uniqueViolation(constraintName),
+          uniqueViolation(tableName),
           undefined,
           lastViolation,
         ],
@@ -383,8 +393,8 @@ describe('upsertByExternalIds', () => {
       expect((caught as Error).cause).toBe(lastViolation);
     });
 
-    it('does not retry a unique violation on some other constraint', async () => {
-      const other = uniqueViolation('some_other_table_name_unique');
+    it('does not retry a unique violation on some other table', async () => {
+      const other = uniqueViolation('some_other_table');
       const { db, transaction } = makeRaceDb({
         resolveRowsPerAttempt: [[]],
         entityRow: { id: 7, name: 'Foo' },
@@ -393,6 +403,38 @@ describe('upsertByExternalIds', () => {
 
       await expect(upsertByExternalIds(baseOpts(db))).rejects.toBe(other);
       expect(transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries when the constraint name is truncated by Postgres’ 63-byte identifier limit (competition_groups_external_ids)', async () => {
+      // `competition_groups_external_ids_external_system_id_external_id_unique`
+      // is 69 bytes, so Postgres truncates the real constraint name on
+      // creation. Matching on table_name instead of the (possibly truncated)
+      // constraint name means this case works without any special-casing.
+      const longTableName = 'competition_groups_external_ids';
+      const { db, transaction, update, updateSet } = makeRaceDb({
+        resolveRowsPerAttempt: [
+          [],
+          [{ ownerId: 9, externalSystemId: 1, externalId: 'a' }],
+        ],
+        entityRow: { id: 9, name: 'Foo' },
+        insertErrors: [undefined, uniqueViolation(longTableName)],
+      });
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        entityTable: competitionGroups,
+        values: { name: 'Foo', leagueId: 1 },
+        externalIdTable: competitionGroupExternalIds,
+        buildExternalIdRow: (
+          competitionGroupId: number,
+          pair: { externalSystemId: number; externalId: string },
+        ) => ({ competitionGroupId, ...pair }),
+      });
+
+      expect(result).toEqual({ row: { id: 9, name: 'Foo' }, created: false });
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(update).toHaveBeenCalledWith(competitionGroups);
+      expect(updateSet).toHaveBeenCalledWith({ name: 'Foo', leagueId: 1 });
     });
 
     it('does not retry an error that is not a unique violation', async () => {
