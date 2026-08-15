@@ -44,10 +44,6 @@ describe('CompetitionGroupsProcessor', () => {
   beforeEach(async () => {
     groups = mock<CompetitionGroupsImportService>();
     refResolver = mock<ReferenceResolverService>();
-    refResolver.competitionGroupRef.mockImplementation((name) => ({
-      system: 'Name',
-      id: name,
-    }));
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionGroupsProcessor,
@@ -60,6 +56,10 @@ describe('CompetitionGroupsProcessor', () => {
 
   it('upserts each declared group, records its id, and counts it', async () => {
     refResolver.resolveRef.mockReturnValue(9);
+    refResolver.competitionGroupRef.mockReturnValue({
+      system: 'Name',
+      id: 'Chaos Cup',
+    });
     groups.upsertCompetitionGroup.mockResolvedValue({
       id: 6,
       name: 'Chaos Cup',
@@ -156,6 +156,10 @@ describe('CompetitionGroupsProcessor', () => {
 
   it('does not record an id or count when the upsert fails', async () => {
     refResolver.resolveRef.mockReturnValue(9);
+    refResolver.competitionGroupRef.mockReturnValue({
+      system: 'Name',
+      id: 'Chaos Cup',
+    });
     groups.upsertCompetitionGroup.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
