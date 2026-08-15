@@ -1,117 +1,30 @@
-import { Test } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mock, MockProxy } from 'vitest-mock-extended';
+import { MockProxy } from 'vitest-mock-extended';
 
 import {
   ProcessRunnerService,
   TIMED_OUT_EXIT_CODE,
 } from '../shared/process-runner.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
-
-const REVIEW = {
-  id: 'PRR_review1',
-  author: { login: 'coderabbitai' },
-  state: 'COMMENTED',
-  submittedAt: '2026-08-11T10:00:00Z',
-};
-
-const RATE_LIMIT_COMMENT = {
-  id: 'IC_comment1',
-  body: '> [!WARNING]\n> Rate limit exceeded.',
-  submittedAt: '2026-08-11T10:00:00Z',
-};
-
-/**
- * `parseAvailableAt` anchors to the rate-limit comment's own `submittedAt`,
- * not `Date.now()` — a stale/re-matched comment should not get a
- * freshly-computed wait. Every parsed-wait-time test below expects its
- * result relative to this fixed instant, not to whatever "now" is when the
- * test happens to run.
- */
-const RATE_LIMIT_COMMENT_EPOCH_SECONDS = Math.floor(
-  new Date(RATE_LIMIT_COMMENT.submittedAt).getTime() / 1000,
-);
-
-/**
- * CodeRabbit's own wording for the third non-review outcome, observed on
- * PR #408: it failed to persist an edit to its rolling walkthrough comment
- * and posted this separate top-level comment instead.
- */
-const COMMENT_UPDATE_FAILED_COMMENT = {
-  id: 'IC_update1',
-  body:
-    "CodeRabbit couldn't update its existing comment. The review summary " +
-    'may be out of date. Error details: putComment timed out.',
-  submittedAt: '2026-08-11T10:05:00Z',
-};
-
-/**
- * The PR's current head commit, as `gh pr view --json headRefOid` would
- * report it. Real second SHA from the "Reviewing files that changed... between
- * X and Y" sentence observed on PR #402.
- */
-const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
-
-/** A `gh` invocation that found nothing: both halves of the filter are null. */
-const EMPTY = {
-  exitCode: 0,
-  stdout: `{"review":null,"rateLimitComment":null,"headRefOid":"${HEAD_REF_OID}"}\n`,
-  stderr: '',
-};
-/** A `gh` invocation that found a qualifying review and no rate-limit comment. */
-const FOUND = {
-  exitCode: 0,
-  stdout: `${JSON.stringify({ review: REVIEW, rateLimitComment: null, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
-  stderr: '',
-};
-/** A `gh` invocation that found a rate-limit comment and no review. */
-const RATE_LIMITED = {
-  exitCode: 0,
-  stdout: `${JSON.stringify({ review: null, rateLimitComment: RATE_LIMIT_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
-  stderr: '',
-};
-/** A `gh` invocation that found a comment-update-failure comment and nothing else. */
-const COMMENT_UPDATE_FAILED = {
-  exitCode: 0,
-  stdout: `${JSON.stringify({ review: null, rateLimitComment: null, commentUpdateFailedComment: COMMENT_UPDATE_FAILED_COMMENT, headRefOid: HEAD_REF_OID }, null, 2)}\n`,
-  stderr: '',
-};
-
-const OPTIONS = {
-  prNumber: '392',
-  developerLogin: 'spacejens',
-  sinceEpochSeconds: 1_760_000_000,
-};
-
-/**
- * The bounded `<!-- recent_review_start -->…<!-- recent_review_end -->` body
- * of CodeRabbit's rolling walkthrough comment, as jq extracts it — real text
- * observed on PR #402. Includes the "Reviewing files that changed... between
- * X and Y" sentence so the section covers the current head commit
- * (`HEAD_REF_OID`, the later of the two SHAs) — required for the freshness
- * cross-check added alongside `updated_at`.
- */
-const COMPLETION_SECTION =
-  '\n\nNo actionable comments were generated in the recent review. 🎉\n\n' +
-  'Reviewing files that changed from the base of the PR and between ' +
-  `\`e44832555c4036093c6dcb7c9ad9da576c8f6adc\` and \`${HEAD_REF_OID}\`.\n\n`;
-/** What the completion jq filter emits for a qualifying comment. */
-const COMPLETION_CANDIDATE = {
-  id: '5263781074@1786521319',
-  submittedAt: '2026-08-12T07:55:19Z',
-  author: { login: 'coderabbitai[bot]' },
-  section: COMPLETION_SECTION,
-};
-/**
- * The review-shaped object the service synthesizes from it. Note the absent
- * `section`: the extracted walkthrough text is an implementation detail of
- * the phrase check and must never leak into the caller's result.
- */
-const COMPLETION_REVIEW = {
-  id: '5263781074@1786521319',
-  submittedAt: '2026-08-12T07:55:19Z',
-  author: { login: 'coderabbitai[bot]' },
-};
+import {
+  COMMENT_UPDATE_FAILED,
+  COMMENT_UPDATE_FAILED_COMMENT,
+  commentUpdateFailedWithBody,
+  COMPLETION_CANDIDATE,
+  COMPLETION_REVIEW,
+  completionResult,
+  completionWithSection,
+  createHarness,
+  EMPTY,
+  FOUND,
+  HEAD_REF_OID,
+  OPTIONS,
+  RATE_LIMIT_COMMENT,
+  RATE_LIMIT_COMMENT_EPOCH_SECONDS,
+  RATE_LIMITED,
+  rateLimitedWithBody,
+  REVIEW,
+} from './wait-for-pr-review.test-helpers';
 
 /**
  * Pulls just the `commentUpdateFailedComment: (...)` sub-expression out of
@@ -143,14 +56,7 @@ describe('WaitForPrReviewService', () => {
 
   beforeEach(async () => {
     vi.useFakeTimers();
-    processRunner = mock<ProcessRunnerService>();
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        WaitForPrReviewService,
-        { provide: ProcessRunnerService, useValue: processRunner },
-      ],
-    }).compile();
-    service = moduleRef.get(WaitForPrReviewService);
+    ({ service, processRunner } = await createHarness());
   });
 
   afterEach(() => {
@@ -171,15 +77,6 @@ describe('WaitForPrReviewService', () => {
     return pending;
   }
 
-  /** A `gh api .../comments` invocation whose jq filter emitted the given value. */
-  function completionResult(candidate: unknown) {
-    return {
-      exitCode: 0,
-      stdout: `${JSON.stringify(candidate)}\n`,
-      stderr: '',
-    };
-  }
-
   /**
    * Routes the two `gh` calls one poll can make: `gh pr view` (formal review +
    * rate-limit comment) and `gh api repos/.../comments` (completion comment).
@@ -193,11 +90,6 @@ describe('WaitForPrReviewService', () => {
     processRunner.run.mockImplementation((_command, args) =>
       Promise.resolve(args[0] === 'api' ? comments : prView),
     );
-  }
-
-  /** A completion candidate whose extracted section is replaced wholesale. */
-  function completionWithSection(section: string) {
-    return completionResult({ ...COMPLETION_CANDIDATE, section });
   }
 
   it('returns the parsed review found on the first poll', async () => {
@@ -436,18 +328,6 @@ describe('WaitForPrReviewService', () => {
     expect(processRunner.run).toHaveBeenCalledTimes(3);
   });
 
-  /** Builds a `gh` result whose only match is a rate-limit comment with the given body. */
-  function rateLimitedWithBody(body: string) {
-    return {
-      exitCode: 0,
-      stdout: JSON.stringify({
-        review: null,
-        rateLimitComment: { ...RATE_LIMIT_COMMENT, body },
-      }),
-      stderr: '',
-    };
-  }
-
   it('does not treat a phrase match found only inside a code span as a rate limit', async () => {
     // Real false positive from PR #399: CodeRabbit's own "review in
     // progress" status comment echoes this branch's name in a checkbox's
@@ -545,19 +425,6 @@ describe('WaitForPrReviewService', () => {
 
     expect(result).toEqual({ found: true, review: REVIEW });
   });
-
-  /** Builds a `gh` result whose only match is a comment-update-failure comment with the given body. */
-  function commentUpdateFailedWithBody(body: string) {
-    return {
-      exitCode: 0,
-      stdout: JSON.stringify({
-        review: null,
-        rateLimitComment: null,
-        commentUpdateFailedComment: { ...COMMENT_UPDATE_FAILED_COMMENT, body },
-      }),
-      stderr: '',
-    };
-  }
 
   it('returns immediately when a qualifying comment-update-failure comment is found', async () => {
     processRunner.run.mockResolvedValue(COMMENT_UPDATE_FAILED);
