@@ -70,6 +70,8 @@ describe('MatchEventsService', () => {
           };
         },
       }),
+      transaction: async (callback: (tx: unknown) => unknown) =>
+        await callback(mockDb),
     };
 
     const module = await Test.createTestingModule({
