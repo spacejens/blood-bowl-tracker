@@ -1,6 +1,7 @@
 import {
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -72,6 +73,17 @@ describe('UpsertHandlerService', () => {
     expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
       message:
         'Match category cup_final is not valid for competition type season',
+    });
+  });
+
+  it('translates a trophy award recipient mismatch error into a BAD_REQUEST reply', async () => {
+    await expect(
+      handler.run(errors, TestConflictError, () => {
+        throw new TrophyAwardRecipientMismatchError('wrong recipient');
+      }),
+    ).rejects.toBeInstanceOf(BadRequestReply);
+    expect(errors.BAD_REQUEST).toHaveBeenCalledWith({
+      message: 'wrong recipient',
     });
   });
 
@@ -148,6 +160,21 @@ describe('UpsertHandlerService', () => {
         success: false,
         error:
           'Match category cup_final is not valid for competition type season',
+      },
+    ]);
+  });
+
+  it('turns a trophy award recipient mismatch error into a per-item failure', async () => {
+    await expect(
+      handler.runBatch(TestConflictError, [
+        () => {
+          throw new TrophyAwardRecipientMismatchError('wrong recipient');
+        },
+      ]),
+    ).resolves.toEqual([
+      {
+        success: false,
+        error: 'wrong recipient',
       },
     ]);
   });

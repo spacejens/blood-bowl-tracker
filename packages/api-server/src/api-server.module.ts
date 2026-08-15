@@ -14,6 +14,7 @@ import {
   SppModule,
   TeamsModule,
   TrophiesModule,
+  TrophyAwardsModule,
 } from '@blood-bowl-tracker/game-data';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -42,6 +43,7 @@ import { UpsertHandlerService } from './upsert-handler.service';
     MatchEventsModule,
     SppModule,
     TrophiesModule,
+    TrophyAwardsModule,
   ],
   providers: [
     ApiTokenAuthService,

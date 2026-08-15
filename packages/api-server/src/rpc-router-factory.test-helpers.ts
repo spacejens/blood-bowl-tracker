@@ -18,6 +18,8 @@ import {
   SppAwardValuesService,
   TeamsService,
   TrophiesService,
+  TrophyAwardRecipientMismatchError,
+  TrophyAwardsService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import { mock } from 'vitest-mock-extended';
@@ -46,6 +48,7 @@ export async function createRouterHarness() {
     positionsService: mock<PositionsService>(),
     teamsService: mock<TeamsService>(),
     trophiesService: mock<TrophiesService>(),
+    trophyAwardsService: mock<TrophyAwardsService>(),
     competitionGroupsService: mock<CompetitionGroupsService>(),
     competitionsService: mock<CompetitionsService>(),
     matchesService: mock<MatchesService>(),
@@ -68,6 +71,13 @@ export async function createRouterHarness() {
       } catch (err) {
         if (err instanceof conflictErrorClass) {
           throw errors.CONFLICT({ message: err.message });
+        }
+        if (
+          err instanceof MissingRequiredFieldError ||
+          err instanceof MatchCategoryMismatchError ||
+          err instanceof TrophyAwardRecipientMismatchError
+        ) {
+          throw errors.BAD_REQUEST({ message: err.message });
         }
         throw err;
       }
@@ -94,7 +104,8 @@ export async function createRouterHarness() {
           }
           if (
             err instanceof MissingRequiredFieldError ||
-            err instanceof MatchCategoryMismatchError
+            err instanceof MatchCategoryMismatchError ||
+            err instanceof TrophyAwardRecipientMismatchError
           ) {
             results.push({ success: false, error: err.message });
             continue;
@@ -121,6 +132,7 @@ export async function createRouterHarness() {
       { provide: PositionsService, useValue: mocks.positionsService },
       { provide: TeamsService, useValue: mocks.teamsService },
       { provide: TrophiesService, useValue: mocks.trophiesService },
+      { provide: TrophyAwardsService, useValue: mocks.trophyAwardsService },
       {
         provide: CompetitionGroupsService,
         useValue: mocks.competitionGroupsService,
