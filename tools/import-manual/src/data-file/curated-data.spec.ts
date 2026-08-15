@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { ManualDataFile } from './manual-data-file.schema';
 import { ManualDataFileSchema } from './manual-data-file.schema';
 
-const DATA_ROOT = join(import.meta.dirname, '../../data');
+const DATA_ROOT = join(__dirname, '../../data');
 
 /**
  * Parses and validates every curated JSON5 file in one phase directory,

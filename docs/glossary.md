@@ -20,6 +20,12 @@ An organized event in which [teams](#team) compete against each other within a [
 
 See [game-concepts/competitions](game-concepts/competitions/index.md).
 
+## Competition Group
+
+The recurring track a [competition](#competition) instance belongs to — e.g. Major Season, Minor Season, Chaos Cup, or Ogretoberfest. Groups are curated data, not inferred from a source system: they are what distinguishes a Major season's 1st place from a Minor season's 1st place when both sources label them identically. Each group belongs to one [league](#league), and each trophy records the group it is applicable for.
+
+See [game-concepts/competitions](game-concepts/competitions/index.md).
+
 ## Cup
 
 A subtype of [competition](#competition) — a short competitive event typically played out over a weekend, in which [teams](#team) compete for a trophy.

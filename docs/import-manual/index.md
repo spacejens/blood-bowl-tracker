@@ -52,6 +52,7 @@ top-level sections:
 externalSystems
 rulesSets
 leagues
+competitionGroups
 eras
 races
 positions
@@ -180,12 +181,49 @@ omits `race` is that rules set's baseline, applying to every race with no more
 specific entry; an entry naming a race overrides the baseline for it. This
 section is processed last, since it references both rules sets and races.
 
+### Competition groups
+
+`competitionGroups` entries seed the curated competition-group catalog (issue
+#445) — the recurring track a competition instance belongs to (Major Season,
+Chaos Cup, Ogretoberfest, etc.). Each entry is `{ name, league }`: `league` is
+an external-id pair pointing at the group's owning league. Groups carry no
+external ids of their own — a group is looked up (and, if new, created) by its
+exact `name` alone, which is also how a trophy or competition entry's
+`competitionGroup` field (see below) names one.
+
+```jsonc
+{
+  competitionGroups: [
+    { name: 'Major Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+  ],
+}
+```
+
+A trophy's `competitionGroup` field and a competition's `competitionGroup`
+field (see below) are both plain group-name strings, not external-id pairs.
+They resolve against either this run's own declared `competitionGroups`
+entries or, failing that, the API's `competitionGroups.list` — which is why
+the after-other-importers phase can classify competitions into groups without
+re-declaring the group catalog it already created in the earlier
+before-other-importers phase.
+
+A competition entry's own `name` is optional (unlike a trophy's, which is
+required): omitting it means "classify only, do not rename" — the entry
+carries just `externalIds` and `competitionGroup`, and the upsert leaves the
+existing row's name untouched. This is how `competitions.json5` classifies the
+50 competition instances that need no rename alongside the entries that both
+rename and classify (see the after-other-importers description below).
+
 ### Trophies
 
 `trophies` entries seed the curated trophy catalog (issue #342). Each entry
-is `{ name, recipientKind, description?, externalIds }`: `recipientKind` is
-either `team` or `player`. Trophies reference no other entity, so this
-section is processed last and needs no cross-references.
+is `{ name, recipientKind, description?, competitionGroup?, externalIds }`:
+`recipientKind` is either `team` or `player`, and `competitionGroup` names the
+competition group (see above) the trophy is applicable for. `competitionGroup`
+is optional — an entry that omits it leaves the trophy's stored classification
+alone, while an entry naming an unknown group is skipped and recorded as an
+import error. Trophies reference no other entity besides their group, so this
+section is processed last, after `competitionGroups`.
 
 Trophies deliberately carry no shared `Name` external id, the same precedent
 set for competitions in issue #285: labels like `1st` are ambiguous across
@@ -207,6 +245,17 @@ records the BBL and TP importers would otherwise create as separate,
 duplicate rows because the two source systems name or key the same
 real-world entity differently:
 
+- `leagues.json5` — the two real leagues, tLoEG and GBBL (issue #445). This
+  file exists ahead of the BBL/TP importers so `competition-groups.json5` (see
+  below) has a league to reference. Its external ids deliberately match BBL's
+  own `tloeg.bbleague.se` convention exactly, so BBL's later league upsert
+  resolves onto these same rows instead of creating duplicates.
+- `competition-groups.json5` — the curated catalog of 16 competition groups
+  (issue #445): the recurring tracks (Major Season, Minor Season, Chaos Cup,
+  Ogretoberfest, and so on) that `competitions.json5` and `trophies.json5`
+  classify instances and trophies into. Not a dedup file in the usual sense —
+  like `trophies.json5`, nothing else creates competition groups, so this is
+  the sole source of the catalog.
 - `races-and-positions.json5` — BBL/TP race and regular position name
   variants.
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
@@ -242,20 +291,24 @@ systems could not supply:
 - `coaches.json5` — TP usernames replaced with a readable coach name. These
   names are pseudonymized (see [Data layout](#data-layout) below), so this is
   where a coach's displayed pseudonym is set.
-- `competitions.json5` — normalizes the 35 recurring numbered competitions the
-  two source systems named inconsistently (`Season N` / `Major Season N` /
-  `tLoEGBBL Säsong N` all become `Major Season N`; stray prefixes are stripped
-  from Ogretoberfest, Chaos Cup and Dungeon Bowl entries; each track's
-  unnumbered first instalment — e.g. bare `Chaos Cup` — is numbered `1`; and
-  BBL's three identically-named `Reserves Rumble` events become
-  `Reserves Rumble 1`–`3`).
-  Each entry is a pure rename: a `name` plus the `externalIds` that match the
-  existing row, which for competitions is the source system's numeric ID alone
-  (competitions carry no `Name` external id — issue #285 removed it, because a
-  shared `Name` id deduped genuinely distinct same-named competitions onto one
-  row). The file declares no eras, league or rules sets: since upserts overlay,
-  omitting a competition's `era` leaves its stored era alone, so there is
-  nothing to resolve a reference against and nothing to redeclare.
+- `competitions.json5` — no longer rename-only. It still normalizes the 35
+  recurring numbered competitions the two source systems named inconsistently
+  (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become
+  `Major Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup
+  and Dungeon Bowl entries; each track's unnumbered first instalment — e.g.
+  bare `Chaos Cup` — is numbered `1`; and BBL's three identically-named
+  `Reserves Rumble` events become `Reserves Rumble 1`–`3`), but it now also
+  classifies every known competition instance into its curated
+  [competition group](#competition-groups) (issue #445) via the
+  `competitionGroup` field, adding 50 classify-only entries (no `name`)
+  alongside the entries that both rename and classify.
+  Each entry carries the `externalIds` that match the existing row, which for
+  competitions is the source system's numeric ID alone (competitions carry no
+  `Name` external id — issue #285 removed it, because a shared `Name` id
+  deduped genuinely distinct same-named competitions onto one row). The file
+  declares no eras, league or rules sets: since upserts overlay, omitting a
+  competition's `era` leaves its stored era alone, so there is nothing to
+  resolve a reference against and nothing to redeclare.
   A manual competition entry can therefore only ever _update_ an existing
   competition, never create one: `competitions.startDate` is a required
   column and `competitions.json5` has no field for it. If an entry's

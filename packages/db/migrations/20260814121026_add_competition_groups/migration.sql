@@ -48,15 +48,33 @@ SET CONSTRAINTS ALL DEFERRED;
 -- Seed the real tLoEG league and Major Season competition group (issue #445).
 -- Both are retained data, not throwaway placeholders: they are the same rows
 -- tools/import-manual's leagues.json5 and competition-groups.json5 upsert onto
--- by name, so a later manual-import run updates them instead of duplicating
--- them. The league insert is conditional because an already-imported database
--- has tLoEG already; competition_groups is brand new here, so the Major Season
--- row is deterministically id 1 -- which is what the two DEFAULT 1 columns
--- below (and their .default(1) in packages/db/src/schema) refer to.
+-- by external id (upsertByExternalIds never matches by name), so this seed
+-- must give the league the exact `tloeg.bbleague.se`:`tLoEG` external id pair
+-- leagues.json5 declares -- a name-only seed row has nothing for that upsert
+-- to match against and gets duplicated by it on a fresh database. Both the
+-- league and its external system are conditional because an already-imported
+-- database has them; competition_groups is brand new here, so the Major
+-- Season row is deterministically id 1 -- which is what the two DEFAULT 1
+-- columns below (and their .default(1) in packages/db/src/schema) refer to.
+INSERT INTO "game_data"."external_systems" ("name", "category")
+SELECT 'tloeg.bbleague.se', 'imported_data_source'
+WHERE NOT EXISTS (
+  SELECT 1 FROM "game_data"."external_systems" WHERE "name" = 'tloeg.bbleague.se'
+);
+--> statement-breakpoint
 INSERT INTO "game_data"."leagues" ("name")
 SELECT 'tLoEG'
 WHERE NOT EXISTS (
   SELECT 1 FROM "game_data"."leagues" WHERE "name" = 'tLoEG'
+);
+--> statement-breakpoint
+INSERT INTO "game_data"."leagues_external_ids" ("league_id", "external_system_id", "external_id")
+SELECT l."id", es."id", 'tLoEG'
+FROM "game_data"."leagues" l, "game_data"."external_systems" es
+WHERE l."name" = 'tLoEG' AND es."name" = 'tloeg.bbleague.se'
+AND NOT EXISTS (
+  SELECT 1 FROM "game_data"."leagues_external_ids"
+  WHERE "league_id" = l."id" AND "external_system_id" = es."id"
 );
 --> statement-breakpoint
 INSERT INTO "game_data"."competition_groups" ("name", "league_id")
