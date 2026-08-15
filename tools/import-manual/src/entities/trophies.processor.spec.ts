@@ -23,6 +23,7 @@ function emptyData(): ManualDataFile {
     competitions: [],
     sppAwardValues: [],
     trophies: [],
+    competitionGroups: [],
   };
 }
 
@@ -49,6 +50,7 @@ describe('TrophiesProcessor', () => {
   beforeEach(async () => {
     trophies = mock<TrophiesImportService>();
     refResolver = mock<ReferenceResolverService>();
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TrophiesProcessor,
@@ -65,6 +67,7 @@ describe('TrophiesProcessor', () => {
       name: 'Chaos Cup',
       recipientKind: 'team',
       description: 'The team that wins after four matches.',
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });
@@ -106,6 +109,7 @@ describe('TrophiesProcessor', () => {
       name: 'Ogretoberfest',
       recipientKind: 'team',
       description: null,
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });
@@ -155,6 +159,7 @@ describe('TrophiesProcessor', () => {
       name: 'Major 1st',
       recipientKind: 'team',
       description: null,
+      competitionGroupId: 1,
       createdAt: new Date(),
       created: true,
     });
@@ -170,5 +175,85 @@ describe('TrophiesProcessor', () => {
     );
 
     expect(count).toBe(2);
+  });
+
+  it('resolves the named competition group into the upsert payload', async () => {
+    const groupRef = { system: 'Name', id: 'Major Season' };
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    trophies.upsertTrophy.mockResolvedValue({
+      id: 8,
+      name: 'Major Gold',
+      recipientKind: 'team',
+      description: null,
+      competitionGroupId: 4,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.trophies = [
+      {
+        name: 'Major Gold',
+        recipientKind: 'team',
+        externalIds: [],
+        competitionGroup: groupRef,
+      },
+    ];
+    const ctx = makeContext(data, new ExternalIdMap());
+
+    expect(await processor.process(ctx)).toBe(1);
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
+    );
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: 4 }),
+      ctx.errors,
+    );
+  });
+
+  it('passes no group ref through for a trophy that names none', async () => {
+    trophies.upsertTrophy.mockResolvedValue({
+      id: 9,
+      name: 'Ungrouped',
+      recipientKind: 'team',
+      description: null,
+      competitionGroupId: 1,
+      createdAt: new Date(),
+      created: true,
+    });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.trophies = [
+      { name: 'Ungrouped', recipientKind: 'team', externalIds: [] },
+    ];
+
+    expect(
+      await processor.process(makeContext(data, new ExternalIdMap())),
+    ).toBe(1);
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: undefined }),
+    );
+    expect(trophies.upsertTrophy).toHaveBeenCalledWith(
+      expect.objectContaining({ competitionGroupId: undefined }),
+      expect.anything(),
+    );
+  });
+
+  it('skips a trophy whose competition group cannot be resolved', async () => {
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
+    const data = emptyData();
+    data.trophies = [
+      {
+        name: 'Major Gold',
+        recipientKind: 'team',
+        externalIds: [],
+        competitionGroup: { system: 'Name', id: 'Nonexistent' },
+      },
+    ];
+
+    expect(
+      await processor.process(makeContext(data, new ExternalIdMap())),
+    ).toBe(0);
+    expect(trophies.upsertTrophy).not.toHaveBeenCalled();
   });
 });

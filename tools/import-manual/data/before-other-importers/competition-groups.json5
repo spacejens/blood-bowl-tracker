@@ -1,0 +1,53 @@
+// The curated catalog of competition groups (issue #445).
+//
+// A group is the recurring track a competition instance belongs to. It is what
+// separates a Major season's 1st place from a Minor season's 1st place even
+// when BBL and TP label them identically, and it is what lets a future
+// importer (issue #446) consider only the trophies applicable to a
+// competition.
+//
+// Every group names its league by that league's own external id, resolved
+// against this run's ExternalIdMap -- which is why leagues.json5 sits in this
+// same directory.
+//
+// A group carries no authored external ids: one is derived in code from its
+// name under the synthetic "Name" system (declared below so the run
+// bootstraps it), which is how the same group resolves onto the same row from
+// any importer process. That is also why this file and leagues.json5 are
+// symlinked into data/after-other-importers -- that phase is a separate
+// process with its own empty ExternalIdMap, and competitions.json5 there needs
+// the groups in it.
+//
+// Naming notes:
+//  - "Major Season" also covers BBL's pre-split "Season N" (1-18) and TP's
+//    later Swedish "Säsong N" (26-30): one recurring track under three names
+//    over time.
+//  - "Cabal Vision Cup" has no known competition instance yet; it is seeded
+//    because a curated trophy already references it.
+//  - "GBBL" is a one-off with a single known instance, but still gets its own
+//    group, consistent with every other named cup, and it belongs to the GBBL
+//    league rather than tLoEG.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+  competitionGroups: [
+    { name: 'Major Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Minor Season', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Chaos Cup', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Cabal Vision Cup', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Korpen', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Stunty Leeg', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Fright Night', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Snöbollskrieg', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Moot Mania', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Champion of tLoEG', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'NAA', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Blitzmania!', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Ogretoberfest', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Dungeon Bowl', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'Reserves Rumble', league: { system: 'tloeg.bbleague.se', id: 'tLoEG' } },
+    { name: 'GBBL', league: { system: 'tloeg.bbleague.se', id: 'GBBL' } },
+  ],
+}

@@ -107,6 +107,7 @@ describe('createApiClient', () => {
     const client = createApiClient('http://localhost:3000', 'a-token');
     expect(Object.keys(client).sort()).toEqual([
       'coaches',
+      'competitionGroups',
       'competitions',
       'eras',
       'externalSystems',

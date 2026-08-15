@@ -13,6 +13,15 @@ export class NameExternalIdService {
     return name;
   }
 
+  /**
+   * A competition group has no source-system id at all: its curated name is
+   * the only stable identity it has, which is exactly what the Name system is
+   * for (see packages/db/src/schema/competition-groups.ts).
+   */
+  forCompetitionGroup(name: string): string {
+    return name;
+  }
+
   forEra(name: string): string {
     return name;
   }

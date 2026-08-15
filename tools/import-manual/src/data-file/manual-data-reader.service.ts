@@ -1,4 +1,5 @@
-import { readdir, readFile } from 'node:fs/promises';
+import type { Stats } from 'node:fs';
+import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Injectable } from '@nestjs/common';
@@ -14,13 +15,43 @@ export class ManualDataReader {
    * alphabetical filename order, and pool all sections into one ManualDataFile.
    * Malformed JSON5 or an invalid file shape throws with the offending path; a
    * missing directory propagates readdir's error.
+   *
+   * Symlinks count as files: `Dirent.isFile()` never follows them, so it alone
+   * would silently skip data/after-other-importers' symlinks to the catalog
+   * files curated in data/before-other-importers. `stat()` does follow
+   * symlinks, so it is used instead to decide "is this path, after following
+   * any symlink, actually a file" -- which also means a symlink to a
+   * directory is skipped just like any other non-file entry, since `stat()`
+   * succeeds for it and only `isFile()` is false. A broken symlink's target
+   * doesn't exist, so `stat()` itself throws `ENOENT`; that specific error is
+   * swallowed the same way, but any other `stat()` failure (a permission
+   * error, an I/O error, a symlink loop) is a real problem the run should not
+   * silently hide by skipping the file -- it propagates instead.
    */
   async read(dir: string): Promise<ManualDataFile> {
     const entries = await readdir(dir, { withFileTypes: true });
-    const filenames = entries
-      .filter((entry) => entry.isFile() && entry.name.endsWith('.json5'))
-      .map((entry) => entry.name)
-      .sort();
+    const candidates = entries.filter((entry) => entry.name.endsWith('.json5'));
+    const filenames: string[] = [];
+    for (const entry of candidates) {
+      const path = join(dir, entry.name);
+      let stats: Stats;
+      try {
+        stats = await stat(path);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT'
+        ) {
+          continue;
+        }
+        throw error;
+      }
+      if (stats.isFile()) {
+        filenames.push(entry.name);
+      }
+    }
+    filenames.sort();
 
     const pooled: ManualDataFile = {
       externalSystems: [],
@@ -34,6 +65,7 @@ export class ManualDataReader {
       competitions: [],
       sppAwardValues: [],
       trophies: [],
+      competitionGroups: [],
     };
 
     for (const name of filenames) {
@@ -50,6 +82,7 @@ export class ManualDataReader {
       pooled.competitions.push(...file.competitions);
       pooled.sppAwardValues.push(...file.sppAwardValues);
       pooled.trophies.push(...file.trophies);
+      pooled.competitionGroups.push(...file.competitionGroups);
     }
 
     return pooled;

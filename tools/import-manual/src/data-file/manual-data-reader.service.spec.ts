@@ -1,4 +1,10 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -59,6 +65,20 @@ describe('ManualDataReader', () => {
     expect(data.coaches.map((c) => c.name)).toEqual(['First', 'Second']);
   });
 
+  it('follows a symlinked .json5 file', async () => {
+    // data/after-other-importers symlinks the catalog files curated in
+    // data/before-other-importers, and readdir never follows symlinks.
+    write(
+      'real.json5',
+      `{ coaches: [{ name: 'Linked', externalIds: [{ system: 'Name', id: 'name:linked' }] }] }`,
+    );
+    symlinkSync(join(dir, 'real.json5'), join(dir, 'zz-link.json5'));
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Linked', 'Linked']);
+  });
+
   it('ignores non-.json5 files and subdirectories (non-recursive)', async () => {
     write(
       'keep.json5',
@@ -70,6 +90,42 @@ describe('ManualDataReader', () => {
     const data = await reader.read(dir);
 
     expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
+  });
+
+  it('ignores a .json5 symlink that points at a directory', async () => {
+    write(
+      'keep.json5',
+      `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`,
+    );
+    mkdirSync(join(dir, 'a-real-dir'));
+    symlinkSync(join(dir, 'a-real-dir'), join(dir, 'dir-link.json5'));
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
+  });
+
+  it('ignores a broken .json5 symlink', async () => {
+    write(
+      'keep.json5',
+      `{ coaches: [{ name: 'Keep', externalIds: [{ system: 'Name', id: 'name:k' }] }] }`,
+    );
+    symlinkSync(join(dir, 'does-not-exist'), join(dir, 'broken-link.json5'));
+
+    const data = await reader.read(dir);
+
+    expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
+  });
+
+  it('propagates a stat() failure that is not a broken symlink', async () => {
+    // A symlink loop makes stat() fail with ELOOP, not ENOENT -- only a
+    // broken symlink's ENOENT is meant to be silently skipped; every other
+    // stat() failure (permission errors, I/O errors, loops) must propagate
+    // rather than be treated as "just not a file".
+    symlinkSync(join(dir, 'b.json5'), join(dir, 'a.json5'));
+    symlinkSync(join(dir, 'a.json5'), join(dir, 'b.json5'));
+
+    await expect(reader.read(dir)).rejects.toThrow();
   });
 
   it('throws with the file path when a file is not valid JSON5', async () => {
@@ -123,6 +179,27 @@ describe('ManualDataReader', () => {
     expect(data.trophies.map((t) => t.name)).toEqual([
       'Chaos Cup',
       'Season MVP',
+    ]);
+  });
+
+  it('pools the competitionGroups section across files', async () => {
+    write(
+      'a.json5',
+      `{ competitionGroups: [{ name: 'Major Season',
+         league: { system: 'Name', id: 'name:major' } }] }`,
+    );
+    write(
+      'b.json5',
+      `{ competitionGroups: [{ name: 'Korpen',
+         league: { system: 'Name', id: 'name:korpen' } }] }`,
+    );
+
+    const data = await reader.read(dir);
+
+    expect(data.competitionGroups).toHaveLength(2);
+    expect(data.competitionGroups.map((g) => g.name)).toEqual([
+      'Major Season',
+      'Korpen',
     ]);
   });
 });

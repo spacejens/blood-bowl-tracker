@@ -14,6 +14,7 @@ export const CompetitionSchema = z.object({
   teamEraIds: z.array(z.number()),
   startDate: z.string(),
   endDate: z.string().nullable(),
+  competitionGroupId: z.number(),
   createdAt: z.coerce.date(),
 });
 
@@ -29,6 +30,10 @@ export const UpsertCompetitionSchema = z.object({
   // end date is not always derivable.
   startDate: IsoDate.optional(),
   endDate: IsoDate.nullable().optional(),
+  // Optional like every other competition field: an omitted value leaves the
+  // stored group alone (overlay semantics), and on create the database's own
+  // default applies. Real classification is curated in tools/import-manual.
+  competitionGroupId: z.number().int().optional(),
   externalIds: z.array(ExternalIdSchema).min(1),
 });
 

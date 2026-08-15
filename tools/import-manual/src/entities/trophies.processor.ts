@@ -12,10 +12,12 @@ export class TrophiesProcessor {
   ) {}
 
   /**
-   * Upsert every declared trophy. A trophy references nothing else, so there
-   * are no cross-references to resolve and no entry can be skipped for an
-   * unresolved reference — the only failure mode is the upsert itself, which
-   * records its own ImportError.
+   * Upsert every declared trophy. A trophy may name the competition group it
+   * belongs to by an explicit external-id pair, resolved against the run's
+   * ExternalIdMap like any other cross-reference; an entry naming an unknown
+   * group is skipped (an authoring error), while an entry that omits one
+   * passes `competitionGroupId: undefined` through, leaving the trophy's
+   * stored group alone.
    *
    * An entry may declare an empty `externalIds` list; the API then matches it
    * on its exact name instead (see `TrophiesService.upsert`). Such an entry
@@ -25,11 +27,22 @@ export class TrophiesProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.trophies) {
+      const group = this.refResolver.resolveOptionalRef({
+        ref: entry.competitionGroup,
+        idMap: ctx.idMap,
+        errors: ctx.errors,
+        item: entry,
+        label: `Cannot import trophy "${entry.name}"`,
+      });
+      if (!group.ok) {
+        continue;
+      }
       const upserted = await this.trophiesImport.upsertTrophy(
         {
           name: entry.name,
           recipientKind: entry.recipientKind,
           description: entry.description,
+          competitionGroupId: group.id,
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,
             ctx.systemIds,

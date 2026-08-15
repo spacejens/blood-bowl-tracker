@@ -2,6 +2,8 @@ import { contract } from '@blood-bowl-tracker/api-contract';
 import {
   CoachesService,
   CoachUpsertConflictError,
+  CompetitionGroupsService,
+  CompetitionGroupUpsertConflictError,
   CompetitionsService,
   CompetitionUpsertConflictError,
   ErasService,
@@ -53,6 +55,7 @@ export class RpcRouterFactoryService {
     private readonly erasService: ErasService,
     private readonly positionsService: PositionsService,
     private readonly teamsService: TeamsService,
+    private readonly competitionGroupsService: CompetitionGroupsService,
     private readonly competitionsService: CompetitionsService,
     private readonly matchesService: MatchesService,
     private readonly matchOutcomes: MatchOutcomesService,
@@ -247,6 +250,20 @@ export class RpcRouterFactoryService {
               return { entity: era, created };
             }),
           ),
+        ),
+      },
+      competitionGroups: {
+        upsert: implement(contract.competitionGroups.upsert).handler(
+          ({ input, errors }) =>
+            this.upsertHandler.run(
+              errors,
+              CompetitionGroupUpsertConflictError,
+              async () => {
+                const { competitionGroup, created } =
+                  await this.competitionGroupsService.upsert(input);
+                return { entity: competitionGroup, created };
+              },
+            ),
         ),
       },
       competitions: {

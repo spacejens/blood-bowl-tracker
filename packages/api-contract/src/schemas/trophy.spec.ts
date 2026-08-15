@@ -9,6 +9,7 @@ describe('trophy schemas', () => {
       name: 'Chaos Cup',
       recipientKind: 'team',
       description: 'The team that wins after four matches.',
+      competitionGroupId: 2,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.recipientKind).toBe('team');
@@ -21,6 +22,7 @@ describe('trophy schemas', () => {
       name: 'Ogretoberfest',
       recipientKind: 'team',
       description: null,
+      competitionGroupId: 2,
       createdAt: '2026-01-01T00:00:00.000Z',
     });
     expect(parsed.description).toBeNull();
@@ -66,5 +68,15 @@ describe('trophy schemas', () => {
       externalIds: [{ externalSystemId: 1, externalId: 'Korpen' }],
     });
     expect(parsed.description).toBeNull();
+  });
+
+  it('accepts an optional competitionGroupId on upsert', () => {
+    expect(
+      UpsertTrophySchema.parse({ name: 'Major Gold', competitionGroupId: 2 })
+        .competitionGroupId,
+    ).toBe(2);
+    expect(
+      UpsertTrophySchema.parse({ name: 'Major Gold' }).competitionGroupId,
+    ).toBeUndefined();
   });
 });

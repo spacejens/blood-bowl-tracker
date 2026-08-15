@@ -1,5 +1,9 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NAME_EXTERNAL_SYSTEM_NAME,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { Injectable } from '@nestjs/common';
 
 import type { ExternalRef } from '../data-file/manual-data-file.schema';
@@ -40,7 +44,26 @@ export type OptionalRefResult =
 
 @Injectable()
 export class ReferenceResolverService {
-  constructor(private readonly importResults: ImportResultService) {}
+  constructor(
+    private readonly importResults: ImportResultService,
+    private readonly nameExternalId: NameExternalIdService,
+  ) {}
+
+  /**
+   * The external-id pair a curated competition group registers its own
+   * identity under: its `name` turned into the synthetic "Name"-system ref,
+   * the same way `BblLeaguesImportService` derives a league's. Used only by
+   * `CompetitionGroupsProcessor` for a group's own upsert -- a trophy or
+   * competition entry *referencing* a group instead writes that same pair out
+   * explicitly (`competitionGroup: { system: 'Name', id: 'Major Season' }`)
+   * and resolves it via `resolveOptionalRef` like any other cross-reference.
+   */
+  competitionGroupRef(name: string): ExternalRef {
+    return {
+      system: NAME_EXTERNAL_SYSTEM_NAME,
+      id: this.nameExternalId.forCompetitionGroup(name),
+    };
+  }
 
   /**
    * Map an entry's declared external-id pairs to the API's

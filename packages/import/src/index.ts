@@ -8,6 +8,7 @@ export {
   DEFAULT_BATCH_CHUNK_SIZE,
 } from './batch-buffer.service';
 export { CoachesImportService } from './coaches-import.service';
+export { CompetitionGroupsImportService } from './competition-groups-import.service';
 export { CompetitionsImportService } from './competitions-import.service';
 export { ErasImportService } from './eras-import.service';
 export type { ExternalSystemBootstrapResult } from './external-system-bootstrap.service';

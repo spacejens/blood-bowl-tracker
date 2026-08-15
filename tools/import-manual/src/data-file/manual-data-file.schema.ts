@@ -75,15 +75,24 @@ const TeamEntrySchema = z.object({
 });
 
 /**
- * A competition belonging to at most one era. Every field except `name` and
- * `externalIds` is optional: the upsert overlays only what an entry supplies,
- * so a rename-only entry carries just the new name and the external ids that
- * match the existing row.
+ * A competition belonging to at most one era. Every field except
+ * `externalIds` is optional: the upsert overlays only what an entry
+ * supplies, so a rename-only entry carries just the new name and the
+ * external ids that match the existing row.
  */
 const CompetitionEntrySchema = z.object({
-  name: z.string().min(1),
+  // Optional: most entries exist only to classify an already-imported
+  // competition into its group, and restating a scraped name they do not
+  // intend to change would risk renaming it by accident.
+  name: z.string().min(1).optional(),
   type: z.enum(['season', 'cup']).optional(),
   era: ExternalRefSchema.optional(),
+  // An explicit external-id pair naming the competition group, in the same
+  // synthetic "Name" system a group's own upsert registers itself under (e.g.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
+  // ExternalIdMap like any other cross-reference. Optional, so an entry that
+  // says nothing about a group leaves the stored classification alone.
+  competitionGroup: ExternalRefSchema.optional(),
   externalIds,
 });
 
@@ -113,7 +122,30 @@ const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().min(1).optional(),
+  // An explicit external-id pair naming the competition group, in the same
+  // synthetic "Name" system a group's own upsert registers itself under (e.g.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
+  // ExternalIdMap like any other cross-reference. Optional, so an entry that
+  // says nothing about a group leaves the stored classification alone.
+  competitionGroup: ExternalRefSchema.optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
+});
+
+/**
+ * One curated competition group (issue #445) -- the recurring track a
+ * competition instance belongs to. `league` is required and is a normal
+ * external-id cross-reference, resolved against the run's ExternalIdMap, so
+ * the file declaring groups must sit in the same directory as the one
+ * declaring the leagues they name.
+ *
+ * A group declares no `externalIds` of its own: its id under the synthetic
+ * "Name" system is derived in code from `name` (see
+ * CompetitionGroupsProcessor), the same way BblLeaguesImportService derives a
+ * league's, so there is nothing for a curator to keep in sync.
+ */
+const CompetitionGroupEntrySchema = z.object({
+  name: z.string().min(1),
+  league: ExternalRefSchema,
 });
 
 export const ManualDataFileSchema = z
@@ -129,6 +161,7 @@ export const ManualDataFileSchema = z
     competitions: z.array(CompetitionEntrySchema).default([]),
     sppAwardValues: z.array(SppAwardValueEntrySchema).default([]),
     trophies: z.array(TrophyEntrySchema).default([]),
+    competitionGroups: z.array(CompetitionGroupEntrySchema).default([]),
   })
   .strict();
 
@@ -137,3 +170,4 @@ export type PositionEntry = z.infer<typeof PositionEntrySchema>;
 export type ManualDataFile = z.infer<typeof ManualDataFileSchema>;
 export type SppAwardValueEntry = z.infer<typeof SppAwardValueEntrySchema>;
 export type TrophyEntry = z.infer<typeof TrophyEntrySchema>;
+export type CompetitionGroupEntry = z.infer<typeof CompetitionGroupEntrySchema>;

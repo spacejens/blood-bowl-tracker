@@ -1,5 +1,8 @@
 import type { ImportError } from '@blood-bowl-tracker/import';
-import { ImportResultService } from '@blood-bowl-tracker/import';
+import {
+  ImportResultService,
+  NameExternalIdService,
+} from '@blood-bowl-tracker/import';
 import { Test } from '@nestjs/testing';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { MockProxy } from 'vitest-mock-extended';
@@ -11,9 +14,11 @@ import { ReferenceResolverService } from './reference-resolver.service';
 describe('ReferenceResolverService', () => {
   let service: ReferenceResolverService;
   let importResults: MockProxy<ImportResultService>;
+  let nameExternalId: MockProxy<NameExternalIdService>;
 
   beforeEach(async () => {
     importResults = mock<ImportResultService>();
+    nameExternalId = mock<NameExternalIdService>();
     // Identity field copy (`{ item, message }` in, the same out): no branching,
     // no formatting, nothing that can drift out of sync with the real
     // ImportResultService — exempt from the canned-response rule.
@@ -25,6 +30,7 @@ describe('ReferenceResolverService', () => {
       providers: [
         ReferenceResolverService,
         { provide: ImportResultService, useValue: importResults },
+        { provide: NameExternalIdService, useValue: nameExternalId },
       ],
     }).compile();
     service = moduleRef.get(ReferenceResolverService);
@@ -177,6 +183,20 @@ describe('ReferenceResolverService', () => {
 
       expect(result).toEqual({ ok: false });
       expect(errors).toHaveLength(1);
+    });
+  });
+
+  describe('competitionGroupRef', () => {
+    it("builds the group's Name-system ref from its curated name", () => {
+      nameExternalId.forCompetitionGroup.mockReturnValue('Major Season');
+
+      expect(service.competitionGroupRef('Major Season')).toEqual({
+        system: 'Name',
+        id: 'Major Season',
+      });
+      expect(nameExternalId.forCompetitionGroup).toHaveBeenCalledWith(
+        'Major Season',
+      );
     });
   });
 });

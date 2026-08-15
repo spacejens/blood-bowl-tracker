@@ -85,10 +85,13 @@ function asBaseTable(table: PgTable): PgTable {
  * Property names of every column the table requires on INSERT that `supplied`
  * does not carry: NOT NULL, with no database-level default, and not the
  * primary key. A repo-wide audit of `packages/db/src/schema/*.ts` confirms the
- * only defaulted columns are the `serial` primary key and the four columns
+ * defaulted columns are the `serial` primary key, the four columns
  * `historyTrackedTable` injects (createdAt/updatedAt/historyVersion/
- * historyPeriod), all of which report `hasDefault` — so this predicate never
- * flags a column that would have populated itself.
+ * historyPeriod), and `competitions.competition_group_id` /
+ * `trophies.competition_group_id` (which default to the seeded "Major Season"
+ * group so the BBL/TP importers, which do not classify competitions yet, keep
+ * working -- issue #446). All of them report `hasDefault`, so this predicate
+ * never flags a column that would have populated itself.
  */
 function missingRequiredColumns(
   entityTable: PgTable,

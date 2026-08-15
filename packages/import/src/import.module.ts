@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { BatchBufferService } from './batch-buffer.service';
 import { CoachesImportService } from './coaches-import.service';
+import { CompetitionGroupsImportService } from './competition-groups-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
@@ -29,6 +30,7 @@ import { TrophiesImportService } from './trophies-import.service';
     ImportResultService,
     BatchBufferService,
     CoachesImportService,
+    CompetitionGroupsImportService,
     CompetitionsImportService,
     LeaguesImportService,
     MatchEventsImportService,
@@ -53,6 +55,7 @@ import { TrophiesImportService } from './trophies-import.service';
     ImportResultService,
     BatchBufferService,
     CoachesImportService,
+    CompetitionGroupsImportService,
     CompetitionsImportService,
     LeaguesImportService,
     MatchEventsImportService,

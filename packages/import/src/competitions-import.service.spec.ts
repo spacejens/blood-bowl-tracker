@@ -49,6 +49,7 @@ describe('CompetitionsImportService', () => {
       teamEraIds: [],
       startDate: '2024-01-15',
       endDate: null,
+      competitionGroupId: 3,
       createdAt: new Date('2026-01-01'),
       created: true,
     });
@@ -117,6 +118,7 @@ describe('CompetitionsImportService.upsertCompetitionResult', () => {
       teamEraIds: [],
       startDate: '2024-01-15',
       endDate: null,
+      competitionGroupId: 3,
       createdAt: new Date('2026-01-01'),
       created: true,
     });

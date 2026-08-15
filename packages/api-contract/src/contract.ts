@@ -6,6 +6,10 @@ import {
   CompetitionSchema,
   UpsertCompetitionSchema,
 } from './schemas/competition';
+import {
+  CompetitionGroupSchema,
+  UpsertCompetitionGroupSchema,
+} from './schemas/competition-group';
 import { EraSchema, UpsertEraSchema } from './schemas/era';
 import {
   ExternalSystemSchema,
@@ -107,6 +111,15 @@ export const contract = {
     upsertBatch: batchUpsertProcedure(
       UpsertCompetitionSchema,
       CompetitionSchema,
+    ),
+  },
+  competitionGroups: {
+    // Deliberately no `upsertBatch`: the only caller is tools/import-manual
+    // with 16 curated rows, so batching saves nothing (same reasoning as
+    // `trophies`).
+    upsert: upsertProcedure(
+      UpsertCompetitionGroupSchema,
+      CompetitionGroupSchema,
     ),
   },
   matches: {

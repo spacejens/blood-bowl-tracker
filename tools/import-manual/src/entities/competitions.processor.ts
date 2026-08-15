@@ -15,7 +15,10 @@ export class CompetitionsProcessor {
    * Upsert every declared competition. An entry that names an era has it
    * resolved against the run's ExternalIdMap; an entry that omits one passes
    * `eraId: undefined` through, so the upsert leaves the competition's stored
-   * era alone — which is what a rename-only entry wants.
+   * era alone — which is what a rename-only entry wants. The same applies to
+   * an entry's named competition group, an explicit external-id pair resolved
+   * against the same map: an unknown group skips the entry, while an omitted
+   * one passes `competitionGroupId: undefined` through.
    * `teamEraIds` is always `[]`: manual data never declares competition/team
    * links, and the API's team-era sync is additive (it never removes existing
    * links), so an empty list leaves the competition's imported teams untouched.
@@ -28,9 +31,19 @@ export class CompetitionsProcessor {
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,
-        label: `Cannot import competition "${entry.name}"`,
+        label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,
       });
       if (!era.ok) {
+        continue;
+      }
+      const group = this.refResolver.resolveOptionalRef({
+        ref: entry.competitionGroup,
+        idMap: ctx.idMap,
+        errors: ctx.errors,
+        item: entry,
+        label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,
+      });
+      if (!group.ok) {
         continue;
       }
       const upserted = await this.competitionsImport.upsertCompetitionResult(
@@ -38,6 +51,7 @@ export class CompetitionsProcessor {
           name: entry.name,
           type: entry.type,
           eraId: era.id,
+          competitionGroupId: group.id,
           teamEraIds: [],
           externalIds: this.refResolver.toExternalIds(
             entry.externalIds,

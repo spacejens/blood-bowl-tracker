@@ -23,6 +23,15 @@
 // exist yet (issues #445 and #446). "Ogretoberfest" therefore carries no
 // external id at all; the API matches it on its exact name instead, so
 // re-running this import never duplicates it.
+//
+// Every trophy also records the competition group it is applicable for
+// (issue #445), so issue #446 can consider only applicable trophies when
+// awarding for a competition. The eight unqualified "during the season"
+// player trophies (Season MVP through Most SPP), plus Legendary Player and
+// Trogen Tjänst, are curated under Major Season: Major is BBL's flagship
+// season and the legend defines no Minor-season equivalent.
+// Bierhallenführer and Gudarnas Förkämpe follow their own description text,
+// which is already explicit about the event they are awarded at.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
@@ -34,24 +43,28 @@
     {
       name: 'Major Gold',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season winner.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 1st' }],
     },
     {
       name: 'Major Silver',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season runner-up.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 2nd' }],
     },
     {
       name: 'Major Bronze',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Major season third place.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Major 3rd' }],
     },
     {
       name: 'Major Wooden Spoon',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: "Major season's worst placement.",
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Major Wooden Spoon' },
@@ -60,6 +73,7 @@
     {
       name: 'Major Best Stunty',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         "Major season's best-placed Stunty team. Not awarded if that team also gets the Wooden Spoon.",
       externalIds: [
@@ -71,24 +85,28 @@
       // from the complete 16-entry team legend on `p=tt`.
       name: 'Minor',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
       description: 'Minor season winner.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Minor 1st' }],
     },
     {
       name: 'Cabal Vision Cup',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Cabal Vision Cup' },
       description: 'Winner of the Cabal Vision Cup knockout cup.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Cabal Vision Cup' }],
     },
     {
       name: 'Korpen',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
       description: 'Awarded to the team placing best during a "Korp season".',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Korpen' }],
     },
     {
       name: 'Chaos Cup',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
       description:
         'The team that wins after four matches selects three players and rolls a D3 to choose one, who is separately awarded the Gudarnas Förkämpe player trophy.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }],
@@ -96,6 +114,7 @@
     {
       name: 'Stunty Leeg',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
       description:
         'Stunty Leeg winner, decided in a four-player deathmatch. Stunty Leeg division teams only.',
       externalIds: [
@@ -105,6 +124,7 @@
     {
       name: 'Fright Night',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Fright Night' },
       description:
         'Halloween-themed cup. Zara the Slayer and Count Luthor can be hired at half price by good/evil teams respectively.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Fright Night' }],
@@ -112,18 +132,21 @@
     {
       name: 'Snöbollskrieg',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Snöbollskrieg' },
       description: "Elf-themed cup, played on Naggarond's snow-covered fields.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Snöbollskrieg' }],
     },
     {
       name: 'Moot Mania',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Moot Mania' },
       description: 'Cup for teams composed only of Stunty and Big Guy players.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Moot Mania' }],
     },
     {
       name: 'Champion of tLoEG',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Champion of tLoEG' },
       description: 'Awarded to the winning teams of Champions of tLoEG.',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Champion of tLoEG' },
@@ -132,6 +155,7 @@
     {
       name: 'NAA',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'NAA' },
       description:
         "Naggaroth Athletic Awards -- Malekith's ambition to establish the Naggaroth Amorical Football League.",
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'NAA' }],
@@ -139,6 +163,7 @@
     {
       name: 'Blitzmania!',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Blitzmania!' },
       description: 'Awarded to the winner of a Blitzmania! event.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Blitzmania!' }],
     },
@@ -150,6 +175,7 @@
       // this row on its exact name.
       name: 'Ogretoberfest',
       recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
       description:
         'TP-side team award for winning an Ogretoberfest cup instance.',
       externalIds: [],
@@ -161,18 +187,21 @@
     {
       name: 'Season MVP',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Voted by all coaches.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Season MVP' }],
     },
     {
       name: 'Top Scorer',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most touchdowns during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Scorer' }],
     },
     {
       name: 'Most Violent Player',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most casualties during the season.',
       externalIds: [
         { system: 'tloeg.bbleague.se', id: 'Most Violent Player' },
@@ -181,24 +210,28 @@
     {
       name: 'Deadliest Player',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most kills during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Deadliest Player' }],
     },
     {
       name: 'Top Fouler',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most foul casualties during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Fouler' }],
     },
     {
       name: 'Top Thrower',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most completions during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Thrower' }],
     },
     {
       name: 'Top Intercepter',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         'Most interceptions during the season. Not awarded if tied between more than three players.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Intercepter' }],
@@ -206,6 +239,7 @@
     {
       name: 'Most SPP',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description: 'Most Star Player Points during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Most SPP' }],
     },
@@ -215,6 +249,7 @@
       // BBL trophy -- absent from BBL's complete `p=ppr` legend. Not seeded.
       name: 'Bierhallenführer',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
       description:
         'The Ogre who gets the most Star Player Points during Ogretoberfest, excluding MVPs.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Bierhallenführer' }],
@@ -222,6 +257,7 @@
     {
       name: 'Gudarnas Förkämpe',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
       description:
         'The player who stands in the gods\' favor, awarded a "free" mutation immediately after the Chaos Cup.',
       externalIds: [
@@ -231,6 +267,7 @@
     {
       name: 'Legendary Player',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         'Player who reached 176 Star Player Points during a season or event.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Legendary Player' }],
@@ -238,6 +275,7 @@
     {
       name: 'Trogen Tjänst',
       recipientKind: 'player',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
       description:
         '"Loyal Service" -- a medal honoring the unsung heroes on the field, awarded after the season to players who fought through three or more injuries.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Trogen Tjänst' }],

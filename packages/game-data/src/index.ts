@@ -3,6 +3,11 @@ export {
   CoachesService,
   CoachUpsertConflictError,
 } from './coaches/coaches.service';
+export { CompetitionGroupsModule } from './competition-groups/competition-groups.module';
+export {
+  CompetitionGroupsService,
+  CompetitionGroupUpsertConflictError,
+} from './competition-groups/competition-groups.service';
 export { CompetitionsModule } from './competitions/competitions.module';
 export type { CompetitionWithTeamEras } from './competitions/competitions.service';
 export {
