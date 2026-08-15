@@ -181,7 +181,7 @@ describe('TrophiesProcessor', () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
     refResolver.competitionGroupRef.mockReturnValue(groupRef);
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
-    trophies.upsertTrophy.mockResolvedValue({ id: 8 } as never);
+    trophies.upsertTrophy.mockResolvedValue({ id: 8 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.trophies = [
@@ -208,7 +208,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('passes no group ref through for a trophy that names none', async () => {
-    trophies.upsertTrophy.mockResolvedValue({ id: 9 } as never);
+    trophies.upsertTrophy.mockResolvedValue({ id: 9 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.trophies = [
