@@ -251,4 +251,29 @@ describe('CompetitionsProcessor', () => {
     ).toBe(0);
     expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
   });
+
+  it('falls back to the external id in the error label when name is omitted', async () => {
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
+    refResolver.resolveOptionalCompetitionGroup.mockReturnValue({
+      ok: false,
+    });
+    const data = emptyData();
+    data.competitions = [
+      {
+        type: 'season',
+        era: { system: 'Name', id: 'name:first-era' },
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '42' }],
+        competitionGroup: 'Nonexistent',
+      },
+    ];
+
+    expect(
+      await processor.process(makeContext(data, new ExternalIdMap())),
+    ).toBe(0);
+    expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
+    const [{ label }] = refResolver.resolveOptionalCompetitionGroup.mock
+      .calls[0] as [{ label: string }];
+    expect(label).toContain('42');
+    expect(label).not.toContain('undefined');
+  });
 });

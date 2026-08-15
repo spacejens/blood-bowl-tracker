@@ -75,10 +75,10 @@ const TeamEntrySchema = z.object({
 });
 
 /**
- * A competition belonging to at most one era. Every field except `name` and
- * `externalIds` is optional: the upsert overlays only what an entry supplies,
- * so a rename-only entry carries just the new name and the external ids that
- * match the existing row.
+ * A competition belonging to at most one era. Every field except
+ * `externalIds` is optional: the upsert overlays only what an entry
+ * supplies, so a rename-only entry carries just the new name and the
+ * external ids that match the existing row.
  */
 const CompetitionEntrySchema = z.object({
   // Optional: most entries exist only to classify an already-imported

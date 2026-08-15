@@ -201,11 +201,11 @@ exact `name` alone, which is also how a trophy or competition entry's
 
 A trophy's `competitionGroup` field and a competition's `competitionGroup`
 field (see below) are both plain group-name strings, not external-id pairs.
-They resolve against either this run's own declared `competitionGroups`
-entries or, failing that, the API's `competitionGroups.list` — which is why
-the after-other-importers phase can classify competitions into groups without
-re-declaring the group catalog it already created in the earlier
-before-other-importers phase.
+They resolve against the API's `competitionGroups.list`, overlaid with
+whatever this run's own declared `competitionGroups` entries add or rename —
+which is why the after-other-importers phase can classify competitions into
+groups without re-declaring the group catalog it already created in the
+earlier before-other-importers phase.
 
 A competition entry's own `name` is optional (unlike a trophy's, which is
 required): omitting it means "classify only, do not rename" — the entry
@@ -291,7 +291,7 @@ systems could not supply:
 - `coaches.json5` — TP usernames replaced with a readable coach name. These
   names are pseudonymized (see [Data layout](#data-layout) below), so this is
   where a coach's displayed pseudonym is set.
-- `competitions.json5` — no longer rename-only. It still normalizes the 35
+- `competitions.json5` — no longer rename-only. It still normalizes the 36
   recurring numbered competitions the two source systems named inconsistently
   (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become
   `Major Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup
