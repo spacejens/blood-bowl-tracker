@@ -34,15 +34,17 @@ CREATE TRIGGER competition_groups_external_ids_set_updated_at
   BEFORE UPDATE ON "game_data"."competition_groups_external_ids"
   FOR EACH ROW EXECUTE PROCEDURE set_updated_at();
 --> statement-breakpoint
--- Same reason as 20260814121026_add_competition_groups: an earlier migration
--- in the same batch (20260721101504_admin_match_event_review_fixes) leaves
--- SET CONSTRAINTS ALL IMMEDIATE in effect for the whole transaction, which
--- would make the *_history self-referencing FK -- written by a BEFORE INSERT
--- trigger before its own tracked row physically exists -- fail with a bogus FK
--- violation on the seed insert below. Restore the default DEFERRED behavior
--- unconditionally.
-SET CONSTRAINTS ALL DEFERRED;
---> statement-breakpoint
+-- No SET CONSTRAINTS ALL DEFERRED needed here, unlike 20260814121026: drizzle
+-- always runs every pending migration in one single db.transaction() (see
+-- drizzle-orm's pg-core/async/session.js), and SET CONSTRAINTS is
+-- transaction-scoped. Either this migration runs in the same transaction as
+-- 20260814121026 -- whose own reset (needed there because it's the first
+-- history-tracked insert after the admin migration's SET CONSTRAINTS ALL
+-- IMMEDIATE) already covers everything after it in that same transaction --
+-- or it runs alone in a later transaction, in which case the admin
+-- migration's IMMEDIATE setting never carried over to begin with, since
+-- 20260721101504 already committed in its own, separate, already-finished
+-- transaction.
 -- Give every pre-existing competition_groups row a "Name" external id. That
 -- includes at minimum the "Major Season" group seeded by
 -- 20260814121026_add_competition_groups -- which predates competition groups
