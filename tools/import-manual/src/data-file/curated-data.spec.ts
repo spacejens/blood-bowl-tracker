@@ -31,6 +31,21 @@ function readPhase(phase: string): ManualDataFile {
   return pooled;
 }
 
+/**
+ * Parses and validates a single curated JSON5 file in isolation, without
+ * pooling it against its sibling files in the same phase directory. Use this
+ * instead of `readPhase` when a test must assert something about exactly one
+ * file's own declarations -- `readPhase` pools `externalSystems` (and every
+ * other section) across every file in the directory, so an assertion against
+ * `readPhase(...).externalSystems` can pass even when the file under test
+ * declares nothing at all, as long as some sibling file does.
+ */
+function readFile(phase: string, name: string): ManualDataFile {
+  return ManualDataFileSchema.parse(
+    JSON5.parse(readFileSync(join(DATA_ROOT, phase, name), 'utf8')),
+  );
+}
+
 describe('curated data files', () => {
   it('parses every before-other-importers file', () => {
     expect(() => readPhase('before-other-importers')).not.toThrow();
@@ -123,7 +138,12 @@ describe('curated data files', () => {
   });
 
   it('declares the tourplay.net external system in the trophy catalog', () => {
-    const data = readPhase('before-other-importers');
+    // Reads trophies.json5 in isolation (not readPhase's pooled result):
+    // coaches.json5, races-and-positions.json5, star-players.json5, and
+    // teams.json5 all separately declare tourplay.net too, so asserting
+    // against the pooled externalSystems would pass even without this file's
+    // own declaration.
+    const data = readFile('before-other-importers', 'trophies.json5');
 
     expect(data.externalSystems).toContainEqual({
       name: 'tourplay.net',

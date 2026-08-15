@@ -36,11 +36,11 @@
 // carrying a guessed code.
 //
 // Every trophy also records the competition group it is applicable for
-// (issue #445), so issue #446 can consider only applicable trophies when
-// awarding for a competition. The eight unqualified "during the season"
-// player trophies (Season MVP through Most SPP), plus Legendary Player and
-// Trogen Tjänst, are curated under Major Season: Major is BBL's flagship
-// season and the legend defines no Minor-season equivalent.
+// (issue #445), so a future TP awards importer can consider only applicable
+// trophies when awarding for a competition. The eight unqualified "during the
+// season" player trophies (Season MVP through Most SPP), plus Legendary
+// Player and Trogen Tjänst, are curated under Major Season: Major is BBL's
+// flagship season and the legend defines no Minor-season equivalent.
 // Bierhallenführer and Gudarnas Förkämpe follow their own description text,
 // which is already explicit about the event they are awarded at.
 {

@@ -81,7 +81,8 @@ Every entry in an entity section requires at least one external ID (the API
 enforces `externalIds.min(1)` — a record with none could never be matched
 again), with one exception: a trophy may declare an empty `externalIds` list,
 in which case the API matches it on its exact name instead. No curated trophy
-currently does — see the Trophies subsection below. External IDs and cross-references are written as
+currently does — see the Trophies subsection below. External IDs and
+cross-references are written as
 `{ system, id }`
 pairs, where `system` is an external-system name and `id` follows the
 `id:`/`name:` namespacing convention (see
