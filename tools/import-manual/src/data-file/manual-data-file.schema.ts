@@ -87,12 +87,12 @@ const CompetitionEntrySchema = z.object({
   name: z.string().min(1).optional(),
   type: z.enum(['season', 'cup']).optional(),
   era: ExternalRefSchema.optional(),
-  // Names a competition group by its plain curated name, not by a spelled-out
-  // external-id pair: a group's only identity is its name, which the processor
-  // turns into the group's synthetic "Name"-system external ref before
-  // resolving it like any other cross-reference. Optional, so an entry that
+  // An explicit external-id pair naming the competition group, in the same
+  // synthetic "Name" system a group's own upsert registers itself under (e.g.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
+  // ExternalIdMap like any other cross-reference. Optional, so an entry that
   // says nothing about a group leaves the stored classification alone.
-  competitionGroup: z.string().min(1).optional(),
+  competitionGroup: ExternalRefSchema.optional(),
   externalIds,
 });
 
@@ -122,12 +122,12 @@ const TrophyEntrySchema = z.object({
   name: z.string().min(1),
   recipientKind: TrophyRecipientKindSchema,
   description: z.string().min(1).optional(),
-  // Names a competition group by its plain curated name, not by a spelled-out
-  // external-id pair: a group's only identity is its name, which the processor
-  // turns into the group's synthetic "Name"-system external ref before
-  // resolving it like any other cross-reference. Optional, so an entry that
+  // An explicit external-id pair naming the competition group, in the same
+  // synthetic "Name" system a group's own upsert registers itself under (e.g.
+  // { system: 'Name', id: 'Major Season' }) -- resolved against the run's
+  // ExternalIdMap like any other cross-reference. Optional, so an entry that
   // says nothing about a group leaves the stored classification alone.
-  competitionGroup: z.string().min(1).optional(),
+  competitionGroup: ExternalRefSchema.optional(),
   externalIds: z.array(ExternalRefSchema).default([]),
 });
 

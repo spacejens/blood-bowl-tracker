@@ -354,18 +354,24 @@ describe('ManualDataFileSchema', () => {
         {
           name: 'Major Gold',
           recipientKind: 'team',
-          competitionGroup: 'Major Season',
+          competitionGroup: { system: 'Name', id: 'Major Season' },
         },
       ],
       competitions: [
         {
           externalIds: [{ system: 'tloeg.bbleague.se', id: '15' }],
-          competitionGroup: 'Korpen',
+          competitionGroup: { system: 'Name', id: 'Korpen' },
         },
       ],
     });
-    expect(parsed.trophies[0].competitionGroup).toBe('Major Season');
-    expect(parsed.competitions[0].competitionGroup).toBe('Korpen');
+    expect(parsed.trophies[0].competitionGroup).toEqual({
+      system: 'Name',
+      id: 'Major Season',
+    });
+    expect(parsed.competitions[0].competitionGroup).toEqual({
+      system: 'Name',
+      id: 'Korpen',
+    });
     expect(parsed.competitions[0].name).toBeUndefined();
   });
 });

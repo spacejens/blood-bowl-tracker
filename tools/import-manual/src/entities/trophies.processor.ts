@@ -13,12 +13,11 @@ export class TrophiesProcessor {
 
   /**
    * Upsert every declared trophy. A trophy may name the competition group it
-   * belongs to by its plain curated name, which is turned into the group's
-   * "Name"-system external ref and resolved against the run's ExternalIdMap
-   * like any other cross-reference; an entry naming an unknown group is
-   * skipped (an authoring error), while an entry that omits one passes
-   * `competitionGroupId: undefined` through, leaving the trophy's stored group
-   * alone.
+   * belongs to by an explicit external-id pair, resolved against the run's
+   * ExternalIdMap like any other cross-reference; an entry naming an unknown
+   * group is skipped (an authoring error), while an entry that omits one
+   * passes `competitionGroupId: undefined` through, leaving the trophy's
+   * stored group alone.
    *
    * An entry may declare an empty `externalIds` list; the API then matches it
    * on its exact name instead (see `TrophiesService.upsert`). Such an entry
@@ -29,10 +28,7 @@ export class TrophiesProcessor {
     let imported = 0;
     for (const entry of ctx.data.trophies) {
       const group = this.refResolver.resolveOptionalRef({
-        ref:
-          entry.competitionGroup === undefined
-            ? undefined
-            : this.refResolver.competitionGroupRef(entry.competitionGroup),
+        ref: entry.competitionGroup,
         idMap: ctx.idMap,
         errors: ctx.errors,
         item: entry,

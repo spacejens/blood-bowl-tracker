@@ -190,9 +190,8 @@ an external-id pair pointing at the group's owning league. An entry declares no
 `externalIds` of its own, but the importer derives one for it: the group's
 `name` under the synthetic `Name` external system, exactly as the BBL importer
 derives a league's. That derived id is what the group upsert matches on, like
-every other entity's upsert, and it is also what a trophy or competition
-entry's plain-name `competitionGroup` field (see below) is turned into before
-being resolved.
+every other entity's upsert, and it is also the external-id pair a trophy or
+competition entry's `competitionGroup` field (see below) names explicitly.
 
 ```jsonc
 {
@@ -203,11 +202,12 @@ being resolved.
 ```
 
 A trophy's `competitionGroup` field and a competition's `competitionGroup`
-field (see below) are both plain group-name strings, not external-id pairs —
-a curator writes `competitionGroup: 'Major Season'`. The processor turns that
-name into the group's `Name`-system external ref and resolves it against the
-run's `ExternalIdMap` like any other cross-reference, so the group must have
-been processed in the same run.
+field (see below) are both explicit external-id pairs in the group's `Name`
+system — a curator writes
+`competitionGroup: { system: 'Name', id: 'Major Season' }`, the same pair the
+group's own upsert registers. The processor resolves it against the run's
+`ExternalIdMap` like any other cross-reference, so the group must have been
+processed in the same run.
 
 Each phase runs as its own process with its own empty `ExternalIdMap`, so the
 after-other-importers phase (where `competitions.json5` lives) must process the

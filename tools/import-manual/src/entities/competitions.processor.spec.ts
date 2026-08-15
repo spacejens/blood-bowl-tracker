@@ -207,7 +207,6 @@ describe('CompetitionsProcessor', () => {
 
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
-    refResolver.competitionGroupRef.mockReturnValue(groupRef);
     refResolver.resolveOptionalRef
       .mockReturnValueOnce({ ok: true, id: 3 })
       .mockReturnValueOnce({ ok: true, id: 4 });
@@ -220,15 +219,12 @@ describe('CompetitionsProcessor', () => {
         type: 'season',
         era: { system: 'Name', id: 'name:first-era' },
         externalIds: [],
-        competitionGroup: 'Major Season',
+        competitionGroup: groupRef,
       },
     ];
     const ctx = makeContext(data, new ExternalIdMap());
 
     expect(await processor.process(ctx)).toBe(1);
-    expect(refResolver.competitionGroupRef).toHaveBeenCalledWith(
-      'Major Season',
-    );
     expect(refResolver.resolveOptionalRef).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
@@ -250,7 +246,7 @@ describe('CompetitionsProcessor', () => {
         type: 'season',
         era: { system: 'Name', id: 'name:first-era' },
         externalIds: [],
-        competitionGroup: 'Nonexistent',
+        competitionGroup: { system: 'Name', id: 'Nonexistent' },
       },
     ];
 
@@ -270,7 +266,7 @@ describe('CompetitionsProcessor', () => {
         type: 'season',
         era: { system: 'Name', id: 'name:first-era' },
         externalIds: [{ system: 'tloeg.bbleague.se', id: '42' }],
-        competitionGroup: 'Nonexistent',
+        competitionGroup: { system: 'Name', id: 'Nonexistent' },
       },
     ];
 

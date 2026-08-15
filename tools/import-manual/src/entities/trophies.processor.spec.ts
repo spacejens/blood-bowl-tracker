@@ -179,7 +179,6 @@ describe('TrophiesProcessor', () => {
 
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
-    refResolver.competitionGroupRef.mockReturnValue(groupRef);
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
     trophies.upsertTrophy.mockResolvedValue({
       id: 8,
@@ -197,15 +196,12 @@ describe('TrophiesProcessor', () => {
         name: 'Major Gold',
         recipientKind: 'team',
         externalIds: [],
-        competitionGroup: 'Major Season',
+        competitionGroup: groupRef,
       },
     ];
     const ctx = makeContext(data, new ExternalIdMap());
 
     expect(await processor.process(ctx)).toBe(1);
-    expect(refResolver.competitionGroupRef).toHaveBeenCalledWith(
-      'Major Season',
-    );
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
     );
@@ -234,7 +230,6 @@ describe('TrophiesProcessor', () => {
     expect(
       await processor.process(makeContext(data, new ExternalIdMap())),
     ).toBe(1);
-    expect(refResolver.competitionGroupRef).not.toHaveBeenCalled();
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: undefined }),
     );
@@ -252,7 +247,7 @@ describe('TrophiesProcessor', () => {
         name: 'Major Gold',
         recipientKind: 'team',
         externalIds: [],
-        competitionGroup: 'Nonexistent',
+        competitionGroup: { system: 'Name', id: 'Nonexistent' },
       },
     ];
 

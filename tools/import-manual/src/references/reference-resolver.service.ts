@@ -50,11 +50,13 @@ export class ReferenceResolverService {
   ) {}
 
   /**
-   * The external-id pair a curated competition group is keyed by. Curated data
-   * names a group by its plain name (`competitionGroup: 'Major Season'`)
-   * rather than spelling out the synthetic pair; this is the one place that
-   * turns that name into the "Name"-system ref both the group's own upsert and
-   * every reference to it use.
+   * The external-id pair a curated competition group registers its own
+   * identity under: its `name` turned into the synthetic "Name"-system ref,
+   * the same way `BblLeaguesImportService` derives a league's. Used only by
+   * `CompetitionGroupsProcessor` for a group's own upsert -- a trophy or
+   * competition entry *referencing* a group instead writes that same pair out
+   * explicitly (`competitionGroup: { system: 'Name', id: 'Major Season' }`)
+   * and resolves it via `resolveOptionalRef` like any other cross-reference.
    */
   competitionGroupRef(name: string): ExternalRef {
     return {

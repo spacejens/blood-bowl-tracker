@@ -117,7 +117,8 @@ describe('curated data files', () => {
         trophy.competitionGroup,
         `trophy "${trophy.name}" has no competitionGroup`,
       ).toBeDefined();
-      expect(groupNames).toContain(trophy.competitionGroup!);
+      expect(trophy.competitionGroup!.system).toBe('Name');
+      expect(groupNames).toContain(trophy.competitionGroup!.id);
     }
   });
 
@@ -141,7 +142,8 @@ describe('curated data files', () => {
         competition.competitionGroup,
         `competition ${key} has no competitionGroup`,
       ).toBeDefined();
-      expect(groupNames).toContain(competition.competitionGroup!);
+      expect(competition.competitionGroup!.system).toBe('Name');
+      expect(groupNames).toContain(competition.competitionGroup!.id);
     }
   });
 });
