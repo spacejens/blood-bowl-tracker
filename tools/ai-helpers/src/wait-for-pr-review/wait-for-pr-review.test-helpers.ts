@@ -131,13 +131,34 @@ export async function createHarness(): Promise<WaitForPrReviewHarness> {
   return { service: moduleRef.get(WaitForPrReviewService), processRunner };
 }
 
-/** A `gh api .../comments` invocation whose jq filter emitted the given value. */
-export function completionResult(candidate: unknown) {
+/**
+ * A `gh api .../comments` invocation whose jq filter emitted the combined
+ * `{completion, rateLimitEdit}` object one poll now asks for. jq emits `null`
+ * for an empty half, so an omitted half is written out as `null`, not
+ * dropped.
+ */
+export function rollingResult(payload: {
+  completion?: unknown;
+  rateLimitEdit?: unknown;
+}) {
   return {
     exitCode: 0,
-    stdout: `${JSON.stringify(candidate)}\n`,
+    stdout: `${JSON.stringify({
+      completion: payload.completion ?? null,
+      rateLimitEdit: payload.rateLimitEdit ?? null,
+    })}\n`,
     stderr: '',
   };
+}
+
+/** A `gh api .../comments` invocation whose only match is a completion candidate. */
+export function completionResult(candidate: unknown) {
+  return rollingResult({ completion: candidate });
+}
+
+/** A `gh api .../comments` invocation whose only match is a rate-limit-edit candidate. */
+export function rateLimitEditResult(candidate: unknown) {
+  return rollingResult({ rateLimitEdit: candidate });
 }
 
 /** A completion candidate whose extracted section is replaced wholesale. */
