@@ -274,10 +274,9 @@
       competitionGroup: 'Major Season',
     },
 
-    // -- Major Season 19-24 (BBL, Second era) and 31-33 (TP, Fourth era, still
-    // ongoing at curation time). Classification only: BBL/TP names are
-    // already canonical, so no `name` is supplied and the stored name is left
-    // alone.
+    // -- Major Season 19-24 (BBL, Second era). Classification only: BBL's own
+    // names are already canonical, so no `name` is supplied and the stored
+    // name is left alone.
     {
       externalIds: [{ system: 'tloeg.bbleague.se', id: '59' }],
       competitionGroup: 'Major Season',
