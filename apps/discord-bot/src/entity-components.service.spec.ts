@@ -65,6 +65,7 @@ describe('EntityComponentsService', () => {
       style: ButtonStyle.Success,
       label: 'Entity 1',
       custom_id: 'deepdive:team:1',
+      emoji: { name: '🛡️' },
     });
   });
 
@@ -92,6 +93,36 @@ describe('EntityComponentsService', () => {
       cases.map(([customIdPrefix, style], index) => [
         `${customIdPrefix}${index + 1}`,
         style,
+      ]),
+    );
+  });
+
+  it('gives each destination type its own button emoji', () => {
+    // One entry per destination type, in the design's mapping-table order.
+    const cases: [ButtonCustomIdPrefix, string][] = [
+      [ERA_BUTTON_CUSTOM_ID_PREFIX, '🕰️'],
+      [COACH_BUTTON_CUSTOM_ID_PREFIX, '📋'],
+      [TEAM_BUTTON_CUSTOM_ID_PREFIX, '🛡️'],
+      [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
+      [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
+      [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
+    ];
+    const { components } = service.buildEntityComponents(
+      cases.map(([customIdPrefix], index) => ({
+        customIdPrefix,
+        entityId: String(index + 1),
+        label: `Entity ${index + 1}`,
+      })),
+    );
+    const buttons = (components as EntityButtonRow[]).flatMap(
+      (row) => row.components,
+    );
+    expect(
+      buttons.map((button) => [button.custom_id, button.emoji.name]),
+    ).toEqual(
+      cases.map(([customIdPrefix, emojiName], index) => [
+        `${customIdPrefix}${index + 1}`,
+        emojiName,
       ]),
     );
   });
@@ -239,6 +270,7 @@ describe('EntityComponentsService', () => {
       style: ButtonStyle.Success,
       label: BLANK_LABEL,
       custom_id: 'deepdive:team:1',
+      emoji: { name: '🛡️' },
     });
   });
 

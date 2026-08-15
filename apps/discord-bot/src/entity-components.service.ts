@@ -61,6 +61,36 @@ const BUTTON_STYLE_BY_PREFIX: Record<ButtonCustomIdPrefix, ButtonStyle> = {
   [RACE_BUTTON_CUSTOM_ID_PREFIX]: ButtonStyle.Success,
 };
 
+/**
+ * The emoji each destination type gets, rendered by Discord in the component's
+ * own `emoji` field (not prefixed into the label). Colour alone cannot carry
+ * type identity: Discord offers only four usable button styles for six and
+ * counting destination types, and select-menu options have no colour at all,
+ * so a coach and a competition would be indistinguishable in a long list.
+ * Emoji is the primary type signal; `BUTTON_STYLE_BY_PREFIX` remains an
+ * independent secondary one.
+ *
+ * The choices: a clock for a time period (era), a clipboard for
+ * tactics/coaching (coach), a shield for a team crest (team), a jersey for an
+ * individual player (player), a double helix for species/ancestry (race), and
+ * a stadium for a single event (competition). 🏆 is deliberately unused here —
+ * it is reserved for the trophy/award deepdive (#423).
+ *
+ * The `Record<ButtonCustomIdPrefix, string>` annotation is deliberate, exactly
+ * as it is for the colour map above: TypeScript requires every member of the
+ * union to appear as a key, so adding a seventh prefix constant fails the build
+ * here until someone chooses its emoji. Do not add a runtime fallback — that
+ * would let a new destination type ship with the wrong icon.
+ */
+const ENTITY_EMOJI_BY_PREFIX: Record<ButtonCustomIdPrefix, string> = {
+  [ERA_BUTTON_CUSTOM_ID_PREFIX]: '🕰️',
+  [COACH_BUTTON_CUSTOM_ID_PREFIX]: '📋',
+  [TEAM_BUTTON_CUSTOM_ID_PREFIX]: '🛡️',
+  [PLAYER_BUTTON_CUSTOM_ID_PREFIX]: '🎽',
+  [RACE_BUTTON_CUSTOM_ID_PREFIX]: '🧬',
+  [COMPETITION_BUTTON_CUSTOM_ID_PREFIX]: '🏟️',
+};
+
 /** One drill-down target: a routing prefix (see `deepdive/button-custom-ids.ts`), the bare entity id, and the text to show. */
 export interface EntityComponentEntry {
   customIdPrefix: ButtonCustomIdPrefix;
@@ -73,6 +103,8 @@ interface EntityButton {
   style: ButtonStyle;
   label: string;
   custom_id: string;
+  /** Discord's native button emoji field; `name` is the unicode emoji itself. */
+  emoji: { name: string };
 }
 
 export interface EntityButtonRow {
@@ -168,6 +200,7 @@ export class EntityComponentsService {
         style: BUTTON_STYLE_BY_PREFIX[entry.customIdPrefix],
         label: entry.label,
         custom_id: `${entry.customIdPrefix}${entry.entityId}`,
+        emoji: { name: ENTITY_EMOJI_BY_PREFIX[entry.customIdPrefix] },
       })),
     }));
   }

@@ -10,7 +10,10 @@ import {
   stubDatabaseTimeoutOnce,
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
-import { passthroughEntityComponents } from '../../entity-components-mock.test-helpers';
+import {
+  passthroughEntityComponents,
+  STUB_BUTTON_EMOJI,
+} from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TEAM_CAREER_TIMEOUT_MESSAGE,
   DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE,
@@ -150,19 +153,28 @@ describe('TeamDeepdiveService', () => {
               style: 1,
               label: 'Griff',
               custom_id: 'deepdive:player:5',
+              emoji: STUB_BUTTON_EMOJI,
             },
             {
               type: 2,
               style: 1,
               label: 'Morg',
               custom_id: 'deepdive:player:8',
+              emoji: STUB_BUTTON_EMOJI,
             },
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
             {
               type: 2,
               style: 1,
               label: 'Roze Madder',
               custom_id: 'deepdive:coach:12',
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
@@ -208,16 +220,36 @@ describe('TeamDeepdiveService', () => {
               style: 1,
               label: 'Griff',
               custom_id: 'deepdive:player:5',
+              emoji: STUB_BUTTON_EMOJI,
             },
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
             {
               type: 2,
               style: 1,
               label: 'Roze Madder',
               custom_id: 'deepdive:coach:12',
+              emoji: STUB_BUTTON_EMOJI,
             },
-            { type: 2, style: 1, label: 'BB2016', custom_id: 'deepdive:era:3' },
-            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2016',
+              custom_id: 'deepdive:era:3',
+              emoji: STUB_BUTTON_EMOJI,
+            },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2020',
+              custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
           ],
         },
       ],
@@ -268,14 +300,27 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
             {
               type: 2,
               style: 1,
               label: 'Roze Madder',
               custom_id: 'deepdive:coach:12',
+              emoji: STUB_BUTTON_EMOJI,
             },
-            { type: 2, style: 1, label: 'BB2020', custom_id: 'deepdive:era:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'BB2020',
+              custom_id: 'deepdive:era:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
           ],
         },
       ],
@@ -351,12 +396,19 @@ describe('TeamDeepdiveService', () => {
         {
           type: 1,
           components: [
-            { type: 2, style: 1, label: 'Dwarf', custom_id: 'deepdive:race:4' },
+            {
+              type: 2,
+              style: 1,
+              label: 'Dwarf',
+              custom_id: 'deepdive:race:4',
+              emoji: STUB_BUTTON_EMOJI,
+            },
             {
               type: 2,
               style: 1,
               label: 'Roze Madder',
               custom_id: 'deepdive:coach:12',
+              emoji: STUB_BUTTON_EMOJI,
             },
           ],
         },
