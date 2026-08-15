@@ -28,12 +28,13 @@
 // `awardType` otherwise (1/2/3).
 //
 // Only 7 entries are seeded, and that is deliberate, confirmed by reading all
-// 13 local TP award files: TP only ever tracks 4 competition groups (Major
-// Season, Chaos Cup, Dungeon Bowl, Ogretoberfest -- Dungeon Bowl has no
-// matching trophy here), and its award files only ever contain team-level
-// entries, so none of the 12 player trophies and none of the BBL-only cups
-// have any TP source data to ground an id on. Those stay unseeded rather than
-// carrying a guessed code.
+// 13 local TP award files: TP has so far only tracked 4 competition groups
+// (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest -- Dungeon Bowl has no
+// matching trophy here), and its award files have so far only contained
+// team-level entries, so none of the 12 player trophies and none of the
+// BBL-only cups have any TP source data to ground an id on. Those stay
+// unseeded rather than carrying a guessed code -- a new TP competition
+// tracking a different group, or a new award kind, would widen this set.
 //
 // Every trophy also records the competition group it is applicable for
 // (issue #445), so a future TP awards importer can consider only applicable

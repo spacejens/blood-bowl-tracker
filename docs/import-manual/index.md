@@ -249,12 +249,13 @@ curated trophy relies on this today — `Ogretoberfest` used to, and gained a
 `tourplay.net` id in issue #446 — but the mechanism stays supported for any
 future trophy with no stable external id to key on.
 
-Seven trophies carry a `tourplay.net` external id (issue #446), keyed
-`${disambiguator}-${groupName}`: the raw TP award's `name` when present
-(`Best Stunty`, `Wooden Spoon`) else its numeric `awardType` (`1`, `2`, `3`),
-hyphen-joined with the trophy's competition group name — because TP's
-`awardType` codes are not globally unique per trophy on their own. Only those
-seven are seeded; TP's award data covers no other catalog entry. See
+Every trophy TP has been observed to award carries a `tourplay.net` external
+id (issue #446), keyed `${disambiguator}-${groupName}`: the raw TP award's
+`name` when present (`Best Stunty`, `Wooden Spoon`) else its numeric
+`awardType` (`1`, `2`, `3`), hyphen-joined with the trophy's competition
+group name — because TP's `awardType` codes are not globally unique per
+trophy on their own. TP's award data covers no other catalog entry today, so
+only those trophies are seeded. See
 [docs/import-tp/file-format.md](../import-tp/file-format.md) for the full
 value table and the evidence behind the scope.
 

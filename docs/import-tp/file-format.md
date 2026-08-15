@@ -642,12 +642,15 @@ group's literal name. These ids are authored as literal strings in
 | `Chaos Cup`          | `1-Chaos Cup`               |
 | `Ogretoberfest`      | `1-Ogretoberfest`           |
 
-Only those 7 catalog entries are seeded, because TP only ever tracks 4
+Only those 7 catalog entries are seeded, because TP has so far only tracked 4
 competition groups (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest —
 Dungeon Bowl has no matching trophy in the catalog) and these award files
-only ever contain team-level entries: none of the 12 curated player trophies,
-and none of the BBL-only cups, appear anywhere in this data. Everything else
-in the catalog stays seeded with BBL ids only.
+have so far only contained team-level entries: none of the 12 curated player
+trophies, and none of the BBL-only cups, appear anywhere in this data.
+Everything else in the catalog stays seeded with BBL ids only. A new TP
+competition tracking a different group, or a new award kind, would widen
+this set — the scope here reflects what TP has tracked to date, not an
+architectural limit.
 
 Actually consuming these ids — parsing these files and writing `trophy_awards`
 rows — is still not implemented; no TP awards importer exists yet.

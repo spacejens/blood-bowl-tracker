@@ -152,10 +152,10 @@ describe('curated data files', () => {
   });
 
   it('seeds TP external ids for exactly the seven trophies TP awards', () => {
-    // TP only ever tracks 4 competition groups (Major Season, Chaos Cup,
-    // Dungeon Bowl, Ogretoberfest) and its award files only ever contain
-    // team-level entries, so only these 7 catalog entries have real TP source
-    // data to key on. The composite format is `${disambiguator}-${groupName}`,
+    // TP has so far only tracked 4 competition groups (Major Season, Chaos
+    // Cup, Dungeon Bowl, Ogretoberfest) and its award files have so far only
+    // contained team-level entries, so only these 7 catalog entries have real
+    // TP source data to key on. The composite format is `${disambiguator}-${groupName}`,
     // where the disambiguator is the raw award's `name` when present (Best
     // Stunty / Wooden Spoon share one numeric awardType) and its numeric
     // `awardType` otherwise. Pinned here so the format cannot drift.
