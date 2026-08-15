@@ -117,6 +117,17 @@ describe('ManualDataReader', () => {
     expect(data.coaches.map((c) => c.name)).toEqual(['Keep']);
   });
 
+  it('propagates a stat() failure that is not a broken symlink', async () => {
+    // A symlink loop makes stat() fail with ELOOP, not ENOENT -- only a
+    // broken symlink's ENOENT is meant to be silently skipped; every other
+    // stat() failure (permission errors, I/O errors, loops) must propagate
+    // rather than be treated as "just not a file".
+    symlinkSync(join(dir, 'b.json5'), join(dir, 'a.json5'));
+    symlinkSync(join(dir, 'a.json5'), join(dir, 'b.json5'));
+
+    await expect(reader.read(dir)).rejects.toThrow();
+  });
+
   it('throws with the file path when a file is not valid JSON5', async () => {
     write('bad.json5', '{ not valid');
     await expect(reader.read(dir)).rejects.toThrow(join(dir, 'bad.json5'));

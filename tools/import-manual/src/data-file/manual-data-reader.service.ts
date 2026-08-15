@@ -21,8 +21,12 @@ export class ManualDataReader {
    * files curated in data/before-other-importers. `stat()` does follow
    * symlinks, so it is used instead to decide "is this path, after following
    * any symlink, actually a file" -- which also means a symlink to a
-   * directory, or a broken symlink, is skipped just like any other non-file
-   * entry rather than throwing (`EISDIR`/`ENOENT`) and aborting the run.
+   * directory is skipped just like any other non-file entry, since `stat()`
+   * succeeds for it and only `isFile()` is false. A broken symlink's target
+   * doesn't exist, so `stat()` itself throws `ENOENT`; that specific error is
+   * swallowed the same way, but any other `stat()` failure (a permission
+   * error, an I/O error, a symlink loop) is a real problem the run should not
+   * silently hide by skipping the file -- it propagates instead.
    */
   async read(dir: string): Promise<ManualDataFile> {
     const entries = await readdir(dir, { withFileTypes: true });
@@ -33,8 +37,15 @@ export class ManualDataReader {
       let stats: Stats;
       try {
         stats = await stat(path);
-      } catch {
-        continue;
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          'code' in error &&
+          error.code === 'ENOENT'
+        ) {
+          continue;
+        }
+        throw error;
       }
       if (stats.isFile()) {
         filenames.push(entry.name);
