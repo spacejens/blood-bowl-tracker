@@ -50,13 +50,14 @@ export class TrophiesService {
   /**
    * The empty-`externalIds` path, which no other entity has.
    *
-   * A trophy is allowed to carry no external id at all (the TP-only
-   * "Ogretoberfest" has no BBL equivalent, and TP's `awardType` codes cannot
-   * be resolved into stable ids until a competition-classification concept
-   * exists — issues #445, #446). `upsertByExternalIds` resolves an existing
-   * row purely from external ids, so such a payload would insert a fresh
-   * duplicate on every import run. Matching on exact `name` instead keeps it
-   * idempotent.
+   * A trophy is allowed to carry no external id at all. The curated catalog
+   * (issue #446) currently gives every trophy — including the TP-only
+   * "Ogretoberfest" — an explicit external id, so no curated trophy exercises
+   * this path today, but it stays supported for a future trophy that needs
+   * it (e.g. one with no source system to key on yet). `upsertByExternalIds`
+   * resolves an existing row purely from external ids, so such a payload
+   * would insert a fresh duplicate on every import run. Matching on exact
+   * `name` instead keeps it idempotent.
    *
    * This is NOT a shared "Name" external id, and creates no auto-merge
    * surface: the BBL and TP importers always supply real external ids and
@@ -65,18 +66,22 @@ export class TrophiesService {
    * never be conflated by an importer. The precedent for matching by name
    * alone is `ExternalSystemsService.upsert`.
    *
-   * One scenario this branch must still guard against: a future TP importer
-   * (#446) that creates a same-named row via the external-id path (e.g. it
-   * resolves its own external id to a *new* trophy row instead of attaching
-   * that id to the existing row already found by name) before the manual
-   * importer's next run. That would leave two rows sharing one `name`, and
-   * this fallback — which matches by name alone — would otherwise pick one of
-   * them arbitrarily. To prevent silently doing that, the name lookup below
-   * throws `TrophyUpsertConflictError` if it ever finds more than one row.
-   * Closing this gap here means #446 MUST attach its external id to the
-   * existing row (found by name) rather than blindly calling upsert with only
-   * external ids and letting a fresh row get created — otherwise the conflict
-   * this guard raises will legitimately fire on the next manual-import run.
+   * One scenario this branch must still guard against: a future TP awards
+   * importer (not yet written; issue #446 turned out to be a pure
+   * curated-data change, not this importer) that creates a same-named row via
+   * the external-id path (e.g. it resolves its own external id to a *new*
+   * trophy row instead of attaching that id to the existing row already found
+   * by name) before the manual importer's next run. That would leave two rows
+   * sharing one `name`, and this fallback — which matches by name alone —
+   * would otherwise pick one of them arbitrarily. To prevent silently doing
+   * that, the name lookup below throws `TrophyUpsertConflictError` if it ever
+   * finds more than one row. Closing this gap here means that future TP
+   * awards importer MUST attach its external id to the existing row (found by
+   * name) rather than blindly calling upsert with only external ids and
+   * letting a fresh row get created — otherwise the conflict this guard
+   * raises will legitimately fire on the next manual-import run. This only
+   * matters if a trophy with no external ids is added to the catalog again;
+   * none currently exists.
    */
   private async upsertByName(
     data: UpsertTrophy,

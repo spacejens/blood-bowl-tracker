@@ -612,20 +612,45 @@ both `"Best Stunty"` and `"Wooden Spoon"`; the one fourth-era season file
 (`tloegbbl-sasong-30`) uses code `100` for the identically-named pair. This is
 a platform-side renumbering between eras, not two different trophies.
 
-The blocking nuance: `awardType` codes are **not globally unique per
-trophy**, even setting the `100`/`200` renumbering aside. The same numeric
-code (`1`, `2`, `3`) means a different trophy depending on which
-competition/tier it appears in — a Major season's `1` and a Minor season's
-`1` are different trophies, exactly as BBL's self-disambiguating `Major 1st`
-/ `Minor 1st` labels show (see the `Note on the sr page's "Team trophy"
-table:` and the trophy legend note in `docs/import-bbl/file-format.md`).
-Resolving TP awards into `trophies_external_ids` therefore needs a
-competition-classification concept that does not exist yet.
+The nuance that makes a bare code unusable as an id: `awardType` codes are
+**not globally unique per trophy**, even setting the `100`/`200` renumbering
+aside. The same numeric code (`1`, `2`, `3`) means a different trophy
+depending on which competition/tier it appears in — a Major season's `1` and
+a Minor season's `1` are different trophies, exactly as BBL's
+self-disambiguating `Major 1st` / `Minor 1st` labels show (see the `Note on
+the sr page's "Team trophy" table:` and the trophy legend note in
+`docs/import-bbl/file-format.md`). Resolving TP awards into
+`trophies_external_ids` therefore needs the competition group each award
+belongs to.
 
-Issues #445 (competition classification/grouping) and #446 (TP external-ID
-resolution) track the follow-up work. Until then, `trophies_external_ids` is
-seeded with BBL ids only — cross-reference
-`tools/import-manual/data/before-other-importers/trophies.json5`. TP's
-Ogretoberfest team award has no BBL equivalent, which is why the curated
-catalog's `Ogretoberfest` entry is the one trophy with no external id at
-all — the API matches it on its exact name instead.
+Competition groups arrived with issue #445, and issue #446 used them to key
+TP trophy external ids as `${disambiguator}-${groupName}` — the same
+hyphen-joined composite BBL positions use (`${typId}-${race.bblId}`). The
+disambiguator is the award's `name` field when present (`Best Stunty`,
+`Wooden Spoon`, which share one numeric code within a file) and the numeric
+`awardType` otherwise (`1`, `2`, `3`); `groupName` is the curated competition
+group's literal name. These ids are authored as literal strings in
+`tools/import-manual/data/before-other-importers/trophies.json5`:
+
+| Trophy               | TP external id              |
+| -------------------- | --------------------------- |
+| `Major Gold`         | `1-Major Season`            |
+| `Major Silver`       | `2-Major Season`            |
+| `Major Bronze`       | `3-Major Season`            |
+| `Major Wooden Spoon` | `Wooden Spoon-Major Season` |
+| `Major Best Stunty`  | `Best Stunty-Major Season`  |
+| `Chaos Cup`          | `1-Chaos Cup`               |
+| `Ogretoberfest`      | `1-Ogretoberfest`           |
+
+Only those 7 catalog entries are seeded, because TP has so far only tracked 4
+competition groups (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest —
+Dungeon Bowl has no matching trophy in the catalog) and these award files
+have so far only contained team-level entries: none of the 12 curated player
+trophies, and none of the BBL-only cups, appear anywhere in this data.
+Everything else in the catalog stays seeded with BBL ids only. A new TP
+competition tracking a different group, or a new award kind, would widen
+this set — the scope here reflects what TP has tracked to date, not an
+architectural limit.
+
+Actually consuming these ids — parsing these files and writing `trophy_awards`
+rows — is still not implemented; no TP awards importer exists yet.

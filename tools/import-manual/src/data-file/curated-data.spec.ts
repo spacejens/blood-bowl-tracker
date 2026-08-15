@@ -31,6 +31,21 @@ function readPhase(phase: string): ManualDataFile {
   return pooled;
 }
 
+/**
+ * Parses and validates a single curated JSON5 file in isolation, without
+ * pooling it against its sibling files in the same phase directory. Use this
+ * instead of `readPhase` when a test must assert something about exactly one
+ * file's own declarations -- `readPhase` pools `externalSystems` (and every
+ * other section) across every file in the directory, so an assertion against
+ * `readPhase(...).externalSystems` can pass even when the file under test
+ * declares nothing at all, as long as some sibling file does.
+ */
+function readFile(phase: string, name: string): ManualDataFile {
+  return ManualDataFileSchema.parse(
+    JSON5.parse(readFileSync(join(DATA_ROOT, phase, name), 'utf8')),
+  );
+}
+
 describe('curated data files', () => {
   it('parses every before-other-importers file', () => {
     expect(() => readPhase('before-other-importers')).not.toThrow();
@@ -119,6 +134,67 @@ describe('curated data files', () => {
       ).toBeDefined();
       expect(trophy.competitionGroup!.system).toBe('Name');
       expect(groupNames).toContain(trophy.competitionGroup!.id);
+    }
+  });
+
+  it('declares the tourplay.net external system in the trophy catalog', () => {
+    // Reads trophies.json5 in isolation (not readPhase's pooled result):
+    // coaches.json5, races-and-positions.json5, star-players.json5, and
+    // teams.json5 all separately declare tourplay.net too, so asserting
+    // against the pooled externalSystems would pass even without this file's
+    // own declaration.
+    const data = readFile('before-other-importers', 'trophies.json5');
+
+    expect(data.externalSystems).toContainEqual({
+      name: 'tourplay.net',
+      category: 'imported_data_source',
+    });
+  });
+
+  it('seeds TP external ids for exactly the seven trophies TP awards', () => {
+    // TP has so far only tracked 4 competition groups (Major Season, Chaos
+    // Cup, Dungeon Bowl, Ogretoberfest) and its award files have so far only
+    // contained team-level entries, so only these 7 catalog entries have real
+    // TP source data to key on. The composite format is `${disambiguator}-${groupName}`,
+    // where the disambiguator is the raw award's `name` when present (Best
+    // Stunty / Wooden Spoon share one numeric awardType) and its numeric
+    // `awardType` otherwise. Pinned here so the format cannot drift.
+    //
+    // Kept as a flat array of pairs, not an object keyed by trophy name: a
+    // trophy that ever carried two tourplay.net ids would have the second
+    // silently overwrite the first in an object, hiding the duplicate
+    // instead of failing this assertion.
+    const trophies = readPhase('before-other-importers').trophies;
+    const tpIds = trophies.flatMap((trophy) =>
+      trophy.externalIds
+        .filter((ref) => ref.system === 'tourplay.net')
+        .map((ref) => [trophy.name, ref.id] as const),
+    );
+
+    expect(tpIds).toEqual([
+      ['Major Gold', '1-Major Season'],
+      ['Major Silver', '2-Major Season'],
+      ['Major Bronze', '3-Major Season'],
+      ['Major Wooden Spoon', 'Wooden Spoon-Major Season'],
+      ['Major Best Stunty', 'Best Stunty-Major Season'],
+      ['Chaos Cup', '1-Chaos Cup'],
+      ['Ogretoberfest', '1-Ogretoberfest'],
+    ]);
+  });
+
+  it('has no curated trophy relying on the empty-externalIds name-match fallback', () => {
+    // TrophiesService.upsert() still supports matching a trophy by exact
+    // name when externalIds is empty (see its doc comment), but no curated
+    // trophy uses that path today -- Ogretoberfest was the last one to, and
+    // gained a tourplay.net id in issue #446. Pinned here so a future edit
+    // that strips a trophy's only external id doesn't silently start relying
+    // on the fallback again without anyone noticing.
+    const trophies = readPhase('before-other-importers').trophies;
+    for (const trophy of trophies) {
+      expect(
+        trophy.externalIds.length,
+        `trophy "${trophy.name}" has no external ids`,
+      ).toBeGreaterThan(0);
     }
   });
 
