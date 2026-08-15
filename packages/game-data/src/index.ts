@@ -80,3 +80,9 @@ export {
   TrophiesService,
   TrophyUpsertConflictError,
 } from './trophies/trophies.service';
+export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
+export {
+  TrophyAwardRecipientMismatchError,
+  TrophyAwardsService,
+  TrophyAwardUpsertConflictError,
+} from './trophy-awards/trophy-awards.service';
