@@ -8,8 +8,8 @@ import {
   createHarness,
   EMPTY_BODY_FOUND,
   EMPTY_BODY_REVIEW,
-  foundReview,
   FOUND,
+  foundReview,
   jqProgramOf,
   OPTIONS,
   REVIEW,
@@ -229,5 +229,13 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     });
 
     expect(result).toEqual({ found: false, timedOut: true });
+  });
+});
+
+describe('jqProgramOf', () => {
+  it('throws when the args array has no --jq flag', () => {
+    expect(() =>
+      jqProgramOf(['pr', 'view', '392', '--json', 'reviews']),
+    ).toThrow();
   });
 });

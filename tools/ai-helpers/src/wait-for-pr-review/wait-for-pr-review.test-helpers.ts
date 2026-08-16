@@ -77,7 +77,11 @@ export const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
  * string without failing loudly.
  */
 export function jqProgramOf(args: readonly string[]): string {
-  return args[args.indexOf('--jq') + 1];
+  const index = args.indexOf('--jq');
+  if (index === -1 || index + 1 >= args.length) {
+    throw new Error(`No --jq program in args: ${JSON.stringify(args)}`);
+  }
+  return args[index + 1];
 }
 
 /** A `gh pr view` invocation whose review half matched the given review. */
