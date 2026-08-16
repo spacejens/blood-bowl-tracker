@@ -146,3 +146,15 @@ export const DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE =
   'Nobody has got their hands on this one yet.';
 export const DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE =
   'The clerk is still tracking down which races, teams and coaches these recipients belong to.';
+export const DEEPDIVE_COMPETITION_GROUP_NOT_FOUND_MESSAGE =
+  'No such recurring fixture has ever been pencilled into the calendar.';
+export const DEEPDIVE_COMPETITION_GROUP_TIMEOUT_MESSAGE =
+  'The fixture secretary is still leafing back through the old calendars.';
+export const DEEPDIVE_COMPETITION_GROUP_TROPHIES_TIMEOUT_MESSAGE =
+  'The silversmith is still hunting down which cups belong on this shelf.';
+export const DEEPDIVE_COMPETITION_GROUP_COMPETITIONS_TIMEOUT_MESSAGE =
+  'The archivist is still stacking up every year this one has been run.';
+export const DEEPDIVE_COMPETITION_GROUP_NO_TROPHIES_MESSAGE =
+  'Not one piece of silverware rides on this one.';
+export const DEEPDIVE_COMPETITION_GROUP_NO_COMPETITIONS_MESSAGE =
+  'This fixture has never actually been played.';
