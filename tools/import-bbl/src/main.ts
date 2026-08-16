@@ -101,9 +101,10 @@ async function run(): Promise<ImportResult> {
       .get(BblSppAdjustmentsImportService)
       .importSppAdjustments(playerOutcome.scrapedSppTotalsByPlayerId);
 
-    // Match outcomes run last: scores are counted from the touchdown events
-    // imported just above, and a tied knock-out match's winner is traced
-    // through sibling matches that must already exist.
+    // Match outcomes run after match events: scores are counted from the
+    // touchdown events imported just above, and a tied knock-out match's
+    // winner is traced through sibling matches that must already exist.
+    // (Trophy awards run after this step — see below.)
     const matchOutcomesOutcome = await app
       .get(BblMatchOutcomesImportService)
       .importMatchOutcomes({

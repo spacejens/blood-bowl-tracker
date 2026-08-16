@@ -92,8 +92,9 @@ Note on the `sr` page's "Team trophy" table: `default.asp?p=sr&s=<id>` carries a
 mirrored `sr` pages; e.g. "Ogretoberfest 6", `s=46`, has none — a competition
 may simply not have one). Each row is a `tr.trlist` with
 `onclick="self.location.href='default.asp?p=tm&t=<code>';"` identifying the
-team, and a label cell such as `Major 1st`, `Major 2nd`, `Major 3rd`, `Major
-Wooden Spoon`, or `Minor 1st` — the prefix ("Major"/"Minor"/etc.) is
+team, and a label cell (the row's second `<td>`, after the prize icon) such as
+`Major 1st`, `Major 2nd`, `Major 3rd`, `Major Wooden Spoon`, or `Minor 1st` —
+the prefix ("Major"/"Minor"/etc.) is
 competition-type-specific and not itself meaningful; only the `1st`/`2nd`/`3rd`
 suffix identifies a placement. The same table can also hold non-placement award
 rows (e.g. `Cabal Vision
