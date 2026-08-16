@@ -1,5 +1,6 @@
 import {
   CoachesService,
+  CompetitionGroupsService,
   CompetitionsService,
   ErasService,
   PlayersService,
@@ -19,6 +20,7 @@ interface MadeService {
   service: DeepdiveAutocompleteService;
   eras: MockProxy<ErasService>;
   competitions: MockProxy<CompetitionsService>;
+  competitionGroups: MockProxy<CompetitionGroupsService>;
   coaches: MockProxy<CoachesService>;
   teams: MockProxy<TeamsService>;
   players: MockProxy<PlayersService>;
@@ -29,6 +31,7 @@ interface MadeService {
 async function makeService(): Promise<MadeService> {
   const eras = mock<ErasService>();
   const competitions = mock<CompetitionsService>();
+  const competitionGroups = mock<CompetitionGroupsService>();
   const coaches = mock<CoachesService>();
   const teams = mock<TeamsService>();
   const players = mock<PlayersService>();
@@ -40,6 +43,7 @@ async function makeService(): Promise<MadeService> {
       DeepdiveAutocompleteService,
       { provide: ErasService, useValue: eras },
       { provide: CompetitionsService, useValue: competitions },
+      { provide: CompetitionGroupsService, useValue: competitionGroups },
       { provide: CoachesService, useValue: coaches },
       { provide: TeamsService, useValue: teams },
       { provide: PlayersService, useValue: players },
@@ -52,6 +56,7 @@ async function makeService(): Promise<MadeService> {
     service: moduleRef.get(DeepdiveAutocompleteService),
     eras,
     competitions,
+    competitionGroups,
     coaches,
     teams,
     players,
@@ -69,6 +74,7 @@ function autocompleteInteraction(
     | 'player'
     | 'race'
     | 'competition'
+    | 'competition-group'
     | 'trophy' = 'era',
 ): AutocompleteInteraction {
   return {
@@ -154,6 +160,21 @@ describe('DeepdiveAutocompleteService', () => {
       service.resolve(autocompleteInteraction('cha', 'trophy')),
     ).resolves.toEqual([{ name: 'Chaos Cup (Major)', value: '7' }]);
     expect(trophies.searchByNamePrefix).toHaveBeenCalledWith('cha', 25);
+  });
+
+  it('returns competition group choices labelled "<name> (<league>)" with id values', async () => {
+    const { service, competitionGroups } = await makeService();
+    competitionGroups.searchByNamePrefix.mockResolvedValue([
+      { id: 4, name: 'Chaos Cup', leagueName: 'The Major' },
+    ]);
+
+    await expect(
+      service.resolve(autocompleteInteraction('cha', 'competition-group')),
+    ).resolves.toEqual([{ name: 'Chaos Cup (The Major)', value: '4' }]);
+    expect(competitionGroups.searchByNamePrefix).toHaveBeenCalledWith(
+      'cha',
+      25,
+    );
   });
 
   it('returns no choices for an option it does not handle', async () => {
