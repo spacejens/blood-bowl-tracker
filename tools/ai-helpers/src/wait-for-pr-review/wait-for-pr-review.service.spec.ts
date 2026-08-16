@@ -691,7 +691,7 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait(OPTIONS);
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 45 * 60,
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 45 * 60 + 60,
     );
   });
 
@@ -703,7 +703,7 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait(OPTIONS);
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 120 * 60,
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 120 * 60 + 60,
     );
   });
 
@@ -715,7 +715,7 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait(OPTIONS);
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 60 * 60,
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 60 * 60 + 60,
     );
   });
 
@@ -729,7 +729,7 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait(OPTIONS);
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 12 * 60,
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 12 * 60 + 60,
     );
   });
 
@@ -766,7 +766,28 @@ describe('WaitForPrReviewService', () => {
     const result = await runWait(OPTIONS);
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 30 * 60,
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 30 * 60 + 60,
+    );
+  });
+
+  it("buffers the parsed wait by one minute past CodeRabbit's stated time", async () => {
+    // CodeRabbit's own window can slip past what it announced, so retrying
+    // exactly on time risks both a wasted poll and a state-check race right
+    // at the boundary. The returned epoch is deliberately one minute later
+    // than the literal stated wait.
+    processRunner.run.mockResolvedValue(
+      rateLimitedWithBody(
+        'Rate limit exceeded. Reviews will be available again in 3 minutes.',
+      ),
+    );
+
+    const result = await runWait(OPTIONS);
+
+    expect(result.availableAtEpochSeconds).toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 3 * 60 + 60,
+    );
+    expect(result.availableAtEpochSeconds).not.toBe(
+      RATE_LIMIT_COMMENT_EPOCH_SECONDS + 3 * 60,
     );
   });
 
