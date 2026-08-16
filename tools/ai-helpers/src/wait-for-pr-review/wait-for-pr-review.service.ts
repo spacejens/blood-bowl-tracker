@@ -276,6 +276,17 @@ const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets|wait|before)\b/i;
 /** The duration itself: a number followed by a minute/hour unit. */
 const WAIT_TIME_DURATION = /(\d+)\s*(minute|hour)s?\b/i;
 
+/**
+ * Added to every parsed wait time. CodeRabbit's own rate-limit window can
+ * slip slightly past the duration its comment announced, so retrying at
+ * exactly the stated instant costs more than a wasted poll: the retry lands
+ * on the boundary CodeRabbit itself is crossing, where a state check can
+ * misread "not available yet" for a review that is seconds away. One minute
+ * of slack removes that race. Applied only when a duration was actually
+ * parsed — see `parseAvailableAt`.
+ */
+const RATE_LIMIT_WAIT_BUFFER_SECONDS = 60;
+
 /** 10 minutes — matches develop-feature Phase 6's original wait. */
 const DEFAULT_TIMEOUT_MS = 600_000;
 /** 30 seconds — matches develop-feature Phase 6's original poll interval. */
@@ -972,6 +983,16 @@ export class WaitForPrReviewService {
    * Anchored to the comment's own `submittedAt`, not `Date.now()`: a
    * stale/re-matched comment (e.g. re-found across a retry) must not be
    * read as if its wait were freshly starting now.
+   *
+   * The returned epoch is deliberately `RATE_LIMIT_WAIT_BUFFER_SECONDS` past
+   * the stated wait: CodeRabbit's own window can slip past what it announced,
+   * so retrying exactly on time risks both a wasted poll and a state-check
+   * race right at the boundary. Buffering here rather than at the call sites
+   * means every consumer of `availableAtEpochSeconds` — including
+   * develop-feature's Phase 6 retry trigger and the timeout it derives from
+   * that trigger — gets the slack for free. The `undefined` return below is
+   * never buffered: with no duration parsed there is nothing to buffer, and
+   * the caller's own default applies instead.
    */
   private parseAvailableAt(comment: CodeRabbitComment): number | undefined {
     for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
@@ -979,16 +1000,15 @@ export class WaitForPrReviewService {
         continue;
       }
       const match = WAIT_TIME_DURATION.exec(sentence);
-      if (match === null) {
-        continue;
-      }
+      if (match === null) continue;
       const minutes =
         match[2].toLowerCase() === 'hour'
           ? Number(match[1]) * 60
           : Number(match[1]);
       return (
         Math.floor(new Date(comment.submittedAt).getTime() / 1000) +
-        minutes * 60
+        minutes * 60 +
+        RATE_LIMIT_WAIT_BUFFER_SECONDS
       );
     }
     return undefined;
