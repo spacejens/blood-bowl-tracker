@@ -1037,6 +1037,40 @@ describe('TpCompetitionsImportService', () => {
     expect(competitionsByTpId.get(111)?.competitionGroupId).toBe(4);
   });
 
+  it.each([true, false])(
+    'records created=%s from its upsert response',
+    async (created) => {
+      const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
+      const upsertCompetitionResult = vi.fn().mockResolvedValue({
+        ...upsertedCompetition(11, 4),
+        created,
+      });
+      const chaosTournament = tournamentFile('Fourth era', 'chaos-cup-8', {
+        id: 111,
+        name: 'Chaos Cup 8',
+      });
+      const { service, tournamentParser } = await makeService({
+        files: makeFiles([
+          chaosTournament.file,
+          matchFile({
+            era: 'Fourth era',
+            competition: 'chaos-cup-8',
+            playedDate: new Date('2021-05-15T10:00:00Z'),
+            matchId: 1,
+          }).file,
+        ]),
+        bootstrap,
+        upsertCompetitionResult,
+      });
+      tournamentParser.parse.mockReturnValueOnce(chaosTournament.tournament);
+
+      const { competitionsByTpId } =
+        await service.importCompetitions(eraIdsByName);
+
+      expect(competitionsByTpId.get(111)?.created).toBe(created);
+    },
+  );
+
   it('returns the ImportResult built by ImportResultService unchanged', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1] });
     const upsertCompetitionResult = vi

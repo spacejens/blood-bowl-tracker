@@ -99,6 +99,17 @@ export class TpCompetitionsImportService {
         // it appears. Consumed by TpTrophyAwardsImportService, which needs
         // the group's curated name to resolve a trophy.
         competitionGroupId: number;
+        // Whether this upsert created a brand-new competition row rather than
+        // matching and overlaying an existing one, read off the upsert's own
+        // response (see CompetitionsImportService.upsertCompetitionResult). A
+        // competition pre-seeded by tools/import-manual's before-other-
+        // importers phase always matches an existing row here (created:
+        // false); a competition TP's own importer had to create fresh is the
+        // one case where created is true, and its competitionGroupId cannot
+        // be trusted -- it's whatever the schema default happens to be, not a
+        // curated classification. Consumed by TpTrophyAwardsImportService to
+        // skip such competitions outright.
+        created: boolean;
       }
     >;
   }> {
@@ -113,6 +124,7 @@ export class TpCompetitionsImportService {
         era: string;
         competition: string;
         competitionGroupId: number;
+        created: boolean;
       }
     >();
 
@@ -146,6 +158,7 @@ export class TpCompetitionsImportService {
           era: group.era,
           competition: group.competition,
           competitionGroupId: upserted.competitionGroupId,
+          created: upserted.created,
         });
         // Accumulate rather than overwrite: two distinct TP tournament
         // directories could in principle dedupe onto the same DB competition
@@ -255,6 +268,7 @@ export class TpCompetitionsImportService {
         tpId: number;
         upsert: UpsertCompetition;
         competitionGroupId: number;
+        created: boolean;
       }
     | undefined
   > {
@@ -339,6 +353,7 @@ export class TpCompetitionsImportService {
       tpId: tournament.id,
       upsert: competitionData,
       competitionGroupId: upserted.competitionGroupId,
+      created: upserted.created,
     };
   }
 
