@@ -14,6 +14,7 @@ import {
   firstCallArg,
 } from '../shared/query-assertions.test-helpers';
 import { TeamsService } from './teams.service';
+import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsService lookups', () => {
   let service: TeamsService;
@@ -27,6 +28,7 @@ describe('TeamsService lookups', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsService,
+        TeamsStatisticsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: DB, useValue: db },
       ],

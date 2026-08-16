@@ -15,6 +15,7 @@ import {
 } from '../shared/query-assertions.test-helpers';
 import { TeamsService, TeamUpsertConflictError } from './teams.service';
 import { fakeTeam } from './teams.service.test-helpers';
+import { TeamsStatisticsService } from './teams-statistics.service';
 
 describe('TeamsService', () => {
   let service: TeamsService;
@@ -28,6 +29,7 @@ describe('TeamsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsService,
+        TeamsStatisticsService,
         { provide: LikePatternService, useValue: likePattern },
         { provide: DB, useValue: db },
       ],

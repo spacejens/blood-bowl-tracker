@@ -1,4 +1,8 @@
-import type { UpsertCompetitionGroup } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertCompetitionGroup,
+} from '@blood-bowl-tracker/api-contract';
 import type { CompetitionGroup, Db } from '@blood-bowl-tracker/db';
 import {
   competitionGroupExternalIds,
@@ -7,6 +11,7 @@ import {
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -60,5 +65,27 @@ export class CompetitionGroupsService {
     });
 
     return { competitionGroup, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the competition group that already
+   * declares it. A group's identity is its curated name under the synthetic
+   * "Name" system, so this is how a trophy or competition entry naming a
+   * group finds it — including across import phases and tools.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: competitionGroupExternalIds,
+      ownerIdColumn: competitionGroupExternalIds.competitionGroupId,
+      externalSystemIdColumn: competitionGroupExternalIds.externalSystemId,
+      externalIdColumn: competitionGroupExternalIds.externalId,
+      externalIds,
+    });
   }
 }
