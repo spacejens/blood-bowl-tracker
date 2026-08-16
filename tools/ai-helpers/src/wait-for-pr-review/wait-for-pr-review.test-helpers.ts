@@ -87,6 +87,7 @@ export function foundReview(review: unknown) {
     stdout: `${JSON.stringify({
       review,
       rateLimitComment: null,
+      commentUpdateFailedComment: null,
       headRefOid: HEAD_REF_OID,
     })}\n`,
     stderr: '',
