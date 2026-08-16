@@ -13,7 +13,10 @@ async function makeService(rows: unknown[]) {
   const moduleRef = await Test.createTestingModule({
     providers: [
       TeamsService,
-      TeamsStatisticsService,
+      {
+        provide: TeamsStatisticsService,
+        useValue: mock<TeamsStatisticsService>(),
+      },
       { provide: DB, useValue: db },
       { provide: LikePatternService, useValue: mock<LikePatternService>() },
     ],
