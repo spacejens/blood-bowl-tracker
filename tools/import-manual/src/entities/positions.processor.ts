@@ -30,7 +30,7 @@ export class PositionsProcessor {
       if (!upserted) {
         continue;
       }
-      ctx.idMap.add(entry.externalIds, upserted.id);
+      ctx.idMap.add(entry.externalIds, upserted.id, 'position');
       imported += 1;
 
       if (entry.raceEras.length > 0) {
@@ -65,6 +65,7 @@ export class PositionsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'race',
       });
       const eraId = this.refResolver.resolveRef({
         ref: pair.era,
@@ -72,6 +73,7 @@ export class PositionsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'era',
       });
       if (raceId === undefined || eraId === undefined) {
         ok = false;

@@ -106,7 +106,21 @@ describe('PositionsProcessor', () => {
       { positionId: 80, raceEras: [{ raceId: 40, eraId: 50 }] },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:zombie' })).toBe(80);
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'name:zombie' }, 'position'),
+    ).toBe(80);
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: data.positions[0].raceEras[0].race,
+        kind: 'race',
+      }),
+    );
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: data.positions[0].raceEras[0].era,
+        kind: 'era',
+      }),
+    );
   });
 
   it('makes no syncRaceEras call for a position without raceEras', async () => {
