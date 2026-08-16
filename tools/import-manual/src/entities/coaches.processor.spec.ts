@@ -82,7 +82,9 @@ describe('CoachesProcessor', () => {
       { name: 'Bob', externalIds: cannedExternalIds },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:bob' })).toBe(12);
+    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:bob' }, 'coach')).toBe(
+      12,
+    );
   });
 
   it('does not record ids or count when the upsert fails', async () => {
@@ -97,7 +99,7 @@ describe('CoachesProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:bob' }),
+      ctx.idMap.resolve({ system: 'Name', id: 'name:bob' }, 'coach'),
     ).toBeUndefined();
   });
 });
