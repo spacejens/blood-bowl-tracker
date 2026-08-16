@@ -66,7 +66,7 @@ describe('ReferenceResolverService', () => {
   describe('resolveRef', () => {
     it('returns the id when the ref resolves', () => {
       const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:l' }], 5);
+      idMap.add([{ system: 'Name', id: 'name:l' }], 5, 'league');
       const errors: ImportError[] = [];
       const id = service.resolveRef({
         ref: { system: 'Name', id: 'name:l' },
@@ -74,9 +74,28 @@ describe('ReferenceResolverService', () => {
         errors,
         item: { name: 'era' },
         label: 'Cannot import era "E"',
+        kind: 'league',
       });
       expect(id).toBe(5);
       expect(errors).toHaveLength(0);
+    });
+
+    it('does not resolve a ref registered under a different kind', () => {
+      const idMap = new ExternalIdMap();
+      idMap.add([{ system: 'Name', id: 'name:l' }], 5, 'league');
+      const errors: ImportError[] = [];
+
+      const id = service.resolveRef({
+        ref: { system: 'Name', id: 'name:l' },
+        idMap,
+        errors,
+        item: { name: 'era' },
+        label: 'Cannot import era "E"',
+        kind: 'race',
+      });
+
+      expect(id).toBeUndefined();
+      expect(errors).toHaveLength(1);
     });
 
     it('records one error and returns undefined when unresolved', () => {
@@ -87,6 +106,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: { name: 'era' },
         label: 'Cannot import era "E"',
+        kind: 'league',
       });
       expect(id).toBeUndefined();
       expect(errors).toHaveLength(1);
@@ -98,8 +118,8 @@ describe('ReferenceResolverService', () => {
   describe('resolveRefs', () => {
     it('returns the resolved ids in order', () => {
       const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:a' }], 1);
-      idMap.add([{ system: 'Name', id: 'name:b' }], 2);
+      idMap.add([{ system: 'Name', id: 'name:a' }], 1, 'era');
+      idMap.add([{ system: 'Name', id: 'name:b' }], 2, 'era');
       const errors: ImportError[] = [];
       const ids = service.resolveRefs({
         refs: [
@@ -110,6 +130,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: {},
         label: 'race "R"',
+        kind: 'era',
       });
       expect(ids).toEqual([1, 2]);
       expect(errors).toHaveLength(0);
@@ -117,7 +138,7 @@ describe('ReferenceResolverService', () => {
 
     it('records one error per unresolved ref and returns undefined', () => {
       const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'name:a' }], 1);
+      idMap.add([{ system: 'Name', id: 'name:a' }], 1, 'era');
       const errors: ImportError[] = [];
       const ids = service.resolveRefs({
         refs: [
@@ -129,6 +150,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: {},
         label: 'race "R"',
+        kind: 'era',
       });
       expect(ids).toBeUndefined();
       expect(errors).toHaveLength(2);
@@ -146,6 +168,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: {},
         label: 'Cannot import thing "X"',
+        kind: 'era',
       });
 
       expect(result).toEqual({ ok: true, id: undefined });
@@ -155,7 +178,7 @@ describe('ReferenceResolverService', () => {
     it('reports ok with the resolved id when the ref resolves', () => {
       const errors: ImportError[] = [];
       const idMap = new ExternalIdMap();
-      idMap.add([{ system: 'Name', id: 'first-era' }], 3);
+      idMap.add([{ system: 'Name', id: 'first-era' }], 3, 'era');
 
       const result = service.resolveOptionalRef({
         ref: { system: 'Name', id: 'first-era' },
@@ -163,6 +186,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: {},
         label: 'Cannot import thing "X"',
+        kind: 'era',
       });
 
       expect(result).toEqual({ ok: true, id: 3 });
@@ -179,6 +203,7 @@ describe('ReferenceResolverService', () => {
         errors,
         item: {},
         label: 'Cannot import thing "X"',
+        kind: 'era',
       });
 
       expect(result).toEqual({ ok: false });
