@@ -265,10 +265,33 @@ export class WaitForPrReviewService {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     let triggered = false;
+    /**
+     * The caller's options, with `excludeReviewId` advanced past any artifact
+     * review this wait has already discarded (see `checkedReview`). Needed
+     * because `reviewFilter`'s jq always yields the chronologically *first*
+     * match: without advancing the exclusion, every later poll would re-match
+     * and re-discard the same artifact and never reach a genuine review.
+     *
+     * Mirrors how callers already advance `excludeReviewId` across separate
+     * CLI invocations, scoped to one `run` instead. Deliberate, accepted
+     * tradeoff: `excludeReviewId` is also read by the rolling comment's
+     * completion half, so overwriting it drops the exclusion of a completion
+     * id the caller may have round-tripped. That can only re-surface a
+     * completion the caller already saw — far cheaper than the false `found`
+     * this whole mechanism exists to prevent, and it only arises on a wait
+     * that saw an artifact review at all.
+     */
+    let pollOptions = options;
     for (;;) {
-      const outcome = await this.poll(options, deadline, intervalMs);
+      const outcome = await this.poll(pollOptions, deadline, intervalMs);
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
+      }
+      if (outcome?.discardedEmptyReviewId !== undefined) {
+        pollOptions = {
+          ...pollOptions,
+          excludeReviewId: outcome.discardedEmptyReviewId,
+        };
       }
       // Checked here — after a formal review has ruled itself out, but
       // before the rate-limit/comment-update-failure early returns below —
@@ -344,7 +367,16 @@ export class WaitForPrReviewService {
       deadline,
       intervalMs,
     );
-    return rolling ?? {};
+    // Carry the reviews half's discarded-artifact id through even though the
+    // rolling-comment check found nothing of its own — otherwise `run` would
+    // never learn to exclude it, and the same artifact review would be
+    // re-matched and re-discarded on every later poll (see `run`).
+    return {
+      ...(rolling ?? {}),
+      ...(outcome.discardedEmptyReviewId === undefined
+        ? {}
+        : { discardedEmptyReviewId: outcome.discardedEmptyReviewId }),
+    };
   }
 
   /**

@@ -118,4 +118,46 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     );
     expect(apiCalls.length).toBeGreaterThan(0);
   });
+
+  it('excludes a discarded artifact review from the next poll, so a genuine later review is reached', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(EMPTY_BODY_FOUND) // poll 1: the artifact review
+      .mockResolvedValueOnce(rollingResult({})) // poll 1: rolling comment
+      .mockResolvedValueOnce(FOUND); // poll 2: the genuine review
+    reviewComments.hasInlineComments.mockResolvedValue(false);
+
+    const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
+
+    expect(result).toEqual({ found: true, review: REVIEW });
+    // Poll 2's jq program must exclude the id poll 1 discarded — jq's review
+    // half always returns the *first* match, so without the exclusion poll 2
+    // would re-match the same artifact forever.
+    const prViewCalls = processRunner.run.mock.calls.filter(
+      ([, args]) => args[0] === 'pr',
+    );
+    expect(prViewCalls[0][1][6]).not.toContain('.id !=');
+    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_empty1"');
+    // The artifact is verified once, not re-verified on every later poll.
+    expect(reviewComments.hasInlineComments).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps advancing the exclusion when a caller already passed one', async () => {
+    processRunner.run
+      .mockResolvedValueOnce(EMPTY_BODY_FOUND)
+      .mockResolvedValueOnce(rollingResult({}))
+      .mockResolvedValueOnce(FOUND);
+    reviewComments.hasInlineComments.mockResolvedValue(false);
+
+    await runWait({
+      ...OPTIONS,
+      excludeReviewId: 'PRR_previous',
+      intervalMs: 30_000,
+    });
+
+    const prViewCalls = processRunner.run.mock.calls.filter(
+      ([, args]) => args[0] === 'pr',
+    );
+    expect(prViewCalls[0][1][6]).toContain('.id != "PRR_previous"');
+    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_empty1"');
+  });
 });
