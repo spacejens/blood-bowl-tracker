@@ -63,53 +63,36 @@ describe('CompetitionGroupsImportService', () => {
     await options.upsert();
     expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
   });
-});
 
-describe('CompetitionGroupsImportService.listCompetitionGroups', () => {
-  let service: CompetitionGroupsImportService;
-  let client: DeepMockProxy<ApiClient>;
-  let runner: MockProxy<ImportRunnerService>;
+  describe('listCompetitionGroups', () => {
+    it('returns the listed competition groups', async () => {
+      const groups = [
+        {
+          id: 1,
+          name: 'Major Season',
+          leagueId: 1,
+          createdAt: new Date('2026-01-01'),
+        },
+      ];
+      runner.recordUpsertResult.mockResolvedValue(groups);
 
-  beforeEach(async () => {
-    client = mockDeep<ApiClient>();
-    runner = mock<ImportRunnerService>();
-    const moduleRef = await Test.createTestingModule({
-      providers: [
-        CompetitionGroupsImportService,
-        { provide: API_CLIENT, useValue: client },
-        { provide: ImportRunnerService, useValue: runner },
-      ],
-    }).compile();
-    service = moduleRef.get(CompetitionGroupsImportService);
-  });
+      await expect(service.listCompetitionGroups([])).resolves.toEqual(groups);
 
-  it('returns the listed competition groups', async () => {
-    const groups = [
-      {
-        id: 1,
-        name: 'Major Season',
-        leagueId: 1,
-        createdAt: new Date('2026-01-01'),
-      },
-    ];
-    runner.recordUpsertResult.mockResolvedValue(groups);
+      const [options] = runner.recordUpsertResult.mock.calls[0];
+      client.competitionGroups.list.mockResolvedValue(groups);
+      await expect(options.upsert()).resolves.toEqual(groups);
+      expect(client.competitionGroups.list).toHaveBeenCalledWith({});
+    });
 
-    await expect(service.listCompetitionGroups([])).resolves.toEqual(groups);
+    it('builds an error message when the list call fails', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    const [options] = runner.recordUpsertResult.mock.calls[0];
-    client.competitionGroups.list.mockResolvedValue(groups);
-    await expect(options.upsert()).resolves.toEqual(groups);
-    expect(client.competitionGroups.list).toHaveBeenCalledWith({});
-  });
+      await service.listCompetitionGroups([]);
 
-  it('builds an error message when the list call fails', async () => {
-    runner.recordUpsertResult.mockResolvedValue(undefined);
-
-    await service.listCompetitionGroups([]);
-
-    const [options] = runner.recordUpsertResult.mock.calls[0];
-    expect(options.buildErrorMessage(new Error('boom'))).toBe(
-      'Failed to list competition groups: boom',
-    );
+      const [options] = runner.recordUpsertResult.mock.calls[0];
+      expect(options.buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to list competition groups: boom',
+      );
+    });
   });
 });
