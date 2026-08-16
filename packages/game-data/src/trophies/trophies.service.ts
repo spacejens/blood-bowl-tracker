@@ -20,7 +20,6 @@ export class TrophyUpsertConflictError extends UpsertConflictError {}
 export type TrophyHeader = {
   id: number;
   name: string;
-  recipientKind: 'team' | 'player';
   description: string | null;
   competitionGroupName: string;
 };
@@ -63,7 +62,6 @@ export class TrophiesService {
       .select({
         id: trophies.id,
         name: trophies.name,
-        recipientKind: trophies.recipientKind,
         description: trophies.description,
         competitionGroupName: competitionGroups.name,
       })

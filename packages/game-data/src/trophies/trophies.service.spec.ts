@@ -210,7 +210,6 @@ describe('TrophiesService', () => {
       const header = {
         id: 7,
         name: 'Chaos Cup',
-        recipientKind: 'team' as const,
         description: 'The team that wins after four matches.',
         competitionGroupName: 'Major',
       };

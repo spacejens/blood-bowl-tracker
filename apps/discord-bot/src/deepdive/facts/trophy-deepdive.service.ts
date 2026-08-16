@@ -80,8 +80,10 @@ export class TrophyDeepdiveService {
 
     // The query is already capped and ordered most-recent-first, so `shown`
     // holds the newest awards. `total` is the real number of awards, so the
-    // remainder below is exact rather than "at least one more".
-    const truncatedCount = total - MAX_TROPHY_RECIPIENTS;
+    // remainder below is exact rather than "at least one more". Using
+    // `shown.length` (rather than `MAX_TROPHY_RECIPIENTS` directly) keeps this
+    // self-maintaining if the query's returned row count ever changes.
+    const truncatedCount = total - shown.length;
 
     const recipientLines =
       total === 0

@@ -73,7 +73,6 @@ function trophyHeader(overrides: Partial<TrophyHeader> = {}): TrophyHeader {
   return {
     id: 1,
     name: 'Chaos Cup',
-    recipientKind: 'team',
     description: 'The team that wins after four matches.',
     competitionGroupName: 'Major',
     ...overrides,
@@ -230,9 +229,7 @@ describe('TrophyDeepdiveService', () => {
 
   it('renders a player recipient as "<competition>: <player> (<team>)"', async () => {
     const { service } = await makeService({
-      trophies: makeTrophies(
-        trophyHeader({ name: 'Most Violent Player', recipientKind: 'player' }),
-      ),
+      trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
     });
 
@@ -344,9 +341,7 @@ describe('TrophyDeepdiveService', () => {
 
   it('builds a player drill-down button per player-trophy recipient', async () => {
     const { service } = await makeService({
-      trophies: makeTrophies(
-        trophyHeader({ name: 'Most Violent Player', recipientKind: 'player' }),
-      ),
+      trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
       entityComponents: passthroughEntityComponents(),
     });

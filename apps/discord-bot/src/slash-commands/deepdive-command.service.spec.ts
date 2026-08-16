@@ -7,7 +7,6 @@ import type {
   InteractionReplyOptions,
   StringSelectMenuInteraction,
 } from 'discord.js';
-import { ApplicationCommandOptionType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
@@ -140,61 +139,48 @@ describe('DeepdiveCommandService', () => {
     expect(command.options).toEqual([
       {
         name: 'era',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single era (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'coach',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single coach (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'team',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single team (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'player',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single player (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'race',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single race (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'competition',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single competition (optional)',
         type: 3,
         autocomplete: true,
       },
       {
         name: 'trophy',
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
-        description: expect.any(String),
+        description: 'Show the detail view for a single trophy (optional)',
         type: 3,
         autocomplete: true,
       },
     ]);
     expect(command.autocomplete).toEqual(expect.any(Function));
-    expect(command.options?.[6]).toEqual({
-      name: 'trophy',
-      description: 'Show the detail view for a single trophy (optional)',
-      type: ApplicationCommandOptionType.String,
-      autocomplete: true,
-    });
   });
 
   it('delegates the command autocomplete callback to DeepdiveAutocompleteService', async () => {
@@ -283,13 +269,6 @@ describe('DeepdiveCommandService', () => {
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
-  });
-
-  it('registers the trophy button and select-menu handlers', async () => {
-    const { service, discordClient } = await makeService();
-
-    service.onModuleInit();
-
     expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
       TROPHY_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
@@ -601,30 +580,6 @@ describe('DeepdiveCommandService', () => {
     );
     expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
   });
-
-  it('resolves the trophy deepdive from a trophy select menu', async () => {
-    const { service, trophyDeepdive } = await makeService();
-    trophyDeepdive.resolve.mockResolvedValue('trophy embed');
-    const interaction = {
-      values: ['7'],
-    } as unknown as StringSelectMenuInteraction;
-
-    await expect(service.handleTrophySelect(interaction)).resolves.toBe(
-      'trophy embed',
-    );
-    expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
-  });
-
-  it('returns the trophy not-found message for an empty trophy select menu', async () => {
-    const { service } = await makeService();
-    const interaction = {
-      values: [],
-    } as unknown as StringSelectMenuInteraction;
-
-    await expect(service.handleTrophySelect(interaction)).resolves.toBe(
-      DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
-    );
-  });
 });
 
 interface SelectCase {
@@ -678,6 +633,12 @@ const selectCases: SelectCase[] = [
       service.handleCompetitionSelect(interaction),
     deepdive: (made) => made.competitionDeepdive,
     notFoundMessage: DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
+  },
+  {
+    name: 'trophy',
+    invoke: (service, interaction) => service.handleTrophySelect(interaction),
+    deepdive: (made) => made.trophyDeepdive,
+    notFoundMessage: DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
   },
 ];
 
