@@ -1,52 +1,52 @@
 import { Injectable } from '@nestjs/common';
 
 import {
-  DeferredFinding,
-  PostDeferredFindingsInput,
-} from './post-deferred-findings.service';
+  PostReviewQuestionsInput,
+  ReviewQuestion,
+} from './post-review-questions.service';
 
 /** Shared with `main.ts`'s pre-Nest stdin gate, so both failure paths report identical wording. */
-export const POST_DEFERRED_FINDINGS_USAGE =
-  'Usage: node dist/main.js post-deferred-findings <pr-number> ' +
-  '(a JSON array of {file, line, body} findings is read from stdin)';
+export const POST_REVIEW_QUESTIONS_USAGE =
+  'Usage: node dist/main.js post-review-questions <pr-number> ' +
+  '(a JSON array of {file, line, body} questions is read from stdin)';
 
 /**
- * Turns `post-deferred-findings`'s argv and stdin into its input object.
+ * Turns `post-review-questions`'s argv and stdin into its input object.
  * Split out of `main.ts` so the parsing and its validation are
  * unit-testable — argv and stdin come in as parameters rather than being
  * read from `process` here.
  */
 @Injectable()
-export class PostDeferredFindingsArgsService {
-  parse(argv: readonly string[], stdin: string): PostDeferredFindingsInput {
+export class PostReviewQuestionsArgsService {
+  parse(argv: readonly string[], stdin: string): PostReviewQuestionsInput {
     const prNumber = argv[3];
     if (
       argv.length !== 4 ||
       prNumber === undefined ||
       !/^[1-9]\d*$/.test(prNumber)
     ) {
-      throw new Error(POST_DEFERRED_FINDINGS_USAGE);
+      throw new Error(POST_REVIEW_QUESTIONS_USAGE);
     }
 
     let parsed: unknown;
     try {
       parsed = JSON.parse(stdin);
     } catch {
-      throw new Error(`${POST_DEFERRED_FINDINGS_USAGE} (bad JSON)`);
+      throw new Error(`${POST_REVIEW_QUESTIONS_USAGE} (bad JSON)`);
     }
 
     if (!Array.isArray(parsed)) {
-      throw new Error(`${POST_DEFERRED_FINDINGS_USAGE} (not an array)`);
+      throw new Error(`${POST_REVIEW_QUESTIONS_USAGE} (not an array)`);
     }
 
-    const findings = parsed.map((element, index) =>
-      this.parseFinding(element, index),
+    const questions = parsed.map((element, index) =>
+      this.parseQuestion(element, index),
     );
 
-    return { prNumber, findings };
+    return { prNumber, questions };
   }
 
-  private parseFinding(element: unknown, index: number): DeferredFinding {
+  private parseQuestion(element: unknown, index: number): ReviewQuestion {
     if (
       typeof element !== 'object' ||
       element === null ||
@@ -62,10 +62,10 @@ export class PostDeferredFindingsArgsService {
       (element as { body: string }).body === ''
     ) {
       throw new Error(
-        `${POST_DEFERRED_FINDINGS_USAGE} (bad finding at index ${index})`,
+        `${POST_REVIEW_QUESTIONS_USAGE} (bad question at index ${index})`,
       );
     }
-    const finding = element as { file: string; line: number; body: string };
-    return { file: finding.file, line: finding.line, body: finding.body };
+    const question = element as { file: string; line: number; body: string };
+    return { file: question.file, line: question.line, body: question.body };
   }
 }

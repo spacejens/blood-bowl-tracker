@@ -5,9 +5,9 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 import { ProcessRunnerService } from '../shared/process-runner.service';
 import { DiffHunkMembershipService } from './diff-hunk-membership.service';
 import {
-  DeferredFinding,
-  PostDeferredFindingsService,
-} from './post-deferred-findings.service';
+  PostReviewQuestionsService,
+  ReviewQuestion,
+} from './post-review-questions.service';
 
 const HEAD_SHA = 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678';
 
@@ -42,14 +42,14 @@ function topLevelPostedResult(
   return processResult({ stdout: `${url}\n` });
 }
 
-const FINDING: DeferredFinding = {
+const QUESTION: ReviewQuestion = {
   file: 'src/foo.ts',
   line: 42,
   body: 'This could be simplified.',
 };
 
-describe('PostDeferredFindingsService', () => {
-  let service: PostDeferredFindingsService;
+describe('PostReviewQuestionsService', () => {
+  let service: PostReviewQuestionsService;
   let processRunner: MockProxy<ProcessRunnerService>;
   let diffHunkMembership: MockProxy<DiffHunkMembershipService>;
 
@@ -58,23 +58,23 @@ describe('PostDeferredFindingsService', () => {
     diffHunkMembership = mock<DiffHunkMembershipService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
-        PostDeferredFindingsService,
+        PostReviewQuestionsService,
         { provide: ProcessRunnerService, useValue: processRunner },
         { provide: DiffHunkMembershipService, useValue: diffHunkMembership },
       ],
     }).compile();
-    service = moduleRef.get(PostDeferredFindingsService);
+    service = moduleRef.get(PostReviewQuestionsService);
   });
 
-  it('resolves both arrays empty and calls neither dependency for empty findings', async () => {
-    const result = await service.run({ prNumber: '5', findings: [] });
+  it('resolves both arrays empty and calls neither dependency for no questions', async () => {
+    const result = await service.run({ prNumber: '5', questions: [] });
 
     expect(result).toEqual({ posted: [], failed: [] });
     expect(processRunner.run).not.toHaveBeenCalled();
     expect(diffHunkMembership.includesLine).not.toHaveBeenCalled();
   });
 
-  it('posts an in-diff finding inline, using the resolved head SHA', async () => {
+  it('posts an in-diff question inline, using the resolved head SHA', async () => {
     processRunner.run
       .mockResolvedValueOnce(HEAD_SHA_RESULT)
       .mockResolvedValueOnce(inlinePostedResult());
@@ -82,7 +82,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(processRunner.run.mock.calls[0]).toEqual([
@@ -127,7 +127,7 @@ describe('PostDeferredFindingsService', () => {
     });
   });
 
-  it('posts a not-in-diff finding as a top-level comment, without ever calling the pulls-comments path', async () => {
+  it('posts a not-in-diff question as a top-level comment, without ever calling the pulls-comments path', async () => {
     processRunner.run
       .mockResolvedValueOnce(HEAD_SHA_RESULT)
       .mockResolvedValueOnce(topLevelPostedResult());
@@ -135,7 +135,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(processRunner.run).toHaveBeenCalledTimes(2);
@@ -176,7 +176,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(processRunner.run).toHaveBeenCalledTimes(3);
@@ -206,7 +206,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(processRunner.run).toHaveBeenCalledTimes(2);
@@ -219,8 +219,8 @@ describe('PostDeferredFindingsService', () => {
     );
   });
 
-  it('records a failure for one finding while a second finding in the same input still succeeds', async () => {
-    const findingTwo: DeferredFinding = {
+  it('records a failure for one question while a second question in the same input still succeeds', async () => {
+    const questionTwo: ReviewQuestion = {
       file: 'src/bar.ts',
       line: 7,
       body: 'Another finding.',
@@ -235,7 +235,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING, findingTwo],
+      questions: [QUESTION, questionTwo],
     });
 
     expect(result.failed).toHaveLength(1);
@@ -267,7 +267,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(result.failed).toHaveLength(1);
@@ -285,7 +285,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(diffHunkMembership.includesLine).not.toHaveBeenCalled();
@@ -303,7 +303,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(diffHunkMembership.includesLine).not.toHaveBeenCalled();
@@ -311,18 +311,18 @@ describe('PostDeferredFindingsService', () => {
     expect(result.failed).toEqual([]);
   });
 
-  it('preserves input order across a mixed batch of in-diff, not-in-diff, and failing findings', async () => {
-    const inDiffFinding: DeferredFinding = {
+  it('preserves input order across a mixed batch of in-diff, not-in-diff, and failing questions', async () => {
+    const inDiffQuestion: ReviewQuestion = {
       file: 'src/a.ts',
       line: 1,
       body: 'A',
     };
-    const notInDiffFinding: DeferredFinding = {
+    const notInDiffQuestion: ReviewQuestion = {
       file: 'src/b.ts',
       line: 2,
       body: 'B',
     };
-    const failingFinding: DeferredFinding = {
+    const failingQuestion: ReviewQuestion = {
       file: 'src/c.ts',
       line: 3,
       body: 'C',
@@ -338,7 +338,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [inDiffFinding, notInDiffFinding, failingFinding],
+      questions: [inDiffQuestion, notInDiffQuestion, failingQuestion],
     });
 
     expect(result.posted.map((posted) => posted.file)).toEqual([
@@ -356,7 +356,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     // toStrictEqual, not toEqual: toEqual treats a missing key and an
@@ -374,7 +374,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(diffHunkMembership.includesLine).not.toHaveBeenCalled();
@@ -390,7 +390,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(result.posted).toEqual([]);
@@ -407,7 +407,7 @@ describe('PostDeferredFindingsService', () => {
 
     const result = await service.run({
       prNumber: '5',
-      findings: [FINDING],
+      questions: [QUESTION],
     });
 
     expect(result.failed).toEqual([
@@ -425,7 +425,7 @@ describe('PostDeferredFindingsService', () => {
       .mockResolvedValueOnce(inlinePostedResult());
     diffHunkMembership.includesLine.mockResolvedValue(true);
 
-    await service.run({ prNumber: '5', findings: [FINDING] });
+    await service.run({ prNumber: '5', questions: [QUESTION] });
 
     for (const call of processRunner.run.mock.calls) {
       expect(call[2]).toEqual(expect.any(Number));
