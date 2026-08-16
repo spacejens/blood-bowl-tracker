@@ -9,8 +9,10 @@ exclusive targets in future work.
 
 The command takes seven optional string arguments, `era`, `coach`, `team`, `player`,
 `race`, `competition`, and `trophy`, each autocompleted by name (`era` suggestions
-are labelled `<era> (<league>)`; `player` suggestions are labelled `<name> (<team>)`
-because player names are not unique across teams; `competition` suggestions are
+are labelled `<era> (<league>)`; `coach` and `team` suggestions are labelled
+`<name> (#<id>)`; `player` suggestions are labelled `<name> (<team>)`
+because player names are not unique across teams; `race` suggestions are a bare
+name with no parenthetical; `competition` suggestions are
 labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
 (<competition group>)`):
 
@@ -80,7 +82,7 @@ labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
 - **A race that matches nothing** — the bot replies with a not-found message.
 - **`competition:<competition>`** — the bot replies with an embed for that
   competition: the competition name as the title, then `Type: <type>` (`season`
-  or `cup`), `Era: <era>`, its duration (an ongoing competition shows
+  or `cup`), `Era: <era>`, `Duration: <range>` (an ongoing competition shows
   `present`), a blank line, and `Participating teams:` followed by every
   participating team, one line per team formatted `<team>` with its race and
   coach appended as a suffix. A competition with no participating teams shows a
