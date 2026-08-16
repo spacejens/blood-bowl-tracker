@@ -3,6 +3,14 @@ import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 
 import { ProcessRunnerService } from '../shared/process-runner.service';
+import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
+import {
+  COMMENT_UPDATE_FAILED_PHRASES,
+  NO_ACTIONABLE_COMMENTS_PHRASES,
+  RATE_LIMIT_PHRASES,
+  WaitForPrReviewFilterOptions,
+  WaitForPrReviewFiltersService,
+} from './wait-for-pr-review-filters.service';
 
 /** One wait's inputs; the optional fields fall back to the defaults below. */
 export interface WaitForPrReviewOptions {
@@ -99,7 +107,25 @@ interface PollOutcome {
    * rolling-comment check below can cross-check completion freshness against it.
    */
   readonly headRefOid?: string;
+  /**
+   * A review that matched the jq filter but was discarded as a content-free
+   * artifact — empty body, no inline comments (see `checkedReview`). Carried
+   * out so `run` can exclude it from later polls in this same wait.
+   */
+  readonly discardedEmptyReviewId?: string;
 }
+
+/**
+ * `WaitForPrReviewOptions` plus the locally-accumulated discard exclusion
+ * `run()` layers on top of it. Declared so every internal hop this object
+ * takes (`poll`, `pollReviews`, `RollingCommentPollContext.options`) is
+ * type-checked to actually carry `excludeReviewIds` through, rather than
+ * relying on it surviving as an unchecked excess property — a future
+ * refactor that rebuilds this object field-by-field would otherwise drop it
+ * silently, with no type error.
+ */
+type PollOptions = WaitForPrReviewOptions &
+  Pick<WaitForPrReviewFilterOptions, 'excludeReviewIds'>;
 
 /**
  * `pollRollingComment`'s inputs bundled into one object: `options` alone plus
@@ -107,7 +133,7 @@ interface PollOutcome {
  * 3-parameter limit (`local/max-function-params`).
  */
 interface RollingCommentPollContext {
-  readonly options: WaitForPrReviewOptions;
+  readonly options: PollOptions;
   /** The PR's current head commit; `undefined` when the reviews call could not report it. */
   readonly headRefOid: string | undefined;
 }
@@ -161,34 +187,12 @@ interface CompletionReview {
 }
 
 /**
- * Tolerant, deliberately CodeRabbit-specific wording match. The exact
- * rate-limit comment text is unknown and may drift, so any one of these
- * phrases (case-insensitive) qualifies.
- */
-const RATE_LIMIT_PHRASES = 'rate limit|rate-limit|review limit|usage limit';
-/**
  * Mirrors `RATE_LIMIT_PHRASES` for a second, stricter check in TypeScript
  * (see `hasProsePhrase`/`prosePhraseComment`) — `gh`/jq's own phrase test is a coarse
  * first pass and can be fooled by a phrase appearing only inside markdown
  * code formatting (e.g. a branch name quoted in an inline code span).
  */
 const RATE_LIMIT_PHRASE_REGEX = new RegExp(RATE_LIMIT_PHRASES, 'i');
-/**
- * Tolerant, deliberately CodeRabbit-specific wording for its third
- * non-review outcome: it failed to persist an edit to its rolling
- * walkthrough comment and posted a separate top-level notice instead
- * (observed on PR #408: "CodeRabbit couldn't update its existing comment.
- * The review summary may be out of date. Error details: putComment timed
- * out."). Same tolerance rationale as `RATE_LIMIT_PHRASES` — the exact text
- * is CodeRabbit's own and may drift, so any one of these phrases
- * (case-insensitive) qualifies. The character class accepts both a straight
- * and a typographic apostrophe.
- */
-const COMMENT_UPDATE_FAILED_PHRASES =
-  "couldn['’]t update its existing comment|" +
-  'could not update its existing comment|' +
-  "can['’]t update its existing comment|" +
-  'cannot update its existing comment';
 /** Mirrors `COMMENT_UPDATE_FAILED_PHRASES` for the stricter TypeScript re-check. */
 const COMMENT_UPDATE_FAILED_PHRASE_REGEX = new RegExp(
   COMMENT_UPDATE_FAILED_PHRASES,
@@ -199,68 +203,11 @@ const FENCED_CODE_BLOCK = /```[\s\S]*?```/g;
 /** An inline code span: a backtick, no-backtick content, a backtick. */
 const INLINE_CODE_SPAN = /`[^`]*`/g;
 
-/** Opens the "most recent review" section of CodeRabbit's rolling walkthrough comment. */
-const RECENT_REVIEW_START_MARKER = '<!-- recent_review_start -->';
-/** Closes it. Both markers must be present for the section to be extractable. */
-const RECENT_REVIEW_END_MARKER = '<!-- recent_review_end -->';
-/**
- * jq/Oniguruma pattern capturing the bounded section. `[\s\S]` rather than
- * `.` with a dot-matches-newline flag: jq rejects the `"s"` flag outright,
- * and the section always spans many lines. Non-greedy so a body carrying
- * several marker pairs cannot swallow everything between the first start and
- * the last end.
- */
-const RECENT_REVIEW_SECTION_PATTERN = `${RECENT_REVIEW_START_MARKER}(?<section>[\\s\\S]*?)${RECENT_REVIEW_END_MARKER}`;
-/**
- * Tolerant, deliberately CodeRabbit-specific wording match for "this pass
- * finished with nothing to report" — same rationale as
- * `RATE_LIMIT_PHRASES`: the exact text is CodeRabbit's own and may drift, so
- * any one of these phrases (case-insensitive) qualifies. Tested against the
- * extracted section only, never the whole (very large) walkthrough body.
- */
-const NO_ACTIONABLE_COMMENTS_PHRASES =
-  'no actionable comments|no actionable issues|nothing to report|no comments were generated';
 /** Mirrors `NO_ACTIONABLE_COMMENTS_PHRASES` for the stricter TypeScript re-check. */
 const NO_ACTIONABLE_COMMENTS_PHRASE_REGEX = new RegExp(
   NO_ACTIONABLE_COMMENTS_PHRASES,
   'i',
 );
-/**
- * Opens the block CodeRabbit edits into its *existing* rolling walkthrough
- * comment when it rate-limits a re-review — no new comment is posted, and the
- * comment's `createdAt` never moves, which is exactly why `rateLimitFilter`
- * (which reads `gh pr view --json comments`, a payload with no `updated_at`)
- * cannot see it. Observed on PR #464.
- *
- * CAUTION FOR FUTURE EDITORS: these two constants are themselves
- * self-referential source text on a PR that touches this file — CodeRabbit's
- * own walkthrough quoting this file's diff would put a literal marker pair
- * into its own comment body. Today that costs nothing: the raw text between
- * the two `const` declarations contains no `RATE_LIMIT_PHRASES` match, so
- * `select(.section | test(...))` in `rateLimitEditFilter` drops the element.
- * But two things follow, and neither is worth engineering around for how
- * narrow and self-limited this is (it requires CodeRabbit to quote this
- * exact file's raw source): (a) do not add "rate limit" wording to this pair
- * of doc comments — that would make the service detect itself; and (b) `jq`'s
- * `capture` is a single, non-greedy match per comment body, so a *genuine*
- * rate-limit block sharing a comment with a quoted copy of these markers
- * could have its own span shadowed by the quoted one if the quoted pair
- * comes first in the body — this is a real gap, not just a false positive,
- * but only on PRs that touch this file specifically.
- */
-const RATE_LIMIT_EDIT_START_MARKER =
-  '<!-- This is an auto-generated comment: rate limited by coderabbit.ai -->';
-/**
- * Closes it. Both markers must be present for the section to be extractable —
- * same paired-marker discipline as the completion section above, and for the
- * same reason: the phrase test and the wait-duration parse must see the
- * warning block only, never the whole (very large) walkthrough body. See the
- * caution on `RATE_LIMIT_EDIT_START_MARKER` above before editing either.
- */
-const RATE_LIMIT_EDIT_END_MARKER =
-  '<!-- end of auto-generated comment: rate limited by coderabbit.ai -->';
-/** Same `[\s\S]`/non-greedy rationale as `RECENT_REVIEW_SECTION_PATTERN`. */
-const RATE_LIMIT_EDIT_SECTION_PATTERN = `${RATE_LIMIT_EDIT_START_MARKER}(?<section>[\\s\\S]*?)${RATE_LIMIT_EDIT_END_MARKER}`;
 /**
  * How much of the section's SHA-1 digest goes into its composite id. Not a
  * security boundary — this only has to distinguish one rendering of the
@@ -268,8 +215,6 @@ const RATE_LIMIT_EDIT_SECTION_PATTERN = `${RATE_LIMIT_EDIT_START_MARKER}(?<secti
  * `--exclude-comment-id` value callers round-trip.
  */
 const SECTION_FINGERPRINT_LENGTH = 12;
-/** Bounds the unpaginated comments request; far more than one pass can edit. */
-const COMMENTS_PER_PAGE = 100;
 
 /** A sentence must mention one of these to be read as stating a wait time. */
 const WAIT_TIME_KEYWORDS = /\b(again|retry|available|resets|wait|before)\b/i;
@@ -323,16 +268,49 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
  */
 @Injectable()
 export class WaitForPrReviewService {
-  constructor(private readonly processRunner: ProcessRunnerService) {}
+  constructor(
+    private readonly processRunner: ProcessRunnerService,
+    private readonly filters: WaitForPrReviewFiltersService,
+    private readonly reviewComments: PullRequestReviewCommentsService,
+  ) {}
 
   async run(options: WaitForPrReviewOptions): Promise<WaitForPrReviewResult> {
     const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS;
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     let triggered = false;
+    /**
+     * Ids of empty-artifact reviews this wait has discarded so far (see
+     * `checkedReview`), accumulated — never replacing — across polls. Needed
+     * because `reviewFilter`'s jq always yields the chronologically *first*
+     * matching review: without excluding every discard, the same artifact
+     * would be re-matched and re-discarded on every later poll, hiding any
+     * genuine review that arrives after it.
+     *
+     * Deliberately layered on top of `options.excludeReviewId` via a
+     * SEPARATE `excludeReviewIds` field, rather than overwriting
+     * `excludeReviewId` itself: the caller's own `excludeReviewId` — e.g.
+     * develop-feature's watermark exclusion for a review it already handled
+     * in a previous iteration — must survive untouched for this wait's whole
+     * lifetime, or that already-handled review could match again once a
+     * later discard overwrote the exclusion that was suppressing it. That
+     * was a real bug in an earlier version of this mechanism, caught in
+     * whole-branch review before merge.
+     */
+    const discardedReviewIds: string[] = [];
     for (;;) {
-      const outcome = await this.poll(options, deadline, intervalMs);
+      const pollOptions =
+        discardedReviewIds.length === 0
+          ? options
+          : { ...options, excludeReviewIds: discardedReviewIds.slice() };
+      const outcome = await this.poll(pollOptions, deadline, intervalMs);
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
+      }
+      if (
+        outcome?.discardedEmptyReviewId !== undefined &&
+        !discardedReviewIds.includes(outcome.discardedEmptyReviewId)
+      ) {
+        discardedReviewIds.push(outcome.discardedEmptyReviewId);
       }
       // Checked here — after a formal review has ruled itself out, but
       // before the rate-limit/comment-update-failure early returns below —
@@ -377,7 +355,7 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * One poll: at most two `gh` calls, each bounded to the time left before
+   * One poll: at most three `gh` calls, each bounded to the time left before
    * `deadline`. Bounding every call this way guarantees a result can never
    * arrive long after `deadline` and be mistaken for a fresh `found`.
    *
@@ -385,10 +363,11 @@ export class WaitForPrReviewService {
    * the existing precedence intact — a formal review is the strongest
    * signal, and within the second call a rate-limit edit outranks a
    * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
-   * doubling its own cost.
+   * doubling its own cost. A third call is made only when the first found an
+   * empty-bodied review candidate that needs verifying (see `checkedReview`).
    */
   private async poll(
-    options: WaitForPrReviewOptions,
+    options: PollOptions,
     deadline: number,
     intervalMs: number,
   ): Promise<PollOutcome | undefined> {
@@ -408,7 +387,16 @@ export class WaitForPrReviewService {
       deadline,
       intervalMs,
     );
-    return rolling ?? {};
+    // Carry the reviews half's discarded-artifact id through even though the
+    // rolling-comment check found nothing of its own — otherwise `run` would
+    // never learn to exclude it, and the same artifact review would be
+    // re-matched and re-discarded on every later poll (see `run`).
+    return {
+      ...(rolling ?? {}),
+      ...(outcome.discardedEmptyReviewId === undefined
+        ? {}
+        : { discardedEmptyReviewId: outcome.discardedEmptyReviewId }),
+    };
   }
 
   /**
@@ -419,7 +407,7 @@ export class WaitForPrReviewService {
    * next interval, never to abort the wait.
    */
   private async pollReviews(
-    options: WaitForPrReviewOptions,
+    options: PollOptions,
     deadline: number,
     intervalMs: number,
   ): Promise<PollOutcome | undefined> {
@@ -435,7 +423,7 @@ export class WaitForPrReviewService {
         // against the PR's *current* head commit at no extra cost.
         'reviews,comments,headRefOid',
         '--jq',
-        this.filter(options),
+        this.filters.reviewsCall(options),
       ],
       this.budgetMs(deadline, intervalMs),
     );
@@ -460,14 +448,76 @@ export class WaitForPrReviewService {
     );
     const headRefOid =
       typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
+    const checked = await this.checkedReview(
+      parsed.review,
+      this.budgetMs(deadline, intervalMs),
+    );
     return {
-      ...(parsed.review == null ? {} : { review: parsed.review }),
+      ...checked,
       ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
       ...(commentUpdateFailedComment === undefined
         ? {}
         : { commentUpdateFailedComment }),
       ...(headRefOid === undefined ? {} : { headRefOid }),
     };
+  }
+
+  /**
+   * A matched review, or the id of one discarded as a content-free artifact.
+   *
+   * CodeRabbit can submit a formally valid review carrying nothing at all —
+   * empty body, no inline comments — while its actual pass was blocked by the
+   * developer's review rate limit (issue #474, PR #469). The jq filter cannot
+   * tell that apart from a real review, so an empty-bodied candidate is
+   * verified with one extra lookup before it is trusted.
+   *
+   * Fails closed, matching `coversHeadCommit`'s precedent: a lookup that could
+   * not answer (`undefined`) discards the candidate rather than trusting an
+   * unverifiable one. A false timeout costs one wasted wait; a false `found`
+   * makes the caller act as if the code had been reviewed when it never was.
+   */
+  private async checkedReview(
+    candidate: unknown,
+    timeoutMs: number,
+  ): Promise<{ review?: unknown; discardedEmptyReviewId?: string }> {
+    if (candidate == null) {
+      return {};
+    }
+    const reviewId = this.emptyBodyReviewId(candidate);
+    if (reviewId === undefined) {
+      return { review: candidate };
+    }
+    const hasComments = await this.reviewComments.hasInlineComments(
+      reviewId,
+      timeoutMs,
+    );
+    return hasComments === true
+      ? { review: candidate }
+      : { discardedEmptyReviewId: reviewId };
+  }
+
+  /**
+   * The candidate's id when it needs verifying — i.e. it is an object with a
+   * string id and a missing, null, empty, or whitespace-only `body`.
+   * `undefined` means "trust it as-is": either the body carries real summary
+   * text (the common case, verified at zero extra cost), or the shape is not
+   * one this check can reason about.
+   *
+   * A candidate without a string `id` is deliberately trusted rather than
+   * discarded: it cannot be looked up *and* cannot be excluded from the next
+   * poll, so discarding it would loop forever on the same value. jq only ever
+   * emits real GitHub review objects here, so this is a defensive branch, not
+   * a live path.
+   */
+  private emptyBodyReviewId(candidate: unknown): string | undefined {
+    if (typeof candidate !== 'object' || candidate === null) {
+      return undefined;
+    }
+    const { id, body } = candidate as { id?: unknown; body?: unknown };
+    if (typeof id !== 'string') {
+      return undefined;
+    }
+    return typeof body === 'string' && body.trim() !== '' ? undefined : id;
   }
 
   /**
@@ -479,7 +529,8 @@ export class WaitForPrReviewService {
    * `gh pr view --json comments` does not expose (it carries `createdAt`
    * only, and the comment is created on the *first* pass), so this reads the
    * issue-comments REST endpoint instead — one call, one jq program, both
-   * signals, keeping a poll at two `gh` calls.
+   * signals, so this part of the poll costs exactly one `gh` call (a poll's
+   * overall total can still reach three — see `poll`'s doc comment).
    *
    * Returns `undefined` for a failed call, unparseable output, or no
    * qualifying candidate of either kind.
@@ -494,9 +545,9 @@ export class WaitForPrReviewService {
       'gh',
       [
         'api',
-        this.commentsPath(options),
+        this.filters.commentsPath(options),
         '--jq',
-        this.rollingCommentFilter(options),
+        this.filters.rollingComment(options),
       ],
       this.budgetMs(deadline, intervalMs),
     );
@@ -715,196 +766,6 @@ export class WaitForPrReviewService {
       this.hasProsePhrase(comment.body, phrase)
       ? { id: comment.id, body: comment.body, submittedAt: comment.submittedAt }
       : undefined;
-  }
-
-  /**
-   * One object per poll, holding both halves of the query. Each half is
-   * wrapped in `[...] | first` so it emits exactly one JSON value (the first
-   * match, or `null`). A bare `.reviews[] | select(...)` streams one document
-   * per match, which is not parseable as a whole when more than one matches.
-   */
-  private filter(options: WaitForPrReviewOptions): string {
-    return (
-      `{review: (${this.reviewFilter(options)}), ` +
-      `rateLimitComment: (${this.rateLimitFilter(options)}), ` +
-      `commentUpdateFailedComment: (${this.commentUpdateFailedFilter(options)}), ` +
-      `headRefOid: .headRefOid}`
-    );
-  }
-
-  /** Bot-agnostic by construction: any formal review object from a non-author. */
-  private reviewFilter(options: WaitForPrReviewOptions): string {
-    const login = JSON.stringify(options.developerLogin);
-    const excludeClause =
-      options.excludeReviewId === undefined
-        ? ''
-        : ` and .id != ${JSON.stringify(options.excludeReviewId)}`;
-    return (
-      '[.reviews[] | select(.submittedAt != null) | ' +
-      `select(.author.login != ${login} and ` +
-      `(.submittedAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
-      `${excludeClause})] | first`
-    );
-  }
-
-  /**
-   * Deliberately CodeRabbit-specific — this failure mode and its comment
-   * shape are CodeRabbit's own behaviour, unlike review detection above.
-   *
-   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
-   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
-   * summary, a changes table) can incidentally contain this filter's phrase
-   * — notably on a PR whose diff is *about* rate-limit detection, such as
-   * the one that introduced this guard (issue #465's own PR: the walkthrough
-   * summarizing this very change said "prioritizes rate-limit results",
-   * which matched `rate-limit` and produced a false `rateLimited: true`
-   * despite the same comment already reporting a clean, completed review)
-   * — which would otherwise abort the wait on a false positive before any
-   * real review or genuine rate-limit notice exists. A genuine rate-limit
-   * notice is always a short, separate comment (or, since this same fix, a
-   * bounded section behind its own distinct markers — see
-   * `rateLimitEditFilter`) and never carries the walkthrough markers, so
-   * this guard costs nothing in real detection. Same rationale as
-   * `commentUpdateFailedFilter`'s identical guard below.
-   */
-  private rateLimitFilter(options: WaitForPrReviewOptions): string {
-    const excludeClause =
-      options.excludeCommentId === undefined
-        ? ''
-        : ` and .id != ${JSON.stringify(options.excludeCommentId)}`;
-    return (
-      '[.comments[] | select(.createdAt != null) | ' +
-      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
-      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
-      `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
-      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
-      `${excludeClause}) | ` +
-      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
-    );
-  }
-
-  /**
-   * Deliberately CodeRabbit-specific, and structurally identical to
-   * `rateLimitFilter` — same `.comments[]` source, same author-login
-   * narrowing, same watermark bound, same `[...] | first` wrapping, same
-   * `RECENT_REVIEW_START_MARKER` exclusion — because this is the same kind
-   * of signal: a top-level comment CodeRabbit posts *instead of* reviewing.
-   * Only the phrase set and the exclusion id differ. See `rateLimitFilter`'s
-   * doc comment for why the marker exclusion is needed.
-   */
-  private commentUpdateFailedFilter(options: WaitForPrReviewOptions): string {
-    const excludeClause =
-      options.excludeCommentUpdateFailureId === undefined
-        ? ''
-        : ` and .id != ${JSON.stringify(options.excludeCommentUpdateFailureId)}`;
-    return (
-      '[.comments[] | select(.createdAt != null) | ' +
-      'select((.author.login // "") | test("coderabbit"; "i")) | ' +
-      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
-      `select(((.body // "") | test(${JSON.stringify(COMMENT_UPDATE_FAILED_PHRASES)}; "i")) and ` +
-      `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
-      `${excludeClause}) | ` +
-      '{id: .id, body: .body, submittedAt: .createdAt}] | first'
-    );
-  }
-
-  /**
-   * `{owner}`/`{repo}` are gh's own placeholders, resolved from the current
-   * repository — this service has no owner/repo of its own, and the
-   * `gh pr view` call above already relies on the same repo context.
-   *
-   * `since` is a server-side pre-filter on `updated_at` (the same watermark
-   * the jq filter re-checks), backed off one second because GitHub documents
-   * its bound only as "after the given time": a strict `>` there would drop
-   * a comment edited in the watermark's own second. No `--paginate` — a page
-   * of 100 *recently updated* comments is far more than a live review pass
-   * can produce, and one bounded call per poll keeps the poll's cost fixed.
-   */
-  private commentsPath(options: WaitForPrReviewOptions): string {
-    const since = new Date(
-      (options.sinceEpochSeconds - 1) * 1000,
-    ).toISOString();
-    return (
-      `repos/{owner}/{repo}/issues/${options.prNumber}/comments` +
-      `?per_page=${COMMENTS_PER_PAGE}&since=${since}`
-    );
-  }
-
-  /**
-   * Deliberately CodeRabbit-specific, like `rateLimitFilter`. The rule,
-   * stated identically here and in `handle-pr-reviews/SKILL.md`'s Phase 1:
-   * the author login matches `coderabbit` (case-insensitive) **and** the
-   * body contains a `<!-- recent_review_start -->…<!-- recent_review_end -->`
-   * section whose contents match a "no actionable comments" style phrase.
-   *
-   * The phrase is tested against the *extracted section*, not the whole
-   * body — the walkthrough is large and mentions plenty of unrelated text,
-   * so a body-wide test would false-positive. A pass that did find
-   * actionable comments will not match, and falls through to today's
-   * behaviour unchanged.
-   *
-   * Wrapped in `[...] | first` for the same reason as the filters above: it
-   * must emit exactly one JSON value (the first match, or `null`).
-   */
-  private completionFilter(options: WaitForPrReviewOptions): string {
-    const excludeClause =
-      options.excludeReviewId === undefined
-        ? ''
-        : ` | select(.id != ${JSON.stringify(options.excludeReviewId)})`;
-    return (
-      '[.[] | select(.updated_at != null) | ' +
-      'select((.user.login // "") | test("coderabbit"; "i")) | ' +
-      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)})) | ` +
-      `select((.updated_at | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
-      '{id: ((.id | tostring) + "@" + ((.updated_at | fromdateiso8601) | tostring)), ' +
-      'submittedAt: .updated_at, author: {login: (.user.login // "")}, ' +
-      `section: (((.body // "") | capture(${JSON.stringify(RECENT_REVIEW_SECTION_PATTERN)})).section // "")}` +
-      ` | select(.section | test(${JSON.stringify(NO_ACTIONABLE_COMMENTS_PHRASES)}; "i"))` +
-      `${excludeClause}] | first`
-    );
-  }
-
-  /**
-   * Both rolling-comment signals in one jq program, so a poll still makes
-   * exactly two `gh` calls. Each half is independently wrapped in
-   * `[...] | first`, so each emits exactly one value — the first match, or
-   * `null`.
-   */
-  private rollingCommentFilter(options: WaitForPrReviewOptions): string {
-    return (
-      `{completion: (${this.completionFilter(options)}), ` +
-      `rateLimitEdit: (${this.rateLimitEditFilter(options)})}`
-    );
-  }
-
-  /**
-   * Deliberately CodeRabbit-specific, and structurally parallel to
-   * `completionFilter` — same `.[]` REST source, same author-login narrowing,
-   * same `updated_at` watermark, same bounded-section extraction — because it
-   * is the same kind of signal, delivered the same way.
-   *
-   * Two deliberate differences from `completionFilter`:
-   * - No composite id is built here and no exclusion is applied here. The id
-   *   hashes the section's content, which jq cannot do; both happen in
-   *   `rateLimitEditComment`.
-   * - `excludeCommentId`, not `excludeReviewId`, is the exclusion that
-   *   eventually applies — this is a rate-limit signal, the same logical
-   *   thing `rateLimitFilter` produces, and callers already round-trip it as
-   *   `--exclude-comment-id`.
-   *
-   * The phrase test here is the coarse first pass; `hasProsePhrase` in
-   * TypeScript is the authoritative one.
-   */
-  private rateLimitEditFilter(options: WaitForPrReviewOptions): string {
-    return (
-      '[.[] | select(.updated_at != null) | ' +
-      'select((.user.login // "") | test("coderabbit"; "i")) | ' +
-      `select((.body // "") | contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)})) | ` +
-      `select((.updated_at | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
-      '{id: (.id | tostring), submittedAt: .updated_at, ' +
-      `section: (((.body // "") | capture(${JSON.stringify(RATE_LIMIT_EDIT_SECTION_PATTERN)})).section // "")}` +
-      ` | select(.section | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i"))] | first`
-    );
   }
 
   private shouldTrigger(options: WaitForPrReviewOptions): boolean {
