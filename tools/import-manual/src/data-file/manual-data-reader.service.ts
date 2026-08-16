@@ -19,8 +19,9 @@ export class ManualDataReader {
    * Symlinks count as files: `Dirent.isFile()` never follows them, so it
    * alone would silently skip a curated file that is a symlink to another
    * phase's copy -- a curated file can be exactly that, when two phases
-   * need to reference the same catalog. `stat()` does follow
-   * any symlink, actually a file" -- which also means a symlink to a
+   * need to reference the same catalog. `stat()` does follow symlinks, so
+   * it is used instead to decide "is this path, after following any
+   * symlink, actually a file" -- which also means a symlink to a
    * directory is skipped just like any other non-file entry, since `stat()`
    * succeeds for it and only `isFile()` is false. A broken symlink's target
    * doesn't exist, so `stat()` itself throws `ENOENT`; that specific error is
