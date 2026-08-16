@@ -1,15 +1,18 @@
 # `/deepdive`
 
 `/deepdive` is a lookup and drill-down command for a single recorded subject.
-Today it supports five targets — an era, a coach, a team, a player, and a race — and is
-designed to grow further optional, mutually exclusive targets in future work.
+Today it supports seven targets — an era, a coach, a team, a player, a race, a
+competition, and a trophy — and is designed to grow further optional, mutually
+exclusive targets in future work.
 
 ## Arguments
 
-The command takes five optional string arguments, `era`, `coach`, `team`, `player`, and
-`race`, each autocompleted by name (`era` suggestions are labelled `<era>
-(<league>)`; `player` suggestions are labelled `<name> (<team>)` because player
-names are not unique across teams):
+The command takes seven optional string arguments, `era`, `coach`, `team`, `player`,
+`race`, `competition`, and `trophy`, each autocompleted by name (`era` suggestions
+are labelled `<era> (<league>)`; `player` suggestions are labelled `<name> (<team>)`
+because player names are not unique across teams; `competition` suggestions are
+labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
+(<competition group>)`):
 
 - **No argument** — the bot replies with a short usage prompt, because a
   deepdive needs a target. This is framed as "specify a target", not a hard
@@ -75,6 +78,32 @@ names are not unique across teams):
   era-scoped. A race with no recorded team appearances shows a short "no teams
   yet" message in place of the list.
 - **A race that matches nothing** — the bot replies with a not-found message.
+- **`competition:<competition>`** — the bot replies with an embed for that
+  competition: the competition name as the title, then `Type: <type>` (`season`
+  or `cup`), `Era: <era>`, its duration (an ongoing competition shows
+  `present`), a blank line, and `Participating teams:` followed by every
+  participating team, one line per team formatted `<team>` with its race and
+  coach appended as a suffix. A competition with no participating teams shows a
+  short "nobody has signed up yet" message instead of a list. Every
+  participating team and the era are each rendered as a drill-down button
+  (teams take priority over the era entry when the combined list is too long
+  for buttons and switches to select menus).
+- **A competition that matches nothing** — the bot replies with a not-found
+  message.
+- **`trophy:<trophy>`** — the bot replies with an embed for that trophy: the
+  trophy name as the title, then `Awarded for: <competition group>` and, only
+  when the trophy has one, `Description: <description>`, a blank line, and
+  `Recipients:` followed by one line per award, newest-first, formatted
+  `<competition>: <team>` for a team trophy or `<competition>: <player>
+  (<team>)` for a player trophy. At most 30 recipients are shown; when there
+  are more, the list ends with an exact `…and N more not shown.` note computed
+  from the trophy's true award count. A trophy with no recorded awards shows a
+  short "nobody has got their hands on this one yet" message instead of a
+  list. Each shown recipient is rendered as a drill-down button to whoever
+  actually received the trophy — the team for a team trophy, the player for a
+  player trophy — with no button for the competition it was awarded at.
+- **A trophy that matches nothing** — the bot replies with a not-found
+  message.
 
 If the database does not respond in time, the command falls back to a themed
 timeout message instead of its normal reply, so it always answers within
@@ -128,8 +157,10 @@ is visible rather than silent. See
 `apps/discord-bot/src/entity-components.service.ts`.
 
 See the implementation in `apps/discord-bot/src/slash-commands/deepdive-command.service.ts`
-and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.ts`,
-`apps/discord-bot/src/deepdive/facts/coach-deepdive.ts`,
-`apps/discord-bot/src/deepdive/facts/team-deepdive.ts`,
-`apps/discord-bot/src/deepdive/facts/player-deepdive.ts`, and
-`apps/discord-bot/src/deepdive/facts/race-deepdive.ts`.
+and the resolvers in `apps/discord-bot/src/deepdive/facts/era-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/coach-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/team-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/player-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/race-deepdive.service.ts`,
+`apps/discord-bot/src/deepdive/facts/competition-deepdive.service.ts`, and
+`apps/discord-bot/src/deepdive/facts/trophy-deepdive.service.ts`.
