@@ -996,9 +996,7 @@ export class WaitForPrReviewService {
    */
   private parseAvailableAt(comment: CodeRabbitComment): number | undefined {
     for (const sentence of comment.body.split(/(?<=[.!?])\s+|\n+/)) {
-      if (!WAIT_TIME_KEYWORDS.test(sentence)) {
-        continue;
-      }
+      if (!WAIT_TIME_KEYWORDS.test(sentence)) continue;
       const match = WAIT_TIME_DURATION.exec(sentence);
       if (match === null) continue;
       const minutes =
