@@ -220,6 +220,14 @@ export class TrophyDeepdiveService {
         };
   }
 
+  /**
+   * A plain boolean (rather than a type guard) so it can gate both the
+   * `!isTeamRecipient(...)`-filtered rows above and the ternaries below with
+   * one shared predicate. The trade-off: TypeScript can no longer narrow
+   * `playerId`/`playerName` from this check alone, so call sites that only
+   * run on the "not a team recipient" branch cast them — safe because this
+   * method's own definition guarantees both are non-null there.
+   */
   private isTeamRecipient(recipient: TrophyRecipient): boolean {
     return recipient.playerId === null || recipient.playerName === null;
   }
