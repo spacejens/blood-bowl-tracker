@@ -1,6 +1,7 @@
-import type { Db } from '@blood-bowl-tracker/db';
 import type { InferInsertModel } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
+
+import type { DbOrTx } from './db-or-tx';
 
 /** One (external system, id-in-that-system) pairing for an entity. */
 export interface ExternalIdPair {
@@ -19,7 +20,7 @@ export interface ExternalIdPair {
  * shared/count-all.ts.
  */
 export interface InsertMissingExternalIdsOptions<T extends PgTable> {
-  db: Db;
+  db: DbOrTx;
   externalIdTable: T;
   existingRows: readonly ExternalIdPair[];
   externalIds: readonly ExternalIdPair[];

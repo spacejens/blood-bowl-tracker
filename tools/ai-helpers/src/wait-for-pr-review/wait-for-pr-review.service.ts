@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { Injectable } from '@nestjs/common';
 
 import { ProcessRunnerService } from '../shared/process-runner.service';
@@ -42,14 +44,24 @@ export interface WaitForPrReviewOptions {
 }
 
 /**
- * A CodeRabbit comment standing in for a review — either its rate-limit
- * warning or its "couldn't update its existing comment" failure notice. The
- * shape is comment-kind-agnostic, so both kinds reuse it.
+ * A CodeRabbit comment standing in for a review — a rate-limit warning
+ * (posted as its own new comment, or edited into the rolling walkthrough
+ * comment), or its "couldn't update its existing comment" failure notice.
+ * The shape is comment-kind-agnostic, so every kind reuses it.
  */
 export interface CodeRabbitComment {
   readonly id: string;
+  /**
+   * The whole comment body for a new top-level comment, or the extracted
+   * bounded section for a rate-limit edit to the rolling comment.
+   */
   readonly body: string;
-  /** The comment's `createdAt`, renamed by the jq filter for symmetry with a review's `submittedAt`. */
+  /**
+   * The comment's `createdAt` for a new top-level comment, or the rolling
+   * comment's `updated_at` for a rate-limit edit — renamed for symmetry with
+   * a review's `submittedAt` either way, and what `parseAvailableAt` anchors
+   * its computed wait to.
+   */
   readonly submittedAt: string;
 }
 
@@ -84,34 +96,53 @@ interface PollOutcome {
   /**
    * The PR's current head commit, read from the same `gh pr view` call
    * (widened to also request `headRefOid`) — carried through so the
-   * completion-comment check below can cross-check freshness against it.
+   * rolling-comment check below can cross-check completion freshness against it.
    */
   readonly headRefOid?: string;
 }
 
 /**
- * `pollCompletionComment`'s inputs bundled into one object: `options` alone
- * plus `headRefOid` would be a 4th positional parameter, over this repo's
+ * `pollRollingComment`'s inputs bundled into one object: `options` alone plus
+ * `headRefOid` would be a 4th positional parameter, over this repo's
  * 3-parameter limit (`local/max-function-params`).
  */
-interface CompletionPollContext {
+interface RollingCommentPollContext {
   readonly options: WaitForPrReviewOptions;
   /** The PR's current head commit; `undefined` when the reviews call could not report it. */
   readonly headRefOid: string | undefined;
 }
 
 /**
- * What the completion jq filter emits for a qualifying CodeRabbit
- * walkthrough comment. `section` is the bounded
- * `<!-- recent_review_start -->…<!-- recent_review_end -->` contents, kept
- * only long enough for the TypeScript phrase re-check below — it never
- * reaches the caller.
+ * The fields both halves of the rolling-comment filter emit: the comment's
+ * id, the `updated_at` that stands in for a review's `submittedAt`, and the
+ * bounded section extracted from its body. `section` is kept only long enough
+ * for the TypeScript phrase re-check (and, for a rate limit, the composite id
+ * and wait-duration parse) — the completion half never lets it reach the
+ * caller.
  */
-interface CompletionCandidate {
+interface SectionCandidate {
   readonly id: string;
   readonly submittedAt: string;
-  readonly author: { readonly login: string };
   readonly section: string;
+}
+
+/**
+ * What the completion half emits: a `SectionCandidate` plus the author the
+ * synthesized review is attributed to.
+ */
+interface CompletionCandidate extends SectionCandidate {
+  readonly author: { readonly login: string };
+}
+
+/**
+ * What one rolling-comment poll found. At most one field is ever set: a
+ * rate-limit edit outranks a completion (mirroring `poll()`'s existing
+ * hierarchy, where a top-level rate-limit comment already outranks the
+ * completion check).
+ */
+interface RollingCommentOutcome {
+  readonly review?: CompletionReview;
+  readonly rateLimitComment?: CodeRabbitComment;
 }
 
 /**
@@ -194,6 +225,49 @@ const NO_ACTIONABLE_COMMENTS_PHRASE_REGEX = new RegExp(
   NO_ACTIONABLE_COMMENTS_PHRASES,
   'i',
 );
+/**
+ * Opens the block CodeRabbit edits into its *existing* rolling walkthrough
+ * comment when it rate-limits a re-review — no new comment is posted, and the
+ * comment's `createdAt` never moves, which is exactly why `rateLimitFilter`
+ * (which reads `gh pr view --json comments`, a payload with no `updated_at`)
+ * cannot see it. Observed on PR #464.
+ *
+ * CAUTION FOR FUTURE EDITORS: these two constants are themselves
+ * self-referential source text on a PR that touches this file — CodeRabbit's
+ * own walkthrough quoting this file's diff would put a literal marker pair
+ * into its own comment body. Today that costs nothing: the raw text between
+ * the two `const` declarations contains no `RATE_LIMIT_PHRASES` match, so
+ * `select(.section | test(...))` in `rateLimitEditFilter` drops the element.
+ * But two things follow, and neither is worth engineering around for how
+ * narrow and self-limited this is (it requires CodeRabbit to quote this
+ * exact file's raw source): (a) do not add "rate limit" wording to this pair
+ * of doc comments — that would make the service detect itself; and (b) `jq`'s
+ * `capture` is a single, non-greedy match per comment body, so a *genuine*
+ * rate-limit block sharing a comment with a quoted copy of these markers
+ * could have its own span shadowed by the quoted one if the quoted pair
+ * comes first in the body — this is a real gap, not just a false positive,
+ * but only on PRs that touch this file specifically.
+ */
+const RATE_LIMIT_EDIT_START_MARKER =
+  '<!-- This is an auto-generated comment: rate limited by coderabbit.ai -->';
+/**
+ * Closes it. Both markers must be present for the section to be extractable —
+ * same paired-marker discipline as the completion section above, and for the
+ * same reason: the phrase test and the wait-duration parse must see the
+ * warning block only, never the whole (very large) walkthrough body. See the
+ * caution on `RATE_LIMIT_EDIT_START_MARKER` above before editing either.
+ */
+const RATE_LIMIT_EDIT_END_MARKER =
+  '<!-- end of auto-generated comment: rate limited by coderabbit.ai -->';
+/** Same `[\s\S]`/non-greedy rationale as `RECENT_REVIEW_SECTION_PATTERN`. */
+const RATE_LIMIT_EDIT_SECTION_PATTERN = `${RATE_LIMIT_EDIT_START_MARKER}(?<section>[\\s\\S]*?)${RATE_LIMIT_EDIT_END_MARKER}`;
+/**
+ * How much of the section's SHA-1 digest goes into its composite id. Not a
+ * security boundary — this only has to distinguish one rendering of the
+ * warning block from another, so a short prefix keeps the id readable in the
+ * `--exclude-comment-id` value callers round-trip.
+ */
+const SECTION_FINGERPRINT_LENGTH = 12;
 /** Bounds the unpaginated comments request; far more than one pass can edit. */
 const COMMENTS_PER_PAGE = 100;
 
@@ -222,7 +296,9 @@ const TRIGGER_REVIEW_BODY = '@coderabbitai review';
  *
  * Three exceptions are CodeRabbit-specific, because all three are
  * CodeRabbit's own behaviour rather than anything GitHub models as a review.
- * It answers its per-developer review rate limit with a top-level PR comment;
+ * It answers its per-developer review rate limit either with a top-level PR
+ * comment or by editing that same rolling comment in place (issue #465, seen
+ * on PR #464), so both shapes are looked for;
  * it can finish a pass with nothing actionable to say and report *that* only
  * by editing its rolling walkthrough comment in place; and it can fail to
  * persist such an edit at all, posting a "couldn't update its existing
@@ -296,8 +372,9 @@ export class WaitForPrReviewService {
    *
    * The second call is made only when the first found nothing. That keeps
    * the existing precedence intact — a formal review is the strongest
-   * signal, a rate-limit comment and a completion comment sit at equal,
-   * lower priority — and keeps a failing `gh` from doubling its own cost.
+   * signal, and within the second call a rate-limit edit outranks a
+   * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
+   * doubling its own cost.
    */
   private async poll(
     options: WaitForPrReviewOptions,
@@ -315,12 +392,12 @@ export class WaitForPrReviewService {
     ) {
       return outcome;
     }
-    const review = await this.pollCompletionComment(
+    const rolling = await this.pollRollingComment(
       { options, headRefOid: outcome.headRefOid },
       deadline,
       intervalMs,
     );
-    return review === undefined ? {} : { review };
+    return rolling ?? {};
   }
 
   /**
@@ -383,22 +460,24 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * CodeRabbit can finish a pass with nothing actionable and say so only by
-   * editing its rolling walkthrough comment in place — no formal review
-   * object is ever submitted. Detecting that needs the comment's
-   * `updated_at`, which `gh pr view --json comments` does not expose (it
-   * carries `createdAt` only, and the comment is created on the *first*
-   * pass), so this reads the issue-comments REST endpoint instead.
+   * CodeRabbit has two outcomes it reports only by editing its rolling
+   * walkthrough comment in place, with no formal review object ever
+   * submitted: a pass that finished with nothing actionable, and a re-review
+   * it refused because the developer hit their review rate limit (issue
+   * #465). Detecting either needs the comment's `updated_at`, which
+   * `gh pr view --json comments` does not expose (it carries `createdAt`
+   * only, and the comment is created on the *first* pass), so this reads the
+   * issue-comments REST endpoint instead — one call, one jq program, both
+   * signals, keeping a poll at two `gh` calls.
    *
-   * Returns `undefined` for a failed call, no match, a coarse jq match the
-   * stricter prose re-check rejects, or a candidate whose section does not
-   * cover the PR's current head commit (see `coversHeadCommit`).
+   * Returns `undefined` for a failed call, unparseable output, or no
+   * qualifying candidate of either kind.
    */
-  private async pollCompletionComment(
-    context: CompletionPollContext,
+  private async pollRollingComment(
+    context: RollingCommentPollContext,
     deadline: number,
     intervalMs: number,
-  ): Promise<CompletionReview | undefined> {
+  ): Promise<RollingCommentOutcome | undefined> {
     const { options, headRefOid } = context;
     const result = await this.processRunner.run(
       'gh',
@@ -406,14 +485,85 @@ export class WaitForPrReviewService {
         'api',
         this.commentsPath(options),
         '--jq',
-        this.completionFilter(options),
+        this.rollingCommentFilter(options),
       ],
       this.budgetMs(deadline, intervalMs),
     );
     if (result.exitCode !== 0) {
       return undefined;
     }
-    const candidate = this.parseCompletionCandidate(result.stdout);
+    const parsed = this.parseJsonObject(result.stdout);
+    if (parsed === undefined) {
+      return undefined;
+    }
+    const rateLimitComment = this.rateLimitEditComment(
+      this.parseSectionCandidate(parsed.rateLimitEdit),
+      options.excludeCommentId,
+    );
+    if (rateLimitComment !== undefined) {
+      return { rateLimitComment };
+    }
+    const review = this.completionReview(parsed.completion, headRefOid);
+    return review === undefined ? undefined : { review };
+  }
+
+  /**
+   * A rate-limit edit, kept only if its section really says so in prose (jq's
+   * phrase test is a coarse first pass — see `hasProsePhrase`) and it is not
+   * the very signal the caller already surfaced.
+   *
+   * The composite id hashes the section's own *content*, not its
+   * `updated_at` as the completion half does. GitHub gives one `updated_at`
+   * for the whole rolling comment, so an unrelated later edit (refreshing the
+   * commits list, say) advances it while a stale rate-limit block sits
+   * unchanged underneath; an `updated_at`-based id would read that as a brand
+   * new rate limit forever. A content hash keeps the id stable for as long as
+   * the block's text is, so `excludeCommentId` suppresses it correctly, while
+   * a genuinely new block (a fresh wait duration, a different reviewed file
+   * list) hashes differently and reads as fresh.
+   *
+   * Cost of that choice: a byte-identical *repeat* rate-limit block is
+   * silently unreportable. If CodeRabbit re-emits a block whose content
+   * exactly matches one the caller already excluded (same quota wording, same
+   * file list, same SHAs), the hash — and so the id — is unchanged, and this
+   * method returns `undefined` even though the caller has no way to know the
+   * repeat happened. The caller then just runs out its timeout instead of
+   * getting a second rate-limit report. This is the correct side of the
+   * tradeoff (a false timeout is far better than the original bug this
+   * method exists to fix — a stale block read as fresh forever), so it is
+   * accepted deliberately, not a defect to fix.
+   */
+  private rateLimitEditComment(
+    candidate: SectionCandidate | undefined,
+    excludeCommentId: string | undefined,
+  ): CodeRabbitComment | undefined {
+    if (
+      candidate === undefined ||
+      !this.hasProsePhrase(candidate.section, RATE_LIMIT_PHRASE_REGEX)
+    ) {
+      return undefined;
+    }
+    const fingerprint = createHash('sha1')
+      .update(candidate.section)
+      .digest('hex')
+      .slice(0, SECTION_FINGERPRINT_LENGTH);
+    const id = `${candidate.id}@${fingerprint}`;
+    return id === excludeCommentId
+      ? undefined
+      : { id, body: candidate.section, submittedAt: candidate.submittedAt };
+  }
+
+  /**
+   * The completion half's candidate, kept only if its section really says
+   * "nothing to report" in prose and covers the PR's current head commit (see
+   * `coversHeadCommit`). Shaped like a formal review so it needs no new
+   * result field.
+   */
+  private completionReview(
+    value: unknown,
+    headRefOid: string | undefined,
+  ): CompletionReview | undefined {
+    const candidate = this.parseCompletionCandidate(value);
     if (
       candidate === undefined ||
       !this.hasProsePhrase(
@@ -429,6 +579,44 @@ export class WaitForPrReviewService {
       submittedAt: candidate.submittedAt,
       author: { login: candidate.author.login },
     };
+  }
+
+  /**
+   * Validates every field either half of the rolling-comment filter is
+   * supposed to have produced. A filter that ever emits something unexpected
+   * — or a `null` half, which is what `[] | first` yields for no match — must
+   * read as "no match" rather than as a half-built signal.
+   */
+  private parseSectionCandidate(value: unknown): SectionCandidate | undefined {
+    if (value === null || typeof value !== 'object') {
+      return undefined;
+    }
+    const { id, submittedAt, section } = value as {
+      id?: unknown;
+      submittedAt?: unknown;
+      section?: unknown;
+    };
+    return typeof id === 'string' &&
+      typeof submittedAt === 'string' &&
+      typeof section === 'string'
+      ? { id, submittedAt, section }
+      : undefined;
+  }
+
+  /** The same validation plus the author the synthesized review needs. */
+  private parseCompletionCandidate(
+    value: unknown,
+  ): CompletionCandidate | undefined {
+    const base = this.parseSectionCandidate(value);
+    if (base === undefined) {
+      return undefined;
+    }
+    const author = (value as { author?: { login?: unknown } }).author;
+    const login =
+      typeof author === 'object' && author !== null ? author.login : undefined;
+    return typeof login === 'string'
+      ? { ...base, author: { login } }
+      : undefined;
   }
 
   /**
@@ -474,38 +662,6 @@ export class WaitForPrReviewService {
     return parsed !== null && typeof parsed === 'object'
       ? (parsed as Record<string, unknown>)
       : undefined;
-  }
-
-  /**
-   * Validates every field the completion filter is supposed to have
-   * produced. The two `gh` calls in one poll answer different shapes, and a
-   * filter that ever emits something unexpected must read as "no match"
-   * rather than as a half-built review.
-   */
-  private parseCompletionCandidate(
-    stdout: string,
-  ): CompletionCandidate | undefined {
-    const parsed = this.parseJsonObject(stdout);
-    if (parsed === undefined) {
-      return undefined;
-    }
-    const { id, submittedAt, section } = parsed as {
-      id?: unknown;
-      submittedAt?: unknown;
-      section?: unknown;
-    };
-    const author = (parsed as { author?: { login?: unknown } }).author;
-    const login =
-      typeof author === 'object' && author !== null ? author.login : undefined;
-    if (
-      typeof id !== 'string' ||
-      typeof submittedAt !== 'string' ||
-      typeof section !== 'string' ||
-      typeof login !== 'string'
-    ) {
-      return undefined;
-    }
-    return { id, submittedAt, author: { login }, section };
   }
 
   /**
@@ -583,6 +739,22 @@ export class WaitForPrReviewService {
   /**
    * Deliberately CodeRabbit-specific — this failure mode and its comment
    * shape are CodeRabbit's own behaviour, unlike review detection above.
+   *
+   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
+   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
+   * summary, a changes table) can incidentally contain this filter's phrase
+   * — notably on a PR whose diff is *about* rate-limit detection, such as
+   * the one that introduced this guard (issue #465's own PR: the walkthrough
+   * summarizing this very change said "prioritizes rate-limit results",
+   * which matched `rate-limit` and produced a false `rateLimited: true`
+   * despite the same comment already reporting a clean, completed review)
+   * — which would otherwise abort the wait on a false positive before any
+   * real review or genuine rate-limit notice exists. A genuine rate-limit
+   * notice is always a short, separate comment (or, since this same fix, a
+   * bounded section behind its own distinct markers — see
+   * `rateLimitEditFilter`) and never carries the walkthrough markers, so
+   * this guard costs nothing in real detection. Same rationale as
+   * `commentUpdateFailedFilter`'s identical guard below.
    */
   private rateLimitFilter(options: WaitForPrReviewOptions): string {
     const excludeClause =
@@ -592,6 +764,7 @@ export class WaitForPrReviewService {
     return (
       '[.comments[] | select(.createdAt != null) | ' +
       'select((.author.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RECENT_REVIEW_START_MARKER)}) | not) | ` +
       `select(((.body // "") | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i")) and ` +
       `(.createdAt | fromdateiso8601) >= ${options.sinceEpochSeconds}` +
       `${excludeClause}) | ` +
@@ -602,19 +775,11 @@ export class WaitForPrReviewService {
   /**
    * Deliberately CodeRabbit-specific, and structurally identical to
    * `rateLimitFilter` — same `.comments[]` source, same author-login
-   * narrowing, same watermark bound, same `[...] | first` wrapping — because
-   * this is the same kind of signal: a top-level comment CodeRabbit posts
-   * *instead of* reviewing. Only the phrase set and the exclusion id differ.
-   *
-   * Also excludes any comment carrying `RECENT_REVIEW_START_MARKER` — i.e.
-   * CodeRabbit's own rolling walkthrough comment. That comment's prose (a
-   * summary, a changes table) can incidentally contain this filter's phrase
-   * — notably on a PR whose diff is *about* this phrase, such as the one
-   * that introduced this filter — which would otherwise abort the wait on a
-   * false positive before any real review or genuine failure notice exists.
-   * The genuine failure notice is always a short, separate comment and never
-   * carries the walkthrough markers, so this guard costs nothing in real
-   * detection.
+   * narrowing, same watermark bound, same `[...] | first` wrapping, same
+   * `RECENT_REVIEW_START_MARKER` exclusion — because this is the same kind
+   * of signal: a top-level comment CodeRabbit posts *instead of* reviewing.
+   * Only the phrase set and the exclusion id differ. See `rateLimitFilter`'s
+   * doc comment for why the marker exclusion is needed.
    */
   private commentUpdateFailedFilter(options: WaitForPrReviewOptions): string {
     const excludeClause =
@@ -685,6 +850,49 @@ export class WaitForPrReviewService {
       `section: (((.body // "") | capture(${JSON.stringify(RECENT_REVIEW_SECTION_PATTERN)})).section // "")}` +
       ` | select(.section | test(${JSON.stringify(NO_ACTIONABLE_COMMENTS_PHRASES)}; "i"))` +
       `${excludeClause}] | first`
+    );
+  }
+
+  /**
+   * Both rolling-comment signals in one jq program, so a poll still makes
+   * exactly two `gh` calls. Each half is independently wrapped in
+   * `[...] | first`, so each emits exactly one value — the first match, or
+   * `null`.
+   */
+  private rollingCommentFilter(options: WaitForPrReviewOptions): string {
+    return (
+      `{completion: (${this.completionFilter(options)}), ` +
+      `rateLimitEdit: (${this.rateLimitEditFilter(options)})}`
+    );
+  }
+
+  /**
+   * Deliberately CodeRabbit-specific, and structurally parallel to
+   * `completionFilter` — same `.[]` REST source, same author-login narrowing,
+   * same `updated_at` watermark, same bounded-section extraction — because it
+   * is the same kind of signal, delivered the same way.
+   *
+   * Two deliberate differences from `completionFilter`:
+   * - No composite id is built here and no exclusion is applied here. The id
+   *   hashes the section's content, which jq cannot do; both happen in
+   *   `rateLimitEditComment`.
+   * - `excludeCommentId`, not `excludeReviewId`, is the exclusion that
+   *   eventually applies — this is a rate-limit signal, the same logical
+   *   thing `rateLimitFilter` produces, and callers already round-trip it as
+   *   `--exclude-comment-id`.
+   *
+   * The phrase test here is the coarse first pass; `hasProsePhrase` in
+   * TypeScript is the authoritative one.
+   */
+  private rateLimitEditFilter(options: WaitForPrReviewOptions): string {
+    return (
+      '[.[] | select(.updated_at != null) | ' +
+      'select((.user.login // "") | test("coderabbit"; "i")) | ' +
+      `select((.body // "") | contains(${JSON.stringify(RATE_LIMIT_EDIT_START_MARKER)})) | ` +
+      `select((.updated_at | fromdateiso8601) >= ${options.sinceEpochSeconds}) | ` +
+      '{id: (.id | tostring), submittedAt: .updated_at, ' +
+      `section: (((.body // "") | capture(${JSON.stringify(RATE_LIMIT_EDIT_SECTION_PATTERN)})).section // "")}` +
+      ` | select(.section | test(${JSON.stringify(RATE_LIMIT_PHRASES)}; "i"))] | first`
     );
   }
 
