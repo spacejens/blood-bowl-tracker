@@ -19,6 +19,7 @@ import { TeamsStatisticsService } from './teams-statistics.service';
 describe('TeamsService lookups', () => {
   let service: TeamsService;
   let likePattern: MockProxy<LikePatternService>;
+  let statistics: MockProxy<TeamsStatisticsService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -28,8 +29,8 @@ describe('TeamsService lookups', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [
         TeamsService,
-        TeamsStatisticsService,
         { provide: LikePatternService, useValue: likePattern },
+        { provide: TeamsStatisticsService, useValue: statistics },
         { provide: DB, useValue: db },
       ],
     }).compile();
@@ -39,6 +40,7 @@ describe('TeamsService lookups', () => {
 
   beforeEach(() => {
     likePattern = mock<LikePatternService>();
+    statistics = mock<TeamsStatisticsService>();
   });
 
   describe('searchByNamePrefix', () => {
@@ -146,30 +148,22 @@ describe('TeamsService lookups', () => {
   });
 
   describe('getTopPlayersByMatchEventCount', () => {
-    it('returns players ranked by total match events, capped to the limit', async () => {
+    it('delegates to TeamsStatisticsService and returns its result', async () => {
       const rows = [
         { playerId: 1, name: 'Griff', count: 20 },
         { playerId: 2, name: 'Morg', count: 11 },
       ];
-      const { chains } = await build(rows);
-      await expect(
-        service.getTopPlayersByMatchEventCount(7, 10),
-      ).resolves.toEqual(rows);
-      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(7);
-      expect(chains[0].limit).toHaveBeenCalledWith(10);
-    });
+      statistics.getTopPlayersByMatchEventCount.mockResolvedValue(rows);
+      await build();
 
-    it('sums events of different types into one total per player', async () => {
-      // The query GROUP BYs the player and COUNTs every matched row regardless
-      // of action type, so a player with touchdowns + casualties + fouls
-      // surfaces as a single summed count. The mock returns the already-summed
-      // shape the SQL would produce; this pins the pass-through and limit.
-      const rows = [{ playerId: 1, name: 'Griff', count: 37 }];
-      const { chains } = await build(rows);
       await expect(
         service.getTopPlayersByMatchEventCount(7, 10),
       ).resolves.toEqual(rows);
-      expect(chains[0].limit).toHaveBeenCalledWith(10);
+
+      expect(statistics.getTopPlayersByMatchEventCount).toHaveBeenCalledWith(
+        7,
+        10,
+      );
     });
   });
 
