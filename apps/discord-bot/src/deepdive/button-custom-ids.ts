@@ -27,6 +27,9 @@ export const RACE_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:race:';
 /** Prefix for competition deepdive button customIds: `deepdive:competition:<id>`. */
 export const COMPETITION_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:competition:';
 
+/** Prefix for trophy deepdive button customIds: `deepdive:trophy:<id>`. */
+export const TROPHY_BUTTON_CUSTOM_ID_PREFIX = 'deepdive:trophy:';
+
 /**
  * Every routing prefix a drill-down button can use. Narrowing
  * `EntityComponentEntry.customIdPrefix` to this union (rather than `string`)
@@ -41,4 +44,5 @@ export type ButtonCustomIdPrefix =
   | typeof TEAM_BUTTON_CUSTOM_ID_PREFIX
   | typeof PLAYER_BUTTON_CUSTOM_ID_PREFIX
   | typeof RACE_BUTTON_CUSTOM_ID_PREFIX
-  | typeof COMPETITION_BUTTON_CUSTOM_ID_PREFIX;
+  | typeof COMPETITION_BUTTON_CUSTOM_ID_PREFIX
+  | typeof TROPHY_BUTTON_CUSTOM_ID_PREFIX;

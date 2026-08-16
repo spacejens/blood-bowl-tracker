@@ -136,3 +136,11 @@ export const DEEPDIVE_COMPETITION_TEAM_CONTEXT_TIMEOUT_MESSAGE =
   'The clerk is still tracking down which races and coaches turned up to this competition.';
 export const DEEPDIVE_COMPETITION_NO_TEAMS_MESSAGE =
   'Not a single team has signed up for this competition yet.';
+export const DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE =
+  'No such trophy has ever been polished in this cabinet.';
+export const DEEPDIVE_TROPHY_TIMEOUT_MESSAGE =
+  'The curator is still fumbling with the keys to the trophy cabinet.';
+export const DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE =
+  'The engraver is still working down the list of names on the plinth.';
+export const DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE =
+  'Nobody has got their hands on this one yet.';
