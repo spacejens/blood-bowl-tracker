@@ -306,6 +306,54 @@ describe('BblTrophyAwardsImportService', () => {
     );
   });
 
+  it('reports a summary error for further rows dropped by an already-failed label', async () => {
+    const rowsByCompetitionId = new Map<string, CompetitionTrophyRows>([
+      [
+        '1',
+        {
+          teamTrophies: [],
+          playerPrizes: [
+            { label: 'Made Up Prize', pid: '102' },
+            { label: 'Made Up Prize', pid: '103' },
+          ],
+        },
+      ],
+      [
+        '2',
+        {
+          teamTrophies: [{ label: 'Made Up Prize', teamCode: 'sew' }],
+          playerPrizes: [],
+        },
+      ],
+    ]);
+    const { service, mocks } = await makeService(rowsByCompetitionId);
+    mocks.trophiesImport.upsertTrophy.mockResolvedValue(undefined);
+
+    await service.importTrophyAwards(
+      options({
+        competitionIdsByBblId: new Map([
+          ['1', 11],
+          ['2', 12],
+        ]),
+        teamEraIdsByCompetitionBblId: new Map([
+          ['1', new Map([['sew', 21]])],
+          ['2', new Map([['sew', 22]])],
+        ]),
+      }),
+    );
+
+    // The label is resolved (and its failure recorded by
+    // TrophiesImportService) once; the two later rows that also referenced it
+    // are dropped silently unless a summary error is added for them.
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(1);
+    const { errors } = resultArgs(mocks.importResults);
+    const summaryErrors = errors.filter((error) =>
+      error.message.includes('2 further'),
+    );
+    expect(summaryErrors).toHaveLength(1);
+    expect(summaryErrors[0].message).toContain('Made Up Prize');
+  });
+
   it('bails with the bootstrap error when the external system cannot be upserted', async () => {
     const { service, mocks } = await makeService(
       rows([{ label: 'Major 1st', teamCode: 'sew' }]),

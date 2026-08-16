@@ -25,6 +25,13 @@ export interface ImportBblTrophyAwardsOptions {
 interface RunContext {
   trophyIdsByLabel: Map<string, number | undefined>;
   bblSystemId: number;
+  /**
+   * Count, per label already known to be unresolvable, of further award rows
+   * that referenced it and were dropped without their own error (since
+   * TrophiesImportService only records the resolution failure once, the
+   * first time the label is seen).
+   */
+  droppedRowCountsByLabel: Map<string, number>;
 }
 
 /**
@@ -93,6 +100,7 @@ export class BblTrophyAwardsImportService {
     const runContext: RunContext = {
       trophyIdsByLabel: new Map<string, number | undefined>(),
       bblSystemId,
+      droppedRowCountsByLabel: new Map<string, number>(),
     };
 
     for (const [competitionBblId, rows] of rowsByCompetitionId) {
@@ -180,6 +188,18 @@ export class BblTrophyAwardsImportService {
       }
     }
 
+    for (const [label, droppedCount] of runContext.droppedRowCountsByLabel) {
+      errors.push(
+        this.importResults.error({
+          item: { trophy: label },
+          message:
+            `Skipped ${droppedCount} further award row(s) referencing the ` +
+            `"${label}" trophy label: it could not be resolved (see the ` +
+            `earlier error for this label).`,
+        }),
+      );
+    }
+
     return { result: this.importResults.result({ imported, errors }) };
   }
 
@@ -187,7 +207,10 @@ export class BblTrophyAwardsImportService {
    * The catalog trophy whose BBL external id is this exact label, or
    * `undefined` when it cannot be resolved (in which case
    * TrophiesImportService has already recorded the failure on `errors`).
-   * Memoized per run, including failures.
+   * Memoized per run, including failures. Every row after the first that
+   * hits an already-known-bad label is counted in
+   * `context.run.droppedRowCountsByLabel` rather than reported individually,
+   * so the caller can add one summary error per label once the run ends.
    */
   private async resolveTrophyId(
     label: string,
@@ -195,7 +218,15 @@ export class BblTrophyAwardsImportService {
     errors: ImportError[],
   ): Promise<number | undefined> {
     if (context.run.trophyIdsByLabel.has(label)) {
-      return context.run.trophyIdsByLabel.get(label);
+      const trophyId = context.run.trophyIdsByLabel.get(label);
+      if (trophyId === undefined) {
+        const { droppedRowCountsByLabel } = context.run;
+        droppedRowCountsByLabel.set(
+          label,
+          (droppedRowCountsByLabel.get(label) ?? 0) + 1,
+        );
+      }
+      return trophyId;
     }
     const trophy = await this.trophiesImport.upsertTrophy(
       {
