@@ -156,6 +156,7 @@ export class CompetitionsService {
         type: 'season' | 'cup';
         eraId: number;
         eraName: string;
+        competitionGroupId: number;
         startDate: string;
         endDate: string | null;
       }
@@ -168,6 +169,7 @@ export class CompetitionsService {
         type: competitions.type,
         eraId: competitions.eraId,
         eraName: eras.name,
+        competitionGroupId: competitions.competitionGroupId,
         startDate: competitions.startDate,
         endDate: competitions.endDate,
       })
@@ -216,6 +218,41 @@ export class CompetitionsService {
       .leftJoin(matches, eq(matches.competitionId, competitions.id))
       .where(eq(competitions.eraId, eraId))
       .groupBy(competitions.id)
+      .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
+  }
+
+  /**
+   * Every competition belonging to one recurring group, oldest first. Mirrors
+   * `listByEraChronological`: the left join on matches keeps competitions that
+   * have no matches yet, `groupBy` collapses that join back to one row per
+   * competition, and `min(playedAt) asc nulls last` sorts never-played
+   * competitions after every dated one. Each competition's era name comes
+   * along so the group deepdive can say which era an instance ran in.
+   */
+  listByCompetitionGroupChronological(competitionGroupId: number): Promise<
+    {
+      id: number;
+      name: string;
+      eraId: number;
+      eraName: string;
+      startDate: string;
+      endDate: string | null;
+    }[]
+  > {
+    return this.db
+      .select({
+        id: competitions.id,
+        name: competitions.name,
+        eraId: competitions.eraId,
+        eraName: eras.name,
+        startDate: competitions.startDate,
+        endDate: competitions.endDate,
+      })
+      .from(competitions)
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .leftJoin(matches, eq(matches.competitionId, competitions.id))
+      .where(eq(competitions.competitionGroupId, competitionGroupId))
+      .groupBy(competitions.id, eras.id)
       .orderBy(sql`min(${matches.playedAt}) asc nulls last`);
   }
 

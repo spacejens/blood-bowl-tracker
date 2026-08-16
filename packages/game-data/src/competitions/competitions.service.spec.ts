@@ -408,6 +408,70 @@ describe('CompetitionsService', () => {
     });
   });
 
+  describe('listByCompetitionGroupChronological', () => {
+    it('returns the group competitions the query resolves to', async () => {
+      const rows = [
+        {
+          id: 1,
+          name: 'Chaos Cup 23',
+          eraId: 20,
+          eraName: 'BB2020',
+          startDate: '2023-10-01',
+          endDate: '2023-10-02',
+        },
+        {
+          id: 2,
+          name: 'Chaos Cup 24',
+          eraId: 21,
+          eraName: 'BB2020 v2',
+          startDate: '2024-10-01',
+          endDate: null,
+        },
+      ];
+      const { db, chains } = await build(rows);
+
+      await expect(
+        service.listByCompetitionGroupChronological(4),
+      ).resolves.toEqual(rows);
+      expect(db.select).toHaveBeenCalledTimes(1);
+      // filtered to the requested competition group
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      expect(extractFilterValues(firstCallArg(chains[0].where))).toBe(4);
+      // grouped so the min-match-date aggregate is per competition
+      expect(chains[0].groupBy).toHaveBeenCalledTimes(1);
+      // ordered (earliest-match-date asc, nulls last)
+      expect(chains[0].orderBy).toHaveBeenCalledTimes(1);
+      // left join keeps competitions that have no matches yet
+      expect(chains[0].leftJoin).toHaveBeenCalledTimes(1);
+      // inner join resolves each competition's era name
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['eras.id', 'competitions.era_id']);
+    });
+
+    it('selects the era and the dates so callers can render a line per competition', async () => {
+      const { db } = await build([]);
+
+      await service.listByCompetitionGroupChronological(4);
+      expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
+        'id',
+        'name',
+        'eraId',
+        'eraName',
+        'startDate',
+        'endDate',
+      ]);
+    });
+
+    it('returns an empty array when the group has no competitions', async () => {
+      await build([]);
+
+      await expect(
+        service.listByCompetitionGroupChronological(4),
+      ).resolves.toEqual([]);
+    });
+  });
+
   describe('findByIdWithEra', () => {
     it('returns the competition joined with its era name', async () => {
       const row = {
@@ -416,6 +480,7 @@ describe('CompetitionsService', () => {
         type: 'season',
         eraId: 20,
         eraName: 'BB2020',
+        competitionGroupId: 4,
         startDate: '2024-01-15',
         endDate: '2024-06-30',
       };
@@ -423,7 +488,7 @@ describe('CompetitionsService', () => {
       await expect(service.findByIdWithEra(1)).resolves.toEqual(row);
     });
 
-    it('selects the competition dates so the deepdive can render a duration', async () => {
+    it('selects the competition group id and dates so the deepdive can link and render a duration', async () => {
       const { db } = await build([]);
       await service.findByIdWithEra(1);
       expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
@@ -432,6 +497,7 @@ describe('CompetitionsService', () => {
         'type',
         'eraId',
         'eraName',
+        'competitionGroupId',
         'startDate',
         'endDate',
       ]);
