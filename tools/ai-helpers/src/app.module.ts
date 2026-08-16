@@ -11,8 +11,10 @@ import { ChildProcessService } from './shared/child-process.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { ProcessRunnerService } from './shared/process-runner.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
+import { PullRequestReviewCommentsService } from './wait-for-pr-review/pull-request-review-comments.service';
 import { WaitForPrReviewService } from './wait-for-pr-review/wait-for-pr-review.service';
 import { WaitForPrReviewArgsService } from './wait-for-pr-review/wait-for-pr-review-args.service';
+import { WaitForPrReviewFiltersService } from './wait-for-pr-review/wait-for-pr-review-filters.service';
 import { WriteFileService } from './write-file/write-file.service';
 
 @Module({
@@ -27,6 +29,8 @@ import { WriteFileService } from './write-file/write-file.service';
     CheckDriftService,
     WriteFileService,
     WaitForPrReviewService,
+    WaitForPrReviewFiltersService,
+    PullRequestReviewCommentsService,
     WaitForPrReviewArgsService,
     CheckProductionConfigPortService,
     ChildProcessService,
