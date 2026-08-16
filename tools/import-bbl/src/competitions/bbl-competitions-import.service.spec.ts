@@ -95,6 +95,26 @@ const CANNED_RANGE: MatchDateRange = {
   spanDays: 11,
 };
 
+/**
+ * A canned full-row `upsertCompetitionResult` response for a given id. This
+ * spec only asserts what the service under test passes to
+ * upsertCompetitionResult and how it reads `.id` from the resolved value —
+ * the other fields are unused filler needed only to satisfy the widened
+ * return type (see packages/import/src/competitions-import.service.ts).
+ */
+const upsertedCompetition = (id: number) => ({
+  id,
+  name: 'Some competition',
+  type: 'season' as const,
+  eraId: 1,
+  teamEraIds: [],
+  startDate: '2024-01-01',
+  endDate: '2024-06-01',
+  competitionGroupId: 1,
+  createdAt: new Date('2026-01-01'),
+  created: true,
+});
+
 /** A fake page carrying only params; its load() must never be called (parser is mocked). */
 function page(type: string, params: Record<string, string>): BblPage {
   return {
@@ -216,9 +236,9 @@ describe('BblCompetitionsImportService', () => {
     mocks.matchListReader.getMatchesByCompetitionId.mockResolvedValue(
       matchesByCompetition({ '1': dates }),
     );
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 42,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(42),
+    );
 
     await service.importCompetitions(eraIdsByName);
 
@@ -251,9 +271,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2013, 4, 5)),
       spanDays: 1,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 30,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(30),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -295,9 +315,9 @@ describe('BblCompetitionsImportService', () => {
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
     ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 74,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(74),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -345,9 +365,9 @@ describe('BblCompetitionsImportService', () => {
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
     ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 74,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(74),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'BB2020', rulesSets: ['BB2020'] },
@@ -410,9 +430,9 @@ describe('BblCompetitionsImportService', () => {
         ],
       }),
     );
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 42,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(42),
+    );
 
     const { competitionsByBblId, competitionIdsByBblId } =
       await service.importCompetitions(eraIdsByName);
@@ -464,9 +484,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2021, 9, 4)),
       spanDays: 2,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 7,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(7),
+    );
 
     await service.importCompetitions(eraIdsByName);
 
@@ -621,9 +641,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2012, 5, 1)),
       spanDays: 152,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 1,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(1),
+    );
 
     await service.importCompetitions(eraIdsByName);
 
@@ -653,9 +673,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2012, 5, 1)),
       spanDays: 152,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 1,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(1),
+    );
 
     await service.importCompetitions(eraIdsByName);
 
@@ -755,9 +775,9 @@ describe('BblCompetitionsImportService', () => {
     mocks.listParser.extractCompetitions.mockReturnValue([
       { bblId: '74', name: 'Minor Season 25' },
     ]);
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 74,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(74),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -828,9 +848,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2012, 0, 2)),
       spanDays: 1,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 74,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(74),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -882,9 +902,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2016, 10, 25)),
       spanDays: 6,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 33,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(33),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -936,9 +956,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date(Date.UTC(2016, 2, 12)),
       spanDays: 0,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 30,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(30),
+    );
     mocks.eraConfig.getEras.mockReturnValue([
       {
         identity: { name: 'Living rulebook', rulesSets: ['Living rulebook'] },
@@ -1035,8 +1055,8 @@ describe('BblCompetitionsImportService', () => {
         spanDays: 0,
       });
     mocks.competitionsImport.upsertCompetitionResult
-      .mockResolvedValueOnce({ id: 1 })
-      .mockResolvedValueOnce({ id: 30 });
+      .mockResolvedValueOnce(upsertedCompetition(1))
+      .mockResolvedValueOnce(upsertedCompetition(30));
 
     const { competitionsByBblId } = await service.importCompetitions(eraIds);
 
@@ -1080,9 +1100,9 @@ describe('BblCompetitionsImportService', () => {
       latestDate: new Date('2019-08-03'),
       spanDays: 0,
     });
-    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue({
-      id: 1,
-    });
+    mocks.competitionsImport.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(1),
+    );
 
     await service.importCompetitions(eraIds);
 

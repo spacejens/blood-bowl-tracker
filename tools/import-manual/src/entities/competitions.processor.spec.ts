@@ -27,6 +27,26 @@ function emptyData(): ManualDataFile {
   };
 }
 
+/**
+ * A canned full-row `upsertCompetitionResult` response for a given id. This
+ * spec only asserts what the processor passes to upsertCompetitionResult and
+ * how it reads `.id` from the resolved value — the other fields are unused
+ * filler needed only to satisfy the widened return type (see
+ * packages/import/src/competitions-import.service.ts).
+ */
+const upsertedCompetition = (id: number) => ({
+  id,
+  name: 'Some competition',
+  type: 'season' as const,
+  eraId: 1,
+  teamEraIds: [],
+  startDate: '2024-01-01',
+  endDate: '2024-06-01',
+  competitionGroupId: 1,
+  createdAt: new Date('2026-01-01'),
+  created: true,
+});
+
 function makeContext(
   data: ManualDataFile,
   idMap: ExternalIdMap,
@@ -62,7 +82,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('resolves the era ref, upserts, and records the id', async () => {
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 77 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(77),
+    );
     // Call 1 is the era ref; call 2 is the (absent) competition group.
     refResolver.resolveOptionalRef
       .mockReturnValueOnce({ ok: true, id: 3 })
@@ -106,7 +128,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('passes a cup type through unchanged', async () => {
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 78 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(78),
+    );
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -130,7 +154,9 @@ describe('CompetitionsProcessor', () => {
     // competitions.start_date is NOT NULL with no default, so the
     // before-other-importers phase's create path (issue #344) depends on
     // these reaching the API untouched.
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 79 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(79),
+    );
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -153,7 +179,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('passes both dates through as undefined for an entry that omits them', async () => {
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 80 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(80),
+    );
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -197,7 +225,9 @@ describe('CompetitionsProcessor', () => {
   });
 
   it('passes eraId and type through as undefined for a rename-only entry', async () => {
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 77 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(77),
+    );
     refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
@@ -255,7 +285,9 @@ describe('CompetitionsProcessor', () => {
     refResolver.resolveOptionalRef
       .mockReturnValueOnce({ ok: true, id: 3 })
       .mockReturnValueOnce({ ok: true, id: 4 });
-    competitions.upsertCompetitionResult.mockResolvedValue({ id: 8 });
+    competitions.upsertCompetitionResult.mockResolvedValue(
+      upsertedCompetition(8),
+    );
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
