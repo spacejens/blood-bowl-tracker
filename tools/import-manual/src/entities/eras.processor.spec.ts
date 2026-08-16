@@ -90,10 +90,13 @@ describe('ErasProcessor', () => {
 
     expect(count).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
-      expect.objectContaining({ ref: data.eras[0].league }),
+      expect.objectContaining({ ref: data.eras[0].league, kind: 'league' }),
     );
     expect(refResolver.resolveRefs).toHaveBeenCalledWith(
-      expect.objectContaining({ refs: data.eras[0].rulesSets }),
+      expect.objectContaining({
+        refs: data.eras[0].rulesSets,
+        kind: 'rulesSet',
+      }),
     );
     // The processor must wire each canned resolver output into the exact
     // field the upsert call expects -- not just pass some id through.
@@ -108,9 +111,9 @@ describe('ErasProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' })).toBe(
-      50,
-    );
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' }, 'era'),
+    ).toBe(50);
   });
 
   it('passes endDate through when present', async () => {

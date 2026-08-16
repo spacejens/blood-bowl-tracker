@@ -97,6 +97,20 @@ describe('SppAwardValuesProcessor', () => {
       },
       ctx.errors,
     );
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: { system: 'Name', id: 'BB2025' },
+        kind: 'rulesSet',
+      }),
+    );
+    // The kind is what keeps this ref off the competition that shares BBL's
+    // numeric id space with races (issue #480).
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: { system: 'Name', id: 'Orc' },
+        kind: 'race',
+      }),
+    );
   });
 
   it('skips an entry whose rules set cannot be resolved and still syncs the rest', async () => {

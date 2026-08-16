@@ -23,6 +23,7 @@ export class ErasProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'league',
       });
       // The rules-set list defaults to [], and the API's sync is additive, so
       // an omitted list resolves to [] and changes nothing -- no conditional
@@ -33,6 +34,7 @@ export class ErasProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'rulesSet',
       });
       if (!league.ok || rulesSetIds === undefined) {
         continue;
@@ -52,7 +54,7 @@ export class ErasProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'era');
         imported += 1;
       }
     }

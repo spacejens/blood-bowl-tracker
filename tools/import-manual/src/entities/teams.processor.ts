@@ -24,6 +24,7 @@ export class TeamsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'race',
       });
       const coach = this.refResolver.resolveOptionalRef({
         ref: entry.coach,
@@ -31,6 +32,7 @@ export class TeamsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'coach',
       });
       // eras defaults to [] and the API's era sync is additive, so an omitted
       // list resolves to [] and leaves the team's existing eras alone.
@@ -40,6 +42,7 @@ export class TeamsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'era',
       });
       if (!race.ok || !coach.ok || eras === undefined) {
         continue;
@@ -58,7 +61,7 @@ export class TeamsProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'team');
         imported += 1;
       }
     }

@@ -20,6 +20,7 @@ export class RacesProcessor {
         errors: ctx.errors,
         item: entry,
         label: `Cannot import race "${entry.name}"`,
+        kind: 'era',
       });
       if (eras === undefined) {
         continue;
@@ -36,7 +37,7 @@ export class RacesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'race');
         imported += 1;
       }
     }

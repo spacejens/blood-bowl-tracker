@@ -85,7 +85,9 @@ describe('LeaguesProcessor', () => {
       { name: 'My League', externalIds: cannedExternalIds },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:my-league' })).toBe(3);
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'name:my-league' }, 'league'),
+    ).toBe(3);
   });
 
   it('does not record ids or count when the upsert fails', async () => {
@@ -103,7 +105,7 @@ describe('LeaguesProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:my-league' }),
+      ctx.idMap.resolve({ system: 'Name', id: 'name:my-league' }, 'league'),
     ).toBeUndefined();
   });
 });

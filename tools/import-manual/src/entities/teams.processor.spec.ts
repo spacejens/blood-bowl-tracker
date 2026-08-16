@@ -104,8 +104,17 @@ describe('TeamsProcessor', () => {
       ctx.errors,
     );
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:grave-diggers' }),
+      ctx.idMap.resolve({ system: 'Name', id: 'name:grave-diggers' }, 'team'),
     ).toBe(99);
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: data.teams[0].race, kind: 'race' }),
+    );
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({ ref: data.teams[0].coach, kind: 'coach' }),
+    );
+    expect(refResolver.resolveRefs).toHaveBeenCalledWith(
+      expect.objectContaining({ refs: data.teams[0].eras, kind: 'era' }),
+    );
   });
 
   it('upserts a team with no eras', async () => {

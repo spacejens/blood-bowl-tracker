@@ -83,7 +83,9 @@ describe('RulesSetsProcessor', () => {
       { name: 'CRP', externalIds: cannedExternalIds },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:crp' })).toBe(7);
+    expect(
+      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }, 'rulesSet'),
+    ).toBe(7);
   });
 
   it('does not record ids or count when the upsert fails', async () => {
@@ -103,7 +105,7 @@ describe('RulesSetsProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }),
+      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }, 'rulesSet'),
     ).toBeUndefined();
   });
 });

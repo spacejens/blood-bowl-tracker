@@ -91,7 +91,7 @@ describe('RacesProcessor', () => {
 
     expect(count).toBe(1);
     expect(refResolver.resolveRefs).toHaveBeenCalledWith(
-      expect.objectContaining({ refs: data.races[0].eras }),
+      expect.objectContaining({ refs: data.races[0].eras, kind: 'era' }),
     );
     expect(races.upsertRace).toHaveBeenCalledWith(
       {
@@ -101,7 +101,7 @@ describe('RacesProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'BBL', id: 'id:47' })).toBe(40);
+    expect(ctx.idMap.resolve({ system: 'BBL', id: 'id:47' }, 'race')).toBe(40);
   });
 
   it('upserts a race with no eras (empty list)', async () => {
@@ -174,7 +174,7 @@ describe('RacesProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      idMap.resolve({ system: 'Name', id: 'name:null-race' }),
+      idMap.resolve({ system: 'Name', id: 'name:null-race' }, 'race'),
     ).toBeUndefined();
   });
 
@@ -203,5 +203,37 @@ describe('RacesProcessor', () => {
       eras: [],
       externalIds: [],
     });
+  });
+
+  it('registers a race under the race kind even when a competition already claimed that external id', async () => {
+    refResolver.resolveRefs.mockReturnValue([]);
+    races.upsertRace.mockResolvedValue({
+      id: 40,
+      name: 'Black Orc',
+      eras: [],
+      createdAt: new Date(),
+      created: true,
+    });
+    const idMap = new ExternalIdMap();
+    // A competition already registered BBL id 44 — BBL numbers races and
+    // competitions in separate, overlapping sequences (issue #480).
+    idMap.add([{ system: 'tloeg.bbleague.se', id: '44' }], 77, 'competition');
+    const data = emptyData();
+    data.races = [
+      {
+        name: 'Black Orc',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '44' }],
+        eras: [],
+      },
+    ];
+
+    await processor.process(makeContext(data, idMap));
+
+    expect(
+      idMap.resolve({ system: 'tloeg.bbleague.se', id: '44' }, 'race'),
+    ).toBe(40);
+    expect(
+      idMap.resolve({ system: 'tloeg.bbleague.se', id: '44' }, 'competition'),
+    ).toBe(77);
   });
 });

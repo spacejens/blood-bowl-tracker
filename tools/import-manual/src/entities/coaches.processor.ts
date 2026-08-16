@@ -25,7 +25,7 @@ export class CoachesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'coach');
         imported += 1;
       }
     }
