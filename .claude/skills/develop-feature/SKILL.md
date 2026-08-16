@@ -242,7 +242,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    - **Drop** — the finding is incorrect, or is already covered by separately tracked or planned work. No record is kept, no PR comment is posted, and it is not raised again.
    - **Question** — there is genuinely more than one reasonable fix and you cannot determine which the developer would prefer. Record it in the **pending-questions list** carried forward to Phase 6. Each entry keeps the repo-relative file path and the line number; its body is a question you draft that names the actual options under consideration — not the raw finding text restated as an unaddressed issue.
 
-   A Minor finding is never left as-is: every one ends as a Fix, a Drop, or a Question. After classifying, run `pnpm verify` **once** for the whole batch of Fix changes made in this step and commit them; if nothing was classified Fix, skip both.
+   A Minor finding is never left as-is: every one ends as a Fix, a Drop, or a Question. After classifying, run `pnpm verify` **once** for the whole batch of Fix changes made in this step and commit them; if nothing was classified Fix, skip both. If every Fix change touches only files outside `apps/`, `packages/`, and `tools/` (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note why, per Phase 4 step 5's same rule.
 5. Print a brief status line — iterations run, that the review is clean by step 3's definition, and how many Minor findings were fixed, dropped, and carried forward as pending questions (the pending-questions list may be empty; that remains the normal case) — then continue immediately into Phase 6, carrying the pending-questions list forward.
 
 ---
@@ -331,7 +331,7 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
    ]
    QUESTIONSEOF
    ```
-   Substitute the PR placeholder with the PR number from step 3.
+   Substitute `<PR>` with the PR number from step 3.
 
    The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many questions were posted inline, how many as top-level comments, and how many failed — naming each failed question's file, line, and error, so the developer can post it by hand if they care.
 

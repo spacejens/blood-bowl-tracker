@@ -223,7 +223,7 @@ describe('PostReviewQuestionsService', () => {
     const questionTwo: ReviewQuestion = {
       file: 'src/bar.ts',
       line: 7,
-      body: 'Another finding.',
+      body: 'Another question.',
     };
     processRunner.run
       .mockResolvedValueOnce(HEAD_SHA_RESULT)
@@ -275,7 +275,7 @@ describe('PostReviewQuestionsService', () => {
     expect(result.posted).toEqual([]);
   });
 
-  it('routes an otherwise-in-diff finding to the top-level fallback when the head-SHA call exits non-zero', async () => {
+  it('routes an otherwise-in-diff question to the top-level fallback when the head-SHA call exits non-zero', async () => {
     processRunner.run
       .mockResolvedValueOnce(
         processResult({ exitCode: 1, stderr: 'not found' }),
