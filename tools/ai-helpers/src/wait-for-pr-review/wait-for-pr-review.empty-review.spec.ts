@@ -9,6 +9,7 @@ import {
   EMPTY_BODY_FOUND,
   EMPTY_BODY_REVIEW,
   FOUND,
+  jqProgramOf,
   OPTIONS,
   REVIEW,
   rollingResult,
@@ -135,8 +136,8 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     const prViewCalls = processRunner.run.mock.calls.filter(
       ([, args]) => args[0] === 'pr',
     );
-    expect(prViewCalls[0][1][6]).not.toContain('.id !=');
-    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_empty1"');
+    expect(jqProgramOf(prViewCalls[0][1])).not.toContain('.id !=');
+    expect(jqProgramOf(prViewCalls[1][1])).toContain('.id != "PRR_empty1"');
     // The artifact is verified once, not re-verified on every later poll.
     expect(reviewComments.hasInlineComments).toHaveBeenCalledTimes(1);
   });
@@ -157,9 +158,9 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     const prViewCalls = processRunner.run.mock.calls.filter(
       ([, args]) => args[0] === 'pr',
     );
-    expect(prViewCalls[0][1][6]).toContain('.id != "PRR_previous"');
-    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_previous"');
-    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_empty1"');
+    expect(jqProgramOf(prViewCalls[0][1])).toContain('.id != "PRR_previous"');
+    expect(jqProgramOf(prViewCalls[1][1])).toContain('.id != "PRR_previous"');
+    expect(jqProgramOf(prViewCalls[1][1])).toContain('.id != "PRR_empty1"');
   });
 
   it('does not let a discarded artifact drop the caller-supplied exclusion, letting an already-handled review re-match', async () => {
@@ -169,15 +170,17 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     // the caller's original `excludeReviewId` was dropped. On the buggy code
     // (which overwrites `excludeReviewId` with the discarded artifact's id),
     // poll 2's jq program excludes `PRR_empty1` but not `PRR_previous`, so
-    // this mock reports `PRR_previous` as newly found — a real regression of
-    // the exact bug issue #474 exists to fix. On the fixed code, poll 2's jq
+    // this mock reports `FOUND` (the `PRR_review1` fixture) as newly found —
+    // standing in for jq re-matching the already-handled `PRR_previous`
+    // review once its exclusion was lost, a real regression of the exact bug
+    // issue #474 exists to fix. On the fixed code, poll 2's jq
     // program still excludes `PRR_previous`, so this mock reports nothing,
     // and the wait times out instead of returning a false `found: true`.
     processRunner.run.mockImplementation((_command, args) => {
       if (args[0] === 'api') {
         return Promise.resolve(rollingResult({}));
       }
-      const jqProgram = args[6];
+      const jqProgram = jqProgramOf(args);
       if (jqProgram.includes('.id != "PRR_empty1"')) {
         // Poll 2 (or later): simulate jq re-matching the already-handled
         // review only when the original exclusion was lost.

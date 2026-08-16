@@ -69,6 +69,17 @@ export const COMMENT_UPDATE_FAILED_COMMENT = {
  */
 export const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
 
+/**
+ * Locates the `--jq` program text within a `gh` call's args, by finding the
+ * `--jq` flag rather than assuming a fixed positional index. Indexing
+ * directly (e.g. `args[6]`) is brittle: an inserted `gh` flag elsewhere would
+ * silently shift that index and the assertion would then read the wrong
+ * string without failing loudly.
+ */
+export function jqProgramOf(args: readonly string[]): string {
+  return args[args.indexOf('--jq') + 1];
+}
+
 /** A `gh pr view` invocation whose review half matched the given review. */
 export function foundReview(review: unknown) {
   return {

@@ -8,6 +8,7 @@ import {
   COMMENT_UPDATE_FAILED_PHRASES,
   NO_ACTIONABLE_COMMENTS_PHRASES,
   RATE_LIMIT_PHRASES,
+  WaitForPrReviewFilterOptions,
   WaitForPrReviewFiltersService,
 } from './wait-for-pr-review-filters.service';
 
@@ -115,12 +116,24 @@ interface PollOutcome {
 }
 
 /**
+ * `WaitForPrReviewOptions` plus the locally-accumulated discard exclusion
+ * `run()` layers on top of it. Declared so every internal hop this object
+ * takes (`poll`, `pollReviews`, `RollingCommentPollContext.options`) is
+ * type-checked to actually carry `excludeReviewIds` through, rather than
+ * relying on it surviving as an unchecked excess property — a future
+ * refactor that rebuilds this object field-by-field would otherwise drop it
+ * silently, with no type error.
+ */
+type PollOptions = WaitForPrReviewOptions &
+  Pick<WaitForPrReviewFilterOptions, 'excludeReviewIds'>;
+
+/**
  * `pollRollingComment`'s inputs bundled into one object: `options` alone plus
  * `headRefOid` would be a 4th positional parameter, over this repo's
  * 3-parameter limit (`local/max-function-params`).
  */
 interface RollingCommentPollContext {
-  readonly options: WaitForPrReviewOptions;
+  readonly options: PollOptions;
   /** The PR's current head commit; `undefined` when the reviews call could not report it. */
   readonly headRefOid: string | undefined;
 }
@@ -293,7 +306,10 @@ export class WaitForPrReviewService {
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
       }
-      if (outcome?.discardedEmptyReviewId !== undefined) {
+      if (
+        outcome?.discardedEmptyReviewId !== undefined &&
+        !discardedReviewIds.includes(outcome.discardedEmptyReviewId)
+      ) {
         discardedReviewIds.push(outcome.discardedEmptyReviewId);
       }
       // Checked here — after a formal review has ruled itself out, but
@@ -350,7 +366,7 @@ export class WaitForPrReviewService {
    * doubling its own cost.
    */
   private async poll(
-    options: WaitForPrReviewOptions,
+    options: PollOptions,
     deadline: number,
     intervalMs: number,
   ): Promise<PollOutcome | undefined> {
@@ -390,7 +406,7 @@ export class WaitForPrReviewService {
    * next interval, never to abort the wait.
    */
   private async pollReviews(
-    options: WaitForPrReviewOptions,
+    options: PollOptions,
     deadline: number,
     intervalMs: number,
   ): Promise<PollOutcome | undefined> {
