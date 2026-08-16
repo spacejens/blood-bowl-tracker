@@ -142,7 +142,10 @@ export class CompetitionTrophyPageParser {
         .eq(1)
         .text()
         // cheerio decodes the label's trailing `&nbsp;` to U+00A0, which
-        // `trim()` does not strip.
+        // `trim()` does not strip. This replace is global, so it would also
+        // rewrite an interior NBSP if a label ever had one, but none in the
+        // mirrored data do, and BBL is a frozen, final export that will never
+        // add one, so this has no real effect today.
         .replace(/\u00a0/g, ' ')
         .trim()
         .normalize('NFC');
