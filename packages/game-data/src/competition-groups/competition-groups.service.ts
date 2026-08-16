@@ -4,9 +4,12 @@ import {
   competitionGroupExternalIds,
   competitionGroups,
   DB,
+  leagues,
 } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
+import { eq, ilike } from 'drizzle-orm';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -14,7 +17,10 @@ export class CompetitionGroupUpsertConflictError extends UpsertConflictError {}
 
 @Injectable()
 export class CompetitionGroupsService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService,
+  ) {}
 
   /**
    * Every curated competition group. The only read in this service: an
@@ -26,6 +32,54 @@ export class CompetitionGroupsService {
    */
   async listAll(): Promise<CompetitionGroup[]> {
     return this.db.select().from(competitionGroups);
+  }
+
+  /** One competition group's deepdive header, or `undefined` when no such group exists. */
+  async findByIdWithLeague(id: number): Promise<
+    | {
+        id: number;
+        name: string;
+        leagueId: number;
+        leagueName: string;
+      }
+    | undefined
+  > {
+    const rows = await this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        leagueId: competitionGroups.leagueId,
+        leagueName: leagues.name,
+      })
+      .from(competitionGroups)
+      .innerJoin(leagues, eq(leagues.id, competitionGroups.leagueId))
+      .where(eq(competitionGroups.id, id));
+    return rows[0];
+  }
+
+  /**
+   * Case-insensitive prefix search for the `/deepdive competition-group:`
+   * autocomplete. Mirrors `ErasService.searchByNamePrefix`: the caller's raw
+   * text is escaped before it becomes an ILIKE pattern, so `%`/`_` match
+   * literally.
+   */
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; leagueName: string }[]> {
+    return this.db
+      .select({
+        id: competitionGroups.id,
+        name: competitionGroups.name,
+        leagueName: leagues.name,
+      })
+      .from(competitionGroups)
+      .innerJoin(leagues, eq(leagues.id, competitionGroups.leagueId))
+      .where(
+        ilike(competitionGroups.name, `${this.likePattern.escape(prefix)}%`),
+      )
+      .orderBy(competitionGroups.name)
+      .limit(limit);
   }
 
   /**
