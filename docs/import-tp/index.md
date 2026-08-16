@@ -246,6 +246,29 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
   additive/idempotent; unlike BBL, TP needs no page scraping because it embeds
   both teams' roster ids per match and a roster file's directory placement is
   the competition-membership signal.
+- **TpAwardsReaderService** — walks every competition directory's `awards_*.json`
+  file via `AwardsParserService` from `packages/parse-tp`, returning the parsed
+  awards keyed by `${era}::${competition}` (the same directory key
+  `TpCompetitionsImportService` groups its competitions by). A directory with no
+  awards file is simply absent from the map (normal for an unfinished
+  competition); a malformed file records an error and costs only that
+  competition's awards. Two files in the same directory accumulate rather than
+  overwrite.
+- **TpTrophyAwardsImportService** — records every team award from TP's
+  per-competition awards files: the 1st/2nd/3rd placements and, where present,
+  Best Stunty and Wooden Spoon. A trophy is *resolved, never created*: the
+  upsert carries only the award's lookup key
+  (`` `${disambiguator}-${groupName}` ``, where the disambiguator is the
+  award's own `name` when present and its numeric `awardType` otherwise) as a
+  `tourplay.net` external id against the curated trophy catalog seeded by
+  tools/import-manual. The competition's curated group comes from its own
+  `competitionGroupId` (set by tools/import-manual's before-other-importers
+  phase); the winning team's team era is resolved via `teamErasByRosterId` and
+  the competition's own era. TP records team awards only, so no player data is
+  needed. An unresolvable competition, group, trophy key, or team era is
+  recorded as an error and skipped; resolutions (successes and failures) are
+  memoized per run, and further rows against an already-known-bad key are
+  summarized in one error at the end.
 - **TpMatchEventsImportService** — imports touchdown, injury/casualty, and
   administrative match events from every already-parsed TP match's
   `matchEvents[]` (see
@@ -275,19 +298,21 @@ starPlayersMasters`, distinct from `lineUpMasters`) are parsed separately and
 then eras, then competitions, then matches (fed the competitions step's
 `matchesByCompetitionId`), then coaches, then races, then teams, then
 positions, then players (including hired star players), then star position
-race/era availability, then team participation, then match events, and
-finally match outcomes — aggregating each step's `ImportResult` into one
-overall result, mirroring `tools/import-bbl/src/main.ts`.
+race/era availability, then team participation, then trophy awards, then
+match events, and finally match outcomes — aggregating each step's
+`ImportResult` into one overall result, mirroring
+`tools/import-bbl/src/main.ts`.
 Races, teams, and positions run after coaches; they have no FK dependency on the
 earlier import steps (only on each other, in that order). Players run after
 positions and teams (each player resolves a team era and a position). Star
 position race/era availability runs immediately after players, since it needs
 the `starPositionUsages` that step emits. Team participation runs after that
 because it needs the teams step's resolved team-era ids and the competitions
-step's maps. Match events run after that because they depend on
-`match_teams`, which team participation is what populates. Match outcomes run
-last of all because they count scores from the touchdown events match events
-just imported.
+step's maps. Trophy awards run after team participation, resolving each
+award's competition, curated group, and winning team's team era. Match events
+run after that because they depend on `match_teams`, which team participation
+is what populates. Match outcomes run last of all because they count scores
+from the touchdown events match events just imported.
 
 ## Related documentation
 

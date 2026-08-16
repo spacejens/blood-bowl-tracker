@@ -157,6 +157,52 @@ describe('TpSourceReader', () => {
     expect(files[0].competition).toBe('chaos-cup-8');
   });
 
+  it('yields only the requested file type', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'tournament_x.json'), '{}');
+    await writeFile(join(compDir, 'match_1.json'), '{}');
+    await writeFile(join(compDir, 'awards_x_awards.json'), '{}');
+
+    const reader = await makeReader(dir, [
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
+    ]);
+    const seen: string[] = [];
+    for await (const file of reader.filesOfType('awards')) {
+      seen.push(file.filename);
+    }
+
+    expect(seen).toEqual(['awards_x_awards.json']);
+  });
+
+  it('still yields every file when unfiltered', async () => {
+    const compDir = join(dir, 'fourth-era', 'chaos-cup-8');
+    await mkdir(compDir, { recursive: true });
+    await writeFile(join(compDir, 'tournament_x.json'), '{}');
+    await writeFile(join(compDir, 'match_1.json'), '{}');
+    await writeFile(join(compDir, 'awards_x_awards.json'), '{}');
+
+    const reader = await makeReader(dir, [
+      {
+        name: 'Fourth era',
+        dataSubdir: 'fourth-era',
+        rulesSets: ['BB2020'],
+        startDate: '2020-11-28',
+      },
+    ]);
+    const seen: string[] = [];
+    for await (const file of reader.files()) {
+      seen.push(file.filename);
+    }
+
+    expect(seen).toHaveLength(3);
+  });
+
   it('throws a friendly error when an era directory is missing', async () => {
     const reader = await makeReader(dir, [
       {

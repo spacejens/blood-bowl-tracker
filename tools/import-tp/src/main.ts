@@ -25,6 +25,7 @@ import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.serv
 import { RosterCollectionService } from './source/roster-collection.service';
 import { TpTeamParticipationImportService } from './team-participation/tp-team-participation-import.service';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
+import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -274,6 +275,21 @@ async function run(): Promise<ImportResult> {
         rosters,
       });
 
+    // Trophy awards run after competitions, teams and team participation:
+    // each award resolves its competition (competitionIdsByTpId), that
+    // competition's curated group (competitionsByTpId's competitionGroupId,
+    // read off the competition upsert's own response) and its winning team's
+    // team era (teamErasByRosterId + the competition's own eraId). TP records
+    // team awards only -- placements plus Best Stunty / Wooden Spoon -- so no
+    // player data is needed here.
+    const trophyAwardsOutcome = await app
+      .get(TpTrophyAwardsImportService)
+      .importTrophyAwards({
+        competitionsByTpId: competitionOutcome.competitionsByTpId,
+        competitionIdsByTpId: competitionOutcome.competitionIdsByTpId,
+        teamErasByRosterId: teamOutcome.teamErasByRosterId,
+      });
+
     // Match events (touchdowns and injuries/casualties) run last: they need
     // match_teams (populated above), the players step's lineUpId/star-player
     // maps, and reuse the same matchesByCompetitionId + eraIdByCompetitionId
@@ -344,6 +360,7 @@ async function run(): Promise<ImportResult> {
       playerResult,
       positionRaceErasOutcome.result,
       teamParticipationOutcome.result,
+      trophyAwardsOutcome.result,
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,

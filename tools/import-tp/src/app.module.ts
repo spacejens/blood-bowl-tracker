@@ -18,6 +18,7 @@ import { RulesSetsModule } from './rules-sets/rules-sets.module';
 import { SourceModule } from './source/source.module';
 import { TeamParticipationModule } from './team-participation/team-participation.module';
 import { TeamsModule } from './teams/teams.module';
+import { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
 
 @Module({})
 export class AppModule {
@@ -48,6 +49,7 @@ export class AppModule {
         PositionsModule,
         PlayersModule,
         MatchEventsModule,
+        TrophyAwardsModule,
       ],
     };
   }

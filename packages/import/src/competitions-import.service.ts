@@ -1,6 +1,9 @@
 import type { ApiClient } from '@blood-bowl-tracker/api-client';
 import { API_CLIENT } from '@blood-bowl-tracker/api-client';
-import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
+import type {
+  Competition,
+  UpsertCompetition,
+} from '@blood-bowl-tracker/api-contract';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { ImportRunnerService } from './import-runner.service';
@@ -32,13 +35,17 @@ export class CompetitionsImportService {
 
   /**
    * Like {@link upsertCompetition}, but resolves to the upserted competition
-   * (including its DB `id`) on success, or `undefined` on failure. Used where
-   * the caller needs the competition's DB id (e.g. to link matches to it).
+   * -- the row's full current state, including its DB `id` and its
+   * `competitionGroupId` -- or `undefined` on failure. Callers need the id to
+   * link matches, and tools/import-tp's awards step needs the group id: the
+   * response is authoritative for it, since an upsert that omits
+   * `competitionGroupId` leaves the stored classification alone rather than
+   * clearing it.
    */
   upsertCompetitionResult(
     data: UpsertCompetition,
     errors: ImportError[],
-  ): Promise<{ id: number } | undefined> {
+  ): Promise<(Competition & { created: boolean }) | undefined> {
     return this.importRunner.recordUpsertResult({
       upsert: () => this.client.competitions.upsert(data),
       item: data,

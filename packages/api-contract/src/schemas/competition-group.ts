@@ -13,9 +13,9 @@ import { ExternalIdSchema } from './external-id';
  * all required on upsert: there is no overlay use case, because the only
  * writer restates every field on every run. `externalIds` (min 1) is the
  * load-bearing one -- upsert matches an existing row by external id, never by
- * name, which is what lets tools/import-manual's before- and
- * after-other-importers phases -- two separate processes, each with its own
- * empty ExternalIdMap -- resolve the same curated group onto the same row.
+ * name, which is what makes re-running tools/import-manual (whose phases are
+ * separate processes, each starting with an empty ExternalIdMap) resolve the
+ * same curated group onto the same row instead of duplicating it.
  */
 export const CompetitionGroupSchema = z.object({
   id: z.number(),

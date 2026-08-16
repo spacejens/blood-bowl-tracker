@@ -48,7 +48,22 @@ export class TpSourceReader {
    * one at a time. Layout: `<dataDir>/<era.dataSubdir>/<competition>/*.json`.
    * Each file's body is JSON-parsed on read; only one file is held at a time.
    */
-  async *files(): AsyncIterable<TpSourceFile> {
+  files(): AsyncIterable<TpSourceFile> {
+    return this.walk();
+  }
+
+  /**
+   * Like {@link files}, but yields only files whose type (the filename text
+   * before the first `_`) is `type`. Non-matching files are skipped before
+   * they are read, so a caller that needs one small file per competition --
+   * the awards import needs 13 -- does not pay to read and JSON-parse every
+   * match file in the mirror a second time.
+   */
+  filesOfType(type: string): AsyncIterable<TpSourceFile> {
+    return this.walk(type);
+  }
+
+  private async *walk(type?: string): AsyncIterable<TpSourceFile> {
     const dataDir = this.sourceConfig.getDataDir();
     for (const era of this.eraConfig.getEras()) {
       const eraDir = join(dataDir, era.dataSubdir);
@@ -75,12 +90,16 @@ export class TpSourceReader {
           if (!entry.isFile() || !entry.name.endsWith('.json')) {
             continue;
           }
+          const fileType = extractType(entry.name);
+          if (type !== undefined && fileType !== type) {
+            continue;
+          }
           const raw = await readFile(join(competitionDir, entry.name), 'utf8');
           const content: unknown = JSON.parse(raw);
           yield {
             era: era.name,
             competition: competition.name,
-            type: extractType(entry.name),
+            type: fileType,
             filename: entry.name,
             content,
           };

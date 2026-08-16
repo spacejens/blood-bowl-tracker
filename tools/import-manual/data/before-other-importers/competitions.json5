@@ -1,0 +1,902 @@
+// Every known competition instance: its curated competition group (issue
+// #445) and the real name/type/era/dates it is created with.
+//
+// This runs in the BEFORE-other-importers phase, ahead of tools/import-bbl
+// and tools/import-tp, because competitions.competition_group_id must already
+// be correct when those tools run: tools/import-tp's awards import resolves a
+// trophy by `${disambiguator}-${groupName}`, and the group name comes from
+// the competition's own group. Classifying in the after-other-importers
+// phase instead, once the source importers have already run, is too late.
+//
+// A create needs every NOT NULL column competitions has no default for --
+// name, type, era_id and start_date -- so each entry carries real values,
+// looked up from the same source data the real importers derive them from
+// (BBL: the p=se name list and the p=ma&so=s match pages; TP: each
+// competition directory's tournament_<slug>.json and match_*.json files),
+// with the era resolved by the same rules bbl-competitions-import.service.ts
+// and tp-competitions-import.service.ts use: an entry in an era's
+// competitions.overrides in import-bbl-config.json5 pins that era and type,
+// otherwise the first auto-assigning era whose [startDate, endDate) range
+// contains the earliest match day wins. type follows the same rule both
+// importers use -- a match-date span of at most 3 days is a cup, anything
+// longer a season. eras.json5 in this directory exists so `era` has something
+// to reference.
+//
+// These values are deliberately real, not placeholders: BBL's and TP's own
+// competition upserts always set name, type, eraId, startDate and endDate
+// unconditionally, so they overlay everything here on the next run -- but a
+// competition that is never re-imported in some environment keeps what this
+// file says, and a future reader should find the truth here. Neither importer
+// ever sets competitionGroupId, so the classification survives untouched.
+//
+// The names here are the raw source names, except for the 36 instances the
+// after-other-importers phase renames -- those carry their canonical name, so
+// this file never creates a row under a name a later phase immediately
+// replaces. Renaming itself stays in
+// data/after-other-importers/competitions.json5: it can only run once the
+// importers have created their rows with the raw source names.
+//
+// Source-data facts worth recording here: BBL's `s` id sequence has no s=9 at
+// all -- not a gap in this file, it never existed on the source site.
+{
+  externalSystems: [
+    { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
+    { name: 'tourplay.net', category: 'imported_data_source' },
+    { name: 'Name', category: 'bookkeeping' },
+  ],
+
+  competitions: [
+    // -- The Major Season track, seasons 1-18 (BBL, First era). BBL named
+    // them plain "Season N" back when there was no Minor Season to
+    // distinguish from, so the after-other-importers phase renames each to
+    // the canonical "Major Season N" -- which is the name curated here, so
+    // the row is never created under the raw name. The numeric id is the
+    // competition's BBL `s` value from the p=se competition list -- the only
+    // key competitions are matched by.
+    {
+      name: 'Major Season 1',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2011-09-09',
+      endDate: '2011-12-18',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '1' }],
+    },
+    {
+      name: 'Major Season 2',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2012-01-23',
+      endDate: '2012-06-06',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '2' }],
+    },
+    {
+      name: 'Major Season 3',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2012-07-13',
+      endDate: '2012-12-15',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '4' }],
+    },
+    {
+      name: 'Major Season 4',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-01-02',
+      endDate: '2013-06-15',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '6' }],
+    },
+    {
+      name: 'Major Season 5',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-07-19',
+      endDate: '2013-12-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '10' }],
+    },
+    {
+      name: 'Major Season 6',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-01-08',
+      endDate: '2014-06-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '13' }],
+    },
+    {
+      name: 'Major Season 7',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-07-09',
+      endDate: '2014-12-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '18' }],
+    },
+    {
+      name: 'Major Season 8',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2015-01-05',
+      endDate: '2015-06-13',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
+    },
+    {
+      name: 'Major Season 9',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2015-07-07',
+      endDate: '2015-12-12',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '25' }],
+    },
+    {
+      name: 'Major Season 10',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2016-01-05',
+      endDate: '2016-06-19',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '28' }],
+    },
+    {
+      name: 'Major Season 11',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2016-07-07',
+      endDate: '2016-12-17',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '31' }],
+    },
+    {
+      name: 'Major Season 12',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-01-10',
+      endDate: '2017-06-10',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
+    },
+    {
+      name: 'Major Season 13',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-07-10',
+      endDate: '2017-12-16',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '38' }],
+    },
+    {
+      name: 'Major Season 14',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-01-08',
+      endDate: '2018-06-16',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '42' }],
+    },
+    {
+      name: 'Major Season 15',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-07-24',
+      endDate: '2018-12-01',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '47' }],
+    },
+    {
+      name: 'Major Season 16',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-01-06',
+      endDate: '2019-06-15',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '49' }],
+    },
+    {
+      name: 'Major Season 17',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-07-09',
+      endDate: '2019-12-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '52' }],
+    },
+    {
+      name: 'Major Season 18',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-01-07',
+      endDate: '2020-06-13',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '58' }],
+    },
+
+    // -- Each track's first instalment was never numbered on BBL, unlike
+    // every later one ("Chaos Cup 2".."Chaos Cup 7", etc.). All First era.
+    {
+      name: 'Moot Mania 1',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2012-07-14',
+      endDate: '2012-07-15',
+      competitionGroup: { system: 'Name', id: 'Moot Mania' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '3' }],
+    },
+    {
+      name: 'Ogretoberfest 1',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-09-28',
+      endDate: '2013-09-28',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '11' }],
+    },
+    {
+      name: 'Chaos Cup 1',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-01-05',
+      endDate: '2014-01-05',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '14' }],
+    },
+
+    // -- Reserves Rumble: BBL ran three identically-named events (bblIds 7,
+    // 16, 23; single match day each, 2013/2014/2015 respectively) and never
+    // numbered any of them. Until issue #285 they merged onto a single
+    // database row via the shared "Name" external id, so renaming them was
+    // impossible; now that competitions carry only their source id, the three
+    // import as distinct rows and are numbered chronologically here.
+    {
+      name: 'Reserves Rumble 1',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-03-02',
+      endDate: '2013-03-02',
+      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '7' }],
+    },
+    {
+      name: 'Reserves Rumble 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-04-12',
+      endDate: '2014-04-12',
+      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '16' }],
+    },
+    {
+      name: 'Reserves Rumble 3',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2015-05-16',
+      endDate: '2015-05-16',
+      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '23' }],
+    },
+
+    // -- Ogretoberfest: missing space (BBL) and shouty prefix/suffix (TP).
+    {
+      name: 'Ogretoberfest 10',
+      type: 'cup',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2022-09-24',
+      endDate: '2022-09-24',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '72' }],
+    },
+    {
+      name: 'Ogretoberfest 12',
+      type: 'cup',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2024-09-21',
+      endDate: '2024-09-21',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tourplay.net', id: '13584' }],
+    },
+
+    // -- Chaos Cup: TP prefixed the league's own name onto the cup.
+    {
+      name: 'Chaos Cup 8',
+      type: 'cup',
+      era: { system: 'Name', id: 'Fourth era' },
+      startDate: '2026-01-17',
+      endDate: '2026-01-17',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tourplay.net', id: '18616' }],
+    },
+
+    // -- Dungeon Bowl: BBL called season 1 "Dungeon Bowl 1"; TP called the
+    // later ones "tLoEGBBL - Dungeon Bowl Season N". All three TP ones sit in
+    // the Second Dungeon Bowl era, which runs alongside the regular eras.
+    {
+      name: 'Dungeon Bowl 2',
+      type: 'season',
+      era: { system: 'Name', id: 'Second Dungeon Bowl era' },
+      startDate: '2022-12-29',
+      endDate: '2023-12-19',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      externalIds: [{ system: 'tourplay.net', id: '5181' }],
+    },
+    {
+      name: 'Dungeon Bowl 3',
+      type: 'season',
+      era: { system: 'Name', id: 'Second Dungeon Bowl era' },
+      startDate: '2024-01-11',
+      endDate: '2024-11-12',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      externalIds: [{ system: 'tourplay.net', id: '9091' }],
+    },
+    {
+      name: 'Dungeon Bowl 4',
+      type: 'season',
+      era: { system: 'Name', id: 'Second Dungeon Bowl era' },
+      startDate: '2025-01-28',
+      endDate: '2025-06-23',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      externalIds: [{ system: 'tourplay.net', id: '14846' }],
+    },
+
+    // -- The Major Season track, seasons 25-29 (TP, Third era). Season 25
+    // kept the English name behind a league prefix; 26-29 switched to Swedish
+    // ("Säsong") after Minor Season was discontinued.
+    {
+      name: 'Major Season 25',
+      type: 'season',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2023-06-28',
+      endDate: '2023-12-09',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '6543' }],
+    },
+    {
+      name: 'Major Season 26',
+      type: 'season',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2024-01-02',
+      endDate: '2024-06-15',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '8918' }],
+    },
+    {
+      name: 'Major Season 27',
+      type: 'season',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2024-07-14',
+      endDate: '2024-12-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '12741' }],
+    },
+    {
+      name: 'Major Season 28',
+      type: 'season',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2025-01-06',
+      endDate: '2025-06-14',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '14615' }],
+    },
+    {
+      name: 'Major Season 29',
+      type: 'season',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2025-07-30',
+      endDate: '2025-12-13',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '16751' }],
+    },
+
+    // -- The Major Season track, season 30 (TP, Fourth era). First Major
+    // Season of the fourth era; TP kept the Swedish "Säsong" naming
+    // ("tloegbbl-sasong-30"), so it needs the same rename as 26-29 above.
+    {
+      name: 'Major Season 30',
+      type: 'season',
+      era: { system: 'Name', id: 'Fourth era' },
+      startDate: '2026-02-06',
+      endDate: '2026-06-13',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tourplay.net', id: '18442' }],
+    },
+
+    // -- Major Season 19-24 (BBL). BBL's own names are already canonical, so
+    // the after-other-importers phase does not rename these; the name here is
+    // the raw one off the p=se list. 19-21 still fall inside First era by
+    // match date (Second era only starts 2021-09-01), 22-24 in Second era.
+    {
+      name: 'Major Season 19',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-07-13',
+      endDate: '2020-12-31',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '59' }],
+    },
+    {
+      name: 'Major Season 20',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2021-03-10',
+      endDate: '2021-06-21',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '63' }],
+    },
+    {
+      name: 'Major Season 21',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2021-07-26',
+      endDate: '2021-12-04',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '65' }],
+    },
+    {
+      name: 'Major Season 22',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2022-01-02',
+      endDate: '2022-06-11',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '67' }],
+    },
+    {
+      name: 'Major Season 23',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2022-07-10',
+      endDate: '2022-12-10',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '70' }],
+    },
+    {
+      name: 'Major Season 24',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2023-01-02',
+      endDate: '2023-06-10',
+      competitionGroup: { system: 'Name', id: 'Major Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '73' }],
+    },
+
+    // -- Minor Season 18-23 and 25 (BBL). Raw names, not renamed later: see
+    // the note above. Minor Season 20 and 24 have no competition of their own
+    // in the source data. Minor Season 25 (bblId 74) is the one competition
+    // with no p=ma page in the mirror at all -- its dates come from its
+    // import-bbl config override, see the comment on that entry.
+    {
+      name: 'Minor Season 18',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-01-19',
+      endDate: '2020-07-07',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '57' }],
+    },
+    {
+      name: 'Minor Season 19',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-07-08',
+      endDate: '2021-01-08',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '60' }],
+    },
+    {
+      name: 'Minor Season 21',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2021-08-19',
+      endDate: '2021-12-17',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '64' }],
+    },
+    {
+      name: 'Minor Season 22',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2022-01-04',
+      endDate: '2022-06-26',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '68' }],
+    },
+    {
+      name: 'Minor Season 23',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2022-07-18',
+      endDate: '2022-12-28',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '71' }],
+    },
+    // no dated matches; era, type and dates all come from the import-bbl config override for bblId 74
+    {
+      name: 'Minor Season 25',
+      type: 'season',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2023-06-14',
+      endDate: '2023-06-15',
+      competitionGroup: { system: 'Name', id: 'Minor Season' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '74' }],
+    },
+
+    // -- Chaos Cup 2-7 (BBL). Raw names, not renamed later: see the note
+    // above.
+    {
+      name: 'Chaos Cup 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-12-30',
+      endDate: '2014-12-30',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '21' }],
+    },
+    {
+      name: 'Chaos Cup 3',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2016-01-02',
+      endDate: '2016-01-02',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '27' }],
+    },
+    {
+      name: 'Chaos Cup 4',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-01-07',
+      endDate: '2017-01-07',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '34' }],
+    },
+    {
+      name: 'Chaos Cup 5',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-01-06',
+      endDate: '2018-01-06',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '41' }],
+    },
+    {
+      name: 'Chaos Cup 6',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-04-27',
+      endDate: '2019-04-27',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '51' }],
+    },
+    {
+      name: 'Chaos Cup 7',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-01-04',
+      endDate: '2020-01-05',
+      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '56' }],
+    },
+
+    // -- Korpen 1-9 (BBL). Raw names, not renamed later: see the note above.
+    {
+      name: 'Korpen 1',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-01-08',
+      endDate: '2014-06-30',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '15' }],
+    },
+    {
+      name: 'Korpen 2',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-07-02',
+      endDate: '2014-12-20',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '19' }],
+    },
+    {
+      name: 'Korpen 3',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2016-07-03',
+      endDate: '2016-12-26',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '29' }],
+    },
+    {
+      name: 'Korpen 4',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-01-20',
+      endDate: '2017-06-25',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '36' }],
+    },
+    {
+      name: 'Korpen 5',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-07-04',
+      endDate: '2017-12-17',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '39' }],
+    },
+    {
+      name: 'Korpen 6',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-01-18',
+      endDate: '2018-07-01',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '43' }],
+    },
+    {
+      name: 'Korpen 7',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-07-02',
+      endDate: '2018-12-23',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '48' }],
+    },
+    {
+      name: 'Korpen 8',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-01-03',
+      endDate: '2019-06-18',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '50' }],
+    },
+    {
+      name: 'Korpen 9',
+      type: 'season',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-07-15',
+      endDate: '2020-01-01',
+      competitionGroup: { system: 'Name', id: 'Korpen' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '53' }],
+    },
+
+    // -- Moot Mania 2-4 (BBL). Raw names, not renamed later: see the note
+    // above.
+    {
+      name: 'Moot Mania 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-06-29',
+      endDate: '2013-06-30',
+      competitionGroup: { system: 'Name', id: 'Moot Mania' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '8' }],
+    },
+    {
+      name: 'Moot Mania 3',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-07-05',
+      endDate: '2014-07-06',
+      competitionGroup: { system: 'Name', id: 'Moot Mania' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '17' }],
+    },
+    {
+      name: 'Moot Mania 4',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2015-07-04',
+      endDate: '2015-07-04',
+      competitionGroup: { system: 'Name', id: 'Moot Mania' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '24' }],
+    },
+
+    // -- Ogretoberfest 2-9 (BBL), 11 and 13 (TP). Raw names, not renamed
+    // later: see the note above.
+    {
+      name: 'Ogretoberfest 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2014-10-04',
+      endDate: '2014-10-04',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '20' }],
+    },
+    {
+      name: 'Ogretoberfest 3',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2015-09-19',
+      endDate: '2015-09-19',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }],
+    },
+    {
+      name: 'Ogretoberfest 4',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2016-09-24',
+      endDate: '2016-09-24',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '32' }],
+    },
+    {
+      name: 'Ogretoberfest 5',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-10-07',
+      endDate: '2017-10-09',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '40' }],
+    },
+    {
+      name: 'Ogretoberfest 6',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-09-22',
+      endDate: '2018-09-22',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '46' }],
+    },
+    {
+      name: 'Ogretoberfest 7',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2019-09-21',
+      endDate: '2019-09-22',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '54' }],
+    },
+    {
+      name: 'Ogretoberfest 8',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-09-19',
+      endDate: '2020-09-19',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '62' }],
+    },
+    {
+      name: 'Ogretoberfest 9',
+      type: 'cup',
+      era: { system: 'Name', id: 'Second era' },
+      startDate: '2021-09-25',
+      endDate: '2021-09-25',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '66' }],
+    },
+    {
+      name: 'Ogretoberfest 11',
+      type: 'cup',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2023-09-30',
+      endDate: '2023-09-30',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tourplay.net', id: '7717' }],
+    },
+    {
+      name: 'Ogretoberfest 13',
+      type: 'cup',
+      era: { system: 'Name', id: 'Third era' },
+      startDate: '2025-10-04',
+      endDate: '2025-10-04',
+      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
+      externalIds: [{ system: 'tourplay.net', id: '17503' }],
+    },
+
+    // -- NAA, NAA 2 (BBL). Raw names, not renamed later: see the note above.
+    {
+      name: 'NAA',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-03-24',
+      endDate: '2018-03-25',
+      competitionGroup: { system: 'Name', id: 'NAA' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '44' }],
+    },
+    {
+      name: 'NAA 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2020-06-27',
+      endDate: '2020-06-27',
+      competitionGroup: { system: 'Name', id: 'NAA' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '61' }],
+    },
+
+    // -- Stunty Leeg 1, 2 (BBL). Raw names, not renamed later: see the note
+    // above. Both run in the First Stunty Leeg era, a side-competition era
+    // whose date range overlaps First era's, so import-bbl's config pins them
+    // to it by override instead of by date.
+    // era + type pinned by the import-bbl config override for bblId 30
+    {
+      name: 'Stunty Leeg 1',
+      type: 'cup',
+      era: { system: 'Name', id: 'First Stunty Leeg era' },
+      startDate: '2016-03-12',
+      endDate: '2016-03-12',
+      competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '30' }],
+    },
+    // era + type pinned by the import-bbl config override for bblId 33
+    {
+      name: 'Stunty Leeg 2',
+      type: 'cup',
+      era: { system: 'Name', id: 'First Stunty Leeg era' },
+      startDate: '2016-11-19',
+      endDate: '2016-11-25',
+      competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '33' }],
+    },
+
+    // -- Dungeon Bowl 1 (BBL). Raw name, not renamed later: see the note
+    // above. Same override story as Stunty Leeg: the First Dungeon Bowl era
+    // overlaps Second era, so the config pins it.
+    // era + type pinned by the import-bbl config override for bblId 69
+    {
+      name: 'Dungeon Bowl 1',
+      type: 'season',
+      era: { system: 'Name', id: 'First Dungeon Bowl era' },
+      startDate: '2022-02-12',
+      endDate: '2022-08-22',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '69' }],
+    },
+
+    // -- GBBL 1 (BBL, the GBBL league's own competition and its only era).
+    // Raw name, not renamed later: see the note above.
+    // era + type pinned by the import-bbl config override for bblId 55
+    {
+      name: 'GBBL 1',
+      type: 'season',
+      era: { system: 'Name', id: 'GBBL 1' },
+      startDate: '2019-08-03',
+      endDate: '2019-11-12',
+      competitionGroup: { system: 'Name', id: 'GBBL' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '55' }],
+    },
+
+    // -- One-off cups (BBL): Fright Night, Blitzmania!, "Champions of..."
+    // (whose curated group is "Champion of tLoEG"), Snöbollskrieg. Raw names,
+    // not renamed later: see the note above.
+    {
+      name: 'Fright Night',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2013-10-26',
+      endDate: '2013-10-26',
+      competitionGroup: { system: 'Name', id: 'Fright Night' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '12' }],
+    },
+    {
+      name: 'Blitzmania!',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2018-06-30',
+      endDate: '2018-06-30',
+      competitionGroup: { system: 'Name', id: 'Blitzmania!' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '45' }],
+    },
+    {
+      name: 'Champions of...',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2017-04-29',
+      endDate: '2017-04-29',
+      competitionGroup: { system: 'Name', id: 'Champion of tLoEG' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '37' }],
+    },
+    {
+      name: 'Snöbollskrieg',
+      type: 'cup',
+      era: { system: 'Name', id: 'First era' },
+      startDate: '2012-12-29',
+      endDate: '2012-12-30',
+      competitionGroup: { system: 'Name', id: 'Snöbollskrieg' },
+      externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
+    },
+  ],
+}

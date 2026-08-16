@@ -63,4 +63,36 @@ describe('CompetitionGroupsImportService', () => {
     await options.upsert();
     expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
   });
+
+  describe('listCompetitionGroups', () => {
+    it('returns the listed competition groups', async () => {
+      const groups = [
+        {
+          id: 1,
+          name: 'Major Season',
+          leagueId: 1,
+          createdAt: new Date('2026-01-01'),
+        },
+      ];
+      runner.recordUpsertResult.mockResolvedValue(groups);
+
+      await expect(service.listCompetitionGroups([])).resolves.toEqual(groups);
+
+      const [options] = runner.recordUpsertResult.mock.calls[0];
+      client.competitionGroups.list.mockResolvedValue(groups);
+      await expect(options.upsert()).resolves.toEqual(groups);
+      expect(client.competitionGroups.list).toHaveBeenCalledWith({});
+    });
+
+    it('builds an error message when the list call fails', async () => {
+      runner.recordUpsertResult.mockResolvedValue(undefined);
+
+      await service.listCompetitionGroups([]);
+
+      const [options] = runner.recordUpsertResult.mock.calls[0];
+      expect(options.buildErrorMessage(new Error('boom'))).toBe(
+        'Failed to list competition groups: boom',
+      );
+    });
+  });
 });

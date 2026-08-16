@@ -21,11 +21,11 @@ export class CompetitionGroupsProcessor {
    *
    * A group's own external id is not authored in the data file -- it is derived
    * in code from the group's name under the synthetic "Name" system, the same
-   * way BblLeaguesImportService derives a league's. That derived id is what
-   * makes classification work across import phases: the catalog is curated once,
-   * in data/before-other-importers, and symlinked into
-   * data/after-other-importers so that separate process (with its own empty
-   * ExternalIdMap) re-resolves the very same rows rather than duplicating them.
+   * way BblLeaguesImportService derives a league's. Because that id is the
+   * same every run, the upsert is idempotent and a phase that re-processes
+   * the catalog re-resolves the very same rows rather than duplicating them.
+   * The catalog is curated once, in data/before-other-importers, alongside
+   * the competitions that classify into it.
    *
    * A group's `league` is a normal external-id cross-reference and is required
    * (the column is NOT NULL), so an entry whose league cannot be resolved is

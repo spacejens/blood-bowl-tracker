@@ -2,8 +2,9 @@
 //
 // A group is the recurring track a competition instance belongs to. It is what
 // separates a Major season's 1st place from a Minor season's 1st place even
-// when BBL and TP label them identically, and it is what lets a future TP
-// awards importer consider only the trophies applicable to a competition.
+// when BBL and TP label them identically, and it is what lets the TP awards
+// importer (tools/import-tp/src/trophy-awards/) consider only the trophies
+// applicable to a competition.
 //
 // Every group names its league by that league's own external id, resolved
 // against this run's ExternalIdMap -- which is why leagues.json5 sits in this
@@ -12,10 +13,7 @@
 // A group carries no authored external ids: one is derived in code from its
 // name under the synthetic "Name" system (declared below so the run
 // bootstraps it), which is how the same group resolves onto the same row from
-// any importer process. That is also why this file and leagues.json5 are
-// symlinked into data/after-other-importers -- that phase is a separate
-// process with its own empty ExternalIdMap, and competitions.json5 there needs
-// the groups in it.
+// any importer process.
 //
 // Naming notes:
 //  - "Major Season" also covers BBL's pre-split "Season N" (1-18) and TP's

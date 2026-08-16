@@ -1,4 +1,5 @@
 import { oc } from '@orpc/contract';
+import { z } from 'zod';
 
 import { batchUpsertProcedure } from './batch-upsert-procedure';
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
@@ -125,6 +126,15 @@ export const contract = {
       UpsertCompetitionGroupSchema,
       CompetitionGroupSchema,
     ),
+    // The one read procedure in this contract. tools/import-tp's awards
+    // import holds a competition's competitionGroupId (from its own
+    // competition upsert's response) but needs the group's curated *name* to
+    // build a trophy's TP external id; `upsert` cannot answer that, because
+    // the name is its input. The catalog is 16 rows, so the whole list is
+    // returned unfiltered and mapped once per import run. Input is an empty
+    // object rather than no input at all, so the generated client call site
+    // is unambiguous (`list({})`).
+    list: oc.input(z.object({})).output(z.array(CompetitionGroupSchema)),
   },
   matches: {
     upsert: upsertProcedure(UpsertMatchSchema, MatchSchema),

@@ -210,21 +210,17 @@ group's own upsert registers. The processor resolves it against the run's
 `ExternalIdMap` like any other cross-reference, so the group must have been
 processed in the same run.
 
-Each phase runs as its own process with its own empty `ExternalIdMap`, so the
-after-other-importers phase (where `competitions.json5` lives) must process the
-group catalog too. `data/after-other-importers/leagues.json5` and
-`data/after-other-importers/competition-groups.json5` are therefore **symlinks**
-to the before-other-importers originals: one source of truth, processed twice.
-Because the group upsert is external-id-matched and idempotent — the derived
-`Name` id is the same every run — the second pass re-resolves onto the very
-same rows rather than duplicating them.
+Each phase runs as its own process with its own empty `ExternalIdMap`, so a
+phase whose entries name a group must process the group catalog too. Only the
+before-other-importers phase does — it has both `competition-groups.json5`
+and `competitions.json5`. The after-other-importers phase references no group
+at all.
 
 A competition entry's own `name` is optional (unlike a trophy's, which is
-required): omitting it means "classify only, do not rename" — the entry
-carries just `externalIds` and `competitionGroup`, and the upsert leaves the
-existing row's name untouched. This is how `competitions.json5` classifies the
-50 competition instances that need no rename alongside the entries that both
-rename and classify (see the after-other-importers description below).
+required): omitting it means "do not rename" — the upsert leaves the existing
+row's name untouched. The curated data uses that for the after-other-importers
+rename pass only; every entry in `data/before-other-importers/competitions.json5`
+carries a name, because that phase creates the rows.
 
 ### Trophies
 
@@ -277,6 +273,17 @@ real-world entity differently:
   classify instances and trophies into. Not a dedup file in the usual sense —
   like `trophies.json5`, nothing else creates competition groups, so this is
   the sole source of the catalog.
+- `eras.json5` — the 8 eras the BBL and TP configs define, copied verbatim
+  from `tools/import-bbl/import-bbl-config.json5` and
+  `tools/import-tp/import-tp-config.json5`, which remain authoritative. It
+  exists here purely so `competitions.json5` in the same phase has an era to
+  reference.
+- `competitions.json5` — all 86 known competition instances, each with its
+  curated [competition group](#competition-groups) (issue #445) and the real
+  data needed to create the row. Classification has to happen
+  here, ahead of the BBL and TP importers, because `tools/import-tp`'s awards
+  import resolves a trophy by the competition's group name. Renaming stays in
+  the after-other-importers phase.
 - `races-and-positions.json5` — BBL/TP race and regular position name
   variants.
 - `coaches.json5` — BBL's partial name vs. TP's full name for the same coach.
@@ -298,10 +305,11 @@ real-world entity differently:
   rules-set rows it references — see issue #379. It declares rules sets under
   the `Name` system by their **bare name** (`CRP`, not `name:crp`), so the
   BBL/TP importers' later upserts match the same rows.
-- `trophies.json5` — the curated catalog of 29 known trophies (issue #342):
-  17 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
-  TP-only Ogretoberfest. Not a dedup file in the usual sense — nothing else
-  creates trophies yet, so this is the sole source of the catalog.
+- `trophies.json5` — the curated catalog of 32 known trophies (issue #342):
+  20 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
+  TP-only Ogretoberfest and the three Dungeon Bowl placements.
+  Not a dedup file in the usual sense — nothing else creates trophies yet, so
+  this is the sole source of the catalog.
 
 ## Known after-other-importers cleanup files
 
@@ -312,36 +320,16 @@ systems could not supply:
 - `coaches.json5` — TP usernames replaced with a readable coach name. These
   names are pseudonymized (see [Data layout](#data-layout) below), so this is
   where a coach's displayed pseudonym is set.
-- `competitions.json5` — no longer rename-only. It still normalizes the 36
+- `competitions.json5` — rename-only: classification lives in the
+  before-other-importers phase (see above). Its 36 entries normalize the
   recurring numbered competitions the two source systems named inconsistently
-  (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become
-  `Major Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup
-  and Dungeon Bowl entries; each track's unnumbered first instalment — e.g.
-  bare `Chaos Cup` — is numbered `1`; and BBL's three identically-named
-  `Reserves Rumble` events become `Reserves Rumble 1`–`3`), but it now also
-  classifies every known competition instance into its curated
-  [competition group](#competition-groups) (issue #445) via the
-  `competitionGroup` field, adding 50 classify-only entries (no `name`)
-  alongside the entries that both rename and classify.
-  Each entry carries the `externalIds` that match the existing row, which for
-  competitions is the source system's numeric ID alone (competitions carry no
-  `Name` external id — issue #285 removed it, because a shared `Name` id
-  deduped genuinely distinct same-named competitions onto one row). The file
-  declares no eras, league or rules sets: since upserts overlay, omitting a
-  competition's `era` leaves its stored era alone, so there is nothing to
-  resolve a reference against and nothing to redeclare.
-  A manual competition entry can therefore only ever _update_ an existing
-  competition, never create one: `competitions.startDate` is a required
-  column and `competitions.json5` has no field for it. If an entry's
-  external IDs don't match an existing row, the upsert now fails loudly
-  (`MissingRequiredFieldError`) instead of silently creating a dateless row.
-- `leagues.json5` and `competition-groups.json5` — **symlinks** to the
-  before-other-importers files of the same names, not separate data. This phase
-  is a separate process with its own empty `ExternalIdMap`, so the group
-  catalog (and the leagues it references) has to be processed here too for
-  `competitions.json5`'s `competitionGroup` fields to resolve. Both upserts are
-  external-id-matched and idempotent, so the second pass re-resolves onto the
-  same rows. Edit the originals in `data/before-other-importers/`.
+  (`Season N` / `Major Season N` / `tLoEGBBL Säsong N` all become `Major
+  Season N`; stray prefixes are stripped from Ogretoberfest, Chaos Cup and
+  Dungeon Bowl entries; each track's unnumbered first instalment — e.g. bare
+  `Chaos Cup` — is numbered `1`; and BBL's three identically-named `Reserves
+  Rumble` events become `Reserves Rumble 1`–`3`). Renaming cannot move to the
+  earlier phase: it can only run once the importers have (re-)created their
+  rows under the raw source names.
 
 ## Data layout
 

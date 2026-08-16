@@ -26,8 +26,9 @@ const competitionsTable = historyTrackedTable({
     // "Major Season" row the add_competition_groups migration seeds into a
     // brand-new table, so it is deterministically id 1. Real per-instance
     // classification is curated in
-    // tools/import-manual/data/after-other-importers/competitions.json5, and
-    // importer-side classification is issue #446.
+    // tools/import-manual/data/before-other-importers/competitions.json5,
+    // which runs ahead of the BBL/TP importers so this column is already
+    // correct by the time they run.
     competitionGroupId: integer('competition_group_id')
       .references(() => competitionGroups.id)
       .notNull()

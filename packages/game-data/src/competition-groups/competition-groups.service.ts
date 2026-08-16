@@ -17,6 +17,18 @@ export class CompetitionGroupsService {
   constructor(@Inject(DB) private readonly db: Db) {}
 
   /**
+   * Every curated competition group. The only read in this service: an
+   * importer that holds a competition's `competitionGroupId` needs the
+   * group's curated *name* to build a trophy's TP external id
+   * (`${disambiguator}-${groupName}`), and the group catalog is 16 rows, so
+   * one unfiltered read per import run is cheaper and simpler than a
+   * per-competition lookup.
+   */
+  async listAll(): Promise<CompetitionGroup[]> {
+    return this.db.select().from(competitionGroups);
+  }
+
+  /**
    * Matched by external ids like every other entity's upsert. No source system
    * names a competition group, but tools/import-manual derives one under the
    * synthetic "Name" system from the group's curated name, which is what lets
