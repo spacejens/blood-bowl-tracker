@@ -82,17 +82,4 @@ describe('ExternalIdMap', () => {
     ).not.toThrow();
     expect(map.resolve({ system: 'Name', id: 'name:orc' }, 'race')).toBe(10);
   });
-
-  // MIGRATION BRIDGE — delete this case in Task 15, when `kind` becomes
-  // required. It only documents that un-migrated call sites share one
-  // consistent namespace while the migration is in progress.
-  it('treats an omitted kind as its own namespace', () => {
-    const map = new ExternalIdMap();
-    map.add([{ system: 'Name', id: 'name:orc' }], 10);
-
-    expect(map.resolve({ system: 'Name', id: 'name:orc' })).toBe(10);
-    expect(
-      map.resolve({ system: 'Name', id: 'name:orc' }, 'race'),
-    ).toBeUndefined();
-  });
 });

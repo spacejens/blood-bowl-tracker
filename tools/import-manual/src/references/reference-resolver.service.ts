@@ -17,7 +17,7 @@ export interface ResolveRefOptions {
   item: unknown;
   label: string;
   /** The kind of the entity being *referenced*, not the referring one. */
-  kind?: EntityKind;
+  kind: EntityKind;
 }
 
 export interface ResolveRefsOptions {
@@ -27,7 +27,7 @@ export interface ResolveRefsOptions {
   item: unknown;
   label: string;
   /** The kind of the entities being *referenced*, not the referring one. */
-  kind?: EntityKind;
+  kind: EntityKind;
 }
 
 export interface ResolveOptionalRefOptions {
@@ -37,7 +37,7 @@ export interface ResolveOptionalRefOptions {
   item: unknown;
   label: string;
   /** The kind of the entity being *referenced*, not the referring one. */
-  kind?: EntityKind;
+  kind: EntityKind;
 }
 
 /**

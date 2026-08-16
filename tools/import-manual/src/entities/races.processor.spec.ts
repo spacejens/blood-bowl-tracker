@@ -210,7 +210,9 @@ describe('RacesProcessor', () => {
     races.upsertRace.mockResolvedValue({
       id: 40,
       name: 'Black Orc',
-      externalIds: [],
+      eras: [],
+      createdAt: new Date(),
+      created: true,
     });
     const idMap = new ExternalIdMap();
     // A competition already registered BBL id 44 — BBL numbers races and

@@ -8,15 +8,12 @@ import type { EntityKind } from './entity-kind';
  * pair they know it by — while two *different* kinds of entity that happen to
  * share an external system and id (BBL numbers races and competitions in
  * separate, overlapping sequences) can never clobber each other.
- *
- * `kind` is temporarily optional while call sites are migrated; it becomes
- * required once every processor passes it.
  */
 export class ExternalIdMap {
   private readonly map = new Map<string, number>();
 
-  private static keyOf(ref: ExternalRef, kind: EntityKind | undefined): string {
-    return `${kind ?? 'unscoped'}|${ref.system}|${ref.id}`;
+  private static keyOf(ref: ExternalRef, kind: EntityKind): string {
+    return `${kind}|${ref.system}|${ref.id}`;
   }
 
   /**
@@ -26,20 +23,20 @@ export class ExternalIdMap {
    * future accidental collision into an immediate, loud import-time failure
    * instead of a silent misresolution.
    */
-  add(refs: readonly ExternalRef[], entityId: number, kind?: EntityKind): void {
+  add(refs: readonly ExternalRef[], entityId: number, kind: EntityKind): void {
     for (const ref of refs) {
       const key = ExternalIdMap.keyOf(ref, kind);
       const existing = this.map.get(key);
       if (existing !== undefined && existing !== entityId) {
         throw new Error(
-          `Duplicate external id for kind "${kind ?? 'unscoped'}": ${ref.system}|${ref.id} is already registered to entity ${existing}, cannot register it to entity ${entityId}.`,
+          `Duplicate external id for kind "${kind}": ${ref.system}|${ref.id} is already registered to entity ${existing}, cannot register it to entity ${entityId}.`,
         );
       }
       this.map.set(key, entityId);
     }
   }
 
-  resolve(ref: ExternalRef, kind?: EntityKind): number | undefined {
+  resolve(ref: ExternalRef, kind: EntityKind): number | undefined {
     return this.map.get(ExternalIdMap.keyOf(ref, kind));
   }
 }
