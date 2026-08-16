@@ -17,6 +17,7 @@ import { TpRacesImportService } from './races/tp-races-import.service';
 import { TpRulesSetsImportService } from './rules-sets/tp-rules-sets-import.service';
 import { TpSourceReader } from './source/tp-source-reader';
 import { TpTeamsImportService } from './teams/tp-teams-import.service';
+import { TpTrophyAwardsImportService } from './trophy-awards/tp-trophy-awards-import.service';
 
 describe('AppModule', () => {
   let dir: string;
@@ -105,6 +106,9 @@ describe('AppModule', () => {
     );
     expect(moduleRef.get(TpPositionRaceErasImportService)).toBeInstanceOf(
       TpPositionRaceErasImportService,
+    );
+    expect(moduleRef.get(TpTrophyAwardsImportService)).toBeInstanceOf(
+      TpTrophyAwardsImportService,
     );
   });
 });

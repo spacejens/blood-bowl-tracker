@@ -570,17 +570,19 @@ the other `player` fields (`nafUser`, `nafVerified`, `country`, `language`),
 `hasMatches`. `roster` here is a nested copy that lacks `rosterMaster` and,
 per the rosters section above, is not a source for team import.
 
-## `awards_<slug>_awards.json` (not yet parsed)
+## `awards_<slug>_awards.json`
 
-Not yet handled. An object keyed by category id (a string, e.g. `"22494"`),
-each value an array — one entry per award given: `id`, `awardType` (numeric —
-see the code table below), an optional `name` (present only on some award
-types, see below), `inscription.roster { ... }` (see roster shape above),
-`inscription.player.applicationUser { applicationUserId, userNameToShow,
-pictureFileName, country, goldStarAwards }`, `inscription.players[]` (empty in
-samples seen so far), `inscription.coachRank.score`. This is a redundant, less
-complete view of the coaches already imported from inscriptions (no NAF
-fields) — a candidate for an awards sub-issue once that scope is reached.
+An object keyed by TP category id (a string, e.g. `"22494"`), each value an
+array — one entry per award given. The importer reads `id`, `awardType`
+(numeric — see the code table below), the optional `name` (present only on
+some award types, see below) and `inscription.roster.id`.
+
+The coach/player identity fields — `inscription.player`, `inscription.players`
+and `inscription.coachRank` — are deliberately not parsed: they are a less
+complete duplicate of the coaches already imported from inscriptions (no NAF
+fields), and TP records no individual player awards at all, so TP-sourced
+competitions have no player awards today. That gap may be revisited from
+another data source in a separate issue.
 
 There are 13 awards files in the local reference dataset, one per competition
 directory across the three era directories.
@@ -632,25 +634,36 @@ disambiguator is the award's `name` field when present (`Best Stunty`,
 group's literal name. These ids are authored as literal strings in
 `tools/import-manual/data/before-other-importers/trophies.json5`:
 
-| Trophy               | TP external id              |
-| -------------------- | --------------------------- |
-| `Major Gold`         | `1-Major Season`            |
-| `Major Silver`       | `2-Major Season`            |
-| `Major Bronze`       | `3-Major Season`            |
-| `Major Wooden Spoon` | `Wooden Spoon-Major Season` |
-| `Major Best Stunty`  | `Best Stunty-Major Season`  |
-| `Chaos Cup`          | `1-Chaos Cup`               |
-| `Ogretoberfest`      | `1-Ogretoberfest`           |
+| Trophy                | TP external id              |
+| --------------------- | --------------------------- |
+| `Major Gold`          | `1-Major Season`            |
+| `Major Silver`        | `2-Major Season`            |
+| `Major Bronze`        | `3-Major Season`            |
+| `Major Wooden Spoon`  | `Wooden Spoon-Major Season` |
+| `Major Best Stunty`   | `Best Stunty-Major Season`  |
+| `Chaos Cup`           | `1-Chaos Cup`               |
+| `Ogretoberfest`       | `1-Ogretoberfest`           |
+| `Dungeon Bowl Gold`   | `1-Dungeon Bowl`            |
+| `Dungeon Bowl Silver` | `2-Dungeon Bowl`            |
+| `Dungeon Bowl Bronze` | `3-Dungeon Bowl`            |
 
-Only those 7 catalog entries are seeded, because TP has so far only tracked 4
-competition groups (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest —
-Dungeon Bowl has no matching trophy in the catalog) and these award files
-have so far only contained team-level entries: none of the 12 curated player
-trophies, and none of the BBL-only cups, appear anywhere in this data.
-Everything else in the catalog stays seeded with BBL ids only. A new TP
-competition tracking a different group, or a new award kind, would widen
-this set — the scope here reflects what TP has tracked to date, not an
-architectural limit.
+Those 10 catalog entries are seeded because TP has so far only tracked 4
+competition groups (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest).
+Dungeon Bowl now has its own three catalog trophies — BBL never awarded a
+Dungeon Bowl trophy, so `Dungeon Bowl Gold`/`Silver`/`Bronze` carry no BBL id.
+These award files have so far only contained team-level entries: none of the
+12 curated player trophies, and none of the BBL-only cups, appear anywhere in
+this data, so the catalog still seeds no player trophies and no BBL-only cups
+— no TP source data grounds them. Everything else in the catalog stays seeded
+with BBL ids only. A new TP competition tracking a different group, or a new
+award kind, would widen this set — the scope here reflects what TP has
+tracked to date, not an architectural limit.
 
-Actually consuming these ids — parsing these files and writing `trophy_awards`
-rows — is still not implemented; no TP awards importer exists yet.
+`tools/import-tp/src/trophy-awards/` consumes these ids: it reads each
+competition directory's awards file, resolves the catalog trophy by
+`${disambiguator}-${groupName}` (the group coming from the competition's own
+`competitionGroupId`, curated in tools/import-manual's before-other-importers
+phase), resolves the winning team's team era from `inscription.roster.id`
+plus the competition's era, and writes a `trophy_awards` row with
+`playerId: null`. An unresolvable row is recorded as an error and skipped,
+never invented.
