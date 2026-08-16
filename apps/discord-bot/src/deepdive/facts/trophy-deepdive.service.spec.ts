@@ -394,25 +394,33 @@ describe('TrophyDeepdiveService', () => {
     expect(playerContext.attachSuffixes).not.toHaveBeenCalled();
   });
 
-  it('omits the components key entirely when there is nothing to link to', async () => {
-    // The mock now returns an empty components array since we no longer have
-    // anything to link to, but buildEntityComponents will be called with the
-    // group entry regardless (it's always offered). We mock it to return empty
-    // so the embed omits the components key.
-    const entityComponents = mock<EntityComponentsService>();
-    entityComponents.buildEntityComponents.mockReturnValue({
-      components: [],
-      overflowNote: null,
-    });
-    const { service } = await makeService({
+  it('offers only the competition-group drill-up when there are no recipients', async () => {
+    const { service, entityComponents } = await makeService({
       trophies: makeTrophies(trophyHeader()),
-      trophyAwards: makeAwards([]),
-      entityComponents,
+      trophyAwards: makeAwards([], 0),
+      entityComponents: passthroughEntityComponents(),
     });
 
-    const result = await service.resolve(1);
+    const result = (await service.resolve(1)) as unknown as {
+      components: { components: unknown[] }[];
+    };
 
-    expect(result).not.toHaveProperty('components');
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Major',
+      },
+    ]);
+    expect(result.components[0].components).toEqual([
+      {
+        type: 2,
+        style: expect.any(Number) as number,
+        label: 'Major',
+        custom_id: `${COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX}4`,
+        emoji: STUB_BUTTON_EMOJI,
+      },
+    ]);
   });
 
   it('notes the exact number of recipients beyond the 30-row cap', async () => {
