@@ -19,6 +19,7 @@ import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
 import { BblTeamParticipationImportService } from './team-participation/bbl-team-participation-import.service';
 import { BblTeamsImportService } from './teams/bbl-teams-import.service';
+import { BblTrophyAwardsImportService } from './trophy-awards/bbl-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -113,6 +114,20 @@ async function run(): Promise<ImportResult> {
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
       });
 
+    // Trophy awards run after team participation and players: each award row
+    // names a team era within its competition, or a player (recorded under
+    // that player's own team era). The trophies themselves are curated data
+    // seeded by tools/import-manual, which always runs before this importer.
+    const trophyAwardsOutcome = await app
+      .get(BblTrophyAwardsImportService)
+      .importTrophyAwards({
+        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        teamEraIdsByCompetitionBblId:
+          teamParticipationOutcome.teamEraIdsByCompetitionBblId,
+        playerIdsByPid: playerOutcome.playerIdsByPid,
+        teamEraIdsByPid: playerOutcome.teamEraIdsByPid,
+      });
+
     const results = [
       leagueOutcome.result,
       rulesSetsOutcome.result,
@@ -129,6 +144,7 @@ async function run(): Promise<ImportResult> {
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
+      trophyAwardsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),
