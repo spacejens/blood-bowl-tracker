@@ -8,19 +8,12 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import { mockImportResultService } from '../import-package.test-helpers';
+import type { TpSourceFile } from '../source/tp-source-reader';
 import { TpSourceReader } from '../source/tp-source-reader';
 import { TpAwardsReaderService } from './tp-awards-reader.service';
 
-interface SourceFile {
-  era: string;
-  competition: string;
-  type: string;
-  filename: string;
-  content: unknown;
-}
-
 async function makeService(
-  files: SourceFile[],
+  files: TpSourceFile[],
   parser: MockProxy<AwardsParserService> = mock<AwardsParserService>(),
 ) {
   const sourceReader = mock<TpSourceReader>();
@@ -159,7 +152,7 @@ describe('TpAwardsReaderService', () => {
     const sourceReader = mock<TpSourceReader>();
     sourceReader.filesOfType.mockImplementation(async function* () {
       await Promise.resolve();
-      const noFiles: SourceFile[] = [];
+      const noFiles: TpSourceFile[] = [];
       for (const file of noFiles) {
         yield file;
       }
