@@ -48,7 +48,15 @@ export const COMMENT_UPDATE_FAILED_COMMENT = {
  */
 export const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
 
-/** A `gh` invocation that found nothing: both halves of the filter are null. */
+/**
+ * A `gh pr view` invocation that found nothing on the reviews-call side:
+ * `review` and `rateLimitComment` are both null (a missing
+ * `commentUpdateFailedComment` field is tolerated the same as an explicit
+ * null). Only the reviews-call halves — the rolling-comment call is a
+ * separate `gh api` invocation with its own `{completion, rateLimitEdit}`
+ * shape, built by `rollingResult`/`completionResult`/`rateLimitEditResult`
+ * below.
+ */
 export const EMPTY = {
   exitCode: 0,
   stdout: `{"review":null,"rateLimitComment":null,"headRefOid":"${HEAD_REF_OID}"}\n`,

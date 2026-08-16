@@ -1194,7 +1194,7 @@ describe('WaitForPrReviewService', () => {
     expect(processRunner.run).toHaveBeenCalledTimes(1);
   });
 
-  it('skips the completion query when the reviews call itself failed', async () => {
+  it('skips the rolling-comment query when the reviews call itself failed', async () => {
     // A broken or stalled `gh` is retried wholesale on the next interval; it
     // must not also double the number of calls each poll makes.
     processRunner.run.mockResolvedValue({
@@ -1214,7 +1214,7 @@ describe('WaitForPrReviewService', () => {
     expect(processRunner.run).toHaveBeenCalledTimes(2);
   });
 
-  it('tolerates a failing completion query and retries on the next interval', async () => {
+  it('tolerates a failing rolling-comment query and retries on the next interval', async () => {
     processRunner.run.mockImplementation((_command, args) =>
       Promise.resolve(
         args[0] === 'api'
