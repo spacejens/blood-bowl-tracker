@@ -37,7 +37,6 @@ export class RacesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'race');
         imported += 1;
       }
     }

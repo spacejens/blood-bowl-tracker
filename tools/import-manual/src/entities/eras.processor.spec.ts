@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { ErasProcessor } from './eras.processor';
@@ -27,14 +26,10 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap,
     errors: [],
   };
 }
@@ -57,7 +52,7 @@ describe('ErasProcessor', () => {
     processor = moduleRef.get(ErasProcessor);
   });
 
-  it('resolves league and rules-set refs, upserts, and records ids', async () => {
+  it('resolves league and rules-set refs and upserts', async () => {
     eras.upsertEra.mockResolvedValue({
       id: 50,
       name: 'Season 12',
@@ -84,7 +79,7 @@ describe('ErasProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:season-12' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -111,9 +106,6 @@ describe('ErasProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' }, 'era'),
-    ).toBe(50);
   });
 
   it('passes endDate through when present', async () => {
@@ -142,7 +134,7 @@ describe('ErasProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, new ExternalIdMap()));
+    await processor.process(makeContext(data));
 
     expect(eras.upsertEra.mock.calls[0][0]).toMatchObject({
       endDate: '2024-12-31',
@@ -167,7 +159,7 @@ describe('ErasProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -201,7 +193,7 @@ describe('ErasProcessor', () => {
         externalIds: [{ system: 'Name', id: 'First era' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 

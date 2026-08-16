@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { CompetitionsProcessor } from './competitions.processor';
@@ -47,14 +46,10 @@ const upsertedCompetition = (id: number) => ({
   created: true,
 });
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap,
     errors: [],
   };
 }
@@ -84,7 +79,7 @@ describe('CompetitionsProcessor', () => {
     processor = moduleRef.get(CompetitionsProcessor);
   });
 
-  it('resolves the era ref, upserts, and records the id', async () => {
+  it('resolves the era ref and upserts', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(77),
     );
@@ -105,7 +100,7 @@ describe('CompetitionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:season-12' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -131,12 +126,6 @@ describe('CompetitionsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve(
-        { system: 'Name', id: 'name:season-12' },
-        'competition',
-      ),
-    ).toBe(77);
   });
 
   it('passes a cup type through unchanged', async () => {
@@ -155,7 +144,7 @@ describe('CompetitionsProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, new ExternalIdMap()));
+    await processor.process(makeContext(data));
 
     expect(competitions.upsertCompetitionResult.mock.calls[0][0]).toMatchObject(
       { type: 'cup', eraId: 4 },
@@ -183,7 +172,7 @@ describe('CompetitionsProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, new ExternalIdMap()));
+    await processor.process(makeContext(data));
 
     expect(competitions.upsertCompetitionResult.mock.calls[0][0]).toMatchObject(
       { startDate: '2011-09-09', endDate: '2011-12-18' },
@@ -207,7 +196,7 @@ describe('CompetitionsProcessor', () => {
       },
     ];
 
-    await processor.process(makeContext(data, new ExternalIdMap()));
+    await processor.process(makeContext(data));
 
     const [upsert] = competitions.upsertCompetitionResult.mock.calls[0];
     expect(upsert.startDate).toBeUndefined();
@@ -230,7 +219,7 @@ describe('CompetitionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:orphan-cup' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -255,7 +244,7 @@ describe('CompetitionsProcessor', () => {
         externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -275,7 +264,7 @@ describe('CompetitionsProcessor', () => {
     );
   });
 
-  it('does not count or record an id when the upsert fails', async () => {
+  it('does not count when the upsert fails', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue(undefined);
     refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 3 });
     refResolver.toExternalIds.mockReturnValue([]);
@@ -288,14 +277,11 @@ describe('CompetitionsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:doomed' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:doomed' }, 'competition'),
-    ).toBeUndefined();
   });
 
   it('resolves the named competition group into the upsert payload', async () => {
@@ -317,7 +303,7 @@ describe('CompetitionsProcessor', () => {
         competitionGroup: groupRef,
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     expect(await processor.process(ctx)).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenNthCalledWith(
@@ -345,9 +331,7 @@ describe('CompetitionsProcessor', () => {
       },
     ];
 
-    expect(
-      await processor.process(makeContext(data, new ExternalIdMap())),
-    ).toBe(0);
+    expect(await processor.process(makeContext(data))).toBe(0);
     expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
   });
 
@@ -365,9 +349,7 @@ describe('CompetitionsProcessor', () => {
       },
     ];
 
-    expect(
-      await processor.process(makeContext(data, new ExternalIdMap())),
-    ).toBe(0);
+    expect(await processor.process(makeContext(data))).toBe(0);
     expect(competitions.upsertCompetitionResult).not.toHaveBeenCalled();
     const [{ label }] = refResolver.resolveOptionalRef.mock.calls[1] as [
       { label: string },

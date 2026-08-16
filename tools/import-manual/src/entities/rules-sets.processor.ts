@@ -25,7 +25,6 @@ export class RulesSetsProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'rulesSet');
         imported += 1;
       }
     }

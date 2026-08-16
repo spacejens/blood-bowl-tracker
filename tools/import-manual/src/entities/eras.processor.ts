@@ -54,7 +54,6 @@ export class ErasProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'era');
         imported += 1;
       }
     }

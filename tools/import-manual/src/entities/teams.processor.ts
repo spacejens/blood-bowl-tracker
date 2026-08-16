@@ -61,7 +61,6 @@ export class TeamsProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'team');
         imported += 1;
       }
     }

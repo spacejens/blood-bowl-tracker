@@ -6,7 +6,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RulesSetsProcessor } from './rules-sets.processor';
@@ -32,7 +31,6 @@ function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap: new ExternalIdMap(),
     errors: [],
   };
 }
@@ -55,7 +53,7 @@ describe('RulesSetsProcessor', () => {
     processor = moduleRef.get(RulesSetsProcessor);
   });
 
-  it('upserts each rules set, records its external ids, and counts it', async () => {
+  it('upserts each rules set and counts it', async () => {
     rulesSets.upsertRulesSet.mockResolvedValue({
       id: 7,
       name: 'CRP',
@@ -83,12 +81,9 @@ describe('RulesSetsProcessor', () => {
       { name: 'CRP', externalIds: cannedExternalIds },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }, 'rulesSet'),
-    ).toBe(7);
   });
 
-  it('does not record ids or count when the upsert fails', async () => {
+  it('does not count when the upsert fails', async () => {
     rulesSets.upsertRulesSet.mockImplementation(
       (_data: unknown, errors: ImportError[]) => {
         errors.push({ item: {}, message: 'boom' });
@@ -104,8 +99,5 @@ describe('RulesSetsProcessor', () => {
     const count = await processor.process(ctx);
 
     expect(count).toBe(0);
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:crp' }, 'rulesSet'),
-    ).toBeUndefined();
   });
 });

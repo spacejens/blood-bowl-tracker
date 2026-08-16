@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { TeamsProcessor } from './teams.processor';
@@ -27,14 +26,10 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([['Name', 2]]),
-    idMap,
     errors: [],
   };
 }
@@ -57,7 +52,7 @@ describe('TeamsProcessor', () => {
     processor = moduleRef.get(TeamsProcessor);
   });
 
-  it('resolves race, coach, and era refs, upserts, and records ids', async () => {
+  it('resolves race, coach, and era refs and upserts', async () => {
     teams.upsertTeam.mockResolvedValue({
       id: 99,
       name: 'Grave Diggers',
@@ -86,7 +81,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:grave-diggers' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -103,9 +98,6 @@ describe('TeamsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:grave-diggers' }, 'team'),
-    ).toBe(99);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({ ref: data.teams[0].race, kind: 'race' }),
     );
@@ -143,9 +135,7 @@ describe('TeamsProcessor', () => {
       },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(teams.upsertTeam.mock.calls[0][0]).toMatchObject({ eras: [] });
@@ -168,7 +158,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -201,7 +191,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'gyttjevralarna' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -234,7 +224,7 @@ describe('TeamsProcessor', () => {
         externalIds: [{ system: 'Name', id: 'orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 

@@ -5,7 +5,6 @@ import type { MockProxy } from 'vitest-mock-extended';
 import { mock } from 'vitest-mock-extended';
 
 import type { ManualDataFile } from '../data-file/manual-data-file.schema';
-import { ExternalIdMap } from '../references/external-id-map';
 import type { ProcessContext } from '../references/process-context';
 import { ReferenceResolverService } from '../references/reference-resolver.service';
 import { RacesProcessor } from './races.processor';
@@ -27,17 +26,13 @@ function emptyData(): ManualDataFile {
   };
 }
 
-function makeContext(
-  data: ManualDataFile,
-  idMap: ExternalIdMap,
-): ProcessContext {
+function makeContext(data: ManualDataFile): ProcessContext {
   return {
     data,
     systemIds: new Map([
       ['Name', 2],
       ['BBL', 1],
     ]),
-    idMap,
     errors: [],
   };
 }
@@ -60,7 +55,7 @@ describe('RacesProcessor', () => {
     processor = moduleRef.get(RacesProcessor);
   });
 
-  it('resolves era refs, upserts, and records ids', async () => {
+  it('resolves era refs and upserts', async () => {
     races.upsertRace.mockResolvedValue({
       id: 40,
       name: 'Necromantic Horror',
@@ -85,7 +80,7 @@ describe('RacesProcessor', () => {
         ],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -101,7 +96,6 @@ describe('RacesProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'BBL', id: 'id:47' }, 'race')).toBe(40);
   });
 
   it('upserts a race with no eras (empty list)', async () => {
@@ -123,9 +117,7 @@ describe('RacesProcessor', () => {
       },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(races.upsertRace.mock.calls[0][0]).toMatchObject({ eras: [] });
@@ -145,7 +137,7 @@ describe('RacesProcessor', () => {
         externalIds: [{ system: 'Name', id: 'name:orphan' }],
       },
     ];
-    const ctx = makeContext(data, new ExternalIdMap());
+    const ctx = makeContext(data);
 
     const count = await processor.process(ctx);
 
@@ -154,13 +146,12 @@ describe('RacesProcessor', () => {
     expect(refResolver.toExternalIds).not.toHaveBeenCalled();
   });
 
-  it('does not record ids when upsert returns null', async () => {
+  it('does not count when upsert returns null', async () => {
     races.upsertRace.mockResolvedValue(
       null as unknown as Awaited<ReturnType<RacesImportService['upsertRace']>>,
     );
     refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
-    const idMap = new ExternalIdMap();
     const data = emptyData();
     data.races = [
       {
@@ -170,12 +161,9 @@ describe('RacesProcessor', () => {
       },
     ];
 
-    const count = await processor.process(makeContext(data, idMap));
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(0);
-    expect(
-      idMap.resolve({ system: 'Name', id: 'name:null-race' }, 'race'),
-    ).toBeUndefined();
   });
 
   it('upserts a rename-only race with an empty, additive era list', async () => {
@@ -193,9 +181,7 @@ describe('RacesProcessor', () => {
       { name: 'Ogre', eras: [], externalIds: [{ system: 'Name', id: 'ogre' }] },
     ];
 
-    const count = await processor.process(
-      makeContext(data, new ExternalIdMap()),
-    );
+    const count = await processor.process(makeContext(data));
 
     expect(count).toBe(1);
     expect(races.upsertRace.mock.calls[0][0]).toEqual({
@@ -203,37 +189,5 @@ describe('RacesProcessor', () => {
       eras: [],
       externalIds: [],
     });
-  });
-
-  it('registers a race under the race kind even when a competition already claimed that external id', async () => {
-    refResolver.resolveRefs.mockResolvedValue([]);
-    races.upsertRace.mockResolvedValue({
-      id: 40,
-      name: 'Black Orc',
-      eras: [],
-      createdAt: new Date(),
-      created: true,
-    });
-    const idMap = new ExternalIdMap();
-    // A competition already registered BBL id 44 — BBL numbers races and
-    // competitions in separate, overlapping sequences (issue #480).
-    idMap.add([{ system: 'tloeg.bbleague.se', id: '44' }], 77, 'competition');
-    const data = emptyData();
-    data.races = [
-      {
-        name: 'Black Orc',
-        externalIds: [{ system: 'tloeg.bbleague.se', id: '44' }],
-        eras: [],
-      },
-    ];
-
-    await processor.process(makeContext(data, idMap));
-
-    expect(
-      idMap.resolve({ system: 'tloeg.bbleague.se', id: '44' }, 'race'),
-    ).toBe(40);
-    expect(
-      idMap.resolve({ system: 'tloeg.bbleague.se', id: '44' }, 'competition'),
-    ).toBe(77);
   });
 });

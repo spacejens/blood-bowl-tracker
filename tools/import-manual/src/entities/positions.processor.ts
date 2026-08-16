@@ -30,7 +30,6 @@ export class PositionsProcessor {
       if (!upserted) {
         continue;
       }
-      ctx.idMap.add(entry.externalIds, upserted.id, 'position');
       imported += 1;
 
       if (entry.raceEras.length > 0) {

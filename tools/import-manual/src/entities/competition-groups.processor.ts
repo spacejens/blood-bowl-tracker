@@ -16,8 +16,7 @@ export class CompetitionGroupsProcessor {
 
   /**
    * Upsert every declared group, exactly like every other before-other-importers
-   * processor: resolve its cross-references, upsert, then register the result in
-   * the run's ExternalIdMap so later entries can reference it.
+   * processor: resolve its cross-references, then upsert.
    *
    * A group's own external id is not authored in the data file -- it is derived
    * in code from the group's name under the synthetic "Name" system, the same
@@ -75,7 +74,6 @@ export class CompetitionGroupsProcessor {
           ctx.errors,
         );
       if (upserted) {
-        ctx.idMap.add([ref], upserted.id, 'competitionGroup');
         imported += 1;
       }
     }

@@ -70,7 +70,6 @@ export class CompetitionsProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'competition');
         imported += 1;
       }
     }

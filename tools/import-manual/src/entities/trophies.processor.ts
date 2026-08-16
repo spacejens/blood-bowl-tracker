@@ -21,9 +21,7 @@ export class TrophiesProcessor {
    * stored group alone.
    *
    * An entry may declare an empty `externalIds` list; the API then matches it
-   * on its exact name instead (see `TrophiesService.upsert`). Such an entry
-   * records nothing in the run's ExternalIdMap, because there is no
-   * external-id pair for a later entry to reference it by.
+   * on its exact name instead (see `TrophiesService.upsert`).
    */
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
@@ -53,7 +51,6 @@ export class TrophiesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id, 'trophy');
         imported += 1;
       }
     }
