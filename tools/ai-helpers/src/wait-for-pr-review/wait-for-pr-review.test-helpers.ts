@@ -3,6 +3,7 @@ import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { ProcessRunnerService } from '../shared/process-runner.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
+import { WaitForPrReviewFiltersService } from './wait-for-pr-review-filters.service';
 
 export const REVIEW = {
   id: 'PRR_review1',
@@ -124,15 +125,21 @@ export interface WaitForPrReviewHarness {
 }
 
 /**
- * Compiles the service through `Test.createTestingModule` with its only
+ * Compiles the service through `Test.createTestingModule` with its I/O
  * dependency mocked — the repo's standard service-spec shape, shared here so
- * both spec files build the subject identically and freshly per test.
+ * every spec file builds the subject identically and freshly per test.
+ *
+ * `WaitForPrReviewFiltersService` is the deliberate exception CLAUDE.md
+ * documents for a pure, dependency-free formatting service: it only assembles
+ * jq program text, and these specs assert on that exact text, which mocking
+ * would leave unasserted.
  */
 export async function createHarness(): Promise<WaitForPrReviewHarness> {
   const processRunner = mock<ProcessRunnerService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       WaitForPrReviewService,
+      WaitForPrReviewFiltersService,
       { provide: ProcessRunnerService, useValue: processRunner },
     ],
   }).compile();
