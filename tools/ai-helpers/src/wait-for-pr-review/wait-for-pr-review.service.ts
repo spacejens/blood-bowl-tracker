@@ -355,7 +355,7 @@ export class WaitForPrReviewService {
   }
 
   /**
-   * One poll: at most two `gh` calls, each bounded to the time left before
+   * One poll: at most three `gh` calls, each bounded to the time left before
    * `deadline`. Bounding every call this way guarantees a result can never
    * arrive long after `deadline` and be mistaken for a fresh `found`.
    *
@@ -363,7 +363,8 @@ export class WaitForPrReviewService {
    * the existing precedence intact — a formal review is the strongest
    * signal, and within the second call a rate-limit edit outranks a
    * completion (see `RollingCommentOutcome`) — and keeps a failing `gh` from
-   * doubling its own cost.
+   * doubling its own cost. A third call is made only when the first found an
+   * empty-bodied review candidate that needs verifying (see `checkedReview`).
    */
   private async poll(
     options: PollOptions,
