@@ -529,7 +529,8 @@ export class WaitForPrReviewService {
    * `gh pr view --json comments` does not expose (it carries `createdAt`
    * only, and the comment is created on the *first* pass), so this reads the
    * issue-comments REST endpoint instead — one call, one jq program, both
-   * signals, keeping a poll at two `gh` calls.
+   * signals, so this part of the poll costs exactly one `gh` call (a poll's
+   * overall total can still reach three — see `poll`'s doc comment).
    *
    * Returns `undefined` for a failed call, unparseable output, or no
    * qualifying candidate of either kind.
