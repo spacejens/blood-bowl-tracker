@@ -9,6 +9,7 @@ import { CoachesImportService } from './coaches-import.service';
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
 import { CompetitionsImportService } from './competitions-import.service';
 import { ErasImportService } from './eras-import.service';
+import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ExternalSystemBootstrapService } from './external-system-bootstrap.service';
 import { ExternalSystemsImportService } from './external-systems-import.service';
 import { ImportModule } from './import.module';
@@ -48,6 +49,7 @@ const providers = [
   RacesImportService,
   ExternalSystemsImportService,
   ExternalSystemBootstrapService,
+  ExternalIdResolverService,
   RulesSetsImportService,
   SppAdjustmentsImportService,
   SppAwardValuesImportService,
