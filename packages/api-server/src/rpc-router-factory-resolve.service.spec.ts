@@ -44,6 +44,7 @@ describe('resolve procedures', () => {
   it('wires every resolvable namespace to its own service', async () => {
     const { router, mocks } = await createRouterHarness();
     const wiring = [
+      [router.coaches, mocks.coachesService],
       [router.leagues, mocks.leaguesService],
       [router.rulesSets, mocks.rulesSetsService],
       [router.eras, mocks.erasService],
@@ -60,6 +61,30 @@ describe('resolve procedures', () => {
         id: 1,
       });
       expect(service.resolve).toHaveBeenCalledWith(externalId);
+    }
+  });
+
+  it('wires every resolvable namespace to its own service for resolveBatch', async () => {
+    const { router, mocks } = await createRouterHarness();
+    const input = [externalId, { externalSystemId: 1, externalId: 'id:48' }];
+    const wiring = [
+      [router.coaches, mocks.coachesService],
+      [router.races, mocks.racesService],
+      [router.leagues, mocks.leaguesService],
+      [router.rulesSets, mocks.rulesSetsService],
+      [router.eras, mocks.erasService],
+      [router.positions, mocks.positionsService],
+      [router.teams, mocks.teamsService],
+      [router.competitions, mocks.competitionsService],
+      [router.competitionGroups, mocks.competitionGroupsService],
+    ] as const;
+
+    for (const [namespace, service] of wiring) {
+      service.resolveBatch.mockResolvedValue([{ found: true, id: 1 }]);
+      await expect(call(namespace.resolveBatch, input)).resolves.toEqual([
+        { found: true, id: 1 },
+      ]);
+      expect(service.resolveBatch).toHaveBeenCalledWith(input);
     }
   });
 });
