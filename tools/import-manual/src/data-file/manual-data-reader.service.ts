@@ -18,9 +18,8 @@ export class ManualDataReader {
    *
    * Symlinks count as files: `Dirent.isFile()` never follows them, so it
    * alone would silently skip a curated file that is a symlink to another
-   * phase's copy -- data/after-other-importers used to hold exactly that
-   * until issue #344 removed the last of them. `stat()` does follow
-   * symlinks, so it is used instead to decide "is this path, after following
+   * phase's copy -- a curated file can be exactly that, when two phases
+   * need to reference the same catalog. `stat()` does follow
    * any symlink, actually a file" -- which also means a symlink to a
    * directory is skipped just like any other non-file entry, since `stat()`
    * succeeds for it and only `isFile()` is false. A broken symlink's target

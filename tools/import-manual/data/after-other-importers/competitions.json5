@@ -14,16 +14,14 @@
 // were never numbered either -- they all carry the identical raw name.
 // All of them are renamed here to the canonical form.
 //
-// Group classification -- and the real name/type/era/dates every competition
-// instance is created with -- moved to
+// Group classification, and the real name/type/era/dates every competition
+// instance is created with, is curated in
 // data/before-other-importers/competitions.json5 (issue #344): a
 // competition's competition_group_id has to be correct before the BBL and TP
 // importers run, because tools/import-tp's awards import resolves a trophy by
-// the competition's group name. Renaming cannot move with it: it can only run
+// the competition's group name. Renaming cannot run there: it can only run
 // once the importers have (re-)created their rows under the raw source names.
-// That is also why this directory no longer symlinks leagues.json5 and
-// competition-groups.json5 from the before-other-importers phase -- nothing
-// here references a league or a group any more, so this phase's
+// Nothing here references a league or a group, so this phase's
 // ExternalIdMap needs neither catalog.
 //
 // Runs AFTER the BBL/TP importers (this is the after-other-importers
