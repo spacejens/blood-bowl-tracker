@@ -12,6 +12,7 @@ import {
 import { EntityComponentsService } from '../../entity-components.service';
 import {
   nullEntityComponents,
+  passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
 } from '../../entity-components-mock.test-helpers';
 import {
@@ -26,6 +27,7 @@ import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import { DateRangeFormatterService } from '../../shared/date-range-formatter.service';
 import {
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -75,6 +77,7 @@ type CompetitionHeaderFixture = {
   type: 'season' | 'cup';
   eraId: number;
   eraName: string;
+  competitionGroupId: number;
   startDate: string;
   endDate: string | null;
 };
@@ -98,6 +101,7 @@ function competitionHeader(
     type: 'season',
     eraId: 20,
     eraName: 'BB2020',
+    competitionGroupId: 4,
     startDate: '2024-01-15',
     endDate: '2024-06-30',
     ...overrides,
@@ -188,6 +192,11 @@ describe('CompetitionDeepdiveService', () => {
         customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '20',
         label: 'BB2020',
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Major Season 24',
       },
     ]);
     expect(dateRangeFormatter.format).toHaveBeenCalledWith(
@@ -325,6 +334,11 @@ describe('CompetitionDeepdiveService', () => {
         entityId: '20',
         label: 'BB2020',
       },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Major Season 24',
+      },
     ]);
   });
 
@@ -369,6 +383,53 @@ describe('CompetitionDeepdiveService', () => {
         customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '20',
         label: 'BB2020',
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Major Season 24',
+      },
+    ]);
+  });
+
+  it('offers a drill-up button to the competition group, last of all', async () => {
+    const dateRangeFormatter = mock<DateRangeFormatterService>();
+    dateRangeFormatter.format.mockReturnValue('dates');
+    const { service, entityComponents } = await makeService({
+      competitions: makeCompetitions({
+        competition: {
+          id: 1,
+          name: 'Chaos Cup 24',
+          type: 'cup',
+          eraId: 20,
+          eraName: 'BB2020',
+          competitionGroupId: 4,
+          startDate: '2024-10-01',
+          endDate: '2024-10-02',
+        },
+        teams: [{ id: 5, name: 'Gouged Eye' }],
+      }),
+      entityComponents: passthroughEntityComponents(),
+      dateRangeFormatter,
+    });
+
+    await service.resolve(1);
+
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '5',
+        label: 'Gouged Eye',
+      },
+      {
+        customIdPrefix: ERA_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '20',
+        label: 'BB2020',
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Chaos Cup 24',
       },
     ]);
   });
