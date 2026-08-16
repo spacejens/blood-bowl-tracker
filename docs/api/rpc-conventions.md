@@ -53,6 +53,33 @@ upserts. An unexpected server error is not downgraded that way — it is thrown
 as a normal RPC error and fails the whole batch, because a partial import
 must never be reported as a complete one.
 
+## Reference resolution
+
+Nine entity kinds — coaches, leagues, races, positions, rules sets, eras,
+competitions, competition groups and teams — additionally expose `resolve`
+and `resolveBatch`. These answer "which record does this
+`(external system, identifier)` pair name?" without writing anything:
+`resolve` takes one pair, `resolveBatch` a non-empty array of pairs and
+answers with an index-aligned array.
+
+An answer is `{ "found": true, "id": <number> }` or `{ "found": false }`.
+A miss is never an error. An unresolved reference is an expected outcome —
+a typo in a hand-authored data file, or a reference to a record no import
+step has created yet — and the caller decides what it means (the import
+tools record one `ImportError` and skip the entry). Both procedures
+therefore declare no contract errors at all.
+
+This is the read-only half of the lookup every `upsert` already performs
+internally to find an existing record, exposed as its own capability. It
+replaces the in-memory, same-run-only reference maps the import tools used
+to build: because every `upsert` persists immediately, any record created
+earlier — in this run, an earlier phase, or a different tool entirely — is
+already resolvable.
+
+Matches, players, match events, trophies, trophy awards, SPP award values
+and external systems deliberately have no resolve procedure: nothing
+references them by external id across files, phases or tools.
+
 ## Error responses
 
 Procedures declare their possible errors on the oRPC contract itself (see
