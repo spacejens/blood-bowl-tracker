@@ -319,21 +319,21 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
-4. **Post deferred self-review findings, if any.** Phase 5 carries forward a deferred-findings list — the final self-review iteration's unfixed Minor findings. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
+4. **Post pending self-review questions, if any.** Phase 5 carries forward a pending-questions list — the questions it drafted for Minor findings where more than one reasonable fix existed. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
 
-   Otherwise, build a JSON array from the list, one object per finding: `file` (repo-relative path), `line` (integer), and `body` (the finding text exactly as the review reported it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
+   Otherwise, build a JSON array from the list, one object per question: `file` (repo-relative path), `line` (integer), and `body` (the question text exactly as Phase 5 drafted it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
 
    Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/ai-helpers` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-deferred-findings <PR> <<'FINDINGSEOF'
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
-   FINDINGSEOF
+   QUESTIONSEOF
    ```
-   Substitute `<PR>` with the PR number from step 3.
+   Substitute the PR placeholder with the PR number from step 3.
 
-   The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many findings were posted inline, how many as top-level comments, and how many failed — naming each failed finding's file, line, and error, so the developer can post it by hand if they care.
+   The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many questions were posted inline, how many as top-level comments, and how many failed — naming each failed question's file, line, and error, so the developer can post it by hand if they care.
 
    **Warn and continue on failure.** A non-zero exit, unparseable output, or any entries in the `failed` array is a one-line warning, never a stop and never a Pause — matching this phase's existing best-effort precedent (step 2's stray-cleanup warning when the harness refuses a cleanup command). This step is supplementary; the PR already exists regardless of whether these comments post.
 
