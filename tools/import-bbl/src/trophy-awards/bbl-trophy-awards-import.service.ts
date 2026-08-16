@@ -18,14 +18,24 @@ export interface ImportBblTrophyAwardsOptions {
 }
 
 /**
+ * State that lives for the whole import run, shared across every
+ * competition: the trophy-label memoization cache and the BBL external
+ * system id used to resolve labels against it.
+ */
+interface RunContext {
+  trophyIdsByLabel: Map<string, number | undefined>;
+  bblSystemId: number;
+}
+
+/**
  * Everything one competition's award rows need, gathered once so the two row
- * loops stay within the 3-parameter limit.
+ * loops stay within the 3-parameter limit. Nests the run-scoped context
+ * rather than duplicating its fields.
  */
 interface CompetitionContext {
   competitionId: number;
   teamEraIdsByCode: Map<string, number>;
-  trophyIdsByLabel: Map<string, number | undefined>;
-  bblSystemId: number;
+  run: RunContext;
 }
 
 @Injectable()
@@ -80,7 +90,10 @@ export class BblTrophyAwardsImportService {
 
     const rowsByCompetitionId =
       await this.trophyReader.getRowsByCompetitionId(errors);
-    const trophyIdsByLabel = new Map<string, number | undefined>();
+    const runContext: RunContext = {
+      trophyIdsByLabel: new Map<string, number | undefined>(),
+      bblSystemId,
+    };
 
     for (const [competitionBblId, rows] of rowsByCompetitionId) {
       const competitionId = options.competitionIdsByBblId.get(competitionBblId);
@@ -99,8 +112,7 @@ export class BblTrophyAwardsImportService {
         teamEraIdsByCode:
           options.teamEraIdsByCompetitionBblId.get(competitionBblId) ??
           new Map<string, number>(),
-        trophyIdsByLabel,
-        bblSystemId,
+        run: runContext,
       };
 
       for (const row of rows.teamTrophies) {
@@ -182,19 +194,19 @@ export class BblTrophyAwardsImportService {
     context: CompetitionContext,
     errors: ImportError[],
   ): Promise<number | undefined> {
-    if (context.trophyIdsByLabel.has(label)) {
-      return context.trophyIdsByLabel.get(label);
+    if (context.run.trophyIdsByLabel.has(label)) {
+      return context.run.trophyIdsByLabel.get(label);
     }
     const trophy = await this.trophiesImport.upsertTrophy(
       {
         externalIds: [
-          { externalSystemId: context.bblSystemId, externalId: label },
+          { externalSystemId: context.run.bblSystemId, externalId: label },
         ],
       },
       errors,
     );
     const trophyId = trophy?.id;
-    context.trophyIdsByLabel.set(label, trophyId);
+    context.run.trophyIdsByLabel.set(label, trophyId);
     return trophyId;
   }
 }
