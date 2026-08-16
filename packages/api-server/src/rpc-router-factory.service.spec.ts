@@ -28,6 +28,7 @@ import {
   TeamsService,
   TeamUpsertConflictError,
   TrophiesService,
+  TrophyAwardsService,
   TrophyUpsertConflictError,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
@@ -50,6 +51,7 @@ describe('RpcRouterFactoryService', () => {
   let positionsService: MockProxy<PositionsService>;
   let teamsService: MockProxy<TeamsService>;
   let trophiesService: MockProxy<TrophiesService>;
+  let trophyAwardsService: MockProxy<TrophyAwardsService>;
   let competitionGroupsService: MockProxy<CompetitionGroupsService>;
   let competitionsService: MockProxy<CompetitionsService>;
   let matchesService: MockProxy<MatchesService>;
@@ -70,6 +72,7 @@ describe('RpcRouterFactoryService', () => {
     positionsService = mock<PositionsService>();
     teamsService = mock<TeamsService>();
     trophiesService = mock<TrophiesService>();
+    trophyAwardsService = mock<TrophyAwardsService>();
     competitionGroupsService = mock<CompetitionGroupsService>();
     competitionsService = mock<CompetitionsService>();
     matchesService = mock<MatchesService>();
@@ -116,6 +119,7 @@ describe('RpcRouterFactoryService', () => {
         { provide: PositionsService, useValue: positionsService },
         { provide: TeamsService, useValue: teamsService },
         { provide: TrophiesService, useValue: trophiesService },
+        { provide: TrophyAwardsService, useValue: trophyAwardsService },
         {
           provide: CompetitionGroupsService,
           useValue: competitionGroupsService,

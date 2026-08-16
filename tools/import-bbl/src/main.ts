@@ -19,6 +19,7 @@ import { BblRacesImportService } from './races/bbl-races-import.service';
 import { BblRulesSetsImportService } from './rules-sets/bbl-rules-sets-import.service';
 import { BblTeamParticipationImportService } from './team-participation/bbl-team-participation-import.service';
 import { BblTeamsImportService } from './teams/bbl-teams-import.service';
+import { BblTrophyAwardsImportService } from './trophy-awards/bbl-trophy-awards-import.service';
 
 async function run(): Promise<ImportResult> {
   const app = await NestFactory.createApplicationContext(AppModule.register(), {
@@ -100,9 +101,10 @@ async function run(): Promise<ImportResult> {
       .get(BblSppAdjustmentsImportService)
       .importSppAdjustments(playerOutcome.scrapedSppTotalsByPlayerId);
 
-    // Match outcomes run last: scores are counted from the touchdown events
-    // imported just above, and a tied knock-out match's winner is traced
-    // through sibling matches that must already exist.
+    // Match outcomes run after match events: scores are counted from the
+    // touchdown events imported just above, and a tied knock-out match's
+    // winner is traced through sibling matches that must already exist.
+    // (Trophy awards run after this step — see below.)
     const matchOutcomesOutcome = await app
       .get(BblMatchOutcomesImportService)
       .importMatchOutcomes({
@@ -111,6 +113,20 @@ async function run(): Promise<ImportResult> {
         categoriesByBblId: matchOutcome.categoriesByBblId,
         teamEraIdsByCompetitionBblId:
           teamParticipationOutcome.teamEraIdsByCompetitionBblId,
+      });
+
+    // Trophy awards run after team participation and players: each award row
+    // names a team era within its competition, or a player (recorded under
+    // that player's own team era). The trophies themselves are curated data
+    // seeded by tools/import-manual, which always runs before this importer.
+    const trophyAwardsOutcome = await app
+      .get(BblTrophyAwardsImportService)
+      .importTrophyAwards({
+        competitionIdsByBblId: competitionOutcome.competitionIdsByBblId,
+        teamEraIdsByCompetitionBblId:
+          teamParticipationOutcome.teamEraIdsByCompetitionBblId,
+        playerIdsByPid: playerOutcome.playerIdsByPid,
+        teamEraIdsByPid: playerOutcome.teamEraIdsByPid,
       });
 
     const results = [
@@ -129,6 +145,7 @@ async function run(): Promise<ImportResult> {
       matchEventsOutcome.result,
       sppAdjustmentsOutcome.result,
       matchOutcomesOutcome.result,
+      trophyAwardsOutcome.result,
     ];
     return {
       success: results.every((r) => r.success),

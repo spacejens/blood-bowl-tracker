@@ -8,7 +8,7 @@ import type { BblPage } from '../source/bbl-page.types';
 import { BblSourceReader } from '../source/bbl-source-reader';
 import { PageParseErrorService } from '../source/page-parse-error.service';
 import { BblCompetitionTrophyReaderService } from './bbl-competition-trophy-reader.service';
-import type { CompetitionTrophyPlacements } from './competition-trophy-page-parser';
+import type { CompetitionTrophyRows } from './competition-trophy-page-parser';
 import { CompetitionTrophyPageParser } from './competition-trophy-page-parser';
 
 function page(params: Record<string, string>): BblPage {
@@ -21,13 +21,29 @@ function page(params: Record<string, string>): BblPage {
   };
 }
 
+const NO_ROWS: CompetitionTrophyRows = { teamTrophies: [], playerPrizes: [] };
+
+function rowsWith(teamCode: string): CompetitionTrophyRows {
+  return {
+    teamTrophies: [{ label: 'Major 1st', teamCode }],
+    playerPrizes: [{ label: 'Top Scorer', pid: '102' }],
+  };
+}
+
+/**
+ * A parser mock that answers `extractRows` from `rowsById` and returns a
+ * canned placement derived from nothing but the mock's own seed. The parser's
+ * real label-to-placement logic is covered by
+ * competition-trophy-page-parser.spec.ts; this spec only checks that the
+ * reader feeds `extractRows`' team rows into `placementsFrom` and returns the
+ * result keyed by competition id.
+ */
 function makeParser(
-  placementsById: Record<string, CompetitionTrophyPlacements>,
+  rowsById: Record<string, CompetitionTrophyRows>,
 ): MockProxy<CompetitionTrophyPageParser> {
   const parser = mock<CompetitionTrophyPageParser>();
-  parser.extractPlacements.mockImplementation(
-    (p) => placementsById[p.params.s] ?? {},
-  );
+  parser.extractRows.mockImplementation((p) => rowsById[p.params.s] ?? NO_ROWS);
+  parser.placementsFrom.mockReturnValue({ first: 'canned' });
   return parser;
 }
 
@@ -67,29 +83,43 @@ async function makeService(options: {
 }
 
 describe('BblCompetitionTrophyReaderService', () => {
-  it('keys placements by competition id, deduping repeated s pages', async () => {
-    const parser = makeParser({ '1': { first: 'sew', second: 'vor' } });
+  it('keys rows by competition id, deduping repeated s pages', async () => {
+    const parser = makeParser({ '1': rowsWith('sew') });
     const { service } = await makeService({
       reader: mockBblSourceReader([page({ s: '1' }), page({ s: '1' })]),
       parser,
     });
     const errors: ImportError[] = [];
 
-    const result = await service.getPlacementsByCompetitionId(errors);
+    const result = await service.getRowsByCompetitionId(errors);
 
-    expect(result.get('1')).toEqual({ first: 'sew', second: 'vor' });
-    expect(parser.extractPlacements).toHaveBeenCalledTimes(1);
+    expect(result.get('1')).toEqual(rowsWith('sew'));
+    expect(parser.extractRows).toHaveBeenCalledTimes(1);
     expect(errors).toHaveLength(0);
   });
 
-  it('skips a page with no s param', async () => {
-    const parser = makeParser({ '1': { first: 'sew' } });
+  it('derives placements from the team trophy rows', async () => {
+    const parser = makeParser({ '1': rowsWith('sew') });
     const { service } = await makeService({
-      reader: mockBblSourceReader([page({}), page({ s: '1' })]),
+      reader: mockBblSourceReader([page({ s: '1' })]),
       parser,
     });
 
     const result = await service.getPlacementsByCompetitionId([]);
+
+    expect(result.get('1')).toEqual({ first: 'canned' });
+    expect(parser.placementsFrom).toHaveBeenCalledWith(
+      rowsWith('sew').teamTrophies,
+    );
+  });
+
+  it('skips a page with no s param', async () => {
+    const { service } = await makeService({
+      reader: mockBblSourceReader([page({}), page({ s: '1' })]),
+      parser: makeParser({ '1': rowsWith('sew') }),
+    });
+
+    const result = await service.getRowsByCompetitionId([]);
 
     expect([...result.keys()]).toEqual(['1']);
   });
@@ -99,10 +129,10 @@ describe('BblCompetitionTrophyReaderService', () => {
     const pagesSpy = vi.spyOn(reader, 'pages');
     const { service } = await makeService({
       reader,
-      parser: makeParser({ '1': { first: 'sew' } }),
+      parser: makeParser({ '1': rowsWith('sew') }),
     });
 
-    await service.getPlacementsByCompetitionId([]);
+    await service.getRowsByCompetitionId([]);
     await service.getPlacementsByCompetitionId([]);
 
     expect(pagesSpy).toHaveBeenCalledTimes(1);
@@ -110,7 +140,7 @@ describe('BblCompetitionTrophyReaderService', () => {
 
   it('records an error and continues when a page fails to parse', async () => {
     const parser = mock<CompetitionTrophyPageParser>();
-    parser.extractPlacements.mockImplementation(() => {
+    parser.extractRows.mockImplementation(() => {
       throw new Error('bad sr page');
     });
     const { service, pageParseError } = await makeService({
@@ -119,7 +149,7 @@ describe('BblCompetitionTrophyReaderService', () => {
     });
     const errors: ImportError[] = [];
 
-    const result = await service.getPlacementsByCompetitionId(errors);
+    const result = await service.getRowsByCompetitionId(errors);
 
     expect(result.size).toBe(0);
     expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);

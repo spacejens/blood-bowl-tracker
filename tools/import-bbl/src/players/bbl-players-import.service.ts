@@ -57,6 +57,13 @@ export class BblPlayersImportService {
   }: ImportPlayersOptions): Promise<{
     result: ImportResult;
     playerIdsByPid: Map<string, number>;
+    /**
+     * The team era each imported player belongs to, keyed by pid. A player
+     * never changes teams, so this is also the team era a trophy award for
+     * that player is recorded under (see
+     * `packages/db/src/schema/trophy-awards.ts`).
+     */
+    teamEraIdsByPid: Map<string, number>;
     positionsUsedByEra: Set<string>;
     racesActiveByEra: Set<string>;
     scrapedSppTotalsByPlayerId: Map<number, number | null>;
@@ -64,6 +71,7 @@ export class BblPlayersImportService {
     let imported = 0;
     const errors: ImportError[] = [];
     const playerIdsByPid = new Map<string, number>();
+    const teamEraIdsByPid = new Map<string, number>();
     const positionsUsedByEra = new Set<string>();
     const racesActiveByEra = new Set<string>();
     // BBL's own displayed career total per imported player, keyed by DB id.
@@ -81,6 +89,7 @@ export class BblPlayersImportService {
       return {
         result: this.importResults.result({ imported, errors }),
         playerIdsByPid,
+        teamEraIdsByPid,
         positionsUsedByEra,
         racesActiveByEra,
         scrapedSppTotalsByPlayerId,
@@ -216,6 +225,7 @@ export class BblPlayersImportService {
         if (upserted) {
           imported += 1;
           playerIdsByPid.set(player.pid, upserted.id);
+          teamEraIdsByPid.set(player.pid, teamEra.id);
           positionsUsedByEra.add(`${positionId}:${eraId}`);
           racesActiveByEra.add(`${team.raceId}:${eraId}`);
           scrapedSppTotalsByPlayerId.set(upserted.id, player.sppTotal);
@@ -229,6 +239,7 @@ export class BblPlayersImportService {
     return {
       result: this.importResults.result({ imported, errors }),
       playerIdsByPid,
+      teamEraIdsByPid,
       positionsUsedByEra,
       racesActiveByEra,
       scrapedSppTotalsByPlayerId,

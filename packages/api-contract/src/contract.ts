@@ -48,6 +48,10 @@ import {
 import { TeamSchema, UpsertTeamSchema } from './schemas/team';
 import { TrophySchema, UpsertTrophySchema } from './schemas/trophy';
 import {
+  TrophyAwardSchema,
+  UpsertTrophyAwardSchema,
+} from './schemas/trophy-award';
+import {
   upsertProcedure,
   upsertProcedureWithoutConflict,
 } from './upsert-procedure';
@@ -147,6 +151,17 @@ export const contract = {
     // with 29 curated rows, so batching saves nothing. Same reasoning as
     // `sppAwardValues`, which likewise defines a non-standard router.
     upsert: upsertProcedure(UpsertTrophySchema, TrophySchema),
+  },
+  trophyAwards: {
+    // Deliberately no `upsertBatch`: the whole BBL mirror yields under 400
+    // award rows per run, so batching saves nothing. Same reasoning as
+    // `trophies` and `competitionGroups`.
+    //
+    // A CONFLICT is still declared even though a trophy award carries no
+    // external ids: `trophy_awards` has no database-level natural key, so
+    // more than one row can match the application-level dedup key, and
+    // `TrophyAwardsService` refuses to guess between them.
+    upsert: upsertProcedure(UpsertTrophyAwardSchema, TrophyAwardSchema),
   },
   externalSystems: {
     // The only upsert with no CONFLICT error: an external system is matched

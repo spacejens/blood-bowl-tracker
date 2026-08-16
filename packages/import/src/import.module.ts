@@ -23,6 +23,7 @@ import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
 import { TeamsImportService } from './teams-import.service';
 import { TrophiesImportService } from './trophies-import.service';
+import { TrophyAwardsImportService } from './trophy-awards-import.service';
 
 @Module({
   providers: [
@@ -49,6 +50,7 @@ import { TrophiesImportService } from './trophies-import.service';
     ErasImportService,
     TeamsImportService,
     TrophiesImportService,
+    TrophyAwardsImportService,
   ],
   exports: [
     ImportRunnerService,
@@ -74,6 +76,7 @@ import { TrophiesImportService } from './trophies-import.service';
     ErasImportService,
     TeamsImportService,
     TrophiesImportService,
+    TrophyAwardsImportService,
   ],
 })
 export class ImportModule {}

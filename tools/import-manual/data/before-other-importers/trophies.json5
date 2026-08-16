@@ -258,8 +258,7 @@
       name: 'Top Intercepter',
       recipientKind: 'player',
       competitionGroup: { system: 'Name', id: 'Major Season' },
-      description:
-        'Most interceptions during the season. Not awarded if tied between more than three players.',
+      description: 'Most interceptions during the season.',
       externalIds: [{ system: 'tloeg.bbleague.se', id: 'Top Intercepter' }],
     },
     {

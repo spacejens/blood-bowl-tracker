@@ -92,11 +92,35 @@ Note on the `sr` page's "Team trophy" table: `default.asp?p=sr&s=<id>` carries a
 mirrored `sr` pages; e.g. "Ogretoberfest 6", `s=46`, has none — a competition
 may simply not have one). Each row is a `tr.trlist` with
 `onclick="self.location.href='default.asp?p=tm&t=<code>';"` identifying the
-team, and a label cell such as `Major 1st`, `Major 2nd`, `Major 3rd`, `Major
-Wooden Spoon`, or `Minor 1st` — the prefix ("Major"/"Minor"/etc.) is
+team, and a label cell (the row's second `<td>`, after the prize icon) such as
+`Major 1st`, `Major 2nd`, `Major 3rd`, `Major Wooden Spoon`, or `Minor 1st` —
+the prefix ("Major"/"Minor"/etc.) is
 competition-type-specific and not itself meaningful; only the `1st`/`2nd`/`3rd`
 suffix identifies a placement. The same table can also hold non-placement award
-rows (e.g. `Cabal Vision Cup`), which are ignored.
+rows (e.g. `Cabal Vision
+Cup`, `Major Best Stunty`, `Major Wooden Spoon`); those say nothing about a
+specific match and so are ignored for tie-breaking, but they are real
+trophies and every row of this table is imported as a `trophy_awards` row.
+
+Note on the `sr` page's "Player prize" table: the same `default.asp?p=sr&s=<id>`
+page carries a second `table.tblist` whose header `<th>` reads "Player prize".
+Each row is a `tr.trlist` with
+`onclick="self.location.href='default.asp?p=pl&pid=<id>';"` identifying the
+winning player, and a label cell (the row's second `<td>`, after the prize
+icon) holding the trophy's exact name — `Season MVP`, `Top Scorer`, `Most
+Violent Player`, `Deadliest Player`, `Top Thrower`, `Top Fouler`, `Top
+Intercepter`, `Most SPP`, `Legendary Player`, `Trogen Tjänst`, and the
+cup-specific `Bierhallenführer` (Ogretoberfest) and `Gudarnas Förkämpe` (Chaos
+Cup). Unlike the "Team trophy" table's labels, these carry no
+competition-tier prefix. All 12 distinct labels found across the mirror match
+a curated trophy's `tloeg.bbleague.se` external id exactly, which is how the
+importer resolves each row to a trophy.
+
+A trophy tied between several players is listed as one row per player — the
+same label repeated with a different `pid`. Real data holds ties of two, three
+and four players (e.g. `Deadliest Player`, `Legendary Player`, `Top Fouler`,
+`Top Intercepter`), so no cutoff on tie size is applied: every listed winner
+gets its own `trophy_awards` row.
 
 Note on `m` pages: `default.asp?p=m&m=<id>` is a single match's detail page.
 Its two teams are read from the `<a href="default.asp?p=tm&t=<id>">` links in
@@ -314,9 +338,8 @@ in one Ogretoberfest instance's rules text — is absent from the `p=ppr`
 legend and is deliberately not seeded as a trophy.
 
 This pair of legend pages is the trophy _catalog_; it says nothing about who
-actually won a trophy. That is the job of the `sr` page's "Team trophy" table
-described above (`Note on the sr page's "Team trophy" table:`), whose
-currently-discarded non-placement rows (e.g. `Cabal Vision Cup`) and the
-entirely-ignored "Player prize" table are exactly the data a future
-`trophy_awards` importer will consume — see
-`tools/import-bbl/src/matches/competition-trophy-page-parser.ts`.
+actually won a trophy. That is the job of the `sr` page's "Team trophy" and
+"Player prize" tables described above, whose rows the trophy-awards importer
+(`tools/import-bbl/src/trophy-awards/bbl-trophy-awards-import.service.ts`,
+issue #343) turns into `trophy_awards` rows, resolving each row's trophy by
+its exact label text via `trophies_external_ids`.

@@ -255,6 +255,42 @@ describe('BblPlayersImportService', () => {
     expect(racesActiveByEra).toEqual(new Set(['70:500']));
   });
 
+  it("returns each imported player's team era id keyed by pid", async () => {
+    const { service } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+    );
+
+    const { teamEraIdsByPid } = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    });
+
+    // Default makeService wiring resolves the team era to id 5000 (see
+    // makeTeamRecord([{ id: 5000, eraId: 500 }]) in makeService).
+    expect(teamEraIdsByPid.get('42')).toBe(5000);
+  });
+
+  it('omits the player from both playerIdsByPid and teamEraIdsByPid when the upserted team has no matching era', async () => {
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
+    );
+    mocks.teamsImport.upsertTeam.mockResolvedValue(
+      makeTeamRecord([{ id: 5000, eraId: 999 }]),
+    );
+
+    const { playerIdsByPid, teamEraIdsByPid } = await service.importPlayers({
+      teamsByCode,
+      positionIdsByBblId,
+      racesByBblId,
+      eraIdsByName,
+    });
+
+    expect(playerIdsByPid.has('42')).toBe(false);
+    expect(teamEraIdsByPid.has('42')).toBe(false);
+  });
+
   it('resolves the era via playerIdOverrides when the pid is outside every range', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),

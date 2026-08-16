@@ -1,6 +1,7 @@
 import {
   MatchCategoryMismatchError,
   MissingRequiredFieldError,
+  TrophyAwardRecipientMismatchError,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 
@@ -32,7 +33,9 @@ export type BatchUpsertItemResult<TEntity extends object> =
  * so no per-entity class is needed here) becomes BAD_REQUEST. A match whose
  * category doesn't fit its competition's type (`MatchCategoryMismatchError`)
  * is likewise a payload-validity failure, not a conflict, and also becomes
- * BAD_REQUEST. Anything else propagates untouched.
+ * BAD_REQUEST, as does a trophy award whose player id does not fit its
+ * trophy's recipient kind (`TrophyAwardRecipientMismatchError`). Anything
+ * else propagates untouched.
  */
 @Injectable()
 export class UpsertHandlerService {
@@ -54,7 +57,8 @@ export class UpsertHandlerService {
       }
       if (
         err instanceof MissingRequiredFieldError ||
-        err instanceof MatchCategoryMismatchError
+        err instanceof MatchCategoryMismatchError ||
+        err instanceof TrophyAwardRecipientMismatchError
       ) {
         throw errors.BAD_REQUEST({ message: err.message });
       }
@@ -67,9 +71,11 @@ export class UpsertHandlerService {
    * turn and answers with one result per item, in input order. It classifies
    * failures exactly as `run` does, but a known domain failure (this
    * entity's conflict error, `MissingRequiredFieldError`,
-   * `MatchCategoryMismatchError`) becomes that item's `{success: false}`
-   * entry instead of a thrown contract error, so one bad item never costs
-   * its siblings their upserts. Anything else still propagates untouched and
+   * `MatchCategoryMismatchError`, a trophy award whose player id does not
+   * fit its trophy's recipient kind (`TrophyAwardRecipientMismatchError`))
+   * becomes that item's `{success: false}` entry instead of a thrown
+   * contract error, so one bad item never costs its siblings their upserts.
+   * Anything else still propagates untouched and
    * aborts the whole batch — an unexpected server error is not a per-item
    * data problem, and swallowing it would report a partial import as a
    * complete one.
@@ -101,7 +107,8 @@ export class UpsertHandlerService {
         }
         if (
           err instanceof MissingRequiredFieldError ||
-          err instanceof MatchCategoryMismatchError
+          err instanceof MatchCategoryMismatchError ||
+          err instanceof TrophyAwardRecipientMismatchError
         ) {
           results.push({ success: false, error: err.message });
           continue;
