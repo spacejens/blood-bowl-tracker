@@ -231,6 +231,22 @@ const NO_ACTIONABLE_COMMENTS_PHRASE_REGEX = new RegExp(
  * comment's `createdAt` never moves, which is exactly why `rateLimitFilter`
  * (which reads `gh pr view --json comments`, a payload with no `updated_at`)
  * cannot see it. Observed on PR #464.
+ *
+ * CAUTION FOR FUTURE EDITORS: these two constants are themselves
+ * self-referential source text on a PR that touches this file — CodeRabbit's
+ * own walkthrough quoting this file's diff would put a literal marker pair
+ * into its own comment body. Today that costs nothing: the raw text between
+ * the two `const` declarations contains no `RATE_LIMIT_PHRASES` match, so
+ * `select(.section | test(...))` in `rateLimitEditFilter` drops the element.
+ * But two things follow, and neither is worth engineering around for how
+ * narrow and self-limited this is (it requires CodeRabbit to quote this
+ * exact file's raw source): (a) do not add "rate limit" wording to this pair
+ * of doc comments — that would make the service detect itself; and (b) `jq`'s
+ * `capture` is a single, non-greedy match per comment body, so a *genuine*
+ * rate-limit block sharing a comment with a quoted copy of these markers
+ * could have its own span shadowed by the quoted one if the quoted pair
+ * comes first in the body — this is a real gap, not just a false positive,
+ * but only on PRs that touch this file specifically.
  */
 const RATE_LIMIT_EDIT_START_MARKER =
   '<!-- This is an auto-generated comment: rate limited by coderabbit.ai -->';
@@ -238,7 +254,8 @@ const RATE_LIMIT_EDIT_START_MARKER =
  * Closes it. Both markers must be present for the section to be extractable —
  * same paired-marker discipline as the completion section above, and for the
  * same reason: the phrase test and the wait-duration parse must see the
- * warning block only, never the whole (very large) walkthrough body.
+ * warning block only, never the whole (very large) walkthrough body. See the
+ * caution on `RATE_LIMIT_EDIT_START_MARKER` above before editing either.
  */
 const RATE_LIMIT_EDIT_END_MARKER =
   '<!-- end of auto-generated comment: rate limited by coderabbit.ai -->';
