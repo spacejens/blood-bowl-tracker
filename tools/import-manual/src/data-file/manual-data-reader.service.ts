@@ -16,9 +16,10 @@ export class ManualDataReader {
    * Malformed JSON5 or an invalid file shape throws with the offending path; a
    * missing directory propagates readdir's error.
    *
-   * Symlinks count as files: `Dirent.isFile()` never follows them, so it alone
-   * would silently skip data/after-other-importers' symlinks to the catalog
-   * files curated in data/before-other-importers. `stat()` does follow
+   * Symlinks count as files: `Dirent.isFile()` never follows them, so it
+   * alone would silently skip a curated file that is a symlink to another
+   * phase's copy -- data/after-other-importers used to hold exactly that
+   * until issue #344 removed the last of them. `stat()` does follow
    * symlinks, so it is used instead to decide "is this path, after following
    * any symlink, actually a file" -- which also means a symlink to a
    * directory is skipped just like any other non-file entry, since `stat()`

@@ -1,4 +1,4 @@
-import { lstatSync, readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import JSON5 from 'json5';
@@ -101,22 +101,38 @@ describe('curated data files', () => {
     }
   });
 
-  it('re-declares the same leagues and groups in the after-other-importers phase', () => {
-    // That phase is a separate process with its own empty ExternalIdMap, so
-    // competitions.json5 can only resolve a group if the catalog is processed
-    // there too. The files are symlinks to the before-other-importers
-    // originals, so this asserts identity, not merely equality of content.
-    const before = readPhase('before-other-importers');
-    const after = readPhase('after-other-importers');
+  it('keeps the after-other-importers phase to rename-only competition entries', () => {
+    // Classification moved to data/before-other-importers/competitions.json5
+    // (issue #344): a competition's group must be correct before the BBL/TP
+    // importers run. What is left here can only run afterwards -- renaming a
+    // row the importers created.
+    const competitions = readPhase('after-other-importers').competitions;
 
-    expect(after.competitionGroups).toEqual(before.competitionGroups);
-    expect(after.leagues).toEqual(before.leagues);
-    for (const name of ['leagues.json5', 'competition-groups.json5']) {
+    expect(competitions).toHaveLength(36);
+    for (const competition of competitions) {
+      expect(competition.name).toBeDefined();
+      expect(competition.competitionGroup).toBeUndefined();
+      expect(competition.era).toBeUndefined();
+      expect(competition.type).toBeUndefined();
+    }
+  });
+
+  it('curates every era each competition can reference', () => {
+    const data = readPhase('before-other-importers');
+    const leagueIds = new Set(
+      data.leagues.flatMap((league) =>
+        league.externalIds.map((ref) => `${ref.system}|${ref.id}`),
+      ),
+    );
+
+    expect(data.eras).toHaveLength(8);
+    for (const era of data.eras) {
+      expect(leagueIds).toContain(`${era.league!.system}|${era.league!.id}`);
       expect(
-        lstatSync(
-          join(DATA_ROOT, 'after-other-importers', name),
-        ).isSymbolicLink(),
-      ).toBe(true);
+        era.startDate,
+        `era "${era.name}" has no start date`,
+      ).toBeDefined();
+      expect(era.externalIds).toContainEqual({ system: 'Name', id: era.name });
     }
   });
 
@@ -199,12 +215,12 @@ describe('curated data files', () => {
   });
 
   it('classifies all 86 known competition instances into curated groups', () => {
+    const before = readPhase('before-other-importers');
     const groupNames = new Set(
-      readPhase('before-other-importers').competitionGroups.map(
-        (group) => group.name,
-      ),
+      before.competitionGroups.map((group) => group.name),
     );
-    const competitions = readPhase('after-other-importers').competitions;
+    const eraNames = new Set(before.eras.map((era) => era.name));
+    const competitions = before.competitions;
 
     expect(competitions).toHaveLength(86);
     const keys = new Set<string>();
@@ -220,6 +236,19 @@ describe('curated data files', () => {
       ).toBeDefined();
       expect(competition.competitionGroup!.system).toBe('Name');
       expect(groupNames).toContain(competition.competitionGroup!.id);
+      // The create path needs every NOT NULL column competitions has no
+      // default for: name, type, era_id and start_date (issue #344).
+      expect(competition.name, `competition ${key} has no name`).toBeDefined();
+      expect(competition.type, `competition ${key} has no type`).toBeDefined();
+      expect(competition.era, `competition ${key} has no era`).toBeDefined();
+      expect(competition.era!.system).toBe('Name');
+      expect(eraNames, `competition ${key} names an uncurated era`).toContain(
+        competition.era!.id,
+      );
+      expect(
+        competition.startDate,
+        `competition ${key} has no start date`,
+      ).toBeDefined();
     }
   });
 });

@@ -87,6 +87,15 @@ const CompetitionEntrySchema = z.object({
   name: z.string().min(1).optional(),
   type: z.enum(['season', 'cup']).optional(),
   era: ExternalRefSchema.optional(),
+  // competitions.start_date is NOT NULL with no default, so an entry that
+  // creates a competition row -- which is exactly what
+  // data/before-other-importers/competitions.json5 does, ahead of the BBL and
+  // TP importers (issue #344) -- has to supply one. Both stay optional, and
+  // endDate nullable, for the same overlay reason every other field here is:
+  // a rename-only entry says nothing about dates and leaves the stored ones
+  // alone.
+  startDate: IsoDate.optional(),
+  endDate: IsoDate.nullable().optional(),
   // An explicit external-id pair naming the competition group, in the same
   // synthetic "Name" system a group's own upsert registers itself under (e.g.
   // { system: 'Name', id: 'Major Season' }) -- resolved against the run's

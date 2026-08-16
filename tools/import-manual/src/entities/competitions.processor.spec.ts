@@ -126,6 +126,51 @@ describe('CompetitionsProcessor', () => {
     );
   });
 
+  it('passes the curated start and end dates through to the upsert', async () => {
+    // competitions.start_date is NOT NULL with no default, so the
+    // before-other-importers phase's create path (issue #344) depends on
+    // these reaching the API untouched.
+    competitions.upsertCompetitionResult.mockResolvedValue({ id: 79 });
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Major Season 1',
+        type: 'season',
+        era: { system: 'Name', id: 'name:first-era' },
+        startDate: '2011-09-09',
+        endDate: '2011-12-18',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '1' }],
+      },
+    ];
+
+    await processor.process(makeContext(data, new ExternalIdMap()));
+
+    expect(competitions.upsertCompetitionResult.mock.calls[0][0]).toMatchObject(
+      { startDate: '2011-09-09', endDate: '2011-12-18' },
+    );
+  });
+
+  it('passes both dates through as undefined for an entry that omits them', async () => {
+    competitions.upsertCompetitionResult.mockResolvedValue({ id: 80 });
+    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.toExternalIds.mockReturnValue([]);
+    const data = emptyData();
+    data.competitions = [
+      {
+        name: 'Major Season 12',
+        externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
+      },
+    ];
+
+    await processor.process(makeContext(data, new ExternalIdMap()));
+
+    const [upsert] = competitions.upsertCompetitionResult.mock.calls[0];
+    expect(upsert.startDate).toBeUndefined();
+    expect(upsert.endDate).toBeUndefined();
+  });
+
   // Resolution-failure counting (how many ImportErrors get recorded) is the
   // resolver's own behaviour and is covered by
   // reference-resolver.service.spec.ts. This test instead asserts the

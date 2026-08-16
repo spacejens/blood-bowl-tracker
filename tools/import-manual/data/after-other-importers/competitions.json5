@@ -1,6 +1,5 @@
-// Normalizes the names of recurring numbered competitions (issues #270, #285)
-// and classifies every known competition instance into its curated
-// competition group (issue #445).
+// Normalizes the names of recurring numbered competitions (issues #270,
+// #285). Renaming is now this file's only job.
 //
 // BBL and TP named the same recurring competition tracks inconsistently over
 // the years: the top-tier season track ran uninterrupted as 1..29 but was
@@ -15,20 +14,17 @@
 // were never numbered either -- they all carry the identical raw name.
 // All of them are renamed here to the canonical form.
 //
-// This file now serves two purposes: renaming (entries that carry a `name`)
-// and group classification (every entry, via `competitionGroup`). The 50
-// entries added for classification only carry `externalIds` and
-// `competitionGroup` -- deliberately no `name` -- so they cannot rename a
-// scraped competition by accident; an omitted field is left exactly as the
-// BBL/TP importers set it (see the overlay note below). `competitionGroup`
-// values are explicit external-id pairs in the group's `Name`-system
-// (e.g. { system: 'Name', id: 'Major Season' }), resolved against this run's
-// own ExternalIdMap -- the same mechanism every other reference in this file
-// uses. That is why competition-groups.json5 and leagues.json5 in this
-// directory are symlinks to the before-other-importers originals: this phase
-// re-processes the same curated catalog to populate its own map with those
-// groups' ids, even though the group catalog itself is curated in the
-// before-other-importers phase, not in this file.
+// Group classification -- and the real name/type/era/dates every competition
+// instance is created with -- moved to
+// data/before-other-importers/competitions.json5 (issue #344): a
+// competition's competition_group_id has to be correct before the BBL and TP
+// importers run, because tools/import-tp's awards import resolves a trophy by
+// the competition's group name. Renaming cannot move with it: it can only run
+// once the importers have (re-)created their rows under the raw source names.
+// That is also why this directory no longer symlinks leagues.json5 and
+// competition-groups.json5 from the before-other-importers phase -- nothing
+// here references a league or a group any more, so this phase's
+// ExternalIdMap needs neither catalog.
 //
 // Runs AFTER the BBL/TP importers (this is the after-other-importers
 // directory): each entry matches its existing database row by that row's own
@@ -38,24 +34,18 @@
 // resolveExistingByExternalIds), so supplying one here would be a dead lookup
 // key.
 //
-// Each rename entry is the new name plus the external ids that match the
-// existing row. Competitions upsert as overlays (issue #174), so a field
-// this file omits -- era, type -- is left exactly as the BBL/TP importers set
-// it. That is why there are no eras, league or rules sets declared here: with
-// nothing to reference, there is nothing to redeclare.
+// Each entry is the new name plus the external ids that match the existing
+// row, and nothing else. Competitions upsert as overlays (issue #174), so
+// every field omitted here -- type, era, dates, competitionGroup -- is left
+// exactly as the BBL/TP importers (and the before-other-importers phase) set
+// it. With nothing referenced, there is nothing to redeclare.
 //
 // Not renamed (already consistent, or out of scope per issue #270/#285):
 // Korpen 1-9, Moot Mania 2-4, NAA/NAA 2, Ogretoberfest 2-9/11/13, Chaos Cup
 // 2-7, Minor Season 18/19/21-23/25, Dungeon Bowl 1, Major Season 19-24,
 // Stunty Leeg 1/2, the one-off cups (Blitzmania!, Champions of..., Fright
-// Night, Snöbollskrieg) and GBBL 1. type is deliberately not supplied: BBL/TP
-// already classify every row correctly, and an omitted field is left
-// untouched.
-//
-// Source-data facts worth recording here: BBL's `s` id sequence has no s=9
-// at all (not a gap in this file -- it never existed on the source site), and
-// s=5 (Snöbollskrieg) exists and is named on BBL but has no cached subpage in
-// the mirror this data was curated from.
+// Night, Snöbollskrieg) and GBBL 1. Every one of them is still curated -- in
+// data/before-other-importers/competitions.json5, under its raw source name.
 {
   externalSystems: [
     { name: 'tloeg.bbleague.se', category: 'imported_data_source' },
@@ -63,117 +53,96 @@
   ],
 
   competitions: [
-    // -- The Major Season track, seasons 1-18 (BBL, First era). Named plain
-    // "Season N" back when there was no Minor Season to distinguish from.
-    // The numeric id is the competition's BBL `s` value from the p=se
-    // competition list -- the only key competitions are matched by.
+    // -- The Major Season track, seasons 1-18 (BBL). Named plain "Season N"
+    // back when there was no Minor Season to distinguish from. The numeric id
+    // is the competition's BBL `s` value from the p=se competition list --
+    // the only key competitions are matched by.
     {
       name: 'Major Season 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '1' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 2',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '2' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 3',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '4' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 4',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '6' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 5',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '10' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 6',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '13' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 7',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '18' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 8',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '22' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 9',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '25' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 10',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '28' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 11',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '31' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 12',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '35' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 13',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '38' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 14',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '42' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 15',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '47' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 16',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '49' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 17',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '52' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 18',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '58' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
 
     // -- Each track's first instalment was never numbered on BBL, unlike
-    // every later one ("Chaos Cup 2".."Chaos Cup 7", etc.). All First era.
+    // every later one ("Chaos Cup 2".."Chaos Cup 7", etc.).
     {
       name: 'Moot Mania 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '3' }],
-      competitionGroup: { system: 'Name', id: 'Moot Mania' },
     },
     {
       name: 'Ogretoberfest 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '11' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
     },
     {
       name: 'Chaos Cup 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '14' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
     },
 
     // -- Reserves Rumble: BBL ran three identically-named events (bblIds 7,
@@ -185,36 +154,30 @@
     {
       name: 'Reserves Rumble 1',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '7' }],
-      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
     },
     {
       name: 'Reserves Rumble 2',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '16' }],
-      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
     },
     {
       name: 'Reserves Rumble 3',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '23' }],
-      competitionGroup: { system: 'Name', id: 'Reserves Rumble' },
     },
 
     // -- Ogretoberfest: missing space (BBL) and shouty prefix/suffix (TP).
     {
       name: 'Ogretoberfest 10',
       externalIds: [{ system: 'tloeg.bbleague.se', id: '72' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
     },
     {
       name: 'Ogretoberfest 12',
       externalIds: [{ system: 'tourplay.net', id: '13584' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
     },
 
     // -- Chaos Cup: TP prefixed the league's own name onto the cup.
     {
       name: 'Chaos Cup 8',
       externalIds: [{ system: 'tourplay.net', id: '18616' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
     },
 
     // -- Dungeon Bowl: BBL called season 1 "Dungeon Bowl 1"; TP called the
@@ -222,285 +185,46 @@
     {
       name: 'Dungeon Bowl 2',
       externalIds: [{ system: 'tourplay.net', id: '5181' }],
-      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
     },
     {
       name: 'Dungeon Bowl 3',
       externalIds: [{ system: 'tourplay.net', id: '9091' }],
-      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
     },
     {
       name: 'Dungeon Bowl 4',
       externalIds: [{ system: 'tourplay.net', id: '14846' }],
-      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
     },
 
-    // -- The Major Season track, seasons 25-29 (TP, Third era). Season 25
-    // kept the English name behind a league prefix; 26-29 switched to Swedish
+    // -- The Major Season track, seasons 25-29 (TP). Season 25 kept the
+    // English name behind a league prefix; 26-29 switched to Swedish
     // ("Säsong") after Minor Season was discontinued.
     {
       name: 'Major Season 25',
       externalIds: [{ system: 'tourplay.net', id: '6543' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 26',
       externalIds: [{ system: 'tourplay.net', id: '8918' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 27',
       externalIds: [{ system: 'tourplay.net', id: '12741' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 28',
       externalIds: [{ system: 'tourplay.net', id: '14615' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
     {
       name: 'Major Season 29',
       externalIds: [{ system: 'tourplay.net', id: '16751' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
     },
 
-    // -- The Major Season track, season 30 (TP, Fourth era). First Major
-    // Season of the fourth era; TP kept the Swedish "Säsong" naming
-    // ("tloegbbl-sasong-30"), so it needs the same rename as 26-29 above.
+    // -- The Major Season track, season 30 (TP). First Major Season of the
+    // fourth era; TP kept the Swedish "Säsong" naming ("tloegbbl-sasong-30"),
+    // so it needs the same rename as 26-29 above.
     {
       name: 'Major Season 30',
       externalIds: [{ system: 'tourplay.net', id: '18442' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-
-    // -- Major Season 19-24 (BBL, Second era). Classification only: BBL's own
-    // names are already canonical, so no `name` is supplied and the stored
-    // name is left alone.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '59' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '63' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '65' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '67' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '70' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '73' }],
-      competitionGroup: { system: 'Name', id: 'Major Season' },
-    },
-
-    // -- Minor Season 18-23 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '57' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '60' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '64' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '68' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '71' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '74' }],
-      competitionGroup: { system: 'Name', id: 'Minor Season' },
-    },
-
-    // -- Chaos Cup 2-7 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '21' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '27' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '34' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '41' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '51' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '56' }],
-      competitionGroup: { system: 'Name', id: 'Chaos Cup' },
-    },
-
-    // -- Korpen 1-9 (BBL). Classification only: BBL's own names are already
-    // canonical, so no `name` is supplied and the stored name is left alone.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '15' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '19' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '29' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '36' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '39' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '43' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '48' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '50' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '53' }],
-      competitionGroup: { system: 'Name', id: 'Korpen' },
-    },
-
-    // -- Moot Mania 2-4 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '8' }],
-      competitionGroup: { system: 'Name', id: 'Moot Mania' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '17' }],
-      competitionGroup: { system: 'Name', id: 'Moot Mania' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '24' }],
-      competitionGroup: { system: 'Name', id: 'Moot Mania' },
-    },
-
-    // -- Ogretoberfest 2-9, 11, 13 (BBL/TP). Classification only: see note
-    // above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '20' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '26' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '32' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '40' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '46' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '54' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '62' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '66' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tourplay.net', id: '7717' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-    {
-      externalIds: [{ system: 'tourplay.net', id: '17503' }],
-      competitionGroup: { system: 'Name', id: 'Ogretoberfest' },
-    },
-
-    // -- NAA, NAA 2 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '44' }],
-      competitionGroup: { system: 'Name', id: 'NAA' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '61' }],
-      competitionGroup: { system: 'Name', id: 'NAA' },
-    },
-
-    // -- Stunty Leeg 1, 2 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '30' }],
-      competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '33' }],
-      competitionGroup: { system: 'Name', id: 'Stunty Leeg' },
-    },
-
-    // -- Dungeon Bowl 1 (BBL). Classification only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '69' }],
-      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
-    },
-
-    // -- GBBL 1 (BBL, the GBBL league's own competition). Classification
-    // only: see note above.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '55' }],
-      competitionGroup: { system: 'Name', id: 'GBBL' },
-    },
-
-    // -- One-off cups (BBL): Fright Night, Blitzmania!, Champion of tLoEG,
-    // Snöbollskrieg. Classification only: see note above. s=5
-    // (Snöbollskrieg) has no cached subpage in the mirror this data was
-    // curated from, and s=9 does not exist in BBL's id sequence at all.
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '12' }],
-      competitionGroup: { system: 'Name', id: 'Fright Night' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '45' }],
-      competitionGroup: { system: 'Name', id: 'Blitzmania!' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '37' }],
-      competitionGroup: { system: 'Name', id: 'Champion of tLoEG' },
-    },
-    {
-      externalIds: [{ system: 'tloeg.bbleague.se', id: '5' }],
-      competitionGroup: { system: 'Name', id: 'Snöbollskrieg' },
     },
   ],
 }

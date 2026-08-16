@@ -18,7 +18,11 @@ export class CompetitionsProcessor {
    * era alone — which is what a rename-only entry wants. The same applies to
    * an entry's named competition group, an explicit external-id pair resolved
    * against the same map: an unknown group skips the entry, while an omitted
-   * one passes `competitionGroupId: undefined` through.
+   * one passes `competitionGroupId: undefined` through. `startDate`/`endDate`
+   * pass straight through for the same reason: an entry that creates the
+   * competition row (the before-other-importers phase, issue #344) must
+   * supply a startDate because the column is NOT NULL, while a rename-only
+   * entry omits both and leaves the stored dates alone.
    * `teamEraIds` is always `[]`: manual data never declares competition/team
    * links, and the API's team-era sync is additive (it never removes existing
    * links), so an empty list leaves the competition's imported teams untouched.
@@ -51,6 +55,8 @@ export class CompetitionsProcessor {
           name: entry.name,
           type: entry.type,
           eraId: era.id,
+          startDate: entry.startDate,
+          endDate: entry.endDate,
           competitionGroupId: group.id,
           teamEraIds: [],
           externalIds: this.refResolver.toExternalIds(

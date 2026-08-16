@@ -154,6 +154,37 @@ describe('ManualDataFileSchema', () => {
     ).toThrow();
   });
 
+  it('accepts a competition with its start and end dates', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitions: [
+        {
+          name: 'Major Season 1',
+          type: 'season',
+          era: { system: 'Name', id: 'First era' },
+          startDate: '2011-09-09',
+          endDate: '2011-12-18',
+          externalIds: [{ system: 'tloeg.bbleague.se', id: '1' }],
+        },
+      ],
+    });
+    expect(parsed.competitions[0].startDate).toBe('2011-09-09');
+    expect(parsed.competitions[0].endDate).toBe('2011-12-18');
+  });
+
+  it('rejects a competition whose start date is not an ISO date', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        competitions: [
+          {
+            name: 'C',
+            startDate: '9 September 2011',
+            externalIds: [{ system: 'Name', id: 'name:c' }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   it('accepts a rename-only competition entry with no era and no type', () => {
     const parsed = ManualDataFileSchema.parse({
       competitions: [
@@ -165,6 +196,8 @@ describe('ManualDataFileSchema', () => {
     });
     expect(parsed.competitions[0].era).toBeUndefined();
     expect(parsed.competitions[0].type).toBeUndefined();
+    expect(parsed.competitions[0].startDate).toBeUndefined();
+    expect(parsed.competitions[0].endDate).toBeUndefined();
   });
 
   it('accepts a rename-only era entry with no league, rules sets or dates', () => {
