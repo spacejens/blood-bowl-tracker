@@ -798,6 +798,11 @@ describe('WaitForPrReviewService', () => {
     );
   }
 
+  /** Picks out the `gh pr view` polls, in call order. */
+  function pollCalls() {
+    return processRunner.run.mock.calls.filter((call) => call[1][1] === 'view');
+  }
+
   it('posts one review trigger once the trigger instant passes, then keeps polling', async () => {
     processRunner.run.mockResolvedValue(EMPTY);
     const triggerAfterEpochSeconds = Math.floor(Date.now() / 1000) + 60;
@@ -897,7 +902,13 @@ describe('WaitForPrReviewService', () => {
     // force an immediate retrigger, but only excludes the one rate-limit
     // comment id it already knows about. If a second, still-unexcluded
     // rate-limit comment is found on the very first poll, the trigger must
-    // still fire rather than being skipped by the early return below it.
+    // still fire rather than being skipped.
+    //
+    // That first poll ran before the trigger comment existed, so its match is
+    // suppressed (see wait-for-pr-review.trigger-settle.spec.ts). This mock
+    // is steady state, so the fresh poll after the settle pause matches the
+    // same comment and reports it — hence the two polls asserted below, which
+    // are what distinguish this from the old, stale early return.
     processRunner.run.mockResolvedValue(RATE_LIMITED);
 
     const result = await runWait({
@@ -908,11 +919,14 @@ describe('WaitForPrReviewService', () => {
     });
 
     expect(triggerCalls()).toHaveLength(1);
+    expect(pollCalls()).toHaveLength(2);
     expect(result).toMatchObject({ found: false, rateLimited: true });
   });
 
   it('still triggers a review when a stale comment-update-failure comment is found in the same poll', async () => {
-    // Same reasoning as the rate-limit case above, for a b3 retry.
+    // Same reasoning as the rate-limit case above, for a b3 retry: the
+    // trigger iteration's own match is pre-trigger and suppressed, and the
+    // fresh poll after the settle pause is what reports it.
     processRunner.run.mockResolvedValue(COMMENT_UPDATE_FAILED);
 
     const result = await runWait({
@@ -923,6 +937,7 @@ describe('WaitForPrReviewService', () => {
     });
 
     expect(triggerCalls()).toHaveLength(1);
+    expect(pollCalls()).toHaveLength(2);
     expect(result).toMatchObject({ found: false, commentUpdateFailed: true });
   });
 
