@@ -1,8 +1,16 @@
 import type { UpsertTrophyAward } from '@blood-bowl-tracker/api-contract';
 import type { Db, TrophyAward } from '@blood-bowl-tracker/db';
-import { DB, trophies, trophyAwards } from '@blood-bowl-tracker/db';
+import {
+  competitions,
+  DB,
+  players,
+  teamEras,
+  teams,
+  trophies,
+  trophyAwards,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
 
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -29,9 +37,72 @@ export class TrophyAwardUpsertConflictError extends UpsertConflictError {}
  */
 export class TrophyAwardRecipientMismatchError extends Error {}
 
+/**
+ * One award of a trophy, as the trophy deepdive renders it: which competition
+ * it was won in, which team won it, and — for a player trophy — which player.
+ * `playerId`/`playerName` are `null` for a team trophy.
+ */
+export type TrophyRecipient = {
+  competitionId: number;
+  competitionName: string;
+  competitionStartDate: string;
+  teamId: number;
+  teamName: string;
+  playerId: number | null;
+  playerName: string | null;
+};
+
 @Injectable()
 export class TrophyAwardsService {
   constructor(@Inject(DB) private readonly db: Db) {}
+
+  /**
+   * Every recipient of one trophy, most recent competition first, capped at
+   * exactly `limit` rows — the caller asks for precisely what it intends to
+   * show. There is deliberately no `limit + 1` overflow sentinel here: a
+   * sentinel row can only ever prove "at least one more exists", so the
+   * remainder derived from it would always be 1. Callers that need the real
+   * remainder pair this with `countRecipients`.
+   *
+   * `players` is left-joined because a team trophy's award row carries no
+   * player at all; `team_eras` is only a stepping stone to the team's id and
+   * name, since the deepdive links to the team, not the era.
+   */
+  listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
+    return this.db
+      .select({
+        competitionId: competitions.id,
+        competitionName: competitions.name,
+        competitionStartDate: competitions.startDate,
+        teamId: teams.id,
+        teamName: teams.name,
+        playerId: players.id,
+        playerName: players.name,
+      })
+      .from(trophyAwards)
+      .innerJoin(competitions, eq(competitions.id, trophyAwards.competitionId))
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .innerJoin(teams, eq(teams.id, teamEras.teamId))
+      .leftJoin(players, eq(players.id, trophyAwards.playerId))
+      .where(eq(trophyAwards.trophyId, trophyId))
+      .orderBy(desc(competitions.startDate))
+      .limit(limit);
+  }
+
+  /**
+   * How many times this trophy has ever been awarded. Kept separate from
+   * `listRecipients` so the deepdive can render an exact "…and N more not
+   * shown." remainder without fetching every row; a single trophy's award
+   * count is one cheap aggregate, so there is no need for the approximate
+   * "saturated window" wording `leaderboard.service.ts` falls back to.
+   */
+  async countRecipients(trophyId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(trophyAwards)
+      .where(eq(trophyAwards.trophyId, trophyId));
+    return row.count;
+  }
 
   /**
    * Record one trophy award, idempotently.
