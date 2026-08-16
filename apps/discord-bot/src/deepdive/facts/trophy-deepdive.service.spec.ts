@@ -372,6 +372,26 @@ describe('TrophyDeepdiveService', () => {
     expect(trophyAwards.listRecipients).not.toHaveBeenCalled();
   });
 
+  it('does not call the recipient context lookup when the count is zero, even if that call would time out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    // The header and the count pass through; a third run() is stubbed to time
+    // out so the test would fail if the context lookup were still reached.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    stubDatabaseTimeoutOnce(databaseTimeout);
+    const { service, teamContext, playerContext } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([], 0),
+      databaseTimeout,
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines).toContain(DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE);
+    expect(teamContext.attachSuffixes).not.toHaveBeenCalled();
+    expect(playerContext.attachSuffixes).not.toHaveBeenCalled();
+  });
+
   it('omits the components key entirely when there is nothing to link to', async () => {
     const { service } = await makeService({
       trophies: makeTrophies(trophyHeader()),

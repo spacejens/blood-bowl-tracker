@@ -100,15 +100,24 @@ export class TrophyDeepdiveService {
       shown = rows;
     }
 
-    // Team and player context lookups share one timeout message for the same
-    // reason the recipient queries above do: they are two halves of
-    // decorating whatever recipients were found.
-    const context: RecipientContext | null = await this.databaseTimeout.run(
-      this.buildRecipientContext(shown),
-      null,
-    );
-    if (context === null) {
-      return DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE;
+    // No recipients means nothing left to decorate, so skip the context
+    // lookup entirely — same reasoning as skipping the list query above:
+    // an unnecessary timeout here must not turn a known "nobody has won
+    // this" answer into a spurious timeout message.
+    let context: RecipientContext = {
+      teamSuffixes: new Map(),
+      playerSuffixes: new Map(),
+    };
+    if (shown.length > 0) {
+      // Team and player context lookups share one timeout message for the
+      // same reason the recipient queries above do: they are two halves of
+      // decorating whatever recipients were found.
+      const resolvedContext: RecipientContext | null =
+        await this.databaseTimeout.run(this.buildRecipientContext(shown), null);
+      if (resolvedContext === null) {
+        return DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE;
+      }
+      context = resolvedContext;
     }
 
     // The query is already capped and ordered most-recent-first, so `shown`
