@@ -239,11 +239,15 @@ const DEFAULT_INTERVAL_MS = 30_000;
 /**
  * 10 seconds — the pause given to CodeRabbit to notice the trigger comment
  * and begin processing it, used in place of `intervalMs` on the one iteration
- * that just posted the trigger. Deliberately much shorter than a normal
- * interval: it only has to cover the gap between the comment landing and
- * CodeRabbit reacting to it, not a whole review window. Distinct from
- * `RATE_LIMIT_WAIT_BUFFER_SECONDS`, which pads CodeRabbit's own stated
- * rate-limit duration so the retry does not fire before that wait is over.
+ * that just posted the trigger. It only has to cover the gap between the
+ * comment landing and CodeRabbit reacting to it, not a whole review window,
+ * so it is typically much shorter than a normal interval — but it is a fixed
+ * pause, not clamped against `intervalMs`, so a caller-supplied interval
+ * under 10 seconds would see the opposite. No caller passes one today: both
+ * develop-feature's normal wait and its retrigger flows use intervals of 30
+ * seconds or more. Distinct from `RATE_LIMIT_WAIT_BUFFER_SECONDS`, which pads
+ * CodeRabbit's own stated rate-limit duration so the retry does not fire
+ * before that wait is over.
  */
 const TRIGGER_SETTLE_MS = 10_000;
 
@@ -324,24 +328,25 @@ export class WaitForPrReviewService {
       }
       // Checked here — after a formal review has ruled itself out, but
       // before the rate-limit/comment-update-failure early returns below —
-      // so a stale, still-unexcluded comment of either kind (e.g. a second
-      // failure notice from before this wait's own watermark) cannot make
-      // this iteration return early without the trigger ever firing. A
-      // caller-requested retrigger (develop-feature's Phase 6 steps b2/b3)
-      // must fire once due, regardless of what else this same poll matched.
-      // A found review needs no retrigger — that outcome is already the
-      // wait's success case — so it is excluded from this reasoning and
-      // returns above without ever reaching this check.
+      // so a caller-requested retrigger (develop-feature's Phase 6 steps
+      // b2/b3) fires once due regardless of what else this same poll
+      // matched. A found review needs no retrigger — that outcome is
+      // already the wait's success case — so it returns above without ever
+      // reaching this check.
       /**
        * Whether the trigger comment was posted on *this* iteration — distinct
        * from `triggered`, which latches for the whole `run()` so the comment
        * is only ever posted once. `outcome` was fetched before the comment
        * existed, so this iteration's rate-limit / comment-update-failure
-       * matches are pre-trigger data: returning them would end the wait with
-       * the very answer the trigger was posted to move past, and no fresh
-       * poll would ever happen to check (observed on PR #470). Suppression
-       * lasts exactly this one iteration — the next poll's findings are
-       * treated like any other iteration's.
+       * matches (including a stale, still-unexcluded one, e.g. a second
+       * failure notice from before this wait's own watermark) are pre-trigger
+       * data: returning them would end the wait with the very answer the
+       * trigger was posted to move past, and no fresh poll would ever happen
+       * to check (observed on PR #470). Suppression lasts exactly this one
+       * iteration — the next poll's findings are treated like any other
+       * iteration's, and nothing here excludes the suppressed comment by id,
+       * so an unchanged one is simply re-matched and reported normally next
+       * time.
        */
       let justTriggered = false;
       if (!triggered && this.shouldTrigger(options)) {
@@ -369,7 +374,12 @@ export class WaitForPrReviewService {
       }
       // Replaces this iteration's normal sleep rather than adding to it —
       // exactly one sleep still happens per iteration. Both deadline checks
-      // around it apply unchanged either way.
+      // around it apply unchanged either way: if fewer than TRIGGER_SETTLE_MS
+      // remain when a result was just suppressed above, waking past the
+      // deadline reports `timedOut` rather than the suppressed comment. Every
+      // caller today budgets at least a 10-minute window after a trigger, so
+      // this cannot happen in practice — see develop-feature Phase 6 steps
+      // b2/b3's `--timeout-ms` computation.
       await this.sleep(justTriggered ? TRIGGER_SETTLE_MS : intervalMs);
       // `sleep` can resume at or after the deadline (real-timer drift, a
       // slow event loop) even though the check above passed just before it
