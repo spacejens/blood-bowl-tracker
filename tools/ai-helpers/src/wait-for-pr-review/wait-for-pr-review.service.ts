@@ -266,32 +266,35 @@ export class WaitForPrReviewService {
     const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     let triggered = false;
     /**
-     * The caller's options, with `excludeReviewId` advanced past any artifact
-     * review this wait has already discarded (see `checkedReview`). Needed
+     * Ids of empty-artifact reviews this wait has discarded so far (see
+     * `checkedReview`), accumulated — never replacing — across polls. Needed
      * because `reviewFilter`'s jq always yields the chronologically *first*
-     * match: without advancing the exclusion, every later poll would re-match
-     * and re-discard the same artifact and never reach a genuine review.
+     * matching review: without excluding every discard, the same artifact
+     * would be re-matched and re-discarded on every later poll, hiding any
+     * genuine review that arrives after it.
      *
-     * Mirrors how callers already advance `excludeReviewId` across separate
-     * CLI invocations, scoped to one `run` instead. Deliberate, accepted
-     * tradeoff: `excludeReviewId` is also read by the rolling comment's
-     * completion half, so overwriting it drops the exclusion of a completion
-     * id the caller may have round-tripped. That can only re-surface a
-     * completion the caller already saw — far cheaper than the false `found`
-     * this whole mechanism exists to prevent, and it only arises on a wait
-     * that saw an artifact review at all.
+     * Deliberately layered on top of `options.excludeReviewId` via a
+     * SEPARATE `excludeReviewIds` field, rather than overwriting
+     * `excludeReviewId` itself: the caller's own `excludeReviewId` — e.g.
+     * develop-feature's watermark exclusion for a review it already handled
+     * in a previous iteration — must survive untouched for this wait's whole
+     * lifetime, or that already-handled review could match again once a
+     * later discard overwrote the exclusion that was suppressing it. That
+     * was a real bug in an earlier version of this mechanism, caught in
+     * whole-branch review before merge.
      */
-    let pollOptions = options;
+    const discardedReviewIds: string[] = [];
     for (;;) {
+      const pollOptions =
+        discardedReviewIds.length === 0
+          ? options
+          : { ...options, excludeReviewIds: discardedReviewIds.slice() };
       const outcome = await this.poll(pollOptions, deadline, intervalMs);
       if (outcome?.review !== undefined) {
         return { found: true, review: outcome.review };
       }
       if (outcome?.discardedEmptyReviewId !== undefined) {
-        pollOptions = {
-          ...pollOptions,
-          excludeReviewId: outcome.discardedEmptyReviewId,
-        };
+        discardedReviewIds.push(outcome.discardedEmptyReviewId);
       }
       // Checked here — after a formal review has ruled itself out, but
       // before the rate-limit/comment-update-failure early returns below —

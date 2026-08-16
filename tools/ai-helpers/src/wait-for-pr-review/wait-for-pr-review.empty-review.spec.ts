@@ -158,6 +158,47 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
       ([, args]) => args[0] === 'pr',
     );
     expect(prViewCalls[0][1][6]).toContain('.id != "PRR_previous"');
+    expect(prViewCalls[1][1][6]).toContain('.id != "PRR_previous"');
     expect(prViewCalls[1][1][6]).toContain('.id != "PRR_empty1"');
+  });
+
+  it('does not let a discarded artifact drop the caller-supplied exclusion, letting an already-handled review re-match', async () => {
+    // Poll 2's `gh pr view` mock simulates jq's own exclusion logic: it
+    // returns the already-handled `PRR_previous` review only if the jq
+    // program it was called with no longer excludes that id — i.e. only if
+    // the caller's original `excludeReviewId` was dropped. On the buggy code
+    // (which overwrites `excludeReviewId` with the discarded artifact's id),
+    // poll 2's jq program excludes `PRR_empty1` but not `PRR_previous`, so
+    // this mock reports `PRR_previous` as newly found — a real regression of
+    // the exact bug issue #474 exists to fix. On the fixed code, poll 2's jq
+    // program still excludes `PRR_previous`, so this mock reports nothing,
+    // and the wait times out instead of returning a false `found: true`.
+    processRunner.run.mockImplementation((_command, args) => {
+      if (args[0] === 'api') {
+        return Promise.resolve(rollingResult({}));
+      }
+      const jqProgram = args[6];
+      if (jqProgram.includes('.id != "PRR_empty1"')) {
+        // Poll 2 (or later): simulate jq re-matching the already-handled
+        // review only when the original exclusion was lost.
+        return Promise.resolve(
+          jqProgram.includes('.id != "PRR_previous"')
+            ? EMPTY_BODY_FOUND
+            : FOUND,
+        );
+      }
+      // Poll 1: the artifact review, not yet discarded.
+      return Promise.resolve(EMPTY_BODY_FOUND);
+    });
+    reviewComments.hasInlineComments.mockResolvedValue(false);
+
+    const result = await runWait({
+      ...OPTIONS,
+      excludeReviewId: 'PRR_previous',
+      timeoutMs: 90_000,
+      intervalMs: 30_000,
+    });
+
+    expect(result).toEqual({ found: false, timedOut: true });
   });
 });

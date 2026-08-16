@@ -12,6 +12,16 @@ export interface WaitForPrReviewFilterOptions {
   readonly developerLogin: string;
   readonly sinceEpochSeconds: number;
   readonly excludeReviewId?: string;
+  /**
+   * Additional review ids to exclude, on top of `excludeReviewId` — every id
+   * in this list gets its own `.id != ...` clause in `reviewFilter`. Used
+   * internally by `WaitForPrReviewService.run` to accumulate ids of
+   * discarded empty-artifact reviews across polls within one wait, without
+   * ever touching the caller's own `excludeReviewId` (which `completionFilter`
+   * also reads, and which must survive untouched for the whole wait — see
+   * `run`'s doc comment in wait-for-pr-review.service.ts).
+   */
+  readonly excludeReviewIds?: readonly string[];
   readonly excludeCommentId?: string;
   readonly excludeCommentUpdateFailureId?: string;
 }
@@ -160,10 +170,15 @@ export class WaitForPrReviewFiltersService {
   /** Bot-agnostic by construction: any formal review object from a non-author. */
   private reviewFilter(options: WaitForPrReviewFilterOptions): string {
     const login = JSON.stringify(options.developerLogin);
-    const excludeClause =
-      options.excludeReviewId === undefined
-        ? ''
-        : ` and .id != ${JSON.stringify(options.excludeReviewId)}`;
+    const excludedIds = [
+      ...(options.excludeReviewId === undefined
+        ? []
+        : [options.excludeReviewId]),
+      ...(options.excludeReviewIds ?? []),
+    ];
+    const excludeClause = excludedIds
+      .map((id) => ` and .id != ${JSON.stringify(id)}`)
+      .join('');
     return (
       '[.reviews[] | select(.submittedAt != null) | ' +
       `select(.author.login != ${login} and ` +
