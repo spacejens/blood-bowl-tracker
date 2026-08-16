@@ -339,6 +339,34 @@ describe('TpTrophyAwardsImportService', () => {
     expect(summaryErrors[0].message).toContain('1-Major Season');
   });
 
+  it('does not count an award whose trophy-award write resolves undefined', async () => {
+    const { service, mocks } = await makeService(awards([award()]));
+    mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue(undefined);
+
+    await service.importTrophyAwards(options());
+
+    expect(resultArgs(mocks.importResults).imported).toBe(0);
+  });
+
+  it('throws when a competition entry reaching trophy resolution has no eraId', async () => {
+    const { service } = await makeService(awards([award()]));
+
+    await expect(
+      service.importTrophyAwards(
+        options({
+          competitionsByTpId: new Map([
+            [
+              6543,
+              competitionEntry({
+                upsert: upsertCompetition({ eraId: undefined }),
+              }),
+            ],
+          ]),
+        }),
+      ),
+    ).rejects.toThrow(/has no eraId/);
+  });
+
   it('records an error when the roster id has no team era at all', async () => {
     const { service, mocks } = await makeService(awards([award()]));
 
