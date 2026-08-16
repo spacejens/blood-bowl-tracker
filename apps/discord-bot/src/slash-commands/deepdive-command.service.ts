@@ -15,6 +15,7 @@ import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
+import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -23,6 +24,7 @@ import {
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+  DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
@@ -35,6 +37,7 @@ export {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../deepdive/button-custom-ids';
 
 import {
@@ -44,6 +47,7 @@ import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../deepdive/button-custom-ids';
 
 @Injectable()
@@ -58,6 +62,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     private readonly playerDeepdive: PlayerDeepdiveService,
     private readonly raceDeepdive: RaceDeepdiveService,
     private readonly competitionDeepdive: CompetitionDeepdiveService,
+    private readonly trophyDeepdive: TrophyDeepdiveService,
   ) {}
 
   onModuleInit(): void {
@@ -85,6 +90,10 @@ export class DeepdiveCommandService implements OnModuleInit {
     this.discordClient.registerButtonHandler(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
       (interaction) => this.handleCompetitionButton(interaction),
+    );
+    this.discordClient.registerButtonHandler(
+      TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction) => this.handleTrophyButton(interaction),
     );
     this.discordClient.registerSelectMenuHandler(
       ERA_BUTTON_CUSTOM_ID_PREFIX,
@@ -115,6 +124,11 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
       (interaction: StringSelectMenuInteraction) =>
         this.handleCompetitionSelect(interaction),
+    );
+    this.discordClient.registerSelectMenuHandler(
+      TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+      (interaction: StringSelectMenuInteraction) =>
+        this.handleTrophySelect(interaction),
     );
   }
 
@@ -160,6 +174,12 @@ export class DeepdiveCommandService implements OnModuleInit {
           type: ApplicationCommandOptionType.String,
           autocomplete: true,
         },
+        {
+          name: 'trophy',
+          description: 'Show the detail view for a single trophy (optional)',
+          type: ApplicationCommandOptionType.String,
+          autocomplete: true,
+        },
       ],
       execute: (interaction) => this.execute(interaction),
       autocomplete: (interaction) =>
@@ -176,6 +196,7 @@ export class DeepdiveCommandService implements OnModuleInit {
     const playerOption = interaction.options.getString('player');
     const raceOption = interaction.options.getString('race');
     const competitionOption = interaction.options.getString('competition');
+    const trophyOption = interaction.options.getString('trophy');
     const supplied = [
       eraOption,
       coachOption,
@@ -183,6 +204,7 @@ export class DeepdiveCommandService implements OnModuleInit {
       playerOption,
       raceOption,
       competitionOption,
+      trophyOption,
     ].filter((value) => value !== null);
     if (supplied.length > 1) {
       return DEEPDIVE_MULTIPLE_TARGETS_MESSAGE;
@@ -204,6 +226,9 @@ export class DeepdiveCommandService implements OnModuleInit {
     }
     if (competitionOption !== null) {
       return this.resolveCompetition(competitionOption);
+    }
+    if (trophyOption !== null) {
+      return this.resolveTrophy(trophyOption);
     }
     return DEEPDIVE_USAGE_MESSAGE;
   }
@@ -260,6 +285,15 @@ export class DeepdiveCommandService implements OnModuleInit {
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX.length,
     );
     return this.resolveCompetition(idPart);
+  }
+
+  async handleTrophyButton(
+    interaction: ButtonInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const idPart = interaction.customId.slice(
+      TROPHY_BUTTON_CUSTOM_ID_PREFIX.length,
+    );
+    return this.resolveTrophy(idPart);
   }
 
   async handleEraSelect(
@@ -320,6 +354,16 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE;
     }
     return this.resolveCompetition(value);
+  }
+
+  async handleTrophySelect(
+    interaction: StringSelectMenuInteraction,
+  ): Promise<string | InteractionReplyOptions> {
+    const [value] = interaction.values;
+    if (value === undefined) {
+      return DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE;
+    }
+    return this.resolveTrophy(value);
   }
 
   /**
@@ -409,5 +453,20 @@ export class DeepdiveCommandService implements OnModuleInit {
       return Promise.resolve(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
     }
     return this.competitionDeepdive.resolve(id);
+  }
+
+  /**
+   * Parses a trophy id (from a slash option or a button customId) and renders
+   * the deepdive. Non-integer values are rejected up front with the not-found
+   * message, mirroring the other resolvers.
+   */
+  private resolveTrophy(
+    value: string,
+  ): Promise<string | InteractionReplyOptions> {
+    const id = Number(value);
+    if (!Number.isInteger(id)) {
+      return Promise.resolve(DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE);
+    }
+    return this.trophyDeepdive.resolve(id);
   }
 }

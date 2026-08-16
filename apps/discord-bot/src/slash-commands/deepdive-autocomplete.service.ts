@@ -5,6 +5,7 @@ import {
   PlayersService,
   RacesService,
   TeamsService,
+  TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import { Injectable } from '@nestjs/common';
 import type { AutocompleteInteraction } from 'discord.js';
@@ -30,6 +31,7 @@ export class DeepdiveAutocompleteService {
     private readonly teams: TeamsService,
     private readonly players: PlayersService,
     private readonly races: RacesService,
+    private readonly trophies: TrophiesService,
   ) {}
 
   async resolve(
@@ -93,6 +95,16 @@ export class DeepdiveAutocompleteService {
       );
       return competitions.map((row) => ({
         name: `${row.name} (${row.leagueName})`,
+        value: String(row.id),
+      }));
+    }
+    if (focused.name === 'trophy') {
+      const trophies = await this.trophies.searchByNamePrefix(
+        focused.value,
+        MAX_AUTOCOMPLETE_CHOICES,
+      );
+      return trophies.map((row) => ({
+        name: `${row.name} (${row.competitionGroupName})`,
         value: String(row.id),
       }));
     }

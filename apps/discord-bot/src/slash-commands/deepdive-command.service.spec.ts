@@ -7,6 +7,7 @@ import type {
   InteractionReplyOptions,
   StringSelectMenuInteraction,
 } from 'discord.js';
+import { ApplicationCommandOptionType } from 'discord.js';
 import { describe, expect, it, vi } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 
@@ -16,6 +17,7 @@ import { EraDeepdiveService } from '../deepdive/facts/era-deepdive.service';
 import { PlayerDeepdiveService } from '../deepdive/facts/player-deepdive.service';
 import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
+import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import {
   DEEPDIVE_COACH_NOT_FOUND_MESSAGE,
   DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE,
@@ -24,6 +26,7 @@ import {
   DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE,
   DEEPDIVE_RACE_NOT_FOUND_MESSAGE,
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
+  DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
 import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
@@ -35,6 +38,7 @@ import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
@@ -49,6 +53,7 @@ interface MadeService {
   playerDeepdive: MockProxy<PlayerDeepdiveService>;
   raceDeepdive: MockProxy<RaceDeepdiveService>;
   competitionDeepdive: MockProxy<CompetitionDeepdiveService>;
+  trophyDeepdive: MockProxy<TrophyDeepdiveService>;
 }
 
 async function makeService(): Promise<MadeService> {
@@ -61,6 +66,7 @@ async function makeService(): Promise<MadeService> {
   const playerDeepdive = mock<PlayerDeepdiveService>();
   const raceDeepdive = mock<RaceDeepdiveService>();
   const competitionDeepdive = mock<CompetitionDeepdiveService>();
+  const trophyDeepdive = mock<TrophyDeepdiveService>();
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -74,6 +80,7 @@ async function makeService(): Promise<MadeService> {
       { provide: PlayerDeepdiveService, useValue: playerDeepdive },
       { provide: RaceDeepdiveService, useValue: raceDeepdive },
       { provide: CompetitionDeepdiveService, useValue: competitionDeepdive },
+      { provide: TrophyDeepdiveService, useValue: trophyDeepdive },
     ],
   }).compile();
 
@@ -88,6 +95,7 @@ async function makeService(): Promise<MadeService> {
     playerDeepdive,
     raceDeepdive,
     competitionDeepdive,
+    trophyDeepdive,
   };
 }
 
@@ -98,6 +106,7 @@ function chatInput(options: {
   player?: string | null;
   race?: string | null;
   competition?: string | null;
+  trophy?: string | null;
 }): ChatInputCommandInteraction {
   return {
     options: {
@@ -107,7 +116,8 @@ function chatInput(options: {
         if (name === 'team') return options.team ?? null;
         if (name === 'player') return options.player ?? null;
         if (name === 'race') return options.race ?? null;
-        return options.competition ?? null;
+        if (name === 'competition') return options.competition ?? null;
+        return options.trophy ?? null;
       }),
     },
   } as unknown as ChatInputCommandInteraction;
@@ -170,8 +180,21 @@ describe('DeepdiveCommandService', () => {
         type: 3,
         autocomplete: true,
       },
+      {
+        name: 'trophy',
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any() matcher
+        description: expect.any(String),
+        type: 3,
+        autocomplete: true,
+      },
     ]);
     expect(command.autocomplete).toEqual(expect.any(Function));
+    expect(command.options?.[6]).toEqual({
+      name: 'trophy',
+      description: 'Show the detail view for a single trophy (optional)',
+      type: ApplicationCommandOptionType.String,
+      autocomplete: true,
+    });
   });
 
   it('delegates the command autocomplete callback to DeepdiveAutocompleteService', async () => {
@@ -258,6 +281,21 @@ describe('DeepdiveCommandService', () => {
     );
     expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
       COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+  });
+
+  it('registers the trophy button and select-menu handlers', async () => {
+    const { service, discordClient } = await makeService();
+
+    service.onModuleInit();
+
+    expect(discordClient.registerButtonHandler).toHaveBeenCalledWith(
+      TROPHY_BUTTON_CUSTOM_ID_PREFIX,
+      expect.any(Function),
+    );
+    expect(discordClient.registerSelectMenuHandler).toHaveBeenCalledWith(
+      TROPHY_BUTTON_CUSTOM_ID_PREFIX,
       expect.any(Function),
     );
   });
@@ -522,6 +560,70 @@ describe('DeepdiveCommandService', () => {
     const result = await service.execute(chatInput({ competition: 'abc' }));
     expect(result).toBe(DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE);
     expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
+  });
+
+  it('resolves the trophy deepdive for a numeric trophy option', async () => {
+    const { service, trophyDeepdive } = await makeService();
+    trophyDeepdive.resolve.mockResolvedValue('trophy embed');
+
+    await expect(service.execute(chatInput({ trophy: '7' }))).resolves.toBe(
+      'trophy embed',
+    );
+    expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
+  });
+
+  it('rejects a non-numeric trophy option without hitting the database', async () => {
+    const { service, trophyDeepdive } = await makeService();
+
+    await expect(service.execute(chatInput({ trophy: 'nope' }))).resolves.toBe(
+      DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
+    );
+    expect(trophyDeepdive.resolve).not.toHaveBeenCalled();
+  });
+
+  it('rejects a trophy option combined with another target', async () => {
+    const { service } = await makeService();
+
+    await expect(
+      service.execute(chatInput({ trophy: '7', era: '3' })),
+    ).resolves.toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
+  });
+
+  it('resolves the trophy deepdive from a trophy button', async () => {
+    const { service, trophyDeepdive } = await makeService();
+    trophyDeepdive.resolve.mockResolvedValue('trophy embed');
+    const interaction = {
+      customId: `${TROPHY_BUTTON_CUSTOM_ID_PREFIX}7`,
+    } as unknown as ButtonInteraction;
+
+    await expect(service.handleTrophyButton(interaction)).resolves.toBe(
+      'trophy embed',
+    );
+    expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
+  });
+
+  it('resolves the trophy deepdive from a trophy select menu', async () => {
+    const { service, trophyDeepdive } = await makeService();
+    trophyDeepdive.resolve.mockResolvedValue('trophy embed');
+    const interaction = {
+      values: ['7'],
+    } as unknown as StringSelectMenuInteraction;
+
+    await expect(service.handleTrophySelect(interaction)).resolves.toBe(
+      'trophy embed',
+    );
+    expect(trophyDeepdive.resolve).toHaveBeenCalledWith(7);
+  });
+
+  it('returns the trophy not-found message for an empty trophy select menu', async () => {
+    const { service } = await makeService();
+    const interaction = {
+      values: [],
+    } as unknown as StringSelectMenuInteraction;
+
+    await expect(service.handleTrophySelect(interaction)).resolves.toBe(
+      DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
+    );
   });
 });
 

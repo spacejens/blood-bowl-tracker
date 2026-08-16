@@ -5,6 +5,7 @@ import {
   PlayersService,
   RacesService,
   TeamsService,
+  TrophiesService,
 } from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import type { AutocompleteInteraction } from 'discord.js';
@@ -22,6 +23,7 @@ interface MadeService {
   teams: MockProxy<TeamsService>;
   players: MockProxy<PlayersService>;
   races: MockProxy<RacesService>;
+  trophies: MockProxy<TrophiesService>;
 }
 
 async function makeService(): Promise<MadeService> {
@@ -31,6 +33,7 @@ async function makeService(): Promise<MadeService> {
   const teams = mock<TeamsService>();
   const players = mock<PlayersService>();
   const races = mock<RacesService>();
+  const trophies = mock<TrophiesService>();
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -41,6 +44,7 @@ async function makeService(): Promise<MadeService> {
       { provide: TeamsService, useValue: teams },
       { provide: PlayersService, useValue: players },
       { provide: RacesService, useValue: races },
+      { provide: TrophiesService, useValue: trophies },
     ],
   }).compile();
 
@@ -52,12 +56,20 @@ async function makeService(): Promise<MadeService> {
     teams,
     players,
     races,
+    trophies,
   };
 }
 
 function autocompleteInteraction(
   value: string,
-  name: 'era' | 'coach' | 'team' | 'player' | 'race' | 'competition' = 'era',
+  name:
+    | 'era'
+    | 'coach'
+    | 'team'
+    | 'player'
+    | 'race'
+    | 'competition'
+    | 'trophy' = 'era',
 ): AutocompleteInteraction {
   return {
     options: {
@@ -130,6 +142,18 @@ describe('DeepdiveAutocompleteService', () => {
     ).resolves.toEqual([
       { name: 'Major Season 24 (Premier League)', value: '6' },
     ]);
+  });
+
+  it('returns trophy choices labelled "<name> (<competition group>)" with id values', async () => {
+    const { service, trophies } = await makeService();
+    trophies.searchByNamePrefix.mockResolvedValue([
+      { id: 7, name: 'Chaos Cup', competitionGroupName: 'Major' },
+    ]);
+
+    await expect(
+      service.resolve(autocompleteInteraction('cha', 'trophy')),
+    ).resolves.toEqual([{ name: 'Chaos Cup (Major)', value: '7' }]);
+    expect(trophies.searchByNamePrefix).toHaveBeenCalledWith('cha', 25);
   });
 
   it('returns no choices for an option it does not handle', async () => {
