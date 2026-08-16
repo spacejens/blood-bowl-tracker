@@ -102,10 +102,10 @@ describe('curated data files', () => {
   });
 
   it('keeps the after-other-importers phase to rename-only competition entries', () => {
-    // Classification moved to data/before-other-importers/competitions.json5
-    // (issue #344): a competition's group must be correct before the BBL/TP
-    // importers run. What is left here can only run afterwards -- renaming a
-    // row the importers created.
+    // Classification is curated in
+    // data/before-other-importers/competitions.json5: a competition's group
+    // must be correct before the BBL/TP importers run. What is left here can
+    // only run afterwards -- renaming a row the importers created.
     const competitions = readPhase('after-other-importers').competitions;
 
     expect(competitions).toHaveLength(36);
@@ -171,8 +171,8 @@ describe('curated data files', () => {
 
   it('seeds TP external ids for exactly the ten trophies TP awards', () => {
     // TP has so far only tracked 4 competition groups (Major Season, Chaos
-    // Cup, Dungeon Bowl, Ogretoberfest). Dungeon Bowl now has catalog trophies of
-    // its own (issue #344); BBL never awarded one, which is why these three carry no
+    // Cup, Dungeon Bowl, Ogretoberfest). Dungeon Bowl has three catalog
+    // trophies of its own; BBL never awarded one, which is why these three carry no
     // `tloeg.bbleague.se` id. TP's award files have so far only contained team-level
     // entries, so only these 10 catalog entries have real TP source data to key on.
     // The composite format is `${disambiguator}-${groupName}`, where the disambiguator
@@ -244,7 +244,7 @@ describe('curated data files', () => {
       expect(competition.competitionGroup!.system).toBe('Name');
       expect(groupNames).toContain(competition.competitionGroup!.id);
       // The create path needs every NOT NULL column competitions has no
-      // default for: name, type, era_id and start_date (issue #344).
+      // default for: name, type, era_id and start_date.
       expect(competition.name, `competition ${key} has no name`).toBeDefined();
       expect(competition.type, `competition ${key} has no type`).toBeDefined();
       expect(competition.era, `competition ${key} has no era`).toBeDefined();

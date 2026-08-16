@@ -90,7 +90,7 @@ const CompetitionEntrySchema = z.object({
   // competitions.start_date is NOT NULL with no default, so an entry that
   // creates a competition row -- which is exactly what
   // data/before-other-importers/competitions.json5 does, ahead of the BBL and
-  // TP importers (issue #344) -- has to supply one. Both stay optional, and
+  // TP importers -- has to supply one. Both stay optional, and
   // endDate nullable, for the same overlay reason every other field here is:
   // a rename-only entry says nothing about dates and leaves the stored ones
   // alone.

@@ -1,4 +1,4 @@
-// The eras every curated competition instance belongs to (issue #344).
+// The eras every curated competition instance belongs to.
 //
 // These exist here, ahead of the BBL and TP importers, purely so
 // competitions.json5 in this same phase has an era to reference: a

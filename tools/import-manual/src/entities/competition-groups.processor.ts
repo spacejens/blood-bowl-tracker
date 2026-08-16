@@ -25,7 +25,7 @@ export class CompetitionGroupsProcessor {
    * same every run, the upsert is idempotent and a phase that re-processes
    * the catalog re-resolves the very same rows rather than duplicating them.
    * The catalog is curated once, in data/before-other-importers, alongside
-   * the competitions that classify into it (issue #344).
+   * the competitions that classify into it.
    *
    * A group's `league` is a normal external-id cross-reference and is required
    * (the column is NOT NULL), so an entry whose league cannot be resolved is

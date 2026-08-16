@@ -152,8 +152,8 @@ describe('CompetitionsProcessor', () => {
 
   it('passes the curated start and end dates through to the upsert', async () => {
     // competitions.start_date is NOT NULL with no default, so the
-    // before-other-importers phase's create path (issue #344) depends on
-    // these reaching the API untouched.
+    // before-other-importers phase's create path depends on these reaching
+    // the API untouched.
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(79),
     );

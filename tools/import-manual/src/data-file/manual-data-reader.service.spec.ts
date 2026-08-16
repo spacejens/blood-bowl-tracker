@@ -68,8 +68,7 @@ describe('ManualDataReader', () => {
   it('follows a symlinked .json5 file', async () => {
     // readdir never follows symlinks, so a curated file that is a symlink to
     // another phase's copy would be silently skipped. No curated data uses
-    // one today (issue #344 removed data/after-other-importers' last two),
-    // but the reader still supports it.
+    // one today, but the reader still supports it.
     write(
       'real.json5',
       `{ coaches: [{ name: 'Linked', externalIds: [{ system: 'Name', id: 'name:linked' }] }] }`,

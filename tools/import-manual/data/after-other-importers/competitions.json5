@@ -1,5 +1,5 @@
 // Normalizes the names of recurring numbered competitions (issues #270,
-// #285). Renaming is now this file's only job.
+// #285). Renaming is this file's only job.
 //
 // BBL and TP named the same recurring competition tracks inconsistently over
 // the years: the top-tier season track ran uninterrupted as 1..29 but was
@@ -16,11 +16,11 @@
 //
 // Group classification, and the real name/type/era/dates every competition
 // instance is created with, is curated in
-// data/before-other-importers/competitions.json5 (issue #344): a
-// competition's competition_group_id has to be correct before the BBL and TP
-// importers run, because tools/import-tp's awards import resolves a trophy by
-// the competition's group name. Renaming cannot run there: it can only run
-// once the importers have (re-)created their rows under the raw source names.
+// data/before-other-importers/competitions.json5: a competition's
+// competition_group_id has to be correct before the BBL and TP importers
+// run, because tools/import-tp's awards import resolves a trophy by the
+// competition's group name. Renaming cannot run there: it can only run once
+// the importers have (re-)created their rows under the raw source names.
 // Nothing here references a league or a group, so this phase's
 // ExternalIdMap needs neither catalog.
 //

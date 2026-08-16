@@ -278,9 +278,9 @@ real-world entity differently:
   `tools/import-tp/import-tp-config.json5`, which remain authoritative. It
   exists here purely so `competitions.json5` in the same phase has an era to
   reference.
-- `competitions.json5` — all 86 known competition instances (issue #344),
-  each with its curated [competition group](#competition-groups) (issue #445)
-  and the real data needed to create the row. Classification has to happen
+- `competitions.json5` — all 86 known competition instances, each with its
+  curated [competition group](#competition-groups) (issue #445) and the real
+  data needed to create the row. Classification has to happen
   here, ahead of the BBL and TP importers, because `tools/import-tp`'s awards
   import resolves a trophy by the competition's group name. Renaming stays in
   the after-other-importers phase.
@@ -307,7 +307,7 @@ real-world entity differently:
   BBL/TP importers' later upserts match the same rows.
 - `trophies.json5` — the curated catalog of 32 known trophies (issue #342):
   20 team and 12 player, from BBL's own `p=tt`/`p=ppr` legend pages plus the
-  TP-only Ogretoberfest and the three Dungeon Bowl placements (issue #344).
+  TP-only Ogretoberfest and the three Dungeon Bowl placements.
   Not a dedup file in the usual sense — nothing else creates trophies yet, so
   this is the sole source of the catalog.
 

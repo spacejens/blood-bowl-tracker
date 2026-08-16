@@ -30,8 +30,8 @@
 //
 // 10 entries are seeded, confirmed by reading all 13 local TP award files: TP
 // has so far only tracked 4 competition groups (Major Season, Chaos Cup,
-// Dungeon Bowl, Ogretoberfest). Dungeon Bowl now has catalog trophies of its
-// own (issue #344); BBL never awarded one, so none of these three carry a
+// Dungeon Bowl, Ogretoberfest). Dungeon Bowl has three catalog trophies of
+// its own; BBL never awarded one, so none of these three carry a
 // `tloeg.bbleague.se` id. Award files contain placement entries only
 // (awardType 1/2/3) with no Best Stunty or Wooden Spoon, so no stunty/spoon
 // entries are seeded for Dungeon Bowl. TP's award files have so far only
@@ -211,7 +211,7 @@
         'TP-side team award for winning an Ogretoberfest cup instance.',
       externalIds: [{ system: 'tourplay.net', id: '1-Ogretoberfest' }],
     },
-    // Dungeon Bowl placements (issue #344). TP-only: BBL's complete 16-entry
+    // Dungeon Bowl placements. TP-only: BBL's complete 16-entry
     // team trophy legend has no Dungeon Bowl trophy at all, so these carry no
     // tloeg.bbleague.se id. TP's Dungeon Bowl award files contain placement
     // entries only (awardType 1/2/3) -- no Best Stunty or Wooden Spoon --

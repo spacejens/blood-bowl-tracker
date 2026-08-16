@@ -1,12 +1,12 @@
 // Every known competition instance: its curated competition group (issue
-// #445) and the real name/type/era/dates it is created with (issue #344).
+// #445) and the real name/type/era/dates it is created with.
 //
 // This runs in the BEFORE-other-importers phase, ahead of tools/import-bbl
 // and tools/import-tp, because competitions.competition_group_id must already
 // be correct when those tools run: tools/import-tp's awards import resolves a
 // trophy by `${disambiguator}-${groupName}`, and the group name comes from
-// the competition's own group. Classifying afterwards (as this data used to)
-// is too late.
+// the competition's own group. Classifying in the after-other-importers
+// phase instead, once the source importers have already run, is too late.
 //
 // A create needs every NOT NULL column competitions has no default for --
 // name, type, era_id and start_date -- so each entry carries real values,
