@@ -6,7 +6,9 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
+import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
+import type { ImportError } from './types';
 
 describe('CompetitionGroupsImportService', () => {
   let service: CompetitionGroupsImportService;
@@ -62,5 +64,52 @@ describe('CompetitionGroupsImportService', () => {
     const [options] = runner.recordUpsertResult.mock.calls[0];
     await options.upsert();
     expect(client.competitionGroups.upsert).toHaveBeenCalledWith(data);
+  });
+});
+
+describe('CompetitionGroupsImportService.listCompetitionGroups', () => {
+  let service: CompetitionGroupsImportService;
+  let client: DeepMockProxy<ApiClient>;
+
+  beforeEach(async () => {
+    client = mockDeep<ApiClient>();
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        CompetitionGroupsImportService,
+        { provide: API_CLIENT, useValue: client },
+        ImportRunnerService,
+        ImportResultService,
+      ],
+    }).compile();
+    service = moduleRef.get(CompetitionGroupsImportService);
+  });
+
+  it('returns the listed competition groups', async () => {
+    const groups = [
+      {
+        id: 1,
+        name: 'Major Season',
+        leagueId: 1,
+        createdAt: new Date('2026-01-01'),
+      },
+    ];
+    client.competitionGroups.list.mockResolvedValue(groups);
+    const errors: ImportError[] = [];
+
+    await expect(service.listCompetitionGroups(errors)).resolves.toEqual(
+      groups,
+    );
+    expect(errors).toEqual([]);
+  });
+
+  it('records an error and returns undefined when the list call fails', async () => {
+    client.competitionGroups.list.mockRejectedValue(new Error('boom'));
+    const errors: ImportError[] = [];
+
+    await expect(
+      service.listCompetitionGroups(errors),
+    ).resolves.toBeUndefined();
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain('Failed to list competition groups');
   });
 });

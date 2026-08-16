@@ -1,4 +1,4 @@
-import { DB } from '@blood-bowl-tracker/db';
+import { competitionGroups, DB } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -65,5 +65,30 @@ describe('CompetitionGroupsService', () => {
     await expect(
       service.upsert({ name: 'Chaos Cup', leagueId: 2, externalIds }),
     ).rejects.toBeInstanceOf(CompetitionGroupUpsertConflictError);
+  });
+
+  it('lists every competition group', async () => {
+    const rows = [
+      {
+        id: 1,
+        name: 'Major Season',
+        leagueId: 1,
+        createdAt: new Date('2026-01-01'),
+      },
+      {
+        id: 2,
+        name: 'Chaos Cup',
+        leagueId: 1,
+        createdAt: new Date('2026-01-02'),
+      },
+    ];
+    const { db, chains } = mockDb(rows);
+    const moduleRef = await Test.createTestingModule({
+      providers: [CompetitionGroupsService, { provide: DB, useValue: db }],
+    }).compile();
+    const service = moduleRef.get(CompetitionGroupsService);
+
+    await expect(service.listAll()).resolves.toEqual(rows);
+    expect(chains[0].from).toHaveBeenCalledWith(competitionGroups);
   });
 });

@@ -268,6 +268,18 @@ export class RpcRouterFactoryService {
               },
             ),
         ),
+        list: implement(contract.competitionGroups.list).handler(async () => {
+          const groups = await this.competitionGroupsService.listAll();
+          // Mapped explicitly rather than returned raw: the drizzle row also
+          // carries the history-tracking columns, which are not part of the
+          // contract's CompetitionGroupSchema.
+          return groups.map((group) => ({
+            id: group.id,
+            name: group.name,
+            leagueId: group.leagueId,
+            createdAt: group.createdAt,
+          }));
+        }),
       },
       competitions: {
         upsert: implement(contract.competitions.upsert).handler(
