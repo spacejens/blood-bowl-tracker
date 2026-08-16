@@ -36,6 +36,7 @@ export class CompetitionsProcessor {
         errors: ctx.errors,
         item: entry,
         label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,
+        kind: 'era',
       });
       if (!era.ok) {
         continue;
@@ -46,6 +47,7 @@ export class CompetitionsProcessor {
         errors: ctx.errors,
         item: entry,
         label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,
+        kind: 'competitionGroup',
       });
       if (!group.ok) {
         continue;
@@ -67,7 +69,7 @@ export class CompetitionsProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'competition');
         imported += 1;
       }
     }

@@ -52,7 +52,12 @@ export class ManualImportService {
    * so cross-references resolve and one bad entry never aborts the rest.
    * Reference-resolution and upsert failures are collected; a missing
    * directory, malformed file, or unreachable API throws out of here to be
-   * reported as an unexpected failure.
+   * reported as an unexpected failure — as does a same-kind external-id
+   * collision (two different entities registering the same
+   * (kind, system, id) triple with different database ids, a curated-data
+   * authoring bug rather than a resolvable reference gap), which throws out
+   * of ExternalIdMap.add() and aborts the import instead of being collected
+   * as an ImportError.
    */
   async run(dir: string): Promise<ImportResult> {
     const data = await this.reader.read(dir);

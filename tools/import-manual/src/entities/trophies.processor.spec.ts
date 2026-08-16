@@ -99,7 +99,10 @@ describe('TrophiesProcessor', () => {
       ctx.errors,
     );
     expect(
-      ctx.idMap.resolve({ system: 'tloeg.bbleague.se', id: 'Chaos Cup' }),
+      ctx.idMap.resolve(
+        { system: 'tloeg.bbleague.se', id: 'Chaos Cup' },
+        'trophy',
+      ),
     ).toBe(31);
   });
 
@@ -149,7 +152,7 @@ describe('TrophiesProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      idMap.resolve({ system: 'Name', id: 'name:broken' }),
+      idMap.resolve({ system: 'Name', id: 'name:broken' }, 'trophy'),
     ).toBeUndefined();
   });
 
@@ -203,7 +206,11 @@ describe('TrophiesProcessor', () => {
 
     expect(await processor.process(ctx)).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
-      expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
+      expect.objectContaining({
+        ref: groupRef,
+        idMap: ctx.idMap,
+        kind: 'competitionGroup',
+      }),
     );
     expect(trophies.upsertTrophy).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: 4 }),
@@ -231,7 +238,7 @@ describe('TrophiesProcessor', () => {
       await processor.process(makeContext(data, new ExternalIdMap())),
     ).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
-      expect.objectContaining({ ref: undefined }),
+      expect.objectContaining({ ref: undefined, kind: 'competitionGroup' }),
     );
     expect(trophies.upsertTrophy).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: undefined }),

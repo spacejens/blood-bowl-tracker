@@ -33,6 +33,7 @@ export class TrophiesProcessor {
         errors: ctx.errors,
         item: entry,
         label: `Cannot import trophy "${entry.name}"`,
+        kind: 'competitionGroup',
       });
       if (!group.ok) {
         continue;
@@ -51,7 +52,7 @@ export class TrophiesProcessor {
         ctx.errors,
       );
       if (upserted) {
-        ctx.idMap.add(entry.externalIds, upserted.id);
+        ctx.idMap.add(entry.externalIds, upserted.id, 'trophy');
         imported += 1;
       }
     }

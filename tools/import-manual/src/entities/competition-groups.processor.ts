@@ -56,6 +56,7 @@ export class CompetitionGroupsProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'league',
       });
       if (leagueId === undefined) {
         continue;
@@ -73,7 +74,7 @@ export class CompetitionGroupsProcessor {
           ctx.errors,
         );
       if (upserted) {
-        ctx.idMap.add([ref], upserted.id);
+        ctx.idMap.add([ref], upserted.id, 'competitionGroup');
         imported += 1;
       }
     }

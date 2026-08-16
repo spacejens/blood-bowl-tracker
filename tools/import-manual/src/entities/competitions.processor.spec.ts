@@ -108,7 +108,13 @@ describe('CompetitionsProcessor', () => {
 
     expect(count).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
-      expect.objectContaining({ ref: data.competitions[0].era }),
+      expect.objectContaining({ ref: data.competitions[0].era, kind: 'era' }),
+    );
+    expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: data.competitions[0].competitionGroup,
+        kind: 'competitionGroup',
+      }),
     );
     // The processor must wire each canned resolver output into the exact field
     // the upsert call expects -- not just pass some id through.
@@ -122,9 +128,12 @@ describe('CompetitionsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'name:season-12' })).toBe(
-      77,
-    );
+    expect(
+      ctx.idMap.resolve(
+        { system: 'Name', id: 'name:season-12' },
+        'competition',
+      ),
+    ).toBe(77);
   });
 
   it('passes a cup type through unchanged', async () => {
@@ -276,7 +285,7 @@ describe('CompetitionsProcessor', () => {
 
     expect(count).toBe(0);
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'name:doomed' }),
+      ctx.idMap.resolve({ system: 'Name', id: 'name:doomed' }, 'competition'),
     ).toBeUndefined();
   });
 

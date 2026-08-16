@@ -7,6 +7,7 @@ import {
 import { Injectable } from '@nestjs/common';
 
 import type { ExternalRef } from '../data-file/manual-data-file.schema';
+import type { EntityKind } from './entity-kind';
 import type { ExternalIdMap } from './external-id-map';
 
 export interface ResolveRefOptions {
@@ -15,6 +16,8 @@ export interface ResolveRefOptions {
   errors: ImportError[];
   item: unknown;
   label: string;
+  /** The kind of the entity being *referenced*, not the referring one. */
+  kind: EntityKind;
 }
 
 export interface ResolveRefsOptions {
@@ -23,6 +26,8 @@ export interface ResolveRefsOptions {
   errors: ImportError[];
   item: unknown;
   label: string;
+  /** The kind of the entities being *referenced*, not the referring one. */
+  kind: EntityKind;
 }
 
 export interface ResolveOptionalRefOptions {
@@ -31,6 +36,8 @@ export interface ResolveOptionalRefOptions {
   errors: ImportError[];
   item: unknown;
   label: string;
+  /** The kind of the entity being *referenced*, not the referring one. */
+  kind: EntityKind;
 }
 
 /**
@@ -90,7 +97,7 @@ export class ReferenceResolverService {
    * unresolved.
    */
   resolveRef(options: ResolveRefOptions): number | undefined {
-    const id = options.idMap.resolve(options.ref);
+    const id = options.idMap.resolve(options.ref, options.kind);
     if (id === undefined) {
       options.errors.push(
         this.importResults.error({
@@ -117,6 +124,7 @@ export class ReferenceResolverService {
         errors: options.errors,
         item: options.item,
         label: options.label,
+        kind: options.kind,
       });
       if (id === undefined) {
         ok = false;
@@ -144,6 +152,7 @@ export class ReferenceResolverService {
       errors: options.errors,
       item: options.item,
       label: options.label,
+      kind: options.kind,
     });
     return id === undefined ? { ok: false } : { ok: true, id };
   }

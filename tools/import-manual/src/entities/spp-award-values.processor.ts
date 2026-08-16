@@ -34,6 +34,7 @@ export class SppAwardValuesProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'rulesSet',
       });
       if (rulesSetId === undefined) {
         continue;
@@ -44,6 +45,7 @@ export class SppAwardValuesProcessor {
         errors: ctx.errors,
         item: entry,
         label,
+        kind: 'race',
       });
       if (!race.ok) {
         continue;
