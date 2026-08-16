@@ -10,6 +10,7 @@ import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from './deepdive/button-custom-ids';
 import type {
   EntityButtonRow,
@@ -77,6 +78,7 @@ describe('EntityComponentsService', () => {
     const cases: [ButtonCustomIdPrefix, ButtonStyle][] = [
       [ERA_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
       [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
+      [TROPHY_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Secondary],
       [COACH_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [TEAM_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Success],
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, ButtonStyle.Primary],
@@ -109,6 +111,7 @@ describe('EntityComponentsService', () => {
       [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
       [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
       [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
+      [TROPHY_BUTTON_CUSTOM_ID_PREFIX, '🏆'],
     ];
     const { components } = service.buildEntityComponents(
       cases.map(([customIdPrefix], index) => ({
@@ -334,8 +337,8 @@ describe('EntityComponentsService', () => {
 
   it('gives each destination type its own select-menu option emoji', () => {
     // 26+ entries forces the select-menu path, and each destination type then
-    // gets its own menu. Discord caps a message at five action rows, so the six
-    // types are checked in two batches rather than one.
+    // gets its own menu. Discord caps a message at five action rows, so the
+    // seven types are checked in two batches rather than one.
     const batches: [ButtonCustomIdPrefix, string][][] = [
       [
         [ERA_BUTTON_CUSTOM_ID_PREFIX, '🕰️'],
@@ -346,6 +349,7 @@ describe('EntityComponentsService', () => {
         [PLAYER_BUTTON_CUSTOM_ID_PREFIX, '🎽'],
         [RACE_BUTTON_CUSTOM_ID_PREFIX, '🧬'],
         [COMPETITION_BUTTON_CUSTOM_ID_PREFIX, '🏟️'],
+        [TROPHY_BUTTON_CUSTOM_ID_PREFIX, '🏆'],
       ],
     ];
     for (const cases of batches) {

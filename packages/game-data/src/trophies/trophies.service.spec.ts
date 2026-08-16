@@ -1,10 +1,17 @@
 import type { Db } from '@blood-bowl-tracker/db';
 import { DB, trophies } from '@blood-bowl-tracker/db';
 import { Test } from '@nestjs/testing';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import type { MockProxy } from 'vitest-mock-extended';
+import { mock } from 'vitest-mock-extended';
 
 import type { QueryChain } from '../shared/db-mock.test-helpers';
 import { mockDb } from '../shared/db-mock.test-helpers';
+import { LikePatternService } from '../shared/like-pattern.service';
+import {
+  extractJoinColumns,
+  firstCallArg,
+} from '../shared/query-assertions.test-helpers';
 import { TrophiesService, TrophyUpsertConflictError } from './trophies.service';
 
 const fakeTrophy = {
@@ -17,6 +24,7 @@ const fakeTrophy = {
 
 describe('TrophiesService', () => {
   let service: TrophiesService;
+  let likePattern: MockProxy<LikePatternService>;
 
   async function build(...rowsPerQuery: unknown[][]): Promise<{
     db: Db;
@@ -24,11 +32,19 @@ describe('TrophiesService', () => {
   }> {
     const { db, chains } = mockDb(...rowsPerQuery);
     const moduleRef = await Test.createTestingModule({
-      providers: [TrophiesService, { provide: DB, useValue: db }],
+      providers: [
+        TrophiesService,
+        { provide: LikePatternService, useValue: likePattern },
+        { provide: DB, useValue: db },
+      ],
     }).compile();
     service = moduleRef.get(TrophiesService);
     return { db, chains };
   }
+
+  beforeEach(() => {
+    likePattern = mock<LikePatternService>();
+  });
 
   const baseData = {
     name: 'Chaos Cup',
@@ -151,5 +167,66 @@ describe('TrophiesService', () => {
     await expect(
       service.upsert({ name: 'Brand New', externalIds: [] }),
     ).rejects.toBeInstanceOf(Error);
+  });
+
+  describe('searchByNamePrefix', () => {
+    it('returns trophies with their competition group name, ordered by name and limited', async () => {
+      const rows = [
+        { id: 7, name: 'Chaos Cup', competitionGroupName: 'Major' },
+        { id: 9, name: 'Chaos Shield', competitionGroupName: 'Minor' },
+      ];
+      likePattern.escape.mockReturnValue('cha');
+      const { chains } = await build(rows);
+
+      await expect(service.searchByNamePrefix('cha', 25)).resolves.toEqual(
+        rows,
+      );
+
+      expect(chains[0].limit).toHaveBeenCalledWith(25);
+      expect(chains[0].orderBy).toHaveBeenCalledWith(trophies.name);
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+    });
+
+    it('escapes LIKE metacharacters in the prefix before matching', async () => {
+      likePattern.escape.mockReturnValue('50\\%\\_\\\\off');
+      const { chains } = await build([]);
+
+      await service.searchByNamePrefix('50%_\\off', 25);
+
+      expect(likePattern.escape).toHaveBeenCalledWith('50%_\\off');
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+      // The escaped pattern value is passed as a raw SQL parameter chunk.
+      const condition = firstCallArg(chains[0].where) as {
+        queryChunks: unknown[];
+      };
+      expect(condition.queryChunks).toContain('50\\%\\_\\\\off%');
+    });
+  });
+
+  describe('findById', () => {
+    it('returns the trophy header joined to its competition group', async () => {
+      const header = {
+        id: 7,
+        name: 'Chaos Cup',
+        description: 'The team that wins after four matches.',
+        competitionGroupName: 'Major',
+      };
+      const { chains } = await build([header]);
+
+      await expect(service.findById(7)).resolves.toEqual(header);
+
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 0, 1)),
+      ).toEqual(['competition_groups.id', 'trophies.competition_group_id']);
+      expect(chains[0].where).toHaveBeenCalledTimes(1);
+    });
+
+    it('returns undefined when no trophy has that id', async () => {
+      await build([]);
+
+      await expect(service.findById(999)).resolves.toBeUndefined();
+    });
   });
 });

@@ -1,18 +1,78 @@
 import type { UpsertTrophy } from '@blood-bowl-tracker/api-contract';
 import type { Db, Trophy } from '@blood-bowl-tracker/db';
-import { DB, trophies, trophyExternalIds } from '@blood-bowl-tracker/db';
+import {
+  competitionGroups,
+  DB,
+  trophies,
+  trophyExternalIds,
+} from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, ilike } from 'drizzle-orm';
 
+import { LikePatternService } from '../shared/like-pattern.service';
 import { MissingRequiredFieldError } from '../shared/missing-required-field-error';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
 export class TrophyUpsertConflictError extends UpsertConflictError {}
 
+/** A single trophy's display header, with its competition group's name resolved. */
+export type TrophyHeader = {
+  id: number;
+  name: string;
+  description: string | null;
+  competitionGroupName: string;
+};
+
 @Injectable()
 export class TrophiesService {
-  constructor(@Inject(DB) private readonly db: Db) {}
+  constructor(
+    @Inject(DB) private readonly db: Db,
+    private readonly likePattern: LikePatternService,
+  ) {}
+
+  /**
+   * Case-insensitive prefix search for the `/deepdive trophy:` autocomplete.
+   * Mirrors `ErasService.searchByNamePrefix`: the caller's raw text is escaped
+   * before it becomes an ILIKE pattern, so `%`/`_` match literally.
+   */
+  searchByNamePrefix(
+    prefix: string,
+    limit: number,
+  ): Promise<{ id: number; name: string; competitionGroupName: string }[]> {
+    return this.db
+      .select({
+        id: trophies.id,
+        name: trophies.name,
+        competitionGroupName: competitionGroups.name,
+      })
+      .from(trophies)
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, trophies.competitionGroupId),
+      )
+      .where(ilike(trophies.name, `${this.likePattern.escape(prefix)}%`))
+      .orderBy(trophies.name)
+      .limit(limit);
+  }
+
+  /** One trophy's deepdive header, or `undefined` when no such trophy exists. */
+  async findById(trophyId: number): Promise<TrophyHeader | undefined> {
+    const rows = await this.db
+      .select({
+        id: trophies.id,
+        name: trophies.name,
+        description: trophies.description,
+        competitionGroupName: competitionGroups.name,
+      })
+      .from(trophies)
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, trophies.competitionGroupId),
+      )
+      .where(eq(trophies.id, trophyId));
+    return rows[0];
+  }
 
   async upsert(
     data: UpsertTrophy,
