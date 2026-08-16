@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 
 import { ProcessRunnerService } from '../shared/process-runner.service';
+import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import {
   COMMENT_UPDATE_FAILED_PHRASES,
   NO_ACTIONABLE_COMMENTS_PHRASES,
@@ -105,6 +106,12 @@ interface PollOutcome {
    * rolling-comment check below can cross-check completion freshness against it.
    */
   readonly headRefOid?: string;
+  /**
+   * A review that matched the jq filter but was discarded as a content-free
+   * artifact — empty body, no inline comments (see `checkedReview`). Carried
+   * out so `run` can exclude it from later polls in this same wait.
+   */
+  readonly discardedEmptyReviewId?: string;
 }
 
 /**
@@ -251,6 +258,7 @@ export class WaitForPrReviewService {
   constructor(
     private readonly processRunner: ProcessRunnerService,
     private readonly filters: WaitForPrReviewFiltersService,
+    private readonly reviewComments: PullRequestReviewCommentsService,
   ) {}
 
   async run(options: WaitForPrReviewOptions): Promise<WaitForPrReviewResult> {
@@ -388,14 +396,76 @@ export class WaitForPrReviewService {
     );
     const headRefOid =
       typeof parsed.headRefOid === 'string' ? parsed.headRefOid : undefined;
+    const checked = await this.checkedReview(
+      parsed.review,
+      this.budgetMs(deadline, intervalMs),
+    );
     return {
-      ...(parsed.review == null ? {} : { review: parsed.review }),
+      ...checked,
       ...(rateLimitComment === undefined ? {} : { rateLimitComment }),
       ...(commentUpdateFailedComment === undefined
         ? {}
         : { commentUpdateFailedComment }),
       ...(headRefOid === undefined ? {} : { headRefOid }),
     };
+  }
+
+  /**
+   * A matched review, or the id of one discarded as a content-free artifact.
+   *
+   * CodeRabbit can submit a formally valid review carrying nothing at all —
+   * empty body, no inline comments — while its actual pass was blocked by the
+   * developer's review rate limit (issue #474, PR #469). The jq filter cannot
+   * tell that apart from a real review, so an empty-bodied candidate is
+   * verified with one extra lookup before it is trusted.
+   *
+   * Fails closed, matching `coversHeadCommit`'s precedent: a lookup that could
+   * not answer (`undefined`) discards the candidate rather than trusting an
+   * unverifiable one. A false timeout costs one wasted wait; a false `found`
+   * makes the caller act as if the code had been reviewed when it never was.
+   */
+  private async checkedReview(
+    candidate: unknown,
+    timeoutMs: number,
+  ): Promise<{ review?: unknown; discardedEmptyReviewId?: string }> {
+    if (candidate == null) {
+      return {};
+    }
+    const reviewId = this.emptyBodyReviewId(candidate);
+    if (reviewId === undefined) {
+      return { review: candidate };
+    }
+    const hasComments = await this.reviewComments.hasInlineComments(
+      reviewId,
+      timeoutMs,
+    );
+    return hasComments === true
+      ? { review: candidate }
+      : { discardedEmptyReviewId: reviewId };
+  }
+
+  /**
+   * The candidate's id when it needs verifying — i.e. it is an object with a
+   * string id and a missing, null, empty, or whitespace-only `body`.
+   * `undefined` means "trust it as-is": either the body carries real summary
+   * text (the common case, verified at zero extra cost), or the shape is not
+   * one this check can reason about.
+   *
+   * A candidate without a string `id` is deliberately trusted rather than
+   * discarded: it cannot be looked up *and* cannot be excluded from the next
+   * poll, so discarding it would loop forever on the same value. jq only ever
+   * emits real GitHub review objects here, so this is a defensive branch, not
+   * a live path.
+   */
+  private emptyBodyReviewId(candidate: unknown): string | undefined {
+    if (typeof candidate !== 'object' || candidate === null) {
+      return undefined;
+    }
+    const { id, body } = candidate as { id?: unknown; body?: unknown };
+    if (typeof id !== 'string') {
+      return undefined;
+    }
+    return typeof body === 'string' && body.trim() !== '' ? undefined : id;
   }
 
   /**

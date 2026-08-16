@@ -2,6 +2,7 @@ import { Test } from '@nestjs/testing';
 import { mock, MockProxy } from 'vitest-mock-extended';
 
 import { ProcessRunnerService } from '../shared/process-runner.service';
+import { PullRequestReviewCommentsService } from './pull-request-review-comments.service';
 import { WaitForPrReviewService } from './wait-for-pr-review.service';
 import { WaitForPrReviewFiltersService } from './wait-for-pr-review-filters.service';
 
@@ -9,6 +10,25 @@ export const REVIEW = {
   id: 'PRR_review1',
   author: { login: 'coderabbitai' },
   state: 'COMMENTED',
+  /**
+   * Non-empty on purpose: a review with a body short-circuits the
+   * inline-comment verification entirely, which is the common path every
+   * pre-existing test in this directory exercises.
+   */
+  body: 'Actionable comments posted: 2',
+  submittedAt: '2026-08-11T10:00:00Z',
+};
+
+/**
+ * The artifact shape from issue #474 (PR #469): a formally submitted review
+ * from a non-author with an empty body, produced while CodeRabbit was
+ * actually rate-limited and never ran a real pass.
+ */
+export const EMPTY_BODY_REVIEW = {
+  id: 'PRR_empty1',
+  author: { login: 'coderabbitai' },
+  state: 'COMMENTED',
+  body: '',
   submittedAt: '2026-08-11T10:00:00Z',
 };
 
@@ -48,6 +68,22 @@ export const COMMENT_UPDATE_FAILED_COMMENT = {
  * X and Y" sentence observed on PR #402.
  */
 export const HEAD_REF_OID = 'cd43d0404e4675811bc8242811f787ed19fa7e41';
+
+/** A `gh pr view` invocation whose review half matched the given review. */
+export function foundReview(review: unknown) {
+  return {
+    exitCode: 0,
+    stdout: `${JSON.stringify({
+      review,
+      rateLimitComment: null,
+      headRefOid: HEAD_REF_OID,
+    })}\n`,
+    stderr: '',
+  };
+}
+
+/** A `gh pr view` invocation whose only match is the empty artifact review. */
+export const EMPTY_BODY_FOUND = foundReview(EMPTY_BODY_REVIEW);
 
 /**
  * A `gh pr view` invocation that found nothing on the reviews-call side:
@@ -122,6 +158,7 @@ export const COMPLETION_REVIEW = {
 export interface WaitForPrReviewHarness {
   readonly service: WaitForPrReviewService;
   readonly processRunner: MockProxy<ProcessRunnerService>;
+  readonly reviewComments: MockProxy<PullRequestReviewCommentsService>;
 }
 
 /**
@@ -136,14 +173,20 @@ export interface WaitForPrReviewHarness {
  */
 export async function createHarness(): Promise<WaitForPrReviewHarness> {
   const processRunner = mock<ProcessRunnerService>();
+  const reviewComments = mock<PullRequestReviewCommentsService>();
   const moduleRef = await Test.createTestingModule({
     providers: [
       WaitForPrReviewService,
       WaitForPrReviewFiltersService,
       { provide: ProcessRunnerService, useValue: processRunner },
+      { provide: PullRequestReviewCommentsService, useValue: reviewComments },
     ],
   }).compile();
-  return { service: moduleRef.get(WaitForPrReviewService), processRunner };
+  return {
+    service: moduleRef.get(WaitForPrReviewService),
+    processRunner,
+    reviewComments,
+  };
 }
 
 /**
