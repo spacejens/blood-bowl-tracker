@@ -155,4 +155,22 @@ describe('WaitForPrReviewService trigger settle pause', () => {
     expect(pollCalls()).toHaveLength(2);
     expect(result).toEqual({ found: true, review: REVIEW });
   });
+
+  it('waits only the settle pause, not the whole interval, before the poll after the trigger', async () => {
+    // `triggeringOptions` uses the 30s interval; the poll after the trigger
+    // must come at TRIGGER_SETTLE_MS (10s) instead. Asserted as a boundary —
+    // nothing at 9,999ms, the second poll at exactly 10,000ms — so neither a
+    // longer nor a shorter pause can pass.
+    mockPolls(EMPTY);
+    const pending = service.run(triggeringOptions(120_000));
+
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(pollCalls()).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(pollCalls()).toHaveLength(2);
+
+    await vi.advanceTimersByTimeAsync(15 * 60 * 1000);
+    await expect(pending).resolves.toEqual({ found: false, timedOut: true });
+  });
 });

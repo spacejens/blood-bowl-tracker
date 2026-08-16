@@ -236,6 +236,16 @@ const RATE_LIMIT_WAIT_BUFFER_SECONDS = 60;
 const DEFAULT_TIMEOUT_MS = 600_000;
 /** 30 seconds — matches develop-feature Phase 6's original poll interval. */
 const DEFAULT_INTERVAL_MS = 30_000;
+/**
+ * 10 seconds — the pause given to CodeRabbit to notice the trigger comment
+ * and begin processing it, used in place of `intervalMs` on the one iteration
+ * that just posted the trigger. Deliberately much shorter than a normal
+ * interval: it only has to cover the gap between the comment landing and
+ * CodeRabbit reacting to it, not a whole review window. Distinct from
+ * `RATE_LIMIT_WAIT_BUFFER_SECONDS`, which pads CodeRabbit's own stated
+ * rate-limit duration so the retry does not fire before that wait is over.
+ */
+const TRIGGER_SETTLE_MS = 10_000;
 
 /** What a triggered review is asked for with; CodeRabbit's own command. */
 const TRIGGER_REVIEW_BODY = '@coderabbitai review';
@@ -357,7 +367,10 @@ export class WaitForPrReviewService {
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
       }
-      await this.sleep(intervalMs);
+      // Replaces this iteration's normal sleep rather than adding to it —
+      // exactly one sleep still happens per iteration. Both deadline checks
+      // around it apply unchanged either way.
+      await this.sleep(justTriggered ? TRIGGER_SETTLE_MS : intervalMs);
       // `sleep` can resume at or after the deadline (real-timer drift, a
       // slow event loop) even though the check above passed just before it
       // started — re-check here so a late wake-up cannot trigger one more
