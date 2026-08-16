@@ -6,20 +6,20 @@ import {
 } from '../shared/process-runner.service';
 import { DiffHunkMembershipService } from './diff-hunk-membership.service';
 
-/** One finding to post, in the caller's own words — untagged, unformatted. */
-export interface DeferredFinding {
+/** One question to post, in the caller's own words — untagged, unformatted. */
+export interface ReviewQuestion {
   readonly file: string;
   readonly line: number;
   readonly body: string;
 }
 
-export interface PostDeferredFindingsInput {
+export interface PostReviewQuestionsInput {
   readonly prNumber: string;
-  readonly findings: readonly DeferredFinding[];
+  readonly questions: readonly ReviewQuestion[];
 }
 
-/** Where and how one finding actually landed. */
-export interface PostedFinding {
+/** Where and how one question actually landed. */
+export interface PostedQuestion {
   readonly file: string;
   readonly line: number;
   readonly mode: 'inline' | 'top-level';
@@ -27,15 +27,15 @@ export interface PostedFinding {
   readonly url?: string;
 }
 
-export interface FailedFinding {
+export interface FailedQuestion {
   readonly file: string;
   readonly line: number;
   readonly error: string;
 }
 
-export interface PostDeferredFindingsResult {
-  readonly posted: readonly PostedFinding[];
-  readonly failed: readonly FailedFinding[];
+export interface PostReviewQuestionsResult {
+  readonly posted: readonly PostedQuestion[];
+  readonly failed: readonly FailedQuestion[];
 }
 
 /**
@@ -55,67 +55,71 @@ const POST_TIMEOUT_MS = 30_000;
  */
 const HTTP_422_PATTERN = /http 422/i;
 
-/** One outcome of attempting to post a finding inline. */
+/** One outcome of attempting to post a question inline. */
 type InlineOutcome =
-  | { readonly kind: 'posted'; readonly posted: PostedFinding }
+  | { readonly kind: 'posted'; readonly posted: PostedQuestion }
   | { readonly kind: 'fallback' }
-  | { readonly kind: 'failed'; readonly failed: FailedFinding };
+  | { readonly kind: 'failed'; readonly failed: FailedQuestion };
 
-/** One outcome of attempting to post a finding as a top-level comment. */
+/** One outcome of attempting to post a question as a top-level comment. */
 type TopLevelOutcome =
-  | { readonly kind: 'posted'; readonly posted: PostedFinding }
-  | { readonly kind: 'failed'; readonly failed: FailedFinding };
+  | { readonly kind: 'posted'; readonly posted: PostedQuestion }
+  | { readonly kind: 'failed'; readonly failed: FailedQuestion };
 
 /**
- * `failedFinding`'s inputs bundled into one object: `finding` and `mode`
+ * `failedQuestion`'s inputs bundled into one object: `question` and `mode`
  * alone plus either `error` (a rejected `run`) or `stderr` (a resolved,
  * non-zero exit) would be a 4th positional parameter, over this repo's
  * 3-parameter limit (`local/max-function-params`).
  */
-interface FailedFindingOptions {
-  readonly finding: DeferredFinding;
+interface FailedQuestionOptions {
+  readonly question: ReviewQuestion;
   readonly mode: 'inline' | 'top-level';
   readonly error?: unknown;
   readonly stderr?: string;
 }
 
 /**
- * Posts a batch of deferred code-review findings to a PR — inline on the
- * diff line when possible, falling back to a top-level issue comment
- * otherwise (a line outside the diff, or GitHub rejecting the inline
- * attempt). Every finding is attempted independently: one failure never
- * aborts the rest, and `run` itself never throws to its caller.
+ * Posts a batch of self-review questions to a PR — inline on the diff line
+ * when possible, falling back to a top-level issue comment otherwise (a line
+ * outside the diff, or GitHub rejecting the inline attempt). Every question
+ * is attempted independently: one failure never aborts the rest, and `run`
+ * itself never throws to its caller.
  */
 @Injectable()
-export class PostDeferredFindingsService {
+export class PostReviewQuestionsService {
   constructor(
     private readonly processRunner: ProcessRunnerService,
     private readonly diffHunkMembership: DiffHunkMembershipService,
   ) {}
 
   async run(
-    input: PostDeferredFindingsInput,
-  ): Promise<PostDeferredFindingsResult> {
-    const posted: PostedFinding[] = [];
-    const failed: FailedFinding[] = [];
-    if (input.findings.length === 0) {
+    input: PostReviewQuestionsInput,
+  ): Promise<PostReviewQuestionsResult> {
+    const posted: PostedQuestion[] = [];
+    const failed: FailedQuestion[] = [];
+    if (input.questions.length === 0) {
       return { posted, failed };
     }
 
     const headSha = await this.resolveHeadSha(input.prNumber);
 
-    // Sequential, not Promise.all: findings are posted in input order so
+    // Sequential, not Promise.all: questions are posted in input order so
     // `posted`/`failed` preserve that order deterministically.
-    for (const finding of input.findings) {
+    for (const question of input.questions) {
       const inDiff =
         headSha !== undefined &&
         (await this.diffHunkMembership.includesLine(
-          finding.file,
-          finding.line,
+          question.file,
+          question.line,
         ));
 
       if (inDiff) {
-        const outcome = await this.postInline(input.prNumber, headSha, finding);
+        const outcome = await this.postInline(
+          input.prNumber,
+          headSha,
+          question,
+        );
         if (outcome.kind === 'posted') {
           posted.push(outcome.posted);
           continue;
@@ -127,7 +131,7 @@ export class PostDeferredFindingsService {
         // kind === 'fallback' (a 422): fall through to the top-level post.
       }
 
-      const fallback = await this.postTopLevel(input.prNumber, finding);
+      const fallback = await this.postTopLevel(input.prNumber, question);
       if (fallback.kind === 'posted') {
         posted.push(fallback.posted);
       } else {
@@ -140,8 +144,8 @@ export class PostDeferredFindingsService {
 
   /**
    * Best-effort: a failed or empty lookup here does not abort the run, it
-   * just means every finding falls straight through to the top-level
-   * fallback — surfacing findings beats surfacing nothing.
+   * just means every question falls straight through to the top-level
+   * fallback — surfacing questions beats surfacing nothing.
    */
   private async resolveHeadSha(prNumber: string): Promise<string | undefined> {
     let result: ProcessResult;
@@ -164,7 +168,7 @@ export class PostDeferredFindingsService {
   private async postInline(
     prNumber: string,
     headSha: string,
-    finding: DeferredFinding,
+    question: ReviewQuestion,
   ): Promise<InlineOutcome> {
     let result: ProcessResult;
     try {
@@ -176,13 +180,13 @@ export class PostDeferredFindingsService {
           '-f',
           `commit_id=${headSha}`,
           '-f',
-          `path=${finding.file}`,
+          `path=${question.file}`,
           '-f',
           'side=RIGHT',
           '-F',
-          `line=${finding.line}`,
+          `line=${question.line}`,
           '-f',
-          `body=${this.inlineBody(finding.body)}`,
+          `body=${this.inlineBody(question.body)}`,
           '--jq',
           '.html_url',
         ],
@@ -191,13 +195,13 @@ export class PostDeferredFindingsService {
     } catch (error) {
       return {
         kind: 'failed',
-        failed: this.failedFinding({ finding, mode: 'inline', error }),
+        failed: this.failedQuestion({ question, mode: 'inline', error }),
       };
     }
     if (result.exitCode === 0) {
       return {
         kind: 'posted',
-        posted: this.postedFinding(finding, 'inline', result.stdout),
+        posted: this.postedQuestion(question, 'inline', result.stdout),
       };
     }
     if (this.isHttp422(result)) {
@@ -205,8 +209,8 @@ export class PostDeferredFindingsService {
     }
     return {
       kind: 'failed',
-      failed: this.failedFinding({
-        finding,
+      failed: this.failedQuestion({
+        question,
         mode: 'inline',
         stderr: result.stderr,
       }),
@@ -215,7 +219,7 @@ export class PostDeferredFindingsService {
 
   private async postTopLevel(
     prNumber: string,
-    finding: DeferredFinding,
+    question: ReviewQuestion,
   ): Promise<TopLevelOutcome> {
     let result: ProcessResult;
     try {
@@ -225,7 +229,7 @@ export class PostDeferredFindingsService {
           'api',
           `repos/{owner}/{repo}/issues/${prNumber}/comments`,
           '-f',
-          `body=${this.topLevelBody(finding)}`,
+          `body=${this.topLevelBody(question)}`,
           '--jq',
           '.html_url',
         ],
@@ -234,19 +238,19 @@ export class PostDeferredFindingsService {
     } catch (error) {
       return {
         kind: 'failed',
-        failed: this.failedFinding({ finding, mode: 'top-level', error }),
+        failed: this.failedQuestion({ question, mode: 'top-level', error }),
       };
     }
     if (result.exitCode === 0) {
       return {
         kind: 'posted',
-        posted: this.postedFinding(finding, 'top-level', result.stdout),
+        posted: this.postedQuestion(question, 'top-level', result.stdout),
       };
     }
     return {
       kind: 'failed',
-      failed: this.failedFinding({
-        finding,
+      failed: this.failedQuestion({
+        question,
         mode: 'top-level',
         stderr: result.stderr,
       }),
@@ -260,21 +264,21 @@ export class PostDeferredFindingsService {
   /**
    * The file and line go in the text (rather than relying on an inline
    * anchor, which a top-level comment has none of) so the reader still knows
-   * which finding this is about.
+   * which question this is about.
    */
-  private topLevelBody(finding: DeferredFinding): string {
-    return `${COMMENT_TAG}\n\n\`${finding.file}:${finding.line}\`\n\n${finding.body}`;
+  private topLevelBody(question: ReviewQuestion): string {
+    return `${COMMENT_TAG}\n\n\`${question.file}:${question.line}\`\n\n${question.body}`;
   }
 
-  private postedFinding(
-    finding: DeferredFinding,
+  private postedQuestion(
+    question: ReviewQuestion,
     mode: 'inline' | 'top-level',
     stdout: string,
-  ): PostedFinding {
+  ): PostedQuestion {
     const url = stdout.trim();
     return {
-      file: finding.file,
-      line: finding.line,
+      file: question.file,
+      line: question.line,
       mode,
       ...(url === '' ? {} : { url }),
     };
@@ -290,11 +294,11 @@ export class PostDeferredFindingsService {
     return HTTP_422_PATTERN.test(`${result.stderr}${result.stdout}`);
   }
 
-  private failedFinding(options: FailedFindingOptions): FailedFinding {
-    const { finding, mode, error, stderr } = options;
+  private failedQuestion(options: FailedQuestionOptions): FailedQuestion {
+    const { question, mode, error, stderr } = options;
     return {
-      file: finding.file,
-      line: finding.line,
+      file: question.file,
+      line: question.line,
       error: this.failureMessage({ mode, error, stderr }),
     };
   }

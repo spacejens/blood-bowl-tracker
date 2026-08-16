@@ -235,9 +235,15 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 ### Phase 5: Self-review
 
 1. **REQUIRED SUB-SKILL:** Use `superpowers:requesting-code-review` across all changes on the branch
-2. Findings come back classified as Critical, Important, or Minor — reuse that classification as-is rather than inventing a new one. Critical and Important findings must be fixed before the loop can exit; Minor findings may be fixed like any other finding, but are not required to be. Fix what this step requires (and any Minor findings worth fixing too), then re-run `pnpm verify` to confirm the fixes hold.
-3. Repeat steps 1–2 until the review is **clean** — defined as no unresolved Critical or Important findings, and all tests passing. Whichever Minor findings are still unfixed at the end of this final iteration become that iteration's deferred-findings list — replacing, not appending to, any list from a prior iteration, since a fresh review of the current code re-surfaces anything still genuinely present. Each entry keeps the repo-relative file path, the line number, and the finding text exactly as the review reported it. Findings dismissed as false positives are never recorded.
-4. Print a brief status line — iterations run, that the review is clean by the definition above, and how many findings were deferred (the deferred-findings list may be empty; that is the normal case) — then continue immediately into Phase 6, carrying the final iteration's deferred-findings list forward.
+2. Findings come back classified as Critical, Important, or Minor — reuse that classification as-is rather than inventing a new one. Critical and Important findings must be fixed before the loop can exit; Minor findings may be fixed here like any other finding, but are not required to be — step 4 drives whatever is left of them to a resolution. Fix what this step requires (and any Minor findings worth fixing too), then re-run `pnpm verify` to confirm the fixes hold.
+3. Repeat steps 1–2 until the review is **clean** — defined as no unresolved Critical or Important findings, and all tests passing. Findings dismissed as false positives are never carried forward.
+4. **Resolve the remaining Minor findings.** This step runs **once**, after step 3's loop has exited clean — not per iteration. Take every Minor finding still present in that final iteration and put each into exactly one of three outcomes. Default to **Fix** for anything that is not clearly a Drop or a genuine multi-approach Question:
+   - **Fix** — the finding is worth doing. Implement it now. Scope creep beyond the original task is acceptable here: the goal is a clean PR, not a narrowly-scoped diff.
+   - **Drop** — the finding is incorrect, or is already covered by separately tracked or planned work. No record is kept, no PR comment is posted, and it is not raised again.
+   - **Question** — there is genuinely more than one reasonable fix and you cannot determine which the developer would prefer. Record it in the **pending-questions list** carried forward to Phase 6. Each entry keeps the repo-relative file path and the line number; its body is a question you draft that names the actual options under consideration — not the raw finding text restated as an unaddressed issue.
+
+   A Minor finding is never left as-is: every one ends as a Fix, a Drop, or a Question. Apply every Fix first, then re-check each recorded Question's file and line against the post-Fix state — a Fix earlier in the same file can shift the Question's original line number, and Phase 6 posts whatever location is recorded here without re-deriving it. Update any Question whose location moved before continuing. After classifying and re-checking Question locations, run `pnpm verify` **once** for the whole batch of Fix changes made in this step and commit them; if nothing was classified Fix, skip both. If every Fix change touches only files outside `apps/`, `packages/`, and `tools/` (e.g. `.claude/`, `docs/`), skip `pnpm verify` and note why, per Phase 4 step 5's same rule.
+5. Print a brief status line — iterations run, that the review is clean by step 3's definition, and how many Minor findings were fixed, dropped, and carried forward as pending questions (the pending-questions list may be empty; that remains the normal case) — then continue immediately into Phase 6, carrying the pending-questions list forward.
 
 ---
 
@@ -313,21 +319,21 @@ When a step's logic doesn't reduce to one plain command, put it behind **one** c
 
    Per this project's `AskUserQuestion` convention (`CLAUDE.md`), do not add an explicit free-text or chat option — both are provided automatically. This handling is generic to `gh pr create`; an assignee failure is just one of the ways the command can fail, and all of them are handled the same way.
 
-4. **Post deferred self-review findings, if any.** Phase 5 carries forward a deferred-findings list — the final self-review iteration's unfixed Minor findings. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
+4. **Post pending self-review questions, if any.** Phase 5 carries forward a pending-questions list — the questions it drafted for Minor findings where more than one reasonable fix existed. If that list is empty, **skip this step entirely and silently** — no status line, no PR activity; this is the common case.
 
-   Otherwise, build a JSON array from the list, one object per finding: `file` (repo-relative path), `line` (integer), and `body` (the finding text exactly as the review reported it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
+   Otherwise, build a JSON array from the list, one object per question: `file` (repo-relative path), `line` (integer), and `body` (the question text exactly as Phase 5 drafted it — **do not** prepend the `**Comment by Claude**` tag here; the subcommand applies it itself).
 
    Post them with a single command, in the same heredoc-stdin form this skill already uses for `write-file` in Phases 2 and 3 (see "Worktree isolation and shell commands" above for why this must be one command, and its two fallbacks: build `tools/ai-helpers` first if `dist/main.js` is missing, and if the heredoc form is refused in a given session, write the JSON to a plain file first and feed that file into the same command instead):
    ```bash
-   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-deferred-findings <PR> <<'FINDINGSEOF'
+   cd <worktree-path> && node tools/ai-helpers/dist/main.js post-review-questions <PR> <<'QUESTIONSEOF'
    [
      { "file": "path/to/file.ts", "line": 42, "body": "..." }
    ]
-   FINDINGSEOF
+   QUESTIONSEOF
    ```
    Substitute `<PR>` with the PR number from step 3.
 
-   The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many findings were posted inline, how many as top-level comments, and how many failed — naming each failed finding's file, line, and error, so the developer can post it by hand if they care.
+   The command prints one JSON object — a `posted` array (each entry's `mode` is `inline` or `top-level`) and a `failed` array (each entry has `file`, `line`, `error`). Report a brief status line from it: how many questions were posted inline, how many as top-level comments, and how many failed — naming each failed question's file, line, and error, so the developer can post it by hand if they care.
 
    **Warn and continue on failure.** A non-zero exit, unparseable output, or any entries in the `failed` array is a one-line warning, never a stop and never a Pause — matching this phase's existing best-effort precedent (step 2's stray-cleanup warning when the harness refuses a cleanup command). This step is supplementary; the PR already exists regardless of whether these comments post.
 

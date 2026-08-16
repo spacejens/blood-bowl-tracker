@@ -36,8 +36,8 @@ export class DiffHunkMembershipService {
       );
     } catch {
       // A rejected run (e.g. spawn failure) fails closed the same as a
-      // non-zero exit below — one finding's membership check must never
-      // abort the whole batch in PostDeferredFindingsService.
+      // non-zero exit below — one question's membership check must never
+      // abort the whole batch in PostReviewQuestionsService.
       return false;
     }
 

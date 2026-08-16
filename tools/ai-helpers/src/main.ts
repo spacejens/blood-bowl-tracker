@@ -9,11 +9,11 @@ import { AppModule } from './app.module';
 import { CheckDriftService } from './check-drift/check-drift.service';
 import { CheckMainStrayService } from './check-main-stray/check-main-stray.service';
 import { CheckProductionConfigPortService } from './check-production-config-port/check-production-config-port.service';
-import { PostDeferredFindingsService } from './post-deferred-findings/post-deferred-findings.service';
+import { PostReviewQuestionsService } from './post-review-questions/post-review-questions.service';
 import {
-  POST_DEFERRED_FINDINGS_USAGE,
-  PostDeferredFindingsArgsService,
-} from './post-deferred-findings/post-deferred-findings-args.service';
+  POST_REVIEW_QUESTIONS_USAGE,
+  PostReviewQuestionsArgsService,
+} from './post-review-questions/post-review-questions-args.service';
 import { ProductionTunnelService } from './production-tunnel/production-tunnel.service';
 import { GitRootsService } from './shared/git-roots.service';
 import { SyncGitignoredService } from './sync-gitignored/sync-gitignored.service';
@@ -28,7 +28,7 @@ const SUBCOMMANDS = [
   'check-drift',
   'write-file',
   'wait-for-pr-review',
-  'post-deferred-findings',
+  'post-review-questions',
   'check-production-config-port',
   'start-production-tunnel',
   'stop-production-tunnel',
@@ -68,7 +68,7 @@ interface DispatchOptions {
   readonly writeFile?: WriteFileInput;
   readonly expectedApiBaseUrl?: string;
   readonly startProductionTunnel?: StartProductionTunnelInput;
-  readonly postDeferredFindingsStdin?: string;
+  readonly postReviewQuestionsStdin?: string;
 }
 
 function readWriteFileInput(): WriteFileInput {
@@ -105,7 +105,7 @@ function readStartProductionTunnelInput(): StartProductionTunnelInput {
   return { localPort: Number(localPortArg), remotePort: Number(remotePortArg) };
 }
 
-function readPostDeferredFindingsStdin(): string {
+function readPostReviewQuestionsStdin(): string {
   // fd 0 is stdin: read it fully before the Nest context is created.
   return readFileSync(0, 'utf8');
 }
@@ -135,16 +135,14 @@ function dispatch(options: DispatchOptions): Promise<unknown> {
         .parse(process.argv);
       return app.get(WaitForPrReviewService).run(waitOptions);
     }
-    case 'post-deferred-findings': {
-      if (options.postDeferredFindingsStdin === undefined) {
-        throw new Error(POST_DEFERRED_FINDINGS_USAGE);
+    case 'post-review-questions': {
+      if (options.postReviewQuestionsStdin === undefined) {
+        throw new Error(POST_REVIEW_QUESTIONS_USAGE);
       }
-      const postDeferredFindingsInput = app
-        .get(PostDeferredFindingsArgsService)
-        .parse(process.argv, options.postDeferredFindingsStdin);
-      return app
-        .get(PostDeferredFindingsService)
-        .run(postDeferredFindingsInput);
+      const postReviewQuestionsInput = app
+        .get(PostReviewQuestionsArgsService)
+        .parse(process.argv, options.postReviewQuestionsStdin);
+      return app.get(PostReviewQuestionsService).run(postReviewQuestionsInput);
     }
     case 'check-production-config-port': {
       if (options.expectedApiBaseUrl === undefined) {
@@ -191,9 +189,9 @@ async function run(): Promise<unknown> {
     subcommand === 'start-production-tunnel'
       ? readStartProductionTunnelInput()
       : undefined;
-  const postDeferredFindingsStdin =
-    subcommand === 'post-deferred-findings'
-      ? readPostDeferredFindingsStdin()
+  const postReviewQuestionsStdin =
+    subcommand === 'post-review-questions'
+      ? readPostReviewQuestionsStdin()
       : undefined;
 
   const app = await NestFactory.createApplicationContext(AppModule, {
@@ -206,7 +204,7 @@ async function run(): Promise<unknown> {
       writeFile,
       expectedApiBaseUrl,
       startProductionTunnel,
-      postDeferredFindingsStdin,
+      postReviewQuestionsStdin,
     });
   } finally {
     await app.close();
