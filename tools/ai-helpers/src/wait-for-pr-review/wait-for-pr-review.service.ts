@@ -322,22 +322,37 @@ export class WaitForPrReviewService {
       // A found review needs no retrigger — that outcome is already the
       // wait's success case — so it is excluded from this reasoning and
       // returns above without ever reaching this check.
+      /**
+       * Whether the trigger comment was posted on *this* iteration — distinct
+       * from `triggered`, which latches for the whole `run()` so the comment
+       * is only ever posted once. `outcome` was fetched before the comment
+       * existed, so this iteration's rate-limit / comment-update-failure
+       * matches are pre-trigger data: returning them would end the wait with
+       * the very answer the trigger was posted to move past, and no fresh
+       * poll would ever happen to check (observed on PR #470). Suppression
+       * lasts exactly this one iteration — the next poll's findings are
+       * treated like any other iteration's.
+       */
+      let justTriggered = false;
       if (!triggered && this.shouldTrigger(options)) {
         // Set before awaiting: a slow or failing post must not be retried on
         // every interval for the rest of the wait.
         triggered = true;
+        justTriggered = true;
         await this.triggerReview(
           options.prNumber,
           this.budgetMs(deadline, intervalMs),
         );
       }
-      if (outcome?.rateLimitComment !== undefined) {
-        return this.rateLimitedResult(outcome.rateLimitComment);
-      }
-      if (outcome?.commentUpdateFailedComment !== undefined) {
-        return this.commentUpdateFailedResult(
-          outcome.commentUpdateFailedComment,
-        );
+      if (!justTriggered) {
+        if (outcome?.rateLimitComment !== undefined) {
+          return this.rateLimitedResult(outcome.rateLimitComment);
+        }
+        if (outcome?.commentUpdateFailedComment !== undefined) {
+          return this.commentUpdateFailedResult(
+            outcome.commentUpdateFailedComment,
+          );
+        }
       }
       if (Date.now() >= deadline) {
         return { found: false, timedOut: true };
