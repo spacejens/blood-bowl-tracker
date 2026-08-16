@@ -70,12 +70,19 @@ export class TrophyDeepdiveService {
       return DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE;
     }
 
-    const shown: TrophyRecipient[] | null = await this.databaseTimeout.run(
-      this.trophyAwards.listRecipients(trophyId, MAX_TROPHY_RECIPIENTS),
-      null,
-    );
-    if (shown === null) {
-      return DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE;
+    // A confirmed zero-recipient trophy has nothing left to list, so skip the
+    // list query entirely rather than let an unnecessary timeout there turn a
+    // known "nobody has won this" answer into a spurious timeout message.
+    let shown: TrophyRecipient[] = [];
+    if (total > 0) {
+      const rows: TrophyRecipient[] | null = await this.databaseTimeout.run(
+        this.trophyAwards.listRecipients(trophyId, MAX_TROPHY_RECIPIENTS),
+        null,
+      );
+      if (rows === null) {
+        return DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE;
+      }
+      shown = rows;
     }
 
     // The query is already capped and ordered most-recent-first, so `shown`

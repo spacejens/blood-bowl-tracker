@@ -252,7 +252,7 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('shows the placeholder line when the recipient count is zero', async () => {
-    const { service } = await makeService({
+    const { service, trophyAwards } = await makeService({
       trophies: makeTrophies(trophyHeader()),
       trophyAwards: makeAwards([], 0),
     });
@@ -260,6 +260,26 @@ describe('TrophyDeepdiveService', () => {
     const lines = descriptionLines(await service.resolve(1));
 
     expect(lines).toContain(DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE);
+    expect(trophyAwards.listRecipients).not.toHaveBeenCalled();
+  });
+
+  it('does not call the recipient list query when the count is zero, even if that call would time out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    // The header and the count pass through; a third run() is stubbed to time
+    // out so the test would fail if the list query were still reached.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    stubDatabaseTimeoutOnce(databaseTimeout);
+    const { service, trophyAwards } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([], 0),
+      databaseTimeout,
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines).toContain(DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE);
+    expect(trophyAwards.listRecipients).not.toHaveBeenCalled();
   });
 
   it('omits the components key entirely when there is nothing to link to', async () => {
