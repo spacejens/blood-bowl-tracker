@@ -140,10 +140,16 @@ export class TpTrophyAwardsImportService {
       droppedRowCountsByKey: new Map<string, number>(),
     };
 
+    // Tracked so a directory whose competition never reached
+    // competitionsByTpId at all (competition import itself failed, e.g. an
+    // unresolvable era) is still reported below, not just one whose
+    // competition exists but wasn't imported (buildContext's own check).
+    const consumedDirectoryKeys = new Set<string>();
+
     for (const [tpId, entry] of options.competitionsByTpId) {
-      const awards = awardsByDirectory.get(
-        `${entry.era}::${entry.competition}`,
-      );
+      const directoryKey = `${entry.era}::${entry.competition}`;
+      consumedDirectoryKeys.add(directoryKey);
+      const awards = awardsByDirectory.get(directoryKey);
       if (awards === undefined || awards.length === 0) {
         continue;
       }
@@ -159,6 +165,19 @@ export class TpTrophyAwardsImportService {
         if (awarded) {
           imported += 1;
         }
+      }
+    }
+
+    for (const [directoryKey, awards] of awardsByDirectory) {
+      if (!consumedDirectoryKeys.has(directoryKey) && awards.length > 0) {
+        errors.push(
+          this.importResults.error({
+            item: { directory: directoryKey },
+            message:
+              `Skipped ${awards.length} award row(s) in "${directoryKey}": ` +
+              'no imported competition matches that directory.',
+          }),
+        );
       }
     }
 

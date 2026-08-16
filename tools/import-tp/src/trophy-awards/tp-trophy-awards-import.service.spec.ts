@@ -386,6 +386,29 @@ describe('TpTrophyAwardsImportService', () => {
     );
   });
 
+  it('reports awards in a directory whose competition was never imported at all', async () => {
+    const { service, mocks } = await makeService(
+      new Map([
+        ['Third era::tloegbbl-major-season-25', [award()]],
+        [
+          'Third era::tloegbbl-chaos-cup-8',
+          [award({ id: 2 }), award({ id: 3 })],
+        ],
+      ]),
+    );
+
+    await service.importTrophyAwards(options());
+
+    expect(mocks.trophiesImport.upsertTrophy).toHaveBeenCalledTimes(1);
+    const { errors, imported } = resultArgs(mocks.importResults);
+    expect(imported).toBe(1);
+    const unmatched = errors.filter((error) =>
+      error.message.includes('Third era::tloegbbl-chaos-cup-8'),
+    );
+    expect(unmatched).toHaveLength(1);
+    expect(unmatched[0].message).toContain('Skipped 2 award row(s)');
+  });
+
   it('aborts when the competition-groups list cannot be fetched', async () => {
     const { service, mocks } = await makeService(awards([award()]), {
       groups: undefined,
