@@ -206,6 +206,26 @@ describe('BblTrophyAwardsImportService', () => {
     expect(errors[0].message).toContain('nope');
   });
 
+  it('records a skip error for every team-trophy row when a competition is entirely absent from teamEraIdsByCompetitionBblId', async () => {
+    const { service, mocks } = await makeService(
+      rows([
+        { label: 'Major 1st', teamCode: 'sew' },
+        { label: 'Major 2nd', teamCode: 'nsl' },
+      ]),
+    );
+
+    await service.importTrophyAwards(
+      options({ teamEraIdsByCompetitionBblId: new Map() }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
+    const { errors, imported } = resultArgs(mocks.importResults);
+    expect(imported).toBe(0);
+    expect(errors).toHaveLength(2);
+    expect(errors[0].message).toContain('sew');
+    expect(errors[1].message).toContain('nsl');
+  });
+
   it('records a skip error for an unresolvable pid', async () => {
     const { service, mocks } = await makeService(
       rows([], [{ label: 'Top Scorer', pid: '999' }]),
