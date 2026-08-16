@@ -185,6 +185,33 @@ describe('ManualDataFileSchema', () => {
     ).toThrow();
   });
 
+  it('accepts an explicit null endDate on a competition, to clear a stored end date', () => {
+    const parsed = ManualDataFileSchema.parse({
+      competitions: [
+        {
+          name: 'Ongoing Cup',
+          endDate: null,
+          externalIds: [{ system: 'Name', id: 'name:ongoing-cup' }],
+        },
+      ],
+    });
+    expect(parsed.competitions[0].endDate).toBeNull();
+  });
+
+  it('rejects a competition whose end date is not an ISO date', () => {
+    expect(() =>
+      ManualDataFileSchema.parse({
+        competitions: [
+          {
+            name: 'C',
+            endDate: '18 December 2011',
+            externalIds: [{ system: 'Name', id: 'name:c' }],
+          },
+        ],
+      }),
+    ).toThrow();
+  });
+
   it('accepts a rename-only competition entry with no era and no type', () => {
     const parsed = ManualDataFileSchema.parse({
       competitions: [
