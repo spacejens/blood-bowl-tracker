@@ -68,8 +68,8 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
-    refResolver.resolveRefs.mockReturnValue([7]);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 3 });
+    refResolver.resolveRefs.mockResolvedValue([7]);
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:season-12' },
     ];
@@ -127,8 +127,8 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
-    refResolver.resolveRefs.mockReturnValue([7]);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 3 });
+    refResolver.resolveRefs.mockResolvedValue([7]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.eras = [
@@ -155,8 +155,8 @@ describe('ErasProcessor', () => {
   // call signals failure it must skip the entry (no upsert) and never reach
   // toExternalIds.
   it('skips the era and never upserts when a reference is unresolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
-    refResolver.resolveRefs.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
+    refResolver.resolveRefs.mockResolvedValue(undefined);
     const data = emptyData();
     data.eras = [
       {
@@ -187,8 +187,11 @@ describe('ErasProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.eras = [

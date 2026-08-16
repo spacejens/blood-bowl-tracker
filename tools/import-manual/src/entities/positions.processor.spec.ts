@@ -75,8 +75,8 @@ describe('PositionsProcessor', () => {
     refResolver.toExternalIds.mockReturnValue(cannedExternalIds);
     // One resolveRef call per race-era pair: race first, then era.
     refResolver.resolveRef
-      .mockReturnValueOnce(40) // race
-      .mockReturnValueOnce(50); // era
+      .mockResolvedValueOnce(40) // race
+      .mockResolvedValueOnce(50); // era
     const data = emptyData();
     data.positions = [
       {
@@ -165,8 +165,8 @@ describe('PositionsProcessor', () => {
     });
     refResolver.toExternalIds.mockReturnValue([]);
     refResolver.resolveRef
-      .mockReturnValueOnce(40) // race resolves
-      .mockReturnValueOnce(undefined); // era fails
+      .mockResolvedValueOnce(40) // race resolves
+      .mockResolvedValueOnce(undefined); // era fails
     const data = emptyData();
     data.positions = [
       {

@@ -14,9 +14,9 @@ export class RacesProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.races) {
-      const eras = this.refResolver.resolveRefs({
+      const eras = await this.refResolver.resolveRefs({
         refs: entry.eras,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label: `Cannot import race "${entry.name}"`,

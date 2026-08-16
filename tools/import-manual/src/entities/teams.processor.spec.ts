@@ -69,9 +69,9 @@ describe('TeamsProcessor', () => {
     });
     // Calls happen in the order the processor makes them: race, then coach.
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 40 }) // race
-      .mockReturnValueOnce({ ok: true, id: 12 }); // coach
-    refResolver.resolveRefs.mockReturnValue([50]);
+      .mockResolvedValueOnce({ ok: true, id: 40 }) // race
+      .mockResolvedValueOnce({ ok: true, id: 12 }); // coach
+    refResolver.resolveRefs.mockResolvedValue([50]);
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:grave-diggers' },
     ];
@@ -128,9 +128,9 @@ describe('TeamsProcessor', () => {
       created: true,
     });
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 40 })
-      .mockReturnValueOnce({ ok: true, id: 12 });
-    refResolver.resolveRefs.mockReturnValue([]);
+      .mockResolvedValueOnce({ ok: true, id: 40 })
+      .mockResolvedValueOnce({ ok: true, id: 12 });
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.teams = [
@@ -156,8 +156,8 @@ describe('TeamsProcessor', () => {
   // the processor's own logic: it must skip the entry (no upsert) and never
   // reach toExternalIds when any reference fails to resolve.
   it('skips the team and never upserts when references are unresolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
-    refResolver.resolveRefs.mockReturnValue(undefined);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
+    refResolver.resolveRefs.mockResolvedValue(undefined);
     const data = emptyData();
     data.teams = [
       {
@@ -187,8 +187,11 @@ describe('TeamsProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.teams = [
@@ -218,9 +221,9 @@ describe('TeamsProcessor', () => {
 
   it('still skips the entry when a supplied race ref cannot be resolved', async () => {
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: false })
-      .mockReturnValueOnce({ ok: true, id: 8 });
-    refResolver.resolveRefs.mockReturnValue([]);
+      .mockResolvedValueOnce({ ok: false })
+      .mockResolvedValueOnce({ ok: true, id: 8 });
+    refResolver.resolveRefs.mockResolvedValue([]);
     const data = emptyData();
     data.teams = [
       {

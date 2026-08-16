@@ -18,17 +18,17 @@ export class TeamsProcessor {
       // All three are resolved before any is checked, so a single entry with
       // several bad references still records one error each -- the behaviour
       // the previous code had.
-      const race = this.refResolver.resolveOptionalRef({
+      const race = await this.refResolver.resolveOptionalRef({
         ref: entry.race,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,
         kind: 'race',
       });
-      const coach = this.refResolver.resolveOptionalRef({
+      const coach = await this.refResolver.resolveOptionalRef({
         ref: entry.coach,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,
@@ -36,9 +36,9 @@ export class TeamsProcessor {
       });
       // eras defaults to [] and the API's era sync is additive, so an omitted
       // list resolves to [] and leaves the team's existing eras alone.
-      const eras = this.refResolver.resolveRefs({
+      const eras = await this.refResolver.resolveRefs({
         refs: entry.eras,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label,

@@ -13,11 +13,12 @@ export class CompetitionsProcessor {
 
   /**
    * Upsert every declared competition. An entry that names an era has it
-   * resolved against the run's ExternalIdMap; an entry that omits one passes
-   * `eraId: undefined` through, so the upsert leaves the competition's stored
-   * era alone — which is what a rename-only entry wants. The same applies to
-   * an entry's named competition group, an explicit external-id pair resolved
-   * against the same map: an unknown group skips the entry, while an omitted
+   * resolved against the database through the API's resolve procedure; an
+   * entry that omits one passes `eraId: undefined` through, so the upsert
+   * leaves the competition's stored era alone — which is what a rename-only
+   * entry wants. The same applies to an entry's named competition group, an
+   * explicit external-id pair resolved the same way: an unknown group skips
+   * the entry, while an omitted
    * one passes `competitionGroupId: undefined` through. `startDate`/`endDate`
    * pass straight through for the same reason: an entry that creates the
    * competition row (the before-other-importers phase) must supply a
@@ -30,9 +31,9 @@ export class CompetitionsProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.competitions) {
-      const era = this.refResolver.resolveOptionalRef({
+      const era = await this.refResolver.resolveOptionalRef({
         ref: entry.era,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,
@@ -41,9 +42,9 @@ export class CompetitionsProcessor {
       if (!era.ok) {
         continue;
       }
-      const group = this.refResolver.resolveOptionalRef({
+      const group = await this.refResolver.resolveOptionalRef({
         ref: entry.competitionGroup,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label: `Cannot import competition "${entry.name ?? entry.externalIds[0].id}"`,

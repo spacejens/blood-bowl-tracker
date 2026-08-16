@@ -68,7 +68,7 @@ describe('RacesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRefs.mockReturnValue([50]);
+    refResolver.resolveRefs.mockResolvedValue([50]);
     const cannedExternalIds = [
       { externalSystemId: 98, externalId: 'canned:bbl-47' },
       { externalSystemId: 99, externalId: 'canned:necromantic-horror' },
@@ -112,7 +112,7 @@ describe('RacesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.races = [
@@ -136,7 +136,7 @@ describe('RacesProcessor', () => {
   // the processor's own logic: it must skip the entry (no upsert) and never
   // reach toExternalIds when the era refs fail to resolve.
   it('skips the race and never upserts when an era ref is unresolved', async () => {
-    refResolver.resolveRefs.mockReturnValue(undefined);
+    refResolver.resolveRefs.mockResolvedValue(undefined);
     const data = emptyData();
     data.races = [
       {
@@ -158,7 +158,7 @@ describe('RacesProcessor', () => {
     races.upsertRace.mockResolvedValue(
       null as unknown as Awaited<ReturnType<RacesImportService['upsertRace']>>,
     );
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const idMap = new ExternalIdMap();
     const data = emptyData();
@@ -186,7 +186,7 @@ describe('RacesProcessor', () => {
       createdAt: new Date(),
       created: true,
     });
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveRefs.mockResolvedValue([]);
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.races = [
@@ -206,7 +206,7 @@ describe('RacesProcessor', () => {
   });
 
   it('registers a race under the race kind even when a competition already claimed that external id', async () => {
-    refResolver.resolveRefs.mockReturnValue([]);
+    refResolver.resolveRefs.mockResolvedValue([]);
     races.upsertRace.mockResolvedValue({
       id: 40,
       name: 'Black Orc',

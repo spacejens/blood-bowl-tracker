@@ -70,7 +70,10 @@ describe('CompetitionsProcessor', () => {
     // Both the era and the competition-group refs go through
     // resolveOptionalRef; the default here is "resolved to nothing", and the
     // tests that care sequence the two calls explicitly.
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionsProcessor,
@@ -87,8 +90,8 @@ describe('CompetitionsProcessor', () => {
     );
     // Call 1 is the era ref; call 2 is the (absent) competition group.
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 3 })
-      .mockReturnValueOnce({ ok: true, id: undefined });
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: true, id: undefined });
     const cannedExternalIds = [
       { externalSystemId: 99, externalId: 'canned:major-season-12' },
     ];
@@ -140,7 +143,7 @@ describe('CompetitionsProcessor', () => {
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(78),
     );
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 4 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -166,7 +169,7 @@ describe('CompetitionsProcessor', () => {
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(79),
     );
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 4 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -191,7 +194,10 @@ describe('CompetitionsProcessor', () => {
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(80),
     );
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -214,7 +220,7 @@ describe('CompetitionsProcessor', () => {
   // processor's own logic: an unresolved era must skip the entry (no upsert)
   // and never reach toExternalIds.
   it('skips the competition and never upserts when the era is unresolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
     const data = emptyData();
     data.competitions = [
       {
@@ -237,7 +243,10 @@ describe('CompetitionsProcessor', () => {
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(77),
     );
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -268,7 +277,7 @@ describe('CompetitionsProcessor', () => {
 
   it('does not count or record an id when the upsert fails', async () => {
     competitions.upsertCompetitionResult.mockResolvedValue(undefined);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 3 });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 3 });
     refResolver.toExternalIds.mockReturnValue([]);
     const data = emptyData();
     data.competitions = [
@@ -292,8 +301,8 @@ describe('CompetitionsProcessor', () => {
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 3 })
-      .mockReturnValueOnce({ ok: true, id: 4 });
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: true, id: 4 });
     competitions.upsertCompetitionResult.mockResolvedValue(
       upsertedCompetition(8),
     );
@@ -313,7 +322,7 @@ describe('CompetitionsProcessor', () => {
     expect(await processor.process(ctx)).toBe(1);
     expect(refResolver.resolveOptionalRef).toHaveBeenNthCalledWith(
       2,
-      expect.objectContaining({ ref: groupRef, idMap: ctx.idMap }),
+      expect.objectContaining({ ref: groupRef, systemIds: ctx.systemIds }),
     );
     expect(competitions.upsertCompetitionResult).toHaveBeenCalledWith(
       expect.objectContaining({ competitionGroupId: 4 }),
@@ -323,8 +332,8 @@ describe('CompetitionsProcessor', () => {
 
   it('skips a competition whose competition group cannot be resolved', async () => {
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 3 })
-      .mockReturnValueOnce({ ok: false });
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: false });
     const data = emptyData();
     data.competitions = [
       {
@@ -344,8 +353,8 @@ describe('CompetitionsProcessor', () => {
 
   it('falls back to the external id in the error label when name is omitted', async () => {
     refResolver.resolveOptionalRef
-      .mockReturnValueOnce({ ok: true, id: 3 })
-      .mockReturnValueOnce({ ok: false });
+      .mockResolvedValueOnce({ ok: true, id: 3 })
+      .mockResolvedValueOnce({ ok: false });
     const data = emptyData();
     data.competitions = [
       {

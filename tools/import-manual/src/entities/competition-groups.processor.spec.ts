@@ -55,7 +55,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('upserts each declared group, records its id, and counts it', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+    refResolver.resolveRef.mockResolvedValue(9);
     refResolver.competitionGroupRef.mockReturnValue({
       system: 'Name',
       id: 'Chaos Cup',
@@ -112,7 +112,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('throws when the Name external system was not bootstrapped', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+    refResolver.resolveRef.mockResolvedValue(9);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -131,7 +131,7 @@ describe('CompetitionGroupsProcessor', () => {
     // "Name" system declaration surfaces that root cause -- not a confusing
     // "unknown league" error from the first entry whose league also fails to
     // resolve.
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRef.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -146,7 +146,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('skips an entry whose league cannot be resolved', async () => {
-    refResolver.resolveRef.mockReturnValue(undefined);
+    refResolver.resolveRef.mockResolvedValue(undefined);
     const data = emptyData();
     data.competitionGroups = [
       {
@@ -169,7 +169,7 @@ describe('CompetitionGroupsProcessor', () => {
   });
 
   it('does not record an id or count when the upsert fails', async () => {
-    refResolver.resolveRef.mockReturnValue(9);
+    refResolver.resolveRef.mockResolvedValue(9);
     refResolver.competitionGroupRef.mockReturnValue({
       system: 'Name',
       id: 'Chaos Cup',

@@ -13,8 +13,9 @@ export class TrophiesProcessor {
 
   /**
    * Upsert every declared trophy. A trophy may name the competition group it
-   * belongs to by an explicit external-id pair, resolved against the run's
-   * ExternalIdMap like any other cross-reference; an entry naming an unknown
+   * belongs to by an explicit external-id pair, resolved against the
+   * database through the API's resolve procedure like any other
+   * cross-reference; an entry naming an unknown
    * group is skipped (an authoring error), while an entry that omits one
    * passes `competitionGroupId: undefined` through, leaving the trophy's
    * stored group alone.
@@ -27,9 +28,9 @@ export class TrophiesProcessor {
   async process(ctx: ProcessContext): Promise<number> {
     let imported = 0;
     for (const entry of ctx.data.trophies) {
-      const group = this.refResolver.resolveOptionalRef({
+      const group = await this.refResolver.resolveOptionalRef({
         ref: entry.competitionGroup,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         errors: ctx.errors,
         item: entry,
         label: `Cannot import trophy "${entry.name}"`,

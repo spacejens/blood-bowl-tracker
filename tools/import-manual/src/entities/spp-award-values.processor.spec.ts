@@ -45,8 +45,11 @@ describe('SppAwardValuesProcessor', () => {
   });
 
   it('resolves refs and syncs a baseline entry with a null raceId', async () => {
-    refResolver.resolveRef.mockReturnValue(5);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     sppImport.syncSppAwardValues.mockResolvedValue({ sppAwardValueIds: [11] });
 
     const ctx = makeContext([
@@ -75,8 +78,8 @@ describe('SppAwardValuesProcessor', () => {
   });
 
   it('syncs a race override with the resolved race id', async () => {
-    refResolver.resolveRef.mockReturnValue(5);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 7 });
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 7 });
     sppImport.syncSppAwardValues.mockResolvedValue({ sppAwardValueIds: [12] });
 
     const ctx = makeContext([
@@ -114,8 +117,13 @@ describe('SppAwardValuesProcessor', () => {
   });
 
   it('skips an entry whose rules set cannot be resolved and still syncs the rest', async () => {
-    refResolver.resolveRef.mockReturnValueOnce(undefined).mockReturnValue(5);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveRef
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     sppImport.syncSppAwardValues.mockResolvedValue({ sppAwardValueIds: [11] });
 
     const ctx = makeContext([
@@ -149,8 +157,8 @@ describe('SppAwardValuesProcessor', () => {
   });
 
   it('skips an entry whose race ref is present but unresolvable', async () => {
-    refResolver.resolveRef.mockReturnValue(5);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
 
     const ctx = makeContext([
       {
@@ -167,8 +175,11 @@ describe('SppAwardValuesProcessor', () => {
   });
 
   it('reports 0 imported when the sync call itself fails', async () => {
-    refResolver.resolveRef.mockReturnValue(5);
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveRef.mockResolvedValue(5);
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     sppImport.syncSppAwardValues.mockResolvedValue(undefined);
 
     const imported = await processor.process(

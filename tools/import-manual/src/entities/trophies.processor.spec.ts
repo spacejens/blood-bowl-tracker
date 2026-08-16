@@ -50,7 +50,10 @@ describe('TrophiesProcessor', () => {
   beforeEach(async () => {
     trophies = mock<TrophiesImportService>();
     refResolver = mock<ReferenceResolverService>();
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: undefined });
+    refResolver.resolveOptionalRef.mockResolvedValue({
+      ok: true,
+      id: undefined,
+    });
     const moduleRef = await Test.createTestingModule({
       providers: [
         TrophiesProcessor,
@@ -182,7 +185,7 @@ describe('TrophiesProcessor', () => {
 
   it('resolves the named competition group into the upsert payload', async () => {
     const groupRef = { system: 'Name', id: 'Major Season' };
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: true, id: 4 });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: true, id: 4 });
     trophies.upsertTrophy.mockResolvedValue({
       id: 8,
       name: 'Major Gold',
@@ -208,7 +211,7 @@ describe('TrophiesProcessor', () => {
     expect(refResolver.resolveOptionalRef).toHaveBeenCalledWith(
       expect.objectContaining({
         ref: groupRef,
-        idMap: ctx.idMap,
+        systemIds: ctx.systemIds,
         kind: 'competitionGroup',
       }),
     );
@@ -247,7 +250,7 @@ describe('TrophiesProcessor', () => {
   });
 
   it('skips a trophy whose competition group cannot be resolved', async () => {
-    refResolver.resolveOptionalRef.mockReturnValue({ ok: false });
+    refResolver.resolveOptionalRef.mockResolvedValue({ ok: false });
     const data = emptyData();
     data.trophies = [
       {
