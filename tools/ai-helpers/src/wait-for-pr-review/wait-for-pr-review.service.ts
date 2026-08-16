@@ -521,6 +521,17 @@ export class WaitForPrReviewService {
    * the block's text is, so `excludeCommentId` suppresses it correctly, while
    * a genuinely new block (a fresh wait duration, a different reviewed file
    * list) hashes differently and reads as fresh.
+   *
+   * Cost of that choice: a byte-identical *repeat* rate-limit block is
+   * silently unreportable. If CodeRabbit re-emits a block whose content
+   * exactly matches one the caller already excluded (same quota wording, same
+   * file list, same SHAs), the hash — and so the id — is unchanged, and this
+   * method returns `undefined` even though the caller has no way to know the
+   * repeat happened. The caller then just runs out its timeout instead of
+   * getting a second rate-limit report. This is the correct side of the
+   * tradeoff (a false timeout is far better than the original bug this
+   * method exists to fix — a stale block read as fresh forever), so it is
+   * accepted deliberately, not a defect to fix.
    */
   private rateLimitEditComment(
     candidate: SectionCandidate | undefined,
