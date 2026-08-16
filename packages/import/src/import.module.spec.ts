@@ -24,6 +24,7 @@ import { NameExternalIdService } from './name-external-id.service';
 import { PlayersImportService } from './players-import.service';
 import { PositionsImportService } from './positions-import.service';
 import { RacesImportService } from './races-import.service';
+import { ReferenceLookupService } from './reference-lookup.service';
 import { RulesSetsImportService } from './rules-sets-import.service';
 import { SppAdjustmentsImportService } from './spp-adjustments-import.service';
 import { SppAwardValuesImportService } from './spp-award-values-import.service';
@@ -50,6 +51,7 @@ const providers = [
   ExternalSystemsImportService,
   ExternalSystemBootstrapService,
   ExternalIdResolverService,
+  ReferenceLookupService,
   RulesSetsImportService,
   SppAdjustmentsImportService,
   SppAwardValuesImportService,

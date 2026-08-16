@@ -29,6 +29,11 @@ export { PlayersImportService } from './players-import.service';
 export type { SyncPositionRaceErasData } from './positions-import.service';
 export { PositionsImportService } from './positions-import.service';
 export { RacesImportService } from './races-import.service';
+export type {
+  LookupManyOptions,
+  LookupOptions,
+} from './reference-lookup.service';
+export { ReferenceLookupService } from './reference-lookup.service';
 export type { ResolvableEntityKind } from './resolvable-entity-kind';
 export { RESOLVABLE_ENTITY_KINDS } from './resolvable-entity-kind';
 export { RulesSetsImportService } from './rules-sets-import.service';
