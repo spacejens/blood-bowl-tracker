@@ -6,9 +6,7 @@ import type { DeepMockProxy, MockProxy } from 'vitest-mock-extended';
 import { mock, mockDeep } from 'vitest-mock-extended';
 
 import { CompetitionGroupsImportService } from './competition-groups-import.service';
-import { ImportResultService } from './import-result.service';
 import { ImportRunnerService } from './import-runner.service';
-import type { ImportError } from './types';
 
 describe('CompetitionGroupsImportService', () => {
   let service: CompetitionGroupsImportService;
@@ -70,15 +68,16 @@ describe('CompetitionGroupsImportService', () => {
 describe('CompetitionGroupsImportService.listCompetitionGroups', () => {
   let service: CompetitionGroupsImportService;
   let client: DeepMockProxy<ApiClient>;
+  let runner: MockProxy<ImportRunnerService>;
 
   beforeEach(async () => {
     client = mockDeep<ApiClient>();
+    runner = mock<ImportRunnerService>();
     const moduleRef = await Test.createTestingModule({
       providers: [
         CompetitionGroupsImportService,
         { provide: API_CLIENT, useValue: client },
-        ImportRunnerService,
-        ImportResultService,
+        { provide: ImportRunnerService, useValue: runner },
       ],
     }).compile();
     service = moduleRef.get(CompetitionGroupsImportService);
@@ -93,23 +92,24 @@ describe('CompetitionGroupsImportService.listCompetitionGroups', () => {
         createdAt: new Date('2026-01-01'),
       },
     ];
-    client.competitionGroups.list.mockResolvedValue(groups);
-    const errors: ImportError[] = [];
+    runner.recordUpsertResult.mockResolvedValue(groups);
 
-    await expect(service.listCompetitionGroups(errors)).resolves.toEqual(
-      groups,
-    );
-    expect(errors).toEqual([]);
+    await expect(service.listCompetitionGroups([])).resolves.toEqual(groups);
+
+    const [options] = runner.recordUpsertResult.mock.calls[0];
+    client.competitionGroups.list.mockResolvedValue(groups);
+    await expect(options.upsert()).resolves.toEqual(groups);
+    expect(client.competitionGroups.list).toHaveBeenCalledWith({});
   });
 
-  it('records an error and returns undefined when the list call fails', async () => {
-    client.competitionGroups.list.mockRejectedValue(new Error('boom'));
-    const errors: ImportError[] = [];
+  it('builds an error message when the list call fails', async () => {
+    runner.recordUpsertResult.mockResolvedValue(undefined);
 
-    await expect(
-      service.listCompetitionGroups(errors),
-    ).resolves.toBeUndefined();
-    expect(errors).toHaveLength(1);
-    expect(errors[0].message).toContain('Failed to list competition groups');
+    await service.listCompetitionGroups([]);
+
+    const [options] = runner.recordUpsertResult.mock.calls[0];
+    expect(options.buildErrorMessage(new Error('boom'))).toBe(
+      'Failed to list competition groups: boom',
+    );
   });
 });
