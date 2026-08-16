@@ -1,9 +1,14 @@
-import type { UpsertRulesSet } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertRulesSet,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, RulesSet } from '@blood-bowl-tracker/db';
 import { DB, rulesSetExternalIds, rulesSets } from '@blood-bowl-tracker/db';
 import { Inject, Injectable } from '@nestjs/common';
 
 import { countRows } from '../shared/count-all';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -35,6 +40,28 @@ export class RulesSetsService {
     });
 
     return { rulesSet, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the rules set that already declares it.
+   * The read-only half of what `upsert` does internally, exposed on its own
+   * so a caller can reference a rules set imported in an earlier run, phase
+   * or tool.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: rulesSetExternalIds,
+      ownerIdColumn: rulesSetExternalIds.rulesSetId,
+      externalSystemIdColumn: rulesSetExternalIds.externalSystemId,
+      externalIdColumn: rulesSetExternalIds.externalId,
+      externalIds,
+    });
   }
 
   countAll(): Promise<number> {

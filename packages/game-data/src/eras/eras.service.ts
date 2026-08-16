@@ -1,4 +1,8 @@
-import type { UpsertEra } from '@blood-bowl-tracker/api-contract';
+import type {
+  ExternalId,
+  ResolveResult,
+  UpsertEra,
+} from '@blood-bowl-tracker/api-contract';
 import type { Db, Era } from '@blood-bowl-tracker/db';
 import {
   DB,
@@ -14,6 +18,7 @@ import { count, eq, ilike } from 'drizzle-orm';
 import { countRows } from '../shared/count-all';
 import type { FactScope } from '../shared/fact-scope';
 import { LikePatternService } from '../shared/like-pattern.service';
+import { resolveByExternalIds } from '../shared/resolve-by-external-ids';
 import { upsertByExternalIds } from '../shared/upsert-by-external-ids';
 import { UpsertConflictError } from '../shared/upsert-conflict-error';
 
@@ -58,6 +63,27 @@ export class ErasService {
 
     const rulesSetIds = await this.syncRulesSets(era.id, data.rulesSetIds);
     return { era: { ...era, rulesSetIds }, created };
+  }
+
+  /**
+   * Resolve one external-id pair to the era that already declares it. The
+   * read-only half of what `upsert` does internally, exposed on its own so a
+   * caller can reference an era imported in an earlier run, phase or tool.
+   */
+  async resolve(externalId: ExternalId): Promise<ResolveResult> {
+    const [result] = await this.resolveBatch([externalId]);
+    return result;
+  }
+
+  resolveBatch(externalIds: readonly ExternalId[]): Promise<ResolveResult[]> {
+    return resolveByExternalIds({
+      db: this.db,
+      externalIdTable: eraExternalIds,
+      ownerIdColumn: eraExternalIds.eraId,
+      externalSystemIdColumn: eraExternalIds.externalSystemId,
+      externalIdColumn: eraExternalIds.externalId,
+      externalIds,
+    });
   }
 
   private async syncRulesSets(
