@@ -573,7 +573,7 @@ per the rosters section above, is not a source for team import.
 ## `awards_<slug>_awards.json`
 
 An object keyed by TP category id (a string, e.g. `"22494"`), each value an
-array — one entry per award given. The importer reads `id`, `awardType`
+array — one entry per award given. The parser carries `id`, `awardType`
 (numeric — see the code table below), the optional `name` (present only on
 some award types, see below) and `inscription.roster.id`.
 
@@ -590,13 +590,13 @@ directory across the three era directories.
 The `awardType` code scheme, confirmed against every entry in all 13 local
 files:
 
-| Code  | Meaning                    | Notes                                   |
-| ----- | -------------------------- | --------------------------------------- |
-| `1`   | 1st place                  | read with `inscription.coachRank.score` |
-| `2`   | 2nd place                  | read with `inscription.coachRank.score` |
-| `3`   | 3rd place                  | read with `inscription.coachRank.score` |
-| `100` | Best Stunty / Wooden Spoon | fourth-era numbering — see `name` below |
-| `200` | Best Stunty / Wooden Spoon | third-era numbering — see `name` below  |
+| Code  | Meaning                    | Notes                                                             |
+| ----- | -------------------------- | ------------------------------------------------------------------ |
+| `1`   | 1st place                  | placement; `coachRank.score` present in the file but not parsed by the importer |
+| `2`   | 2nd place                  | placement; `coachRank.score` present in the file but not parsed by the importer |
+| `3`   | 3rd place                  | placement; `coachRank.score` present in the file but not parsed by the importer |
+| `100` | Best Stunty / Wooden Spoon | fourth-era numbering — see `name` below                           |
+| `200` | Best Stunty / Wooden Spoon | third-era numbering — see `name` below                            |
 
 Placement entries (`1`/`2`/`3`) never carry a `name` field; `100` and `200`
 entries always do, and it is exactly `"Best Stunty"` or `"Wooden Spoon"` —

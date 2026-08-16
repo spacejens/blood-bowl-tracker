@@ -40,10 +40,16 @@ export class TpAwardsReaderService {
         AWARDS_FILE_TYPE,
       )) {
         try {
-          awardsByDirectory.set(
-            `${file.era}::${file.competition}`,
-            this.awardsParser.parse(file.content),
-          );
+          const key = `${file.era}::${file.competition}`;
+          // Accumulate rather than overwrite: if a competition directory ever
+          // held two awards_*.json files, overwriting would silently drop the
+          // first file's awards -- the same silent data-loss bug
+          // TpCompetitionsImportService's matchesByCompetitionId accumulation
+          // guards against.
+          awardsByDirectory.set(key, [
+            ...(awardsByDirectory.get(key) ?? []),
+            ...this.awardsParser.parse(file.content),
+          ]);
         } catch (error) {
           errors.push(
             this.importResults.error({

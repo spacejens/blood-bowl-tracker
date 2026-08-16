@@ -87,6 +87,39 @@ describe('TpAwardsReaderService', () => {
     await expect(service.getAwardsByDirectory([])).resolves.toEqual(new Map());
   });
 
+  it('accumulates awards from two files in the same directory instead of overwriting', async () => {
+    const otherAward: TpAward = { id: 2, awardType: 2, rosterId: 8 };
+    const parser = mock<AwardsParserService>();
+    parser.parse.mockReturnValueOnce([award]).mockReturnValueOnce([otherAward]);
+    const { service } = await makeService(
+      [
+        {
+          era: 'Third era',
+          competition: 'tloegbbl-sasong-29',
+          type: 'awards',
+          filename: 'awards_tloegbbl-sasong-29_awards.json',
+          content: { '1': [] },
+        },
+        {
+          era: 'Third era',
+          competition: 'tloegbbl-sasong-29',
+          type: 'awards',
+          filename: 'awards_tloegbbl-sasong-29_awards_2.json',
+          content: { '1': [] },
+        },
+      ],
+      parser,
+    );
+    const errors: ImportError[] = [];
+
+    const result = await service.getAwardsByDirectory(errors);
+
+    expect(result).toEqual(
+      new Map([['Third era::tloegbbl-sasong-29', [award, otherAward]]]),
+    );
+    expect(errors).toEqual([]);
+  });
+
   it('records an error and skips only the malformed file', async () => {
     const parser = mock<AwardsParserService>();
     parser.parse

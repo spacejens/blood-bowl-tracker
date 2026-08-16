@@ -236,7 +236,12 @@ export class TpTrophyAwardsImportService {
     errors: ImportError[],
   ): Promise<boolean> {
     const { award, context } = options;
-    const key = `${award.name ?? award.awardType}-${context.groupName}`;
+    // Deliberately `||`, not `??`: TpAward.name is z.string().optional(),
+    // which technically admits an empty string, and only its falsiness
+    // (absent or empty) should fall back to the numeric awardType --
+    // `'' ?? award.awardType` would keep the empty string and produce a
+    // malformed key.
+    const key = `${award.name || award.awardType}-${context.groupName}`;
 
     // A roster id can span more than one era, so the era is what picks the
     // right team_eras row -- the same array scan

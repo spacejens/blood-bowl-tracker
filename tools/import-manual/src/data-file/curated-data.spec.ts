@@ -114,6 +114,8 @@ describe('curated data files', () => {
       expect(competition.competitionGroup).toBeUndefined();
       expect(competition.era).toBeUndefined();
       expect(competition.type).toBeUndefined();
+      expect(competition.startDate).toBeUndefined();
+      expect(competition.endDate).toBeUndefined();
     }
   });
 

@@ -1,5 +1,7 @@
 import type {
   CompetitionGroup,
+  Trophy,
+  TrophyAward,
   UpsertCompetition,
 } from '@blood-bowl-tracker/api-contract';
 import type { ImportError, ImportResult } from '@blood-bowl-tracker/import';
@@ -79,10 +81,10 @@ async function makeService(
   );
   mocks.importResults.result.mockReturnValue(CANNED_RESULT);
   // Default: every key resolves to trophy 100, every award write succeeds.
-  mocks.trophiesImport.upsertTrophy.mockResolvedValue({ id: 100 } as never);
-  mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue({
-    id: 500,
-  } as never);
+  mocks.trophiesImport.upsertTrophy.mockResolvedValue(upsertedTrophy(100));
+  mocks.trophyAwardsImport.upsertTrophyAward.mockResolvedValue(
+    upsertedTrophyAward(500),
+  );
 
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -106,6 +108,32 @@ async function makeService(
   return {
     service: moduleRef.get(TpTrophyAwardsImportService),
     mocks,
+  };
+}
+
+/** A canned full-row `upsertTrophy` response for a given id. */
+function upsertedTrophy(id: number): Trophy & { created: boolean } {
+  return {
+    id,
+    name: 'Some trophy',
+    recipientKind: 'team',
+    description: null,
+    competitionGroupId: 1,
+    createdAt: new Date('2026-01-01'),
+    created: true,
+  };
+}
+
+/** A canned full-row `upsertTrophyAward` response for a given id. */
+function upsertedTrophyAward(id: number): TrophyAward & { created: boolean } {
+  return {
+    id,
+    trophyId: 100,
+    competitionId: 42,
+    teamEraId: 70,
+    playerId: null,
+    createdAt: new Date('2026-01-01'),
+    created: true,
   };
 }
 
@@ -310,6 +338,29 @@ describe('TpTrophyAwardsImportService', () => {
 
     expect(mocks.trophyAwardsImport.upsertTrophyAward).not.toHaveBeenCalled();
     expect(resultArgs(mocks.importResults).errors).toHaveLength(1);
+  });
+
+  it('scans a multi-era roster id and selects the entry matching the competition era, not the first', async () => {
+    const { service, mocks } = await makeService(awards([award()]));
+
+    await service.importTrophyAwards(
+      options({
+        teamErasByRosterId: new Map([
+          [
+            7,
+            [
+              { id: 70, eraId: 99 },
+              { id: 71, eraId: 5 },
+            ],
+          ],
+        ]),
+      }),
+    );
+
+    expect(mocks.trophyAwardsImport.upsertTrophyAward).toHaveBeenCalledWith(
+      expect.objectContaining({ teamEraId: 71 }),
+      expect.anything(),
+    );
   });
 
   it('aborts when the competition-groups list cannot be fetched', async () => {
