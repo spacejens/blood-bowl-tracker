@@ -34,6 +34,7 @@ import { passthroughPlayerContext } from '../../insights/player-context-mock.tes
 import { TeamContextService } from '../../insights/team-context.service';
 import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import {
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
@@ -89,6 +90,7 @@ function trophyHeader(overrides: Partial<TrophyHeader> = {}): TrophyHeader {
     id: 1,
     name: 'Chaos Cup',
     description: 'The team that wins after four matches.',
+    competitionGroupId: 4,
     competitionGroupName: 'Major',
     ...overrides,
   };
@@ -393,10 +395,19 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('omits the components key entirely when there is nothing to link to', async () => {
+    // The mock now returns an empty components array since we no longer have
+    // anything to link to, but buildEntityComponents will be called with the
+    // group entry regardless (it's always offered). We mock it to return empty
+    // so the embed omits the components key.
+    const entityComponents = mock<EntityComponentsService>();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
     const { service } = await makeService({
       trophies: makeTrophies(trophyHeader()),
       trophyAwards: makeAwards([]),
-      entityComponents: passthroughEntityComponents(),
+      entityComponents,
     });
 
     const result = await service.resolve(1);
@@ -464,6 +475,13 @@ describe('TrophyDeepdiveService', () => {
         custom_id: `${TEAM_BUTTON_CUSTOM_ID_PREFIX}30`,
         emoji: STUB_BUTTON_EMOJI,
       },
+      {
+        type: 2,
+        style: expect.any(Number) as number,
+        label: 'Major',
+        custom_id: `${COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX}4`,
+        emoji: STUB_BUTTON_EMOJI,
+      },
     ]);
   });
 
@@ -485,6 +503,41 @@ describe('TrophyDeepdiveService', () => {
         label: 'Griff Oberwald',
         custom_id: `${PLAYER_BUTTON_CUSTOM_ID_PREFIX}40`,
         emoji: STUB_BUTTON_EMOJI,
+      },
+      {
+        type: 2,
+        style: expect.any(Number) as number,
+        label: 'Major',
+        custom_id: `${COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX}4`,
+        emoji: STUB_BUTTON_EMOJI,
+      },
+    ]);
+  });
+
+  it('offers a drill-up button to the competition group after the recipients', async () => {
+    const trophies = mock<TrophiesService>();
+    trophies.findById.mockResolvedValue(trophyHeader());
+    const trophyAwards = mock<TrophyAwardsService>();
+    trophyAwards.countRecipients.mockResolvedValue(1);
+    trophyAwards.listRecipients.mockResolvedValue([teamRecipient()]);
+    const { service, entityComponents } = await makeService({
+      trophies,
+      trophyAwards,
+      entityComponents: passthroughEntityComponents(),
+    });
+
+    await service.resolve(1);
+
+    expect(entityComponents.buildEntityComponents).toHaveBeenCalledWith([
+      {
+        customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '30',
+        label: 'Reikland Reavers',
+      },
+      {
+        customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
+        entityId: '4',
+        label: 'Major',
       },
     ]);
   });
