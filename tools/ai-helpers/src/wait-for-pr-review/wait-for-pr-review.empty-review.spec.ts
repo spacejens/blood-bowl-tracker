@@ -8,6 +8,7 @@ import {
   createHarness,
   EMPTY_BODY_FOUND,
   EMPTY_BODY_REVIEW,
+  foundReview,
   FOUND,
   jqProgramOf,
   OPTIONS,
@@ -94,6 +95,31 @@ describe('WaitForPrReviewService empty-body artifact reviews', () => {
     });
 
     expect(result).toEqual({ found: false, timedOut: true });
+  });
+
+  it('trusts a non-object review candidate as-is, without an inline-comment lookup', async () => {
+    const nonObjectCandidate = 'not an object';
+    mockPoll(foundReview(nonObjectCandidate), rollingResult({}));
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toEqual({ found: true, review: nonObjectCandidate });
+    expect(reviewComments.hasInlineComments).not.toHaveBeenCalled();
+  });
+
+  it('trusts a review candidate missing a string id as-is, without an inline-comment lookup', async () => {
+    const candidateWithoutId = {
+      author: { login: 'coderabbitai' },
+      state: 'COMMENTED',
+      body: '',
+      submittedAt: '2026-08-11T10:00:00Z',
+    };
+    mockPoll(foundReview(candidateWithoutId), rollingResult({}));
+
+    const result = await runWait(OPTIONS);
+
+    expect(result).toEqual({ found: true, review: candidateWithoutId });
+    expect(reviewComments.hasInlineComments).not.toHaveBeenCalled();
   });
 
   it('never looks up inline comments for a review that has a body', async () => {
