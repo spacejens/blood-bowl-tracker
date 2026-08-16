@@ -143,7 +143,6 @@ describe('TrophyAwardsService', () => {
 
   describe('listRecipients', () => {
     const teamRecipient = {
-      competitionId: 2,
       competitionName: 'Major Season 24',
       competitionStartDate: '2024-01-15',
       teamId: 30,
@@ -152,7 +151,6 @@ describe('TrophyAwardsService', () => {
       playerName: null,
     };
     const playerRecipient = {
-      competitionId: 3,
       competitionName: 'Minor Season 23',
       competitionStartDate: '2023-01-15',
       teamId: 31,

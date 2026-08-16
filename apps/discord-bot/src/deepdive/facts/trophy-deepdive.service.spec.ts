@@ -83,7 +83,6 @@ function teamRecipient(
   overrides: Partial<TrophyRecipient> = {},
 ): TrophyRecipient {
   return {
-    competitionId: 2,
     competitionName: 'Major Season 24',
     competitionStartDate: '2024-01-15',
     teamId: 30,
@@ -280,7 +279,6 @@ describe('TrophyDeepdiveService', () => {
     // the note must read 5 — not the "1" a limit+1 sentinel could ever prove.
     const recipients = Array.from({ length: 30 }, (_, index) =>
       teamRecipient({
-        competitionId: index + 1,
         competitionName: `Season ${index + 1}`,
         teamId: index + 1,
         teamName: `Team ${index + 1}`,

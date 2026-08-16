@@ -43,7 +43,6 @@ export class TrophyAwardRecipientMismatchError extends Error {}
  * `playerId`/`playerName` are `null` for a team trophy.
  */
 export type TrophyRecipient = {
-  competitionId: number;
   competitionName: string;
   competitionStartDate: string;
   teamId: number;
@@ -71,7 +70,6 @@ export class TrophyAwardsService {
   listRecipients(trophyId: number, limit: number): Promise<TrophyRecipient[]> {
     return this.db
       .select({
-        competitionId: competitions.id,
         competitionName: competitions.name,
         competitionStartDate: competitions.startDate,
         teamId: teams.id,
