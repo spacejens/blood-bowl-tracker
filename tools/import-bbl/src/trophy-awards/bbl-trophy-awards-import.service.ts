@@ -137,17 +137,8 @@ export class BblTrophyAwardsImportService {
           );
           continue;
         }
-        const trophyId = await this.resolveTrophyId(row.label, context, errors);
-        if (trophyId === undefined) {
-          continue;
-        }
-        const awarded = await this.trophyAwardsImport.upsertTrophyAward(
-          {
-            trophyId,
-            competitionId: context.competitionId,
-            teamEraId,
-            playerId: null,
-          },
+        const awarded = await this.writeAward(
+          { label: row.label, teamEraId, playerId: null, context },
           errors,
         );
         if (awarded) {
@@ -169,17 +160,8 @@ export class BblTrophyAwardsImportService {
           );
           continue;
         }
-        const trophyId = await this.resolveTrophyId(row.label, context, errors);
-        if (trophyId === undefined) {
-          continue;
-        }
-        const awarded = await this.trophyAwardsImport.upsertTrophyAward(
-          {
-            trophyId,
-            competitionId: context.competitionId,
-            teamEraId,
-            playerId,
-          },
+        const awarded = await this.writeAward(
+          { label: row.label, teamEraId, playerId, context },
           errors,
         );
         if (awarded) {
@@ -201,6 +183,41 @@ export class BblTrophyAwardsImportService {
     }
 
     return { result: this.importResults.result({ imported, errors }) };
+  }
+
+  /**
+   * Resolve `label` to a trophy id and, if that succeeds, write the award
+   * (team award when `playerId` is `null`, player award otherwise). Returns
+   * whether an award was actually written and should count toward
+   * `imported`, so both row loops share this one code path.
+   */
+  private async writeAward(
+    options: {
+      label: string;
+      teamEraId: number;
+      playerId: number | null;
+      context: CompetitionContext;
+    },
+    errors: ImportError[],
+  ): Promise<boolean> {
+    const trophyId = await this.resolveTrophyId(
+      options.label,
+      options.context,
+      errors,
+    );
+    if (trophyId === undefined) {
+      return false;
+    }
+    const awarded = await this.trophyAwardsImport.upsertTrophyAward(
+      {
+        trophyId,
+        competitionId: options.context.competitionId,
+        teamEraId: options.teamEraId,
+        playerId: options.playerId,
+      },
+      errors,
+    );
+    return Boolean(awarded);
   }
 
   /**
