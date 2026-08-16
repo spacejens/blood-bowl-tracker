@@ -16,7 +16,7 @@
 // convention every other curated-data file and every real BBL importer use --
 // no prefix).
 //
-// TP external ids (issue #446) are seeded for the 7 trophies TP actually
+// TP external ids (issue #446) are seeded for the 10 trophies TP actually
 // awards, keyed as `${disambiguator}-${groupName}` -- the same hyphen-joined
 // composite BBL positions use (`${typId}-${race.bblId}`). TP's raw
 // `awardType` codes (1/2/3, 100/200) are NOT globally unique per trophy: the
@@ -27,12 +27,15 @@
 // so the name is the only thing that separates them) and the numeric
 // `awardType` otherwise (1/2/3).
 //
-// Only 7 entries are seeded, and that is deliberate, confirmed by reading all
-// 13 local TP award files: TP has so far only tracked 4 competition groups
-// (Major Season, Chaos Cup, Dungeon Bowl, Ogretoberfest -- Dungeon Bowl has no
-// matching trophy here), and its award files have so far only contained
-// team-level entries, so none of the 12 player trophies and none of the
-// BBL-only cups have any TP source data to ground an id on. Those stay
+// 10 entries are seeded, confirmed by reading all 13 local TP award files: TP
+// has so far only tracked 4 competition groups (Major Season, Chaos Cup,
+// Dungeon Bowl, Ogretoberfest). Dungeon Bowl now has catalog trophies of its
+// own (issue #344); BBL never awarded one, so none of these three carry a
+// `tloeg.bbleague.se` id. Award files contain placement entries only
+// (awardType 1/2/3) with no Best Stunty or Wooden Spoon, so no stunty/spoon
+// entries are seeded for Dungeon Bowl. TP's award files have so far only
+// contained team-level entries, so none of the 12 player trophies and none of
+// the BBL-only cups have any TP source data to ground an id on. Those stay
 // unseeded rather than carrying a guessed code -- a new TP competition
 // tracking a different group, or a new award kind, would widen this set.
 //
@@ -205,6 +208,32 @@
       description:
         'TP-side team award for winning an Ogretoberfest cup instance.',
       externalIds: [{ system: 'tourplay.net', id: '1-Ogretoberfest' }],
+    },
+    // Dungeon Bowl placements (issue #344). TP-only: BBL's complete 16-entry
+    // team trophy legend has no Dungeon Bowl trophy at all, so these carry no
+    // tloeg.bbleague.se id. TP's Dungeon Bowl award files contain placement
+    // entries only (awardType 1/2/3) -- no Best Stunty or Wooden Spoon --
+    // matching BBL's own gap, so no stunty/spoon entries are seeded here.
+    {
+      name: 'Dungeon Bowl Gold',
+      recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      description: 'Dungeon Bowl winner.',
+      externalIds: [{ system: 'tourplay.net', id: '1-Dungeon Bowl' }],
+    },
+    {
+      name: 'Dungeon Bowl Silver',
+      recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      description: 'Dungeon Bowl runner-up.',
+      externalIds: [{ system: 'tourplay.net', id: '2-Dungeon Bowl' }],
+    },
+    {
+      name: 'Dungeon Bowl Bronze',
+      recipientKind: 'team',
+      competitionGroup: { system: 'Name', id: 'Dungeon Bowl' },
+      description: 'Dungeon Bowl third place.',
+      externalIds: [{ system: 'tourplay.net', id: '3-Dungeon Bowl' }],
     },
 
     // ---------------------------------------------------------------

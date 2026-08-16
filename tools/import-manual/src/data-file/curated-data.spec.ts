@@ -142,7 +142,7 @@ describe('curated data files', () => {
       data.competitionGroups.map((group) => group.name),
     );
 
-    expect(data.trophies).toHaveLength(29);
+    expect(data.trophies).toHaveLength(32);
     for (const trophy of data.trophies) {
       expect(
         trophy.competitionGroup,
@@ -167,14 +167,16 @@ describe('curated data files', () => {
     });
   });
 
-  it('seeds TP external ids for exactly the seven trophies TP awards', () => {
+  it('seeds TP external ids for exactly the ten trophies TP awards', () => {
     // TP has so far only tracked 4 competition groups (Major Season, Chaos
-    // Cup, Dungeon Bowl, Ogretoberfest) and its award files have so far only
-    // contained team-level entries, so only these 7 catalog entries have real
-    // TP source data to key on. The composite format is `${disambiguator}-${groupName}`,
-    // where the disambiguator is the raw award's `name` when present (Best
-    // Stunty / Wooden Spoon share one numeric awardType) and its numeric
-    // `awardType` otherwise. Pinned here so the format cannot drift.
+    // Cup, Dungeon Bowl, Ogretoberfest). Dungeon Bowl now has catalog trophies of
+    // its own (issue #344); BBL never awarded one, which is why these three carry no
+    // `tloeg.bbleague.se` id. TP's award files have so far only contained team-level
+    // entries, so only these 10 catalog entries have real TP source data to key on.
+    // The composite format is `${disambiguator}-${groupName}`, where the disambiguator
+    // is the raw award's `name` when present (Best Stunty / Wooden Spoon share one
+    // numeric awardType) and its numeric `awardType` otherwise. Pinned here so the
+    // format cannot drift.
     //
     // Kept as a flat array of pairs, not an object keyed by trophy name: a
     // trophy that ever carried two tourplay.net ids would have the second
@@ -195,6 +197,9 @@ describe('curated data files', () => {
       ['Major Best Stunty', 'Best Stunty-Major Season'],
       ['Chaos Cup', '1-Chaos Cup'],
       ['Ogretoberfest', '1-Ogretoberfest'],
+      ['Dungeon Bowl Gold', '1-Dungeon Bowl'],
+      ['Dungeon Bowl Silver', '2-Dungeon Bowl'],
+      ['Dungeon Bowl Bronze', '3-Dungeon Bowl'],
     ]);
   });
 
