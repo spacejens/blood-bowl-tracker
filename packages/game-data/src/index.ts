@@ -76,6 +76,7 @@ export { TeamsModule } from './teams/teams.module';
 export type { TeamWithEras } from './teams/teams.service';
 export { TeamsService, TeamUpsertConflictError } from './teams/teams.service';
 export { TrophiesModule } from './trophies/trophies.module';
+export type { TrophyHeader } from './trophies/trophies.service';
 export {
   TrophiesService,
   TrophyUpsertConflictError,
