@@ -208,9 +208,9 @@ describe('CompetitionGroupDeepdiveService', () => {
 
   it('renders the league, trophies and competitions, oldest competition first', async () => {
     const dateRangeFormatter = mock<DateRangeFormatterService>();
-    dateRangeFormatter.format.mockImplementation(
-      (start, end) => `${start}..${end ?? 'now'}`,
-    );
+    dateRangeFormatter.format
+      .mockReturnValueOnce('2023-10-01..2023-10-02')
+      .mockReturnValueOnce('2024-10-01..now');
     const { service } = await makeService({
       competitionGroups: makeGroups(GROUP),
       trophies: makeTrophies(TROPHIES),
@@ -220,6 +220,16 @@ describe('CompetitionGroupDeepdiveService', () => {
 
     const result = await service.resolve(4);
 
+    expect(dateRangeFormatter.format).toHaveBeenNthCalledWith(
+      1,
+      '2023-10-01',
+      '2023-10-02',
+    );
+    expect(dateRangeFormatter.format).toHaveBeenNthCalledWith(
+      2,
+      '2024-10-01',
+      null,
+    );
     expect(result).toEqual({
       embeds: [
         {
