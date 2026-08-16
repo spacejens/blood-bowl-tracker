@@ -65,8 +65,8 @@ describe('resolveExistingByExternalIds', () => {
     });
     expect(result.ownerIds).toEqual([5]);
     expect(result.existingRows).toEqual([
-      { externalSystemId: 1, externalId: 'a' },
-      { externalSystemId: 2, externalId: 'b' },
+      { ownerId: 5, externalSystemId: 1, externalId: 'a' },
+      { ownerId: 5, externalSystemId: 2, externalId: 'b' },
     ]);
   });
 
