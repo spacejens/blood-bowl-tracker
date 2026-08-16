@@ -1,16 +1,7 @@
 import type { SlashCommandDefinition } from '@blood-bowl-tracker/discord-client';
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  PlayersService,
-  RacesService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
-  AutocompleteInteraction,
   ButtonInteraction,
   ChatInputCommandInteraction,
   InteractionReplyOptions,
@@ -34,6 +25,7 @@ import {
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
+import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 export {
@@ -54,17 +46,10 @@ import {
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../deepdive/button-custom-ids';
 
-const MAX_AUTOCOMPLETE_CHOICES = 25;
-
 @Injectable()
 export class DeepdiveCommandService implements OnModuleInit {
   constructor(
-    private readonly eras: ErasService,
-    private readonly competitions: CompetitionsService,
-    private readonly coaches: CoachesService,
-    private readonly teams: TeamsService,
-    private readonly players: PlayersService,
-    private readonly races: RacesService,
+    private readonly autocompleteService: DeepdiveAutocompleteService,
     private readonly discordClient: DiscordClientService,
     private readonly registry: SlashCommandRegistryService,
     private readonly eraDeepdive: EraDeepdiveService,
@@ -177,7 +162,8 @@ export class DeepdiveCommandService implements OnModuleInit {
         },
       ],
       execute: (interaction) => this.execute(interaction),
-      autocomplete: (interaction) => this.autocomplete(interaction),
+      autocomplete: (interaction) =>
+        this.autocompleteService.resolve(interaction),
     };
   }
 
@@ -334,73 +320,6 @@ export class DeepdiveCommandService implements OnModuleInit {
       return DEEPDIVE_COMPETITION_NOT_FOUND_MESSAGE;
     }
     return this.resolveCompetition(value);
-  }
-
-  async autocomplete(
-    interaction: AutocompleteInteraction,
-  ): Promise<{ name: string; value: string }[]> {
-    const focused = interaction.options.getFocused(true);
-    if (focused.name === 'era') {
-      const eras = await this.eras.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return eras.map((row) => ({
-        name: `${row.name} (${row.leagueName})`,
-        value: String(row.id),
-      }));
-    }
-    if (focused.name === 'coach') {
-      const coaches = await this.coaches.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return coaches.map((row) => ({
-        name: `${row.name} (#${row.id})`,
-        value: String(row.id),
-      }));
-    }
-    if (focused.name === 'team') {
-      const teams = await this.teams.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return teams.map((row) => ({
-        name: `${row.name} (#${row.id})`,
-        value: String(row.id),
-      }));
-    }
-    if (focused.name === 'player') {
-      const players = await this.players.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return players.map((row) => ({
-        name: `${row.name} (${row.teamName})`,
-        value: String(row.id),
-      }));
-    }
-    if (focused.name === 'race') {
-      const races = await this.races.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return races.map((row) => ({
-        name: row.name,
-        value: String(row.id),
-      }));
-    }
-    if (focused.name === 'competition') {
-      const competitions = await this.competitions.searchByNamePrefix(
-        focused.value,
-        MAX_AUTOCOMPLETE_CHOICES,
-      );
-      return competitions.map((row) => ({
-        name: `${row.name} (${row.leagueName})`,
-        value: String(row.id),
-      }));
-    }
-    return [];
   }
 
   /**

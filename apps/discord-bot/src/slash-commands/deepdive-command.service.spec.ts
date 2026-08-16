@@ -1,12 +1,4 @@
 import { DiscordClientService } from '@blood-bowl-tracker/discord-client';
-import {
-  CoachesService,
-  CompetitionsService,
-  ErasService,
-  PlayersService,
-  RacesService,
-  TeamsService,
-} from '@blood-bowl-tracker/game-data';
 import { Test } from '@nestjs/testing';
 import type {
   AutocompleteInteraction,
@@ -34,6 +26,7 @@ import {
   DEEPDIVE_TEAM_NOT_FOUND_MESSAGE,
   DEEPDIVE_USAGE_MESSAGE,
 } from '../error-messages';
+import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import {
   COACH_BUTTON_CUSTOM_ID_PREFIX,
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
@@ -47,12 +40,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
 
 interface MadeService {
   service: DeepdiveCommandService;
-  eras: MockProxy<ErasService>;
-  competitions: MockProxy<CompetitionsService>;
-  coaches: MockProxy<CoachesService>;
-  teams: MockProxy<TeamsService>;
-  players: MockProxy<PlayersService>;
-  races: MockProxy<RacesService>;
+  autocompleteService: MockProxy<DeepdiveAutocompleteService>;
   discordClient: MockProxy<DiscordClientService>;
   registry: MockProxy<SlashCommandRegistryService>;
   eraDeepdive: MockProxy<EraDeepdiveService>;
@@ -64,12 +52,7 @@ interface MadeService {
 }
 
 async function makeService(): Promise<MadeService> {
-  const eras = mock<ErasService>();
-  const competitions = mock<CompetitionsService>();
-  const coaches = mock<CoachesService>();
-  const teams = mock<TeamsService>();
-  const players = mock<PlayersService>();
-  const races = mock<RacesService>();
+  const autocompleteService = mock<DeepdiveAutocompleteService>();
   const discordClient = mock<DiscordClientService>();
   const registry = mock<SlashCommandRegistryService>();
   const eraDeepdive = mock<EraDeepdiveService>();
@@ -82,12 +65,7 @@ async function makeService(): Promise<MadeService> {
   const moduleRef = await Test.createTestingModule({
     providers: [
       DeepdiveCommandService,
-      { provide: ErasService, useValue: eras },
-      { provide: CompetitionsService, useValue: competitions },
-      { provide: CoachesService, useValue: coaches },
-      { provide: TeamsService, useValue: teams },
-      { provide: PlayersService, useValue: players },
-      { provide: RacesService, useValue: races },
+      { provide: DeepdiveAutocompleteService, useValue: autocompleteService },
       { provide: DiscordClientService, useValue: discordClient },
       { provide: SlashCommandRegistryService, useValue: registry },
       { provide: EraDeepdiveService, useValue: eraDeepdive },
@@ -101,12 +79,7 @@ async function makeService(): Promise<MadeService> {
 
   return {
     service: moduleRef.get(DeepdiveCommandService),
-    eras,
-    competitions,
-    coaches,
-    teams,
-    players,
-    races,
+    autocompleteService,
     discordClient,
     registry,
     eraDeepdive,
@@ -138,19 +111,6 @@ function chatInput(options: {
       }),
     },
   } as unknown as ChatInputCommandInteraction;
-}
-
-function autocompleteInteraction(
-  value: string,
-  name: 'era' | 'coach' | 'team' | 'player' | 'race' | 'competition' = 'era',
-): AutocompleteInteraction {
-  return {
-    options: {
-      getFocused: vi.fn((full?: boolean) =>
-        full ? { name, value, type: 3, focused: true } : value,
-      ),
-    },
-  } as unknown as AutocompleteInteraction;
 }
 
 function buttonInteraction(customId: string): ButtonInteraction {
@@ -214,6 +174,20 @@ describe('DeepdiveCommandService', () => {
     expect(command.autocomplete).toEqual(expect.any(Function));
   });
 
+  it('delegates the command autocomplete callback to DeepdiveAutocompleteService', async () => {
+    const { service, autocompleteService } = await makeService();
+    autocompleteService.resolve.mockResolvedValue([
+      { name: 'BB2020 (Premier League)', value: '3' },
+    ]);
+    const command = service.buildCommand();
+    const interaction = {} as unknown as AutocompleteInteraction;
+
+    await expect(command.autocomplete?.(interaction)).resolves.toEqual([
+      { name: 'BB2020 (Premier League)', value: '3' },
+    ]);
+    expect(autocompleteService.resolve).toHaveBeenCalledWith(interaction);
+  });
+
   it('returns the usage message when no era target is given', async () => {
     const { service } = await makeService();
     const result = await service.execute(chatInput({}));
@@ -234,15 +208,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.execute(chatInput({ era: '7' }));
     expect(result).toBe(SAMPLE_EMBED);
     expect(eraDeepdive.resolve).toHaveBeenCalledWith(7);
-  });
-
-  it('returns era autocomplete choices labelled "<name> (<league>)" with id values', async () => {
-    const { service, eras } = await makeService();
-    eras.searchByNamePrefix.mockResolvedValue([
-      { id: 20, name: 'BB2020', leagueName: 'Premier League' },
-    ]);
-    const choices = await service.autocomplete(autocompleteInteraction('bb'));
-    expect(choices).toEqual([{ name: 'BB2020 (Premier League)', value: '20' }]);
   });
 
   it('registers itself with the registry and both button handlers on init', async () => {
@@ -356,17 +321,6 @@ describe('DeepdiveCommandService', () => {
     expect(coachDeepdive.resolve).not.toHaveBeenCalled();
   });
 
-  it('returns coach autocomplete choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, coaches } = await makeService();
-    coaches.searchByNamePrefix.mockResolvedValue([
-      { id: 20, name: 'Roze Madder' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('ro', 'coach'),
-    );
-    expect(choices).toEqual([{ name: 'Roze Madder (#20)', value: '20' }]);
-  });
-
   it('handles a coach button by resolving the id from its customId', async () => {
     const { service, coachDeepdive } = await makeService();
     coachDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
@@ -409,17 +363,6 @@ describe('DeepdiveCommandService', () => {
     expect(teamDeepdive.resolve).not.toHaveBeenCalled();
   });
 
-  it('returns team autocomplete choices labelled "<name> (#<id>)" with id values', async () => {
-    const { service, teams } = await makeService();
-    teams.searchByNamePrefix.mockResolvedValue([
-      { id: 20, name: '40 grinders' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('40', 'team'),
-    );
-    expect(choices).toEqual([{ name: '40 grinders (#20)', value: '20' }]);
-  });
-
   it('handles a team button by resolving the id from its customId', async () => {
     const { service, teamDeepdive } = await makeService();
     teamDeepdive.resolve.mockResolvedValue(SAMPLE_EMBED);
@@ -460,19 +403,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.execute(chatInput({ era: '7', player: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(playerDeepdive.resolve).not.toHaveBeenCalled();
-  });
-
-  it('returns player autocomplete choices labelled "<name> (<team>)" with id values', async () => {
-    const { service, players } = await makeService();
-    players.searchByNamePrefix.mockResolvedValue([
-      { id: 20, name: 'Griff Oberwald', teamName: 'Reikland Reavers' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('gri', 'player'),
-    );
-    expect(choices).toEqual([
-      { name: 'Griff Oberwald (Reikland Reavers)', value: '20' },
-    ]);
   });
 
   it('handles a player button by resolving the id from its customId', async () => {
@@ -522,15 +452,6 @@ describe('DeepdiveCommandService', () => {
     const result = await service.execute(chatInput({ era: '7', race: '3' }));
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(raceDeepdive.resolve).not.toHaveBeenCalled();
-  });
-
-  it('returns race autocomplete choices labelled by plain name with id values', async () => {
-    const { service, races } = await makeService();
-    races.searchByNamePrefix.mockResolvedValue([{ id: 20, name: 'Orc' }]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('or', 'race'),
-    );
-    expect(choices).toEqual([{ name: 'Orc', value: '20' }]);
   });
 
   it('handles a race button by resolving the id from its customId', async () => {
@@ -584,19 +505,6 @@ describe('DeepdiveCommandService', () => {
     );
     expect(result).toBe(DEEPDIVE_MULTIPLE_TARGETS_MESSAGE);
     expect(competitionDeepdive.resolve).not.toHaveBeenCalled();
-  });
-
-  it('returns competition autocomplete choices labelled "<name> (<league>)"', async () => {
-    const { service, competitions } = await makeService();
-    competitions.searchByNamePrefix.mockResolvedValue([
-      { id: 3, name: 'Major Season 24', leagueName: 'Premier' },
-    ]);
-    const choices = await service.autocomplete(
-      autocompleteInteraction('Maj', 'competition'),
-    );
-    expect(choices).toEqual([
-      { name: 'Major Season 24 (Premier)', value: '3' },
-    ]);
   });
 
   it('handles a competition button by resolving the id from its customId', async () => {

@@ -12,6 +12,7 @@ import { RaceDeepdiveService } from '../deepdive/facts/race-deepdive.service';
 import { TeamDeepdiveService } from '../deepdive/facts/team-deepdive.service';
 import { TrophyDeepdiveService } from '../deepdive/facts/trophy-deepdive.service';
 import { InsightsModule } from '../insights/insights.module';
+import { DeepdiveAutocompleteService } from './deepdive-autocomplete.service';
 import { DeepdiveCommandService } from './deepdive-command.service';
 import { InsightsCommandService } from './insights-command.service';
 import { SlashCommandRegistryService } from './slash-command-registry.service';
@@ -23,6 +24,7 @@ import { SlashCommandRegistryService } from './slash-command-registry.service';
   imports: [InsightsModule, TrophiesModule, TrophyAwardsModule],
   providers: [
     InsightsCommandService,
+    DeepdiveAutocompleteService,
     DeepdiveCommandService,
     SlashCommandRegistryService,
     CoachDeepdiveService,
