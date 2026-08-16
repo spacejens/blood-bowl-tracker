@@ -2,6 +2,7 @@ import { oc } from '@orpc/contract';
 import { z } from 'zod';
 
 import { batchUpsertProcedure } from './batch-upsert-procedure';
+import { resolveBatchProcedure, resolveProcedure } from './resolve-procedure';
 import { CoachSchema, UpsertCoachSchema } from './schemas/coach';
 import {
   CompetitionSchema,
@@ -61,14 +62,23 @@ export const contract = {
   coaches: {
     upsert: upsertProcedure(UpsertCoachSchema, CoachSchema),
     upsertBatch: batchUpsertProcedure(UpsertCoachSchema, CoachSchema),
+    // Resolve an external-id pair to this entity's database id. Present on
+    // every entity kind an import tool references by external id across
+    // files, phases or tools; see docs/api/rpc-conventions.md.
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   leagues: {
     upsert: upsertProcedure(UpsertLeagueSchema, LeagueSchema),
     upsertBatch: batchUpsertProcedure(UpsertLeagueSchema, LeagueSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   races: {
     upsert: upsertProcedure(UpsertRaceSchema, RaceSchema),
     upsertBatch: batchUpsertProcedure(UpsertRaceSchema, RaceSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   players: {
     upsert: upsertProcedure(UpsertPlayerSchema, PlayerSchema),
@@ -87,6 +97,8 @@ export const contract = {
   positions: {
     upsert: upsertProcedure(UpsertPositionSchema, PositionSchema),
     upsertBatch: batchUpsertProcedure(UpsertPositionSchema, PositionSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
     // Not an upsert: this adds position-race-era availability links without
     // ever removing or overwriting existing ones (see
     // PositionsService.syncRaceEras), so there's no conflict to detect and
@@ -98,6 +110,8 @@ export const contract = {
   rulesSets: {
     upsert: upsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
     upsertBatch: batchUpsertProcedure(UpsertRulesSetSchema, RulesSetSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   sppAwardValues: {
     // Not an upsert: an award value has no external ids — it is keyed by
@@ -110,6 +124,8 @@ export const contract = {
   eras: {
     upsert: upsertProcedure(UpsertEraSchema, EraSchema),
     upsertBatch: batchUpsertProcedure(UpsertEraSchema, EraSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   competitions: {
     upsert: upsertProcedure(UpsertCompetitionSchema, CompetitionSchema),
@@ -117,6 +133,8 @@ export const contract = {
       UpsertCompetitionSchema,
       CompetitionSchema,
     ),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   competitionGroups: {
     // Deliberately no `upsertBatch`: the only caller is tools/import-manual
@@ -126,6 +144,8 @@ export const contract = {
       UpsertCompetitionGroupSchema,
       CompetitionGroupSchema,
     ),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
     // The one read procedure in this contract. tools/import-tp's awards
     // import holds a competition's competitionGroupId (from its own
     // competition upsert's response) but needs the group's curated *name* to
@@ -155,6 +175,8 @@ export const contract = {
   teams: {
     upsert: upsertProcedure(UpsertTeamSchema, TeamSchema),
     upsertBatch: batchUpsertProcedure(UpsertTeamSchema, TeamSchema),
+    resolve: resolveProcedure(),
+    resolveBatch: resolveBatchProcedure(),
   },
   trophies: {
     // Deliberately no `upsertBatch`: the only caller is tools/import-manual
