@@ -87,7 +87,18 @@ describe('CompetitionGroupsProcessor', () => {
       },
       ctx.errors,
     );
-    expect(ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' })).toBe(6);
+    expect(
+      ctx.idMap.resolve(
+        { system: 'Name', id: 'Chaos Cup' },
+        'competitionGroup',
+      ),
+    ).toBe(6);
+    expect(refResolver.resolveRef).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ref: data.competitionGroups[0].league,
+        kind: 'league',
+      }),
+    );
   });
 
   it('does nothing and does not require the Name system when there are no groups', async () => {
@@ -150,7 +161,10 @@ describe('CompetitionGroupsProcessor', () => {
     expect(count).toBe(0);
     expect(groups.upsertCompetitionGroup).not.toHaveBeenCalled();
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' }),
+      ctx.idMap.resolve(
+        { system: 'Name', id: 'Chaos Cup' },
+        'competitionGroup',
+      ),
     ).toBeUndefined();
   });
 
@@ -172,7 +186,10 @@ describe('CompetitionGroupsProcessor', () => {
 
     expect(await processor.process(ctx)).toBe(0);
     expect(
-      ctx.idMap.resolve({ system: 'Name', id: 'Chaos Cup' }),
+      ctx.idMap.resolve(
+        { system: 'Name', id: 'Chaos Cup' },
+        'competitionGroup',
+      ),
     ).toBeUndefined();
   });
 });
