@@ -96,7 +96,7 @@ describe('WaitForPrReviewService rolling-comment rate-limit edits', () => {
         body: RATE_LIMIT_EDIT_SECTION,
         submittedAt: '2026-08-15T22:38:27Z',
       },
-      availableAtEpochSeconds: RATE_LIMIT_EDIT_EPOCH_SECONDS + 30 * 60,
+      availableAtEpochSeconds: RATE_LIMIT_EDIT_EPOCH_SECONDS + 30 * 60 + 60,
     });
     // First poll only: the reviews call, then the rolling-comment call.
     expect(processRunner.run).toHaveBeenCalledTimes(2);
@@ -191,7 +191,9 @@ describe('WaitForPrReviewService rolling-comment rate-limit edits', () => {
     expect(second.rateLimitComment?.id).toMatch(/^5304526638@[0-9a-f]{12}$/);
     // Anchored to the comment's own updated_at, not to "now".
     expect(second.availableAtEpochSeconds).toBe(
-      Math.floor(new Date('2026-08-15T23:10:00Z').getTime() / 1000) + 45 * 60,
+      Math.floor(new Date('2026-08-15T23:10:00Z').getTime() / 1000) +
+        45 * 60 +
+        60,
     );
   });
 
@@ -221,7 +223,7 @@ describe('WaitForPrReviewService rolling-comment rate-limit edits', () => {
     const result = await runWait({ ...OPTIONS, intervalMs: 30_000 });
 
     expect(result.availableAtEpochSeconds).toBe(
-      RATE_LIMIT_EDIT_EPOCH_SECONDS + 30 * 60,
+      RATE_LIMIT_EDIT_EPOCH_SECONDS + 30 * 60 + 60,
     );
   });
 
