@@ -2,6 +2,7 @@ import type { UpsertCompetition } from '@blood-bowl-tracker/api-contract';
 import type { Competition, Db } from '@blood-bowl-tracker/db';
 import {
   competitionExternalIds,
+  competitionGroups,
   competitions,
   competitionTeams,
   DB,
@@ -157,6 +158,7 @@ export class CompetitionsService {
         eraId: number;
         eraName: string;
         competitionGroupId: number;
+        competitionGroupName: string;
         startDate: string;
         endDate: string | null;
       }
@@ -170,11 +172,16 @@ export class CompetitionsService {
         eraId: competitions.eraId,
         eraName: eras.name,
         competitionGroupId: competitions.competitionGroupId,
+        competitionGroupName: competitionGroups.name,
         startDate: competitions.startDate,
         endDate: competitions.endDate,
       })
       .from(competitions)
       .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .innerJoin(
+        competitionGroups,
+        eq(competitionGroups.id, competitions.competitionGroupId),
+      )
       .where(eq(competitions.id, id));
     return rows[0];
   }

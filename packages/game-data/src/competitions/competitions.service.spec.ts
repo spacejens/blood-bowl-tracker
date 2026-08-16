@@ -481,6 +481,7 @@ describe('CompetitionsService', () => {
         eraId: 20,
         eraName: 'BB2020',
         competitionGroupId: 4,
+        competitionGroupName: 'The Major',
         startDate: '2024-01-15',
         endDate: '2024-06-30',
       };
@@ -488,8 +489,8 @@ describe('CompetitionsService', () => {
       await expect(service.findByIdWithEra(1)).resolves.toEqual(row);
     });
 
-    it('selects the competition group id and dates so the deepdive can link and render a duration', async () => {
-      const { db } = await build([]);
+    it('selects the competition group id/name and dates so the deepdive can link and render a duration', async () => {
+      const { db, chains } = await build([]);
       await service.findByIdWithEra(1);
       expect(Object.keys(firstCallArg(db.select) as object)).toEqual([
         'id',
@@ -498,9 +499,14 @@ describe('CompetitionsService', () => {
         'eraId',
         'eraName',
         'competitionGroupId',
+        'competitionGroupName',
         'startDate',
         'endDate',
       ]);
+      // inner join resolves the competition group's name
+      expect(
+        extractJoinColumns(firstCallArg(chains[0].innerJoin, 1, 1)),
+      ).toEqual(['competition_groups.id', 'competitions.competition_group_id']);
     });
 
     it('returns undefined when no competition matches', async () => {

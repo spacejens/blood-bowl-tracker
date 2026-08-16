@@ -78,6 +78,7 @@ type CompetitionHeaderFixture = {
   eraId: number;
   eraName: string;
   competitionGroupId: number;
+  competitionGroupName: string;
   startDate: string;
   endDate: string | null;
 };
@@ -102,6 +103,7 @@ function competitionHeader(
     eraId: 20,
     eraName: 'BB2020',
     competitionGroupId: 4,
+    competitionGroupName: 'The Major',
     startDate: '2024-01-15',
     endDate: '2024-06-30',
     ...overrides,
@@ -166,6 +168,7 @@ describe('CompetitionDeepdiveService', () => {
           description: [
             'Type: season',
             'Era: BB2020',
+            'Group: The Major',
             'Duration: 2024-01-15 – 2024-06-30',
             '',
             'Participating teams:',
@@ -196,7 +199,7 @@ describe('CompetitionDeepdiveService', () => {
       {
         customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Major Season 24',
+        label: 'The Major',
       },
     ]);
     expect(dateRangeFormatter.format).toHaveBeenCalledWith(
@@ -222,9 +225,10 @@ describe('CompetitionDeepdiveService', () => {
       embeds: { description: string }[];
     };
     const lines = result.embeds[0].description.split('\n');
-    expect(lines.slice(0, 5)).toEqual([
+    expect(lines.slice(0, 6)).toEqual([
       'Type: season',
       'Era: BB2020',
+      'Group: The Major',
       'Duration: 2024-01-15 – 2024-06-30',
       '',
       'Participating teams:',
@@ -337,7 +341,7 @@ describe('CompetitionDeepdiveService', () => {
       {
         customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Major Season 24',
+        label: 'The Major',
       },
     ]);
   });
@@ -387,7 +391,7 @@ describe('CompetitionDeepdiveService', () => {
       {
         customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Major Season 24',
+        label: 'The Major',
       },
     ]);
   });
@@ -404,6 +408,7 @@ describe('CompetitionDeepdiveService', () => {
           eraId: 20,
           eraName: 'BB2020',
           competitionGroupId: 4,
+          competitionGroupName: 'Chaos Cup',
           startDate: '2024-10-01',
           endDate: '2024-10-02',
         },
@@ -429,7 +434,7 @@ describe('CompetitionDeepdiveService', () => {
       {
         customIdPrefix: COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
         entityId: '4',
-        label: 'Chaos Cup 24',
+        label: 'Chaos Cup',
       },
     ]);
   });
