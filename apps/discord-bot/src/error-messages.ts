@@ -144,3 +144,5 @@ export const DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE =
   'The engraver is still working down the list of names on the plinth.';
 export const DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE =
   'Nobody has got their hands on this one yet.';
+export const DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE =
+  'The clerk is still tracking down which races, teams and coaches these recipients belong to.';

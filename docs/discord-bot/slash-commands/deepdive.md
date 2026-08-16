@@ -96,14 +96,17 @@ labelled `<competition> (<league>)`; `trophy` suggestions are labelled `<name>
   trophy name as the title, then `Awarded for: <competition group>` and, only
   when the trophy has one, `Description: <description>`, a blank line, and
   `Recipients:` followed by one line per award, newest-first, formatted
-  `<competition>: <team>` for a team trophy or `<competition>: <player>
-  (<team>)` for a player trophy. At most 30 recipients are shown; when there
-  are more, the list ends with an exact `…and N more not shown.` note computed
-  from the trophy's true award count. A trophy with no recorded awards shows a
-  short "nobody has got their hands on this one yet" message instead of a
-  list. Each shown recipient is rendered as a drill-down button to whoever
-  actually received the trophy — the team for a team trophy, the player for a
-  player trophy — with no button for the competition it was awarded at.
+  `<competition>: <team> (<race>, <coach>)` for a team trophy or
+  `<competition>: <player> (<position>, <team>, <race>, <era>, <coach>)` for a
+  player trophy — the same race/coach and position/team/race/era/coach context
+  the `team.toplist` and `player.toplist` insights append to their own rows.
+  At most 30 recipients are shown; when there are more, the list ends with an
+  exact `…and N more not shown.` note computed from the trophy's true award
+  count. A trophy with no recorded awards shows a short "nobody has got their
+  hands on this one yet" message instead of a list. Each shown recipient is
+  rendered as a drill-down button to whoever actually received the trophy —
+  the team for a team trophy, the player for a player trophy — with no button
+  for the competition it was awarded at.
 - **A trophy that matches nothing** — the bot replies with a not-found
   message.
 

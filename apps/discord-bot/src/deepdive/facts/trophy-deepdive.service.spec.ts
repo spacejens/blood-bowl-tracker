@@ -25,9 +25,14 @@ import {
 import {
   DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE,
   DEEPDIVE_TROPHY_NOT_FOUND_MESSAGE,
+  DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE,
   DEEPDIVE_TROPHY_RECIPIENTS_TIMEOUT_MESSAGE,
   DEEPDIVE_TROPHY_TIMEOUT_MESSAGE,
 } from '../../error-messages';
+import { PlayerContextService } from '../../insights/player-context.service';
+import { passthroughPlayerContext } from '../../insights/player-context-mock.test-helpers';
+import { TeamContextService } from '../../insights/team-context.service';
+import { passthroughTeamContext } from '../../insights/team-context-mock.test-helpers';
 import {
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
@@ -39,6 +44,8 @@ interface MakeServiceOptions {
   trophyAwards: MockProxy<TrophyAwardsService>;
   databaseTimeout?: MockProxy<DatabaseTimeoutService>;
   entityComponents?: MockProxy<EntityComponentsService>;
+  teamContext?: MockProxy<TeamContextService>;
+  playerContext?: MockProxy<PlayerContextService>;
 }
 
 async function makeService({
@@ -46,11 +53,15 @@ async function makeService({
   trophyAwards,
   databaseTimeout = mockDatabaseTimeout(),
   entityComponents = nullEntityComponents(),
+  teamContext = passthroughTeamContext(),
+  playerContext = passthroughPlayerContext(),
 }: MakeServiceOptions): Promise<{
   service: TrophyDeepdiveService;
   databaseTimeout: MockProxy<DatabaseTimeoutService>;
   entityComponents: MockProxy<EntityComponentsService>;
   trophyAwards: MockProxy<TrophyAwardsService>;
+  teamContext: MockProxy<TeamContextService>;
+  playerContext: MockProxy<PlayerContextService>;
 }> {
   const moduleRef = await Test.createTestingModule({
     providers: [
@@ -59,6 +70,8 @@ async function makeService({
       { provide: TrophyAwardsService, useValue: trophyAwards },
       { provide: DatabaseTimeoutService, useValue: databaseTimeout },
       { provide: EntityComponentsService, useValue: entityComponents },
+      { provide: TeamContextService, useValue: teamContext },
+      { provide: PlayerContextService, useValue: playerContext },
     ],
   }).compile();
   return {
@@ -66,6 +79,8 @@ async function makeService({
     databaseTimeout,
     entityComponents,
     trophyAwards,
+    teamContext,
+    playerContext,
   };
 }
 
@@ -226,16 +241,98 @@ describe('TrophyDeepdiveService', () => {
     expect(lines[0]).toBe('Awarded for: Major');
   });
 
-  it('renders a player recipient as "<competition>: <player> (<team>)"', async () => {
+  it('renders a player recipient as "<competition>: <player><context>"', async () => {
     const { service } = await makeService({
       trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
       trophyAwards: makeAwards([playerRecipient()]),
+      playerContext: passthroughPlayerContext(
+        ' (Blitzer, Reikland Reavers, Human, Season 24 Era, Ariel Fenwick)',
+      ),
     });
 
     const lines = descriptionLines(await service.resolve(1));
 
     expect(lines).toContain(
-      'Major Season 24: Griff Oberwald (Reikland Reavers)',
+      'Major Season 24: Griff Oberwald (Blitzer, Reikland Reavers, Human, Season 24 Era, Ariel Fenwick)',
+    );
+  });
+
+  it("decorates a team recipient with the team's race and coach context", async () => {
+    const { service, teamContext } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([teamRecipient()]),
+      teamContext: passthroughTeamContext(' (Human, Ariel Fenwick)'),
+    });
+
+    const lines = descriptionLines(await service.resolve(1));
+
+    expect(lines).toContain(
+      'Major Season 24: Reikland Reavers (Human, Ariel Fenwick)',
+    );
+    expect(teamContext.attachSuffixes).toHaveBeenCalledWith(
+      [teamRecipient()],
+      expect.any(Function) as (row: unknown) => number,
+      { includeRace: true, includeCoach: true },
+    );
+  });
+
+  it("decorates a player recipient with the player's position, team, race, era and coach context", async () => {
+    const { service, playerContext } = await makeService({
+      trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
+      trophyAwards: makeAwards([playerRecipient()]),
+    });
+
+    await service.resolve(1);
+
+    expect(playerContext.attachSuffixes).toHaveBeenCalledWith(
+      [playerRecipient()],
+      expect.any(Function) as (row: unknown) => number,
+      {
+        includePosition: true,
+        includeTeam: true,
+        includeRace: true,
+        includeEra: true,
+        includeCoach: true,
+      },
+    );
+  });
+
+  it('only decorates team recipients through the team context lookup, and player recipients through the player context lookup', async () => {
+    const { service, teamContext, playerContext } = await makeService({
+      trophies: makeTrophies(trophyHeader({ name: 'Most Violent Player' })),
+      trophyAwards: makeAwards([playerRecipient()]),
+    });
+
+    await service.resolve(1);
+
+    expect(teamContext.attachSuffixes).toHaveBeenCalledWith(
+      [],
+      expect.any(Function) as (row: unknown) => number,
+      { includeRace: true, includeCoach: true },
+    );
+    expect(playerContext.attachSuffixes).toHaveBeenCalledWith(
+      [playerRecipient()],
+      expect.any(Function) as (row: unknown) => number,
+      expect.anything(),
+    );
+  });
+
+  it('returns the recipient context timeout message when the team/player context lookup times out', async () => {
+    const databaseTimeout = mockDatabaseTimeout();
+    // The header, count and list pass through; the fourth run() (the
+    // team/player context lookup) times out.
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    databaseTimeout.run.mockImplementationOnce(async (work) => work);
+    stubDatabaseTimeoutOnce(databaseTimeout);
+    const { service } = await makeService({
+      trophies: makeTrophies(trophyHeader()),
+      trophyAwards: makeAwards([teamRecipient()]),
+      databaseTimeout,
+    });
+
+    await expect(service.resolve(1)).resolves.toBe(
+      DEEPDIVE_TROPHY_RECIPIENT_CONTEXT_TIMEOUT_MESSAGE,
     );
   });
 
@@ -263,17 +360,10 @@ describe('TrophyDeepdiveService', () => {
     expect(trophyAwards.listRecipients).not.toHaveBeenCalled();
   });
 
-  it('does not call the recipient list query when the count is zero, even if that call would time out', async () => {
-    const databaseTimeout = mockDatabaseTimeout();
-    // The header and the count pass through; a third run() is stubbed to time
-    // out so the test would fail if the list query were still reached.
-    databaseTimeout.run.mockImplementationOnce(async (work) => work);
-    databaseTimeout.run.mockImplementationOnce(async (work) => work);
-    stubDatabaseTimeoutOnce(databaseTimeout);
+  it('does not call the recipient list query when the count is zero', async () => {
     const { service, trophyAwards } = await makeService({
       trophies: makeTrophies(trophyHeader()),
       trophyAwards: makeAwards([], 0),
-      databaseTimeout,
     });
 
     const lines = descriptionLines(await service.resolve(1));
