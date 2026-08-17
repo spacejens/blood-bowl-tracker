@@ -81,6 +81,15 @@ export function mockEraDataConfigService(
  * come from `extra`'s matching map when supplied. A kind with no map (or an
  * id the map doesn't declare) resolves to nothing, matching a real
  * unresolved reference.
+ *
+ * Limitation: the returned `lookupMap` stub ignores its `refs` argument
+ * entirely and always answers every entry declared for the requested
+ * `kind` — so a service that requests the *wrong* references (e.g. the
+ * wrong external id, or omits one it should have asked for) still gets ids
+ * back here. Only an explicit
+ * `expect(lookup.lookupMap).toHaveBeenCalledWith(...)` assertion in the
+ * test itself catches that class of bug; add one when the request shape
+ * matters to what's being tested.
  */
 export function mockReferenceLookupService(
   eraIdsByName: Map<string, number>,
