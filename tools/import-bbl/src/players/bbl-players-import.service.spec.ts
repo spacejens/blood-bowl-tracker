@@ -971,6 +971,71 @@ describe('BblPlayersImportService', () => {
     expect(mocks.playersImport.upsertPlayerResult).not.toHaveBeenCalled();
   });
 
+  it('records a page-parse error via the main loop for a team whose race id cannot be resolved, without aborting the run for other pages', async () => {
+    // Regression test for bfa7bc34: the pre-pass loop that collects position
+    // refs now wraps its resolveDefiniteRaceId call in try/catch and silently
+    // skips a bad team (`continue`), rather than letting the throw abort the
+    // whole importPlayers run before any ImportResult is produced. The main
+    // loop below re-processes the same page inside its own try/catch, which
+    // is what actually records the error via pageParseError.build. This test
+    // proves both: the run completes (doesn't reject) and still imports a
+    // player from another page, and the bad page's error is recorded exactly
+    // once by the main loop, not the pre-pass.
+    const badTeam: UpsertTeam = {
+      name: 'Bad Team',
+      raceId: 999,
+      coachId: 9,
+      eras: [],
+      externalIds: [],
+    };
+    const localTeamsByCode = new Map<string, UpsertTeam>([
+      ['knu', team],
+      ['bad', badTeam],
+    ]);
+    const badPlayer: BblPlayer = {
+      pid: '77',
+      name: 'Bad Player',
+      typId: '33',
+      teamCode: 'bad',
+      sppTotal: null,
+    };
+    const { service, mocks } = await makeService(
+      mockBblSourceReaderByType({
+        pl: [plPage(badPlayer, '77'), plPage(goodPlayer, '42')],
+      }),
+    );
+    mocks.upsertFieldNarrowing.resolveDefiniteRaceId.mockImplementation((t) => {
+      if (t === badTeam) {
+        throw new Error('no resolvable race id');
+      }
+      return t.raceId as number;
+    });
+
+    const { result, playerIdsByPid } = await service.importPlayers({
+      teamsByCode: localTeamsByCode,
+      racesByBblId,
+    });
+
+    // The run resolves rather than rejecting, and still returns the mocked
+    // result unchanged.
+    expect(result).toBe(CANNED_RESULT);
+    const { imported, errors } = resultArgs(mocks.importResults);
+    // Exactly one error: the pre-pass's catch is silent (no push), so only
+    // the main loop's catch records it.
+    expect(errors).toEqual([CANNED_PAGE_PARSE_ERROR]);
+    expect(mocks.pageParseError.build).toHaveBeenCalledTimes(1);
+    expect(mocks.pageParseError.build).toHaveBeenCalledWith(
+      { player: JSON.stringify(badPlayer), pid: '77' },
+      'player',
+      expect.any(Error),
+    );
+    // The bad page is skipped, but the run continues and still imports the
+    // player from the other page.
+    expect(imported).toBe(1);
+    expect(playerIdsByPid.has('77')).toBe(false);
+    expect(playerIdsByPid.get('42')).toBe(900);
+  });
+
   it('does not count or map the player when the upsert reports failure', async () => {
     const { service, mocks } = await makeService(
       mockBblSourceReaderByType({ pl: [plPage(goodPlayer)] }),
