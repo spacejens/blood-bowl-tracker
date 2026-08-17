@@ -82,7 +82,10 @@ export {
   TrophyUpsertConflictError,
 } from './trophies/trophies.service';
 export { TrophyAwardsModule } from './trophy-awards/trophy-awards.module';
-export type { TrophyRecipient } from './trophy-awards/trophy-awards.service';
+export type {
+  TeamHonor,
+  TrophyRecipient,
+} from './trophy-awards/trophy-awards.service';
 export {
   TrophyAwardRecipientMismatchError,
   TrophyAwardsService,

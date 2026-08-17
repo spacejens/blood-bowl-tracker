@@ -57,6 +57,29 @@ export type TrophyRecipient = {
   playerName: string | null;
 };
 
+/**
+ * One honor of a team, as the team deepdive renders it: which trophy was won,
+ * in which competition, in which era, and — for a player trophy — which of the
+ * team's players won it. `playerId`/`playerName` are `null` for a team trophy.
+ *
+ * The team itself is not carried: every row is already scoped to the one team
+ * that was asked about, which the embed's title names. The era comes along so
+ * the deepdive can head each run of same-era honors with the era's name
+ * instead of repeating it on every row. Deliberately keyed by `teamId` through
+ * `team_eras` rather than by one `teamEraId`, so a future player-scoped
+ * sibling (issue #421) can reuse the same join shape with a different filter.
+ */
+export type TeamHonor = {
+  trophyId: number;
+  trophyName: string;
+  competitionName: string;
+  competitionStartDate: string;
+  eraId: number;
+  eraName: string;
+  playerId: number | null;
+  playerName: string | null;
+};
+
 @Injectable()
 export class TrophyAwardsService {
   constructor(@Inject(DB) private readonly db: Db) {}
@@ -124,6 +147,64 @@ export class TrophyAwardsService {
       .select({ count: count() })
       .from(trophyAwards)
       .where(eq(trophyAwards.trophyId, trophyId));
+    return row.count;
+  }
+
+  /**
+   * Every honor one team holds — trophies won by the team itself *and*
+   * trophies won by its players — most recent era first, capped at exactly
+   * `limit` rows. `trophy_awards` carries no team column: each award points at
+   * a `team_eras` row, which is set even for a player award (a player never
+   * changes teams), so joining through `team_eras` and filtering on
+   * `team_eras.teamId` covers both recipient kinds in one query. `players` is
+   * left-joined because a team trophy's award row names no player at all.
+   *
+   * Ordering mirrors `listRecipients` for the same reason: sorting on the
+   * era's own start date first guarantees every honor of one era stays
+   * adjacent, which is what lets the deepdive head one section per era, with
+   * `eras.id` as a tiebreaker because `startDate` carries no uniqueness
+   * constraint. Callers that need an exact remainder pair this with
+   * `countByTeam`.
+   */
+  listByTeam(teamId: number, limit: number): Promise<TeamHonor[]> {
+    return this.db
+      .select({
+        trophyId: trophies.id,
+        trophyName: trophies.name,
+        competitionName: competitions.name,
+        competitionStartDate: competitions.startDate,
+        eraId: eras.id,
+        eraName: eras.name,
+        playerId: players.id,
+        playerName: players.name,
+      })
+      .from(trophyAwards)
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .innerJoin(trophies, eq(trophies.id, trophyAwards.trophyId))
+      .innerJoin(competitions, eq(competitions.id, trophyAwards.competitionId))
+      .innerJoin(eras, eq(eras.id, competitions.eraId))
+      .leftJoin(players, eq(players.id, trophyAwards.playerId))
+      .where(eq(teamEras.teamId, teamId))
+      .orderBy(
+        desc(eras.startDate),
+        desc(eras.id),
+        desc(competitions.startDate),
+      )
+      .limit(limit);
+  }
+
+  /**
+   * How many honors this team holds in total. Kept separate from `listByTeam`
+   * for the same reason `countRecipients` is kept separate from
+   * `listRecipients`: the deepdive can render an exact "…and N more not
+   * shown." remainder without fetching every row.
+   */
+  async countByTeam(teamId: number): Promise<number> {
+    const [row] = await this.db
+      .select({ count: count() })
+      .from(trophyAwards)
+      .innerJoin(teamEras, eq(teamEras.id, trophyAwards.teamEraId))
+      .where(eq(teamEras.teamId, teamId));
     return row.count;
   }
 
