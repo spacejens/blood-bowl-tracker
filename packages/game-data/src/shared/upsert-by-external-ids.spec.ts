@@ -333,6 +333,83 @@ describe('upsertByExternalIds', () => {
     });
   });
 
+  describe('detectSemanticConflict', () => {
+    it('does not run the extra read when no hook is supplied', async () => {
+      const { db, select } = makeDb({
+        resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        entityRow: { id: 5, name: 'Foo' },
+      });
+
+      await upsertByExternalIds(baseOpts(db));
+
+      // Just the resolve select; no per-entity hook means no extra read.
+      expect(select).toHaveBeenCalledTimes(1);
+    });
+
+    it('throws the given conflict error when the hook flags the single matched row', async () => {
+      const { db, update } = makeDb({
+        resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        entityRow: { id: 5, name: 'Foo' },
+        // The re-read (2nd select call) returns the existing row the hook
+        // inspects. A stand-in for the real position case: some stored field
+        // (here `name`) disagrees with the incoming value in a way the mere
+        // single-owner match cannot see on its own.
+        reselectRows: [{ id: 5, name: 'Old name' }],
+      });
+
+      await expect(
+        upsertByExternalIds({
+          ...baseOpts(db),
+          detectSemanticConflict: (
+            existingRow: { name: string },
+            values: { name?: string },
+          ) => values.name !== undefined && existingRow.name !== values.name,
+        }),
+      ).rejects.toThrow(TestConflictError);
+      expect(update).not.toHaveBeenCalled();
+    });
+
+    it('applies the update normally when the hook reports no conflict', async () => {
+      const { db, update, updateSet } = makeDb({
+        resolveRows: [{ ownerId: 5, externalSystemId: 1, externalId: 'a' }],
+        entityRow: { id: 5, name: 'Foo' },
+        reselectRows: [{ id: 5, name: 'Foo' }],
+      });
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        detectSemanticConflict: (
+          existingRow: { name: string },
+          values: { name?: string },
+        ) => values.name !== undefined && existingRow.name !== values.name,
+      });
+
+      expect(result).toEqual({
+        row: { id: 5, name: 'Foo' },
+        created: false,
+      });
+      expect(update).toHaveBeenCalledWith(rulesSets);
+      expect(updateSet).toHaveBeenCalledWith({ name: 'Foo' });
+    });
+
+    it('does not run the hook on the insert (no-owner-matched) path', async () => {
+      const detectSemanticConflict = vi.fn().mockReturnValue(true);
+      const { db, insert } = makeDb({
+        resolveRows: [],
+        entityRow: { id: 7, name: 'Foo' },
+      });
+
+      const result = await upsertByExternalIds({
+        ...baseOpts(db),
+        detectSemanticConflict,
+      });
+
+      expect(result.created).toBe(true);
+      expect(detectSemanticConflict).not.toHaveBeenCalled();
+      expect(insert).toHaveBeenCalledWith(rulesSets);
+    });
+  });
+
   describe('concurrent external-id race', () => {
     // rulesSetExternalIds' table name is `rules_sets_external_ids`; the
     // classifier now matches on this table name rather than the (fragile,

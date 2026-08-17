@@ -53,6 +53,14 @@ export class PositionsService {
       ConflictErrorClass: PositionUpsertConflictError,
       entityLabelPlural: 'positions',
       buildExternalIdRow: (positionId, pair) => ({ positionId, ...pair }),
+      // A star position's external id can happen to collide with an
+      // already-upserted *regular* position's id (or vice versa): both are
+      // "one matched owner" as far as the external-id lookup is concerned,
+      // but applying the update would silently turn one kind of position
+      // into the other. Reject that as a conflict instead of applying it.
+      detectSemanticConflict: (existingRow, values) =>
+        values.isStarPlayer !== undefined &&
+        existingRow.isStarPlayer !== values.isStarPlayer,
     });
 
     return { position, created };

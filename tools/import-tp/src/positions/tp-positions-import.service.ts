@@ -67,10 +67,14 @@ export class TpPositionsImportService {
    * catalog-independent star id) AND a Name-system bare-name external id
    * (deduping onto the same row the inducement-hire path and the BBL
    * importer's star positions use). A star external id colliding with an
-   * already-upserted regular position's external id is now caught
-   * server-side by the position upsert itself (which finds the same external
-   * id and either updates that row or reports a CONFLICT), so no client-side
-   * collision guard is needed here any more.
+   * already-upserted regular position's external id (or vice versa) is
+   * caught server-side by the position upsert itself: `PositionsService`
+   * passes `upsertByExternalIds` a `detectSemanticConflict` hook that
+   * compares the matched row's `isStarPlayer` against the incoming value and
+   * throws `PositionUpsertConflictError` (reported as a CONFLICT) when they
+   * disagree, rather than silently overwriting the existing row's
+   * `isStarPlayer` (and other fields). No client-side collision guard is
+   * needed here.
    * `rosters` is the already-collected roster list (via
    * `RosterCollectionService`, run once for all three imports); this service
    * only groups and upserts. Idempotent.
