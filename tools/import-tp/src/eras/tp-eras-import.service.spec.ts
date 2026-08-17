@@ -266,6 +266,35 @@ describe('TpErasImportService', () => {
     expect(upsertEra).not.toHaveBeenCalled();
   });
 
+  it('records an error and imports no era, without throwing, when the league name cannot be read from config', async () => {
+    const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
+    const upsertEra = vi.fn();
+    const { service, importResults, lookup } = await makeService({
+      getEras: () => eras,
+      files: makeFiles([]),
+      bootstrap,
+      upsertEra,
+      getLeagueName: () => {
+        throw new Error(
+          'league.name is not set in import-tp-config.json5. Set league.name ' +
+            'to the name of the league the TP data covers (e.g. "tLoEGBBL").',
+        );
+      },
+    });
+
+    const { eraIdsByName } = await service.importEras();
+
+    expect(eraIdsByName.size).toBe(0);
+    const { errors } = resultArgs(importResults);
+    expect(errors).toHaveLength(1);
+    expect(errors[0].message).toContain(
+      'Cannot import eras: the league name could not be read',
+    );
+    expect(errors[0].message).toContain('league.name is not set');
+    expect(upsertEra).not.toHaveBeenCalled();
+    expect(lookup.lookupMap).not.toHaveBeenCalled();
+  });
+
   it('upserts each era with resolved rule-set ids and dates', async () => {
     const bootstrap = vi.fn().mockResolvedValue({ ok: true, ids: [1, 2] });
     const upsertEra = vi

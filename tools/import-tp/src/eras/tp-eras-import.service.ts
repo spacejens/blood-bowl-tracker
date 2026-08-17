@@ -91,7 +91,23 @@ export class TpErasImportService {
     }
     const [tpSystemId, nameSystemId] = bootstrap.ids;
 
-    const leagueName = this.leagueConfig.getLeagueName();
+    let leagueName: string;
+    try {
+      leagueName = this.leagueConfig.getLeagueName();
+    } catch (error) {
+      errors.push(
+        this.importResults.error({
+          item: { eras: eras.map((e) => e.name) },
+          message:
+            'Cannot import eras: the league name could not be read from ' +
+            `configuration: ${error instanceof Error ? error.message : String(error)}`,
+        }),
+      );
+      return {
+        result: this.importResults.result({ imported, errors }),
+        eraIdsByName,
+      };
+    }
     const leagueRef = { externalSystemId: tpSystemId, externalId: leagueName };
     const leagueIds = await this.lookup.lookupMap('league', [leagueRef]);
     const leagueId = leagueIds.get(this.lookup.keyOf(leagueRef));
