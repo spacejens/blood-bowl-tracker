@@ -24,6 +24,7 @@ import {
   ERA_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   RACE_BUTTON_CUSTOM_ID_PREFIX,
+  TEAM_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 
 type Team = {
@@ -123,7 +124,7 @@ export class TeamDeepdiveService {
       return {
         embeds: [
           {
-            title: team.name,
+            title: `${this.entityComponents.getEmojiForPrefix(TEAM_BUTTON_CUSTOM_ID_PREFIX)} ${team.name}`,
             description: [
               ...header,
               DEEPDIVE_TEAM_NO_MATCHES_MESSAGE,
@@ -199,7 +200,12 @@ export class TeamDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: team.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(TEAM_BUTTON_CUSTOM_ID_PREFIX)} ${team.name}`,
+          description,
+        },
+      ],
       components,
     };
   }
