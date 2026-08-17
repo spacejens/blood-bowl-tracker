@@ -4,30 +4,13 @@ import { Injectable } from '@nestjs/common';
 import { ExternalIdResolverService } from './external-id-resolver.service';
 import { ImportResultService } from './import-result.service';
 import type { ResolvableEntityKind } from './resolvable-entity-kind';
-import type { ImportError } from './types';
-
-export interface LookupOptions {
-  /** The kind of the entity being *referenced*, not the referring one. */
-  kind: ResolvableEntityKind;
-  ref: ExternalId;
-  errors: ImportError[];
-  item: unknown;
-  label: string;
-}
-
-export interface LookupManyOptions {
-  /** The kind of the entities being *referenced*, not the referring one. */
-  kind: ResolvableEntityKind;
-  refs: readonly ExternalId[];
-  errors: ImportError[];
-  item: unknown;
-  label: string;
-}
 
 /**
- * Resolve cross-references over the API and record one `ImportError` per
- * unresolved reference — the policy `tools/import-bbl` and `tools/import-tp`
- * share, so neither reimplements it.
+ * Resolve cross-references over the API. `tools/import-bbl` and
+ * `tools/import-tp` both use `lookupMap`: collect every reference a step
+ * needs, resolve them all in one batched round trip, then look each record's
+ * reference up locally. Reporting a miss is the caller's job, because callers
+ * phrase that error in their own source-specific terms.
  *
  * `tools/import-manual` uses `ExternalIdResolverService` directly instead,
  * because its curated data files name external systems by *name*, and its
@@ -46,40 +29,6 @@ export class ReferenceLookupService {
     return `${ref.externalSystemId}\t${ref.externalId}`;
   }
 
-  async lookup(options: LookupOptions): Promise<number | undefined> {
-    const id = await this.resolver.resolve(options.kind, options.ref);
-    if (id === undefined) {
-      options.errors.push(this.missError(options.ref, options));
-    }
-    return id;
-  }
-
-  /**
-   * Resolve a list in one round trip. Records one error per unresolved ref
-   * and returns undefined if any failed, so the caller can skip the entry;
-   * returns the ids in order when all succeed.
-   */
-  async lookupMany(options: LookupManyOptions): Promise<number[] | undefined> {
-    if (options.refs.length === 0) {
-      return [];
-    }
-    const resolved = await this.resolver.resolveBatch(
-      options.kind,
-      options.refs,
-    );
-    const ids: number[] = [];
-    let ok = true;
-    resolved.forEach((id, index) => {
-      if (id === undefined) {
-        ok = false;
-        options.errors.push(this.missError(options.refs[index], options));
-      } else {
-        ids.push(id);
-      }
-    });
-    return ok ? ids : undefined;
-  }
-
   /**
    * Resolve many refs in one round trip and answer a map keyed by `keyOf`,
    * containing only the ones that resolved.
@@ -90,6 +39,13 @@ export class ReferenceLookupService {
    * step — the same as the id-maps this replaces — instead of one per record.
    * Reporting a miss is the caller's job here, because the callers phrase
    * that error in their own source-specific terms.
+   *
+   * A transient RPC failure never propagates out of here: every caller
+   * already has a fully-handled path for "none of this batch's refs
+   * resolved" (record an ImportError per unresolved ref, skip the affected
+   * records), so a caught failure degrades to an empty map and routes
+   * through that existing, tested behavior instead of aborting the whole
+   * run.
    */
   async lookupMap(
     kind: ResolvableEntityKind,
@@ -103,7 +59,26 @@ export class ReferenceLookupService {
     if (unique.length === 0) {
       return new Map();
     }
-    const resolved = await this.resolver.resolveBatch(kind, unique);
+    let resolved: (number | undefined)[];
+    try {
+      resolved = await this.resolver.resolveBatch(kind, unique);
+    } catch (error) {
+      // This ImportError is a diagnostic of the *batch-level* cause,
+      // recorded (not thrown) the same way ImportRunnerService's
+      // recordUpsert/recordUpsertResult record a caught upsert failure --
+      // it is logged here, since lookupMap has no errors[] of its own to
+      // append to, rather than duplicated into each caller's per-ref errors.
+      const message = error instanceof Error ? error.message : String(error);
+      const importError = this.importResults.error({
+        item: { kind, refCount: unique.length },
+        message:
+          `Reference lookup for "${kind}" failed for a batch of ` +
+          `${unique.length} reference(s): ${message}. Every reference in ` +
+          'this batch will be reported as unresolved.',
+      });
+      console.error(importError.message);
+      return new Map();
+    }
     const map = new Map<string, number>();
     resolved.forEach((id, index) => {
       if (id !== undefined) {
@@ -111,15 +86,5 @@ export class ReferenceLookupService {
       }
     });
     return map;
-  }
-
-  private missError(
-    ref: ExternalId,
-    options: { errors: ImportError[]; item: unknown; label: string },
-  ): ImportError {
-    return this.importResults.error({
-      item: options.item,
-      message: `${options.label}: could not resolve reference ${ref.externalSystemId}|${ref.externalId}.`,
-    });
   }
 }
