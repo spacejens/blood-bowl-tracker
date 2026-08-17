@@ -70,8 +70,6 @@ async function makeService({
   eraIdsByName = new Map([
     ['Fourth era', 100],
     ['Fifth era', 200],
-    ['Dwarf', 100],
-    ['Human', 100],
   ]),
   raceIdsByCode = new Map([
     ['Dwarf', 50],
@@ -435,14 +433,14 @@ describe('TpPositionsImportService', () => {
 
     const { starPositionIds } = await service.importPositions(
       [
-        rosterEntry('Dwarf', {
+        rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
           raceName: 'Dwarf',
           positions: [],
           starPositions: [{ tpPositionId: 5002, name: "Morg 'n' Thorg" }],
           id: 1,
         }),
-        rosterEntry('Human', {
+        rosterEntry('Fourth era', {
           teamRace: 'Human',
           raceName: 'Human',
           positions: [],
@@ -485,7 +483,7 @@ describe('TpPositionsImportService', () => {
 
     const { starPositionIds } = await service.importPositions(
       [
-        rosterEntry('Dwarf', {
+        rosterEntry('Fourth era', {
           teamRace: 'Dwarf',
           raceName: 'Dwarf',
           positions: [],
