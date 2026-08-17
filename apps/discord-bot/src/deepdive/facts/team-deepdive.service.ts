@@ -64,11 +64,12 @@ const TOP_PLAYERS_TOP_ENTRIES = 5;
 const MAX_TEAM_HONORS = 30;
 
 /**
- * Composes the team header (race + coach + eras), career span, and top-players
- * list into a single embed. Shared by `/deepdive team:<id>` and the team
- * deepdive buttons. Each DB call is wrapped in `databaseTimeout.run` with a
- * `null` sentinel so a timeout is distinguishable from a genuine "not found" /
- * "no matches" (`undefined`).
+ * Composes the team header (race + coach + eras), career span, honors (its own
+ * trophies and its players' trophies), and top-players list into a single
+ * embed. Shared by `/deepdive team:<id>` and the team deepdive buttons. Each
+ * DB call is wrapped in `databaseTimeout.run` with a `null` sentinel so a
+ * timeout is distinguishable from a genuine "not found" / "no matches"
+ * (`undefined`).
  */
 @Injectable()
 export class TeamDeepdiveService {
@@ -213,13 +214,13 @@ export class TeamDeepdiveService {
     // the team, its race and its coach are the embed's own header, and the era
     // is named by the section heading this row sits under. Skipped entirely
     // when no honor is a player award, for the same reason the list query is.
-    const playerHonors = honors.filter((honor) => honor.playerId !== null);
+    const playerHonors = honors.filter(isPlayerHonor);
     let honorSuffixes = new Map<number, string>();
     if (playerHonors.length > 0) {
       const decoratedHonors = await this.databaseTimeout.run(
         this.playerContext.attachSuffixes(
           playerHonors,
-          (honor) => honor.playerId as number,
+          (honor) => honor.playerId,
           {
             includePosition: true,
             includeTeam: false,
@@ -234,10 +235,7 @@ export class TeamDeepdiveService {
         return DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE;
       }
       honorSuffixes = new Map(
-        decoratedHonors.map((honor) => [
-          honor.playerId as number,
-          honor.contextSuffix,
-        ]),
+        decoratedHonors.map((honor) => [honor.playerId, honor.contextSuffix]),
       );
     }
 
@@ -254,7 +252,7 @@ export class TeamDeepdiveService {
     }
 
     const honorLines =
-      honorsTotal === 0
+      honors.length === 0
         ? ['Honors: None recorded']
         : [
             'Honors:',
@@ -325,9 +323,9 @@ export class TeamDeepdiveService {
     teamName: string,
     suffixes: Map<number, string>,
   ): string {
-    return honor.playerId === null || honor.playerName === null
-      ? `${honor.trophyName}: ${teamName}`
-      : `${honor.trophyName}: ${honor.playerName}${suffixes.get(honor.playerId) ?? ''}`;
+    return isPlayerHonor(honor)
+      ? `${honor.trophyName}: ${honor.playerName}${suffixes.get(honor.playerId) ?? ''}`
+      : `${honor.trophyName}: ${teamName}`;
   }
 
   /**
@@ -340,15 +338,29 @@ export class TeamDeepdiveService {
       entityId: String(honor.trophyId),
       label: honor.trophyName,
     };
-    return honor.playerId === null || honor.playerName === null
-      ? [trophyEntry]
-      : [
+    return isPlayerHonor(honor)
+      ? [
           trophyEntry,
           {
             customIdPrefix: PLAYER_BUTTON_CUSTOM_ID_PREFIX,
             entityId: String(honor.playerId),
             label: honor.playerName,
           },
-        ];
+        ]
+      : [trophyEntry];
   }
+}
+
+/**
+ * Narrows a `TeamHonor` to its player-award shape. Checks both `playerId` and
+ * `playerName` (rather than either alone) so the filter, the suffix lookup,
+ * and the two formatters below all agree on what counts as a player honor —
+ * `players.name` is `NOT NULL` in the schema, so the two fields can never
+ * actually disagree, but a single shared predicate keeps that invariant
+ * enforced in one place instead of asserted at each call site.
+ */
+function isPlayerHonor(
+  honor: TeamHonor,
+): honor is TeamHonor & { playerId: number; playerName: string } {
+  return honor.playerId !== null && honor.playerName !== null;
 }

@@ -845,6 +845,26 @@ describe('TeamDeepdiveService', () => {
     expect(trophyAwards.listByTeam).not.toHaveBeenCalled();
   });
 
+  it('shows "Honors: None recorded" when the count is stale but the list comes back empty', async () => {
+    // A nonzero countByTeam paired with a zero-row listByTeam can happen if an
+    // award is deleted between the two queries; the empty state must key off
+    // the rows actually returned, not the (now stale) total.
+    const { service } = await makeService({
+      teams: makeTeams({
+        team: grinders,
+        span: { start: '2021-09-01', end: '2023-06-10' },
+      }),
+      leaderboard: passthroughLeaderboard(),
+      trophyAwards: makeTrophyAwards([], 5),
+    });
+    const result = (await service.resolve(1)) as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Honors: None recorded',
+    );
+  });
+
   it('caps the honors list and appends an exact remainder note when there are more', async () => {
     const { service, trophyAwards } = await makeService({
       teams: makeTeams({
