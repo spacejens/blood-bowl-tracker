@@ -66,9 +66,8 @@ async function run(): Promise<ImportResult> {
     // consumes competitionOutcome.matchesByCompetitionId rather than re-scanning.
     // Each competition's type (for match category classification) comes from
     // the same competitions import's upsert payloads, keyed by DB competition
-    // id via the locally resolved competitionIdsByTpId
-    // (TpCompetitionIdResolverService's own internal map, folded directly into
-    // this response).
+    // id via competitionTypesByCompetitionId, resolved just above by
+    // TpCompetitionIdResolverService.
 
     const { result: matchResult, matchIdsByTpId } = await app
       .get(TpMatchesImportService)

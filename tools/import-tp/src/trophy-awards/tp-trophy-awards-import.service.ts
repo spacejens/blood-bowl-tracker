@@ -138,7 +138,7 @@ export class TpTrophyAwardsImportService {
       await this.awardsReader.getAwardsByDirectory(errors);
     // One batched lookup for the whole run, not one per competition: each
     // competition's DB id is resolved server-side by external id (its TP id,
-    // stringified, under its own upsert's external system id).
+    // stringified, under this run's TP external system id).
     const competitionIds = await this.lookup.lookupMap(
       'competition',
       [...options.competitionsByTpId].map(([tpId]) => ({
