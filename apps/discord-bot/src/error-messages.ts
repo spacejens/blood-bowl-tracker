@@ -106,6 +106,8 @@ export const DEEPDIVE_TEAM_PLAYER_CONTEXT_TIMEOUT_MESSAGE =
   'The team scout is still checking which positions those players line up in.';
 export const DEEPDIVE_TEAM_ERAS_TIMEOUT_MESSAGE =
   'The league registrar is still digging out which eras this team signed up for.';
+export const DEEPDIVE_TEAM_HONORS_TIMEOUT_MESSAGE =
+  'The trophy cabinet is still being unlocked to see what this lot have won.';
 export const DEEPDIVE_PLAYER_NOT_FOUND_MESSAGE =
   'No such player has ever pulled on a jersey in this league.';
 export const DEEPDIVE_PLAYER_TIMEOUT_MESSAGE =
