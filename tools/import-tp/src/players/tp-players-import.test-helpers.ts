@@ -58,7 +58,7 @@ export const CANNED_RESULT: ImportResult = {
 };
 
 /** The canned ImportError the mocked RosterCollectionService.unknownEraError returns. */
-export const CANNED_UNKNOWN_ERA_ERROR: ImportError = {
+const CANNED_UNKNOWN_ERA_ERROR: ImportError = {
   item: { canned: true },
   message: 'canned unknown era error',
 };

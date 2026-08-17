@@ -91,7 +91,7 @@ export const eraIdsByName = new Map<string, number>([
  * ReferenceLookupService itself does, without reimplementing its resolution
  * algorithm (idsByName is supplied by the caller, not derived here).
  */
-export function mockEraLookup(
+function mockEraLookup(
   lookup: MockProxy<ReferenceLookupService>,
   idsByName: Map<string, number>,
 ): void {
@@ -116,7 +116,7 @@ export function mockEraLookup(
  * packages/import/src/match-date-range.service.spec.ts; each test stubs the
  * exact range it expects and asserts what the service does with it.
  */
-export const CANNED_RANGE: MatchDateRange = {
+const CANNED_RANGE: MatchDateRange = {
   earliestDate: new Date(Date.UTC(2011, 11, 7)),
   latestDate: new Date(Date.UTC(2011, 11, 18)),
   spanDays: 11,
