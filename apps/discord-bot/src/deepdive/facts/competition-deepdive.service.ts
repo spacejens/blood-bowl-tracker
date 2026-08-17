@@ -298,16 +298,20 @@ export class CompetitionDeepdiveService {
   /**
    * A plain boolean (rather than a type guard) so it can gate both the
    * filters in `buildAwardContext` and the ternaries above with one shared
-   * predicate. Checks `playerId` rather than trusting `recipientKind` alone:
-   * `trophy_awards` carries no database constraint preventing a `player`-kind
-   * row from having a null `playerId` (see
-   * `packages/db/src/schema/trophy-awards.ts`), so a row like that is treated
-   * as a team award — using `teamName`/`teamId`, which are never null —
-   * rather than rendering a `null` label or a broken button. Mirrors
-   * `TrophyDeepdiveService.isTeamRecipient`.
+   * predicate. Checks `playerId` and `playerName` rather than trusting
+   * `recipientKind` alone: `trophy_awards` carries no database constraint
+   * preventing a `player`-kind row from having a null `playerId` or
+   * `playerName` (see `packages/db/src/schema/trophy-awards.ts`), so a row
+   * like that is treated as a team award — using `teamName`/`teamId`, which
+   * are never null — rather than rendering a `null` label or a broken
+   * button. Mirrors `TrophyDeepdiveService.isTeamRecipient`.
    */
   private isTeamAward(award: CompetitionTrophyAward): boolean {
-    return award.recipientKind === 'team' || award.playerId === null;
+    return (
+      award.recipientKind === 'team' ||
+      award.playerId === null ||
+      award.playerName === null
+    );
   }
 
   /**

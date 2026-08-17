@@ -635,6 +635,35 @@ describe('CompetitionDeepdiveService', () => {
     );
   });
 
+  it('treats a malformed player-kind award with a null playerId/playerName as a team award', async () => {
+    const entityComponents = entityComponentsMock();
+    entityComponents.buildEntityComponents.mockReturnValue({
+      components: [],
+      overflowNote: null,
+    });
+    const malformedAward = playerAward({ playerId: null, playerName: null });
+    const { service } = await makeService({
+      competitions: makeCompetitions({
+        competition: competitionHeader(),
+        teams: [],
+      }),
+      trophyAwards: makeTrophyAwards([malformedAward]),
+      entityComponents,
+    });
+    const result = (await service.resolve(1)) as unknown as {
+      embeds: { description: string }[];
+    };
+    expect(result.embeds[0].description.split('\n')).toContain(
+      'Most Valuable Player: Reikland Reavers',
+    );
+    const [entries] = entityComponents.buildEntityComponents.mock.calls[0];
+    expect(entries).toContainEqual({
+      customIdPrefix: TEAM_BUTTON_CUSTOM_ID_PREFIX,
+      entityId: '9',
+      label: 'Reikland Reavers',
+    });
+  });
+
   it('renders team and player awards together, in the order the query returned them', async () => {
     const { service } = await makeService({
       competitions: makeCompetitions({
