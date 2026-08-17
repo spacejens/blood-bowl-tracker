@@ -21,6 +21,7 @@ import { DateRangeFormatterService } from '../../shared/date-range-formatter.ser
 import { EraSectionGrouperService } from '../../shared/era-section-grouper.service';
 import {
   COMPETITION_BUTTON_CUSTOM_ID_PREFIX,
+  COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 
@@ -143,7 +144,12 @@ export class CompetitionGroupDeepdiveService {
     ].join('\n');
 
     return {
-      embeds: [{ title: group.name, description }],
+      embeds: [
+        {
+          title: `${this.entityComponents.getEmojiForPrefix(COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX)} ${group.name}`,
+          description,
+        },
+      ],
       ...(components.length > 0 ? { components } : {}),
     };
   }

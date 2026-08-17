@@ -18,9 +18,11 @@ import {
 } from '../../database-timeout-mock.test-helpers';
 import { EntityComponentsService } from '../../entity-components.service';
 import {
+  entityComponentsMock,
   nullEntityComponents,
   passthroughEntityComponents,
   STUB_BUTTON_EMOJI,
+  stubEntityEmoji,
 } from '../../entity-components-mock.test-helpers';
 import {
   DEEPDIVE_TROPHY_NO_RECIPIENTS_MESSAGE,
@@ -42,6 +44,7 @@ import {
   COMPETITION_GROUP_BUTTON_CUSTOM_ID_PREFIX,
   PLAYER_BUTTON_CUSTOM_ID_PREFIX,
   TEAM_BUTTON_CUSTOM_ID_PREFIX,
+  TROPHY_BUTTON_CUSTOM_ID_PREFIX,
 } from '../button-custom-ids';
 import { TrophyDeepdiveService } from './trophy-deepdive.service';
 
@@ -233,7 +236,9 @@ describe('TrophyDeepdiveService', () => {
     const result = await service.resolve(1);
 
     const reply = result as { embeds: { title: string }[] };
-    expect(reply.embeds[0].title).toBe('Chaos Cup');
+    expect(reply.embeds[0].title).toBe(
+      `${stubEntityEmoji(TROPHY_BUTTON_CUSTOM_ID_PREFIX)} Chaos Cup`,
+    );
     expect(descriptionLines(result)).toEqual([
       'Awarded for: Major',
       'Description: The team that wins after four matches.',
@@ -563,7 +568,7 @@ describe('TrophyDeepdiveService', () => {
   });
 
   it('appends the component overflow note to the description', async () => {
-    const entityComponents = mock<EntityComponentsService>();
+    const entityComponents = entityComponentsMock();
     entityComponents.buildEntityComponents.mockReturnValue({
       components: [],
       overflowNote: '…and 3 more without a link.',
