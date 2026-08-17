@@ -121,6 +121,8 @@ export const DEEPDIVE_PLAYER_COUNTS_TIMEOUT_MESSAGE =
   'The stat-keeper is still tallying up everything this player got up to.';
 export const DEEPDIVE_PLAYER_NO_EVENTS_MESSAGE =
   "This player hasn't done anything worth writing home about yet.";
+export const DEEPDIVE_PLAYER_HONORS_TIMEOUT_MESSAGE =
+  "The groundskeeper is still polishing this one's share of the trophy cabinet.";
 export const DEEPDIVE_RACE_NOT_FOUND_MESSAGE =
   'No such race has ever fielded a team in these parts.';
 export const DEEPDIVE_RACE_TIMEOUT_MESSAGE =
